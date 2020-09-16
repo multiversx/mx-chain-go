@@ -192,13 +192,13 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
 	err = verifyBLSPublicKeys(registrationData, args.Arguments)
 	if err != nil {
-		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetAllBlsKeysFromRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -227,7 +227,7 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) < 1 {
@@ -241,7 +241,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
@@ -286,7 +286,7 @@ func (s *stakingAuctionSC) changeRewardAddress(args *vmcommon.ContractCallInput)
 
 func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
@@ -312,7 +312,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 	if len(registrationData.BlsPubKeys) == 0 {
@@ -358,7 +358,7 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 	}
 
 	if !foundOldKey {
-		return vm.ErrBLSPublicKeyMissmatch
+		return vm.ErrBLSPublicKeyMismatch
 	}
 
 	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKeys@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
@@ -376,7 +376,7 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 
 func (s *stakingAuctionSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
@@ -661,7 +661,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	auctionConfig := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -723,6 +723,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	// do the optionals - rewardAddress and maxStakePerNode
 	if uint64(lenArgs) > maxNodesToRun*2+1 {
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
+			//TODO: check if the args len is enough or a correct address must be provided
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
 				if !isAlreadyRegistered {
 					registrationData.RewardAddress = args.Arguments[i]
@@ -825,7 +826,7 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 	if len(data) > 0 {
 		err := s.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
-			log.Debug("unmarshal error on staking SC stake function",
+			log.Debug("unmarshal error on auction SC stake function",
 				"error", err.Error(),
 			)
 			return nil, err
@@ -863,7 +864,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 	if len(data) > 0 {
 		err := s.marshalizer.Unmarshal(stakedData, data)
 		if err != nil {
-			log.Debug("unmarshal error on staking SC stake function",
+			log.Debug("unmarshal error on auction SC getStakedData function",
 				"error", err.Error(),
 			)
 			return nil, err
@@ -879,7 +880,7 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedData, error) {
 
 func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
@@ -895,7 +896,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -908,7 +909,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	blsKeys := args.Arguments
 	err = verifyBLSPublicKeys(registrationData, blsKeys)
 	if err != nil {
-		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetAllBlsKeysFromRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -949,7 +950,7 @@ func verifyBLSPublicKeys(registrationData *AuctionData, arguments [][]byte) erro
 		}
 
 		if !found {
-			return vm.ErrBLSPublicKeyMissmatch
+			return fmt.Errorf("%w, key %s not found", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
 		}
 	}
 
@@ -958,7 +959,7 @@ func verifyBLSPublicKeys(registrationData *AuctionData, arguments [][]byte) erro
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
@@ -974,14 +975,14 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
 	blsKeys := args.Arguments
 	err = verifyBLSPublicKeys(registrationData, blsKeys)
 	if err != nil {
-		s.eei.AddReturnMessage("could not get all blsKeys from registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetAllBlsKeysFromRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 
@@ -1068,7 +1069,7 @@ func (s *stakingAuctionSC) deleteUnBondedKeys(registrationData *AuctionData, unB
 
 func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1301,7 +1302,7 @@ func isNumArgsCorrectToStake(args [][]byte) bool {
 
 func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		s.eei.AddReturnMessage("transaction value must be zero")
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
@@ -1312,7 +1313,7 @@ func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmco
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
-		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
 	}
 

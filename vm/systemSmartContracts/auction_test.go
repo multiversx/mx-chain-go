@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1565,7 +1566,7 @@ func TestAuctionStakingSC_ExecuteStake(t *testing.T) {
 	assert.Equal(t, expectedRegistrationData, registrationData)
 }
 
-func TestAuctionStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {
+func TestAuctionStakingSC_ExecuteUnStakeValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
@@ -1574,10 +1575,31 @@ func TestAuctionStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) 
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "unStake@abc"
+	arguments.CallValue = big.NewInt(1)
+	arguments.Function = "unStake"
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.TransactionValueMustBeZero, eei.ReturnMessage)
+}
+
+func TestAuctionStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	notFoundkey := []byte("abc")
+	eei := &mock.SystemEIStub{}
+	args := createMockArgumentsForAuction()
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{notFoundkey}
+
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.CannotGetAllBlsKeysFromRegistrationData+
+		fmt.Errorf("%w, key %s not found", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(notFoundkey)).Error(), eei.ReturnMessage)
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
@@ -1589,23 +1611,27 @@ func TestAuctionStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
 	}
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
+	args.Marshalizer = &mock.MarshalizerMock{Fail: true}
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "unStake@abc"
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{[]byte("abc")}
 
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.CannotGetOrCreateRegistrationData+mock.ErrMockMarshalizer.Error(), eei.ReturnMessage)
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
+	expectedCallerAddress := []byte("caller")
 	stakedRegistrationData := StakedData{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
-		RewardAddress: nil,
+		RewardAddress: expectedCallerAddress,
 		StakeValue:    nil,
 	}
 
@@ -1614,15 +1640,43 @@ func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 
+	argsStaking := createMockStakingScArguments()
+	argsStaking.StakingSCConfig = args.StakingSCConfig
+	argsStaking.Eei = eei
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(200).Bytes()}
+	arguments.CallerAddr = expectedCallerAddress
+	arguments.Arguments = [][]byte{[]byte("abc")}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
-	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedExpectedRegData)
+	eei.SetSCAddress(args.StakingSCAddress)
+	eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
 
+	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
+	auctionData := AuctionData{
+		RewardAddress:   arguments.CallerAddr,
+		RegisterNonce:   0,
+		Epoch:           0,
+		BlsPubKeys:      [][]byte{arguments.Arguments[0]},
+		TotalStakeValue: nodePrice,
+		LockedStake:     nodePrice,
+		MaxStakePerNode: nodePrice,
+		NumRegistered:   1,
+	}
+	marshaledRegistrationData, _ := json.Marshal(auctionData)
+
+	eei.SetSCAddress(args.AuctionSCAddress)
+	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.UserError, retCode)
+	//TODO: unstake on auction does not fail any more, it adds blsKeys to failed return messages
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot unStake node which was already unStaked"))
 }
 
 func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
@@ -1644,15 +1698,44 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
 
+	argsStaking := createMockStakingScArguments()
+	argsStaking.StakingSCConfig = args.StakingSCConfig
+	argsStaking.Eei = eei
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
+
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
-	arguments.Arguments = [][]byte{wrongCallerAddress}
+	arguments.CallerAddr = wrongCallerAddress
+	arguments.Arguments = [][]byte{[]byte("abc")}
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
-	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+	eei.SetSCAddress(args.StakingSCAddress)
+	eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
+
+	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
+	auctionData := AuctionData{
+		RewardAddress:   arguments.CallerAddr,
+		RegisterNonce:   0,
+		Epoch:           0,
+		BlsPubKeys:      [][]byte{arguments.Arguments[0]},
+		TotalStakeValue: nodePrice,
+		LockedStake:     nodePrice,
+		MaxStakePerNode: nodePrice,
+		NumRegistered:   1,
+	}
+	marshaledRegistrationData, _ := json.Marshal(auctionData)
+
+	eei.SetSCAddress(args.AuctionSCAddress)
+	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 
 	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.UserError, retCode)
+	//TODO: unstake on auction does not fail any more, it adds blsKeys to failed return messages
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "unStake possible only from staker caller"))
 }
 
 func TestAuctionStakingSC_ExecuteUnStake(t *testing.T) {

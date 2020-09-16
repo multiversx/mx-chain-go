@@ -53,8 +53,8 @@ var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
 // ErrInvalidMinStepValue signals that an invalid min step value was provided
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
-// ErrBLSPublicKeyMissmatch signals that public keys do not match
-var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+// ErrBLSPublicKeyMismatch signals that public keys do not match
+var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
 
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")

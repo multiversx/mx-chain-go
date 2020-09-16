@@ -726,7 +726,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1137,7 +1137,7 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 
 func (r *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1159,7 +1159,7 @@ func (r *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommo
 
 func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1197,7 +1197,7 @@ func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*St
 
 func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1225,7 +1225,7 @@ func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 
 func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
