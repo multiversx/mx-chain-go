@@ -64,7 +64,7 @@ func initTrieMultipleValues(nr int) (data.Trie, [][]byte) {
 	hsh := keccak.Keccak{}
 
 	for i := 0; i < nr; i++ {
-		values = append(values, hsh.Compute(string(i)))
+		values = append(values, hsh.Compute(fmt.Sprint(i)))
 		_ = tr.Update(values[i], values[i])
 	}
 
