@@ -507,6 +507,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	registrationData.RewardAddress = args.Arguments[1]
+	registrationData.StakeValue.Set(r.stakeValue)
 	if !onlyRegister {
 		err = r.processStake(args.Arguments[0], registrationData, false)
 		if err != nil {
