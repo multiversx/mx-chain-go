@@ -358,7 +358,7 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 				strings.Join(generatedTxHashes, "\n"))
 			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks",
 				"received mb hash", miniBlockHdr.Hash,
-				"computed mb hash", miniBlockHdr.Hash,
+				"computed mb hash", createdMBHash,
 			)
 
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
