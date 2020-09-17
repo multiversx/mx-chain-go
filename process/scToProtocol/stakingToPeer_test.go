@@ -290,7 +290,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return peerAcc, nil
 	}
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		StakeValue: big.NewInt(100),
 	}
 	marshalizer := &mock.MarshalizerMock{}
@@ -350,7 +350,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		StakeValue:    big.NewInt(100),
 		RewardAddress: []byte(address),
 	}
@@ -411,7 +411,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		StakeValue:    big.NewInt(100),
 		RewardAddress: []byte(address),
 	}
@@ -471,7 +471,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		StakeValue:    big.NewInt(100),
 		RewardAddress: []byte(address),
 	}
@@ -532,7 +532,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return peerAccount, nil
 	}
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		StakeValue:    big.NewInt(100),
 		RewardAddress: []byte(address),
 	}
@@ -571,7 +571,7 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	arguments.PeerState = peerAccountsDB
 	stp, _ := NewStakingToPeer(arguments)
 
-	stakingData := systemSmartContracts.StakedData{
+	stakingData := systemSmartContracts.StakedDataV2{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
