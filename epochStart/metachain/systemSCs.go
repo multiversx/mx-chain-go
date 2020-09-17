@@ -218,7 +218,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	var stakingData systemSmartContracts.StakedData
+	var stakingData systemSmartContracts.StakedDataV2
 	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
 		return nil, err
