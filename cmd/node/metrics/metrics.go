@@ -44,6 +44,8 @@ func InitMetrics(
 	initUint := uint64(0)
 	initString := ""
 
+	appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initUint)
+	appStatusHandler.SetUInt64Value(core.MetricNonce, initUint)
 	appStatusHandler.SetStringValue(core.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(core.MetricShardId, shardId)
 	appStatusHandler.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, numOfShards)
