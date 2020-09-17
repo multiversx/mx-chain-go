@@ -98,8 +98,8 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
-	if arguments.IndexerCacheSize <= 0 {
-		return indexer.ErrInvalidCacheSize
+	if arguments.IndexerCacheSize < 0 {
+		return indexer.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
 		return indexer.ErrNilPubkeyConverter

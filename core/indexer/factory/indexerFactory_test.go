@@ -43,10 +43,10 @@ func TestNewIndexerFactory(t *testing.T) {
 			name: "InvalidCacheSize",
 			argsFunc: func() *ArgsIndexerFactory {
 				args := createMockIndexerFactoryArgs()
-				args.IndexerCacheSize = 0
+				args.IndexerCacheSize = -1
 				return args
 			},
-			exError: indexer.ErrInvalidCacheSize,
+			exError: indexer.ErrNegativeCacheSize,
 		},
 		{
 			name: "NilAddressPubkeyConverter",
