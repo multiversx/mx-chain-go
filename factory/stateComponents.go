@@ -167,6 +167,14 @@ func (pc *stateComponents) Close() error {
 	pc.closeFunc()
 
 	// TODO: close all components
+	if pc.triesContainer != nil {
+		log.Debug("closing all store units....")
+		dataTries := pc.triesContainer.GetAll()
+		for _, trie := range dataTries {
+			err := trie.ClosePersister()
+			log.LogIfError(err)
+		}
+	}
 
 	return nil
 }

@@ -156,6 +156,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 // Closes all underlying components that need closing
 func (cc *dataComponents) Close() error {
 	if cc.store != nil {
+		log.Debug("closing all store units....")
 		return cc.store.CloseAll()
 	}
 

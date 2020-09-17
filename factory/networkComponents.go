@@ -173,5 +173,11 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 func (nc *networkComponents) Close() error {
 	nc.closeFunc()
 
+	if nc.netMessenger != nil {
+		log.Debug("calling close on the network messenger instance...")
+		err := nc.netMessenger.Close()
+		log.LogIfError(err)
+	}
+
 	return nil
 }
