@@ -29,6 +29,7 @@ type heartbeatMessageInfo struct {
 	isActive                    bool
 	nonce                       uint64
 	numInstances                uint64
+	peerSubType                 uint32
 }
 
 // newHeartbeatMessageInfo returns a new instance of a heartbeatMessageInfo
@@ -63,6 +64,7 @@ func newHeartbeatMessageInfo(
 		getTimeHandler:              timer.Now,
 		nonce:                       0,
 		numInstances:                0,
+		peerSubType:                 0,
 	}
 
 	return hbmi, nil
@@ -156,6 +158,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	peerType string,
 	nonce uint64,
 	numInstances uint64,
+	peerSubType uint32,
 ) {
 	hbmi.updateMutex.Lock()
 	defer hbmi.updateMutex.Unlock()
@@ -173,6 +176,7 @@ func (hbmi *heartbeatMessageInfo) HeartbeatReceived(
 	hbmi.isActive = true
 	hbmi.nonce = nonce
 	hbmi.numInstances = numInstances
+	hbmi.peerSubType = peerSubType
 }
 
 // UpdateShardAndPeerType - updates the shard and peerType only for a heartbeat message info

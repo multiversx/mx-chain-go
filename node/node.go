@@ -1002,9 +1002,9 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
 //TODO(next PR) remove the instantiation of the heartbeat component from here
-func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
+func (n *Node) StartHeartbeat(generalConfig config.Config, versionNumber string, prefsConfig config.PreferencesConfig) error {
 	arg := componentHandler.ArgHeartbeat{
-		HeartbeatConfig:          hbConfig,
+		GeneralConfig:            generalConfig,
 		PrefsConfig:              prefsConfig,
 		Marshalizer:              n.internalMarshalizer,
 		Messenger:                n.messenger,

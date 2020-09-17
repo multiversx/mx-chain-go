@@ -24,6 +24,28 @@ const (
 	ObserverPeer
 )
 
+// P2PPeerSubType defines the subtype of peer (e.g. FullArchive)
+type P2PPeerSubType uint32
+
+const (
+	// RegularPeer
+	RegularPeer P2PPeerSubType = iota
+	// FullHistoryObserver is a node that syncs the entire history of its shard
+	FullHistoryObserver
+)
+
+// String returns the string-ified version of P2PPeerSubType
+func (pst P2PPeerSubType) String() string {
+	switch pst {
+	case RegularPeer:
+		return "regular"
+	case FullHistoryObserver:
+		return "fullArchive"
+	default:
+		return "unknown"
+	}
+}
+
 // P2PPeerInfo represents a peer info structure
 type P2PPeerInfo struct {
 	PeerType P2PPeerType

@@ -365,6 +365,11 @@ VERSION:
 		Value: uint64(2),
 	}
 
+	fullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
+	}
+
 	startInEpoch = cli.BoolFlag{
 		Name: "start-in-epoch",
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
@@ -444,6 +449,7 @@ func main() {
 		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
+		fullArchive,
 		startInEpoch,
 		importDbDirectory,
 	}
@@ -642,9 +648,32 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
+	if ctx.IsSet(fullArchive.Name) {
+		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
 	if ctx.IsSet(startInEpoch.Name) {
-		log.Debug("start in epoch is enabled")
 		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	if generalConfig.StoragePruning.FullArchive {
+		log.Debug("full archive node is enabled")
+		if generalConfig.GeneralSettings.StartInEpochEnabled {
+			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
+			generalConfig.GeneralSettings.StartInEpochEnabled = false
+		}
+		if generalConfig.StoragePruning.CleanOldEpochsData {
+			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
+			generalConfig.StoragePruning.CleanOldEpochsData = false
+		}
+		if !generalConfig.StoragePruning.Enabled {
+			log.Warn("StoragePruning is overridden by FullArchive and set to false")
+			generalConfig.StoragePruning.Enabled = true
+		}
+		log.Warn("NumEpochsToKeep is overridden by FullArchive")
+		generalConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+	}
+	if generalConfig.GeneralSettings.StartInEpochEnabled {
+		log.Debug("start in epoch is enabled")
 		if generalConfig.GeneralSettings.StartInEpochEnabled {
 			delayedStartInterval := 2 * time.Second
 			time.Sleep(delayedStartInterval)
@@ -1068,11 +1097,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating nodes coordinator")
-	if ctx.IsSet(keepOldEpochsData.Name) {
-		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
-	if ctx.IsSet(numEpochsToSave.Name) {
-		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+
+	if !generalConfig.StoragePruning.FullArchive {
+		if ctx.IsSet(keepOldEpochsData.Name) {
+			generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+		}
+		if ctx.IsSet(numEpochsToSave.Name) {
+			generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+		}
 	}
 	if ctx.IsSet(numActivePersisters.Name) {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
@@ -2254,7 +2286,7 @@ func createNode(
 		return nil, errors.New("error creating node: " + err.Error())
 	}
 
-	err = nd.StartHeartbeat(config.Heartbeat, version, preferencesConfig.Preferences)
+	err = nd.StartHeartbeat(*config, version, preferencesConfig.Preferences)
 	if err != nil {
 		return nil, err
 	}

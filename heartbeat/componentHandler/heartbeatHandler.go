@@ -26,7 +26,7 @@ var log = logger.GetOrCreate("heartbeat/componenthandler")
 
 // ArgHeartbeat represents the heartbeat creation argument
 type ArgHeartbeat struct {
-	HeartbeatConfig          config.HeartbeatConfig
+	GeneralConfig            config.Config
 	PrefsConfig              config.PreferencesConfig
 	Marshalizer              marshal.Marshalizer
 	Messenger                heartbeat.P2PMessenger
@@ -81,7 +81,7 @@ func (hbh *HeartbeatHandler) create() error {
 	var ctx context.Context
 	ctx, hbh.cancelFunc = context.WithCancel(context.Background())
 
-	err := hbh.checkConfigParams(arg.HeartbeatConfig)
+	err := hbh.checkConfigParams(arg.GeneralConfig.Heartbeat)
 	if err != nil {
 		return err
 	}
@@ -110,6 +110,12 @@ func (hbh *HeartbeatHandler) create() error {
 		return err
 	}
 	hbh.peerTypeProvider = peerTypeProvider
+
+	peerSubType := core.RegularPeer
+	if arg.GeneralConfig.StoragePruning.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+
 	argSender := process.ArgHeartbeatSender{
 		PeerMessenger:        arg.Messenger,
 		PeerSignatureHandler: arg.PeerSignatureHandler,
@@ -118,6 +124,7 @@ func (hbh *HeartbeatHandler) create() error {
 		Topic:                core.HeartbeatTopic,
 		ShardCoordinator:     arg.ShardCoordinator,
 		PeerTypeProvider:     peerTypeProvider,
+		PeerSubType:          peerSubType,
 		StatusHandler:        arg.AppStatusHandler,
 		VersionNumber:        arg.VersionNumber,
 		NodeDisplayName:      arg.PrefsConfig.NodeDisplayName,
@@ -163,7 +170,7 @@ func (hbh *HeartbeatHandler) create() error {
 
 	argMonitor := process.ArgHeartbeatMonitor{
 		Marshalizer:                        netInputMarshalizer,
-		MaxDurationPeerUnresponsive:        time.Second * time.Duration(arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec),
+		MaxDurationPeerUnresponsive:        time.Second * time.Duration(arg.GeneralConfig.Heartbeat.DurationToConsiderUnresponsiveInSec),
 		PubKeysMap:                         pubKeysMap,
 		GenesisTime:                        arg.GenesisTime,
 		MessageHandler:                     heartBeatMsgProcessor,
@@ -173,8 +180,8 @@ func (hbh *HeartbeatHandler) create() error {
 		AntifloodHandler:                   arg.AntifloodHandler,
 		HardforkTrigger:                    arg.HardforkTrigger,
 		ValidatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
-		HeartbeatRefreshIntervalInSec:      arg.HeartbeatConfig.HeartbeatRefreshIntervalInSec,
-		HideInactiveValidatorIntervalInSec: arg.HeartbeatConfig.HideInactiveValidatorIntervalInSec,
+		HeartbeatRefreshIntervalInSec:      arg.GeneralConfig.Heartbeat.HeartbeatRefreshIntervalInSec,
+		HideInactiveValidatorIntervalInSec: arg.GeneralConfig.Heartbeat.HideInactiveValidatorIntervalInSec,
 	}
 	hbh.monitor, err = process.NewMonitor(argMonitor)
 	if err != nil {
@@ -214,7 +221,7 @@ func (hbh *HeartbeatHandler) getLatestValidators() (map[uint32][]*state.Validato
 
 func (hbh *HeartbeatHandler) startSendingHeartbeats(ctx context.Context) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	cfg := hbh.arg.HeartbeatConfig
+	cfg := hbh.arg.GeneralConfig.Heartbeat
 
 	log.Debug("heartbeat's endless sending go routine started")
 

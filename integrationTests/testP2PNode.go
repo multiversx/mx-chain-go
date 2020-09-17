@@ -183,7 +183,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
-	err = tP2pNode.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
+	err = tP2pNode.Node.StartHeartbeat(config.Config{Heartbeat: hbConfig}, "test", config.PreferencesConfig{})
 	log.LogIfError(err)
 }
 

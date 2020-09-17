@@ -22,6 +22,7 @@ type ArgHeartbeatSender struct {
 	Topic                string
 	ShardCoordinator     sharding.Coordinator
 	PeerTypeProvider     heartbeat.PeerTypeProviderHandler
+	PeerSubType          core.P2PPeerSubType
 	StatusHandler        core.AppStatusHandler
 	VersionNumber        string
 	NodeDisplayName      string
@@ -38,6 +39,7 @@ type Sender struct {
 	marshalizer          marshal.Marshalizer
 	shardCoordinator     sharding.Coordinator
 	peerTypeProvider     heartbeat.PeerTypeProviderHandler
+	peerSubType          core.P2PPeerSubType
 	statusHandler        core.AppStatusHandler
 	topic                string
 	versionNumber        string
@@ -76,7 +78,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 	if check.IfNil(arg.CurrentBlockProvider) {
 		return nil, heartbeat.ErrNilCurrentBlockProvider
 	}
-	err := VerifyHeartbeatProperyLen("application version string", []byte(arg.VersionNumber))
+	err := VerifyHeartbeatPropertyLen("application version string", []byte(arg.VersionNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +91,7 @@ func NewSender(arg ArgHeartbeatSender) (*Sender, error) {
 		topic:                arg.Topic,
 		shardCoordinator:     arg.ShardCoordinator,
 		peerTypeProvider:     arg.PeerTypeProvider,
+		peerSubType:          arg.PeerSubType,
 		statusHandler:        arg.StatusHandler,
 		versionNumber:        arg.VersionNumber,
 		nodeDisplayName:      arg.NodeDisplayName,
@@ -116,6 +119,7 @@ func (s *Sender) SendHeartbeat() error {
 		Identity:        s.keyBaseIdentity,
 		Pid:             s.peerMessenger.ID().Bytes(),
 		Nonce:           nonce,
+		PeerSubType:     uint32(s.peerSubType),
 	}
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()

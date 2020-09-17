@@ -14,13 +14,16 @@ import (
 )
 
 func createMockArgument() ArgHeartbeat {
+	heartbeatConfig := config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 2,
+		MaxTimeToWaitBetweenBroadcastsInSec: 3,
+		DurationToConsiderUnresponsiveInSec: 10,
+		HeartbeatRefreshIntervalInSec:       1,
+		HideInactiveValidatorIntervalInSec:  20,
+	}
 	arg := ArgHeartbeat{
-		HeartbeatConfig: config.HeartbeatConfig{
-			MinTimeToWaitBetweenBroadcastsInSec: 2,
-			MaxTimeToWaitBetweenBroadcastsInSec: 3,
-			DurationToConsiderUnresponsiveInSec: 10,
-			HeartbeatRefreshIntervalInSec:       1,
-			HideInactiveValidatorIntervalInSec:  20,
+		GeneralConfig: config.Config{
+			Heartbeat: heartbeatConfig,
 		},
 		PrefsConfig: config.PreferencesConfig{
 			DestinationShardAsObserver: "0",
@@ -59,7 +62,7 @@ func TestNewHeartbeatHandler_DurationToConsiderUnresponsiveInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec = 0
+	arg.GeneralConfig.Heartbeat.DurationToConsiderUnresponsiveInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
@@ -70,7 +73,7 @@ func TestNewHeartbeatHandler_MaxTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.MaxTimeToWaitBetweenBroadcastsInSec = 0
+	arg.GeneralConfig.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
@@ -81,7 +84,7 @@ func TestNewHeartbeatHandler_MinTimeToWaitBetweenBroadcastsInSec(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.MinTimeToWaitBetweenBroadcastsInSec = 0
+	arg.GeneralConfig.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = 0
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
@@ -92,8 +95,8 @@ func TestNewHeartbeatHandler_InvalidMaxTimeToWaitBetweenBroadcastsInSec(t *testi
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.MaxTimeToWaitBetweenBroadcastsInSec = 2
-	arg.HeartbeatConfig.MinTimeToWaitBetweenBroadcastsInSec = 3
+	arg.GeneralConfig.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 2
+	arg.GeneralConfig.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = 3
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
@@ -104,8 +107,8 @@ func TestNewHeartbeatHandler_InvalidDurationToConsiderUnresponsiveInSec(t *testi
 	t.Parallel()
 
 	arg := createMockArgument()
-	arg.HeartbeatConfig.DurationToConsiderUnresponsiveInSec = 2
-	arg.HeartbeatConfig.MaxTimeToWaitBetweenBroadcastsInSec = 3
+	arg.GeneralConfig.Heartbeat.DurationToConsiderUnresponsiveInSec = 2
+	arg.GeneralConfig.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 3
 	hbh, err := NewHeartbeatHandler(arg)
 
 	assert.True(t, check.IfNil(hbh))
