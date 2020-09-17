@@ -65,6 +65,9 @@ func (m *managedStatusComponents) Close() error {
 	defer m.mutStatusComponents.Unlock()
 
 	if m.statusComponents != nil {
+		if m.cancelFunc != nil {
+			m.cancelFunc()
+		}
 		err := m.statusComponents.Close()
 		if err != nil {
 			return err
