@@ -41,6 +41,9 @@ var ErrNilOrEmptyKey = errors.New("nil or empty key")
 // ErrNilEconomicsData signals that nil economics data has been provided
 var ErrNilEconomicsData = errors.New("nil economics data")
 
+// ErrNegativeInitialStakeValue signals that a negative initial stake value was provided
+var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
+
 // ErrInvalidMinStakeValue signals that an invalid min stake value was provided
 var ErrInvalidMinStakeValue = errors.New("invalid min stake value")
 
