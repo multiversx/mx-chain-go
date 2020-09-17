@@ -13,9 +13,10 @@ import (
 func TestNewDataDispatcher_InvalidCacheSize(t *testing.T) {
 	t.Parallel()
 
-	dispatcher, err := NewDataDispatcher(0)
-	require.Equal(t, ErrInvalidCacheSize, err)
-	require.Nil(t, dispatcher)
+	dataDist, err := NewDataDispatcher(-1)
+
+	require.Nil(t, dataDist)
+	require.Equal(t, ErrNegativeCacheSize, err)
 }
 
 func TestNewDataDispatcher(t *testing.T) {

@@ -29,11 +29,10 @@ type dataDispatcher struct {
 	cancelFunc    func()
 }
 
-// NewDataDispatcher creates a new dataDispatcher instance, capable of selecting the correct that will save
-// sequentially data in elasticsearch database
+// NewDataDispatcher creates a new dataDispatcher instance, capable of saving sequentially data in elasticsearch database
 func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
-	if cacheSize <= 0 {
-		return nil, ErrInvalidCacheSize
+	if cacheSize < 0 {
+		return nil, ErrNegativeCacheSize
 	}
 
 	dd := &dataDispatcher{

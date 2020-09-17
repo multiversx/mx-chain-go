@@ -97,7 +97,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
 }
 
 // GetPeerAccount -
-func (vsp *ValidatorStatisticsProcessorMock) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorMock) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}

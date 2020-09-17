@@ -39,6 +39,10 @@ func exists(res *esapi.Response, err error) bool {
 }
 
 func loadResponseBody(body io.ReadCloser, dest interface{}) error {
+	if body == nil {
+		return nil
+	}
+
 	if dest == nil {
 		_, err := io.Copy(ioutil.Discard, body)
 		return err
@@ -66,8 +70,8 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 	}
 
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", res.StatusCode,
-		"body:", res.Body)
+		"error returned by elastic API", res.StatusCode,
+		"body", res.Body)
 
 	return ErrBackOff
 }
@@ -103,7 +107,7 @@ func kibanaResponseErrorHandler(res *esapi.Response) error {
 	}
 
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", errorRes.Error,
+		"error returned by elastic API", errorRes.Error,
 		"code", res.StatusCode)
 	return ErrBackOff
 }
@@ -138,7 +142,7 @@ func parseResponse(res *esapi.Response, dest interface{}, errorHandler responseE
 			err := res.Body.Close()
 			if err != nil {
 				log.Warn("elasticClient.parseResponse",
-					"could not close body: ", err.Error())
+					"could not close body", err.Error())
 			}
 		}
 	}()

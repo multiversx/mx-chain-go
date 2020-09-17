@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -24,6 +24,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	Marshalizer          marshal.Marshalizer
 	StartRating          uint32
 	ValidatorInfoCreator epochStart.ValidatorInfoCreator
+	ChanceComputer       sharding.ChanceComputer
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
@@ -34,10 +35,34 @@ type systemSCProcessor struct {
 	userAccountsDB          state.AccountsAdapter
 	marshalizer             marshal.Marshalizer
 	peerAccountsDB          state.AccountsAdapter
+	chanceComputer          sharding.ChanceComputer
 	startRating             uint32
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
 	endOfEpochCallerAddress []byte
 	stakingSCAddress        []byte
+
+	mapNumSwitchedPerShard   map[uint32]uint32
+	mapNumSwitchablePerShard map[uint32]uint32
+}
+
+type validatorList []*state.ValidatorInfo
+
+// Len will return the length of the validatorList
+func (v validatorList) Len() int { return len(v) }
+
+// Swap will interchange the objects on input indexes
+func (v validatorList) Swap(i, j int) { v[i], v[j] = v[j], v[i] }
+
+// Less will return true if object on index i should appear before object in index j
+// Sorting of validators should be by index and public key
+func (v validatorList) Less(i, j int) bool {
+	if v[i].TempRating == v[j].TempRating {
+		if v[i].Index == v[j].Index {
+			return bytes.Compare(v[i].PublicKey, v[j].PublicKey) < 0
+		}
+		return v[i].Index < v[j].Index
+	}
+	return v[i].TempRating < v[j].TempRating
 }
 
 // NewSystemSCProcessor creates the end of epoch system smart contract processor
@@ -63,31 +88,71 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if len(args.StakingSCAddress) == 0 {
 		return nil, epochStart.ErrNilStakingSCAddress
 	}
+	if check.IfNil(args.ChanceComputer) {
+		return nil, epochStart.ErrNilChanceComputer
+	}
 
 	return &systemSCProcessor{
-		systemVM:                args.SystemVM,
-		userAccountsDB:          args.UserAccountsDB,
-		peerAccountsDB:          args.PeerAccountsDB,
-		marshalizer:             args.Marshalizer,
-		startRating:             args.StartRating,
-		validatorInfoCreator:    args.ValidatorInfoCreator,
-		endOfEpochCallerAddress: args.EndOfEpochCallerAddress,
-		stakingSCAddress:        args.StakingSCAddress,
+		systemVM:                 args.SystemVM,
+		userAccountsDB:           args.UserAccountsDB,
+		peerAccountsDB:           args.PeerAccountsDB,
+		marshalizer:              args.Marshalizer,
+		startRating:              args.StartRating,
+		validatorInfoCreator:     args.ValidatorInfoCreator,
+		endOfEpochCallerAddress:  args.EndOfEpochCallerAddress,
+		stakingSCAddress:         args.StakingSCAddress,
+		chanceComputer:           args.ChanceComputer,
+		mapNumSwitchedPerShard:   make(map[uint32]uint32),
+		mapNumSwitchablePerShard: make(map[uint32]uint32),
 	}, nil
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	err := s.swapJailedWithWaiting(validatorInfos)
+	err := s.computeNumWaitingPerShard(validatorInfos)
 	if err != nil {
 		return err
+	}
+
+	err = s.swapJailedWithWaiting(validatorInfos)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	for shardID, validatorInfoList := range validatorInfos {
+		totalInWaiting := uint32(0)
+		for _, validatorInfo := range validatorInfoList {
+			switch validatorInfo.List {
+			case string(core.WaitingList):
+				totalInWaiting++
+			}
+		}
+		s.mapNumSwitchablePerShard[shardID] = totalInWaiting
+		s.mapNumSwitchedPerShard[shardID] = 0
 	}
 	return nil
 }
 
 func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	jailedValidators := s.getSortedJailedNodes(validatorInfos)
+
+	log.Debug("number of jailed validators", "num", len(jailedValidators))
+
+	newValidators := make(map[string]struct{})
 	for _, jailedValidator := range jailedValidators {
+		if _, ok := newValidators[string(jailedValidator.PublicKey)]; ok {
+			continue
+		}
+		if isValidator(jailedValidator) && s.mapNumSwitchablePerShard[jailedValidator.ShardId] <= s.mapNumSwitchedPerShard[jailedValidator.ShardId] {
+			log.Debug("cannot switch in this epoch anymore for this shard as switched num waiting",
+				"shardID", jailedValidator.ShardId,
+				"numSwitched", s.mapNumSwitchedPerShard[jailedValidator.ShardId])
+			continue
+		}
 
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
@@ -98,25 +163,26 @@ func (s *systemSCProcessor) swapJailedWithWaiting(validatorInfos map[uint32][]*s
 			RecipientAddr: s.stakingSCAddress,
 			Function:      "switchJailedWithWaiting",
 		}
+
 		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
 		if err != nil {
 			return err
 		}
-		if vmOutput.ReturnMessage == vm.ErrBLSPublicKeyAlreadyJailed.Error() {
+
+		log.Debug("switchJailedWithWaiting called for",
+			"key", jailedValidator.PublicKey,
+			"returnMessage", vmOutput.ReturnMessage)
+		if vmOutput.ReturnCode != vmcommon.Ok {
 			continue
 		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			break
-		}
 
-		err = s.processSCOutputAccounts(vmOutput)
+		newValidator, err := s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
 		if err != nil {
 			return err
 		}
 
-		err = s.stakingToValidatorStatistics(validatorInfos, jailedValidator, vmOutput)
-		if err != nil {
-			return err
+		if len(newValidator) != 0 {
+			newValidators[string(newValidator)] = struct{}{}
 		}
 	}
 
@@ -127,10 +193,10 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	jailedValidator *state.ValidatorInfo,
 	vmOutput *vmcommon.VMOutput,
-) error {
+) ([]byte, error) {
 	stakingSCOutput, ok := vmOutput.OutputAccounts[string(s.stakingSCAddress)]
 	if !ok {
-		return epochStart.ErrStakingSCOutputAccountNotFound
+		return nil, epochStart.ErrStakingSCOutputAccountNotFound
 	}
 
 	var activeStorageUpdate *vmcommon.StorageUpdate
@@ -142,50 +208,108 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 			break
 		}
 	}
-
 	if activeStorageUpdate == nil {
-		return nil
+		log.Debug("no one in waiting suitable for switch")
+		return nil, nil
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return nil, err
 	}
 
 	var stakingData systemSmartContracts.StakedData
-	err := s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
+	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	blsPubKey := activeStorageUpdate.Offset
+	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
 	account, err := s.getPeerAccount(blsPubKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 		err = account.SetRewardAddress(stakingData.RewardAddress)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
 		err = account.SetBLSPublicKey(blsPubKey)
 		if err != nil {
-			return err
+			return nil, err
 		}
+	} else {
+		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
+		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
 
-	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.RegisterNonce))
+	account.SetListAndIndex(jailedValidator.ShardId, string(core.NewList), uint32(stakingData.StakedNonce))
 	account.SetTempRating(s.startRating)
 	account.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
 
 	err = s.peerAccountsDB.SaveAccount(account)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	jailedAccount, err := s.getPeerAccount(jailedValidator.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	jailedAccount.SetListAndIndex(jailedValidator.ShardId, string(core.JailedList), jailedValidator.Index)
+	jailedAccount.ResetAtNewEpoch()
+	err = s.peerAccountsDB.SaveAccount(jailedAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	if isValidator(jailedValidator) {
+		s.mapNumSwitchedPerShard[jailedValidator.ShardId]++
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	validatorInfos[jailedValidator.ShardId] = append(validatorInfos[jailedValidator.ShardId], newValidatorInfo)
+	switchJailedWithNewValidatorInMap(validatorInfos, jailedValidator, newValidatorInfo)
 
-	return nil
+	return blsPubKey, nil
+}
+
+func isValidator(validator *state.ValidatorInfo) bool {
+	return validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList)
+}
+
+func deleteNewValidatorIfExistsFromMap(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	blsPubKey []byte,
+	shardID uint32,
+) {
+	for index, validatorInfo := range validatorInfos[shardID] {
+		if bytes.Equal(validatorInfo.PublicKey, blsPubKey) {
+			length := len(validatorInfos[shardID])
+			validatorInfos[shardID][index] = validatorInfos[shardID][length-1]
+			validatorInfos[shardID][length-1] = nil
+			validatorInfos[shardID] = validatorInfos[shardID][:length-1]
+			break
+		}
+	}
+}
+
+func switchJailedWithNewValidatorInMap(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	jailedValidator *state.ValidatorInfo,
+	newValidator *state.ValidatorInfo,
+) {
+	for index, validatorInfo := range validatorInfos[jailedValidator.ShardId] {
+		if bytes.Equal(validatorInfo.PublicKey, jailedValidator.PublicKey) {
+			validatorInfos[jailedValidator.ShardId][index] = newValidator
+			break
+		}
+	}
 }
 
 func (s *systemSCProcessor) getExistingAccount(address []byte) (state.UserAccountHandler, error) {
@@ -229,23 +353,24 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 }
 
 func (s *systemSCProcessor) getSortedJailedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) []*state.ValidatorInfo {
-	jailedValidators := make([]*state.ValidatorInfo, 0)
+	newJailedValidators := make([]*state.ValidatorInfo, 0)
+	oldJailedValidators := make([]*state.ValidatorInfo, 0)
+
+	minChance := s.chanceComputer.GetChance(0)
 	for _, listValidators := range validatorInfos {
 		for _, validatorInfo := range listValidators {
 			if validatorInfo.List == string(core.JailedList) {
-				jailedValidators = append(jailedValidators, validatorInfo)
+				oldJailedValidators = append(oldJailedValidators, validatorInfo)
+			} else if s.chanceComputer.GetChance(validatorInfo.TempRating) < minChance {
+				newJailedValidators = append(newJailedValidators, validatorInfo)
 			}
 		}
 	}
 
-	sort.Slice(jailedValidators, func(i, j int) bool {
-		if jailedValidators[i].TempRating == jailedValidators[i].TempRating {
-			return jailedValidators[i].Index < jailedValidators[j].Index
-		}
-		return jailedValidators[i].TempRating < jailedValidators[j].TempRating
-	})
+	sort.Sort(validatorList(oldJailedValidators))
+	sort.Sort(validatorList(newJailedValidators))
 
-	return jailedValidators
+	return append(oldJailedValidators, newJailedValidators...)
 }
 
 func (s *systemSCProcessor) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {

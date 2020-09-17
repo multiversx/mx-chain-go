@@ -29,12 +29,10 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 ) ([]byte, []byte, error) {
 	headerBytes, err := dp.marshalizer.Marshal(header)
 	if err != nil {
-		log.Debug("indexer: marshal header", "error", err)
 		return nil, nil, err
 	}
 	bodyBytes, err := dp.marshalizer.Marshal(body)
 	if err != nil {
-		log.Debug("indexer: marshal body", "error", err)
 		return nil, nil, err
 	}
 
@@ -81,7 +79,6 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
 		return nil, nil, err
 	}
 

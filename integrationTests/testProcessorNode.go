@@ -1208,6 +1208,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 		},
 		tpn.PeerState,
+		&mock.RaterMock{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1442,6 +1443,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
+			ChanceComputer:          tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 

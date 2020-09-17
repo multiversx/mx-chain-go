@@ -34,15 +34,26 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	t.Parallel()
 
 	args := createFullArgumentsForSystemSCProcessing()
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
 	s, _ := NewSystemSCProcessor(args)
 
 	prepareStakingContractWithData(args.UserAccountsDB, []byte("jailedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
+	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	vInfo := &state.ValidatorInfo{
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
 		List:            string(core.JailedList),
+		TempRating:      1,
 		RewardAddress:   []byte("address"),
 		AccumulatedFees: big.NewInt(0),
 	}
@@ -50,8 +61,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	err := s.ProcessSystemSmartContract(validatorInfos)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(validatorInfos[0]), 2)
-	newValidatorInfo := validatorInfos[0][1]
+	assert.Equal(t, len(validatorInfos[0]), 1)
+	newValidatorInfo := validatorInfos[0][0]
 	assert.Equal(t, newValidatorInfo.List, string(core.NewList))
 }
 
@@ -185,6 +196,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 			},
 		},
 		peerAccountsDB,
+		&mock.ChanceComputerStub{},
 	)
 
 	vmContainer, _ := metaVmFactory.Create()
@@ -198,6 +210,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		ValidatorInfoCreator:    vCreator,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          &mock.ChanceComputerStub{},
 	}
 	return args
 }
