@@ -1044,7 +1044,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 1000
-	argsStaking.StakingSCConfig.AuctionEnableNonce = 1
+	argsStaking.StakingSCConfig.AuctionEnableNonce = 100000000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -1477,9 +1477,9 @@ func TestAuctionStakingSC_ExecuteStakeBeforeAuctionEnableNonce(t *testing.T) {
 		Epoch:           0,
 		BlsPubKeys:      [][]byte{stakerPubKey.Bytes()},
 		TotalStakeValue: nodePrice,
-		LockedStake:     big.NewInt(0),
+		LockedStake:     nodePrice,
 		MaxStakePerNode: nodePrice,
-		NumRegistered:   0,
+		NumRegistered:   1,
 	}
 
 	atArgParser := parsers.NewCallArgsParser()
@@ -1623,7 +1623,7 @@ func TestAuctionStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
 	assert.Equal(t, vm.CannotGetOrCreateRegistrationData+mock.ErrMockMarshalizer.Error(), eei.ReturnMessage)
 }
 
-func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.T) {
+func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldNotErr(t *testing.T) {
 	t.Parallel()
 
 	expectedCallerAddress := []byte("caller")
@@ -1674,7 +1674,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldErr(t *testing.
 	eei.SetSCAddress(args.AuctionSCAddress)
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 	retCode := stakingSmartContract.Execute(arguments)
-	//TODO: unstake on auction does not fail any more, it adds blsKeys to failed return messages
+
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot unStake node which was already unStaked"))
 }
@@ -1733,7 +1733,7 @@ func TestAuctionStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 
 	retCode := stakingSmartContract.Execute(arguments)
-	//TODO: unstake on auction does not fail any more, it adds blsKeys to failed return messages
+
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unStake possible only from staker caller"))
 }

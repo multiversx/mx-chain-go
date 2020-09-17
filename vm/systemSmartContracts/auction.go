@@ -454,7 +454,7 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		s.eei.AddReturnMessage("setConfig marshal auctionConfig error")
 		return vmcommon.UserError
 	}
-	// TODO: check if updating older epochs should be allowed
+
 	epochBytes := args.Arguments[6]
 	s.eei.SetStorage(epochBytes, configData)
 
@@ -703,11 +703,9 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		registrationData.RewardAddress = args.CallerAddr
 	}
 
-	//TODO: verify if the next two lines are correct
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = s.eei.BlockChainHook().CurrentEpoch()
 
-	//TODO: registrationData.BLSKeys is changed inside, but can return nil, nil
 	blsKeys, err := s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
@@ -723,7 +721,6 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	// do the optionals - rewardAddress and maxStakePerNode
 	if uint64(lenArgs) > maxNodesToRun*2+1 {
 		for i := maxNodesToRun*2 + 1; i < uint64(lenArgs); i++ {
-			//TODO: check if the args len is enough or a correct address must be provided
 			if len(args.Arguments[i]) == len(args.CallerAddr) {
 				if !isAlreadyRegistered {
 					registrationData.RewardAddress = args.Arguments[i]
@@ -732,7 +729,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 				}
 				continue
 			}
-			//TODO: check this: too late to check maxStakePerNode
+
 			maxStakePerNode, ok := big.NewInt(0).SetString(string(args.Arguments[i]), conversionBase)
 			if !ok {
 				continue
