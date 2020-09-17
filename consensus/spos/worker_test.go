@@ -748,6 +748,35 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
+func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	wrk.AddMessageTypeToPublicKey([]byte(wrk.ConsensusState().ConsensusGroup()[0]), bls.MtBlockBody)
+	blk := &block.Body{}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockBody),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	time.Sleep(time.Second)
+
+	assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+}
+
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
@@ -1508,4 +1537,26 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	}
 	err := wrk.ProcessReceivedMessage(msg, "")
 	assert.True(t, errors.Is(err, spos.ErrInvalidHeader))
+}
+
+func TestResetConsensusMessages_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockBody)
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockBody)
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockHeader)
+	wrk.AddMessageTypeToPublicKey([]byte("pk2"), bls.MtBlockHeaderFinalInfo)
+
+	assert.Equal(t, uint32(2), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockBody))
+	assert.Equal(t, uint32(1), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockHeader))
+	assert.Equal(t, uint32(1), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk2"), bls.MtBlockHeaderFinalInfo))
+
+	wrk.ResetConsensusMessages()
+
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockBody))
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockHeader))
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk2"), bls.MtBlockHeaderFinalInfo))
 }

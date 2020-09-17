@@ -178,3 +178,23 @@ func (wrk *Worker) CheckConsensusMessageValidityForMessageType(cnsMsg *consensus
 func (wrk *Worker) IsBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
 	return wrk.isBlockHeaderHashSizeValid(cnsMsg)
 }
+
+func (wrk *Worker) AddMessageTypeToPublicKey(pk []byte, msgType consensus.MessageType) {
+	wrk.addMessageTypeToPublicKey(pk, msgType)
+}
+
+func (wrk *Worker) IsMessageTypeLimitReached(pk []byte, msgType consensus.MessageType) bool {
+	return wrk.isMessageTypeLimitReached(pk, msgType)
+}
+
+func (wrk *Worker) GetNumOfMessageTypeForPublicKey(pk []byte, msgType consensus.MessageType) uint32 {
+	wrk.mutPkConsensusMessages.RLock()
+	defer wrk.mutPkConsensusMessages.RUnlock()
+
+	mapMsgType, ok := wrk.mapPkConsensusMessages[string(pk)]
+	if !ok {
+		return uint32(0)
+	}
+
+	return mapMsgType[msgType]
+}

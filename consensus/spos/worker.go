@@ -73,6 +73,9 @@ type Worker struct {
 	publicKeySize       int
 	publicKeyBitmapSize int
 	cancelFunc          func()
+
+	mutPkConsensusMessages sync.RWMutex
+	mapPkConsensusMessages map[string]map[consensus.MessageType]uint32
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -146,6 +149,8 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
+
+	wrk.mapPkConsensusMessages = make(map[string]map[consensus.MessageType]uint32)
 
 	return &wrk, nil
 }
@@ -385,7 +390,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
 		errors.Is(err, crypto.ErrPIDMismatch) ||
 		errors.Is(err, crypto.ErrSignatureMismatch) ||
-		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) {
+		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) ||
+		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false
 	}
 
@@ -631,6 +637,13 @@ func (wrk *Worker) Close() error {
 	}
 
 	return nil
+}
+
+// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+func (wrk *Worker) ResetConsensusMessages() {
+	wrk.mutPkConsensusMessages.Lock()
+	wrk.mapPkConsensusMessages = make(map[string]map[consensus.MessageType]uint32)
+	wrk.mutPkConsensusMessages.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

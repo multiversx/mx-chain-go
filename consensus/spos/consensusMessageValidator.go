@@ -77,6 +77,18 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message, orig
 			cnsMsg.RoundIndex)
 	}
 
+	if wrk.isMessageTypeLimitReached(cnsMsg.PubKey, msgType) {
+		log.Trace("received message type from consensus topic reached the limit",
+			"msg type", wrk.consensusService.GetStringValue(msgType),
+			"public key", cnsMsg.PubKey,
+		)
+
+		return fmt.Errorf("%w : received message type %s from consensus topic reached the limit for public key: %s",
+			ErrMessageTypeLimitReached,
+			wrk.consensusService.GetStringValue(msgType),
+			logger.DisplayByteSlice(cnsMsg.PubKey))
+	}
+
 	err = wrk.peerSignatureHandler.VerifyPeerSignature(cnsMsg.PubKey, core.PeerID(cnsMsg.OriginatorPid), cnsMsg.Signature)
 	if err != nil {
 		return fmt.Errorf("%w : verify signature for received message from consensus topic failed: %s",
@@ -89,6 +101,8 @@ func (wrk *Worker) checkConsensusMessageValidity(cnsMsg *consensus.Message, orig
 		return fmt.Errorf("%w : pubsub originator pid: %s, cnsMsg.OriginatorPid: %s",
 			ErrOriginatorMismatch, p2p.PeerIdToShortString(originator), p2p.PeerIdToShortString(cnsMsgOriginator))
 	}
+
+	wrk.addMessageTypeToPublicKey(cnsMsg.PubKey, msgType)
 
 	return nil
 }
@@ -289,4 +303,34 @@ func (wrk *Worker) checkMessageWithFinalInfoValidity(cnsMsg *consensus.Message) 
 	}
 
 	return nil
+}
+
+func (wrk *Worker) isMessageTypeLimitReached(pk []byte, msgType consensus.MessageType) bool {
+	wrk.mutPkConsensusMessages.RLock()
+	defer wrk.mutPkConsensusMessages.RUnlock()
+
+	mapMsgType, ok := wrk.mapPkConsensusMessages[string(pk)]
+	if !ok {
+		return false
+	}
+
+	numMsgType, ok := mapMsgType[msgType]
+	if !ok {
+		return false
+	}
+
+	return numMsgType >= MaxNumOfMessageTypeAccepted
+}
+
+func (wrk *Worker) addMessageTypeToPublicKey(pk []byte, msgType consensus.MessageType) {
+	wrk.mutPkConsensusMessages.Lock()
+	defer wrk.mutPkConsensusMessages.Unlock()
+
+	mapMsgType, ok := wrk.mapPkConsensusMessages[string(pk)]
+	if !ok {
+		mapMsgType = make(map[consensus.MessageType]uint32)
+		wrk.mapPkConsensusMessages[string(pk)] = mapMsgType
+	}
+
+	mapMsgType[msgType]++
 }

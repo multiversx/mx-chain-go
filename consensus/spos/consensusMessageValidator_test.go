@@ -483,6 +483,31 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
+func TestCheckConsensusMessageValidity_ErrMessageTypeLimitReached(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	workerArgs.ConsensusState.RoundIndex = 10
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	headerBytes := make([]byte, 100)
+	_, _ = rand.Read(headerBytes)
+	headerHash := make([]byte, workerArgs.Hasher.Size())
+	_, _ = rand.Read(headerHash)
+	pubKey := []byte(workerArgs.ConsensusState.ConsensusGroup()[0])
+	sig := make([]byte, SignatureSize)
+	_, _ = rand.Read(sig)
+
+	wrk.AddMessageTypeToPublicKey(pubKey, bls.MtBlockBodyAndHeader)
+
+	cnsMsg := &consensus.Message{
+		ChainID: chainID, MsgType: int64(bls.MtBlockBodyAndHeader),
+		Header: headerBytes, BlockHeaderHash: headerHash, PubKey: pubKey, Signature: sig, RoundIndex: 10,
+	}
+	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
+	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+}
+
 func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 	t.Parallel()
 
@@ -536,4 +561,42 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 	}
 	err := wrk.CheckConsensusMessageValidity(cnsMsg, "")
 	assert.Nil(t, err)
+}
+
+func TestIsMessageTypeLimitReached_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	assert.False(t, wrk.IsMessageTypeLimitReached([]byte("pk1"), bls.MtBlockBody))
+
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockHeader)
+
+	assert.False(t, wrk.IsMessageTypeLimitReached([]byte("pk1"), bls.MtBlockBody))
+	assert.True(t, wrk.IsMessageTypeLimitReached([]byte("pk1"), bls.MtBlockHeader))
+}
+
+func TestAddMessageTypeToPublicKey_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs()
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockBody))
+
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockHeader)
+
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockBody))
+
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockBody)
+	wrk.AddMessageTypeToPublicKey([]byte("pk1"), bls.MtBlockHeader)
+
+	assert.Equal(t, uint32(1), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockBody))
+	assert.Equal(t, uint32(2), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockHeader))
+
+	wrk.AddMessageTypeToPublicKey([]byte("pk2"), bls.MtBlockHeaderFinalInfo)
+
+	assert.Equal(t, uint32(0), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk1"), bls.MtBlockHeaderFinalInfo))
+	assert.Equal(t, uint32(1), wrk.GetNumOfMessageTypeForPublicKey([]byte("pk2"), bls.MtBlockHeaderFinalInfo))
 }
