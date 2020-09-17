@@ -7,7 +7,22 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message StakedData {
+message StakedDataV1 {
+	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
+	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
+	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
+	uint64   UnStakedNonce = 4 [(gogoproto.jsontag) = "UnStakedNonce"];
+	uint32   UnStakedEpoch = 5 [(gogoproto.jsontag) = "UnStakedEpoch"];
+	bytes    RewardAddress = 6 [(gogoproto.jsontag) = "RewardAddress"];
+	bytes    StakeValue    = 7 [(gogoproto.jsontag) = "StakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	uint64   JailedRound   = 8 [(gogoproto.jsontag) = "JailedRound"];
+	uint64   JailedNonce   = 9 [(gogoproto.jsontag) = "JailedNonce"];
+	uint64   UnJailedNonce = 10 [(gogoproto.jsontag) = "UnJailedNonce"];
+	bool     Jailed        = 11 [(gogoproto.jsontag) = "Jailed"];
+	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
+}
+
+message StakedDataV2 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
