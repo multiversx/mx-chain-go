@@ -75,7 +75,7 @@ func prepareStakingContractWithData(
 	acc, _ := accountsDB.LoadAccount(vm.StakingSCAddress)
 	stakingSCAcc := acc.(state.UserAccountHandler)
 
-	stakedData := &systemSmartContracts.StakedData{
+	stakedData := &systemSmartContracts.StakedDataV2{
 		Staked:        true,
 		RewardAddress: []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),
@@ -83,7 +83,7 @@ func prepareStakingContractWithData(
 	marshaledData, _ := marshalizer.Marshal(stakedData)
 	stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
 
-	stakedData = &systemSmartContracts.StakedData{
+	stakedData = &systemSmartContracts.StakedDataV2{
 		Waiting:       true,
 		RewardAddress: []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),
