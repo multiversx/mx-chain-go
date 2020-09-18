@@ -583,14 +583,14 @@ func (s *stakingAuctionSC) registerBLSKeys(
 			s.eei.AddReturnMessage("cannot do register: " + err.Error())
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
-			return nil, nil
+			return nil, err
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
 			s.eei.AddReturnMessage("cannot do register: " + vmOutput.ReturnCode.String())
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
-			return nil, nil
+			return nil, vm.ErrKeyAlreadyRegistered
 		}
 
 		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
@@ -738,10 +738,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 				continue
 			}
 
-			maxStakePerNode, ok := big.NewInt(0).SetString(string(args.Arguments[i]), conversionBase)
-			if !ok {
-				continue
-			}
+			maxStakePerNode := big.NewInt(0).SetBytes(args.Arguments[i])
 			registrationData.MaxStakePerNode.Set(maxStakePerNode)
 		}
 	}
