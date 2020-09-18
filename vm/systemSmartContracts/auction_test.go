@@ -1451,8 +1451,7 @@ func TestAuctionStakingSC_ExecuteStakeWithMaxStakePerNode(t *testing.T) {
 	eei.SetStorage(arguments.CallerAddr, marshaledRegistrationData)
 	retCode := stakingSmartContract.Execute(arguments)
 
-	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.True(t, strings.Contains(eei.returnMessage, "bls key already registered"))
+	assert.Equal(t, vmcommon.Ok, retCode)
 	var registrationData AuctionData
 	data := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
 	_ = json.Unmarshal(data, &registrationData)
