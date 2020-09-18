@@ -418,6 +418,24 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
 	}
 
+	code := s.verifyConfig(auctionConfig)
+	if code != vmcommon.Ok {
+		return code
+	}
+
+	configData, err := s.marshalizer.Marshal(auctionConfig)
+	if err != nil {
+		s.eei.AddReturnMessage("setConfig marshal auctionConfig error")
+		return vmcommon.UserError
+	}
+
+	epochBytes := args.Arguments[6]
+	s.eei.SetStorage(epochBytes, configData)
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) verifyConfig(auctionConfig *AuctionConfig) vmcommon.ReturnCode {
 	if auctionConfig.MinStakeValue.Cmp(zero) <= 0 {
 		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, auctionConfig.MinStakeValue).Error()
 		s.eei.AddReturnMessage(retMessage)
@@ -448,16 +466,6 @@ func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.
 		s.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
-
-	configData, err := s.marshalizer.Marshal(auctionConfig)
-	if err != nil {
-		s.eei.AddReturnMessage("setConfig marshal auctionConfig error")
-		return vmcommon.UserError
-	}
-
-	epochBytes := args.Arguments[6]
-	s.eei.SetStorage(epochBytes, configData)
-
 	return vmcommon.Ok
 }
 
