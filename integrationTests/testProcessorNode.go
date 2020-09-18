@@ -549,6 +549,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
 		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -1444,6 +1445,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
 			ChanceComputer:          tpn.NodesCoordinator,
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 

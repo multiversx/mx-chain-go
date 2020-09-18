@@ -92,6 +92,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
 		NodesSetup:          &mock.NodesSetupStub{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 	return arguments
 }
@@ -2385,4 +2386,77 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 		},
 	}
 	return arguments
+}
+
+func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
+	eligibleList := string(core.EligibleList)
+	eligiblePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return eligibleList
+		},
+	}
+	computedEligibleList := peer.GetActualList(eligiblePeer)
+	assert.Equal(t, eligibleList, computedEligibleList)
+
+	waitingList := string(core.WaitingList)
+	waitingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return waitingList
+		},
+	}
+	computedWaiting := peer.GetActualList(waitingPeer)
+	assert.Equal(t, waitingList, computedWaiting)
+
+	leavingList := string(core.LeavingList)
+	leavingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return leavingList
+		},
+	}
+	computedLeavingList := peer.GetActualList(leavingPeer)
+	assert.Equal(t, leavingList, computedLeavingList)
+
+	newList := string(core.NewList)
+	newPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return newList
+		},
+	}
+	computedNewList := peer.GetActualList(newPeer)
+	assert.Equal(t, newList, computedNewList)
+
+	inactiveList := string(core.InactiveList)
+	inactivePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 2
+		},
+	}
+	computedInactiveList := peer.GetActualList(inactivePeer)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	inactivePeer2 := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 0
+		},
+	}
+	computedInactiveList = peer.GetActualList(inactivePeer2)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	jailedList := string(core.JailedList)
+	jailedPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return core.DefaultUnstakedEpoch
+		},
+	}
+	computedJailedList := peer.GetActualList(jailedPeer)
+	assert.Equal(t, jailedList, computedJailedList)
 }
