@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -19,8 +20,9 @@ import (
 type elasticProcessor struct {
 	*txDatabaseProcessor
 
-	elasticClient DatabaseClientHandler
-	parser        *dataParser
+	elasticClient  DatabaseClientHandler
+	parser         *dataParser
+	enabledIndexes map[string]struct{}
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -36,6 +38,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 			hasher:      arguments.Hasher,
 			marshalizer: arguments.Marshalizer,
 		},
+		enabledIndexes: arguments.EnabledIndexes,
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -123,12 +126,13 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 
 func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy}
 	for _, indexPolicyName := range indexesPolicies {
 		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
 		if indexPolicy != nil {
 			err := ei.elasticClient.CheckAndCreatePolicy(indexPolicyName, indexPolicy)
 			if err != nil {
+				log.Error("cehck and create policy", "err", err)
 				return err
 			}
 		}
@@ -150,12 +154,13 @@ func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]
 }
 
 func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
 	for _, index := range indexes {
 		indexTemplate := getTemplateByName(index, indexTemplates)
 		if indexTemplate != nil {
 			err := ei.elasticClient.CheckAndCreateTemplate(index, indexTemplate)
 			if err != nil {
+				log.Error("cehck and create template", "err", err)
 				return err
 			}
 		}
@@ -164,11 +169,12 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 }
 
 func (ei *elasticProcessor) createIndexes() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
 		if err != nil {
+			log.Error("cehck and create index", "err", err)
 			return err
 		}
 	}
@@ -176,11 +182,12 @@ func (ei *elasticProcessor) createIndexes() error {
 }
 
 func (ei *elasticProcessor) createAliases() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
 		if err != nil {
+			log.Error("cehck and create alias", "err", err)
 			return err
 		}
 	}
@@ -218,6 +225,10 @@ func (ei *elasticProcessor) SaveHeader(
 	notarizedHeadersHashes []string,
 	txsSize int,
 ) error {
+	if _, ok := ei.enabledIndexes[blockIndex]; !ok {
+		return nil
+	}
+
 	var buff bytes.Buffer
 
 	serializedBlock, headerHash, err := ei.parser.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
@@ -290,6 +301,10 @@ func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLog
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
 func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
+	if _, ok := ei.enabledIndexes[miniblocksIndex]; !ok {
+		return map[string]bool{}, nil
+	}
+
 	miniblocks := ei.parser.getMiniblocks(header, body)
 	if len(miniblocks) == 0 {
 		return make(map[string]bool), nil
@@ -307,8 +322,14 @@ func (ei *elasticProcessor) SaveTransactions(
 	selfShardID uint32,
 	mbsInDb map[string]bool,
 ) error {
+	if _, ok := ei.enabledIndexes[txIndex]; !ok {
+		return nil
+	}
+
 	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 	buffSlice := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
+
+	// TODO: index accounts also here
 
 	for idx := range buffSlice {
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
@@ -324,6 +345,10 @@ func (ei *elasticProcessor) SaveTransactions(
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
 func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
+	if _, ok := ei.enabledIndexes[tpsIndex]; !ok {
+		return nil
+	}
+
 	buff := prepareGeneralInfo(tpsBenchmark)
 
 	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
@@ -348,6 +373,10 @@ func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBench
 
 // SaveValidatorsRating will save validators rating
 func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
+	if _, ok := ei.enabledIndexes[ratingIndex]; !ok {
+		return nil
+	}
+
 	var buff bytes.Buffer
 
 	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
@@ -376,6 +405,10 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
 func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
+	if _, ok := ei.enabledIndexes[validatorsIndex]; !ok {
+		return nil
+	}
+
 	var buff bytes.Buffer
 
 	shardValPubKeys := ValidatorsPublicKeys{
@@ -410,6 +443,10 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 
 // SaveRoundsInfo will prepare and save information about a slice of rounds in elasticsearch server
 func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
+	if _, ok := ei.enabledIndexes[roundIndex]; !ok {
+		return nil
+	}
+
 	var buff bytes.Buffer
 
 	for _, info := range infos {
@@ -428,6 +465,44 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	}
 
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
+}
+
+// SaveAccount will prepare and save information about an account in elasticsearch server
+func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error {
+	if _, ok := ei.enabledIndexes[accountsIndex]; !ok {
+		return nil
+	}
+
+	if check.IfNil(account) {
+		return nil
+	}
+
+	var buff bytes.Buffer
+
+	acc := AccountInfo{
+		Address: ei.addressPubkeyConverter.Encode(account.GetOwnerAddress()),
+		Balance: account.GetBalance().String(),
+	}
+
+	accBytes, err := json.Marshal(&acc)
+	if err != nil {
+		return err
+	}
+
+	buff.Grow(len(accBytes))
+	_, err = buff.Write(accBytes)
+	if err != nil {
+		log.Warn("elastic search: save account, write", "error", err.Error())
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      accountsIndex,
+		DocumentID: ei.addressPubkeyConverter.Encode(account.GetOwnerAddress()),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
+	return ei.elasticClient.DoRequest(req)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

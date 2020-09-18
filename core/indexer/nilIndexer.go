@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -42,6 +43,10 @@ func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []workItems.ValidatorRati
 
 // SaveValidatorsPubKeys will do nothing
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
+}
+
+// SaveAccount won't do anything as this is a nil implementation
+func (ni *NilIndexer) SaveAccount(_ state.UserAccountHandler) {
 }
 
 // Close will do nothing

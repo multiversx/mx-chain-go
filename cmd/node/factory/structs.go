@@ -1256,6 +1256,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		WorkingDir:               workingDir,
 		GenesisString:            args.mainConfig.GeneralSettings.GenesisString,
 		GeneralConfig:            &args.mainConfig.GeneralSettings,
+		Indexer:                  args.indexer,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

@@ -1183,6 +1183,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		stateComponents.AccountsAdapter,
 		shardCoordinator.SelfId(),
 	)
 	if err != nil {
@@ -1953,6 +1954,7 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
+	accountsDB state.AccountsAdapter,
 	shardID uint32,
 ) (indexer.Indexer, error) {
 
@@ -1972,9 +1974,10 @@ func createElasticIndexer(
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		AccountsDB:               accountsDB,
 		Options: &indexer.Options{
-			TxIndexingEnabled: elasticSearchConfig.TxIndexingEnabled,
-			UseKibana:         elasticSearchConfig.UseKibana,
+			UseKibana: elasticSearchConfig.UseKibana,
 		},
 	}
 

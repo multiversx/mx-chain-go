@@ -376,12 +376,12 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
 	for _, index := range indexes {
 		indexTemplates[index] = getTemplateByIndex(index)
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsIndex}
 	for _, indexPolicy := range indexesPolicies {
 		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
 	}

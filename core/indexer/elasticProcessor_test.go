@@ -39,6 +39,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			marshalizer: arguments.Marshalizer,
 			hasher:      arguments.Hasher,
 		},
+		enabledIndexes: arguments.EnabledIndexes,
 	}
 }
 
@@ -48,6 +49,9 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		Hasher:                   &mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
+		EnabledIndexes: map[string]struct{}{
+			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {},
+		},
 	}
 }
 

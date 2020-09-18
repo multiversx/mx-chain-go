@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // WorkItemHandler defines the interface for item that needs to be saved in elasticsearch database
@@ -37,4 +38,8 @@ type saveTpsBenchmark interface {
 
 type saveValidatorsIndexer interface {
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
+}
+
+type saveAccountIndexer interface {
+	SaveAccount(account state.UserAccountHandler) error
 }
