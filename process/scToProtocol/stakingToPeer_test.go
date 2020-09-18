@@ -608,8 +608,8 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	// it is still jailed - no change allowed
-	stakingData.RegisterNonce = 13
-	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.RegisterNonce)
+	stakingData.UnStakedNonce = 13
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 
 	stakingData.UnJailedNonce = 14
