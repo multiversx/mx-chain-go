@@ -72,7 +72,7 @@ type validatorStatistics struct {
 	ratingEnableEpoch      uint32
 	lastFinalizedRootHash  []byte
 	switchEnableEpoch      uint32
-	flagSwitchEnabled      atomic.Flag
+	flagJailedEnabled      atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -211,7 +211,8 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			return err
 		}
 
-		if vs.flagSwitchEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else {
 			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
@@ -454,7 +455,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
 	list := ""
-	if vs.flagSwitchEnabled.IsSet() {
+	if vs.flagJailedEnabled.IsSet() {
 		list = peerAccount.GetList()
 	} else {
 		list = getActualList(peerAccount)
@@ -642,7 +643,8 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 			}
 			peerAccount.ResetAtNewEpoch()
 
-			if vs.flagSwitchEnabled.IsSet() && validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
+			shouldBeJailed := vs.flagJailedEnabled.IsSet() && validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList)
+			if shouldBeJailed {
 				peerAccount.SetListAndIndex(validator.ShardId, validator.List, validator.Index)
 			}
 
@@ -1166,6 +1168,6 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
-	vs.flagSwitchEnabled.Toggle(epoch >= vs.switchEnableEpoch)
-	log.Debug("validatorStatistics: switch", "enabled", vs.flagSwitchEnabled.IsSet())
+	vs.flagJailedEnabled.Toggle(epoch >= vs.switchEnableEpoch)
+	log.Debug("validatorStatistics: switch", "enabled", vs.flagJailedEnabled.IsSet())
 }

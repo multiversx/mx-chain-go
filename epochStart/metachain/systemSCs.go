@@ -44,7 +44,7 @@ type systemSCProcessor struct {
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
 	endOfEpochCallerAddress []byte
 	stakingSCAddress        []byte
-	switchEnableEpoch       uint32
+	switchUnJailEnableEpoch uint32
 	flagSwitchEnabled       atomic.Flag
 
 	mapNumSwitchedPerShard   map[uint32]uint32
@@ -113,7 +113,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		chanceComputer:           args.ChanceComputer,
 		mapNumSwitchedPerShard:   make(map[uint32]uint32),
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
-		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
+		switchUnJailEnableEpoch:  args.SwitchJailWaitingEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -411,6 +411,6 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
-	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
-	log.Debug("systemSCProcessor: switch", "enabled", s.flagSwitchEnabled.IsSet())
+	s.flagSwitchEnabled.Toggle(epoch >= s.switchUnJailEnableEpoch)
+	log.Debug("systemSCProcessor: switch unJail", "enabled", s.flagSwitchEnabled.IsSet())
 }
