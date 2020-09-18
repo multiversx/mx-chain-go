@@ -16,6 +16,7 @@ type CoreComponentsMock struct {
 	AddrPubKeyConv      core.PubkeyConverter
 	Chain               string
 	MinTxVersion        uint32
+	StatHandler         core.AppStatusHandler
 }
 
 // InternalMarshalizer -

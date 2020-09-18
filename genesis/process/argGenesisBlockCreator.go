@@ -25,7 +25,6 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
-	StatusHandler() core.AppStatusHandler
 	ChainID() string
 	IsInterfaceNil() bool
 }
