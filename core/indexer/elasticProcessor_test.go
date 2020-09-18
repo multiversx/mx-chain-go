@@ -6,28 +6,28 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v7"
-
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arguments DataIndexerArgs) *elasticIndexer {
-	return &elasticIndexer{
+func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments ArgElasticProcessor) *elasticProcessor {
+	return &elasticProcessor{
 		txDatabaseProcessor: newTxDatabaseProcessor(
 			arguments.Hasher,
 			arguments.Marshalizer,
@@ -42,13 +42,10 @@ func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arg
 	}
 }
 
-func createMockElasticsearchDatabaseArgs() DataIndexerArgs {
-	return DataIndexerArgs{
+func createMockElasticProcessorArgs() ArgElasticProcessor {
+	return ArgElasticProcessor{
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		Url:                      "Url",
-		UserName:                 "username",
-		Password:                 "Password",
 		Hasher:                   &mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
 	}
@@ -104,7 +101,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 	localErr := errors.New("localErr")
 	header := &dataBlock.Header{Nonce: 1}
 	signerIndexes := []uint64{0, 1}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
@@ -127,7 +124,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 		},
 	}
 
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 
 	mbHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, miniBlock)
 	hexEncodedHash := hex.EncodeToString(mbHash)
@@ -154,7 +151,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 
 func TestElasticseachSaveTransactions(t *testing.T) {
 	localErr := errors.New("localErr")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localErr
@@ -175,7 +172,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
 	localErr := errors.New("localErr")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			return localErr
@@ -191,7 +188,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys(t *testing.T) {
 	shardID := uint32(0)
 	epoch := uint32(0)
 	valPubKeys := [][]byte{[]byte("key1"), []byte("key2")}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, fmt.Sprintf("%d_%d", shardID, epoch), req.DocumentID)
@@ -213,7 +210,7 @@ func TestElasticsearch_saveShardStatistics_reqError(t *testing.T) {
 	tpsBenchmark.UpdateWithShardStats(metaBlock)
 
 	localError := errors.New("local err")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError
@@ -234,7 +231,7 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 	}
 	tpsBenchmark.UpdateWithShardStats(metaBlock)
 
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			require.Equal(t, tpsIndex, index)
@@ -248,10 +245,10 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
-	roundInfo := RoundInfo{
+	roundInfo := workItems.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, strconv.FormatUint(uint64(roundInfo.ShardId), 10)+"_"+strconv.FormatUint(roundInfo.Index, 10), req.DocumentID)
@@ -260,14 +257,14 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
 	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
-	roundInfo := RoundInfo{}
+	roundInfo := workItems.RoundInfo{}
 	localError := errors.New("local err")
-	arguments := createMockElasticsearchDatabaseArgs()
+	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localError
@@ -275,7 +272,7 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfos([]RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
 	require.Equal(t, localError, err)
 
 }
@@ -284,11 +281,11 @@ func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -296,7 +293,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 
 	header1 := &dataBlock.Header{
 		ShardID: 0,
@@ -322,11 +319,11 @@ func TestSaveRoundsInfo(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -334,30 +331,30 @@ func TestSaveRoundsInfo(t *testing.T) {
 		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 
-	roundInfo1 := RoundInfo{
+	roundInfo1 := workItems.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
-	roundInfo2 := RoundInfo{
+	roundInfo2 := workItems.RoundInfo{
 		Index: 2, ShardId: 0, BlockWasProposed: true,
 	}
-	roundInfo3 := RoundInfo{
+	roundInfo3 := workItems.RoundInfo{
 		Index: 3, ShardId: 0, BlockWasProposed: true,
 	}
 
-	_ = esDatabase.SaveRoundsInfos([]RoundInfo{roundInfo1, roundInfo2, roundInfo3})
+	_ = esDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo1, roundInfo2, roundInfo3})
 }
 
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -365,7 +362,7 @@ func TestUpdateTransaction(t *testing.T) {
 		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -465,11 +462,11 @@ func TestGetMultiple(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:       dbClient,
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
@@ -477,15 +474,15 @@ func TestGetMultiple(t *testing.T) {
 		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 
 	hashes := []string{
 		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
 		"9a3beb87930e42b820cbcb5e73b224ebfc707308aa377905eda18d4589e2b093",
 	}
 
-	es := esDatabase.(*elasticIndexer)
-	response, _ := es.foundedObjMap(hashes, "transactions")
+	es := esDatabase.(*elasticProcessor)
+	response, _ := es.getExistingObjMap(hashes, "transactions")
 	fmt.Println(response)
 }
 
@@ -493,11 +490,11 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
@@ -507,7 +504,7 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -554,11 +551,11 @@ func TestDoBulkRequestLimit(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := newElasticClient(elasticsearch.Config{
+	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
 	})
 
-	args := ElasticIndexerArgs{
+	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &mock.HasherMock{},
@@ -568,7 +565,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticIndexer(args)
+	esDatabase, _ := NewElasticProcessor(args)
 	//Generate transaction and hashes
 	numTransactions := 1
 	dataSize := 900001

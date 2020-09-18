@@ -31,6 +31,7 @@ import (
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -322,13 +323,6 @@ VERSION:
 		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
 		Value: math.MaxUint64,
 	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
-	}
 
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
@@ -438,7 +432,6 @@ func main() {
 		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
-		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
@@ -1183,8 +1176,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	elasticIndexer, err := createElasticIndexer(
-		ctx,
-		log,
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1294,8 +1285,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	historyRepository.RegisterToBlockTracker(processComponents.BlockTracker)
-
 	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
@@ -1400,6 +1389,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
 		systemSCConfig,
+		rater,
 	)
 	if err != nil {
 		return err
@@ -1650,7 +1640,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
@@ -1956,8 +1946,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func createElasticIndexer(
-	ctx *cli.Context,
-	log logger.Logger,
 	elasticSearchConfig config.ElasticSearchConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -1968,30 +1956,29 @@ func createElasticIndexer(
 	shardID uint32,
 ) (indexer.Indexer, error) {
 
-	if !elasticSearchConfig.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		return indexer.NewNilIndexer(), nil
-	}
-
-	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
-	indexTemplates, indexPolicies := getElasticTemplates()
-	arguments := indexer.DataIndexerArgs{
+	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		ShardID:                  shardID,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:         nodesCoordinator,
 		EpochStartNotifier:       startNotifier,
+		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardID:                  shardID,
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
+		Options: &indexer.Options{
+			TxIndexingEnabled: elasticSearchConfig.TxIndexingEnabled,
+			UseKibana:         elasticSearchConfig.UseKibana,
+		},
 	}
 
-	return indexer.NewDataIndexer(arguments)
+	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2363,6 +2350,7 @@ func createApiResolver(
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2399,6 +2387,7 @@ func createApiResolver(
 			marshalizer,
 			systemSCConfig,
 			validatorAccounts,
+			rater,
 		)
 		if err != nil {
 			return nil, err
@@ -2449,24 +2438,4 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func getElasticTemplates() (map[string]io.Reader, map[string]io.Reader) {
-	indexTemplates := make(map[string]io.Reader)
-	indexPolicies := make(map[string]io.Reader)
-
-	opendistroTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/opendistro.json")
-	indexTemplates["opendistro"] = opendistroTemplate
-	transactionsTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/transactions.json")
-	indexTemplates["transactions"] = transactionsTemplate
-	blocksTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/blocks.json")
-	indexTemplates["blocks"] = blocksTemplate
-	miniblocksTemplate, _ := core.OpenFile("./config/elasticIndexTemplates/miniblocks.json")
-	indexTemplates["miniblocks"] = miniblocksTemplate
-	transactionsPolicy, _ := core.OpenFile("./config/elasticIndexTemplates/transactions_policy.json")
-	indexPolicies["transactions_policy"] = transactionsPolicy
-	blocksPolicy, _ := core.OpenFile("./config/elasticIndexTemplates/blocks_policy.json")
-	indexPolicies["blocks_policy"] = blocksPolicy
-
-	return indexTemplates, indexPolicies
 }

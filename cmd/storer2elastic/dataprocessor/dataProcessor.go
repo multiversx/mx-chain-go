@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -38,7 +39,7 @@ type ArgsDataProcessor struct {
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	TPSBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	RatingsProcessor    *ratingsProcessor
+	RatingsProcessor    RatingProcessorHandler
 	RatingConfig        config.RatingsConfig
 	StartingEpoch       uint32
 }
@@ -54,7 +55,7 @@ type dataProcessor struct {
 	hasher              hashing.Hasher
 	nodesCoordinators   map[uint32]NodesCoordinator
 	tpsBenchmarkUpdater TPSBenchmarkUpdaterHandler
-	ratingsProcessor    *ratingsProcessor
+	ratingsProcessor    RatingProcessorHandler
 	startingEpoch       uint32
 }
 
@@ -80,6 +81,9 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	}
 	if check.IfNil(args.TPSBenchmarkUpdater) {
 		return nil, ErrNilTPSBenchmarkUpdater
+	}
+	if check.IfNil(args.RatingsProcessor) {
+		return nil, ErrNilRatingProcessor
 	}
 
 	dp := &dataProcessor{
@@ -174,7 +178,7 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := indexer.RoundInfo{
+	ri := workItems.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -182,7 +186,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfos([]indexer.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]workItems.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -20,15 +21,15 @@ func (ni *NilIndexer) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[
 }
 
 // RevertIndexedBlock will do nothing
-func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler) {
+func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SetTxLogsProcessor will do nothing
 func (ni *NilIndexer) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
-// SaveRoundsInfos will do nothing
-func (ni *NilIndexer) SaveRoundsInfos(_ []RoundInfo) {
+// SaveRoundsInfo will do nothing
+func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo) {
 }
 
 // UpdateTPS will do nothing
@@ -36,21 +37,16 @@ func (ni *NilIndexer) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsRating --
-func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []ValidatorRatingInfo) {
+func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
 }
 
 // SaveValidatorsPubKeys will do nothing
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
-// StopIndexing will do nothing
-func (ni *NilIndexer) StopIndexing() error {
+// Close will do nothing
+func (ni *NilIndexer) Close() error {
 	return nil
-}
-
-// GetQueueLength -
-func (ni *NilIndexer) GetQueueLength() int {
-	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

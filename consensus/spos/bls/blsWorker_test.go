@@ -13,7 +13,7 @@ import (
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		eligibleList = append(eligibleList, string([]byte{byte(i + 65)}))
 	}
 	return eligibleList
 }

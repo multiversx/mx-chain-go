@@ -218,14 +218,8 @@ func (vp *validatorsProvider) createNewCache(
 
 func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorApiResponse {
 	newCache := make(map[string]*state.ValidatorApiResponse)
-	inactiveList := string(core.InactiveList)
 	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
-			// do not display inactive validators
-			if validatorInfo.List == inactiveList {
-				continue
-			}
-
 			strKey := vp.pubkeyConverter.Encode(validatorInfo.PublicKey)
 			newCache[strKey] = &state.ValidatorApiResponse{
 				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,

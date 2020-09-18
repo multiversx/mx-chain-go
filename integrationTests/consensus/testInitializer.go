@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -420,6 +421,7 @@ func createConsensusOnlyNode(
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 		node.WithPeerSignatureHandler(peerSigHandler),
+		node.WithIndexer(indexer.NewNilIndexer()),
 	)
 
 	if err != nil {

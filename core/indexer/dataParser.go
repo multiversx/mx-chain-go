@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -25,16 +26,14 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 	body *block.Body,
 	notarizedHeadersHashes []string,
 	sizeTxs int,
-) ([]byte, []byte) {
+) ([]byte, []byte, error) {
 	headerBytes, err := dp.marshalizer.Marshal(header)
 	if err != nil {
-		log.Debug("indexer: marshal header", "error", err)
-		return nil, nil
+		return nil, nil, err
 	}
 	bodyBytes, err := dp.marshalizer.Marshal(body)
 	if err != nil {
-		log.Debug("indexer: marshal body", "error", err)
-		return nil, nil
+		return nil, nil, err
 	}
 
 	blockSizeInBytes := len(headerBytes) + len(bodyBytes)
@@ -52,6 +51,11 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		miniblocksHashes = append(miniblocksHashes, encodedMbHash)
 	}
 
+	leaderIndex := uint64(0)
+	if len(signersIndexes) > 0 {
+		leaderIndex = signersIndexes[0]
+	}
+
 	headerHash := dp.hasher.Compute(string(headerBytes))
 	elasticBlock := Block{
 		Nonce:                 header.GetNonce(),
@@ -61,7 +65,7 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		Hash:                  hex.EncodeToString(headerHash),
 		MiniBlocksHashes:      miniblocksHashes,
 		NotarizedBlocksHashes: notarizedHeadersHashes,
-		Proposer:              signersIndexes[0],
+		Proposer:              leaderIndex,
 		Validators:            signersIndexes,
 		PubKeyBitmap:          hex.EncodeToString(header.GetPubKeysBitmap()),
 		Size:                  int64(blockSizeInBytes),
@@ -75,11 +79,10 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 
 	serializedBlock, err := json.Marshal(elasticBlock)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal elastic header")
-		return nil, nil
+		return nil, nil, err
 	}
 
-	return serializedBlock, headerHash
+	return serializedBlock, headerHash, nil
 }
 
 func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body) []*Miniblock {
@@ -95,7 +98,8 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 	for _, miniblock := range body.MiniBlocks {
 		mbHash, errComputeHash := core.CalculateHash(dp.marshalizer, dp.hasher, miniblock)
 		if errComputeHash != nil {
-			log.Warn("internal error computing hash", "error", errComputeHash)
+			log.Warn("indexer: internal error computing hash",
+				"error", errComputeHash)
 
 			continue
 		}
@@ -125,13 +129,14 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 	return miniblocks
 }
 
-func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
+func serializeRoundInfo(info workItems.RoundInfo) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
 		info.ShardId, info.Index, "_doc", "\n"))
 
 	serializedInfo, err := json.Marshal(info)
 	if err != nil {
-		log.Debug("indexer: could not serialize round info, will skip indexing this round info")
+		log.Warn("indexer: could not serialize round info, will skip indexing this round info",
+			"error", err.Error())
 		return nil, nil
 	}
 	// append a newline foreach element in the bulk we create
@@ -140,17 +145,18 @@ func serializeRoundInfo(info RoundInfo) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func computeBlockSearchOrder(header data.HeaderHandler) uint32 {
+func computeBlockSearchOrder(header data.HeaderHandler) uint64 {
 	shardIdentifier := createShardIdentifier(header.GetShardID())
-	stringOrder := fmt.Sprintf("%d%d", shardIdentifier, header.GetNonce())
+	stringOrder := fmt.Sprintf("1%02d%d", shardIdentifier, header.GetNonce())
 
-	order, err := strconv.ParseUint(stringOrder, 10, 32)
+	order, err := strconv.ParseUint(stringOrder, 10, 64)
 	if err != nil {
-		log.Debug("elasticsearchDatabase.computeBlockSearchOrder", "could not set uint32 search order", err.Error())
+		log.Debug("elasticsearchDatabase.computeBlockSearchOrder",
+			"could not set uint32 search order", err.Error())
 		return 0
 	}
 
-	return uint32(order)
+	return order
 }
 
 func createShardIdentifier(shardID uint32) uint32 {

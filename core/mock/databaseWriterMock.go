@@ -2,7 +2,6 @@ package mock
 
 import (
 	"bytes"
-	"io"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -34,6 +33,11 @@ func (dwm *DatabaseWriterStub) DoMultiGet(_ map[string]interface{}, _ string) (m
 	return nil, nil
 }
 
+// DoBulkRemove -
+func (dwm *DatabaseWriterStub) DoBulkRemove(_ string, _ []string) error {
+	return nil
+}
+
 // CheckAndCreateIndex --
 func (dwm *DatabaseWriterStub) CheckAndCreateIndex(_ string) error {
 	return nil
@@ -45,11 +49,16 @@ func (dwm *DatabaseWriterStub) CheckAndCreateAlias(_ string, _ string) error {
 }
 
 // CheckAndCreateTemplate -
-func (dwm *DatabaseWriterStub) CheckAndCreateTemplate(_ string, _ io.Reader) error {
+func (dwm *DatabaseWriterStub) CheckAndCreateTemplate(_ string, _ *bytes.Buffer) error {
 	return nil
 }
 
 // CheckAndCreatePolicy -
-func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ io.Reader) error {
+func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ *bytes.Buffer) error {
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dwm *DatabaseWriterStub) IsInterfaceNil() bool {
+	return dwm == nil
 }

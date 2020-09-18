@@ -12,8 +12,8 @@ type HistoryRepositoryFactory interface {
 
 // HistoryRepository provides methods needed for the history data processing
 type HistoryRepository interface {
-	RegisterToBlockTracker(blockTracker BlockTracker)
 	RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
+	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	IsEnabled() bool
@@ -23,6 +23,7 @@ type HistoryRepository interface {
 // BlockTracker defines the interface of the block tracker
 type BlockTracker interface {
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	IsInterfaceNil() bool

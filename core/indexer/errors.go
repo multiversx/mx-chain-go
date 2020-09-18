@@ -4,12 +4,6 @@ import (
 	"errors"
 )
 
-// ErrBodyTypeAssertion signals that we could not create an elasticsearch index
-var ErrBodyTypeAssertion = errors.New("elasticsearch - body type assertion failed")
-
-// ErrNoHeader signals that we could not create an elasticsearch index
-var ErrNoHeader = errors.New("elasticsearch - no header")
-
 // ErrBackOff signals that an error was received from the server
 var ErrBackOff = errors.New("back off something is not working well")
 
@@ -22,5 +16,17 @@ var ErrCouldNotCreatePolicy = errors.New("could not create policy")
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
-// ErrInvalidWorkItemData signas when receiving unexpected data in a work item
-var ErrInvalidWorkItemData = errors.New("invalid work item data")
+// ErrNilDataDispatcher signals that an operation has been attempted to or with a nil data dispatcher implementation
+var ErrNilDataDispatcher = errors.New("nil data dispatcher")
+
+// ErrNilElasticProcessor signals that an operation has been attempted to or with a nil elastic processor implementation
+var ErrNilElasticProcessor = errors.New("nil elastic processor")
+
+// ErrNilDatabaseClient signals that an operation has been attempted to or with a nil database client implementation
+var ErrNilDatabaseClient = errors.New("nil database client")
+
+// ErrNilOptions signals that structure that contains indexer options is nil
+var ErrNilOptions = errors.New("nil options")
+
+// ErrNegativeCacheSize signals that a invalid cache size has been provided
+var ErrNegativeCacheSize = errors.New("negative cache size")

@@ -520,7 +520,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.indexer.UpdateTPS(mp.tpsBenchmark)
+	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
@@ -562,7 +562,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
@@ -1080,6 +1080,8 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
+	go mp.historyRepo.OnNotarizedBlocks(mp.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+
 	log.Debug("highest final meta block",
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
@@ -1101,7 +1103,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.tpsBenchmark.Update(lastMetaBlock)
 
 	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	go mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce)
@@ -1390,15 +1392,6 @@ func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	return nil
-}
-
-// RevertIndexedBlock -
-func (mp *metaProcessor) RevertIndexedBlock(header data.HeaderHandler) {
-	if mp.indexer.IsNilIndexer() {
-		return
-	}
-
-	mp.indexer.RevertIndexedBlock(header)
 }
 
 func (mp *metaProcessor) updateShardHeadersNonce(key uint32, value uint64) {

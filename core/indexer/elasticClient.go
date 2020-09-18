@@ -18,7 +18,8 @@ type elasticClient struct {
 	es             *elasticsearch.Client
 }
 
-func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
+// NewElasticClient will create a new instance of elasticClient
+func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 	if len(cfg.Addresses) == 0 {
 		return nil, ErrNoElasticUrlProvided
 	}
@@ -37,7 +38,7 @@ func newElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 }
 
 // CheckAndCreateTemplate creates an index template if it does not already exist
-func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io.Reader) error {
+func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template *bytes.Buffer) error {
 	if ec.templateExists(templateName) {
 		return nil
 	}
@@ -46,7 +47,7 @@ func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template io
 }
 
 // CheckAndCreatePolicy creates a new index policy if it does not already exist
-func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy io.Reader) error {
+func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error {
 	if ec.PolicyExists(policyName) {
 		return nil
 	}
@@ -88,7 +89,7 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 
 	res, err := ec.es.Bulk(reader, ec.es.Bulk.WithIndex(index))
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet",
+		log.Warn("elasticClient.DoBulkRequest",
 			"indexer do bulk request no response", err.Error())
 		return err
 	}
@@ -97,7 +98,7 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 }
 
 // DoMultiGet wil do a multi get request to elaticsearch server
-func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
+func (ec *elasticClient) DoMultiGet(obj objectsMap, index string) (objectsMap, error) {
 	body, err := encode(obj)
 	if err != nil {
 		return nil, err
@@ -108,18 +109,51 @@ func (ec *elasticClient) DoMultiGet(obj object, index string) (object, error) {
 		ec.es.Mget.WithIndex(index),
 	)
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "cannot do multi get no response", err.Error())
+		log.Warn("elasticClient.DoMultiGet",
+			"cannot do multi get no response", err.Error())
 		return nil, err
 	}
 
-	var decodedBody object
+	var decodedBody objectsMap
 	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
 	if err != nil {
-		log.Warn("elasticClient.DoMultiGet", "error parsing response", err.Error())
+		log.Warn("elasticClient.DoMultiGet",
+			"error parsing response", err.Error())
 		return nil, err
 	}
 
 	return decodedBody, nil
+}
+
+// DoBulkRemove will do a bulk remove to elasticsearch server
+func (ec *elasticClient) DoBulkRemove(index string, hashes []string) error {
+	obj := prepareHashesForBulkRemove(hashes)
+	body, err := encode(obj)
+	if err != nil {
+		return err
+	}
+
+	res, err := ec.es.DeleteByQuery(
+		[]string{index},
+		&body,
+		ec.es.DeleteByQuery.WithIgnoreUnavailable(true),
+	)
+
+	if err != nil {
+		log.Warn("elasticClient.DoBulkRemove",
+			"cannot do bulk remove", err.Error())
+		return err
+	}
+
+	var decodedBody objectsMap
+	err = parseResponse(res, &decodedBody, elasticDefaultErrorResponseHandler)
+	if err != nil {
+		log.Warn("elasticClient.DoBulkRemove",
+			"error parsing response", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // TemplateExists checks weather a template is already created
@@ -145,13 +179,15 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 
 	req, err := newRequest(http.MethodGet, policyRoute, nil)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "could not create request object", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"could not create request objectsMap", err.Error())
 		return false
 	}
 
 	res, err := ec.es.Transport.Perform(req)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error performing request", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"error performing request", err.Error())
 		return false
 	}
 
@@ -161,10 +197,11 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaExistsResponse{}
+	existsRes := &kibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
-		log.Warn("elasticClient.PolicyExists", "error returned by kibana api", err.Error())
+		log.Warn("elasticClient.PolicyExists",
+			"error returned by kibana api", err.Error())
 		return false
 	}
 
@@ -181,13 +218,15 @@ func (ec *elasticClient) aliasExists(alias string) bool {
 
 	req, err := newRequest(http.MethodHead, aliasRoute, nil)
 	if err != nil {
-		log.Warn("elasticClient.AliasExists", "could not create request object", err.Error())
+		log.Warn("elasticClient.AliasExists",
+			"could not create request objectsMap", err.Error())
 		return false
 	}
 
 	res, err := ec.es.Transport.Perform(req)
 	if err != nil {
-		log.Warn("elasticClient.AliasExists", "error performing request", err.Error())
+		log.Warn("elasticClient.AliasExists",
+			"error performing request", err.Error())
 		return false
 	}
 
@@ -211,7 +250,7 @@ func (ec *elasticClient) createIndex(index string) error {
 }
 
 // CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
-func (ec *elasticClient) createPolicy(policyName string, policy io.Reader) error {
+func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) error {
 	policyRoute := fmt.Sprintf(
 		"%s/%s/ism/policies/%s",
 		ec.elasticBaseUrl,
@@ -237,7 +276,7 @@ func (ec *elasticClient) createPolicy(policyName string, policy io.Reader) error
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaExistsResponse{}
+	existsRes := &kibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		return err
@@ -268,4 +307,9 @@ func (ec *elasticClient) createAlias(alias string, index string) error {
 	}
 
 	return parseResponse(res, nil, elasticDefaultErrorResponseHandler)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ec *elasticClient) IsInterfaceNil() bool {
+	return ec == nil
 }

@@ -1012,7 +1012,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		builtInFuncs.Add(name, function)
+		_ = builtInFuncs.Add(name, function)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1208,6 +1208,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 		},
 		tpn.PeerState,
+		&mock.RaterMock{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1442,6 +1443,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
+			ChanceComputer:          tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 
@@ -1552,6 +1554,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 		node.WithHistoryRepository(tpn.HistoryRepository),
+		node.WithIndexer(indexer.NewNilIndexer()),
 	)
 	log.LogIfError(err)
 

@@ -954,7 +954,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr1)
 	hashes = append(hashes, hash1)
 
-	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, hdrs, hashes)
@@ -965,7 +965,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr2)
 	hashes = append(hashes, hash2)
 
-	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, hdrs, hashes)
@@ -976,7 +976,7 @@ func TestShardForkDetector_AddNotarizedHeadersShouldNotChangeTheFinalCheckpoint(
 	hdrs = append(hdrs, hdr3)
 	hashes = append(hashes, hash3)
 
-	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	_ = sfd.AddHeader(hdr3, hash3, process.BHProcessed, hdrs, hashes)
@@ -1086,7 +1086,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 
-	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
 	hdrs = make([]data.HeaderHandler, 0)
@@ -1097,7 +1097,7 @@ func TestShardForkDetector_RemoveHeaderShouldComputeFinalCheckpoint(t *testing.T
 	_ = sfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, sfd.FinalCheckpointNonce())
 
-	sfd.ReceivedSelfNotarizedHeaders(core.MetachainShardId, hdrs, hashes)
+	sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, hdrs, hashes)
 	assert.Equal(t, hdr2.Nonce, sfd.FinalCheckpointNonce())
 
 	sfd.RemoveHeader(hdr2.GetNonce(), hash2)
@@ -1152,4 +1152,30 @@ func TestBasicForkDetector_CheckForkMetaHeaderProcessedShouldWorkOnEqualRoundWit
 	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Nonce)
 	assert.Equal(t, uint64(math.MaxUint64), forkInfo.Round)
 	assert.Nil(t, forkInfo.Hash)
+}
+
+func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
+	rounderMock := &mock.RounderMock{}
+	bfd, _ := sync.NewMetaForkDetector(
+		rounderMock,
+		&mock.BlackListHandlerStub{},
+		&mock.BlockTrackerMock{},
+		0,
+	)
+
+	rounderMock.RoundIndex = 1000
+	_ = bfd.AddHeader(
+		&block.MetaBlock{Nonce: 900, Round: 1000, PubKeysBitmap: []byte("X")},
+		[]byte("hash"),
+		process.BHProcessed,
+		nil,
+		nil)
+
+	assert.Equal(t, uint64(0), bfd.GetHighestFinalBlockNonce())
+	assert.Nil(t, bfd.GetHighestFinalBlockHash())
+
+	bfd.SetFinalToLastCheckpoint()
+
+	assert.Equal(t, uint64(900), bfd.GetHighestFinalBlockNonce())
+	assert.Equal(t, []byte("hash"), bfd.GetHighestFinalBlockHash())
 }

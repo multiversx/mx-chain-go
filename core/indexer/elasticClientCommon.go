@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -18,7 +17,7 @@ func exists(res *esapi.Response, err error) bool {
 			_, _ = io.Copy(ioutil.Discard, res.Body)
 			err = res.Body.Close()
 			if err != nil {
-				log.Warn("elasticClient.IndexExists", "could not close body: ", err.Error())
+				log.Warn("elasticClient.exists", "could not close body: ", err.Error())
 			}
 		}
 	}()
@@ -40,6 +39,10 @@ func exists(res *esapi.Response, err error) bool {
 }
 
 func loadResponseBody(body io.ReadCloser, dest interface{}) error {
+	if body == nil {
+		return nil
+	}
+
 	if dest == nil {
 		_, err := io.Copy(ioutil.Discard, body)
 		return err
@@ -67,40 +70,49 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 	}
 
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", res.StatusCode)
-	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", res.Body)
+		"error returned by elastic API", res.StatusCode,
+		"body", res.Body)
+
 	return ErrBackOff
 }
 
 func errIsAlreadyExists(response map[string]interface{}) bool {
 	alreadyExistsMessage := "resource_already_exists_exception"
+	errKey := "error"
+	typeKey := "type"
 
-	if errMapI, ok := response["error"]; ok {
-		if errMap, ok := errMapI.(map[string]interface{}); ok {
-			if existsString, ok := errMap["type"].(string); ok {
-				return existsString == alreadyExistsMessage
-			}
-		}
+	errMapI, ok := response[errKey]
+	if !ok {
+		return false
 	}
 
-	return false
+	errMap, ok := errMapI.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	existsString, ok := errMap[typeKey].(string)
+	if !ok {
+		return false
+	}
+
+	return existsString == alreadyExistsMessage
 }
 
 func kibanaResponseErrorHandler(res *esapi.Response) error {
-	errorRes := &kibanaErrorResponse{}
+	errorRes := &kibanaResponse{}
 	decodeErr := loadResponseBody(res.Body, errorRes)
 	if decodeErr != nil {
 		return decodeErr
 	}
 
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API:", errorRes.Error,
+		"error returned by elastic API", errorRes.Error,
 		"code", res.StatusCode)
 	return ErrBackOff
 }
 
-func newRequest(method, path string, body io.Reader) (*http.Request, error) {
+func newRequest(method, path string, body *bytes.Buffer) (*http.Request, error) {
 	r := http.Request{
 		Method:     method,
 		URL:        &url.URL{Path: path},
@@ -111,26 +123,15 @@ func newRequest(method, path string, body io.Reader) (*http.Request, error) {
 	}
 
 	if body != nil {
-		switch b := body.(type) {
-		case *bytes.Buffer:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *bytes.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		case *strings.Reader:
-			r.Body = ioutil.NopCloser(body)
-			r.ContentLength = int64(b.Len())
-		default:
-			r.Body = ioutil.NopCloser(body)
-		}
+		r.Body = ioutil.NopCloser(body)
+		r.ContentLength = int64(body.Len())
 	}
 
 	return &r, nil
 }
 
 /**
- * parseResponse will check and load the elastic/kibana api response into the destination object. Custom errorHandler
+ * parseResponse will check and load the elastic/kibana api response into the destination objectsMap. Custom errorHandler
  *  can be passed for special requests that want to handle StatusCode != 200. Every responseErrorHandler
  *  implementation should call loadResponseBody or consume the response body in order to be able to
  *  reuse persistent TCP connections: https://github.com/elastic/go-elasticsearch#usage
@@ -141,7 +142,7 @@ func parseResponse(res *esapi.Response, dest interface{}, errorHandler responseE
 			err := res.Body.Close()
 			if err != nil {
 				log.Warn("elasticClient.parseResponse",
-					"could not close body: ", err.Error())
+					"could not close body", err.Error())
 			}
 		}
 	}()

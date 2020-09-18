@@ -212,7 +212,6 @@ type BlockProcessor interface {
 	RevertAccountState(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
-	RevertIndexedBlock(header data.HeaderHandler)
 	CreateNewHeader(round uint64, nonce uint64) data.HeaderHandler
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
@@ -228,7 +227,6 @@ type BlockProcessor interface {
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
-	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
@@ -321,6 +319,7 @@ type ForkDetector interface {
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
+	SetFinalToLastCheckpoint()
 	IsInterfaceNil() bool
 }
 
@@ -580,6 +579,7 @@ type TimeCacher interface {
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
+	Len() int
 	IsInterfaceNil() bool
 }
 
@@ -689,6 +689,7 @@ type BlockTracker interface {
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()

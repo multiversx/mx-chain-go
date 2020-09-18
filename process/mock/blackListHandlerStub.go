@@ -8,6 +8,7 @@ type BlackListHandlerStub struct {
 	UpsertCalled func(key string, span time.Duration) error
 	HasCalled    func(key string) bool
 	SweepCalled  func()
+	LenCalled    func() int
 }
 
 // Add -
@@ -44,6 +45,15 @@ func (blhs *BlackListHandlerStub) Sweep() {
 	}
 
 	blhs.SweepCalled()
+}
+
+// Len -
+func (blhs *BlackListHandlerStub) Len() int {
+	if blhs.LenCalled == nil {
+		return 0
+	}
+
+	return blhs.LenCalled()
 }
 
 // IsInterfaceNil -

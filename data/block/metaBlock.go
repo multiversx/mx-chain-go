@@ -3,6 +3,7 @@ package block
 
 import (
 	"math/big"
+	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -130,6 +131,47 @@ func (m *MetaBlock) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 
 	}
 
 	return hashDst
+}
+
+// GetOrderedCrossMiniblocksWithDst gets all cross miniblocks with the given destination shard ID, ordered in a
+// chronological way, taking into consideration the round in which they were created/executed in the sender shard
+func (m *MetaBlock) GetOrderedCrossMiniblocksWithDst(destId uint32) []*data.MiniBlockInfo {
+	miniBlocks := make([]*data.MiniBlockInfo, 0)
+
+	for i := 0; i < len(m.ShardInfo); i++ {
+		if m.ShardInfo[i].ShardID == destId {
+			continue
+		}
+
+		for _, mb := range m.ShardInfo[i].ShardMiniBlockHeaders {
+			if mb.ReceiverShardID == destId && mb.SenderShardID != destId {
+				miniBlocks = append(miniBlocks, &data.MiniBlockInfo{
+					Hash:          mb.Hash,
+					SenderShardID: mb.SenderShardID,
+					Round:         m.ShardInfo[i].Round,
+				})
+			}
+		}
+	}
+
+	for _, mb := range m.MiniBlockHeaders {
+		isDestinationShard := (mb.ReceiverShardID == destId ||
+			mb.ReceiverShardID == core.AllShardId) &&
+			mb.SenderShardID != destId
+		if isDestinationShard {
+			miniBlocks = append(miniBlocks, &data.MiniBlockInfo{
+				Hash:          mb.Hash,
+				SenderShardID: mb.SenderShardID,
+				Round:         m.Round,
+			})
+		}
+	}
+
+	sort.Slice(miniBlocks, func(i, j int) bool {
+		return miniBlocks[i].Round < miniBlocks[j].Round
+	})
+
+	return miniBlocks
 }
 
 // GetMiniBlockHeadersHashes gets the miniblock hashes

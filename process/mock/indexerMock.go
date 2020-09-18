@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -23,18 +23,13 @@ func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandle
 func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
-// StopIndexing will do nothing
-func (im *IndexerMock) StopIndexing() error {
+// Close will do nothing
+func (im *IndexerMock) Close() error {
 	return nil
 }
 
-// GetQueueLength -
-func (im *IndexerMock) GetQueueLength() int {
-	return 0
-}
-
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
 
 }
 
@@ -46,8 +41,8 @@ func (im *IndexerMock) SaveMetaBlock(_ data.HeaderHandler, _ []uint64) {
 func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
-// SaveRoundsInfos -
-func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
+// SaveRoundsInfo -
+func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
 }
 
 // SaveValidatorsPubKeys -
@@ -56,7 +51,7 @@ func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
 // RevertIndexedBlock -
-func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler) {
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

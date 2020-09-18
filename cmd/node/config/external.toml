@@ -1,7 +1,13 @@
 # ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [ElasticSearchConnector]
-    # TODO change this to false after testing
-    Enabled    = true
-    URL        = "https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"
-    Username   = ""
-    Password   = ""
+    ## We do not recommend to activate this indexer on a validator node since
+    #the node might loose rating (even facing penalties) due to the fact that
+    #the indexer is called synchronously and might block due to external causes.
+    #Strongly suggested to activate this on a regular observer node.
+    Enabled           = false
+    TxIndexingEnabled = true
+    IndexerCacheSize  = 100
+    URL               = "http://localhost:9200"
+    UseKibana         = false
+    Username          = ""
+    Password          = ""

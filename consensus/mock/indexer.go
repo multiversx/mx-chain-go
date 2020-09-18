@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -19,7 +19,7 @@ func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map
 }
 
 // RevertIndexedBlock -
-func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler) {
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
 // SetTxLogsProcessor will do nothing
@@ -27,18 +27,13 @@ func (im *IndexerMock) SetTxLogsProcessor(_ process.TransactionLogProcessorDatab
 
 }
 
-// StopIndexing will do nothing
-func (im *IndexerMock) StopIndexing() error {
+// Close will do nothing
+func (im *IndexerMock) Close() error {
 	return nil
 }
 
-// GetQueueLength -
-func (im *IndexerMock) GetQueueLength() int {
-	return 0
-}
-
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
 
 }
 
@@ -47,8 +42,8 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-// SaveRoundsInfos -
-func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
+// SaveRoundsInfo -
+func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
 	panic("implement me")
 }
 
