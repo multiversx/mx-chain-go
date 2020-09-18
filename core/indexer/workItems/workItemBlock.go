@@ -51,7 +51,7 @@ func (wib *itemBlock) Save() error {
 		return ErrBodyTypeAssertion
 	}
 
-	txsSizeInBytes := computeSizeOfTxs(wib.marshalizer, wib.txPool)
+	txsSizeInBytes := ComputeSizeOfTxs(wib.marshalizer, wib.txPool)
 	err := wib.indexer.SaveHeader(wib.headerHandler, wib.signersIndexes, body, wib.notarizedHeadersHashes, txsSizeInBytes)
 	if err != nil {
 		log.Warn("itemBlock.Save", "could not index block:", err.Error())
@@ -87,7 +87,8 @@ func (wib *itemBlock) IsInterfaceNil() bool {
 	return wib == nil
 }
 
-func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
+// ComputeSizeOfTxs will compute size of transactions in bytes
+func ComputeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
 	if len(txs) == 0 {
 		return 0
 	}

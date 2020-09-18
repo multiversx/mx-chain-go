@@ -24,8 +24,7 @@ func (wiv *itemValidators) Save() error {
 	for shardID, shardPubKeys := range wiv.validatorsPubKeys {
 		err := wiv.indexer.SaveShardValidatorsPubKeys(shardID, wiv.epoch, shardPubKeys)
 		if err != nil {
-			log.Warn("itemValidators.Save",
-				"could not index validators public keys, ",
+			log.Warn("itemValidators.Save could not index validators public keys",
 				"for shard", shardID,
 				"error", err.Error())
 			return err

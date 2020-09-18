@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/stretchr/testify/assert"
@@ -58,6 +60,33 @@ func TestDataIndexer_NewIndexerWithNilNodesCoordinatorShouldErr(t *testing.T) {
 
 	require.Nil(t, ei)
 	require.Equal(t, core.ErrNilNodesCoordinator, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilDataDispatcherShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, ErrNilDataDispatcher, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.ElasticProcessor = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, ErrNilElasticProcessor, err)
+}
+
+func TestDataIndexer_NewIndexerWithNilMarshalizerShouldErr(t *testing.T) {
+	arguments := NewDataIndexerArguments()
+	arguments.Marshalizer = nil
+	ei, err := NewDataIndexer(arguments)
+
+	require.Nil(t, ei)
+	require.Equal(t, core.ErrNilMarshalizer, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilEpochStartNotifierShouldErr(t *testing.T) {
@@ -120,9 +149,8 @@ func TestDataIndexer_UpdateTPSNil(t *testing.T) {
 }
 
 func TestDataIndexer_SaveBlock(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -136,9 +164,8 @@ func TestDataIndexer_SaveBlock(t *testing.T) {
 }
 
 func TestDataIndexer_SaveRoundInfo(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -155,9 +182,8 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 }
 
 func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
-	t.Parallel()
-
 	called := false
+
 	arguments := NewDataIndexerArguments()
 	arguments.DataDispatcher = &mock.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
@@ -173,6 +199,53 @@ func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	epoch := uint32(0)
 
 	ei.SaveValidatorsPubKeys(valPubKey, epoch)
+	require.True(t, called)
+}
+
+func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
+	called := false
+
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.SaveValidatorsRating("ID", []workItems.ValidatorRatingInfo{
+		{Rating: 1}, {Rating: 2},
+	})
+	require.True(t, called)
+}
+
+func TestDataIndexer_RevertIndexedBlock(t *testing.T) {
+	called := false
+
+	arguments := NewDataIndexerArguments()
+	arguments.DataDispatcher = &mock.DispatcherMock{
+		AddCalled: func(item workItems.WorkItemHandler) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.RevertIndexedBlock(&dataBlock.Header{}, &dataBlock.Body{})
+	require.True(t, called)
+}
+
+func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
+	called := false
+
+	arguments := NewDataIndexerArguments()
+	arguments.ElasticProcessor = &mock.ElasticProcessorStub{
+		SetTxLogsProcessorCalled: func(txLogsProc process.TransactionLogProcessorDatabase) {
+			called = true
+		},
+	}
+	ei, _ := NewDataIndexer(arguments)
+
+	ei.SetTxLogsProcessor(disabled.NewNilTxLogsProcessor())
 	require.True(t, called)
 }
 
