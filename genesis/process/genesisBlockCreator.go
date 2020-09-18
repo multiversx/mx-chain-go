@@ -407,7 +407,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
 	if isCurrentShard {
-		return gbc.arg, nil
+		newArgument := gbc.arg // copy the arguments
+		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
+		return newArgument, nil
 	}
 
 	newArgument := gbc.arg //copy the arguments

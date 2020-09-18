@@ -22,12 +22,29 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 }
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
-	processArgs := getProcessComponentsArgs()
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(0)
+	coreComponents := getCoreComponents()
+
+	dataArgs := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 		return 0
 	}
 	shardCoordinator.CurrentShard = core.MetachainShardId
+	dataArgs.ShardCoordinator = shardCoordinator
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
+	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
+	_ = dataComponents.Create()
+	networkComponents := getNetworkComponents()
+	cryptoComponents := getCryptoComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents)
+	processArgs := getProcessArgs(
+		coreComponents,
+		dataComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+	)
+
 	processArgs.ShardCoordinator = shardCoordinator
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)

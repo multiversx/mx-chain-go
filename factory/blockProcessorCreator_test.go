@@ -42,8 +42,21 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
+	shardC := mock.NewMultiShardsCoordinatorMock(1)
+	shardC.SelfIDCalled = func() uint32 {
+		return core.MetachainShardId
+	}
+	shardC.ComputeIdCalled = func(_ []byte) uint32 {
+		return 0
+	}
+
+	dataArgs := getDataArgs(coreComponents)
+	dataArgs.ShardCoordinator = shardC
+	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
+	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
+	_ = dataComponents.Create()
+
 	networkComponents := getNetworkComponents()
-	dataComponents := getDataComponents(coreComponents)
 	cryptoComponents := getCryptoComponents(coreComponents)
 
 	stateComp := &mock.StateComponentsHolderStub{
@@ -92,14 +105,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		stateComp,
 		networkComponents,
 	)
-
-	shardC := mock.NewMultiShardsCoordinatorMock(1)
-	shardC.SelfIDCalled = func() uint32 {
-		return core.MetachainShardId
-	}
-	shardC.ComputeIdCalled = func(_ []byte) uint32 {
-		return 0
-	}
 
 	args.ShardCoordinator = shardC
 
