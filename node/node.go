@@ -1166,6 +1166,7 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 
 	peerInfo := n.networkShardingCollector.GetPeerInfo(p)
 	result.PeerType = peerInfo.PeerType.String()
+	result.PeerSubType = peerInfo.PeerSubType.String()
 	if len(peerInfo.PkBytes) == 0 {
 		result.Pk = ""
 	} else {

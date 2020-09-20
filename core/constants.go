@@ -267,6 +267,9 @@ const MetricNumValidators = "erd_num_validators"
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
 const MetricPeerType = "erd_peer_type"
 
+// MetricPeerSubType is the metric which tells the peer's subtype (regular observer or full history observer)
+const MetricPeerSubType = "erd_peer_subtype"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 

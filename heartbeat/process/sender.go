@@ -173,8 +173,11 @@ func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {
 		nodeType = string(core.NodeTypeValidator)
 	}
 
+	subType := core.P2PPeerSubType(hb.PeerSubType)
+
 	s.statusHandler.SetStringValue(core.MetricNodeType, nodeType)
 	s.statusHandler.SetStringValue(core.MetricPeerType, result)
+	s.statusHandler.SetStringValue(core.MetricPeerSubType, subType.String())
 }
 
 func (s *Sender) computePeerList(pubkey []byte) string {

@@ -71,6 +71,8 @@ func (mp *MessageProcessor) CreateHeartbeatFromP2PMessage(message p2p.MessageP2P
 	//add into the last failsafe map. Useful for observers.
 	mp.networkShardingCollector.UpdatePeerIdShardId(message.Peer(), hbRecv.ShardID)
 
+	mp.networkShardingCollector.UpdatePeerIdSubType(message.Peer(), core.P2PPeerSubType(hbRecv.PeerSubType))
+
 	return hbRecv, nil
 }
 

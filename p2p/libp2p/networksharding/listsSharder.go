@@ -198,7 +198,7 @@ func has(pid peer.ID, list []peer.ID) bool {
 	return false
 }
 
-//TODO study if we need to hve a dedicated section for metanodes
+//TODO study if we need to have a dedicated section for metanodes
 func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistances {
 	peerDistances := map[int]sorting.PeerDistances{
 		intraShardValidators: {},
