@@ -222,6 +222,7 @@ type ConnectedPeersInfo struct {
 	IntraShardObservers  map[uint32][]string
 	CrossShardValidators map[uint32][]string
 	CrossShardObservers  map[uint32][]string
+	FullHistoryObservers map[uint32][]string
 	NumValidators        map[uint32]int
 	NumObservers         map[uint32]int
 }

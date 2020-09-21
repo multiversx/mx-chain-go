@@ -73,6 +73,7 @@ func TestNewListsSharder_NilPeerShardResolverShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -90,6 +91,7 @@ func TestNewListsSharder_InvalidIntraShardValidatorsShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -107,6 +109,7 @@ func TestNewListsSharder_InvalidCrossShardValidatorsShouldErr(t *testing.T) {
 		minAllowedValidators-1,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -124,6 +127,7 @@ func TestNewListsSharder_InvalidIntraShardObserversShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers-1,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -141,6 +145,7 @@ func TestNewListsSharder_InvalidCrossShardObserversShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers-1,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -158,6 +163,7 @@ func TestNewListsSharder_NoRoomForUnknownShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers+1,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.True(t, check.IfNil(ls))
@@ -175,6 +181,7 @@ func TestNewListsSharder_ShouldWork(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	assert.False(t, check.IfNil(ls))
@@ -194,6 +201,7 @@ func TestListsSharder_ComputeEvictionListNotReachedValidatorsShouldRetEmpty(t *t
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, validatorMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, validatorMarker))
@@ -215,6 +223,7 @@ func TestListsSharder_ComputeEvictionListNotReachedObserversShouldRetEmpty(t *te
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 	pidCrtShard := peer.ID(fmt.Sprintf("%d %s", crtShardId, observerMarker))
 	pidCrossShard := peer.ID(fmt.Sprintf("%d %s", crossShardId, observerMarker))
@@ -236,6 +245,7 @@ func TestListsSharder_ComputeEvictionListNotReachedUnknownShouldRetEmpty(t *test
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 	pidUnknown := peer.ID(fmt.Sprintf("0 %s", unknownMarker))
 	pids := []peer.ID{pidUnknown}
@@ -256,6 +266,7 @@ func TestListsSharder_ComputeEvictionListReachedIntraShardShouldSortAndEvict(t *
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 	pidCrtShard1 := peer.ID(fmt.Sprintf("%d - 1 - %s", crtShardId, validatorMarker))
 	pidCrtShard2 := peer.ID(fmt.Sprintf("%d - 2 - %s", crtShardId, validatorMarker))
@@ -279,6 +290,7 @@ func TestListsSharder_ComputeEvictionListUnknownPeersShouldFillTheGap(t *testing
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	unknownPids := make([]peer.ID, maxPeerCount)
@@ -305,6 +317,7 @@ func TestListsSharder_ComputeEvictionListCrossShouldFillTheGap(t *testing.T) {
 		1,
 		1,
 		1,
+		0,
 	)
 
 	pids := []peer.ID{
@@ -331,6 +344,7 @@ func TestListsSharder_ComputeEvictionListEvictFromAllShouldWork(t *testing.T) {
 		1,
 		1,
 		1,
+		0,
 	)
 
 	pids := []peer.ID{
@@ -434,6 +448,7 @@ func TestListsSharder_SetPeerShardResolverNilShouldErr(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 
 	err := lks.SetPeerShardResolver(nil)
@@ -452,6 +467,7 @@ func TestListsSharder_SetPeerShardResolverShouldWork(t *testing.T) {
 		minAllowedValidators,
 		minAllowedObservers,
 		minAllowedObservers,
+		minAllowedFullHistoryNodes,
 	)
 	newPeerShardResolver := &mock.PeerShardResolverStub{}
 	err := lks.SetPeerShardResolver(newPeerShardResolver)

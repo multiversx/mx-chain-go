@@ -3,7 +3,7 @@ package factory
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p/networksharding"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -20,6 +20,7 @@ type ArgsSharderFactory struct {
 	MaxCrossShardValidators int
 	MaxIntraShardObservers  int
 	MaxCrossShardObservers  int
+	MaxFullHistoryObservers int
 	Type                    string
 }
 
@@ -33,6 +34,7 @@ func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
 			"MaxCrossShardValidators", arg.MaxCrossShardValidators,
 			"MaxIntraShardObservers", arg.MaxIntraShardObservers,
 			"MaxCrossShardObservers", arg.MaxCrossShardObservers,
+			"MaxFullHistoryObservers", arg.MaxFullHistoryObservers,
 		)
 		return networksharding.NewListsSharder(
 			arg.PeerShardResolver,
@@ -42,6 +44,7 @@ func NewSharder(arg ArgsSharderFactory) (p2p.CommonSharder, error) {
 			arg.MaxCrossShardValidators,
 			arg.MaxIntraShardObservers,
 			arg.MaxCrossShardObservers,
+			arg.MaxFullHistoryObservers,
 		)
 	case p2p.OneListSharder:
 		log.Debug("using one list sharder",

@@ -22,6 +22,7 @@ func createMockArg() ArgsSharderFactory {
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxFullHistoryObservers: 1,
 	}
 }
 
@@ -41,6 +42,7 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 		maxPeerCount,
 		maxValidators,
 		maxValidators,
+		maxObservers,
 		maxObservers,
 		maxObservers,
 	)

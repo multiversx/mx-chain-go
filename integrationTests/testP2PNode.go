@@ -370,7 +370,7 @@ func createCryptoPair() TestKeyPair {
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -389,12 +389,13 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
 						len(peerInfo.IntraShardValidators),
 						len(peerInfo.CrossShardValidators),
 						len(peerInfo.IntraShardObservers),
 						len(peerInfo.CrossShardObservers),
+						len(peerInfo.FullHistoryObservers),
 						len(peerInfo.UnknownPeers),
 					),
 				},

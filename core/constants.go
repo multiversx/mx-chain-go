@@ -409,6 +409,9 @@ const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
 // MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
 const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
 
+// MetricP2PFullHistoryObservers is the metric that outputs the full-history connected observers
+const MetricP2PFullHistoryObservers = "erd_p2p_full_history_observers"
+
 // MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
 const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
 
