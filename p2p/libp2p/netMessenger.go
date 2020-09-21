@@ -242,6 +242,7 @@ func createMessenger(
 func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 	signPolicy := pubsub.StrictSign
 	if !withMessageSigning {
+		log.Warn("signature verification is turned off in network messenger instance")
 		signPolicy = noSignPolicy
 	}
 	optsPS := []pubsub.Option{
