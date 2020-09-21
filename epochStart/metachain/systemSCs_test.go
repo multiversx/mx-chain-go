@@ -141,6 +141,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		RewardsHandler:      &mock.RewardsHandlerStub{},
 		NodesSetup:          &mock.NodesSetupStub{},
 		MaxComputableRounds: 1,
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -211,6 +212,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
 		ChanceComputer:          &mock.ChanceComputerStub{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 	return args
 }
