@@ -207,6 +207,10 @@ func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHead
 	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
 }
 
+func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {
+	bp.requestHeaders(shardID, fromNonce)
+}
+
 func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
 	return bp.shouldProcessReceivedHeader(headerHandler)
 }
