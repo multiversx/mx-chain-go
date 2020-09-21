@@ -2,6 +2,7 @@ package factory
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
