@@ -50,6 +50,8 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		Hasher:                   &mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
+		DBClient:                 &mock.DatabaseWriterStub{},
+		Options:                  &Options{},
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {},
 		},
@@ -101,6 +103,80 @@ func newTestBlockBody() *dataBlock.Body {
 			{TxHashes: [][]byte{[]byte("tx3")}, ReceiverShardID: 4, SenderShardID: 1},
 		},
 	}
+}
+
+func TestNewElasticProcessorWithKibana(t *testing.T) {
+	t.Parallel()
+
+	args := createMockElasticProcessorArgs()
+	args.Options = &Options{
+		UseKibana: true,
+	}
+	args.DBClient = &mock.DatabaseWriterStub{}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+	require.NotNil(t, elasticProcessor)
+}
+
+func TestElasticProcessor_RemoveHeader(t *testing.T) {
+	called := false
+
+	args := createMockElasticProcessorArgs()
+	args.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRemoveCalled: func(index string, hashes []string) error {
+			called = true
+			return nil
+		},
+	}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+
+	err = elasticProcessor.RemoveHeader(&dataBlock.Header{})
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
+func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
+	called := false
+
+	mb1 := &dataBlock.MiniBlock{Type: dataBlock.PeerBlock}
+	mb2 := &dataBlock.MiniBlock{ReceiverShardID: 0, SenderShardID: 1} // should be removed
+	mb3 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 1} // should be removed
+	mb4 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 0} // should NOT be removed
+
+	args := createMockElasticProcessorArgs()
+
+	mbHash2, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb2)
+	mbHash3, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb3)
+
+	args.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRemoveCalled: func(index string, hashes []string) error {
+			called = true
+			require.Equal(t, hashes[0], hex.EncodeToString(mbHash2))
+			require.Equal(t, hashes[1], hex.EncodeToString(mbHash3))
+			return nil
+		},
+	}
+
+	elasticProcessor, err := NewElasticProcessor(args)
+	require.NoError(t, err)
+
+	header := &dataBlock.Header{
+		ShardID: 1,
+		MiniBlockHeaders: []dataBlock.MiniBlockHeader{
+			{Hash: []byte("hash1")}, {Hash: []byte("hash2")}, {Hash: []byte("hash3")}, {Hash: []byte("hash4")},
+		},
+	}
+	body := &dataBlock.Body{
+		MiniBlocks: dataBlock.MiniBlockSlice{
+			mb1, mb2, mb3, mb4,
+		},
+	}
+	err = elasticProcessor.RemoveMiniblocks(header, body)
+	require.Nil(t, err)
+	require.True(t, called)
 }
 
 func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
@@ -171,6 +247,51 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	err := elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 	require.Equal(t, localErr, err)
+}
+
+func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
+	docID := "0_1"
+	localErr := errors.New("localErr")
+
+	arguments := createMockElasticProcessorArgs()
+	arguments.DBClient = &mock.DatabaseWriterStub{
+		DoRequestCalled: func(req *esapi.IndexRequest) error {
+			require.Equal(t, docID, req.DocumentID)
+
+			return localErr
+		},
+	}
+
+	elasticProcessor, _ := NewElasticProcessor(arguments)
+
+	err := elasticProcessor.SaveValidatorsRating(docID, []workItems.ValidatorRatingInfo{
+		{PublicKey: "blablabla", Rating: 100},
+	})
+	require.Equal(t, localErr, err)
+}
+
+func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
+	localErr := errors.New("localErr")
+
+	arguments := createMockElasticProcessorArgs()
+	arguments.DBClient = &mock.DatabaseWriterStub{
+		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
+			return localErr
+		},
+		DoMultiGetCalled: func(query map[string]interface{}, index string) (map[string]interface{}, error) {
+			return nil, nil
+		},
+	}
+
+	elasticProcessor, _ := NewElasticProcessor(arguments)
+
+	header := &dataBlock.Header{}
+	body := &dataBlock.Body{MiniBlocks: dataBlock.MiniBlockSlice{
+		{SenderShardID: 0, ReceiverShardID: 1},
+	}}
+	mbsInDB, err := elasticProcessor.SaveMiniblocks(header, body)
+	require.Equal(t, localErr, err)
+	require.Equal(t, 0, len(mbsInDB))
 }
 
 func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
