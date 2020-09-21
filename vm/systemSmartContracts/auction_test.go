@@ -1634,7 +1634,7 @@ func TestAuctionStakingSC_ExecuteStakeBeforeAuctionEnableNonce(t *testing.T) {
 		},
 	}
 	args := createMockArgumentsForAuction()
-	args.StakingSCConfig.AuctionEnableNonce = 100
+	args.StakingSCConfig.AuctionEnableEpoch = 100
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	expectedRegistrationData := AuctionData{
 		RewardAddress:   stakerAddress.Bytes(),
