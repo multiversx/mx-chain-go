@@ -297,7 +297,7 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 	sw.Start("removeFromDb")
 	defer func() {
 		sw.Stop("removeFromDb")
-		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements())
+		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
 	}()
 
 	var hash []byte
