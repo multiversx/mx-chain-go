@@ -154,6 +154,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getBLSKeyStatus(args)
 	case "getRemainingUnBondPeriod":
 		return r.getRemainingUnbondPeriod(args)
+	case "getWaitingListRegisterNonceAndRewardAddress":
+		return r.getWaitingListRegisterNonceAndRewardAddress(args)
 	}
 
 	return vmcommon.UserError
@@ -529,6 +531,7 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2, 
 		return nil
 	}
 
+	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	if !r.canStake() {
 		r.eei.AddReturnMessage(fmt.Sprintf("staking is full key put into waiting list %s", hex.EncodeToString(blsKey)))
 		err := r.addToWaitingList(blsKey, addFirst)
@@ -544,7 +547,6 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2, 
 	r.addToStakedNodes()
 	registrationData.Staked = true
 	registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.UnStakedEpoch = core.DefaultUnstakedEpoch
 	registrationData.UnStakedNonce = 0
 
@@ -1125,14 +1127,9 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		r.eei.AddReturnMessage("number of arguments must be equal to 1")
 		return vmcommon.UserError
 	}
-	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
-	if err != nil {
-		r.eei.AddReturnMessage("insufficient gas")
-		return vmcommon.OutOfGas
-	}
 
 	waitingElementKey := r.createWaitingListKey(args.Arguments[0])
-	_, err = r.getWaitingListElement(waitingElementKey)
+	_, err := r.getWaitingListElement(waitingElementKey)
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1159,12 +1156,12 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	index := 2
+	index := uint32(2)
 	nextKey := make([]byte, len(waitingElementKey))
 	copy(nextKey, prevElement.NextKey)
-	for len(nextKey) != 0 {
+	for len(nextKey) != 0 && index <= waitingListHead.Length {
 		if bytes.Equal(nextKey, waitingElementKey) {
-			r.eei.Finish([]byte(strconv.Itoa(index)))
+			r.eei.Finish([]byte(strconv.Itoa(int(index))))
 			return vmcommon.Ok
 		}
 
@@ -1292,6 +1289,52 @@ func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	} else {
 		remaining := r.unBondPeriod - passedNonce
 		r.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+	}
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("this is only a view function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		r.eei.AddReturnMessage("number of arguments must be equal to 0")
+		return vmcommon.UserError
+	}
+
+	waitingListHead, err := r.getWaitingListHead()
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if waitingListHead.Length == 0 {
+		r.eei.AddReturnMessage("no one in waitingList")
+		return vmcommon.UserError
+	}
+
+	index := uint32(1)
+	nextKey := make([]byte, len(waitingListHead.FirstKey))
+	copy(nextKey, waitingListHead.FirstKey)
+	for len(nextKey) != 0 && index <= waitingListHead.Length {
+		element, err := r.getWaitingListElement(nextKey)
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		stakedData, err := r.getOrCreateRegisteredData(element.BLSPublicKey)
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		r.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
+		r.eei.Finish([]byte(strconv.Itoa(int(stakedData.RegisterNonce))))
+
+		index++
+		copy(nextKey, element.NextKey)
 	}
 
 	return vmcommon.Ok
