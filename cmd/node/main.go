@@ -1399,6 +1399,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		systemSCConfig,
 		rater,
+		epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -2360,6 +2361,7 @@ func createApiResolver(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2397,6 +2399,7 @@ func createApiResolver(
 			systemSCConfig,
 			validatorAccounts,
 			rater,
+			epochNotifier,
 		)
 		if err != nil {
 			return nil, err

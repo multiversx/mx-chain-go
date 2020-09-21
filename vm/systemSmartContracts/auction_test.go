@@ -37,8 +37,8 @@ func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 			MinStepValue:                         "10",
 			MinStakeValue:                        "1",
 			UnBondPeriod:                         1,
-			AuctionEnableNonce:                   0,
-			StakeEnableNonce:                     0,
+			AuctionEnableEpoch:                   0,
+			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                1,
 			MaximumPercentageToBleed:             1,
 			BleedPercentagePerRound:              1,
@@ -48,6 +48,7 @@ func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 		},
 		Marshalizer:        &mock.MarshalizerMock{},
 		GenesisTotalSupply: big.NewInt(100000000),
+		EpochNotifier:      &mock.EpochNotifierStub{},
 	}
 
 	return args
@@ -1044,7 +1045,7 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndRestake(t *testin
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 1000
-	argsStaking.StakingSCConfig.AuctionEnableNonce = 100000000
+	argsStaking.StakingSCConfig.AuctionEnableEpoch = 100000000
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -2017,12 +2018,12 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 
 	eei := &mock.SystemEIStub{}
 	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
-		return &mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
+		return &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
 			return 100
 		}}
 	}
 	args := createMockArgumentsForAuction()
-	args.StakingSCConfig.StakeEnableNonce = eei.BlockChainHook().CurrentNonce() + uint64(1)
+	args.StakingSCConfig.StakeEnableEpoch = eei.BlockChainHook().CurrentEpoch() + uint32(1)
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingAuctionSmartContract(args)
@@ -2117,7 +2118,7 @@ func TestAuctionStakingSC_ExecuteUnBond(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
 	args.StakingSCConfig.UnBondPeriod = unBondPeriod
-	args.StakingSCConfig.StakeEnableNonce = 0
+	args.StakingSCConfig.StakeEnableEpoch = 0
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.Eei = eei
@@ -2201,8 +2202,8 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = unBondPeriod
 	args.StakingSCConfig.GenesisNodePrice = valueStakedByTheCaller.Text(10)
-	args.StakingSCConfig.AuctionEnableNonce = 0
-	args.StakingSCConfig.StakeEnableNonce = 0
+	args.StakingSCConfig.AuctionEnableEpoch = 0
+	args.StakingSCConfig.StakeEnableEpoch = 0
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig = args.StakingSCConfig

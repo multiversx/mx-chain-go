@@ -1198,8 +1198,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1000000,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   1000000,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -1210,6 +1210,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		},
 		tpn.PeerState,
 		&mock.RaterMock{},
+		&mock.EpochNotifierStub{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
