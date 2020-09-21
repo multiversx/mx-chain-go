@@ -648,38 +648,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
-	if ctx.IsSet(fullArchive.Name) {
-		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
-	}
-	if ctx.IsSet(startInEpoch.Name) {
-		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
-	}
-	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if generalConfig.StoragePruning.FullArchive {
-		log.Debug("full archive node is enabled")
-		if generalConfig.GeneralSettings.StartInEpochEnabled {
-			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			generalConfig.GeneralSettings.StartInEpochEnabled = false
-		}
-		if generalConfig.StoragePruning.CleanOldEpochsData {
-			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			generalConfig.StoragePruning.CleanOldEpochsData = false
-		}
-		if !generalConfig.StoragePruning.Enabled {
-			log.Warn("StoragePruning is overridden by FullArchive and set to false")
-			generalConfig.StoragePruning.Enabled = true
-		}
-		log.Warn("NumEpochsToKeep is overridden by FullArchive")
-		generalConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
-	}
-	if generalConfig.GeneralSettings.StartInEpochEnabled {
-		log.Debug("start in epoch is enabled")
-		if generalConfig.GeneralSettings.StartInEpochEnabled {
-			delayedStartInterval := 2 * time.Second
-			time.Sleep(delayedStartInterval)
-		}
-	}
-
 	//TODO: The next 5 lines should be deleted when we are done testing from a precalculated (not hard coded) timestamp
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
@@ -1098,14 +1066,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating nodes coordinator")
 
-	if !generalConfig.StoragePruning.FullArchive {
-		if ctx.IsSet(keepOldEpochsData.Name) {
-			generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-		}
-		if ctx.IsSet(numEpochsToSave.Name) {
-			generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
-		}
-	}
 	if ctx.IsSet(numActivePersisters.Name) {
 		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
@@ -1533,6 +1493,42 @@ func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.C
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+	}
+
+	if ctx.IsSet(fullArchive.Name) {
+		config.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(startInEpoch.Name) {
+		config.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		config.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		config.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	if config.StoragePruning.FullArchive {
+		log.Debug("full archive node is enabled")
+		if config.GeneralSettings.StartInEpochEnabled {
+			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
+			config.GeneralSettings.StartInEpochEnabled = false
+		}
+		if config.StoragePruning.CleanOldEpochsData {
+			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
+			config.StoragePruning.CleanOldEpochsData = false
+		}
+		if !config.StoragePruning.Enabled {
+			log.Warn("StoragePruning is overridden by FullArchive and set to true")
+			config.StoragePruning.Enabled = true
+		}
+		log.Warn("NumEpochsToKeep is overridden by FullArchive")
+		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
+	}
+	if config.GeneralSettings.StartInEpochEnabled {
+		log.Debug("start in epoch is enabled")
+		delayedStartInterval := 2 * time.Second
+		time.Sleep(delayedStartInterval)
 	}
 }
 
