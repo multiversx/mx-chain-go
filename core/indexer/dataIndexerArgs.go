@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -31,4 +32,5 @@ type ArgElasticProcessor struct {
 	Options                  *Options
 	DBClient                 DatabaseClientHandler
 	EnabledIndexes           map[string]struct{}
+	AccountsDB               state.AccountsAdapter
 }

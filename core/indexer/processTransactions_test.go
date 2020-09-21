@@ -124,7 +124,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 	)
 
-	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 7, len(transactions))
 
 }
@@ -227,7 +227,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 	)
 
-	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
 	assert.Equal(t, txStatusSuccess, transactions[0].Status)

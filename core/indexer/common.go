@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strconv"
 	"time"
@@ -391,7 +392,21 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 
 func getTemplateByIndex(index string) *bytes.Buffer {
 	indexTemplate := &bytes.Buffer{}
-	_ = core.LoadJsonFile(&indexTemplate, "./config/elasticIndexTemplates/"+index+".json")
+
+	// TODO: (maybe) un-do this code before merging. for some reason, in local tests, the older version did not work
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic template file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexTemplate.Grow(len(fileBytes))
+	_, err = indexTemplate.Write(fileBytes)
+	if err != nil {
+		log.Error("cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
 
 	return indexTemplate
 }

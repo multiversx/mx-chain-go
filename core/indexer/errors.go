@@ -30,3 +30,6 @@ var ErrNilOptions = errors.New("nil options")
 
 // ErrNegativeCacheSize signals that a invalid cache size has been provided
 var ErrNegativeCacheSize = errors.New("negative cache size")
+
+// ErrNilAccountsDB signals that a nil accounts db has been provided
+var ErrNilAccountsDB = errors.New("nil accounts db")

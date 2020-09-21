@@ -23,6 +23,7 @@ type elasticProcessor struct {
 	elasticClient  DatabaseClientHandler
 	parser         *dataParser
 	enabledIndexes map[string]struct{}
+	accountsDB     state.AccountsAdapter
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -39,6 +40,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 			marshalizer: arguments.Marshalizer,
 		},
 		enabledIndexes: arguments.EnabledIndexes,
+		accountsDB:     arguments.AccountsDB,
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -49,12 +51,12 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 	)
 
 	if arguments.Options.UseKibana {
-		err := ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)
+		err = ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err := ei.initNoKibana(arguments.IndexTemplates)
+		err = ei.initNoKibana(arguments.IndexTemplates)
 		if err != nil {
 			return nil, err
 		}
@@ -78,6 +80,9 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
 		return ErrNilPubkeyConverter
+	}
+	if check.IfNil(arguments.AccountsDB) {
+		return ErrNilAccountsDB
 	}
 	if arguments.Options == nil {
 		return ErrNilOptions
@@ -326,7 +331,7 @@ func (ei *elasticProcessor) SaveTransactions(
 		return nil
 	}
 
-	txs := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	txs, alteredAccounts := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 	buffSlice := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
 
 	// TODO: index accounts also here
@@ -339,6 +344,8 @@ func (ei *elasticProcessor) SaveTransactions(
 			return err
 		}
 	}
+
+	ei.indexAlteredAccounts(alteredAccounts)
 
 	return nil
 }
@@ -467,6 +474,35 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
 }
 
+func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) {
+	for address := range accounts {
+		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
+		if err != nil {
+			log.Warn("cannot decode address", "address", address, "error", err)
+			continue
+		}
+
+		account, err := ei.accountsDB.LoadAccount(addressBytes)
+		if err != nil {
+			log.Warn("cannot load account", "address bytes", addressBytes, "error", err)
+			continue
+		}
+
+		userAccount, ok := account.(state.UserAccountHandler)
+		if !ok {
+			log.Warn("cannot cast AccountHandler to type UserAccountHandler")
+			continue
+		}
+
+		err = ei.SaveAccount(userAccount)
+		if err != nil {
+			log.Warn("cannot index account",
+				"address", ei.addressPubkeyConverter.Encode(userAccount.AddressBytes()),
+				"error", err)
+		}
+	}
+}
+
 // SaveAccount will prepare and save information about an account in elasticsearch server
 func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error {
 	if _, ok := ei.enabledIndexes[accountsIndex]; !ok {
@@ -480,7 +516,7 @@ func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error 
 	var buff bytes.Buffer
 
 	acc := AccountInfo{
-		Address: ei.addressPubkeyConverter.Encode(account.GetOwnerAddress()),
+		Address: ei.addressPubkeyConverter.Encode(account.AddressBytes()),
 		Balance: account.GetBalance().String(),
 	}
 
@@ -497,7 +533,7 @@ func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error 
 
 	req := &esapi.IndexRequest{
 		Index:      accountsIndex,
-		DocumentID: ei.addressPubkeyConverter.Encode(account.GetOwnerAddress()),
+		DocumentID: ei.addressPubkeyConverter.Encode(account.AddressBytes()),
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}

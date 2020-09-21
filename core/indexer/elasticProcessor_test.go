@@ -40,6 +40,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			hasher:      arguments.Hasher,
 		},
 		enabledIndexes: arguments.EnabledIndexes,
+		accountsDB:     arguments.AccountsDB,
 	}
 }
 
@@ -52,6 +53,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {},
 		},
+		AccountsDB: &mock.AccountsStub{},
 	}
 }
 

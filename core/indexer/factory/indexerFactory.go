@@ -104,6 +104,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		Options:                  args.Options,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
+		AccountsDB:               args.AccountsDB,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)
