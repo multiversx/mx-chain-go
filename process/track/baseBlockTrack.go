@@ -554,6 +554,11 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	return headers, headersHashes
 }
 
+// RemoveHeaderFromPool removes the header with the given shard and nonce from pool
+func (bbt *baseBlockTrack) RemoveHeaderFromPool(shardID uint32, nonce uint64) {
+	bbt.headersPool.RemoveHeaderByNonceAndShardId(nonce, shardID)
+}
+
 // GetTrackedHeadersWithNonce returns tracked headers for a given shard and nonce
 func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	bbt.mutHeaders.RLock()
