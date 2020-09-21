@@ -334,8 +334,6 @@ func (ei *elasticProcessor) SaveTransactions(
 	txs, alteredAccounts := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 	buffSlice := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
 
-	// TODO: index accounts also here
-
 	for idx := range buffSlice {
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
 		if err != nil {

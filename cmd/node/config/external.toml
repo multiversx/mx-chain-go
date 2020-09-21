@@ -10,6 +10,6 @@
     UseKibana         = false
     Username          = ""
     Password          = ""
-    # EnabledIndexes represents a slice of indexes will be enabled for indexing. Full list is:
+    # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
     # ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts"]
     EnabledIndexes    = ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts"]
