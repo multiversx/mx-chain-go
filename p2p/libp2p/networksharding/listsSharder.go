@@ -21,7 +21,7 @@ var _ p2p.CommonSharder = (*listsSharder)(nil)
 const minAllowedConnectedPeersListSharder = 6
 const minAllowedValidators = 1
 const minAllowedObservers = 1
-const minAllowedFullHistoryNodes = 1
+const minAllowedFullHistoryNodes = 0
 const minUnknownPeers = 1
 
 const intraShardValidators = 0
