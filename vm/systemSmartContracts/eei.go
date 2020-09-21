@@ -162,7 +162,7 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-	destAcc.Data = append(destAcc.Data, input...)
+	destAcc.Data = append(destAcc.Data, input)
 	destAcc.GasLimit += gasLimit
 
 	return nil

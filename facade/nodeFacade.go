@@ -434,7 +434,8 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 				Data:   updateVal.Data,
 			}
 		}
-		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
+		outKey := hex.EncodeToString([]byte(key))
+		outputAccounts[outKey] = &vm.OutputAccountApi{
 			Address:        outputAddress,
 			Nonce:          acc.Nonce,
 			Balance:        acc.Balance,
@@ -442,9 +443,12 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			StorageUpdates: storageUpdates,
 			Code:           acc.Code,
 			CodeMetadata:   acc.CodeMetadata,
-			Data:           acc.Data,
 			GasLimit:       acc.GasLimit,
 			CallType:       acc.CallType,
+		}
+
+		for _, val := range acc.Data {
+			outputAccounts[outKey].Data = append(outputAccounts[outKey].Data, val...)
 		}
 	}
 
