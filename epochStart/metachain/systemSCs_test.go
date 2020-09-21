@@ -185,8 +185,8 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1000000,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   1000000,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -197,6 +197,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		},
 		peerAccountsDB,
 		&mock.ChanceComputerStub{},
+		&mock.EpochNotifierStub{},
 	)
 
 	vmContainer, _ := metaVmFactory.Create()

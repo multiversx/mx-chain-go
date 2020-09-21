@@ -35,6 +35,7 @@ type vmContainerFactory struct {
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
 	systemSCConfig      *config.SystemSmartContractsConfig
+	epochNotifier       process.EpochNotifier
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -49,6 +50,7 @@ func NewVMContainerFactory(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	validatorAccountsDB state.AccountsAdapter,
 	chanceComputer sharding.ChanceComputer,
+	epochNotifier process.EpochNotifier,
 ) (*vmContainerFactory, error) {
 	if economics == nil {
 		return nil, process.ErrNilEconomicsData
@@ -93,6 +95,7 @@ func NewVMContainerFactory(
 		systemSCConfig:      systemSCConfig,
 		validatorAccountsDB: validatorAccountsDB,
 		chanceComputer:      chanceComputer,
+		epochNotifier:       epochNotifier,
 	}, nil
 }
 
@@ -135,6 +138,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		Marshalizer:         vmf.marshalizer,
 		SystemSCConfig:      vmf.systemSCConfig,
 		Economics:           vmf.economics,
+		EpochNotifier:       vmf.epochNotifier,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
