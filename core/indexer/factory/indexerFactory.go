@@ -33,6 +33,7 @@ type ArgsIndexerFactory struct {
 	IndexPolicies            map[string]*bytes.Buffer
 	Options                  *indexer.Options
 	EnabledIndexes           []string
+	Denomination             int
 	AccountsDB               state.AccountsAdapter
 }
 
@@ -105,6 +106,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               args.AccountsDB,
+		Denomination:             args.Denomination,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)

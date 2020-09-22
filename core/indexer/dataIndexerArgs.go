@@ -33,4 +33,5 @@ type ArgElasticProcessor struct {
 	DBClient                 DatabaseClientHandler
 	EnabledIndexes           map[string]struct{}
 	AccountsDB               state.AccountsAdapter
+	Denomination             int
 }

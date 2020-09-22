@@ -17,6 +17,8 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
+const numDecimalsInFloatBalance = 10
+
 type elasticProcessor struct {
 	*txDatabaseProcessor
 
@@ -24,6 +26,7 @@ type elasticProcessor struct {
 	parser         *dataParser
 	enabledIndexes map[string]struct{}
 	accountsDB     state.AccountsAdapter
+	denomination   int
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -41,6 +44,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		},
 		enabledIndexes: arguments.EnabledIndexes,
 		accountsDB:     arguments.AccountsDB,
+		denomination:   arguments.Denomination,
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -513,9 +517,12 @@ func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error 
 
 	var buff bytes.Buffer
 
+	balanceAsFloat := computeBalanceAsFloat(account.GetBalance(), ei.denomination, numDecimalsInFloatBalance)
 	acc := AccountInfo{
-		Address: ei.addressPubkeyConverter.Encode(account.AddressBytes()),
-		Balance: account.GetBalance().String(),
+		Address:    ei.addressPubkeyConverter.Encode(account.AddressBytes()),
+		Nonce:      account.GetNonce(),
+		Balance:    account.GetBalance().String(),
+		BalanceNum: balanceAsFloat,
 	}
 
 	accBytes, err := json.Marshal(&acc)

@@ -1184,6 +1184,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
 		stateComponents.AccountsAdapter,
+		economicsConfig.GlobalSettings.Denomination,
 		shardCoordinator.SelfId(),
 	)
 	if err != nil {
@@ -1955,6 +1956,7 @@ func createElasticIndexer(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	accountsDB state.AccountsAdapter,
+	denomination int,
 	shardID uint32,
 ) (indexer.Indexer, error) {
 
@@ -1976,6 +1978,7 @@ func createElasticIndexer(
 		IndexPolicies:            indexPolicies,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
+		Denomination:             denomination,
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},

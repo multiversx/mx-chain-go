@@ -97,8 +97,10 @@ type ValidatorsPublicKeys struct {
 
 // AccountInfo holds (serializable) data about an account
 type AccountInfo struct {
-	Address string `json:"address"`
-	Balance string `json:"balance"`
+	Address    string  `json:"address"`
+	Nonce      uint64  `json:"nonce"`
+	Balance    string  `json:"balance"`
+	BalanceNum float64 `json:"balanceNum"`
 }
 
 // ValidatorsRatingInfo is a structure containing validators information
