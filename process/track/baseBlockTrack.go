@@ -146,9 +146,12 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
-	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
+	if !bbt.addHeader(shardHeader, shardHeaderHash) {
+		log.Trace("received shard header was not added", "nonce", headerHandler.GetNonce())
+		return
+	}
 
-	bbt.addHeader(shardHeader, shardHeaderHash)
+	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 	bbt.blockProcessor.ProcessReceivedHeader(shardHeader)
 }
 
@@ -172,9 +175,12 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+	if !bbt.addHeader(metaBlock, metaBlockHash) {
+		log.Trace("received meta block was not added", "nonce", headerHandler.GetNonce())
+		return
+	}
 
-	bbt.addHeader(metaBlock, metaBlockHash)
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
 }
 
@@ -207,9 +213,9 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	return !isHeaderOutOfRange
 }
 
-func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
+func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) bool {
 	if check.IfNil(header) {
-		return
+		return false
 	}
 
 	shardID := header.GetShardID()
@@ -225,12 +231,14 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	for _, hdrInfo := range headersForShard[nonce] {
 		if bytes.Equal(hdrInfo.Hash, hash) {
 			bbt.mutHeaders.Unlock()
-			return
+			return false
 		}
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
 	bbt.mutHeaders.Unlock()
+
+	return true
 }
 
 // AddCrossNotarizedHeader adds cross notarized header to the tracker lists
@@ -253,7 +261,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
+	bbt.receivedHeader(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard

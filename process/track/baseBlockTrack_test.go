@@ -737,13 +737,15 @@ func TestAddHeader_ShouldNotAddIfItAlreadyExist(t *testing.T) {
 	}
 	headerHash := []byte("hash")
 
-	sbt.AddHeader(header, headerHash)
-	sbt.AddHeader(header, headerHash)
+	wasAddedAtFirstCall := sbt.AddHeader(header, headerHash)
+	wasAddedAtSecondCall := sbt.AddHeader(header, headerHash)
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
 	require.Equal(t, 1, len(headers))
 	assert.Equal(t, header, headers[0])
+	assert.True(t, wasAddedAtFirstCall)
+	assert.False(t, wasAddedAtSecondCall)
 }
 
 func TestAddHeader_ShouldWork(t *testing.T) {
@@ -764,14 +766,16 @@ func TestAddHeader_ShouldWork(t *testing.T) {
 	}
 	hdr2Hash := []byte("hash2")
 
-	sbt.AddHeader(hdr1, hdr1Hash)
-	sbt.AddHeader(hdr2, hdr2Hash)
+	wasAddedHdr1 := sbt.AddHeader(hdr1, hdr1Hash)
+	wasAddedHdr2 := sbt.AddHeader(hdr2, hdr2Hash)
 
 	headers, _ := sbt.GetTrackedHeaders(shardArguments.ShardCoordinator.SelfId())
 
 	require.Equal(t, 2, len(headers))
 	assert.Equal(t, hdr1, headers[0])
 	assert.Equal(t, hdr2, headers[1])
+	assert.True(t, wasAddedHdr1)
+	assert.True(t, wasAddedHdr2)
 }
 
 func TestAddCrossNotarizedHeader_ShouldWork(t *testing.T) {
@@ -2690,7 +2694,7 @@ func TestMetaBlockTrack_GetTrackedMetaBlockWithHashShouldWork(t *testing.T) {
 
 	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
 	assert.Nil(t, metaBlock)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 
 	mbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + 1}, []byte("hash"))
 
