@@ -521,7 +521,7 @@
             MaxOpenFiles = 10
 
 [ValidatorStatistics]
-    CacheRefreshIntervalInSec = 60
+    CacheRefreshIntervalInSec = 10
 
 # Consensus type which will be used (the current implementation can manage "bn" and "bls")
 # When consensus type is "bls" the multisig hasher type should be "blake2b"
