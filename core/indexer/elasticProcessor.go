@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -22,11 +24,12 @@ const numDecimalsInFloatBalance = 10
 type elasticProcessor struct {
 	*txDatabaseProcessor
 
-	elasticClient  DatabaseClientHandler
-	parser         *dataParser
-	enabledIndexes map[string]struct{}
-	accountsDB     state.AccountsAdapter
-	denomination   int
+	elasticClient                    DatabaseClientHandler
+	parser                           *dataParser
+	enabledIndexes                   map[string]struct{}
+	accountsDB                       state.AccountsAdapter
+	numToDivideWithForNoDenomination float64
+	numToUseForCertainDecimals       float64
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -42,9 +45,10 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 			hasher:      arguments.Hasher,
 			marshalizer: arguments.Marshalizer,
 		},
-		enabledIndexes: arguments.EnabledIndexes,
-		accountsDB:     arguments.AccountsDB,
-		denomination:   arguments.Denomination,
+		enabledIndexes:                   arguments.EnabledIndexes,
+		accountsDB:                       arguments.AccountsDB,
+		numToUseForCertainDecimals:       math.Pow(10, float64(numDecimalsInFloatBalance)),
+		numToDivideWithForNoDenomination: math.Pow(10, float64(core.MaxInt(arguments.Denomination, 0))),
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -517,7 +521,7 @@ func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error 
 
 	var buff bytes.Buffer
 
-	balanceAsFloat := computeBalanceAsFloat(account.GetBalance(), ei.denomination, numDecimalsInFloatBalance)
+	balanceAsFloat := ei.computeBalanceAsFloat(account.GetBalance())
 	acc := AccountInfo{
 		Address:    ei.addressPubkeyConverter.Encode(account.AddressBytes()),
 		Nonce:      account.GetNonce(),
@@ -544,6 +548,16 @@ func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error 
 	}
 
 	return ei.elasticClient.DoRequest(req)
+}
+
+func (ei *elasticProcessor) computeBalanceAsFloat(balance *big.Int) float64 {
+	balanceBigFloat := big.NewFloat(0).SetInt(balance)
+	balanceFloat64, _ := balanceBigFloat.Float64()
+
+	bal := balanceFloat64 / ei.numToDivideWithForNoDenomination
+	balanceFloatWithDecimals := math.Round(bal*ei.numToUseForCertainDecimals) / ei.numToUseForCertainDecimals
+
+	return core.MaxFloat64(balanceFloatWithDecimals, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

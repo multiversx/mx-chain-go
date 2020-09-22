@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
-	"math"
-	"math/big"
 	"net/http"
 	"net/url"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
@@ -171,18 +168,4 @@ func parseResponse(res *esapi.Response, dest interface{}, errorHandler responseE
 	}
 
 	return nil
-}
-
-func computeBalanceAsFloat(balance *big.Int, denomination int, numberDecimals int) float64 {
-	balanceCopy := big.NewInt(0).Set(balance)
-	balanceBigFloat := big.NewFloat(0).SetInt(balanceCopy)
-	denominationPow := math.Pow(10, float64(denomination))
-	numberToUseForReachingDecimals := math.Pow(10, float64(numberDecimals))
-
-	balanceWithoutDenomination := balanceBigFloat.Quo(balanceBigFloat, big.NewFloat(0).SetInt(big.NewInt(int64(denominationPow))))
-	balanceFloat, _ := balanceWithoutDenomination.Float64()
-
-	balanceFloatWith4Decimals := math.Round(balanceFloat*numberToUseForReachingDecimals) / numberToUseForReachingDecimals
-
-	return core.MaxFloat64(balanceFloatWith4Decimals, 0)
 }

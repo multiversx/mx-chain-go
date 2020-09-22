@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -722,5 +723,48 @@ func TestDoBulkRequestLimit(t *testing.T) {
 		body.MiniBlocks[0].SenderShardID = 1
 
 		_ = esDatabase.SaveTransactions(body, header, txsPool, 2, map[string]bool{})
+	}
+}
+
+func TestElasticProcessor_ComputeBalanceAsFloat(t *testing.T) {
+	t.Parallel()
+
+	args := createMockElasticProcessorArgs()
+	args.Denomination = 10
+
+	epInt, _ := NewElasticProcessor(args)
+	require.NotNil(t, epInt)
+
+	ep := epInt.(*elasticProcessor)
+
+	tests := []struct {
+		input  *big.Int
+		output float64
+	}{
+		{
+			input:  big.NewInt(200000000000000000),
+			output: float64(20000000),
+		},
+		{
+			input:  big.NewInt(57777777777),
+			output: 5.7777777777,
+		},
+		{
+			input:  big.NewInt(5777779),
+			output: 0.0005777779,
+		},
+		{
+			input:  big.NewInt(7),
+			output: 0.0000000007,
+		},
+		{
+			input:  big.NewInt(-7),
+			output: 0.0,
+		},
+	}
+
+	for _, tt := range tests {
+		out := ep.computeBalanceAsFloat(tt.input)
+		assert.Equal(t, tt.output, out)
 	}
 }
