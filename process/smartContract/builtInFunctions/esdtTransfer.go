@@ -96,7 +96,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:  vmInput.RecipientAddr,
-			Data:     []byte(esdtTransferTxData),
+			Data:     [][]byte{[]byte(esdtTransferTxData)},
 			CallType: vmcommon.AsynchronousCall,
 		}
 	}

@@ -24,7 +24,6 @@ require (
 	github.com/herumi/bls-go-binary v0.0.0-20200324054641-17de9ae04665
 	github.com/ipfs/go-log v1.0.4
 	github.com/jbenet/goprocess v0.1.4
-	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-discovery v0.5.0

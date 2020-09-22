@@ -70,7 +70,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 		setUserNameTxData := core.BuiltInFunctionSetUserName + "@" + hex.EncodeToString(vmInput.Arguments[0])
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:  vmInput.RecipientAddr,
-			Data:     []byte(setUserNameTxData),
+			Data:     [][]byte{[]byte(setUserNameTxData)},
 			CallType: vmcommon.AsynchronousCall,
 			GasLimit: vmInput.GasProvided,
 		}

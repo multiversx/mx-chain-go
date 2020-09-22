@@ -468,6 +468,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			Data:       originalLog.Data,
 		}
 	}
+
 	return &vm.VMOutputApi{
 		ReturnData:      input.ReturnData,
 		ReturnCode:      input.ReturnCode.String(),
