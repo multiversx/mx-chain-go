@@ -1580,6 +1580,30 @@ func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
 	assert.Equal(t, headers[0], shardHeader2)
 }
 
+func TestRemoveHeaderFromPool_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardID := core.MetachainShardId
+	nonce := uint64(1)
+	wasCalled := false
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
+					if hdrNonce == nonce && shardId == shardID {
+						wasCalled = true
+					}
+				},
+			}
+		},
+	}
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	sbt.RemoveHeaderFromPool(shardID, nonce)
+
+	assert.True(t, wasCalled)
+}
+
 func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
 	t.Parallel()
 

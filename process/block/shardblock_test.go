@@ -4467,3 +4467,36 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonc
 	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
 	assert.Equal(t, finalHash, bootstrapHeaderInfos[1].Hash)
 }
+
+func TestShardProcessor_RequestMetaHeadersIfNeededShouldCleanHeadersPool(t *testing.T) {
+	t.Parallel()
+
+	var removedNonces []uint64
+
+	rounderMock := &mock.RounderMock{}
+
+	arguments := CreateMockArgumentsMultiShard()
+	arguments.Rounder = rounderMock
+
+	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
+				removedNonces = append(removedNonces, hdrNonce)
+			},
+		}
+	}
+	arguments.DataPool = poolsHolderStub
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	rounderMock.RoundIndex = 20
+	metaBlock := &block.MetaBlock{
+		Round: 9,
+		Nonce: 5,
+	}
+	sp.RequestMetaHeadersIfNeeded(0, metaBlock)
+
+	expectedRemovedNonces := []uint64{6, 7}
+	assert.Equal(t, expectedRemovedNonces, removedNonces)
+}
