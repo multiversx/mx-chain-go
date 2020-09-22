@@ -47,7 +47,6 @@ type Worker struct {
 	headerSigVerifier       RandSeedVerifier
 	headerIntegrityVerifier HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
-	chainID                 []byte
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -69,10 +68,8 @@ type Worker struct {
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
 
-	signatureSize       int
-	publicKeySize       int
-	publicKeyBitmapSize int
-	cancelFunc          func()
+	cancelFunc                func()
+	consensusMessageValidator *consensusMessageValidator
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -107,6 +104,21 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
+	argsConsensusMessageValidator := &ArgsConsensusMessageValidator{
+		ConsensusState:       args.ConsensusState,
+		ConsensusService:     args.ConsensusService,
+		PeerSignatureHandler: args.PeerSignatureHandler,
+		SignatureSize:        args.SignatureSize,
+		PublicKeySize:        args.PublicKeySize,
+		HasherSize:           args.Hasher.Size(),
+		ChainID:              args.ChainID,
+	}
+
+	consensusMessageValidator, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
+	if err != nil {
+		return nil, err
+	}
+
 	wrk := Worker{
 		consensusService:         args.ConsensusService,
 		blockChain:               args.BlockChain,
@@ -123,15 +135,13 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
 		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
-		chainID:                  args.ChainID,
 		appStatusHandler:         statusHandler.NewNilStatusHandler(),
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
-		signatureSize:            args.SignatureSize,
-		publicKeySize:            args.PublicKeySize,
 	}
 
+	wrk.consensusMessageValidator = consensusMessageValidator
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
@@ -145,7 +155,6 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	wrk.antifloodHandler.SetMaxMessagesForTopic(topic, maxMessagesInARoundPerPeer)
 
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
-	wrk.publicKeyBitmapSize = wrk.getPublicKeyBitmapSize()
 
 	return &wrk, nil
 }
@@ -339,7 +348,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		"size", len(message.Data()),
 	)
 
-	err = wrk.checkConsensusMessageValidity(cnsMsg, message.Peer())
+	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, message.Peer())
 	if err != nil {
 		return err
 	}
@@ -385,7 +394,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, ErrNodeIsNotInEligibleList) ||
 		errors.Is(err, crypto.ErrPIDMismatch) ||
 		errors.Is(err, crypto.ErrSignatureMismatch) ||
-		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) {
+		errors.Is(err, sharding.ErrEpochNodesConfigDoesNotExist) ||
+		errors.Is(err, ErrMessageTypeLimitReached) {
 		return false
 	}
 
@@ -633,17 +643,12 @@ func (wrk *Worker) Close() error {
 	return nil
 }
 
+// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+func (wrk *Worker) ResetConsensusMessages() {
+	wrk.consensusMessageValidator.resetConsensusMessages()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
-}
-
-func (wrk *Worker) getPublicKeyBitmapSize() int {
-	sizeConsensus := wrk.consensusState.consensusGroupSize
-	bitmapSize := sizeConsensus / 8
-	if sizeConsensus%8 != 0 {
-		bitmapSize++
-	}
-
-	return bitmapSize
 }

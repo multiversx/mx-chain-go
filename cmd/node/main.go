@@ -1398,6 +1398,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
 		systemSCConfig,
+		rater,
 	)
 	if err != nil {
 		return err
@@ -2358,6 +2359,7 @@ func createApiResolver(
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2394,6 +2396,7 @@ func createApiResolver(
 			marshalizer,
 			systemSCConfig,
 			validatorAccounts,
+			rater,
 		)
 		if err != nil {
 			return nil, err

@@ -800,7 +800,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 			continue
 		}
 
-		nodeData := &StakedData{}
+		nodeData := &StakedDataV2{}
 		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
 		if err != nil {
 			return 0, err

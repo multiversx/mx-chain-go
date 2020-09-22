@@ -241,3 +241,6 @@ var ErrNilStakingSCAddress = errors.New("nil staking system smart contract addre
 
 // ErrNilHeaderIntegrityVerifier signals that a nil header integrity verifier was provided
 var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier handler")
+
+// ErrNilChanceComputer signals that nil chance computer has been provided
+var ErrNilChanceComputer = errors.New("nil chance computer")

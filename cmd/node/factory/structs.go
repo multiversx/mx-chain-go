@@ -644,7 +644,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	// In "dblookupext" index, record both the metachain and the shard blocks
+	// In "dblookupext" index, record both the metachain and the shardID blocks
 	var shardID uint32
 	for shardID, genesisBlockHeader = range genesisBlocks {
 		if args.shardCoordinator.SelfId() != shardID {
@@ -656,7 +656,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shardID, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
 		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err
@@ -1402,6 +1402,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig.GeneralSettings,
+			processArgs.rater,
 		)
 	}
 
@@ -1737,6 +1738,7 @@ func newMetaBlockProcessor(
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	generalSettingsConfig config.GeneralSettingsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -1760,6 +1762,7 @@ func newMetaBlockProcessor(
 		core.InternalMarshalizer,
 		systemSCConfig,
 		stateComponents.PeerAccounts,
+		rater,
 	)
 	if err != nil {
 		return nil, err
@@ -2056,6 +2059,7 @@ func newMetaBlockProcessor(
 		ValidatorInfoCreator:    validatorStatisticsProcessor,
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
+		ChanceComputer:          nodesCoordinator,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
