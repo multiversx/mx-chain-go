@@ -558,7 +558,7 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 func (bbt *baseBlockTrack) AddHeaderFromPool(shardID uint32, nonce uint64) {
 	headers, hashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
 	if err != nil {
-		log.Debug("baseBlockTrack.AddHeaderFromPool", "error", err.Error())
+		log.Trace("baseBlockTrack.AddHeaderFromPool", "error", err.Error())
 		return
 	}
 

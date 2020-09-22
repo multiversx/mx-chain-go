@@ -1231,7 +1231,7 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	headersPool := bp.dataPool.Headers()
 	headers, hashes, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
 	if err != nil {
-		log.Debug("baseProcessor.addHeaderIntoTrackerPool", "error", err.Error())
+		log.Trace("baseProcessor.addHeaderIntoTrackerPool", "error", err.Error())
 		return
 	}
 
