@@ -253,7 +253,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.receivedHeader(header, hash)
+	bbt.addHeader(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard

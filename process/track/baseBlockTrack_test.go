@@ -131,6 +131,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 		Marshalizer: &mock.MarshalizerMock{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
+	whitelistHandler := &mock.WhiteListHandlerStub{}
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
@@ -143,7 +144,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
 			PoolsHolder:      testscommon.NewPoolsHolderMock(),
-			WhitelistHandler: &mock.WhiteListHandlerStub{},
+			WhitelistHandler: whitelistHandler,
 		},
 	}
 
@@ -2689,7 +2690,7 @@ func TestMetaBlockTrack_GetTrackedMetaBlockWithHashShouldWork(t *testing.T) {
 
 	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
 	assert.Nil(t, metaBlock)
-	assert.Equal(t, process.ErrMissingHeader, err)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 
 	mbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + 1}, []byte("hash"))
 
