@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"syscall"
@@ -222,15 +224,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
 	}
 
-	chanCreateViews := make(chan struct{}, 1)
-	chanLogRewrite := make(chan struct{}, 1)
-
 	for {
 		log.Trace("creating core components")
 
+		chanCreateViews := make(chan struct{}, 1)
+		chanLogRewrite := make(chan struct{}, 1)
+
+		useTermui := !ctx.GlobalBool(useLogView.Name)
 		statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-			LogViewName:    useLogView.Name,
-			Ctx:            ctx,
+			UseTermUI:      useTermui,
 			ChanStartViews: chanCreateViews,
 			ChanLogRewrite: chanLogRewrite,
 		}
@@ -267,11 +269,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		closableComponents = append(closableComponents, managedCoreComponents)
 
-		validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
-
 		log.Trace("creating crypto components")
-
-		cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsHandlerArgs{
+		validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
+		cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
 			ValidatorKeyPemFileName:              validatorKeyPemFileName,
 			SkIndex:                              ctx.GlobalInt(validatorKeyIndex.Name),
 			Config:                               *cfgs.generalConfig,
@@ -280,7 +280,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			KeyLoader:                            &core.KeyLoader{},
 		}
 
-		cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(mainFactory.CryptoComponentsFactoryArgs(cryptoComponentsHandlerArgs))
+		cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
 		if err != nil {
 			return fmt.Errorf("NewCryptoComponentsFactory failed: %w", err)
 		}
@@ -325,25 +325,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 		var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
-
-		accountsParser, err := parsing.NewAccountsParser(
-			ctx.GlobalString(genesisFile.Name),
-			totalSupply,
-			managedCoreComponents.AddressPubKeyConverter(),
-			managedCryptoComponents.TxSignKeyGen(),
-		)
-		if err != nil {
-			return err
-		}
-
-		smartContractParser, err := parsing.NewSmartContractsParser(
-			ctx.GlobalString(smartContractsFile.Name),
-			managedCoreComponents.AddressPubKeyConverter(),
-			managedCryptoComponents.TxSignKeyGen(),
-		)
-		if err != nil {
-			return err
-		}
 
 		healthService := health.NewHealthService(cfgs.generalConfig.Health, workingDir)
 		if ctx.IsSet(useHealthService.Name) {
@@ -747,6 +728,26 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochNotifier := forking.NewGenericEpochNotifier()
 
 		log.Trace("creating process components")
+
+		accountsParser, err := parsing.NewAccountsParser(
+			ctx.GlobalString(genesisFile.Name),
+			totalSupply,
+			managedCoreComponents.AddressPubKeyConverter(),
+			managedCryptoComponents.TxSignKeyGen(),
+		)
+		if err != nil {
+			return err
+		}
+
+		smartContractParser, err := parsing.NewSmartContractsParser(
+			ctx.GlobalString(smartContractsFile.Name),
+			managedCoreComponents.AddressPubKeyConverter(),
+			managedCryptoComponents.TxSignKeyGen(),
+		)
+		if err != nil {
+			return err
+		}
+
 		processArgs := mainFactory.ProcessComponentsFactoryArgs{
 			Config:                    coreArgs.Config,
 			AccountsParser:            accountsParser,
@@ -995,13 +996,24 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		select {
 		case <-chanCloseComponents:
+			log.Debug("Closed all components gracefully")
 		case <-time.After(maxTimeToClose):
 			log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
 			break
 		}
 
 		if reshuffled {
-			log.Info("Shuffled out - soft restart")
+			log.Info("=============================Shuffled out - soft restart==================================")
+			buffer := new(bytes.Buffer)
+			err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
+			if err != nil {
+				log.Error("could not dump goroutines")
+			}
+
+			log.Error("Remaining goroutines", "num", runtime.NumGoroutine)
+			log.Warn(buffer.String())
+
+			panic("test")
 		} else {
 			break
 		}
@@ -1040,7 +1052,10 @@ func closeAllComponents(
 	err := healthService.Close()
 	log.LogIfError(err)
 
-	for _, managedComponent := range closableComponents {
+	log.Debug("closing all components")
+	for i := len(closableComponents) - 1; i >= 0; i-- {
+		managedComponent := closableComponents[i]
+		log.Debug("closing", fmt.Sprintf("managedComponent %t", managedComponent))
 		err = managedComponent.Close()
 		log.LogIfError(err)
 	}

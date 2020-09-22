@@ -24,9 +24,8 @@ import (
 
 // StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
 type StatusHandlersFactoryArgs struct {
-	LogViewName                  string
+	UseTermUI                    bool
 	ServersConfigurationFileName string
-	Ctx                          *cli.Context
 	ChanStartViews               chan struct{}
 	ChanLogRewrite               chan struct{}
 }
@@ -41,7 +40,7 @@ type statusHandlersInfo struct {
 }
 
 type statusHandlerUtilsFactory struct {
-	logViewName                  string
+	useTermUI                    bool
 	serversConfigurationFileName string
 	ctx                          *cli.Context
 	chanStartViews               chan struct{}
@@ -53,9 +52,6 @@ func NewStatusHandlersFactory(
 	args *StatusHandlersFactoryArgs,
 ) (*statusHandlerUtilsFactory, error) {
 	baseErrMessage := "error creating status handler factory"
-	if args.Ctx == nil {
-		return nil, fmt.Errorf("%s: nil context", baseErrMessage)
-	}
 	if args.ChanLogRewrite == nil {
 		return nil, fmt.Errorf("%s: nil log rewrite channel", baseErrMessage)
 	}
@@ -64,8 +60,7 @@ func NewStatusHandlersFactory(
 	}
 
 	return &statusHandlerUtilsFactory{
-		logViewName:    args.LogViewName,
-		ctx:            args.Ctx,
+		useTermUI:      args.UseTermUI,
 		chanStartViews: args.ChanStartViews,
 		chanLogRewrite: args.ChanLogRewrite,
 	}, nil
@@ -91,8 +86,7 @@ func (shuf *statusHandlerUtilsFactory) Create(
 
 	presenterStatusHandler := createStatusHandlerPresenter()
 
-	useTermui := !shuf.ctx.GlobalBool(shuf.logViewName)
-	if useTermui {
+	if shuf.useTermUI {
 		views, err = createViews(presenterStatusHandler, shuf.chanStartViews)
 		if err != nil {
 			return nil, err
@@ -146,7 +140,7 @@ func (shuf *statusHandlerUtilsFactory) Create(
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
 	statusHandlersInfoObject.StatusHdl = handler
-	statusHandlersInfoObject.UseTermUI = useTermui
+	statusHandlersInfoObject.UseTermUI = shuf.useTermUI
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
 	return statusHandlersInfoObject, nil

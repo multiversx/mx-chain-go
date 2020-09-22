@@ -266,6 +266,14 @@ func (cc *coreComponents) Close() error {
 	if cc.statusHandlersUtils != nil {
 		cc.statusHandlersUtils.StatusHandler().Close()
 	}
-
+	if cc.alarmScheduler != nil {
+		cc.alarmScheduler.Close()
+	}
+	if cc.syncTimer != nil {
+		err := cc.syncTimer.Close()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

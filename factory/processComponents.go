@@ -1260,7 +1260,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 
 // Close closes all underlying components that need closing
 func (pc *processComponents) Close() error {
-	// TODO: close all components
+	//TODO: close all components
 
 	return nil
 }
