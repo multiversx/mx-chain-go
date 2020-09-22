@@ -143,6 +143,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 			Store:            initStore(),
 			StartHeaders:     genesisBlocks,
 			PoolsHolder:      testscommon.NewPoolsHolderMock(),
+			WhitelistHandler: &mock.WhiteListHandlerStub{},
 		},
 	}
 
@@ -1580,28 +1581,42 @@ func TestSortHeadersFromNonce_ShouldWork(t *testing.T) {
 	assert.Equal(t, headers[0], shardHeader2)
 }
 
-func TestRemoveHeaderFromPool_ShouldWork(t *testing.T) {
+func TestAddHeaderFromPool_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	var wasCalled bool
 	shardID := core.MetachainShardId
 	nonce := uint64(1)
-	wasCalled := false
+
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.PoolsHolder = &testscommon.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &mock.HeadersCacherStub{
-				RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
 					if hdrNonce == nonce && shardId == shardID {
 						wasCalled = true
+						return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
 					}
+
+					return nil, nil, errors.New("error")
 				},
 			}
 		},
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
-	sbt.RemoveHeaderFromPool(shardID, nonce)
 
+	wasCalled = false
+	sbt.AddHeaderFromPool(shardID, nonce+1)
+	_, hashes := sbt.GetTrackedHeaders(shardID)
+	assert.False(t, wasCalled)
+	require.Equal(t, 0, len(hashes))
+
+	wasCalled = false
+	sbt.AddHeaderFromPool(shardID, nonce)
+	_, hashes = sbt.GetTrackedHeaders(shardID)
 	assert.True(t, wasCalled)
+	require.Equal(t, 1, len(hashes))
+	assert.Equal(t, []byte("hash"), hashes[0])
 }
 
 func TestGetTrackedHeadersWithNonce_ShouldReturnNilWhenTrackedHeadersSliceForShardIsEmpty(t *testing.T) {
@@ -2674,7 +2689,7 @@ func TestMetaBlockTrack_GetTrackedMetaBlockWithHashShouldWork(t *testing.T) {
 
 	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
 	assert.Nil(t, metaBlock)
-	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+	assert.Equal(t, process.ErrMissingHeader, err)
 
 	mbt.AddTrackedHeader(&block.MetaBlock{Nonce: nonce + 1}, []byte("hash"))
 

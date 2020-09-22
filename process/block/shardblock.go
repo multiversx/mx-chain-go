@@ -1639,9 +1639,8 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
-		headersPool := sp.dataPool.Headers()
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
-			headersPool.RemoveHeaderByNonceAndShardId(nonce, core.MetachainShardId)
+			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
 			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}

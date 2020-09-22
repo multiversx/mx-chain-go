@@ -2533,10 +2533,10 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestMetaProcessor_RequestShardHeadersIfNeededShouldCleanHeadersPool(t *testing.T) {
+func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool(t *testing.T) {
 	t.Parallel()
 
-	var removedNonces []uint64
+	var addedNonces []uint64
 
 	rounderMock := &mock.RounderMock{}
 
@@ -2546,8 +2546,9 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldCleanHeadersPool(t *test
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
-			RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
-				removedNonces = append(removedNonces, hdrNonce)
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				addedNonces = append(addedNonces, hdrNonce)
+				return []data.HeaderHandler{&block.Header{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
 			},
 		}
 	}
@@ -2567,6 +2568,6 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldCleanHeadersPool(t *test
 
 	mp.RequestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
 
-	expectedRemovedNonces := []uint64{6, 7}
-	assert.Equal(t, expectedRemovedNonces, removedNonces)
+	expectedAddedNonces := []uint64{6, 7}
+	assert.Equal(t, expectedAddedNonces, addedNonces)
 }

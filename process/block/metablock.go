@@ -966,7 +966,6 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 	hdrsAddedForShard map[uint32]uint32,
 	lastShardHdr map[uint32]data.HeaderHandler,
 ) {
-	headersPool := mp.dataPool.Headers()
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		log.Debug("shard headers added",
 			"shard", shardID,
@@ -979,7 +978,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
-				headersPool.RemoveHeaderByNonceAndShardId(nonce, shardID)
+				mp.addHeaderIntoTrackerPool(nonce, shardID)
 				go mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 			}
 		}

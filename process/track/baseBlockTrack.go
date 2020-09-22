@@ -253,7 +253,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
+	bbt.receivedHeader(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard
@@ -554,9 +554,17 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	return headers, headersHashes
 }
 
-// RemoveHeaderFromPool removes the header with the given shard and nonce from pool
-func (bbt *baseBlockTrack) RemoveHeaderFromPool(shardID uint32, nonce uint64) {
-	bbt.headersPool.RemoveHeaderByNonceAndShardId(nonce, shardID)
+// AddHeaderFromPool adds into tracker pool header with the given shard and nonce if it exists in headers pool
+func (bbt *baseBlockTrack) AddHeaderFromPool(shardID uint32, nonce uint64) {
+	headers, hashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err != nil {
+		log.Debug("baseBlockTrack.AddHeaderFromPool", "error", err.Error())
+		return
+	}
+
+	for i := 0; i < len(headers); i++ {
+		bbt.AddTrackedHeader(headers[i], hashes[i])
+	}
 }
 
 // GetTrackedHeadersWithNonce returns tracked headers for a given shard and nonce
