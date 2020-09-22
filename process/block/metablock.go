@@ -957,7 +957,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
+	go mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
 
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }

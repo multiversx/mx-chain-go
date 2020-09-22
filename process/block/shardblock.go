@@ -1611,7 +1611,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+	go sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
