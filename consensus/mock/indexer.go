@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -50,6 +51,10 @@ func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
 // SaveValidatorsPubKeys -
 func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
+}
+
+// SaveAccount -
+func (im *IndexerMock) SaveAccount(_ state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
