@@ -211,9 +211,12 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			return err
 		}
 
+		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
 		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
+		} else if isNodeLeaving {
+			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
 		} else {
 			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
 		}
