@@ -242,11 +242,6 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 	}
 
-	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
-		account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.JailedNonce))
-		account.SetTempRating(stp.jailRating)
-	}
-
 	err = stp.peerState.SaveAccount(account)
 	if err != nil {
 		return err

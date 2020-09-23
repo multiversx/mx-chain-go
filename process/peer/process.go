@@ -71,7 +71,7 @@ type validatorStatistics struct {
 	genesisNonce           uint64
 	ratingEnableEpoch      uint32
 	lastFinalizedRootHash  []byte
-	switchEnableEpoch      uint32
+	jailedEnableEpoch      uint32
 	flagJailedEnabled      atomic.Flag
 }
 
@@ -129,7 +129,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		maxComputableRounds:  arguments.MaxComputableRounds,
 		genesisNonce:         arguments.GenesisNonce,
 		ratingEnableEpoch:    arguments.RatingEnableEpoch,
-		switchEnableEpoch:    arguments.SwitchJailWaitingEnableEpoch,
+		jailedEnableEpoch:    arguments.SwitchJailWaitingEnableEpoch,
 	}
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
@@ -1171,6 +1171,6 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
-	vs.flagJailedEnabled.Toggle(epoch >= vs.switchEnableEpoch)
-	log.Debug("validatorStatistics: switch", "enabled", vs.flagJailedEnabled.IsSet())
+	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
+	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 }
