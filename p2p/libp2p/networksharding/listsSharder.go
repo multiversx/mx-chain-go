@@ -18,7 +18,7 @@ import (
 
 var _ p2p.CommonSharder = (*listsSharder)(nil)
 
-const minAllowedConnectedPeersListSharder = 6
+const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
 const minAllowedObservers = 1
 const minAllowedFullHistoryNodes = 0
@@ -119,7 +119,7 @@ func NewListsSharder(
 	if maxCrossShardObservers < minAllowedObservers {
 		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if maxCrossShardObservers+maxIntraShardObservers == 0 {
+	if maxCrossShardObservers+maxIntraShardObservers+maxFullHistoryObservers == 0 {
 		log.Warn("no connections to observers are possible")
 	}
 	if maxFullHistoryObservers < minAllowedFullHistoryNodes {
@@ -168,7 +168,7 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	numCrossShardValidators, remaining = computeUsedAndSpare(existingNumCrossShardValidators, ls.maxCrossShardValidators+remaining)
 	numIntraShardObservers, remaining = computeUsedAndSpare(existingNumIntraShardObservers, ls.maxIntraShardObservers+remaining)
 	numCrossShardObservers, remaining = computeUsedAndSpare(existingNumCrossShardObservers, ls.maxCrossShardObservers+remaining)
-	numFullHistoryObservers, remaining = computeUsedAndSpare(existingNumFullHistoryObservers, ls.maxFullHistoryObservers+remaining)
+	numFullHistoryObservers, _ = computeUsedAndSpare(existingNumFullHistoryObservers, ls.maxFullHistoryObservers)
 	numUnknown, _ = computeUsedAndSpare(existingNumUnknown, ls.maxUnknown+remaining)
 
 	evictionProposed := evict(peerDistances[intraShardValidators], numIntraShardValidators)
@@ -257,7 +257,8 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		case core.ValidatorPeer:
 			peerDistances[intraShardValidators] = append(peerDistances[intraShardValidators], pd)
 		case core.ObserverPeer:
-			if peerInfo.PeerSubType == core.FullHistoryObserver {
+			shouldAppendToFullHistory := peerInfo.PeerSubType == core.FullHistoryObserver && ls.maxFullHistoryObservers > 0
+			if shouldAppendToFullHistory {
 				peerDistances[fullHistoryObservers] = append(peerDistances[fullHistoryObservers], pd)
 			} else {
 				peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)

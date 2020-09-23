@@ -534,7 +534,26 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", configurationFileName)
 
+	if ctx.IsSet(fullArchive.Name) {
+		generalConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(startInEpoch.Name) {
+		generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+
 	applyCompatibleConfigs(log, generalConfig, ctx)
+
+	if generalConfig.GeneralSettings.StartInEpochEnabled {
+		log.Debug("start in epoch is enabled")
+		delayedStartInterval := 2 * time.Second
+		time.Sleep(delayedStartInterval)
+	}
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
@@ -1495,18 +1514,6 @@ func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.C
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 	}
 
-	if ctx.IsSet(fullArchive.Name) {
-		config.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
-	}
-	if ctx.IsSet(startInEpoch.Name) {
-		config.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
-	}
-	if ctx.IsSet(keepOldEpochsData.Name) {
-		config.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
-	if ctx.IsSet(numEpochsToSave.Name) {
-		config.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
-	}
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
 	if config.StoragePruning.FullArchive {
 		log.Debug("full archive node is enabled")
@@ -1524,11 +1531,6 @@ func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.C
 		}
 		log.Warn("NumEpochsToKeep is overridden by FullArchive")
 		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
-	}
-	if config.GeneralSettings.StartInEpochEnabled {
-		log.Debug("start in epoch is enabled")
-		delayedStartInterval := 2 * time.Second
-		time.Sleep(delayedStartInterval)
 	}
 }
 

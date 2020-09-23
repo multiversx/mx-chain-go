@@ -2056,6 +2056,7 @@ func TestNode_ShouldWork(t *testing.T) {
 			Pk:            hex.EncodeToString([]byte(pid1)),
 			IsBlacklisted: true,
 			PeerType:      core.UnknownPeer.String(),
+			PeerSubType:   core.RegularPeer.String(),
 		},
 		{
 			Pid:           core.PeerID(pid2).Pretty(),
@@ -2063,6 +2064,7 @@ func TestNode_ShouldWork(t *testing.T) {
 			Pk:            hex.EncodeToString([]byte(pid2)),
 			IsBlacklisted: false,
 			PeerType:      core.UnknownPeer.String(),
+			PeerSubType:   core.RegularPeer.String(),
 		},
 	}
 

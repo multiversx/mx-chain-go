@@ -206,7 +206,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 			ShardID:  shard,
 		}
 	}
-	subType, ok := subTypeObj.(uint32)
+	subType, ok := subTypeObj.(core.P2PPeerSubType)
 	if !ok {
 		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
 
@@ -218,7 +218,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 
 	return &core.P2PPeerInfo{
 		PeerType:    core.ObserverPeer,
-		PeerSubType: core.P2PPeerSubType(subType),
+		PeerSubType: subType,
 		ShardID:     shard,
 	}
 }
