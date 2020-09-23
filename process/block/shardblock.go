@@ -1611,7 +1611,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+	go sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
@@ -1640,7 +1640,8 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
-			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
+			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}
 }
