@@ -1291,11 +1291,13 @@ func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	}
 
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
-	passedNonce := currentNonce - stakedData.UnStakedNonce
-	if passedNonce >= r.unBondPeriod {
+	deltaNonce := currentNonce - stakedData.UnStakedNonce
+	if deltaNonce >= r.unBondPeriod {
+		r.eei.AddReturnMessage("you can safely unbond. currentNonce = " + fmt.Sprintf("%d", currentNonce) + "  unStakedNonce = " + fmt.Sprintf("%d", stakedData.UnStakedNonce) + "  deltaNonce = " + fmt.Sprintf("%d", deltaNonce))
 		r.eei.Finish([]byte("0"))
 	} else {
-		remaining := r.unBondPeriod - passedNonce
+		remaining := r.unBondPeriod - deltaNonce
+		r.eei.AddReturnMessage("in unbond period. currentNonce = " + fmt.Sprintf("%d", currentNonce) + "  unStakedNonce = " + fmt.Sprintf("%d", stakedData.UnStakedNonce) + "  deltaNonce = " + fmt.Sprintf("%d", deltaNonce) + "  remaining = " + fmt.Sprintf("%d", remaining))
 		r.eei.Finish([]byte(strconv.Itoa(int(remaining))))
 	}
 
