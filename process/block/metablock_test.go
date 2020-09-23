@@ -81,7 +81,6 @@ func createMockMetaArguments() blproc.ArgMetaProcessor {
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
 			EpochNotifier:           &mock.EpochNotifierStub{},
 		},
-		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},

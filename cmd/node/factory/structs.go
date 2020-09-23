@@ -1929,11 +1929,6 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData)
-	if err != nil {
-		return nil, err
-	}
-
 	argsStaking := scToProtocol.ArgStakingToPeer{
 		PubkeyConv:  stateComponents.ValidatorPubkeyConverter,
 		Hasher:      core.Hasher,
@@ -1942,7 +1937,6 @@ func newMetaBlockProcessor(
 		BaseState:   stateComponents.AccountsAdapter,
 		ArgParser:   argsParser,
 		CurrTxs:     data.Datapool.CurrentBlockTxs(),
-		ScQuery:     scDataGetter,
 		RatingsData: ratingsData,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
@@ -2068,7 +2062,6 @@ func newMetaBlockProcessor(
 
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
-		SCDataGetter:                 scDataGetter,
 		SCToProtocol:                 smartContractToProtocol,
 		PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
 		EpochStartDataCreator:        epochStartDataCreator,

@@ -380,7 +380,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	queryService, err := smartContract.NewSCQueryService(
+		vmContainer,
+		arg.Economics,
+		virtualMachineFactory.BlockChainHookImpl(),
+		arg.Blkc,
+	)
 	if err != nil {
 		return nil, err
 	}

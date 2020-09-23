@@ -13,11 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
@@ -34,7 +32,6 @@ type ArgStakingToPeer struct {
 
 	ArgParser   process.ArgumentsParser
 	CurrTxs     dataRetriever.TransactionCacher
-	ScQuery     external.SCQueryService
 	RatingsData process.RatingsInfoHandler
 }
 
@@ -49,7 +46,6 @@ type stakingToPeer struct {
 
 	argParser    process.ArgumentsParser
 	currTxs      dataRetriever.TransactionCacher
-	scQuery      external.SCQueryService
 	startRating  uint32
 	unJailRating uint32
 	jailRating   uint32
@@ -70,7 +66,6 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 		baseState:    args.BaseState,
 		argParser:    args.ArgParser,
 		currTxs:      args.CurrTxs,
-		scQuery:      args.ScQuery,
 		startRating:  args.RatingsData.StartRating(),
 		unJailRating: args.RatingsData.StartRating(),
 		jailRating:   args.RatingsData.MinRating(),
@@ -101,9 +96,6 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.CurrTxs) {
 		return process.ErrNilTxForCurrentBlockHandler
 	}
-	if check.IfNil(args.ScQuery) {
-		return process.ErrNilSCDataGetter
-	}
 	if check.IfNil(args.RatingsData) {
 		return process.ErrNilRatingsInfoHandler
 	}
@@ -125,9 +117,40 @@ func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, 
 	return peerAcc, nil
 }
 
+func (stp *stakingToPeer) getUserAccount(key []byte) (state.UserAccountHandler, error) {
+	account, err := stp.baseState.LoadAccount(key)
+	if err != nil {
+		return nil, err
+	}
+
+	userAcc, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return userAcc, nil
+}
+
+func (stp *stakingToPeer) getStorageFromAccount(userAcc state.UserAccountHandler, key []byte) []byte {
+	value, err := userAcc.DataTrieTracker().RetrieveValue(key)
+	if err != nil {
+		return nil
+	}
+	return value
+}
+
 // UpdateProtocol applies changes from staking smart contract to peer state and creates the actual peer changes
 func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	affectedStates, err := stp.getAllModifiedStates(body)
+	if err != nil {
+		return err
+	}
+
+	if len(affectedStates) == 0 {
+		return nil
+	}
+
+	stakingSCAccount, err := stp.getUserAccount(vm.StakingSCAddress)
 	if err != nil {
 		return err
 	}
@@ -140,21 +163,8 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		blsPubKey := []byte(key)
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
-		query := process.SCQuery{
-			ScAddress: vm.StakingSCAddress,
-			FuncName:  "get",
-			Arguments: [][]byte{blsPubKey},
-		}
-		var vmOutput *vmcommon.VMOutput
-		vmOutput, err = stp.scQuery.ExecuteQuery(&query)
-		if err != nil {
-			return err
-		}
-
 		var data []byte
-		if len(vmOutput.ReturnData) > 0 {
-			data = vmOutput.ReturnData[0]
-		}
+		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			err = stp.peerState.RemoveAccount(blsPubKey)
