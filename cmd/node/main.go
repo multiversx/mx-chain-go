@@ -485,16 +485,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		closableComponents = append(closableComponents, managedStateComponents)
 
-		trieContainer, trieStorageManager := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
-		err = managedStateComponents.SetTriesContainer(trieContainer)
-		if err != nil {
-			return err
-		}
-		err = managedStateComponents.SetTriesStorageManagers(trieStorageManager)
-		if err != nil {
-			return err
-		}
-
 		log.Trace("creating data components")
 		epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
