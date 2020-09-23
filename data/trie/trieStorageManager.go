@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"io/ioutil"
 	"os"
@@ -36,6 +37,7 @@ type trieStorageManager struct {
 	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
 	maxSnapshots       uint8
+	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -73,6 +75,8 @@ func NewTrieStorageManager(
 		log.Debug("get snapshot", "error", err.Error())
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	tsm := &trieStorageManager{
 		db:                    db,
 		snapshots:             snapshots,
@@ -83,17 +87,20 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		snapshotInProgress:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
+		cancelFunc:            cancelFunc,
 	}
 
-	go tsm.storageProcessLoop(marshalizer, hasher)
+	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
 	return tsm, nil
 }
 
-func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
 		case snapshot := <-tsm.snapshotReq:
 			tsm.takeSnapshot(snapshot, msh, hsh)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -547,6 +554,13 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 // GetSnapshotDbBatchDelay returns the batch write delay in seconds
 func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 	return tsm.snapshotDbCfg.BatchDelaySeconds
+}
+
+// Close - closes all underlying components
+func (tsm *trieStorageManager) Close() error {
+	tsm.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -61,6 +61,8 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(2 * time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	printStack()
+
 	bootstrapComponents, _ := createBootstrapComponents(
 		*generalConfig,
 		prefsConfig.Preferences,

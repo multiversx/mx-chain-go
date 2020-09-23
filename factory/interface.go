@@ -386,6 +386,7 @@ type EpochStartBootstrapper interface {
 	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // BootstrapComponentsHolder holds the bootstrap components
