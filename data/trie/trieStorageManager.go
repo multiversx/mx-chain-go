@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -559,6 +560,17 @@ func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
 	tsm.cancelFunc()
+
+	err1 := tsm.db.Close()
+	err2 := tsm.dbEvictionWaitingList.Close()
+
+	if err1 != nil || err2 != nil {
+		errorStr := ""
+		if err2 != nil {
+			errorStr = err2.Error()
+		}
+		return fmt.Errorf("trieStorageManager close failed: %w , %s", err1, errorStr)
+	}
 
 	return nil
 }

@@ -55,13 +55,13 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
 	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
 
+	nrBefore := runtime.NumGoroutine()
+	printStack()
+
 	coreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	cryptoComponents, _ := createCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
 	networkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
 	time.Sleep(2 * time.Second)
-
-	nrBefore := runtime.NumGoroutine()
-	printStack()
 
 	bootstrapComponents, _ := createBootstrapComponents(
 		*generalConfig,
@@ -72,7 +72,13 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	err := bootstrapComponents.Close()
 	require.Nil(t, err)
-	time.Sleep(5 * time.Second)
+
+	_ = networkComponents.Close()
+	_ = cryptoComponents.Close()
+	_ = coreComponents.Close()
+
+	time.Sleep(10 * time.Second)
+
 	nrAfter := runtime.NumGoroutine()
 
 	if nrBefore != nrAfter {
@@ -80,7 +86,6 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
 }
 
 func createBootstrapComponents(
