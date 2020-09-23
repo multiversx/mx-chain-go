@@ -31,8 +31,6 @@ func TestNetworkComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
-	t.Skip()
-
 	_ = logger.SetLogLevel("*:DEBUG")
 
 	generalConfig, _ := loadMainConfig(configPath)

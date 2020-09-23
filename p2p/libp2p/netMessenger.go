@@ -535,6 +535,15 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's peerstore...")
+	errPeerStore := netMes.p2pHost.Peerstore().Close()
+	if errPeerStore != nil {
+		err = errPeerStore
+		log.Warn("networkMessenger.Close",
+			"component", "peerstore",
+			"error", err)
+	}
+
 	if err == nil {
 		log.Info("network messenger closed successfully")
 	}
