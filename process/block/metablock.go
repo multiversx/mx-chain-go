@@ -957,7 +957,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
+	go mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
 
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
@@ -978,7 +978,8 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
-				go mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+				mp.addHeaderIntoTrackerPool(nonce, shardID)
+				mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 			}
 		}
 	}
