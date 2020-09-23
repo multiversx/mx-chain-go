@@ -19,7 +19,7 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *tes
 		},
 	}
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(cfg, ctx)
+	af, err := NewP2POutputAntiFlood(ctx, cfg)
 	assert.NotNil(t, af)
 	assert.Nil(t, err)
 
@@ -46,7 +46,7 @@ func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(cfg, ctx)
+	af, err := NewP2POutputAntiFlood(ctx, cfg)
 	assert.NotNil(t, err)
 	assert.True(t, check.IfNil(af))
 }
@@ -70,7 +70,7 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(cfg, ctx)
+	af, err := NewP2POutputAntiFlood(ctx, cfg)
 	assert.NotNil(t, err)
 	assert.True(t, check.IfNil(af))
 }
@@ -94,7 +94,7 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T
 	}
 
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(cfg, ctx)
+	af, err := NewP2POutputAntiFlood(ctx, cfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
 }

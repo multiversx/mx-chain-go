@@ -139,8 +139,12 @@ func (oplb *OutgoingChannelLoadBalancer) GetChannelOrDefault(channel string) cha
 
 // CollectOneElementFromChannels gets the waiting object from mainChan. It is a blocking call.
 func (oplb *OutgoingChannelLoadBalancer) CollectOneElementFromChannels() *p2p.SendableData {
-	obj := <-oplb.mainChan
-	return obj
+	select {
+	case obj := <-oplb.mainChan:
+		return obj
+	case <-oplb.ctx.Done():
+		return nil
+	}
 }
 
 // Close finishes all started go routines in this instance

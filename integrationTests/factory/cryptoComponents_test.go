@@ -14,7 +14,7 @@ import (
 
 // ------------ Test CryptoComponents --------------------
 func TestCryptoComponents_Create_ShouldWork(t *testing.T) {
-	//t.Parallel()
+	t.Skip()
 
 	generalConfig, _ := loadMainConfig(configPath)
 	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
@@ -30,7 +30,7 @@ func TestCryptoComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
-	//t.Parallel()
+	t.Skip()
 
 	generalConfig, _ := loadMainConfig(configPath)
 	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)

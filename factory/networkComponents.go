@@ -94,16 +94,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(
-		ncf.mainConfig,
-		ncf.statusHandler,
-		netMessenger.ID(),
-		ctx,
-	)
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
 	if err != nil {
 		return nil, err
 	}
 
+	//TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
 		var debugger process.AntifloodDebugger
 		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
@@ -122,7 +118,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig, ctx)
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
 	if errOutputAntiflood != nil {
 		return nil, errOutputAntiflood
 	}
@@ -172,6 +168,19 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 // Close closes all underlying components that need closing
 func (nc *networkComponents) Close() error {
 	nc.closeFunc()
+
+	if !check.IfNil(nc.inputAntifloodHandler) {
+		log.LogIfError(nc.inputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.outputAntifloodHandler) {
+		log.LogIfError(nc.outputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.topicFloodPreventer) {
+		log.LogIfError(nc.outputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.peerHonestyHandler) {
+		log.LogIfError(nc.peerHonestyHandler.Close())
+	}
 
 	if nc.netMessenger != nil {
 		log.Debug("calling close on the network messenger instance...")

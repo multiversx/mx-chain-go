@@ -749,6 +749,7 @@ type P2PAntifloodHandler interface {
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // PeerValidatorMapper can determine the peer info from a peer id

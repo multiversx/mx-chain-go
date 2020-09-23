@@ -373,7 +373,12 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	go func() {
 		for {
 			cmw.CheckConnectionsBlocking()
-			time.Sleep(durationCheckConnections)
+			select {
+			case <-time.After(durationCheckConnections):
+			case <-netMes.ctx.Done():
+				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				return
+			}
 		}
 	}()
 
@@ -500,6 +505,22 @@ func (netMes *networkMessenger) Close() error {
 		log.Warn("networkMessenger.Close",
 			"component", "outgoingPLB",
 			"error", err)
+	}
+
+	log.Debug("closing network messenger's peers on channel...")
+	errPoc := netMes.poc.Close()
+	if errPoc != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "peersOnChannel",
+			"error", errPoc)
+	}
+
+	log.Debug("closing network messenger's connection monitor...")
+	errConnMonitor := netMes.connMonitor.Close()
+	if errConnMonitor != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "connMonitor",
+			"error", errConnMonitor)
 	}
 
 	log.Debug("closing network messenger's components through the context...")

@@ -74,6 +74,7 @@ type P2PAntifloodHandler interface {
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -193,6 +194,7 @@ type DataComponentsHandler interface {
 type PeerHonestyHandler interface {
 	ChangeScore(pk string, topic string, units int)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // NetworkComponentsHolder holds the network components
