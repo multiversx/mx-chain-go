@@ -157,7 +157,11 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 	)
 
 	go func() {
-		<-chanStartBootstrap
+		select {
+		case <-chanStartBootstrap:
+		case <-ctx.Done():
+			return
+		}
 		ckdd.bootstrap(ctx)
 	}()
 }

@@ -31,6 +31,8 @@ func TestNetworkComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
+	//	t.Skip()
+
 	_ = logger.SetLogLevel("*:DEBUG")
 
 	generalConfig, _ := loadMainConfig(configPath)
@@ -47,6 +49,9 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	networkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, ccf)
 	time.Sleep(2 * time.Second)
 
+	_ = networkComponents.NetworkMessenger().Bootstrap()
+	time.Sleep(3 * time.Second)
+
 	err := networkComponents.Close()
 	require.Nil(t, err)
 	time.Sleep(5 * time.Second)
@@ -58,10 +63,6 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	require.Equal(t, nrBefore, nrAfter)
 
-	//err = networkComponents.NetworkMessenger().Bootstrap()
-	//if err != nil {
-	//	return nil, err
-	//}
 }
 
 func createNetworkComponents(
