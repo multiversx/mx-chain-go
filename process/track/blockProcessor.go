@@ -438,9 +438,9 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
 
 		if shardID == core.MetachainShardId {
-			go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		} else {
-			go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 		}
 	}
 }

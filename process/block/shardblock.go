@@ -1641,7 +1641,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
 			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
-			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}
 }

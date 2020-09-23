@@ -979,7 +979,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
 				mp.addHeaderIntoTrackerPool(nonce, shardID)
-				go mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+				mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 			}
 		}
 	}
