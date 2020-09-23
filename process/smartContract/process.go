@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -305,9 +305,8 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return 0, err
 	}
 
-	var consumedFee *big.Int
 	var results []data.TransactionHandler
-	results, consumedFee, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
+	results, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("process vm output returned with problem ", "err", err.Error())
 		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot)
@@ -325,24 +324,100 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		log.Debug("txLogsProcessor.SaveLog() error", "error", ignorableError.Error())
 	}
 
-	newDeveloperReward := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
-
-	acntDst, err = sc.reloadLocalAccount(acntDst)
+	err = sc.updateDeveloperRewards(tx, vmOutput)
 	if err != nil {
-		log.Debug("reloadLocalAccount error", "error", err.Error())
+		log.Debug("updateDeveloper rewards error", "error", err.Error())
 		return 0, err
 	}
 
-	acntDst.AddToDeveloperReward(newDeveloperReward)
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, newDeveloperReward, txHash)
-
-	err = sc.accounts.SaveAccount(acntDst)
-	if err != nil {
-		log.Debug("error saving account")
-		return 0, err
-	}
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFee(tx, vmOutput)
+	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 
 	return vmcommon.Ok, nil
+}
+
+func (sc *scProcessor) updateDeveloperRewards(
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+) error {
+	usedGasByMainSC := tx.GetGasLimit() - vmOutput.GasRemaining
+	if !sc.isSelfShard(tx.GetSndAddr()) {
+		usedGasByMainSC -= sc.economicsFee.ComputeGasLimit(tx)
+	}
+
+	for _, outAcc := range vmOutput.OutputAccounts {
+		if bytes.Equal(tx.GetRcvAddr(), outAcc.Address) {
+			continue
+		}
+
+		sentGas := uint64(0)
+		for _, outTransfer := range outAcc.OutputTransfers {
+			sentGas += outTransfer.GasLimit
+		}
+		usedGasByMainSC -= sentGas
+		usedGasByMainSC -= outAcc.GasUsed
+
+		if outAcc.GasUsed > 0 && sc.isSelfShard(outAcc.Address) {
+			err := sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx.GetGasPrice())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err := sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx.GetGasPrice())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, gasPrice uint64) error {
+	consumedFee := core.SafeMul(gasPrice, gasUsed)
+	devRwd := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+
+	userAcc, err := sc.getAccountFromAddress(address)
+	if err != nil {
+		return err
+	}
+
+	userAcc.AddToDeveloperReward(devRwd)
+	err = sc.accounts.SaveAccount(userAcc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (sc *scProcessor) isSelfShard(address []byte) bool {
+	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
+}
+
+func (sc *scProcessor) computeTotalConsumedFee(
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+) (*big.Int, *big.Int) {
+	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
+	if !sc.isSelfShard(tx.GetSndAddr()) {
+		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
+	}
+
+	for _, outAcc := range vmOutput.OutputAccounts {
+		if !sc.isSelfShard(outAcc.Address) {
+			sentGas := uint64(0)
+			for _, outTransfer := range outAcc.OutputTransfers {
+				sentGas += outTransfer.GasLimit
+			}
+			consumedGas -= sentGas
+		}
+	}
+
+	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
+	totalDevRwd := core.GetPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+
+	return totalFee, totalDevRwd
 }
 
 func (sc *scProcessor) deleteSCRsWithValueZeroGoingToMeta(scrs []data.TransactionHandler) []data.TransactionHandler {
@@ -424,8 +499,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		return true, err
 	}
 
-	// TODO: returned error should be protocol error - vmOutput error must be used for user errors
-	// return error here only if acntSnd is not nil - so this is sender shard
 	vmOutput, err := builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
 		if !check.IfNil(acntSnd) {
@@ -444,21 +517,18 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	// Restore gas set aside for the async callback, if applicable
 	vmOutput.GasRemaining += lockedGas
-
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
-		scrResults = append(scrResults, scTx)
+		newScrs := sc.createSmartContractResults(outAcc, tx, txHash)
+		scrResults = append(scrResults, newScrs...)
 	}
 
-	scrForSender, consumedFee := sc.createSCRForSender(
+	scrForSender := sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		acntSnd,
 		vmInput.CallType,
 	)
 	if !check.IfNil(acntSnd) {
@@ -478,11 +548,13 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	if check.IfNil(acntSnd) {
 		// it was already consumed in sender shard
-		consumedFee = big.NewInt(0)
+		sc.txFeeHandler.ProcessTransactionFee(big.NewInt(0), big.NewInt(0), txHash)
+	} else {
+		consumedFee := core.SafeMul(tx.GetGasLimit()-vmOutput.GasRemaining, tx.GetGasPrice())
+		sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	err = sc.saveAccounts(acntSnd, acntDst)
 	if err != nil {
@@ -690,7 +762,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot)
 	}
 
-	results, consumedFee, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
+	results, err := sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
 		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot)
@@ -702,7 +774,14 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return 0, err
 	}
 
-	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
+	err = sc.updateDeveloperRewards(tx, vmOutput)
+	if err != nil {
+		log.Debug("updateDeveloper rewards error", "error", err.Error())
+		return 0, err
+	}
+
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFee(tx, vmOutput)
+	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 
 	return 0, nil
@@ -764,21 +843,20 @@ func (sc *scProcessor) processVMOutput(
 	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
 	gasProvided uint64,
-) ([]data.TransactionHandler, *big.Int, error) {
+) ([]data.TransactionHandler, error) {
 	if vmOutput == nil {
-		return nil, nil, process.ErrNilVMOutput
+		return nil, process.ErrNilVMOutput
 	}
 	if check.IfNil(tx) {
-		return nil, nil, process.ErrNilTransaction
+		return nil, process.ErrNilTransaction
 	}
 
 	sc.penalizeUserIfNeeded(tx, txHash, callType, gasProvided, vmOutput)
 
-	scrForSender, consumedFee := sc.createSCRForSender(
+	scrForSender := sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		acntSnd,
 		callType,
 	)
 
@@ -790,22 +868,22 @@ func (sc *scProcessor) processVMOutput(
 		)
 
 		if callType == vmcommon.AsynchronousCall || callType == vmcommon.AsynchronousCallBack {
-			return []data.TransactionHandler{scrForSender}, consumedFee, nil
+			return []data.TransactionHandler{scrForSender}, nil
 		}
 
-		return nil, nil, fmt.Errorf(vmOutput.ReturnCode.String())
+		return nil, fmt.Errorf(vmOutput.ReturnCode.String())
 	}
 
 	outPutAccounts := process.SortVMOutputInsideData(vmOutput)
 
 	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	totalGasConsumed := tx.GetGasLimit() - vmOutput.GasRemaining
@@ -820,23 +898,23 @@ func (sc *scProcessor) processVMOutput(
 	if !check.IfNil(acntSnd) {
 		err = acntSnd.AddToBalance(scrForSender.Value)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		err = sc.accounts.SaveAccount(acntSnd)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
-	return scrTxs, consumedFee, nil
+	return scrTxs, nil
 }
 
 func (sc *scProcessor) penalizeUserIfNeeded(
@@ -974,57 +1052,64 @@ func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (sta
 	return sc.getAccountFromAddress(acntSnd.AddressBytes())
 }
 
-func (sc *scProcessor) createSmartContractResult(
+func createBaseSCR(
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
-	storageUpdates []*vmcommon.StorageUpdate,
 ) *smartContractResult.SmartContractResult {
 	result := &smartContractResult.SmartContractResult{}
 
-	result.Value = outAcc.BalanceDelta
-	if result.Value == nil {
-		result.Value = big.NewInt(0)
-	}
-
+	result.Value = big.NewInt(0)
 	result.Nonce = outAcc.Nonce
 	result.RcvAddr = outAcc.Address
 	result.SndAddr = tx.GetRcvAddr()
 	result.Code = outAcc.Code
-	result.Data = outAcc.Data
-	if bytes.Equal(result.GetRcvAddr(), vm.StakingSCAddress) {
-		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
-		// storage update for staking contract is used in stakingToPeer
-		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
-	}
-	result.GasLimit = outAcc.GasLimit
 	result.GasPrice = tx.GetGasPrice()
 	result.PrevTxHash = txHash
-	result.CallType = outAcc.CallType
+	result.CallType = vmcommon.DirectCall
 	setOriginalTxHash(result, txHash, tx)
-
-	log.Trace("createSCR ", "data", string(result.Data))
-	if result.Value.Cmp(zero) > 0 {
-		result.OriginalSender = tx.GetSndAddr()
-	}
 
 	return result
 }
 
-func (sc *scProcessor) computeActualConsumedGas(
+func (sc *scProcessor) createSmartContractResults(
+	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
-	vmOutput *vmcommon.VMOutput,
-	acntSnd state.UserAccountHandler,
-) uint64 {
-	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
-	if check.IfNil(acntSnd) {
-		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
-	}
-	for _, outAcc := range vmOutput.OutputAccounts {
-		consumedGas -= outAcc.GasLimit
+	txHash []byte,
+) []data.TransactionHandler {
+	if len(outAcc.OutputTransfers) == 0 {
+		return nil
 	}
 
-	return consumedGas
+	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+		//TODO: write directly from staking smart contract to the validator trie - it gets complicated in reverts
+		// storage update for staking contract is used in stakingToPeer
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		result := createBaseSCR(outAcc, tx, txHash)
+		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+
+		return []data.TransactionHandler{result}
+	}
+
+	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
+	for _, outPutTransfer := range outAcc.OutputTransfers {
+		result := createBaseSCR(outAcc, tx, txHash)
+
+		if outPutTransfer.Value != nil {
+			result.Value.Set(outPutTransfer.Value)
+		}
+		result.Data = outPutTransfer.Data
+		result.GasLimit = outPutTransfer.GasLimit
+		result.CallType = outPutTransfer.CallType
+		setOriginalTxHash(result, txHash, tx)
+		if result.Value.Cmp(zero) > 0 {
+			result.OriginalSender = tx.GetSndAddr()
+		}
+
+		scResults = append(scResults, result)
+	}
+
+	return scResults
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
@@ -1033,9 +1118,8 @@ func (sc *scProcessor) createSCRForSender(
 	vmOutput *vmcommon.VMOutput,
 	tx data.TransactionHandler,
 	txHash []byte,
-	acntSnd state.UserAccountHandler,
 	callType vmcommon.CallType,
-) (*smartContractResult.SmartContractResult, *big.Int) {
+) *smartContractResult.SmartContractResult {
 	if vmOutput.GasRefund == nil {
 		vmOutput.GasRefund = big.NewInt(0)
 	}
@@ -1075,8 +1159,7 @@ func (sc *scProcessor) createSCRForSender(
 	}
 
 	log.Trace("createSCRForSender ", "data", string(scTx.Data))
-	consumedFee := core.SafeMul(sc.computeActualConsumedGas(tx, vmOutput, acntSnd), tx.GetGasPrice())
-	return scTx, consumedFee
+	return scTx
 }
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
@@ -1090,17 +1173,14 @@ func (sc *scProcessor) processSCOutputAccounts(
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
-	zero := big.NewInt(0)
 	for _, outAcc := range outputAccounts {
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return nil, err
 		}
 
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		scTx := sc.createSmartContractResult(outAcc, tx, txHash, storageUpdates)
-		scResults = append(scResults, scTx)
-
+		newScrs := sc.createSmartContractResults(outAcc, tx, txHash)
+		scResults = append(scResults, newScrs...)
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
 				sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
@@ -1108,6 +1188,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			continue
 		}
 
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for j := 0; j < len(storageUpdates); j++ {
 			storeUpdate := storageUpdates[j]
 			if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
