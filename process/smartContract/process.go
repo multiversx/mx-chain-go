@@ -374,7 +374,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 }
 
 func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, gasPrice uint64) error {
-	if core.IsEmptyAddress(address) {
+	if core.IsEmptyAddress(address) || !core.IsSmartContractAddress(address) {
 		return nil
 	}
 
