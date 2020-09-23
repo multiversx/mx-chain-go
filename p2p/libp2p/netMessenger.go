@@ -240,13 +240,10 @@ func createMessenger(
 }
 
 func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
-	signPolicy := pubsub.StrictSign
+	optsPS := make([]pubsub.Option, 0)
 	if !withMessageSigning {
 		log.Warn("signature verification is turned off in network messenger instance")
-		signPolicy = noSignPolicy
-	}
-	optsPS := []pubsub.Option{
-		pubsub.WithMessageSignaturePolicy(signPolicy),
+		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
 	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
