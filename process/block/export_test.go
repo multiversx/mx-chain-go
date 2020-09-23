@@ -357,3 +357,11 @@ func (sp *shardProcessor) GetBootstrapHeadersInfo(
 ) []bootstrapStorage.BootstrapHeaderInfo {
 	return sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes)
 }
+
+func (sp *shardProcessor) RequestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaHdr data.HeaderHandler) {
+	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+}
+
+func (mp *metaProcessor) RequestShardHeadersIfNeeded(hdrsAddedForShard map[uint32]uint32, lastShardHdr map[uint32]data.HeaderHandler) {
+	mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
+}

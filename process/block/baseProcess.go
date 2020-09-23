@@ -255,7 +255,9 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, nonces...)
 	}
 
+	headersPool := bp.dataPool.Headers()
 	for _, nonce := range missingNonces {
+		headersPool.RemoveHeaderByNonceAndShardId(nonce, shardId)
 		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
 
