@@ -47,8 +47,8 @@ var ErrNegativeInitialStakeValue = errors.New("initial stake value is negative")
 // ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
 var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
 
-// ErrBLSPublicKeyMissmatch signals that public keys do not match
-var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+// ErrBLSPublicKeyMismatch signals that public keys do not match
+var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
 
 // ErrBLSPublicKeyMissmatch signals that public keys do not match
 var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")

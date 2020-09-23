@@ -408,7 +408,7 @@ func (s *stakingAuctionSC) replaceBLSKey(registrationData *AuctionData, oldBlsKe
 	}
 
 	if !foundOldKey {
-		return vm.ErrBLSPublicKeyMissmatch
+		return vm.ErrBLSPublicKeyMismatch
 	}
 
 	vmOutput, err := s.executeOnStakingSC([]byte("changeValidatorKeys@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
@@ -964,7 +964,7 @@ func verifyBLSPublicKeys(registrationData *AuctionData, arguments [][]byte) erro
 		}
 
 		if !found {
-			return vm.ErrBLSPublicKeyMissmatch
+			return vm.ErrBLSPublicKeyMismatch
 		}
 	}
 
