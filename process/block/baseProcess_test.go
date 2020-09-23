@@ -999,7 +999,7 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	assert.Equal(t, 2, pruningCalled)
 }
 
-func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsEmpty(t *testing.T) {
+func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsEmpty(t *testing.T) {
 	t.Parallel()
 
 	var requestedNonces []uint64
@@ -1045,7 +1045,7 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsE
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
 
-func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
+func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	t.Parallel()
 
 	var requestedNonces []uint64
@@ -1113,4 +1113,60 @@ func TestBlocProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	mutRequestedNonces.Unlock()
 	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}
 	assert.Equal(t, expectedNonces, requestedNonces)
+}
+
+func TestBlockProcessor_RequestHeadersIfMissingShouldCleanHeadersPool(t *testing.T) {
+	t.Parallel()
+
+	var removedNonces []uint64
+
+	arguments := CreateMockArguments()
+	rounder := &mock.RounderMock{}
+	arguments.Rounder = rounder
+
+	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
+				removedNonces = append(removedNonces, hdrNonce)
+			},
+		}
+	}
+	arguments.DataPool = poolsHolderStub
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	sortedHeaders := make([]data.HeaderHandler, 0)
+
+	crossNotarizedHeader := &block.MetaBlock{
+		Nonce: 5,
+		Round: 5,
+	}
+	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
+	hdr1 := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+	}
+	sortedHeaders = append(sortedHeaders, hdr1)
+
+	hdr2 := &block.MetaBlock{
+		Nonce: 8,
+		Round: 8,
+	}
+	sortedHeaders = append(sortedHeaders, hdr2)
+
+	hdr3 := &block.MetaBlock{
+		Nonce: 10,
+		Round: 10,
+	}
+	sortedHeaders = append(sortedHeaders, hdr3)
+
+	removedNonces = make([]uint64, 0)
+
+	rounder.RoundIndex = 12
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+
+	expectedNonces := []uint64{6, 7, 9}
+	assert.Equal(t, expectedNonces, removedNonces)
 }

@@ -120,6 +120,8 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
 	SetAppStatusHandler(ash core.AppStatusHandler) error
+	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
