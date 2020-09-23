@@ -29,7 +29,10 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		MaxGasLimitPerBlockCalled: func() uint64 {
 			return uint64(math.MaxUint64)
 		},
-	})
+	},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
+	)
 
 	functionName := "Get"
 	query := process.SCQuery{
