@@ -301,7 +301,41 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+
+	for _, argument := range args.Arguments {
+		stakedData, err := r.getOrCreateRegisteredData(argument)
+		if err != nil {
+			r.eei.AddReturnMessage("cannot get or created registered data: error " + err.Error())
+			return vmcommon.UserError
+		}
+		if len(stakedData.RewardAddress) == 0 {
+			r.eei.AddReturnMessage("cannot unJail a key that is not registered")
+			return vmcommon.UserError
+		}
+
+		stakedData.JailedRound = math.MaxUint64
+		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
+
+		err = r.saveStakingData(argument, stakedData)
+		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
+}
+
 func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !r.flagStake.IsSet() {
+		return r.unJailV1(args)
+	}
+
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError

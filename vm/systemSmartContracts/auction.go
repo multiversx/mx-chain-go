@@ -163,7 +163,61 @@ func (s *stakingAuctionSC) addToUnJailFunds(value *big.Int) {
 	s.eei.SetStorage([]byte(unJailedFunds), currentValue.Bytes())
 }
 
+func (s *stakingAuctionSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) == 0 {
+		s.eei.AddReturnMessage("invalid number of arguments: expected min 1, got 0")
+		return vmcommon.UserError
+	}
+
+	auctionConfig := s.getConfig(s.eei.BlockChainHook().CurrentEpoch())
+	totalUnJailPrice := big.NewInt(0).Mul(auctionConfig.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
+
+	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
+		s.eei.AddReturnMessage("insufficient funds sent for unJail")
+		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnJail * uint64(len(args.Arguments)))
+	if err != nil {
+		s.eei.AddReturnMessage("insufficient gas limit")
+		return vmcommon.OutOfGas
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	err = verifyBLSPublicKeys(registrationData, args.Arguments)
+	if err != nil {
+		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + vm.ErrBLSPublicKeyMissmatch.Error())
+		return vmcommon.UserError
+	}
+
+	for _, blsKey := range args.Arguments {
+		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+			continue
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.Finish(blsKey)
+			s.eei.Finish([]byte{failed})
+		}
+	}
+
+	return vmcommon.Ok
+}
+
 func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagStake.IsSet() {
+		return s.unJailV1(args)
+	}
+
 	if len(args.Arguments) == 0 {
 		s.eei.AddReturnMessage("invalid number of arguments: expected at least 1")
 		return vmcommon.UserError
@@ -207,10 +261,12 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 	}
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
-	if err != nil {
-		s.eei.AddReturnMessage("transfer error on unJail function")
-		return vmcommon.UserError
+	if transferBack.Cmp(zero) > 0 {
+		err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, transferBack, nil, 0)
+		if err != nil {
+			s.eei.AddReturnMessage("transfer error on unJail function")
+			return vmcommon.UserError
+		}
 	}
 
 	finalUnJailFunds := big.NewInt(0).Sub(args.CallValue, transferBack)

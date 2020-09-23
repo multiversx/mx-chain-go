@@ -1935,15 +1935,17 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:  stateComponents.ValidatorPubkeyConverter,
-		Hasher:      core.Hasher,
-		Marshalizer: core.InternalMarshalizer,
-		PeerState:   stateComponents.PeerAccounts,
-		BaseState:   stateComponents.AccountsAdapter,
-		ArgParser:   argsParser,
-		CurrTxs:     data.Datapool.CurrentBlockTxs(),
-		ScQuery:     scDataGetter,
-		RatingsData: ratingsData,
+		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		PeerState:        stateComponents.PeerAccounts,
+		BaseState:        stateComponents.AccountsAdapter,
+		ArgParser:        argsParser,
+		CurrTxs:          data.Datapool.CurrentBlockTxs(),
+		ScQuery:          scDataGetter,
+		RatingsData:      ratingsData,
+		EpochNotifier:    epochNotifier,
+		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

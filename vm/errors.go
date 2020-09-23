@@ -50,6 +50,9 @@ var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
 // ErrBLSPublicKeyMissmatch signals that public keys do not match
 var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
 
+// ErrBLSPublicKeyMissmatch signals that public keys do not match
+var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
 
