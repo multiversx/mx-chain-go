@@ -2,27 +2,27 @@ package workItems
 
 import "github.com/ElrondNetwork/elrond-go/data/state"
 
-type itemAccount struct {
-	indexer saveAccountIndexer
-	account state.UserAccountHandler
+type itemAccounts struct {
+	indexer  saveAccountsIndexer
+	accounts []state.UserAccountHandler
 }
 
-// NewItemAccount will create a new instance of itemAccount
-func NewItemAccount(
-	indexer saveAccountIndexer,
-	account state.UserAccountHandler,
+// NewItemAccounts will create a new instance of itemAccounts
+func NewItemAccounts(
+	indexer saveAccountsIndexer,
+	accounts []state.UserAccountHandler,
 ) WorkItemHandler {
-	return &itemAccount{
-		indexer: indexer,
-		account: account,
+	return &itemAccounts{
+		indexer:  indexer,
+		accounts: accounts,
 	}
 }
 
 // Save will save information about an account
-func (wiv *itemAccount) Save() error {
-	err := wiv.indexer.SaveAccount(wiv.account)
+func (wiv *itemAccounts) Save() error {
+	err := wiv.indexer.SaveAccounts(wiv.accounts)
 	if err != nil {
-		log.Warn("itemAccount.Save",
+		log.Warn("itemAccounts.Save",
 			"could not index account",
 			"error", err.Error())
 		return err
@@ -32,6 +32,6 @@ func (wiv *itemAccount) Save() error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (wiv *itemAccount) IsInterfaceNil() bool {
+func (wiv *itemAccounts) IsInterfaceNil() bool {
 	return wiv == nil
 }

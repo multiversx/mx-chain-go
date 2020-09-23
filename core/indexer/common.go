@@ -282,6 +282,45 @@ func serializeTransactions(
 	return buffSlice
 }
 
+func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountInfo(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAcc > txsBulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write serialized tx", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
@@ -305,6 +344,20 @@ func prepareSerializedDataForATransaction(
 			return
 		}
 	}
+	return
+}
+
+func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return
+	}
+
 	return
 }
 

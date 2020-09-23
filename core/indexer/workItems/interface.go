@@ -40,6 +40,6 @@ type saveValidatorsIndexer interface {
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 }
 
-type saveAccountIndexer interface {
-	SaveAccount(account state.UserAccountHandler) error
+type saveAccountsIndexer interface {
+	SaveAccounts(accounts []state.UserAccountHandler) error
 }

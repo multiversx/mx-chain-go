@@ -28,7 +28,7 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo)
-	SaveAccount(acc state.UserAccountHandler)
+	SaveAccounts(acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
@@ -54,7 +54,7 @@ type ElasticProcessor interface {
 	SaveRoundsInfo(infos []workItems.RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveAccount(account state.UserAccountHandler) error
+	SaveAccounts(accounts []state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 

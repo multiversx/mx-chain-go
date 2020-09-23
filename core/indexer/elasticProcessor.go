@@ -24,12 +24,12 @@ const numDecimalsInFloatBalance = 10
 type elasticProcessor struct {
 	*txDatabaseProcessor
 
-	elasticClient                    DatabaseClientHandler
-	parser                           *dataParser
-	enabledIndexes                   map[string]struct{}
-	accountsDB                       state.AccountsAdapter
-	numToDivideWithForNoDenomination float64
-	numToUseForCertainDecimals       float64
+	elasticClient          DatabaseClientHandler
+	parser                 *dataParser
+	enabledIndexes         map[string]struct{}
+	accountsDB             state.AccountsAdapter
+	dividerForDenomination float64
+	balancePrecision       float64
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -45,10 +45,10 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 			hasher:      arguments.Hasher,
 			marshalizer: arguments.Marshalizer,
 		},
-		enabledIndexes:                   arguments.EnabledIndexes,
-		accountsDB:                       arguments.AccountsDB,
-		numToUseForCertainDecimals:       math.Pow(10, float64(numDecimalsInFloatBalance)),
-		numToDivideWithForNoDenomination: math.Pow(10, float64(core.MaxInt(arguments.Denomination, 0))),
+		enabledIndexes:         arguments.EnabledIndexes,
+		accountsDB:             arguments.AccountsDB,
+		balancePrecision:       math.Pow(10, float64(numDecimalsInFloatBalance)),
+		dividerForDenomination: math.Pow(10, float64(core.MaxInt(arguments.Denomination, 0))),
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -238,7 +238,7 @@ func (ei *elasticProcessor) SaveHeader(
 	notarizedHeadersHashes []string,
 	txsSize int,
 ) error {
-	if _, ok := ei.enabledIndexes[blockIndex]; !ok {
+	if !ei.isIndexEnabled(blockIndex) {
 		return nil
 	}
 
@@ -314,7 +314,7 @@ func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLog
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
 func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error) {
-	if _, ok := ei.enabledIndexes[miniblocksIndex]; !ok {
+	if !ei.isIndexEnabled(miniblocksIndex) {
 		return map[string]bool{}, nil
 	}
 
@@ -335,7 +335,7 @@ func (ei *elasticProcessor) SaveTransactions(
 	selfShardID uint32,
 	mbsInDb map[string]bool,
 ) error {
-	if _, ok := ei.enabledIndexes[txIndex]; !ok {
+	if !ei.isIndexEnabled(txIndex) {
 		return nil
 	}
 
@@ -351,14 +351,12 @@ func (ei *elasticProcessor) SaveTransactions(
 		}
 	}
 
-	ei.indexAlteredAccounts(alteredAccounts)
-
-	return nil
+	return ei.indexAlteredAccounts(alteredAccounts)
 }
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
 func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBenchmark) error {
-	if _, ok := ei.enabledIndexes[tpsIndex]; !ok {
+	if !ei.isIndexEnabled(tpsIndex) {
 		return nil
 	}
 
@@ -386,7 +384,7 @@ func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBench
 
 // SaveValidatorsRating will save validators rating
 func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
-	if _, ok := ei.enabledIndexes[ratingIndex]; !ok {
+	if !ei.isIndexEnabled(ratingIndex) {
 		return nil
 	}
 
@@ -418,7 +416,7 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
 func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
-	if _, ok := ei.enabledIndexes[validatorsIndex]; !ok {
+	if !ei.isIndexEnabled(validatorsIndex) {
 		return nil
 	}
 
@@ -456,7 +454,7 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 
 // SaveRoundsInfo will prepare and save information about a slice of rounds in elasticsearch server
 func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
-	if _, ok := ei.enabledIndexes[roundIndex]; !ok {
+	if !ei.isIndexEnabled(roundIndex) {
 		return nil
 	}
 
@@ -480,7 +478,13 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
 }
 
-func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) {
+func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) error {
+	if !ei.isIndexEnabled(accountsIndex) {
+		return nil
+	}
+
+	accountsToIndex := make([]state.UserAccountHandler, len(accounts))
+	idx := 0
 	for address := range accounts {
 		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
 		if err != nil {
@@ -500,62 +504,60 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) {
 			continue
 		}
 
-		err = ei.SaveAccount(userAccount)
-		if err != nil {
-			log.Warn("cannot index account",
-				"address", ei.addressPubkeyConverter.Encode(userAccount.AddressBytes()),
-				"error", err)
-		}
+		accountsToIndex[idx] = userAccount
+		idx++
 	}
+
+	if len(accountsToIndex) == 0 {
+		log.Debug("no account to index from provided transactions")
+		return nil
+	}
+
+	return ei.SaveAccounts(accountsToIndex)
 }
 
-// SaveAccount will prepare and save information about an account in elasticsearch server
-func (ei *elasticProcessor) SaveAccount(account state.UserAccountHandler) error {
-	if _, ok := ei.enabledIndexes[accountsIndex]; !ok {
+// SaveAccounts will prepare and save information about provided accounts in elasticsearch server
+func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) error {
+	if !ei.isIndexEnabled(accountsIndex) {
 		return nil
 	}
 
-	if check.IfNil(account) {
-		return nil
+	accountsMap := make(map[string]*AccountInfo)
+	for _, userAccount := range accounts {
+		balanceAsFloat := ei.computeBalanceAsFloat(userAccount.GetBalance())
+		acc := &AccountInfo{
+			Nonce:      userAccount.GetNonce(),
+			Balance:    userAccount.GetBalance().String(),
+			BalanceNum: balanceAsFloat,
+		}
+		address := ei.addressPubkeyConverter.Encode(userAccount.AddressBytes())
+		accountsMap[address] = acc
 	}
 
-	var buff bytes.Buffer
-
-	balanceAsFloat := ei.computeBalanceAsFloat(account.GetBalance())
-	acc := AccountInfo{
-		Address:    ei.addressPubkeyConverter.Encode(account.AddressBytes()),
-		Nonce:      account.GetNonce(),
-		Balance:    account.GetBalance().String(),
-		BalanceNum: balanceAsFloat,
+	buffSlice := serializeAccounts(accountsMap)
+	for idx := range buffSlice {
+		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
+		if err != nil {
+			log.Warn("indexer: indexing bulk of accounts",
+				"error", err.Error())
+			return err
+		}
 	}
 
-	accBytes, err := json.Marshal(&acc)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	buff.Grow(len(accBytes))
-	_, err = buff.Write(accBytes)
-	if err != nil {
-		log.Warn("elastic search: save account, write", "error", err.Error())
-	}
-
-	req := &esapi.IndexRequest{
-		Index:      accountsIndex,
-		DocumentID: ei.addressPubkeyConverter.Encode(account.AddressBytes()),
-		Body:       bytes.NewReader(buff.Bytes()),
-		Refresh:    "true",
-	}
-
-	return ei.elasticClient.DoRequest(req)
+func (ei *elasticProcessor) isIndexEnabled(index string) bool {
+	_, isEnabled := ei.enabledIndexes[index]
+	return isEnabled
 }
 
 func (ei *elasticProcessor) computeBalanceAsFloat(balance *big.Int) float64 {
 	balanceBigFloat := big.NewFloat(0).SetInt(balance)
 	balanceFloat64, _ := balanceBigFloat.Float64()
 
-	bal := balanceFloat64 / ei.numToDivideWithForNoDenomination
-	balanceFloatWithDecimals := math.Round(bal*ei.numToUseForCertainDecimals) / ei.numToUseForCertainDecimals
+	bal := balanceFloat64 / ei.dividerForDenomination
+	balanceFloatWithDecimals := math.Round(bal*ei.balancePrecision) / ei.balancePrecision
 
 	return core.MaxFloat64(balanceFloatWithDecimals, 0)
 }

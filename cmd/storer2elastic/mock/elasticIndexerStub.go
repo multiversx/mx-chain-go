@@ -69,8 +69,8 @@ func (e *ElasticIndexerStub) Close() error {
 func (e *ElasticIndexerStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 }
 
-// SaveAccount -
-func (e *ElasticIndexerStub) SaveAccount(_ state.UserAccountHandler) {
+// SaveAccounts -
+func (e *ElasticIndexerStub) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil -

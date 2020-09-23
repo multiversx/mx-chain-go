@@ -226,7 +226,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
-				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -234,7 +234,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
-				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -242,6 +242,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
 				alteredAddresses[dbTx.Receiver] = struct{}{}
 				rewardsTxs = append(rewardsTxs, dbTx)
 				delete(txPool, hash)
@@ -264,17 +265,19 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 	return transactions
 }
 
-func addToAlteredAddresses(tx *Transaction, alteredAddresses map[string]struct{}, miniBlock *block.MiniBlock, selfShardID uint32) {
-	if selfShardID == miniBlock.SenderShardID {
-		if selfShardID == miniBlock.ReceiverShardID {
-			alteredAddresses[tx.Receiver] = struct{}{}
-		}
-
+func addToAlteredAddresses(
+	tx *Transaction,
+	alteredAddresses map[string]struct{},
+	miniBlock *block.MiniBlock,
+	selfShardID uint32,
+	isRewardTx bool,
+) {
+	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
 		alteredAddresses[tx.Sender] = struct{}{}
-		return
 	}
-
-	alteredAddresses[tx.Receiver] = struct{}{}
+	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
+		alteredAddresses[tx.Receiver] = struct{}{}
+	}
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {

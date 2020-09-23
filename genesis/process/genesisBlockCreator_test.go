@@ -96,7 +96,6 @@ func createMockArgument(
 			RelayedTransactionsEnableEpoch: 0,
 			PenalizedTooMuchGasEnableEpoch: 0,
 		},
-		Indexer: &mock.IndexerMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

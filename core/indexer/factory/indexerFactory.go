@@ -2,7 +2,6 @@ package factory
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -92,7 +91,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		enabledIndexesMap[index] = struct{}{}
 	}
 	if len(enabledIndexesMap) == 0 {
-		return nil, fmt.Errorf("empty elastic search enabled indexes map")
+		return nil, indexer.ErrEmptyEnabledIndexes
 	}
 
 	esIndexerArgs := indexer.ArgElasticProcessor{

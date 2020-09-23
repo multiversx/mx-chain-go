@@ -53,8 +53,8 @@ func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
 }
 
-// SaveAccount -
-func (im *IndexerMock) SaveAccount(_ state.UserAccountHandler) {
+// SaveAccounts -
+func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

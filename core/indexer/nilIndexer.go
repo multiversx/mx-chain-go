@@ -45,8 +45,8 @@ func (ni *NilIndexer) SaveValidatorsRating(_ string, _ []workItems.ValidatorRati
 func (ni *NilIndexer) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 }
 
-// SaveAccount won't do anything as this is a nil implementation
-func (ni *NilIndexer) SaveAccount(_ state.UserAccountHandler) {
+// SaveAccounts won't do anything as this is a nil implementation
+func (ni *NilIndexer) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // Close will do nothing

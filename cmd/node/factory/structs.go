@@ -353,6 +353,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = indexGenesisAccounts(args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
+	if err != nil {
+		log.Warn("cannot index genesis accounts", "error", err)
+	}
+
 	if args.startEpochNum == 0 {
 		err = indexGenesisBlocks(args, genesisBlocks)
 		if err != nil {
@@ -573,6 +578,45 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		TxLogsProcessor:          txLogsProcessor,
 		HeaderValidator:          headerValidator,
 	}, nil
+}
+
+func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+	rootHash, err := accountsAdapter.RootHash()
+	if err != nil {
+		return err
+	}
+
+	leaves, err := accountsAdapter.GetAllLeaves(rootHash)
+	if err != nil {
+		return err
+	}
+
+	genesisAccounts := make([]state.UserAccountHandler, 0)
+	for addressKey, userAccountsBytes := range leaves {
+		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, marshalizer)
+		if errUnmarshal != nil {
+			log.Warn("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+
+		genesisAccounts = append(genesisAccounts, userAccount)
+	}
+
+	indexer.SaveAccounts(genesisAccounts)
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
 }
 
 func setGenesisHeader(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
@@ -1256,7 +1300,6 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		WorkingDir:               workingDir,
 		GenesisString:            args.mainConfig.GeneralSettings.GenesisString,
 		GeneralConfig:            &args.mainConfig.GeneralSettings,
-		Indexer:                  args.indexer,
 	}
 
 	gbc, err := genesisProcess.NewGenesisBlockCreator(arg)

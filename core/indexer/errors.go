@@ -33,3 +33,6 @@ var ErrNegativeCacheSize = errors.New("negative cache size")
 
 // ErrNilAccountsDB signals that a nil accounts db has been provided
 var ErrNilAccountsDB = errors.New("nil accounts db")
+
+// ErrEmptyEnabledIndexes signals that an empty slice of enables indexes has been provided
+var ErrEmptyEnabledIndexes = errors.New("empty enabled indexes slice")

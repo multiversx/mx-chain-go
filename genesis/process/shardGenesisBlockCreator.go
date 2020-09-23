@@ -223,8 +223,6 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 		return err
 	}
 
-	arg.Indexer.SaveAccount(account)
-
 	return arg.Accounts.SaveAccount(account)
 }
 

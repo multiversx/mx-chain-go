@@ -5,7 +5,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -49,7 +48,6 @@ type ArgsGenesisBlockCreator struct {
 	GeneralConfig            *config.GeneralSettingsConfig
 	BlockSignKeyGen          crypto.KeyGenerator
 	ImportStartHandler       update.ImportStartHandler
-	Indexer                  indexer.Indexer
 	WorkingDir               string
 	GenesisNodePrice         *big.Int
 	GenesisString            string

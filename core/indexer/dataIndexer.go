@@ -155,9 +155,9 @@ func (di *dataIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	di.dispatcher.Add(wi)
 }
 
-// SaveAccount will save the provided account
-func (di *dataIndexer) SaveAccount(account state.UserAccountHandler) {
-	wi := workItems.NewItemAccount(di.elasticProcessor, account)
+// SaveAccounts will save the provided accounts
+func (di *dataIndexer) SaveAccounts(accounts []state.UserAccountHandler) {
+	wi := workItems.NewItemAccounts(di.elasticProcessor, accounts)
 	di.dispatcher.Add(wi)
 }
 
