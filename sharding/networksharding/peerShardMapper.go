@@ -309,6 +309,7 @@ func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
 	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
+// UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
 func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 	psm.peerIdSubType.HasOrAdd([]byte(pid), uint32(peerSubType), uint32Size)
 }
