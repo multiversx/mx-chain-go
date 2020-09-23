@@ -24,15 +24,16 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:  mock.NewPubkeyConverterMock(32),
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerStub{},
-		PeerState:   &mock.AccountsStub{},
-		BaseState:   &mock.AccountsStub{},
-		ArgParser:   &mock.ArgumentParserMock{},
-		CurrTxs:     &mock.TxForCurrentBlockStub{},
-		ScQuery:     &mock.ScQueryStub{},
-		RatingsData: &mock.RatingsInfoMock{},
+		PubkeyConv:    mock.NewPubkeyConverterMock(32),
+		Hasher:        &mock.HasherMock{},
+		Marshalizer:   &mock.MarshalizerStub{},
+		PeerState:     &mock.AccountsStub{},
+		BaseState:     &mock.AccountsStub{},
+		ArgParser:     &mock.ArgumentParserMock{},
+		CurrTxs:       &mock.TxForCurrentBlockStub{},
+		ScQuery:       &mock.ScQueryStub{},
+		RatingsData:   &mock.RatingsInfoMock{},
+		EpochNotifier: &mock.EpochNotifierStub{},
 	}
 }
 

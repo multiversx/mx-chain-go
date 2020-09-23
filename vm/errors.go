@@ -59,6 +59,9 @@ var ErrInvalidMinStepValue = errors.New("invalid min step value")
 // ErrBLSPublicKeyMismatch signals that public keys do not match
 var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
 
+// ErrBLSPublicKeyMissmatch signals that public keys do not match
+var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
+
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
 

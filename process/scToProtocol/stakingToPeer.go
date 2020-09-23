@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -26,16 +27,17 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv  core.PubkeyConverter
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
-	PeerState   state.AccountsAdapter
-	BaseState   state.AccountsAdapter
-
-	ArgParser   process.ArgumentsParser
-	CurrTxs     dataRetriever.TransactionCacher
-	ScQuery     external.SCQueryService
-	RatingsData process.RatingsInfoHandler
+	PubkeyConv       core.PubkeyConverter
+	Hasher           hashing.Hasher
+	Marshalizer      marshal.Marshalizer
+	PeerState        state.AccountsAdapter
+	BaseState        state.AccountsAdapter
+	ArgParser        process.ArgumentsParser
+	CurrTxs          dataRetriever.TransactionCacher
+	ScQuery          external.SCQueryService
+	RatingsData      process.RatingsInfoHandler
+	StakeEnableEpoch uint32
+	EpochNotifier    process.EpochNotifier
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -47,12 +49,14 @@ type stakingToPeer struct {
 	peerState   state.AccountsAdapter
 	baseState   state.AccountsAdapter
 
-	argParser    process.ArgumentsParser
-	currTxs      dataRetriever.TransactionCacher
-	scQuery      external.SCQueryService
-	startRating  uint32
-	unJailRating uint32
-	jailRating   uint32
+	argParser        process.ArgumentsParser
+	currTxs          dataRetriever.TransactionCacher
+	scQuery          external.SCQueryService
+	startRating      uint32
+	unJailRating     uint32
+	jailRating       uint32
+	stakeEnableEpoch uint32
+	flagStaking      atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -63,18 +67,21 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:   args.PubkeyConv,
-		hasher:       args.Hasher,
-		marshalizer:  args.Marshalizer,
-		peerState:    args.PeerState,
-		baseState:    args.BaseState,
-		argParser:    args.ArgParser,
-		currTxs:      args.CurrTxs,
-		scQuery:      args.ScQuery,
-		startRating:  args.RatingsData.StartRating(),
-		unJailRating: args.RatingsData.StartRating(),
-		jailRating:   args.RatingsData.MinRating(),
+		pubkeyConv:       args.PubkeyConv,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		peerState:        args.PeerState,
+		baseState:        args.BaseState,
+		argParser:        args.ArgParser,
+		currTxs:          args.CurrTxs,
+		scQuery:          args.ScQuery,
+		startRating:      args.RatingsData.StartRating(),
+		unJailRating:     args.RatingsData.StartRating(),
+		jailRating:       args.RatingsData.MinRating(),
+		stakeEnableEpoch: args.StakeEnableEpoch,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(st)
 
 	return st, nil
 }
@@ -106,6 +113,9 @@ func checkIfNil(args ArgStakingToPeer) error {
 	}
 	if check.IfNil(args.RatingsData) {
 		return process.ErrNilRatingsInfoHandler
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return process.ErrNilEpochNotifier
 	}
 
 	return nil
@@ -178,11 +188,82 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 	return nil
 }
 
+func (stp *stakingToPeer) updatePeerStateV1(
+	stakingData systemSmartContracts.StakedDataV2,
+	blsPubKey []byte,
+	nonce uint64,
+) error {
+	if stakingData.StakedNonce == math.MaxUint64 {
+		return nil
+	}
+
+	account, err := stp.getPeerAccount(blsPubKey)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+		err = account.SetRewardAddress(stakingData.RewardAddress)
+		if err != nil {
+			return err
+		}
+	}
+
+	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+		err = account.SetBLSPublicKey(blsPubKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	isValidator := account.GetList() == string(core.EligibleList) || account.GetList() == string(core.WaitingList)
+	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
+
+	if !isJailed {
+		if stakingData.StakedNonce == nonce && !isValidator {
+			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.RegisterNonce))
+			account.SetTempRating(stp.startRating)
+			account.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
+		}
+
+		if stakingData.UnStakedNonce == nonce && account.GetList() != string(core.InactiveList) {
+			account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.UnStakedNonce))
+			account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
+		}
+	}
+
+	if stakingData.UnJailedNonce == nonce {
+		if account.GetTempRating() < stp.unJailRating {
+			account.SetTempRating(stp.unJailRating)
+		}
+
+		if !isValidator && account.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+			account.SetListAndIndex(account.GetShardId(), string(core.NewList), uint32(stakingData.UnJailedNonce))
+		}
+	}
+
+	if stakingData.JailedNonce == nonce && account.GetList() != string(core.InactiveList) {
+		account.SetListAndIndex(account.GetShardId(), string(core.LeavingList), uint32(stakingData.JailedNonce))
+		account.SetTempRating(stp.jailRating)
+	}
+
+	err = stp.peerState.SaveAccount(account)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (stp *stakingToPeer) updatePeerState(
 	stakingData systemSmartContracts.StakedDataV2,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
+	if !stp.flagStaking.IsSet() {
+		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
+	}
+
 	account, err := stp.getPeerAccount(blsPubKey)
 	if err != nil {
 		return err
@@ -305,6 +386,12 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 	}
 
 	return affectedStates, nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
+	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
+	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
