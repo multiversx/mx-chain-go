@@ -967,20 +967,20 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 	mutCalled.RUnlock()
 }
 
-func TestRequestHeaders_ShouldCleanAndRequestForShardHeaders(t *testing.T) {
+func TestRequestHeaders_ShouldAddAndRequestForShardHeaders(t *testing.T) {
 	t.Parallel()
 
 	var mutRequest sync.Mutex
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
-	shardIDCleanCalled := make([]uint32, 0)
-	nonceCleanCalled := make([]uint64, 0)
+	shardIDAddCalled := make([]uint32, 0)
+	nonceAddCalled := make([]uint64, 0)
 
 	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
-		RemoveHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
-			shardIDCleanCalled = append(shardIDCleanCalled, shardID)
-			nonceCleanCalled = append(nonceCleanCalled, nonce)
+		AddHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
+			shardIDAddCalled = append(shardIDAddCalled, shardID)
+			nonceAddCalled = append(nonceAddCalled, nonce)
 		},
 	}
 
@@ -1010,31 +1010,31 @@ func TestRequestHeaders_ShouldCleanAndRequestForShardHeaders(t *testing.T) {
 	})
 	mutRequest.Unlock()
 
-	require.Equal(t, 2, len(shardIDCleanCalled))
-	require.Equal(t, 2, len(nonceCleanCalled))
+	require.Equal(t, 2, len(shardIDAddCalled))
+	require.Equal(t, 2, len(nonceAddCalled))
 	require.Equal(t, 2, len(shardIDRequestCalled))
 	require.Equal(t, 2, len(nonceRequestCalled))
 
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDCleanCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceCleanCalled)
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
 	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
 	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
 }
 
-func TestRequestHeaders_ShouldCleanAndRequestForMetaHeaders(t *testing.T) {
+func TestRequestHeaders_ShouldAddAndRequestForMetaHeaders(t *testing.T) {
 	t.Parallel()
 
 	var mutRequest sync.Mutex
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
 
-	shardIDCleanCalled := make([]uint32, 0)
-	nonceCleanCalled := make([]uint64, 0)
+	shardIDAddCalled := make([]uint32, 0)
+	nonceAddCalled := make([]uint64, 0)
 
 	blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
-		RemoveHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
-			shardIDCleanCalled = append(shardIDCleanCalled, shardID)
-			nonceCleanCalled = append(nonceCleanCalled, nonce)
+		AddHeaderFromPoolCalled: func(shardID uint32, nonce uint64) {
+			shardIDAddCalled = append(shardIDAddCalled, shardID)
+			nonceAddCalled = append(nonceAddCalled, nonce)
 		},
 	}
 
@@ -1064,13 +1064,13 @@ func TestRequestHeaders_ShouldCleanAndRequestForMetaHeaders(t *testing.T) {
 	})
 	mutRequest.Unlock()
 
-	require.Equal(t, 2, len(shardIDCleanCalled))
-	require.Equal(t, 2, len(nonceCleanCalled))
+	require.Equal(t, 2, len(shardIDAddCalled))
+	require.Equal(t, 2, len(nonceAddCalled))
 	require.Equal(t, 2, len(shardIDRequestCalled))
 	require.Equal(t, 2, len(nonceRequestCalled))
 
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDCleanCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceCleanCalled)
+	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
 	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
 	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
 }

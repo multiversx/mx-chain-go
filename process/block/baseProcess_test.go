@@ -1115,10 +1115,10 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	assert.Equal(t, expectedNonces, requestedNonces)
 }
 
-func TestBlockProcessor_RequestHeadersIfMissingShouldCleanHeadersPool(t *testing.T) {
+func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t *testing.T) {
 	t.Parallel()
 
-	var removedNonces []uint64
+	var addedNonces []uint64
 
 	arguments := CreateMockArguments()
 	rounder := &mock.RounderMock{}
@@ -1127,8 +1127,9 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldCleanHeadersPool(t *testing
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
-			RemoveHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) {
-				removedNonces = append(removedNonces, hdrNonce)
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				addedNonces = append(addedNonces, hdrNonce)
+				return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
 			},
 		}
 	}
@@ -1162,11 +1163,45 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldCleanHeadersPool(t *testing
 	}
 	sortedHeaders = append(sortedHeaders, hdr3)
 
-	removedNonces = make([]uint64, 0)
+	addedNonces = make([]uint64, 0)
 
 	rounder.RoundIndex = 12
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 
-	expectedNonces := []uint64{6, 7, 9}
-	assert.Equal(t, expectedNonces, removedNonces)
+	expectedAddedNonces := []uint64{6, 7, 9}
+	assert.Equal(t, expectedAddedNonces, addedNonces)
+}
+
+func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	var wasCalled bool
+	shardID := core.MetachainShardId
+	nonce := uint64(1)
+
+	arguments := CreateMockArguments()
+	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce == nonce && shardId == shardID {
+					wasCalled = true
+					return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
+				}
+
+				return nil, nil, errors.New("error")
+			},
+		}
+	}
+	arguments.DataPool = poolsHolderStub
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	wasCalled = false
+	sp.AddHeaderIntoTrackerPool(nonce+1, shardID)
+	assert.False(t, wasCalled)
+
+	wasCalled = false
+	sp.AddHeaderIntoTrackerPool(nonce, shardID)
+	assert.True(t, wasCalled)
 }
