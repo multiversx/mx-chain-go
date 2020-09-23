@@ -941,6 +941,29 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
+func (e *epochStartBootstrap) Close() error {
+	if e.trieContainer != nil {
+		log.Debug("closing all dataTries....")
+		dataTries := e.trieContainer.GetAll()
+		for _, trie := range dataTries {
+			err := trie.ClosePersister()
+			log.LogIfError(err)
+		}
+	}
+
+	//TODO: protect the trieStorageManager map with mutex
+	if e.trieStorageManagers != nil {
+		log.Debug("closing all trieStorageManagers....")
+		for _, tsm := range e.trieStorageManagers {
+			err := tsm.Close()
+			log.LogIfError(err)
+		}
+	}
+
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
 func (e *epochStartBootstrap) IsInterfaceNil() bool {
 	return e == nil
 }

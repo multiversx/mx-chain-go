@@ -174,6 +174,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
 func (bc *bootstrapComponents) Close() error {
+	// TODO: close all components
+	if !check.IfNil(bc.epochStartBootstraper) {
+		return bc.epochStartBootstraper.Close()
+	}
 
 	return nil
 }

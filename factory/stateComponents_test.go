@@ -61,20 +61,6 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 	require.NotNil(t, res)
 }
 
-func TestStateComponentsFactory_CreateTriesShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
-
-	scf, _ := factory.NewStateComponentsFactory(args)
-
-	tc, trieStorageManagers, err := scf.CreateTries()
-	require.NoError(t, err)
-	require.NotNil(t, trieStorageManagers)
-	require.NotNil(t, tc)
-}
-
 // ------------ Test StateComponents --------------------
 func TestStateComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()

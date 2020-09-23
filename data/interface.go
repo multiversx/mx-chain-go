@@ -211,6 +211,7 @@ type StorageManager interface {
 	EnterSnapshotMode()
 	ExitSnapshotMode()
 	GetSnapshotDbBatchDelay() int
+	Close() error
 	IsInterfaceNil() bool
 }
 
