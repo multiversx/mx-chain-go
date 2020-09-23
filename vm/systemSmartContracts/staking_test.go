@@ -1232,7 +1232,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
-	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "waiting")
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "queued")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
@@ -1270,7 +1270,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
 	doGetRewardAddress(t, stakingSmartContract, eei, []byte("fifthhKey"), string(stakerAddress))
-	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "waiting")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "queued")
 	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 
 	stakingSmartContract.unBondPeriod = 100

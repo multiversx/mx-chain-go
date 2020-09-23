@@ -1255,7 +1255,7 @@ func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.Ok
 	}
 	if stakedData.Waiting {
-		r.eei.Finish([]byte("waiting"))
+		r.eei.Finish([]byte("queued"))
 		return vmcommon.Ok
 	}
 	if stakedData.Staked {
