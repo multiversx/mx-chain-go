@@ -71,8 +71,8 @@ func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.Header
 	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
 }
 
-func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
+func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) bool {
+	return bbt.addHeader(header, hash)
 }
 
 func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler) {
