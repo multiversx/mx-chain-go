@@ -94,6 +94,11 @@ func (hbmi *heartbeatMessageInfo) GetPeerType() string {
 	return hbmi.peerType
 }
 
+// GetPeerSubType -
+func (hbmi *heartbeatMessageInfo) GetPeerSubType() uint32 {
+	return hbmi.peerSubType
+}
+
 // GetTotalDownTime -
 func (hbmi *heartbeatMessageInfo) GetTotalDownTime() time.Duration {
 	return hbmi.totalDownTime

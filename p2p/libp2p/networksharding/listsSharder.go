@@ -7,7 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -21,6 +21,7 @@ var _ p2p.CommonSharder = (*listsSharder)(nil)
 const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
 const minAllowedObservers = 1
+const minAllowedFullHistoryNodes = 0
 const minUnknownPeers = 1
 
 const intraShardValidators = 0
@@ -28,6 +29,7 @@ const intraShardObservers = 1
 const crossShardValidators = 2
 const crossShardObservers = 3
 const unknown = 4
+const fullHistoryObservers = 5
 
 var log = logger.GetOrCreate("p2p/libp2p/networksharding")
 
@@ -82,6 +84,7 @@ type listsSharder struct {
 	maxCrossShardValidators int
 	maxIntraShardObservers  int
 	maxCrossShardObservers  int
+	maxFullHistoryObservers int
 	maxUnknown              int
 	computeDistance         func(src peer.ID, dest peer.ID) *big.Int
 }
@@ -95,6 +98,7 @@ func NewListsSharder(
 	maxCrossShardValidators int,
 	maxIntraShardObservers int,
 	maxCrossShardObservers int,
+	maxFullHistoryObservers int,
 ) (*listsSharder, error) {
 
 	if check.IfNil(resolver) {
@@ -115,11 +119,14 @@ func NewListsSharder(
 	if maxCrossShardObservers < minAllowedObservers {
 		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if maxCrossShardObservers+maxIntraShardObservers == 0 {
+	if maxCrossShardObservers+maxIntraShardObservers+maxFullHistoryObservers == 0 {
 		log.Warn("no connections to observers are possible")
 	}
+	if maxFullHistoryObservers < minAllowedFullHistoryNodes {
+		return nil, fmt.Errorf("%w, maxFullHistoryObservers should be at least %d", p2p.ErrInvalidValue, minAllowedFullHistoryNodes)
+	}
 
-	providedPeers := maxIntraShardValidators + maxCrossShardValidators + maxIntraShardObservers + maxCrossShardObservers
+	providedPeers := maxIntraShardValidators + maxCrossShardValidators + maxIntraShardObservers + maxCrossShardObservers + maxFullHistoryObservers
 	if providedPeers+minUnknownPeers > maxPeerCount {
 		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, maxPeerCount)
 	}
@@ -133,6 +140,7 @@ func NewListsSharder(
 		maxCrossShardValidators: maxCrossShardValidators,
 		maxIntraShardObservers:  maxIntraShardObservers,
 		maxCrossShardObservers:  maxCrossShardObservers,
+		maxFullHistoryObservers: maxFullHistoryObservers,
 	}
 
 	ls.maxUnknown = maxPeerCount - providedPeers
@@ -148,16 +156,19 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	existingNumIntraShardObservers := len(peerDistances[intraShardObservers])
 	existingNumCrossShardValidators := len(peerDistances[crossShardValidators])
 	existingNumCrossShardObservers := len(peerDistances[crossShardObservers])
+	existingNumFullHistoryObservers := len(peerDistances[fullHistoryObservers])
 	existingNumUnknown := len(peerDistances[unknown])
 
 	var numIntraShardValidators, numCrossShardValidators int
 	var numIntraShardObservers, numCrossShardObservers int
+	var numFullHistoryObservers int
 	var numUnknown, remaining int
 
 	numIntraShardValidators, remaining = computeUsedAndSpare(existingNumIntraShardValidators, ls.maxIntraShardValidators)
 	numCrossShardValidators, remaining = computeUsedAndSpare(existingNumCrossShardValidators, ls.maxCrossShardValidators+remaining)
 	numIntraShardObservers, remaining = computeUsedAndSpare(existingNumIntraShardObservers, ls.maxIntraShardObservers+remaining)
 	numCrossShardObservers, remaining = computeUsedAndSpare(existingNumCrossShardObservers, ls.maxCrossShardObservers+remaining)
+	numFullHistoryObservers, _ = computeUsedAndSpare(existingNumFullHistoryObservers, ls.maxFullHistoryObservers)
 	numUnknown, _ = computeUsedAndSpare(existingNumUnknown, ls.maxUnknown+remaining)
 
 	evictionProposed := evict(peerDistances[intraShardValidators], numIntraShardValidators)
@@ -166,6 +177,8 @@ func (ls *listsSharder) ComputeEvictionList(pidList []peer.ID) []peer.ID {
 	e = evict(peerDistances[intraShardObservers], numIntraShardObservers)
 	evictionProposed = append(evictionProposed, e...)
 	e = evict(peerDistances[crossShardObservers], numCrossShardObservers)
+	evictionProposed = append(evictionProposed, e...)
+	e = evict(peerDistances[fullHistoryObservers], numFullHistoryObservers)
 	evictionProposed = append(evictionProposed, e...)
 	e = evict(peerDistances[unknown], numUnknown)
 	evictionProposed = append(evictionProposed, e...)
@@ -198,13 +211,14 @@ func has(pid peer.ID, list []peer.ID) bool {
 	return false
 }
 
-//TODO study if we need to hve a dedicated section for metanodes
+//TODO study if we need to have a dedicated section for metanodes
 func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistances {
 	peerDistances := map[int]sorting.PeerDistances{
 		intraShardValidators: {},
 		intraShardObservers:  {},
 		crossShardValidators: {},
 		crossShardObservers:  {},
+		fullHistoryObservers: {},
 		unknown:              {},
 	}
 
@@ -243,7 +257,12 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		case core.ValidatorPeer:
 			peerDistances[intraShardValidators] = append(peerDistances[intraShardValidators], pd)
 		case core.ObserverPeer:
-			peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
+			shouldAppendToFullHistory := peerInfo.PeerSubType == core.FullHistoryObserver && ls.maxFullHistoryObservers > 0
+			if shouldAppendToFullHistory {
+				peerDistances[fullHistoryObservers] = append(peerDistances[fullHistoryObservers], pd)
+			} else {
+				peerDistances[intraShardObservers] = append(peerDistances[intraShardObservers], pd)
+			}
 		}
 	}
 

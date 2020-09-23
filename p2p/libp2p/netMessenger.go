@@ -34,7 +34,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/libp2p/go-libp2p-pubsub/pb"
+	pubsubPb "github.com/libp2p/go-libp2p-pubsub/pb"
 )
 
 // ListenAddrWithIp4AndTcp defines the listening address with ip v.4 and TCP
@@ -324,6 +324,7 @@ func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error 
 		MaxCrossShardValidators: int(p2pConfig.Sharding.MaxCrossShardValidators),
 		MaxIntraShardObservers:  int(p2pConfig.Sharding.MaxIntraShardObservers),
 		MaxCrossShardObservers:  int(p2pConfig.Sharding.MaxCrossShardObservers),
+		MaxFullHistoryObservers: int(p2pConfig.Sharding.MaxFullHistoryObservers),
 		Type:                    p2pConfig.Sharding.Type,
 	}
 
@@ -417,6 +418,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"intra shard observers", len(peersInfo.IntraShardObservers),
 			"cross shard validators", len(peersInfo.CrossShardValidators),
 			"cross shard observers", len(peersInfo.CrossShardObservers),
+			"full history observers", len(peersInfo.FullHistoryObservers),
 			"unknown", len(peersInfo.UnknownPeers),
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidators),
@@ -964,7 +966,7 @@ func (netMes *networkMessenger) SendToConnectedPeer(topic string, buff []byte, p
 
 func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) error {
 	msg := &pubsub.Message{
-		Message: &pubsub_pb.Message{
+		Message: &pubsubPb.Message{
 			From:      netMes.ID().Bytes(),
 			Data:      buff,
 			Seqno:     netMes.ds.NextSeqno(),
@@ -1071,6 +1073,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		IntraShardObservers:  make(map[uint32][]string),
 		CrossShardValidators: make(map[uint32][]string),
 		CrossShardObservers:  make(map[uint32][]string),
+		FullHistoryObservers: make(map[uint32][]string),
 		NumObservers:         make(map[uint32]int),
 		NumValidators:        make(map[uint32]int),
 	}
@@ -1099,9 +1102,13 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			connPeerInfo.NumObservers[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
 				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
-			} else {
-				connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
+				break
 			}
+			if peerInfo.PeerSubType == core.FullHistoryObserver {
+				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
+				break
+			}
+			connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
 		}
 	}
 

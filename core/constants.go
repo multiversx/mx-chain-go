@@ -267,6 +267,9 @@ const MetricNumValidators = "erd_num_validators"
 // MetricPeerType is the metric which tells the peer's type (in eligible list, in waiting list, or observer)
 const MetricPeerType = "erd_peer_type"
 
+// MetricPeerSubType is the metric which tells the peer's subtype (regular observer or full history observer)
+const MetricPeerSubType = "erd_peer_subtype"
+
 //MetricLeaderPercentage is the metric for leader rewards percentage
 const MetricLeaderPercentage = "erd_leader_percentage"
 
@@ -405,6 +408,9 @@ const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
 
 // MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
 const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
+
+// MetricP2PFullHistoryObservers is the metric that outputs the full-history connected observers
+const MetricP2PFullHistoryObservers = "erd_p2p_full_history_observers"
 
 // MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
 const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"

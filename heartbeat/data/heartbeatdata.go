@@ -23,6 +23,7 @@ type PubKeyHeartbeat struct {
 	PeerType        string    `json:"peerType"`
 	Nonce           uint64    `json:"nonce"`
 	NumInstances    uint64    `json:"numInstances"`
+	PeerSubType     uint32    `json:"peerSubType"`
 }
 
 // Duration is a wrapper of the original Duration struct

@@ -35,6 +35,7 @@ type PeerShardMapper struct {
 	pkPeerId         storage.Cacher
 	fallbackPkShard  storage.Cacher
 	fallbackPidShard storage.Cacher
+	peerIdSubType    storage.Cacher
 
 	mutUpdatePeerIdPublicKey sync.Mutex
 
@@ -70,6 +71,11 @@ func NewPeerShardMapper(
 		return nil, err
 	}
 
+	peerIdSubType, err := lrucache.NewCache(peerIdPk.MaxSize())
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("peerShardMapper epoch", "epoch", epochStart)
 
 	return &PeerShardMapper{
@@ -77,6 +83,7 @@ func NewPeerShardMapper(
 		pkPeerId:         pkPeerId,
 		fallbackPkShard:  fallbackPkShard,
 		fallbackPidShard: fallbackPidShard,
+		peerIdSubType:    peerIdSubType,
 		nodesCoordinator: nodesCoordinator,
 		epoch:            epochStart,
 	}, nil
@@ -92,6 +99,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 		if pInfo != nil {
 			log.Trace("PeerShardMapper.GetPeerInfo",
 				"peer type", pInfo.PeerType.String(),
+				"peer subtype", pInfo.PeerSubType.String(),
 				"pid", p2p.PeerIdToShortString(pid),
 				"pk", hex.EncodeToString(pInfo.PkBytes),
 			)
@@ -191,9 +199,27 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 		}
 	}
 
+	subTypeObj, ok := psm.peerIdSubType.Get([]byte(pid))
+	if !ok {
+		return &core.P2PPeerInfo{
+			PeerType: core.ObserverPeer,
+			ShardID:  shard,
+		}
+	}
+	subType, ok := subTypeObj.(core.P2PPeerSubType)
+	if !ok {
+		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
+
+		return &core.P2PPeerInfo{
+			PeerType: core.ObserverPeer,
+			ShardID:  shard,
+		}
+	}
+
 	return &core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shard,
+		PeerType:    core.ObserverPeer,
+		PeerSubType: subType,
+		ShardID:     shard,
 	}
 }
 
@@ -281,6 +307,11 @@ func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
+}
+
+// UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
+func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	psm.peerIdSubType.HasOrAdd([]byte(pid), uint32(peerSubType), uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

@@ -35,6 +35,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxCrossShardValidators: 40,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}
 

@@ -296,8 +296,9 @@ func TestPeerShardMapper_GetPeerInfoPkNotFoundShouldReturnUnknown(t *testing.T) 
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -328,9 +329,10 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorHasTheShardId(t *testing.T) 
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ValidatorPeer,
-		ShardID:  shardId,
-		PkBytes:  pk,
+		PeerType:    core.ValidatorPeer,
+		PeerSubType: core.RegularPeer,
+		ShardID:     shardId,
+		PkBytes:     pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -352,8 +354,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorWrongTypeInCacheShouldReturn
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -381,9 +384,10 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shardId,
-		PkBytes:  pk,
+		PeerType:    core.ObserverPeer,
+		PeerSubType: core.RegularPeer,
+		ShardID:     shardId,
+		PkBytes:     pk,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -411,8 +415,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItWrongTypeInCache
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -440,8 +445,9 @@ func TestPeerShardMapper_GetPeerInfoNodesCoordinatorDoesntHaveItShouldReturnFrom
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.ObserverPeer,
-		ShardID:  shardId,
+		PeerType:    core.ObserverPeer,
+		ShardID:     shardId,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -467,8 +473,9 @@ func TestPeerShardMapper_GetPeerInfoShouldRetUnknownShardId(t *testing.T) {
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -494,8 +501,9 @@ func TestPeerShardMapper_GetPeerInfoWithWrongTypeInCacheShouldReturnUnknown(t *t
 
 	peerInfo := psm.GetPeerInfo(pid)
 	expectedPeerInfo := core.P2PPeerInfo{
-		PeerType: core.UnknownPeer,
-		ShardID:  0,
+		PeerType:    core.UnknownPeer,
+		ShardID:     0,
+		PeerSubType: core.RegularPeer,
 	}
 
 	assert.Equal(t, expectedPeerInfo, peerInfo)
@@ -528,9 +536,10 @@ func TestPeerShardMapper_GetPeerInfoShouldWorkConcurrently(t *testing.T) {
 		go func() {
 			peerInfo := psm.GetPeerInfo(pid)
 			expectedPeerInfo := core.P2PPeerInfo{
-				PeerType: core.ObserverPeer,
-				ShardID:  shardId,
-				PkBytes:  pk,
+				PeerType:    core.ObserverPeer,
+				PeerSubType: core.RegularPeer,
+				ShardID:     shardId,
+				PkBytes:     pk,
 			}
 
 			assert.Equal(t, expectedPeerInfo, peerInfo)

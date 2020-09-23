@@ -17,11 +17,12 @@ func createMockArg() ArgsSharderFactory {
 		Type:                    "unknown",
 		PeerShardResolver:       &mock.PeerShardResolverStub{},
 		Pid:                     "",
-		MaxConnectionCount:      5,
+		MaxConnectionCount:      6,
 		MaxIntraShardValidators: 1,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxFullHistoryObservers: 1,
 	}
 }
 
@@ -31,7 +32,7 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 	arg := createMockArg()
 	arg.Type = p2p.ListsSharder
 	sharder, err := NewSharder(arg)
-	maxPeerCount := 5
+	maxPeerCount := 6
 	maxValidators := 1
 	maxObservers := 1
 
@@ -41,6 +42,7 @@ func TestNewSharder_CreateListsSharderShouldWork(t *testing.T) {
 		maxPeerCount,
 		maxValidators,
 		maxValidators,
+		maxObservers,
 		maxObservers,
 		maxObservers,
 	)

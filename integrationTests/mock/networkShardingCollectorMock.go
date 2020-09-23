@@ -15,6 +15,9 @@ type networkShardingCollectorMock struct {
 
 	mutFallbackPidShardMap sync.RWMutex
 	fallbackPidShardMap    map[string]uint32
+
+	mutPeerIdSubType sync.RWMutex
+	peerIdSubType    map[core.PeerID]uint32
 }
 
 // NewNetworkShardingCollectorMock -
@@ -45,6 +48,12 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid core.PeerID, s
 	nscm.mutFallbackPidShardMap.Lock()
 	nscm.fallbackPidShardMap[string(pid)] = shardId
 	nscm.mutFallbackPidShardMap.Unlock()
+}
+
+func (nscm *networkShardingCollectorMock) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	nscm.mutPeerIdSubType.Lock()
+	nscm.peerIdSubType[pid] = uint32(peerSubType)
+	nscm.mutPeerIdSubType.Unlock()
 }
 
 // GetPeerInfo -
