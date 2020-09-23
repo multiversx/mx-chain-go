@@ -20,3 +20,7 @@ const LeaderPeerHonestyDecreaseFactor = -4
 // ValidatorPeerHonestyDecreaseFactor specifies the factor with which the honesty of the validator should be decreased
 // if it sent the signature, in an incorrect allocated slot/time-frame/round
 const ValidatorPeerHonestyDecreaseFactor = -2
+
+// MaxNumOfMessageTypeAccepted represents the maximum number of the same message type accepted in one round to be
+// received from the same public key
+const MaxNumOfMessageTypeAccepted = 1
