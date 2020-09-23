@@ -331,6 +331,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	for i, player := range players {
 		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
 			[]byte("attest@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString([]byte(privateInfos[i]))))
+		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
+			registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
 	}
 	time.Sleep(time.Second)
 
