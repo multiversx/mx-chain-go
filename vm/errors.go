@@ -166,3 +166,6 @@ var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access 
 
 // ErrNilChanceComputer signals that nil chance computer has been provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")

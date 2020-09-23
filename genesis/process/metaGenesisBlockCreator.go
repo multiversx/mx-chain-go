@@ -216,6 +216,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		BuiltInFunctions: builtInFuncs,
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
 	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
 		return nil, err
@@ -231,6 +234,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		&arg.SystemSCConfig,
 		arg.ValidatorAccounts,
 		&disabled.Rater{},
+		epochNotifier,
 	)
 	if err != nil {
 		return nil, err
@@ -283,9 +287,6 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	if err != nil {
 		return nil, err
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(0)
 
 	argsParser := smartContract.NewArgumentParser()
 	genesisFeeHandler := &disabled.FeeHandler{}

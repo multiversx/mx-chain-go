@@ -1763,6 +1763,7 @@ func newMetaBlockProcessor(
 		systemSCConfig,
 		stateComponents.PeerAccounts,
 		rater,
+		epochNotifier,
 	)
 	if err != nil {
 		return nil, err

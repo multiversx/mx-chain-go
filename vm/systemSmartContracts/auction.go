@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -35,12 +36,14 @@ type stakingAuctionSC struct {
 	unBondPeriod       uint64
 	sigVerifier        vm.MessageSignVerifier
 	baseConfig         AuctionConfig
-	enableAuctionNonce uint64
+	enableAuctionEpoch uint32
 	stakingSCAddress   []byte
 	auctionSCAddress   []byte
-	enableStakingNonce uint64
+	enableStakingEpoch uint32
 	gasCost            vm.GasCost
 	marshalizer        marshal.Marshalizer
+	flagStake          atomic.Flag
+	flagAuction        atomic.Flag
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -54,6 +57,7 @@ type ArgsStakingAuctionSmartContract struct {
 	AuctionSCAddress   []byte
 	GasCost            vm.GasCost
 	Marshalizer        marshal.Marshalizer
+	EpochNotifier      vm.EpochNotifier
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -74,6 +78,9 @@ func NewStakingAuctionSmartContract(
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
 	}
 
 	baseConfig := AuctionConfig{
@@ -104,13 +111,16 @@ func NewStakingAuctionSmartContract(
 		unBondPeriod:       args.StakingSCConfig.UnBondPeriod,
 		sigVerifier:        args.SigVerifier,
 		baseConfig:         baseConfig,
-		enableAuctionNonce: args.StakingSCConfig.AuctionEnableNonce,
-		enableStakingNonce: args.StakingSCConfig.StakeEnableNonce,
+		enableAuctionEpoch: args.StakingSCConfig.AuctionEnableEpoch,
+		enableStakingEpoch: args.StakingSCConfig.StakeEnableEpoch,
 		stakingSCAddress:   args.StakingSCAddress,
 		auctionSCAddress:   args.AuctionSCAddress,
 		gasCost:            args.GasCost,
 		marshalizer:        args.Marshalizer,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(reg)
+
 	return reg, nil
 }
 
@@ -650,19 +660,6 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	return blsKeys
 }
 
-func (s *stakingAuctionSC) isFunctionEnabled(nonce uint64) bool {
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if currentNonce == 0 {
-		return true
-	}
-
-	if currentNonce < nonce {
-		return false
-	}
-
-	return true
-}
-
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
@@ -670,8 +667,9 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.OutOfGas
 	}
 
-	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
-	if !isStakeEnabled {
+	isGenesis := s.eei.BlockChainHook().CurrentNonce() == 0
+	stakeEnabled := isGenesis || s.flagStake.IsSet()
+	if !stakeEnabled {
 		s.eei.AddReturnMessage("stake is not enabled")
 		return vmcommon.UserError
 	}
@@ -756,16 +754,13 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		}
 	}
 
-	currentNonce := s.eei.BlockChainHook().CurrentNonce()
-	if currentNonce == 0 || !s.isFunctionEnabled(s.enableAuctionNonce) {
-		s.activateStakingFor(
-			blsKeys,
-			numQualified.Uint64(),
-			registrationData,
-			auctionConfig.NodePrice,
-			registrationData.RewardAddress,
-		)
-	}
+	s.activateStakingFor(
+		blsKeys,
+		numQualified.Uint64(),
+		registrationData,
+		auctionConfig.NodePrice,
+		registrationData.RewardAddress,
+	)
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
@@ -902,8 +897,7 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	isUnStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
-	if !isUnStakeEnabled {
+	if !s.flagStake.IsSet() {
 		s.eei.AddReturnMessage("unStake is not enabled")
 		return vmcommon.UserError
 	}
@@ -981,8 +975,7 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	isStakeEnabled := s.isFunctionEnabled(s.enableStakingNonce)
-	if !isStakeEnabled {
+	if !s.flagStake.IsSet() {
 		s.eei.AddReturnMessage("unBond is not enabled")
 		return vmcommon.UserError
 	}
@@ -1338,6 +1331,15 @@ func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmco
 
 	s.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
 	return vmcommon.Ok
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
+	s.flagStake.Toggle(epoch >= s.enableStakingEpoch)
+	log.Debug("stakingAuctionSC: stake/unstake/unbond", "enabled", s.flagStake.IsSet())
+
+	s.flagAuction.Toggle(epoch >= s.enableAuctionEpoch)
+	log.Debug("stakingAuctionSC: auction", "enabled", s.flagAuction.IsSet())
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

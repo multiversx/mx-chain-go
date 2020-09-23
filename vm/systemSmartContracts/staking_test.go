@@ -34,8 +34,8 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
-			AuctionEnableNonce:                   0,
-			StakeEnableNonce:                     0,
+			AuctionEnableEpoch:                   0,
+			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
@@ -43,6 +43,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
+		EpochNotifier: &mock.EpochNotifierStub{},
 	}
 }
 
@@ -1031,7 +1032,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.StakeEnableNonce = 10
+	args.StakingSCConfig.StakeEnableEpoch = 10
 	args.StakingAccessAddr = stakingAccessAddress
 	args.Eei = eei
 	args.StakingSCConfig.NumRoundsWithoutBleed = 100

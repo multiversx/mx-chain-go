@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -38,8 +39,9 @@ type stakingSC struct {
 	minNumNodes              uint64
 	maxNumNodes              uint64
 	marshalizer              marshal.Marshalizer
-	stakeEnableNonce         uint64
+	enableStakingEpoch       uint32
 	stakeValue               *big.Int
+	flagStake                atomic.Flag
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -52,6 +54,7 @@ type ArgsNewStakingSmartContract struct {
 	EndOfEpochAccessAddr []byte
 	GasCost              vm.GasCost
 	Marshalizer          marshal.Marshalizer
+	EpochNotifier        vm.EpochNotifier
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -85,6 +88,9 @@ func NewStakingSmartContract(
 	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
 		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
+	}
 
 	reg := &stakingSC{
 		eei:                      args.Eei,
@@ -99,7 +105,7 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
-		stakeEnableNonce:         args.StakingSCConfig.StakeEnableNonce,
+		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
 	}
 
 	conversionOk := true
@@ -107,6 +113,8 @@ func NewStakingSmartContract(
 	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(reg)
 
 	return reg, nil
 }
@@ -410,7 +418,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2, error)
 }
 
 func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2) error {
-	if r.eei.BlockChainHook().CurrentNonce() < r.stakeEnableNonce {
+	if !r.flagStake.IsSet() {
 		return r.saveAsStakingDataV1(key, stakedData)
 	}
 
@@ -1329,6 +1337,12 @@ func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	}
 
 	return vmcommon.Ok
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (r *stakingSC) EpochConfirmed(epoch uint32) {
+	r.flagStake.Toggle(epoch >= r.enableStakingEpoch)
+	log.Debug("stakingSC: stake/unstake/unbond", "enabled", r.flagStake.IsSet())
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
