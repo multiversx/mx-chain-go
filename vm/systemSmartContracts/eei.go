@@ -450,18 +450,7 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	isJailed := validatorAccount.GetList() == string(core.JailedList)
-	if isJailed {
-		return true
-	}
-
-	if validatorAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
-		if validatorAccount.GetList() == string(core.InactiveList) {
-			return true
-		}
-	}
-
-	return false
+	return validatorAccount.GetList() == string(core.JailedList)
 }
 
 // IsBadRating returns true if the validators temp rating is under jailed limit
