@@ -374,6 +374,10 @@ func (sc *scProcessor) updateDeveloperRewards(
 }
 
 func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, gasPrice uint64) error {
+	if core.IsEmptyAddress(address) {
+		return nil
+	}
+
 	consumedFee := core.SafeMul(gasPrice, gasUsed)
 	devRwd := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 
@@ -615,7 +619,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 	}
 
 	if !check.IfNil(relayerAcnt) {
-		err := relayerAcnt.AddToBalance(relayedSCR.RelayedValue)
+		err = relayerAcnt.AddToBalance(relayedSCR.RelayedValue)
 		if err != nil {
 			return err
 		}
