@@ -93,11 +93,16 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
 		// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
 		esdtTransferTxData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString(vmInput.Arguments[1])
+		outTransfer := vmcommon.OutputTransfer{
+			Value:    big.NewInt(0),
+			GasLimit: 0,
+			Data:     []byte(esdtTransferTxData),
+			CallType: vmcommon.AsynchronousCall,
+		}
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
-			Address:  vmInput.RecipientAddr,
-			Data:     [][]byte{[]byte(esdtTransferTxData)},
-			CallType: vmcommon.AsynchronousCall,
+			Address:         vmInput.RecipientAddr,
+			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
 	}
 

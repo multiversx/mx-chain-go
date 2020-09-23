@@ -2,6 +2,7 @@ package builtInFunctions
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -68,11 +69,15 @@ func (s *saveUserName) ProcessBuiltinFunction(
 		vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		setUserNameTxData := core.BuiltInFunctionSetUserName + "@" + hex.EncodeToString(vmInput.Arguments[0])
-		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
-			Address:  vmInput.RecipientAddr,
-			Data:     [][]byte{[]byte(setUserNameTxData)},
-			CallType: vmcommon.AsynchronousCall,
+		outTransfer := vmcommon.OutputTransfer{
+			Value:    big.NewInt(0),
 			GasLimit: vmInput.GasProvided,
+			Data:     []byte(setUserNameTxData),
+			CallType: vmcommon.AsynchronousCall,
+		}
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address:         vmInput.RecipientAddr,
+			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
 		return vmOutput, nil
 	}

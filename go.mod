@@ -6,7 +6,7 @@ require (
 	github.com/ElrondNetwork/arwen-wasm-vm v0.3.36-0.20200918125038-6a78974dde88
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v0.1.24
+	github.com/ElrondNetwork/elrond-vm-common v0.2.0
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
@@ -46,3 +46,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
+
+replace github.com/ElrondNetwork/arwen-wasm-vm => ../arwen-wasm-vm

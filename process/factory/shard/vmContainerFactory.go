@@ -115,7 +115,6 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 	logVMContainerFactory.Info("createInProcessArwenVM")
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
-		vmf.cryptoHook,
 		&arwen.VMHostParameters{
 			VMType:                   factory.ArwenVirtualMachine,
 			BlockGasLimit:            vmf.blockGasLimit,
