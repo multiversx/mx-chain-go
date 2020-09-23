@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
-	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -79,10 +77,9 @@ import (
 )
 
 const (
-	defaultLogsPath          = "logs"
-	notSetDestinationShardID = "disabled"
-	maxTimeToClose           = 10 * time.Second
-	maxMachineIDLen          = 10
+	defaultLogsPath = "logs"
+	maxTimeToClose  = 10 * time.Second
+	maxMachineIDLen = 10
 )
 
 var (
@@ -315,17 +312,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 
-		genesisShardCoordinator, nodeType, err := createShardCoordinator(
-			managedCoreComponents.GenesisNodesSetup(),
-			managedCryptoComponents.PublicKey(),
-			cfgs.preferencesConfig.Preferences,
-			log,
-		)
-		if err != nil {
-			return err
-		}
-		var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
-
 		healthService := health.NewHealthService(cfgs.generalConfig.Health, workingDir)
 		if ctx.IsSet(useHealthService.Name) {
 			healthService.Start()
@@ -372,23 +358,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Trace("creating ratings data components")
 
 		nodesSetup := managedCoreComponents.GenesisNodesSetup()
-		ratingDataArgs := rating.RatingsDataArg{
-			Config:                   *cfgs.ratingsConfig,
-			ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
-			MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
-			ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
-			MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
-			RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
-		}
-		ratingsData, err := rating.NewRatingsData(ratingDataArgs)
-		if err != nil {
-			return err
-		}
-
-		rater, err := rating.NewBlockSigningRater(ratingsData)
-		if err != nil {
-			return err
-		}
 
 		nodesShuffler := sharding.NewHashValidatorsShuffler(
 			nodesSetup.MinNumberOfShardNodes(),
@@ -398,12 +367,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			true,
 		)
 
-		destShardIdAsObserver, err := processDestinationShardAsObserver(cfgs.preferencesConfig.Preferences)
-		if err != nil {
-			return err
-		}
-
-		importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, core.DefaultDBPath), appVersion)
+		destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(cfgs.preferencesConfig.Preferences.DestinationShardAsObserver)
 		if err != nil {
 			return err
 		}
@@ -422,7 +386,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-
+		genesisShardCoordinator, nodeType, err := mainFactory.CreateShardCoordinator(
+			managedCoreComponents.GenesisNodesSetup(),
+			managedCryptoComponents.PublicKey(),
+			cfgs.preferencesConfig.Preferences,
+			log,
+		)
+		if err != nil {
+			return err
+		}
 		bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 			Config:                  *cfgs.generalConfig,
 			WorkingDir:              workingDir,
@@ -477,6 +449,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		logger.SetCorrelationShard(shardIdString)
 
 		log.Trace("initializing stats file")
+		var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
 		err = initStatsFileMonitor(
 			cfgs.generalConfig,
 			managedCoreComponents.PathHandler(),
@@ -570,6 +543,24 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		chanLogRewrite <- struct{}{}
 		chanCreateViews <- struct{}{}
+
+		ratingDataArgs := rating.RatingsDataArg{
+			Config:                   *cfgs.ratingsConfig,
+			ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
+			MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
+			ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
+			MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
+			RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
+		}
+		ratingsData, err := rating.NewRatingsData(ratingDataArgs)
+		if err != nil {
+			return err
+		}
+
+		rater, err := rating.NewBlockSigningRater(ratingsData)
+		if err != nil {
+			return err
+		}
 
 		err = managedCoreComponents.StatusHandlerUtils().UpdateStorerAndMetricsForPersistentHandler(
 			managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),
@@ -728,6 +719,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochNotifier := forking.NewGenericEpochNotifier()
 
 		log.Trace("creating process components")
+
+		importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, core.DefaultDBPath), appVersion)
+		if err != nil {
+			return err
+		}
 
 		accountsParser, err := parsing.NewAccountsParser(
 			ctx.GlobalString(genesisFile.Name),
@@ -1268,65 +1264,6 @@ func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
 	return cfg, nil
 }
 
-func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig mainFactory.NodesSetupHandler) (uint32, error) {
-	if pubKey == nil {
-		return 0, errors.New("nil public key")
-	}
-
-	publicKey, err := pubKey.ToByteArray()
-	if err != nil {
-		return 0, err
-	}
-
-	selfShardId, err := nodesConfig.GetShardIDForPubKey(publicKey)
-	if err != nil {
-		return 0, err
-	}
-
-	return selfShardId, err
-}
-
-func createShardCoordinator(
-	nodesConfig mainFactory.NodesSetupHandler,
-	pubKey crypto.PublicKey,
-	prefsConfig config.PreferencesConfig,
-	log logger.Logger,
-) (sharding.Coordinator, core.NodeType, error) {
-
-	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
-	nodeType := core.NodeTypeValidator
-	if err == sharding.ErrPublicKeyNotFoundInGenesis {
-		nodeType = core.NodeTypeObserver
-		log.Info("starting as observer node")
-
-		selfShardId, err = processDestinationShardAsObserver(prefsConfig)
-		if err != nil {
-			return nil, "", err
-		}
-		if selfShardId == core.DisabledShardIDAsObserver {
-			selfShardId = uint32(0)
-		}
-	}
-	if err != nil {
-		return nil, "", err
-	}
-
-	var shardName string
-	if selfShardId == core.MetachainShardId {
-		shardName = core.MetachainShardName
-	} else {
-		shardName = fmt.Sprintf("%d", selfShardId)
-	}
-	log.Info("shard info", "started in shard", shardName)
-
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), selfShardId)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return shardCoordinator, nodeType, nil
-}
-
 func createNodesCoordinator(
 	log logger.Logger,
 	nodesConfig mainFactory.NodesSetupHandler,
@@ -1344,7 +1281,7 @@ func createNodesCoordinator(
 	bootstrapParameters mainFactory.BootstrapParamsHandler,
 	startEpoch uint32,
 ) (sharding.NodesCoordinator, update.Closer, error) {
-	shardIDAsObserver, err := processDestinationShardAsObserver(prefsConfig)
+	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1458,28 +1395,6 @@ func createNodesCoordinator(
 	}
 
 	return nodesCoordinator, nodeShufflerOut, nil
-}
-
-func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (uint32, error) {
-	destShard := strings.ToLower(prefsConfig.DestinationShardAsObserver)
-	if len(destShard) == 0 {
-		return 0, errors.New("option DestinationShardAsObserver is not set in prefs.toml")
-	}
-
-	if destShard == notSetDestinationShardID {
-		return core.DisabledShardIDAsObserver, nil
-	}
-
-	if destShard == core.MetachainShardName {
-		return core.MetachainShardId, nil
-	}
-
-	val, err := strconv.ParseUint(destShard, 10, 32)
-	if err != nil {
-		return 0, errors.New("error parsing DestinationShardAsObserver option: " + err.Error())
-	}
-
-	return uint32(val), err
 }
 
 func getConsensusGroupSize(nodesConfig mainFactory.NodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {

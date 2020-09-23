@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test CryptoComponents --------------------
+// ------------ Test NetworkComponents --------------------
 func TestNetworkComponents_Create_ShouldWork(t *testing.T) {
 	t.Skip()
 
