@@ -1629,17 +1629,17 @@ func TestAuctionStakingSC_ExecuteStakeBeforeAuctionEnableNonce(t *testing.T) {
 	stakerPubKey := big.NewInt(100)
 
 	blockChainHook := &mock.BlockChainHookStub{
-		CurrentNonceCalled: func() uint64 {
+		CurrentEpochCalled: func() uint32 {
 			return 99
 		},
 	}
 	args := createMockArgumentsForAuction()
-	args.StakingSCConfig.AuctionEnableNonce = 100
+	args.StakingSCConfig.AuctionEnableEpoch = 100
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	expectedRegistrationData := AuctionData{
 		RewardAddress:   stakerAddress.Bytes(),
 		RegisterNonce:   0,
-		Epoch:           0,
+		Epoch:           99,
 		BlsPubKeys:      [][]byte{stakerPubKey.Bytes()},
 		TotalStakeValue: nodePrice,
 		LockedStake:     nodePrice,

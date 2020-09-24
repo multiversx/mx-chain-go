@@ -50,6 +50,9 @@ var ErrInvalidMinStakeValue = errors.New("invalid min stake value")
 // ErrInvalidNodePrice signals that an invalid node price was provided
 var ErrInvalidNodePrice = errors.New("invalid node price")
 
+// ErrInvalidMinStepValue signals that an invalid min step value was provided
+var ErrInvalidMinStepValue = errors.New("invalid min step value")
+
 // ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
 var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
 
