@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -17,15 +18,19 @@ var _ process.SCQueryService = (*SCQueryService)(nil)
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer  process.VirtualMachinesContainer
-	economicsFee process.FeeHandler
-	mutRunSc     sync.Mutex
+	vmContainer    process.VirtualMachinesContainer
+	economicsFee   process.FeeHandler
+	mutRunSc       sync.Mutex
+	blockChainHook process.BlockChainHookHandler
+	blockChain     data.ChainHandler
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
 	vmContainer process.VirtualMachinesContainer,
 	economicsFee process.FeeHandler,
+	blockChainHook process.BlockChainHookHandler,
+	blockChain data.ChainHandler,
 ) (*SCQueryService, error) {
 	if check.IfNil(vmContainer) {
 		return nil, process.ErrNoVM
@@ -33,10 +38,18 @@ func NewSCQueryService(
 	if check.IfNil(economicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
 	}
+	if check.IfNil(blockChainHook) {
+		return nil, process.ErrNilBlockChainHook
+	}
+	if check.IfNil(blockChain) {
+		return nil, process.ErrNilBlockChain
+	}
 
 	return &SCQueryService{
-		vmContainer:  vmContainer,
-		economicsFee: economicsFee,
+		vmContainer:    vmContainer,
+		economicsFee:   economicsFee,
+		blockChain:     blockChain,
+		blockChainHook: blockChainHook,
 	}, nil
 }
 
@@ -56,6 +69,8 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
+
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
