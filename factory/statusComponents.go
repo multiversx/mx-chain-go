@@ -156,7 +156,9 @@ func (scf *statusComponentsFactory) IsInterfaceNil() bool {
 func (pc *statusComponents) Close() error {
 	pc.cancelFunc()
 
-	// TODO: close all components
+	if !check.IfNil(pc.softwareVersion) {
+		return pc.softwareVersion.Close()
+	}
 
 	return nil
 }
