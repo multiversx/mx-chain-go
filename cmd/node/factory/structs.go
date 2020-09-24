@@ -595,7 +595,7 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer
 	for addressKey, userAccountsBytes := range leaves {
 		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, marshalizer)
 		if errUnmarshal != nil {
-			log.Warn("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
+			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
 			continue
 		}
 
@@ -678,6 +678,10 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 }
 
 func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
+	if args.indexer.IsNilIndexer() {
+		return nil
+	}
+
 	// In Elastic Indexer, only index the metachain block
 	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
