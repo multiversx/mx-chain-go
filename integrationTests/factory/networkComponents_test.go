@@ -17,9 +17,9 @@ import (
 func TestNetworkComponents_Create_ShouldWork(t *testing.T) {
 	t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
 
 	ccf, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
@@ -35,9 +35,9 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
 
 	ccf, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)

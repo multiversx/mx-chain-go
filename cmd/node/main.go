@@ -1184,76 +1184,6 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func loadMainConfig(filepath string) (*config.Config, error) {
-	cfg := &config.Config{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
-	cfg := &config.ApiRoutesConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
-	cfg := &config.EconomicsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContractsConfig, error) {
-	cfg := &config.SystemSmartContractsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
-	cfg := &config.RatingsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return &config.RatingsConfig{}, err
-	}
-
-	return cfg, nil
-}
-
-func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
-	cfg := &config.Preferences{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
-	cfg := &config.ExternalConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load external config: %w", err)
-	}
-
-	return cfg, nil
-}
-
 func createNodesCoordinator(
 	log logger.Logger,
 	nodesConfig mainFactory.NodesSetupHandler,
@@ -1805,7 +1735,7 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	log.Trace("reading configs")
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := loadMainConfig(configurationFileName)
+	generalConfig, err := core.LoadMainConfig(configurationFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -1814,42 +1744,42 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	applyCompatibleConfigs(log, generalConfig, ctx)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
-	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	apiRoutesConfig, err := core.LoadApiConfig(configurationApiFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationApiFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
+	economicsConfig, err := core.LoadEconomicsConfig(configurationEconomicsFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
 
 	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
-	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	systemSCConfig, err := core.LoadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationSystemSCConfigFileName)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
-	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
+	ratingsConfig, err := core.LoadRatingsConfig(configurationRatingsFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationRatingsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
+	preferencesConfig, err := core.LoadPreferencesConfig(configurationPreferencesFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPreferencesFileName)
 
 	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
-	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
+	externalConfig, err := core.LoadExternalConfig(externalConfigurationFileName)
 	if err != nil {
 		return nil, err
 	}

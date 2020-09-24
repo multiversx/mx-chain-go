@@ -21,12 +21,12 @@ import (
 func TestBootstrapComponents_Create_ShouldWork(t *testing.T) {
 	//t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
-	prefsConfig, _ := loadPreferencesConfig(prefsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
+	prefsConfig, _ := core.LoadPreferencesConfig(prefsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
 
 	coreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	cryptoComponents, err := createCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
@@ -48,12 +48,12 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
-	prefsConfig, _ := loadPreferencesConfig(prefsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
+	prefsConfig, _ := core.LoadPreferencesConfig(prefsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
 
 	nrBefore := runtime.NumGoroutine()
 	printStack()
