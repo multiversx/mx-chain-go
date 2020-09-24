@@ -126,7 +126,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee)
+	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee, context.BlockchainHook, &mock.BlockChainMock{})
 
 	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
 	require.Nil(t, err)
