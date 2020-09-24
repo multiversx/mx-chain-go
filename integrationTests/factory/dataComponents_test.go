@@ -14,17 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDataComponents_Create_ShouldWork(t *testing.T) {
+func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	generalConfig, _ := loadMainConfig(configPath)
 	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
 	economicsConfig, _ := loadEconomicsConfig(economicsPath)
 
+	time.Sleep(2 * time.Second)
+	nrBefore := runtime.NumGoroutine()
+
 	coreComponents, err := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	require.Nil(t, err)
 	require.NotNil(t, coreComponents)
-
-	time.Sleep(2 * time.Second)
-	nrBefore := runtime.NumGoroutine()
 
 	dataComponents, err := createDataComponents(*generalConfig, *economicsConfig, coreComponents)
 	require.Nil(t, err)
@@ -33,7 +33,11 @@ func TestDataComponents_Create_ShouldWork(t *testing.T) {
 
 	err = dataComponents.Close()
 	require.Nil(t, err)
+
+	err = coreComponents.Close()
+	require.Nil(t, err)
 	time.Sleep(2 * time.Second)
+
 	nrAfter := runtime.NumGoroutine()
 	if nrBefore != nrAfter {
 		printStack()

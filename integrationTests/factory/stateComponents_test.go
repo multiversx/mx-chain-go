@@ -13,13 +13,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStateComponents_Create_ShouldWork(t *testing.T) {
+func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 	generalConfig, _ := loadMainConfig(configPath)
 	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
 	economicsConfig, _ := loadEconomicsConfig(economicsPath)
 	preferencesConfig, _ := loadPreferencesConfig(prefsPath)
 	systemScConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
+
+	nrBefore := runtime.NumGoroutine()
 
 	coreComponents, err := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	require.Nil(t, err)
@@ -39,7 +41,6 @@ func TestStateComponents_Create_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, bootstrapComponents)
 	time.Sleep(5 * time.Second)
-	nrBefore := runtime.NumGoroutine()
 
 	stateComponents, err := createStateComponents(*generalConfig, coreComponents, bootstrapComponents)
 	require.Nil(t, err)
@@ -48,8 +49,18 @@ func TestStateComponents_Create_ShouldWork(t *testing.T) {
 
 	err = stateComponents.Close()
 	require.Nil(t, err)
+	err = bootstrapComponents.Close()
+	require.Nil(t, err)
+	err = networkComponents.Close()
+	require.Nil(t, err)
+	err = crytoComponents.Close()
+	require.Nil(t, err)
+	err = coreComponents.Close()
+	require.Nil(t, err)
+
 	time.Sleep(2 * time.Second)
 	nrAfter := runtime.NumGoroutine()
+
 	if nrBefore != nrAfter {
 		printStack()
 	}
