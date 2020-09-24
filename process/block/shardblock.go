@@ -78,6 +78,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainer:             arguments.VmContainer,
 	}
 
 	sp := shardProcessor{
@@ -1889,4 +1890,9 @@ func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
 	_ data.BodyHandler,
 ) error {
 	return nil
+}
+
+// Close - closes all underlying components
+func (sp *shardProcessor) Close() error {
+	return sp.baseProcessor.Close()
 }

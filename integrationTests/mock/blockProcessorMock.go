@@ -130,6 +130,11 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
 }
 
+// Close -
+func (bpm *BlockProcessorMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil
