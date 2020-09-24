@@ -276,6 +276,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		RewardsHandler:      &mock.RewardsHandlerStub{},
 		NodesSetup:          &mock.NodesSetupStub{},
 		MaxComputableRounds: 1,
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -320,8 +321,8 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1000000,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   1000000,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -332,6 +333,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		},
 		peerAccountsDB,
 		&mock.ChanceComputerStub{},
+		&mock.EpochNotifierStub{},
 	)
 
 	vmContainer, _ := metaVmFactory.Create()
@@ -346,6 +348,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
 		ChanceComputer:          &mock.ChanceComputerStub{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 	return args
 }

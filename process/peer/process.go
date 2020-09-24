@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -37,19 +38,21 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer         marshal.Marshalizer
-	NodesCoordinator    sharding.NodesCoordinator
-	ShardCoordinator    sharding.Coordinator
-	DataPool            DataPool
-	StorageService      dataRetriever.StorageService
-	PubkeyConv          core.PubkeyConverter
-	PeerAdapter         state.AccountsAdapter
-	Rater               sharding.PeerAccountListAndRatingHandler
-	RewardsHandler      process.RewardsHandler
-	MaxComputableRounds uint64
-	NodesSetup          sharding.GenesisNodesSetupHandler
-	GenesisNonce        uint64
-	RatingEnableEpoch   uint32
+	Marshalizer                  marshal.Marshalizer
+	NodesCoordinator             sharding.NodesCoordinator
+	ShardCoordinator             sharding.Coordinator
+	DataPool                     DataPool
+	StorageService               dataRetriever.StorageService
+	PubkeyConv                   core.PubkeyConverter
+	PeerAdapter                  state.AccountsAdapter
+	Rater                        sharding.PeerAccountListAndRatingHandler
+	RewardsHandler               process.RewardsHandler
+	MaxComputableRounds          uint64
+	NodesSetup                   sharding.GenesisNodesSetupHandler
+	GenesisNonce                 uint64
+	RatingEnableEpoch            uint32
+	SwitchJailWaitingEnableEpoch uint32
+	EpochNotifier                process.EpochNotifier
 }
 
 type validatorStatistics struct {
@@ -68,6 +71,8 @@ type validatorStatistics struct {
 	genesisNonce           uint64
 	ratingEnableEpoch      uint32
 	lastFinalizedRootHash  []byte
+	jailedEnableEpoch      uint32
+	flagJailedEnabled      atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -106,6 +111,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.NodesSetup) {
 		return nil, process.ErrNilNodesSetup
 	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:          arguments.PeerAdapter,
@@ -121,7 +129,10 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		maxComputableRounds:  arguments.MaxComputableRounds,
 		genesisNonce:         arguments.GenesisNonce,
 		ratingEnableEpoch:    arguments.RatingEnableEpoch,
+		jailedEnableEpoch:    arguments.SwitchJailWaitingEnableEpoch,
 	}
+
+	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
 	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
@@ -200,8 +211,12 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			return err
 		}
 
-		if peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
+		} else if isNodeLeaving {
+			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
 		} else {
 			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
 		}
@@ -421,16 +436,38 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	return validators, nil
 }
 
+func getActualList(peerAccount state.PeerAccountHandler) string {
+	savedList := peerAccount.GetList()
+	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
+		if savedList == string(core.InactiveList) {
+			return string(core.JailedList)
+		}
+		return savedList
+	}
+	if savedList == string(core.InactiveList) {
+		return savedList
+	}
+
+	return string(core.LeavingList)
+}
+
 // PeerAccountToValidatorInfo creates a validator info from the given peer account
 func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	chance := vs.rater.GetChance(peerAccount.GetRating())
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
+	list := ""
+	if vs.flagJailedEnabled.IsSet() {
+		list = peerAccount.GetList()
+	} else {
+		list = getActualList(peerAccount)
+	}
+
 	return &state.ValidatorInfo{
 		PublicKey:                       peerAccount.GetBLSPublicKey(),
 		ShardId:                         peerAccount.GetShardId(),
-		List:                            peerAccount.GetList(),
+		List:                            list,
 		Index:                           peerAccount.GetIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),
@@ -608,6 +645,11 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return process.ErrWrongTypeAssertion
 			}
 			peerAccount.ResetAtNewEpoch()
+
+			shouldBeJailed := vs.flagJailedEnabled.IsSet() && validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList)
+			if shouldBeJailed {
+				peerAccount.SetListAndIndex(validator.ShardId, validator.List, validator.Index)
+			}
 
 			err = vs.peerAdapter.SaveAccount(peerAccount)
 			if err != nil {
@@ -1125,4 +1167,10 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 	vs.mutValidatorStatistics.RLock()
 	defer vs.mutValidatorStatistics.RUnlock()
 	return vs.lastFinalizedRootHash
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
+	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
+	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 }

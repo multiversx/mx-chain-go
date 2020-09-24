@@ -50,14 +50,17 @@ var ErrInvalidMinStakeValue = errors.New("invalid min stake value")
 // ErrInvalidNodePrice signals that an invalid node price was provided
 var ErrInvalidNodePrice = errors.New("invalid node price")
 
-// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
-var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
-
 // ErrInvalidMinStepValue signals that an invalid min step value was provided
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
+// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
+var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
+
 // ErrBLSPublicKeyMismatch signals that public keys do not match
 var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
+
+// ErrBLSPublicKeyMissmatch signals that public keys do not match
+var ErrBLSPublicKeyMissmatch = errors.New("public key missmatch")
 
 // ErrKeyAlreadyRegistered signals that bls key is already registered
 var ErrKeyAlreadyRegistered = errors.New("bls key already registered")
@@ -175,3 +178,6 @@ var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access 
 
 // ErrNilChanceComputer signals that nil chance computer has been provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
