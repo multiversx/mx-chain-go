@@ -14,11 +14,11 @@ import (
 )
 
 func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
-	preferencesConfig, _ := loadPreferencesConfig(prefsPath)
-	systemScConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
+	preferencesConfig, _ := core.LoadPreferencesConfig(prefsPath)
+	systemScConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
 
 	nrBefore := runtime.NumGoroutine()

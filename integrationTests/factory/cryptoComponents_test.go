@@ -16,10 +16,10 @@ import (
 func TestCryptoComponents_Create_ShouldWork(t *testing.T) {
 	t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 
 	ccf, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 
@@ -32,10 +32,10 @@ func TestCryptoComponents_Create_ShouldWork(t *testing.T) {
 func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
 	t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 
 	ccf, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	time.Sleep(2 * time.Second)

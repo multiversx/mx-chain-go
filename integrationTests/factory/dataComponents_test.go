@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -15,9 +16,9 @@ import (
 )
 
 func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 
 	time.Sleep(2 * time.Second)
 	nrBefore := runtime.NumGoroutine()

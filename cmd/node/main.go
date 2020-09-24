@@ -20,57 +20,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/closing"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/health"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
-	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
-	"github.com/ElrondNetwork/elrond-go/update"
-	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -570,7 +543,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			cfgs.generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 		}
 
-		nodesCoordinator, nodeShufflerOut, err := createNodesCoordinator(
+		nodesCoordinator, nodeShufflerOut, err := mainFactory.CreateNodesCoordinator(
 			log,
 			nodesSetup,
 			cfgs.preferencesConfig.Preferences,
@@ -795,7 +768,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
 
-		hardForkTrigger, err := createHardForkTrigger(
+		hardForkTrigger, err := mainFactory.CreateHardForkTrigger(
 			cfgs.generalConfig,
 			shardCoordinator,
 			nodesCoordinator,
@@ -829,7 +802,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating node structure")
-		currentNode, err := createNode(
+		currentNode, err := mainFactory.CreateNode(
 			cfgs.generalConfig,
 			cfgs.preferencesConfig,
 			nodesSetup,
@@ -876,7 +849,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating api resolver structure")
-		apiResolver, err := createApiResolver(
+		apiResolver, err := mainFactory.CreateApiResolver(
 			cfgs.generalConfig,
 			managedStateComponents.AccountsAdapter(),
 			managedStateComponents.PeerAccounts(),
@@ -1184,439 +1157,6 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func loadMainConfig(filepath string) (*config.Config, error) {
-	cfg := &config.Config{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
-	cfg := &config.ApiRoutesConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
-	cfg := &config.EconomicsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContractsConfig, error) {
-	cfg := &config.SystemSmartContractsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
-	cfg := &config.RatingsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return &config.RatingsConfig{}, err
-	}
-
-	return cfg, nil
-}
-
-func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
-	cfg := &config.Preferences{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
-	cfg := &config.ExternalConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load external config: %w", err)
-	}
-
-	return cfg, nil
-}
-
-func createNodesCoordinator(
-	log logger.Logger,
-	nodesConfig mainFactory.NodesSetupHandler,
-	prefsConfig config.PreferencesConfig,
-	epochStartNotifier epochStart.RegistrationHandler,
-	pubKey crypto.PublicKey,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	ratingAndListIndexHandler sharding.PeerAccountListAndRatingHandler,
-	bootStorer storage.Storer,
-	nodeShuffler sharding.NodesShuffler,
-	epochConfig config.EpochStartConfig,
-	currentShardID uint32,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	bootstrapParameters mainFactory.BootstrapParamsHandler,
-	startEpoch uint32,
-) (sharding.NodesCoordinator, update.Closer, error) {
-	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
-	if err != nil {
-		return nil, nil, err
-	}
-	if shardIDAsObserver == core.DisabledShardIDAsObserver {
-		shardIDAsObserver = uint32(0)
-	}
-
-	nbShards := nodesConfig.NumberOfShards()
-	shardConsensusGroupSize := int(nodesConfig.GetShardConsensusGroupSize())
-	metaConsensusGroupSize := int(nodesConfig.GetMetaConsensusGroupSize())
-	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
-
-	eligibleValidators, errEligibleValidators := sharding.NodesInfoToValidators(eligibleNodesInfo)
-	if errEligibleValidators != nil {
-		return nil, nil, errEligibleValidators
-	}
-
-	waitingValidators, errWaitingValidators := sharding.NodesInfoToValidators(waitingNodesInfo)
-	if errWaitingValidators != nil {
-		return nil, nil, errWaitingValidators
-	}
-
-	currentEpoch := startEpoch
-	if bootstrapParameters.NodesConfig() != nil {
-		nodeRegistry := bootstrapParameters.NodesConfig()
-		currentEpoch = bootstrapParameters.Epoch()
-		eligibles := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].EligibleValidators
-		eligibleValidators, err = sharding.SerializableValidatorsToValidators(eligibles)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		waitings := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)].WaitingValidators
-		waitingValidators, err = sharding.SerializableValidatorsToValidators(waitings)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	pubKeyBytes, err := pubKey.ToByteArray()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	consensusGroupCache, err := lrucache.NewCache(25000)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
-	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {
-		return nil, nil, fmt.Errorf("invalid max threshold for shuffled out handler")
-	}
-	minThresholdEpochDuration := epochConfig.MinShuffledOutRestartThreshold
-	if !(minThresholdEpochDuration >= 0.0 && minThresholdEpochDuration <= 1.0) {
-		return nil, nil, fmt.Errorf("invalid min threshold for shuffled out handler")
-	}
-
-	epochDuration := int64(nodesConfig.GetRoundDuration()) * epochConfig.RoundsPerEpoch
-	minDurationBeforeStopProcess := int64(minThresholdEpochDuration * float64(epochDuration))
-	maxDurationBeforeStopProcess := int64(maxThresholdEpochDuration * float64(epochDuration))
-
-	minDurationInterval := time.Millisecond * time.Duration(minDurationBeforeStopProcess)
-	maxDurationInterval := time.Millisecond * time.Duration(maxDurationBeforeStopProcess)
-
-	log.Debug("closing.NewShuffleOutCloser",
-		"minDurationInterval", minDurationInterval,
-		"maxDurationInterval", maxDurationInterval,
-	)
-
-	nodeShufflerOut, err := closing.NewShuffleOutCloser(
-		minDurationInterval,
-		maxDurationInterval,
-		chanStopNodeProcess,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	shuffledOutHandler, err := sharding.NewShuffledOutTrigger(pubKeyBytes, currentShardID, nodeShufflerOut.EndOfProcessingHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartNotifier,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardIDAsObserver,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      shuffledOutHandler,
-		Epoch:                   currentEpoch,
-		StartEpoch:              startEpoch,
-	}
-
-	baseNodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, ratingAndListIndexHandler)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nodesCoordinator, nodeShufflerOut, nil
-}
-
-func getConsensusGroupSize(nodesConfig mainFactory.NodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return nodesConfig.GetMetaConsensusGroupSize(), nil
-	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return nodesConfig.GetShardConsensusGroupSize(), nil
-	}
-
-	return 0, state.ErrUnknownShardId
-}
-
-func createHardForkTrigger(
-	config *config.Config,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator sharding.NodesCoordinator,
-	coreData mainFactory.CoreComponentsHolder,
-	stateComponents mainFactory.StateComponentsHolder,
-	data mainFactory.DataComponentsHolder,
-	crypto mainFactory.CryptoComponentsHolder,
-	process mainFactory.ProcessComponentsHolder,
-	network mainFactory.NetworkComponentsHolder,
-	whiteListRequest process.WhiteListHandler,
-	whiteListerVerifiedTxs process.WhiteListHandler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	epochNotifier factory.EpochStartNotifier,
-	importStartHandler update.ImportStartHandler,
-	nodesSetup update.GenesisNodesSetupHandler,
-	workingDir string,
-) (node.HardforkTrigger, error) {
-
-	selfPubKeyBytes := crypto.PublicKeyBytes()
-	triggerPubKeyBytes, err := coreData.ValidatorPubKeyConverter().Decode(config.Hardfork.PublicKeyToListenFrom)
-	if err != nil {
-		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
-	}
-
-	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter()
-	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
-	hardForkConfig := config.Hardfork
-	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
-	argsExporter := exportFactory.ArgsExporter{
-		CoreComponents:           coreData,
-		CryptoComponents:         crypto,
-		HeaderValidator:          process.HeaderConstructionValidator(),
-		DataPool:                 data.Datapool(),
-		StorageService:           data.StorageService(),
-		RequestHandler:           process.RequestHandler(),
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetworkMessenger(),
-		ActiveAccountsDBs:        accountsDBs,
-		ExistingResolvers:        process.ResolversFinder(),
-		ExportFolder:             exportFolder,
-		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
-		WhiteListHandler:         whiteListRequest,
-		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
-		InterceptorsContainer:    process.InterceptorsContainer(),
-		NodesCoordinator:         nodesCoordinator,
-		HeaderSigVerifier:        process.HeaderSigVerifier(),
-		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier(),
-		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		InputAntifloodHandler:    network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
-		ValidityAttester:         process.BlockTracker(),
-		Rounder:                  process.Rounder(),
-		GenesisNodesSetupHandler: nodesSetup,
-	}
-	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
-	if err != nil {
-		return nil, err
-	}
-
-	atArgumentParser := smartContract.NewArgumentParser()
-	argTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:        triggerPubKeyBytes,
-		SelfPubKeyBytes:           selfPubKeyBytes,
-		Enabled:                   config.Hardfork.EnableTrigger,
-		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
-		ArgumentParser:            atArgumentParser,
-		EpochProvider:             process.EpochStartTrigger(),
-		ExportFactoryHandler:      hardForkExportFactory,
-		ChanStopNodeProcess:       chanStopNodeProcess,
-		EpochConfirmedNotifier:    epochNotifier,
-		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
-		ImportStartHandler:        importStartHandler,
-	}
-	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
-	if err != nil {
-		return nil, err
-	}
-
-	return hardforkTrigger, nil
-}
-
-func createNode(
-	config *config.Config,
-	preferencesConfig *config.Preferences,
-	nodesConfig mainFactory.NodesSetupHandler,
-	bootstrapComponents mainFactory.BootstrapComponentsHandler,
-	coreComponents mainFactory.CoreComponentsHandler,
-	cryptoComponents mainFactory.CryptoComponentsHandler,
-	dataComponents mainFactory.DataComponentsHandler,
-	networkComponents mainFactory.NetworkComponentsHandler,
-	processComponents mainFactory.ProcessComponentsHandler,
-	stateComponents mainFactory.StateComponentsHandler,
-	statusComponents mainFactory.StatusComponentsHandler,
-	bootstrapRoundIndex uint64,
-	version string,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	whiteListRequest process.WhiteListHandler,
-	whiteListerVerifiedTxs process.WhiteListHandler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	hardForkTrigger node.HardforkTrigger,
-	historyRepository dblookupext.HistoryRepository,
-) (*node.Node, error) {
-	var err error
-	var consensusGroupSize uint32
-	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, processComponents.ShardCoordinator())
-	if err != nil {
-		return nil, err
-	}
-
-	var txAccumulator node.Accumulator
-	txAccumulatorConfig := config.Antiflood.TxAccumulator
-	txAccumulator, err = accumulator.NewTimeAccumulator(
-		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
-		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
-
-	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
-		networkComponents.PeerBlackListHandler(),
-		networkComponents.PubKeyCacher(),
-		processComponents.PeerShardMapper(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
-	if err != nil {
-		return nil, err
-	}
-
-	genesisTime := time.Unix(nodesConfig.GetStartTime(), 0)
-	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:            *config,
-		Prefs:             *preferencesConfig,
-		AppVersion:        version,
-		GenesisTime:       genesisTime,
-		HardforkTrigger:   hardForkTrigger,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-
-	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
-	if err != nil {
-		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
-	}
-
-	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	err = managedHeartbeatComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	var nd *node.Node
-	nd, err = node.NewNode(
-		node.WithBootstrapComponents(bootstrapComponents),
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithNetworkComponents(networkComponents),
-		node.WithProcessComponents(processComponents),
-		node.WithCryptoComponents(cryptoComponents),
-		node.WithStateComponents(stateComponents),
-		node.WithStatusComponents(statusComponents),
-		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		node.WithRoundDuration(nodesConfig.GetRoundDuration()),
-		node.WithConsensusGroupSize(int(consensusGroupSize)),
-		node.WithGenesisTime(genesisTime),
-		node.WithConsensusType(config.Consensus.Type),
-		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
-		node.WithPeerDenialEvaluator(peerDenialEvaluator),
-		node.WithRequestedItemsHandler(requestedItemsHandler),
-		node.WithTxAccumulator(txAccumulator),
-		node.WithHardforkTrigger(hardForkTrigger),
-		node.WithWhiteListHandler(whiteListRequest),
-		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
-		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
-		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
-		node.WithNodeStopChannel(chanStopNodeProcess),
-		node.WithHistoryRepository(historyRepository),
-	)
-	if err != nil {
-		return nil, errors.New("error creating node: " + err.Error())
-	}
-
-	if processComponents.ShardCoordinator().SelfId() < processComponents.ShardCoordinator().NumberOfShards() {
-		err = nd.CreateShardedStores()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = nodeDebugFactory.CreateInterceptedDebugHandler(
-		nd,
-		processComponents.InterceptorsContainer(),
-		processComponents.ResolversFinder(),
-		config.Debug.InterceptorResolver,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return nd, nil
-}
-
 func initStatsFileMonitor(
 	config *config.Config,
 	pathManager storage.PathManagerHandler,
@@ -1653,103 +1193,6 @@ func startStatisticsMonitor(
 	}()
 
 	return nil
-}
-
-func createApiResolver(
-	config *config.Config,
-	accnts state.AccountsAdapter,
-	validatorAccounts state.AccountsAdapter,
-	pubkeyConv core.PubkeyConverter,
-	storageService dataRetriever.StorageService,
-	blockChain data.ChainHandler,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	shardCoordinator sharding.Coordinator,
-	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]map[string]uint64,
-	economics *economics.EconomicsData,
-	messageSigVerifier vm.MessageSignVerifier,
-	nodesSetup sharding.GenesisNodesSetupHandler,
-	systemSCConfig *config.SystemSmartContractsConfig,
-) (facade.ApiResolver, error) {
-	var vmFactory process.VirtualMachinesContainerFactory
-	var err error
-
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   storageService,
-		BlockChain:       blockChain,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  uint64Converter,
-		BuiltInFunctions: builtInFuncs,
-	}
-
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(
-			argsHook,
-			economics,
-			messageSigVerifier,
-			gasSchedule,
-			nodesSetup,
-			hasher,
-			marshalizer,
-			systemSCConfig,
-			validatorAccounts,
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
-			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasSchedule,
-			argsHook)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	vmContainer, err := vmFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics)
-	if err != nil {
-		return nil, err
-	}
-
-	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-	}
-	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
-	if err != nil {
-		return nil, err
-	}
-
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
@@ -1805,7 +1248,7 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	log.Trace("reading configs")
 
 	configurationFileName := ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := loadMainConfig(configurationFileName)
+	generalConfig, err := core.LoadMainConfig(configurationFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -1814,42 +1257,42 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	applyCompatibleConfigs(log, generalConfig, ctx)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
-	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
+	apiRoutesConfig, err := core.LoadApiConfig(configurationApiFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationApiFileName)
 
 	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := loadEconomicsConfig(configurationEconomicsFileName)
+	economicsConfig, err := core.LoadEconomicsConfig(configurationEconomicsFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationEconomicsFileName)
 
 	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
-	systemSCConfig, err := loadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	systemSCConfig, err := core.LoadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationSystemSCConfigFileName)
 
 	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
-	ratingsConfig, err := loadRatingsConfig(configurationRatingsFileName)
+	ratingsConfig, err := core.LoadRatingsConfig(configurationRatingsFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationRatingsFileName)
 
 	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := loadPreferencesConfig(configurationPreferencesFileName)
+	preferencesConfig, err := core.LoadPreferencesConfig(configurationPreferencesFileName)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", configurationPreferencesFileName)
 
 	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
-	externalConfig, err := loadExternalConfig(externalConfigurationFileName)
+	externalConfig, err := core.LoadExternalConfig(externalConfigurationFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -1881,20 +1324,4 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 		configurationPreferencesFileName: configurationPreferencesFileName,
 		p2pConfigurationFileName:         p2pConfigurationFileName,
 	}, nil
-}
-
-// prepareOpenTopics will set to the anti flood handler the topics for which
-// the node can receive messages from others than validators
-func prepareOpenTopics(
-	antiflood mainFactory.P2PAntifloodHandler,
-	shardCoordinator sharding.Coordinator,
-) {
-	selfID := shardCoordinator.SelfId()
-	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(core.HeartbeatTopic)
-		return
-	}
-
-	selfShardTxTopic := processFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }

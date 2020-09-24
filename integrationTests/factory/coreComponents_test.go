@@ -18,9 +18,9 @@ import (
 func TestCoreComponents_Create_ShouldWork(t *testing.T) {
 	t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 
 	ccf, err := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	require.Nil(t, err)
@@ -31,9 +31,9 @@ func TestCoreComponents_Create_Close_ShouldWork(t *testing.T) {
 	t.Skip()
 
 	nrBefore := runtime.NumGoroutine()
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
 
 	ccf, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	time.Sleep(2 * time.Second)
@@ -95,76 +95,6 @@ func createCoreComponents(
 	}
 
 	return managedCoreComponents, nil
-}
-
-func loadMainConfig(filepath string) (*config.Config, error) {
-	cfg := &config.Config{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadApiConfig(filepath string) (*config.ApiRoutesConfig, error) {
-	cfg := &config.ApiRoutesConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadEconomicsConfig(filepath string) (*config.EconomicsConfig, error) {
-	cfg := &config.EconomicsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadSystemSmartContractsConfig(filepath string) (*config.SystemSmartContractsConfig, error) {
-	cfg := &config.SystemSmartContractsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadRatingsConfig(filepath string) (*config.RatingsConfig, error) {
-	cfg := &config.RatingsConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return &config.RatingsConfig{}, err
-	}
-
-	return cfg, nil
-}
-
-func loadPreferencesConfig(filepath string) (*config.Preferences, error) {
-	cfg := &config.Preferences{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func loadExternalConfig(filepath string) (*config.ExternalConfig, error) {
-	cfg := &config.ExternalConfig{}
-	err := core.LoadTomlFile(cfg, filepath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot load external config: %w", err)
-	}
-
-	return cfg, nil
 }
 
 func printStack() {

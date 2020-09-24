@@ -21,12 +21,12 @@ import (
 func TestBootstrapComponents_Create_ShouldWork(t *testing.T) {
 	//t.Skip()
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
-	prefsConfig, _ := loadPreferencesConfig(prefsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
+	prefsConfig, _ := core.LoadPreferencesConfig(prefsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
 
 	coreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	cryptoComponents, err := createCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
@@ -48,20 +48,20 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
-	generalConfig, _ := loadMainConfig(configPath)
-	ratingsConfig, _ := loadRatingsConfig(ratingsPath)
-	economicsConfig, _ := loadEconomicsConfig(economicsPath)
-	prefsConfig, _ := loadPreferencesConfig(prefsPath)
+	generalConfig, _ := core.LoadMainConfig(configPath)
+	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
+	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
+	prefsConfig, _ := core.LoadPreferencesConfig(prefsPath)
 	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
-	systemSCConfig, _ := loadSystemSmartContractsConfig(systemSCConfigPath)
+	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
+
+	nrBefore := runtime.NumGoroutine()
+	printStack()
 
 	coreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	cryptoComponents, _ := createCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
 	networkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
 	time.Sleep(2 * time.Second)
-
-	nrBefore := runtime.NumGoroutine()
-	printStack()
 
 	bootstrapComponents, _ := createBootstrapComponents(
 		*generalConfig,
@@ -72,7 +72,13 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	err := bootstrapComponents.Close()
 	require.Nil(t, err)
-	time.Sleep(5 * time.Second)
+
+	_ = networkComponents.Close()
+	_ = cryptoComponents.Close()
+	_ = coreComponents.Close()
+
+	time.Sleep(10 * time.Second)
+
 	nrAfter := runtime.NumGoroutine()
 
 	if nrBefore != nrAfter {
@@ -80,7 +86,6 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
 }
 
 func createBootstrapComponents(
