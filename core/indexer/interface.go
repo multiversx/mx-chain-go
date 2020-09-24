@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -27,6 +28,7 @@ type Indexer interface {
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo)
+	SaveAccounts(acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool
 	IsNilIndexer() bool
@@ -52,6 +54,7 @@ type ElasticProcessor interface {
 	SaveRoundsInfo(infos []workItems.RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
+	SaveAccounts(accounts []state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 

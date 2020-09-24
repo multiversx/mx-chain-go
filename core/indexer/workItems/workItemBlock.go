@@ -17,14 +17,12 @@ type itemBlock struct {
 	txPool                 map[string]data.TransactionHandler
 	signersIndexes         []uint64
 	notarizedHeadersHashes []string
-	txIndexingEnabled      bool
 }
 
 // NewItemBlock will create a new instance of ItemBlock
 func NewItemBlock(
 	indexer saveBlockIndexer,
 	marshalizer marshal.Marshalizer,
-	txIndexingEnabled bool,
 	bodyHandler data.BodyHandler,
 	headerHandler data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
@@ -32,7 +30,6 @@ func NewItemBlock(
 	notarizedHeadersHashes []string,
 ) WorkItemHandler {
 	return &itemBlock{
-		txIndexingEnabled:      txIndexingEnabled,
 		indexer:                indexer,
 		bodyHandler:            bodyHandler,
 		headerHandler:          headerHandler,
@@ -66,10 +63,6 @@ func (wib *itemBlock) Save() error {
 	if err != nil {
 		log.Warn("itemBlock.Save", "could not index miniblocks", err.Error())
 		return err
-	}
-
-	if !wib.txIndexingEnabled {
-		return nil
 	}
 
 	shardID := wib.headerHandler.GetShardID()

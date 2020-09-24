@@ -69,9 +69,9 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		NodesCoordinator:         disabled.NewNodesCoordinator(),
 		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
 		Options: &indexer.Options{
-			TxIndexingEnabled: true,
-			UseKibana:         false,
+			UseKibana: false,
 		},
+		EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 	}
 
 	return factory.NewIndexer(indexerFactoryArgs)

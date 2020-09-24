@@ -14,6 +14,7 @@ const (
 	validatorsIndex = "validators"
 	roundIndex      = "rounds"
 	ratingIndex     = "rating"
+	accountsIndex   = "accounts"
 
 	txPolicy         = "transactions_policy"
 	blockPolicy      = "blocks_policy"
@@ -22,6 +23,7 @@ const (
 	validatorsPolicy = "validators_policy"
 	roundPolicy      = "rounds_policy"
 	ratingPolicy     = "rating_policy"
+	accountsPolicy   = "accounts_policy"
 
 	metachainTpsDocID   = "meta"
 	shardTpsDocIDPrefix = "shard"

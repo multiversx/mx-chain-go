@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -30,6 +31,9 @@ type ArgsIndexerFactory struct {
 	IndexTemplates           map[string]*bytes.Buffer
 	IndexPolicies            map[string]*bytes.Buffer
 	Options                  *indexer.Options
+	EnabledIndexes           []string
+	Denomination             int
+	AccountsDB               state.AccountsAdapter
 }
 
 // NewIndexer will create a new instance of Indexer
@@ -56,7 +60,6 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	dispatcher.StartIndexData()
 
 	arguments := indexer.ArgDataIndexer{
-		TxIndexingEnabled:  args.Options.TxIndexingEnabled,
 		Marshalizer:        args.Marshalizer,
 		Options:            args.Options,
 		NodesCoordinator:   args.NodesCoordinator,
@@ -83,6 +86,14 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		return nil, err
 	}
 
+	enabledIndexesMap := make(map[string]struct{})
+	for _, index := range args.EnabledIndexes {
+		enabledIndexesMap[index] = struct{}{}
+	}
+	if len(enabledIndexesMap) == 0 {
+		return nil, indexer.ErrEmptyEnabledIndexes
+	}
+
 	esIndexerArgs := indexer.ArgElasticProcessor{
 		IndexTemplates:           args.IndexTemplates,
 		IndexPolicies:            args.IndexPolicies,
@@ -92,6 +103,9 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		ValidatorPubkeyConverter: args.ValidatorPubkeyConverter,
 		Options:                  args.Options,
 		DBClient:                 databaseClient,
+		EnabledIndexes:           enabledIndexesMap,
+		AccountsDB:               args.AccountsDB,
+		Denomination:             args.Denomination,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)

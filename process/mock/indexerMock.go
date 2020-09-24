@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -52,6 +53,10 @@ func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 
 // RevertIndexedBlock -
 func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// SaveAccounts -
+func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

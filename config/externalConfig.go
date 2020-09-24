@@ -7,11 +7,11 @@ type ExternalConfig struct {
 
 // ElasticSearchConfig will hold the configuration for the elastic search
 type ElasticSearchConfig struct {
-	Enabled           bool
-	TxIndexingEnabled bool
-	IndexerCacheSize  int
-	URL               string
-	UseKibana         bool
-	Username          string
-	Password          string
+	Enabled          bool
+	IndexerCacheSize int
+	URL              string
+	UseKibana        bool
+	Username         string
+	Password         string
+	EnabledIndexes   []string
 }

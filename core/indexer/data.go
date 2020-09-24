@@ -95,6 +95,13 @@ type ValidatorsPublicKeys struct {
 	PublicKeys []string `json:"publicKeys"`
 }
 
+// AccountInfo holds (serializable) data about an account
+type AccountInfo struct {
+	Nonce      uint64  `json:"nonce"`
+	Balance    string  `json:"balance"`
+	BalanceNum float64 `json:"balanceNum"`
+}
+
 // ValidatorsRatingInfo is a structure containing validators information
 type ValidatorsRatingInfo struct {
 	ValidatorsInfos []workItems.ValidatorRatingInfo `json:"validatorsRating"`

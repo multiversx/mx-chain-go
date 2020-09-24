@@ -30,6 +30,8 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		IndexTemplates:           nil,
 		IndexPolicies:            nil,
 		Options:                  &indexer.Options{},
+		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
+		AccountsDB:               &mock.AccountsStub{},
 	}
 }
 
@@ -101,6 +103,15 @@ func TestNewIndexerFactory(t *testing.T) {
 				return args
 			},
 			exError: core.ErrNilEpochStartNotifier,
+		},
+		{
+			name: "NilAccountsDB",
+			argsFunc: func() *ArgsIndexerFactory {
+				args := createMockIndexerFactoryArgs()
+				args.AccountsDB = nil
+				return args
+			},
+			exError: indexer.ErrNilAccountsDB,
 		},
 		{
 			name: "EmptyUrl",

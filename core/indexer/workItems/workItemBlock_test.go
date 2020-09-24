@@ -45,7 +45,6 @@ func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {
 			},
 		},
 		&mock.MarshalizerMock{},
-		true,
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -78,7 +77,6 @@ func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
 			},
 		},
 		&mock.MarshalizerMock{},
-		true,
 		&dataBlock.Body{},
 		&dataBlock.Header{},
 		nil,
@@ -101,7 +99,6 @@ func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 			},
 		},
 		&mock.MarshalizerMock{},
-		true,
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -116,32 +113,6 @@ func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 	require.Equal(t, localErr, err)
 }
 
-func TestItemBlock_ShouldNotSaveTransaction(t *testing.T) {
-	called := false
-	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
-			SaveTransactionsCalled: func(body *dataBlock.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error {
-				called = true
-				return nil
-			},
-		},
-		&mock.MarshalizerMock{},
-		false,
-		&dataBlock.Body{
-			MiniBlocks: dataBlock.MiniBlockSlice{{}},
-		},
-		&dataBlock.Header{},
-		nil,
-		[]uint64{},
-		[]string{},
-	)
-	require.False(t, itemBlock.IsInterfaceNil())
-
-	err := itemBlock.Save()
-	require.NoError(t, err)
-	require.False(t, called)
-}
-
 func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemBlock := workItems.NewItemBlock(
@@ -151,7 +122,6 @@ func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 			},
 		},
 		&mock.MarshalizerMock{},
-		true,
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -184,7 +154,6 @@ func TestItemBlock_SaveShouldWork(t *testing.T) {
 			},
 		},
 		&mock.MarshalizerMock{},
-		true,
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},

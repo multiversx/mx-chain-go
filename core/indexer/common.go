@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strconv"
 	"time"
@@ -281,6 +282,45 @@ func serializeTransactions(
 	return buffSlice
 }
 
+func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountInfo(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAcc > txsBulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write serialized tx", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
@@ -304,6 +344,20 @@ func prepareSerializedDataForATransaction(
 			return
 		}
 	}
+	return
+}
+
+func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return
+	}
+
 	return
 }
 
@@ -376,12 +430,12 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
 	for _, index := range indexes {
 		indexTemplates[index] = getTemplateByIndex(index)
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy}
 	for _, indexPolicy := range indexesPolicies {
 		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
 	}
@@ -391,7 +445,21 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 
 func getTemplateByIndex(index string) *bytes.Buffer {
 	indexTemplate := &bytes.Buffer{}
-	_ = core.LoadJsonFile(&indexTemplate, "./config/elasticIndexTemplates/"+index+".json")
+
+	// TODO: (maybe) un-do this code before merging. for some reason, in local tests, the older version did not work
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic template file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexTemplate.Grow(len(fileBytes))
+	_, err = indexTemplate.Write(fileBytes)
+	if err != nil {
+		log.Error("cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
 
 	return indexTemplate
 }
