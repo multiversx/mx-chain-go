@@ -1,6 +1,8 @@
 package spos
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -147,34 +149,62 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
 
-func (wrk *Worker) CheckConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
-	return wrk.checkConsensusMessageValidity(cnsMsg, originator)
+// consensusMessageValidator
+
+func (cmv *consensusMessageValidator) CheckConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
+	return cmv.checkConsensusMessageValidity(cnsMsg, originator)
 }
 
-func (wrk *Worker) CheckMessageWithFinalInfoValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkMessageWithFinalInfoValidity(cnsMsg)
+func (cmv *consensusMessageValidator) CheckMessageWithFinalInfoValidity(cnsMsg *consensus.Message) error {
+	return cmv.checkMessageWithFinalInfoValidity(cnsMsg)
 }
 
-func (wrk *Worker) CheckMessageWithSignatureValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkMessageWithSignatureValidity(cnsMsg)
+func (cmv *consensusMessageValidator) CheckMessageWithSignatureValidity(cnsMsg *consensus.Message) error {
+	return cmv.checkMessageWithSignatureValidity(cnsMsg)
 }
 
-func (wrk *Worker) CheckMessageWithBlockHeaderValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkMessageWithBlockHeaderValidity(cnsMsg)
+func (cmv *consensusMessageValidator) CheckMessageWithBlockHeaderValidity(cnsMsg *consensus.Message) error {
+	return cmv.checkMessageWithBlockHeaderValidity(cnsMsg)
 }
 
-func (wrk *Worker) CheckMessageWithBlockBodyValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkMessageWithBlockBodyValidity(cnsMsg)
+func (cmv *consensusMessageValidator) CheckMessageWithBlockBodyValidity(cnsMsg *consensus.Message) error {
+	return cmv.checkMessageWithBlockBodyValidity(cnsMsg)
 }
 
-func (wrk *Worker) CheckMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.Message) error {
-	return wrk.checkMessageWithBlockBodyAndHeaderValidity(cnsMsg)
+func (cmv *consensusMessageValidator) CheckMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.Message) error {
+	return cmv.checkMessageWithBlockBodyAndHeaderValidity(cnsMsg)
 }
 
-func (wrk *Worker) CheckConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
-	return wrk.checkConsensusMessageValidityForMessageType(cnsMsg)
+func (cmv *consensusMessageValidator) CheckConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
+	return cmv.checkConsensusMessageValidityForMessageType(cnsMsg)
 }
 
-func (wrk *Worker) IsBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
-	return wrk.isBlockHeaderHashSizeValid(cnsMsg)
+func (cmv *consensusMessageValidator) IsBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	return cmv.isBlockHeaderHashSizeValid(cnsMsg)
+}
+
+func (cmv *consensusMessageValidator) AddMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {
+	cmv.addMessageTypeToPublicKey(pk, round, msgType)
+}
+
+func (cmv *consensusMessageValidator) IsMessageTypeLimitReached(pk []byte, round int64, msgType consensus.MessageType) bool {
+	return cmv.isMessageTypeLimitReached(pk, round, msgType)
+}
+
+func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte, round int64, msgType consensus.MessageType) uint32 {
+	cmv.mutPkConsensusMessages.RLock()
+	defer cmv.mutPkConsensusMessages.RUnlock()
+
+	key := fmt.Sprintf("%s_%d", string(pk), round)
+
+	mapMsgType, ok := cmv.mapPkConsensusMessages[key]
+	if !ok {
+		return uint32(0)
+	}
+
+	return mapMsgType[msgType]
+}
+
+func (cmv *consensusMessageValidator) ResetConsensusMessages() {
+	cmv.resetConsensusMessages()
 }
