@@ -678,10 +678,6 @@ func prepareGenesisBlock(args *processComponentsFactoryArgs, genesisBlocks map[u
 }
 
 func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
-	if args.indexer.IsNilIndexer() {
-		return nil
-	}
-
 	// In Elastic Indexer, only index the metachain block
 	genesisBlockHeader := genesisBlocks[core.MetachainShardId]
 	genesisBlockHash, err := core.CalculateHash(args.coreData.InternalMarshalizer, args.coreData.Hasher, genesisBlockHeader)
@@ -689,8 +685,10 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 		return err
 	}
 
-	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+	if !args.indexer.IsNilIndexer() {
+		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
+		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
 	var shardID uint32
