@@ -207,7 +207,7 @@ func (s *stakingAuctionSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.R
 
 	err = verifyBLSPublicKeys(registrationData, args.Arguments)
 	if err != nil {
-		s.eei.AddReturnMessage("could not get all blsKeys from registration data: " + vm.ErrBLSPublicKeyMissmatch.Error())
+		s.eei.AddReturnMessage("could not get all blsKeys from registration data: error " + vm.ErrBLSPublicKeyMissmatch.Error())
 		return vmcommon.UserError
 	}
 

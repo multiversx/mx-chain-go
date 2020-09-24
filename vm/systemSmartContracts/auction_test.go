@@ -2018,9 +2018,13 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 
 	eei := &mock.SystemEIStub{}
 	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
-		return &mock.BlockChainHookStub{CurrentEpochCalled: func() uint32 {
-			return 100
-		}}
+		return &mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 100
+			},
+			CurrentNonceCalled: func() uint64 {
+				return 100
+			}}
 	}
 	args := createMockArgumentsForAuction()
 	args.StakingSCConfig.StakeEnableEpoch = eei.BlockChainHook().CurrentEpoch() + uint32(1)
