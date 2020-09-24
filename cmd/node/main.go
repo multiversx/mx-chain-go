@@ -20,29 +20,39 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/accumulator"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	processFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/ElrondNetwork/elrond-go/process/smartContract"
+	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
+	"github.com/ElrondNetwork/elrond-go/update"
+	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
@@ -768,7 +778,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
 
-		hardForkTrigger, err := mainFactory.CreateHardForkTrigger(
+		hardForkTrigger, err := createHardForkTrigger(
 			cfgs.generalConfig,
 			shardCoordinator,
 			nodesCoordinator,
@@ -802,7 +812,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating node structure")
-		currentNode, err := mainFactory.CreateNode(
+		currentNode, err := createNode(
 			cfgs.generalConfig,
 			cfgs.preferencesConfig,
 			nodesSetup,
@@ -1157,6 +1167,236 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
+func getConsensusGroupSize(nodesConfig mainFactory.NodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		return nodesConfig.GetMetaConsensusGroupSize(), nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.GetShardConsensusGroupSize(), nil
+	}
+
+	return 0, state.ErrUnknownShardId
+}
+
+func createHardForkTrigger(
+	config *config.Config,
+	shardCoordinator sharding.Coordinator,
+	nodesCoordinator sharding.NodesCoordinator,
+	coreData mainFactory.CoreComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	data mainFactory.DataComponentsHolder,
+	crypto mainFactory.CryptoComponentsHolder,
+	process mainFactory.ProcessComponentsHolder,
+	network mainFactory.NetworkComponentsHolder,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	epochNotifier factory.EpochStartNotifier,
+	importStartHandler update.ImportStartHandler,
+	nodesSetup update.GenesisNodesSetupHandler,
+	workingDir string,
+) (node.HardforkTrigger, error) {
+
+	selfPubKeyBytes := crypto.PublicKeyBytes()
+	triggerPubKeyBytes, err := coreData.ValidatorPubKeyConverter().Decode(config.Hardfork.PublicKeyToListenFrom)
+	if err != nil {
+		return nil, fmt.Errorf("%w while decoding HardforkConfig.PublicKeyToListenFrom", err)
+	}
+
+	accountsDBs := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDBs[state.UserAccountsState] = stateComponents.AccountsAdapter()
+	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
+	hardForkConfig := config.Hardfork
+	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
+	argsExporter := exportFactory.ArgsExporter{
+		CoreComponents:           coreData,
+		CryptoComponents:         crypto,
+		HeaderValidator:          process.HeaderConstructionValidator(),
+		DataPool:                 data.Datapool(),
+		StorageService:           data.StorageService(),
+		RequestHandler:           process.RequestHandler(),
+		ShardCoordinator:         shardCoordinator,
+		Messenger:                network.NetworkMessenger(),
+		ActiveAccountsDBs:        accountsDBs,
+		ExistingResolvers:        process.ResolversFinder(),
+		ExportFolder:             exportFolder,
+		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		InterceptorsContainer:    process.InterceptorsContainer(),
+		NodesCoordinator:         nodesCoordinator,
+		HeaderSigVerifier:        process.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier(),
+		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		InputAntifloodHandler:    network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
+		ValidityAttester:         process.BlockTracker(),
+		Rounder:                  process.Rounder(),
+		GenesisNodesSetupHandler: nodesSetup,
+	}
+	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
+	if err != nil {
+		return nil, err
+	}
+
+	atArgumentParser := smartContract.NewArgumentParser()
+	argTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:        triggerPubKeyBytes,
+		SelfPubKeyBytes:           selfPubKeyBytes,
+		Enabled:                   config.Hardfork.EnableTrigger,
+		EnabledAuthenticated:      config.Hardfork.EnableTriggerFromP2P,
+		ArgumentParser:            atArgumentParser,
+		EpochProvider:             process.EpochStartTrigger(),
+		ExportFactoryHandler:      hardForkExportFactory,
+		ChanStopNodeProcess:       chanStopNodeProcess,
+		EpochConfirmedNotifier:    epochNotifier,
+		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
+		ImportStartHandler:        importStartHandler,
+	}
+	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	return hardforkTrigger, nil
+}
+
+func createNode(
+	config *config.Config,
+	preferencesConfig *config.Preferences,
+	nodesConfig mainFactory.NodesSetupHandler,
+	bootstrapComponents mainFactory.BootstrapComponentsHandler,
+	coreComponents mainFactory.CoreComponentsHandler,
+	cryptoComponents mainFactory.CryptoComponentsHandler,
+	dataComponents mainFactory.DataComponentsHandler,
+	networkComponents mainFactory.NetworkComponentsHandler,
+	processComponents mainFactory.ProcessComponentsHandler,
+	stateComponents mainFactory.StateComponentsHandler,
+	statusComponents mainFactory.StatusComponentsHandler,
+	bootstrapRoundIndex uint64,
+	version string,
+	requestedItemsHandler dataRetriever.RequestedItemsHandler,
+	whiteListRequest process.WhiteListHandler,
+	whiteListerVerifiedTxs process.WhiteListHandler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	hardForkTrigger node.HardforkTrigger,
+	historyRepository dblookupext.HistoryRepository,
+) (*node.Node, error) {
+	var err error
+	var consensusGroupSize uint32
+	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, processComponents.ShardCoordinator())
+	if err != nil {
+		return nil, err
+	}
+
+	var txAccumulator node.Accumulator
+	txAccumulatorConfig := config.Antiflood.TxAccumulator
+	txAccumulator, err = accumulator.NewTimeAccumulator(
+		time.Duration(txAccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(txAccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
+
+	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.PeerShardMapper(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	genesisTime := time.Unix(nodesConfig.GetStartTime(), 0)
+	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+		Config:            *config,
+		Prefs:             *preferencesConfig,
+		AppVersion:        version,
+		GenesisTime:       genesisTime,
+		HardforkTrigger:   hardForkTrigger,
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
+		NetworkComponents: networkComponents,
+		CryptoComponents:  cryptoComponents,
+		ProcessComponents: processComponents,
+	}
+
+	heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
+	}
+
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedHeartbeatComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	var nd *node.Node
+	nd, err = node.NewNode(
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithStatusComponents(statusComponents),
+		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
+		node.WithRoundDuration(nodesConfig.GetRoundDuration()),
+		node.WithConsensusGroupSize(int(consensusGroupSize)),
+		node.WithGenesisTime(genesisTime),
+		node.WithConsensusType(config.Consensus.Type),
+		node.WithBootstrapRoundIndex(bootstrapRoundIndex),
+		node.WithPeerDenialEvaluator(peerDenialEvaluator),
+		node.WithRequestedItemsHandler(requestedItemsHandler),
+		node.WithTxAccumulator(txAccumulator),
+		node.WithHardforkTrigger(hardForkTrigger),
+		node.WithWhiteListHandler(whiteListRequest),
+		node.WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
+		node.WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
+		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
+		node.WithNodeStopChannel(chanStopNodeProcess),
+		node.WithHistoryRepository(historyRepository),
+	)
+	if err != nil {
+		return nil, errors.New("error creating node: " + err.Error())
+	}
+
+	if processComponents.ShardCoordinator().SelfId() < processComponents.ShardCoordinator().NumberOfShards() {
+		err = nd.CreateShardedStores()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = nodeDebugFactory.CreateInterceptedDebugHandler(
+		nd,
+		processComponents.InterceptorsContainer(),
+		processComponents.ResolversFinder(),
+		config.Debug.InterceptorResolver,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return nd, nil
+}
+
 func initStatsFileMonitor(
 	config *config.Config,
 	pathManager storage.PathManagerHandler,
@@ -1324,4 +1564,20 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 		configurationPreferencesFileName: configurationPreferencesFileName,
 		p2pConfigurationFileName:         p2pConfigurationFileName,
 	}, nil
+}
+
+// prepareOpenTopics will set to the anti flood handler the topics for which
+// the node can receive messages from others than validators
+func prepareOpenTopics(
+	antiflood mainFactory.P2PAntifloodHandler,
+	shardCoordinator sharding.Coordinator,
+) {
+	selfID := shardCoordinator.SelfId()
+	if selfID == core.MetachainShardId {
+		antiflood.SetTopicsForAll(core.HeartbeatTopic)
+		return
+	}
+
+	selfShardTxTopic := processFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }
