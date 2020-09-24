@@ -581,6 +581,10 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 }
 
 func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+	if indexer.IsNilIndexer() {
+		return nil
+	}
+
 	rootHash, err := accountsAdapter.RootHash()
 	if err != nil {
 		return err
