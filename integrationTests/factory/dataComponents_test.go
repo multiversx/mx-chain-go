@@ -27,7 +27,9 @@ func TestDataComponents_Create_ShouldWork(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	nrBefore := runtime.NumGoroutine()
 
-	dataComponents, err := createDataComponents(*generalConfig, *economicsConfig, coreComponents)
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
+
+	dataComponents, err := createDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, coreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, dataComponents)
 	time.Sleep(2 * time.Second)
@@ -43,9 +45,12 @@ func TestDataComponents_Create_ShouldWork(t *testing.T) {
 	require.Equal(t, nrBefore, nrAfter)
 }
 
-func createDataComponents(genConfig config.Config, econConfig config.EconomicsConfig, coreComponents mainFactory.CoreComponentsHolder) (mainFactory.DataComponentsHandler, error) {
-	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-
+func createDataComponents(
+	genConfig config.Config,
+	econConfig config.EconomicsConfig,
+	epochStartNotifier mainFactory.EpochStartNotifier,
+	coreComponents mainFactory.CoreComponentsHolder,
+) (mainFactory.DataComponentsHandler, error) {
 	currentEpoch := uint32(0)
 
 	economicsData, err := economics.NewEconomicsData(&econConfig)
