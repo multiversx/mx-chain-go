@@ -1274,9 +1274,8 @@ func (sc *scProcessor) updateSmartContractCode(
 		return
 	}
 
-	transactionSender := tx.GetSndAddr()
 	currentOwner := stateAccount.GetOwnerAddress()
-	isSenderOwner := bytes.Equal(currentOwner, transactionSender)
+	isCodeDeployerOwner := bytes.Equal(currentOwner, outputAccount.CodeDeployerAddress)
 
 	noExistingCode := len(stateAccount.GetCode()) == 0
 	noExistingOwner := len(currentOwner) == 0
@@ -1284,10 +1283,11 @@ func (sc *scProcessor) updateSmartContractCode(
 	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccount.CodeMetadata)
 	isUpgradeable := currentCodeMetadata.Upgradeable
 	isDeployment := noExistingCode && noExistingOwner
-	isUpgrade := !isDeployment && isSenderOwner && isUpgradeable
+	isUpgrade := !isDeployment && isCodeDeployerOwner && isUpgradeable
 
 	if isDeployment {
-		stateAccount.SetOwnerAddress(transactionSender)
+		// At this point, we are under the condition "noExistingOwner"
+		stateAccount.SetOwnerAddress(outputAccount.CodeDeployerAddress)
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Info("updateSmartContractCode(): created", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
