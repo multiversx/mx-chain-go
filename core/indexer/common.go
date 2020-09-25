@@ -446,7 +446,6 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 func getTemplateByIndex(index string) *bytes.Buffer {
 	indexTemplate := &bytes.Buffer{}
 
-	// TODO: (maybe) un-do this code before merging. for some reason, in local tests, the older version did not work
 	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -457,7 +456,7 @@ func getTemplateByIndex(index string) *bytes.Buffer {
 	indexTemplate.Grow(len(fileBytes))
 	_, err = indexTemplate.Write(fileBytes)
 	if err != nil {
-		log.Error("cannot write bytes to buffer", "err", err)
+		log.Error("getTemplateByIndex: cannot write bytes to buffer", "err", err)
 		return &bytes.Buffer{}
 	}
 
@@ -466,7 +465,20 @@ func getTemplateByIndex(index string) *bytes.Buffer {
 
 func getPolicyByIndex(index string) *bytes.Buffer {
 	indexPolicy := &bytes.Buffer{}
-	_ = core.LoadJsonFile(&indexPolicy, "./config/elasticIndexTemplates/"+index+"_policy.json")
+
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic policy file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexPolicy.Grow(len(fileBytes))
+	_, err = indexPolicy.Write(fileBytes)
+	if err != nil {
+		log.Error("getPolicyByIndex: cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
 
 	return indexPolicy
 }

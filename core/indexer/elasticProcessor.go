@@ -145,7 +145,7 @@ func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.
 		if indexPolicy != nil {
 			err := ei.elasticClient.CheckAndCreatePolicy(indexPolicyName, indexPolicy)
 			if err != nil {
-				log.Error("cehck and create policy", "err", err)
+				log.Error("check and create policy", "policy", indexPolicy, "err", err)
 				return err
 			}
 		}
