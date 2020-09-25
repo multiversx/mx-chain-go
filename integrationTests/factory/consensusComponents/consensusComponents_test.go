@@ -1,22 +1,22 @@
-package factory
+package consensusComponents
 
 // ------------ Test TestConsensusComponents --------------------
 //func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 //	t.Skip()
-//	generalConfig, _ := core.LoadMainConfig(configPath)
-//	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
-//	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)
-//	prefsConfig, _ := core.LoadPreferencesConfig(prefsPath)
-//	p2pConfig, _ := core.LoadP2PConfig(p2pPath)
-//	externalConfig, _ := core.LoadExternalConfig(externalPath)
-//	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(systemSCConfigPath)
+//	generalConfig, _ := core.LoadMainConfig(ConfigPath)
+//	ratingsConfig, _ := core.LoadRatingsConfig(RatingsPath)
+//	economicsConfig, _ := core.LoadEconomicsConfig(EconomicsPath)
+//	prefsConfig, _ := core.LoadPreferencesConfig(PrefsPath)
+//	p2pConfig, _ := core.LoadP2PConfig(P2pPath)
+//	externalConfig, _ := core.LoadExternalConfig(ExternalPath)
+//	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(SystemSCConfigPath)
 //
 //	nrBefore := runtime.NumGoroutine()
-//	printStack()
+//	PrintStack()
 //
-//	managedCoreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
-//	managedCryptoComponents, _ := createCryptoComponents(*generalConfig, *systemSCConfig, managedCoreComponents)
-//	managedNetworkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, managedCoreComponents)
+//	managedCoreComponents, _ := CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+//	managedCryptoComponents, _ := CreateCryptoComponents(*generalConfig, *systemSCConfig, managedCoreComponents)
+//	managedNetworkComponents, _ := CreateNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, managedCoreComponents)
 //	managedBootstrapComponents, _ := createBootstrapComponents(
 //		*generalConfig,
 //		prefsConfig.Preferences,
@@ -24,7 +24,7 @@ package factory
 //		managedCryptoComponents,
 //		managedNetworkComponents)
 //	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-//	managedDataComponents, _ := createDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, managedCoreComponents)
+//	managedDataComponents, _ := CreateDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, managedCoreComponents)
 //	time.Sleep(2 * time.Second)
 //
 //	nodesSetup := managedCoreComponents.GenesisNodesSetup()
@@ -171,7 +171,7 @@ package factory
 //		managedCoreComponents.Uint64ByteSliceConverter(),
 //		genesisShardCoordinator,
 //		managedCoreComponents.StatusHandlerUtils().Metrics(),
-//		gasSchedule,
+//		GasSchedule,
 //		economicsData,
 //		managedCryptoComponents.MessageSignVerifier(),
 //		nodesSetup,
@@ -254,7 +254,7 @@ package factory
 //
 //	nrAfter := runtime.NumGoroutine()
 //	if nrBefore != nrAfter {
-//		printStack()
+//		PrintStack()
 //	}
 //
 //	require.Equal(t, nrBefore, nrAfter)

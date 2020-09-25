@@ -973,8 +973,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 			log.Error("Remaining goroutines", "num", runtime.NumGoroutine)
 			log.Warn(buffer.String())
-
-			panic("test")
 		} else {
 			break
 		}
