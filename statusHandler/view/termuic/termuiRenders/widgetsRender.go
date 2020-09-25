@@ -339,20 +339,20 @@ func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
 }
 
 func fitStringToWidth(original string, maxWidth int) string {
-	suffixDots := "..."
-	numPadding := 2
+	suffixString := "..."
+	numExtraPadding := 2
 
-	if len(original)+numPadding < maxWidth {
+	if len(original)+numExtraPadding < maxWidth {
 		return original
 	}
 
-	nothingToShow := maxWidth <= len(suffixDots)+numPadding ||
-		len(original)-len(suffixDots)-numPadding < 0
+	nothingToShow := maxWidth <= len(suffixString)+numExtraPadding ||
+		len(original)-len(suffixString)-numExtraPadding < 0
 	if nothingToShow {
 		return ""
 	}
 
-	return original[:maxWidth-len(suffixDots)-numPadding] + "..."
+	return original[:maxWidth-len(suffixString)-numExtraPadding] + suffixString
 }
 
 func (wr *WidgetsRender) prepareLoads() {
