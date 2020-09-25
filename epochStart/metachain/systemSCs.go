@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -28,6 +29,9 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
+
+	SwitchJailWaitingEnableEpoch uint32
+	EpochNotifier                process.EpochNotifier
 }
 
 type systemSCProcessor struct {
@@ -40,6 +44,8 @@ type systemSCProcessor struct {
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
 	endOfEpochCallerAddress []byte
 	stakingSCAddress        []byte
+	switchEnableEpoch       uint32
+	flagSwitchEnabled       atomic.Flag
 
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
@@ -91,8 +97,11 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.ChanceComputer) {
 		return nil, epochStart.ErrNilChanceComputer
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, epochStart.ErrNilEpochStartNotifier
+	}
 
-	return &systemSCProcessor{
+	s := &systemSCProcessor{
 		systemVM:                 args.SystemVM,
 		userAccountsDB:           args.UserAccountsDB,
 		peerAccountsDB:           args.PeerAccountsDB,
@@ -104,11 +113,19 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		chanceComputer:           args.ChanceComputer,
 		mapNumSwitchedPerShard:   make(map[uint32]uint32),
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
-	}, nil
+		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
+	}
+
+	args.EpochNotifier.RegisterNotifyHandler(s)
+	return s, nil
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	if !s.flagSwitchEnabled.IsSet() {
+		return nil
+	}
+
 	err := s.computeNumWaitingPerShard(validatorInfos)
 	if err != nil {
 		return err
@@ -218,7 +235,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	var stakingData systemSmartContracts.StakedData
+	var stakingData systemSmartContracts.StakedDataV2
 	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
 		return nil, err
@@ -390,4 +407,10 @@ func (s *systemSCProcessor) getPeerAccount(key []byte) (state.PeerAccountHandler
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
+	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 }

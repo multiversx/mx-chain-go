@@ -12,6 +12,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -38,6 +39,9 @@ type stakingSC struct {
 	minNumNodes              uint64
 	maxNumNodes              uint64
 	marshalizer              marshal.Marshalizer
+	enableStakingEpoch       uint32
+	stakeValue               *big.Int
+	flagStake                atomic.Flag
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -50,6 +54,7 @@ type ArgsNewStakingSmartContract struct {
 	EndOfEpochAccessAddr []byte
 	GasCost              vm.GasCost
 	Marshalizer          marshal.Marshalizer
+	EpochNotifier        vm.EpochNotifier
 }
 
 // NewStakingSmartContract creates a staking smart contract
@@ -83,6 +88,9 @@ func NewStakingSmartContract(
 	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
 		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
+	}
 
 	reg := &stakingSC{
 		eei:                      args.Eei,
@@ -97,7 +105,16 @@ func NewStakingSmartContract(
 		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
+		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
 	}
+
+	conversionOk := true
+	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
+		return nil, vm.ErrNegativeInitialStakeValue
+	}
+
+	args.EpochNotifier.RegisterNotifyHandler(reg)
 
 	return reg, nil
 }
@@ -145,6 +162,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getBLSKeyStatus(args)
 	case "getRemainingUnBondPeriod":
 		return r.getRemainingUnbondPeriod(args)
+	case "getWaitingListRegisterNonceAndRewardAddress":
+		return r.getWaitingListRegisterNonceAndRewardAddress(args)
 	}
 
 	return vmcommon.UserError
@@ -292,7 +311,41 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+
+	for _, argument := range args.Arguments {
+		stakedData, err := r.getOrCreateRegisteredData(argument)
+		if err != nil {
+			r.eei.AddReturnMessage("cannot get or created registered data: error " + err.Error())
+			return vmcommon.UserError
+		}
+		if len(stakedData.RewardAddress) == 0 {
+			r.eei.AddReturnMessage("cannot unJail a key that is not registered")
+			return vmcommon.UserError
+		}
+
+		stakedData.JailedRound = math.MaxUint64
+		stakedData.UnJailedNonce = r.eei.BlockChainHook().CurrentNonce()
+
+		err = r.saveStakingData(argument, stakedData)
+		if err != nil {
+			r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
+}
+
 func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !r.flagStake.IsSet() {
+		return r.unJailV1(args)
+	}
+
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
@@ -334,8 +387,8 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
-	registrationData := &StakedData{
+func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2, error) {
+	registrationData := &StakedDataV2{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -366,8 +419,40 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedData, error) {
 	return registrationData, nil
 }
 
-func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedData) error {
+func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2) error {
+	if !r.flagStake.IsSet() {
+		return r.saveAsStakingDataV1(key, stakedData)
+	}
+
 	data, err := r.marshalizer.Marshal(stakedData)
+	if err != nil {
+		log.Debug("marshal error on staking SC stake function ",
+			"error", err.Error(),
+		)
+		return err
+	}
+
+	r.eei.SetStorage(key, data)
+	return nil
+}
+
+func (r *stakingSC) saveAsStakingDataV1(key []byte, stakedData *StakedDataV2) error {
+	stakedDataV1 := &StakedDataV1{
+		RegisterNonce: stakedData.RegisterNonce,
+		StakedNonce:   stakedData.StakedNonce,
+		Staked:        stakedData.Staked,
+		UnStakedNonce: stakedData.UnStakedNonce,
+		UnStakedEpoch: stakedData.UnStakedEpoch,
+		RewardAddress: stakedData.RewardAddress,
+		StakeValue:    stakedData.StakeValue,
+		JailedRound:   stakedData.JailedRound,
+		JailedNonce:   stakedData.JailedNonce,
+		UnJailedNonce: stakedData.UnJailedNonce,
+		Jailed:        stakedData.Jailed,
+		Waiting:       stakedData.Waiting,
+	}
+
+	data, err := r.marshalizer.Marshal(stakedDataV1)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function ",
 			"error", err.Error(),
@@ -437,6 +522,11 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	r.setConfig(stakeConfig)
 
+	epoch := r.eei.BlockChainHook().CurrentEpoch()
+	epochData := fmt.Sprintf("epoch_%d", epoch)
+
+	r.eei.SetStorage([]byte(epochData), r.stakeValue.Bytes())
+
 	return vmcommon.Ok
 }
 
@@ -461,6 +551,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	}
 
 	registrationData.RewardAddress = args.Arguments[1]
+	registrationData.StakeValue.Set(r.stakeValue)
 	if !onlyRegister {
 		err = r.processStake(args.Arguments[0], registrationData, false)
 		if err != nil {
@@ -477,11 +568,12 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, addFirst bool) error {
+func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2, addFirst bool) error {
 	if registrationData.Staked {
 		return nil
 	}
 
+	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	if !r.canStake() {
 		r.eei.AddReturnMessage(fmt.Sprintf("staking is full key put into waiting list %s", hex.EncodeToString(blsKey)))
 		err := r.addToWaitingList(blsKey, addFirst)
@@ -497,7 +589,6 @@ func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedData, ad
 	r.addToStakedNodes()
 	registrationData.Staked = true
 	registrationData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
-	registrationData.RegisterNonce = r.eei.BlockChainHook().CurrentNonce()
 	registrationData.UnStakedEpoch = core.DefaultUnstakedEpoch
 	registrationData.UnStakedNonce = 0
 
@@ -726,7 +817,7 @@ func (r *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1065,7 +1156,7 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedData, blsKey []byte) bool {
+func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2, blsKey []byte) bool {
 	return registrationData.Jailed || r.eei.CanUnJail(blsKey) || r.eei.IsBadRating(blsKey)
 }
 
@@ -1078,14 +1169,9 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		r.eei.AddReturnMessage("number of arguments must be equal to 1")
 		return vmcommon.UserError
 	}
-	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
-	if err != nil {
-		r.eei.AddReturnMessage("insufficient gas")
-		return vmcommon.OutOfGas
-	}
 
 	waitingElementKey := r.createWaitingListKey(args.Arguments[0])
-	_, err = r.getWaitingListElement(waitingElementKey)
+	_, err := r.getWaitingListElement(waitingElementKey)
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1112,12 +1198,12 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	index := 2
+	index := uint32(2)
 	nextKey := make([]byte, len(waitingElementKey))
 	copy(nextKey, prevElement.NextKey)
-	for len(nextKey) != 0 {
+	for len(nextKey) != 0 && index <= waitingListHead.Length {
 		if bytes.Equal(nextKey, waitingElementKey) {
-			r.eei.Finish([]byte(strconv.Itoa(index)))
+			r.eei.Finish([]byte(strconv.Itoa(int(index))))
 			return vmcommon.Ok
 		}
 
@@ -1137,7 +1223,7 @@ func (r *stakingSC) getWaitingListIndex(args *vmcommon.ContractCallInput) vmcomm
 
 func (r *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1159,7 +1245,7 @@ func (r *stakingSC) getWaitingListSize(args *vmcommon.ContractCallInput) vmcommo
 
 func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1172,7 +1258,7 @@ func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedData, vmcommon.ReturnCode) {
+func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedDataV2, vmcommon.ReturnCode) {
 	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		r.eei.AddReturnMessage("insufficient gas")
@@ -1197,7 +1283,7 @@ func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*St
 
 func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1211,7 +1297,7 @@ func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.Ok
 	}
 	if stakedData.Waiting {
-		r.eei.Finish([]byte("waiting"))
+		r.eei.Finish([]byte("queued"))
 		return vmcommon.Ok
 	}
 	if stakedData.Staked {
@@ -1225,7 +1311,7 @@ func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 
 func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		r.eei.AddReturnMessage("transaction value must be zero")
+		r.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
 
@@ -1248,6 +1334,58 @@ func (r *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	}
 
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("this is only a view function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		r.eei.AddReturnMessage("number of arguments must be equal to 0")
+		return vmcommon.UserError
+	}
+
+	waitingListHead, err := r.getWaitingListHead()
+	if err != nil {
+		r.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if waitingListHead.Length == 0 {
+		r.eei.AddReturnMessage("no one in waitingList")
+		return vmcommon.UserError
+	}
+
+	index := uint32(1)
+	nextKey := make([]byte, len(waitingListHead.FirstKey))
+	copy(nextKey, waitingListHead.FirstKey)
+	for len(nextKey) != 0 && index <= waitingListHead.Length {
+		element, err := r.getWaitingListElement(nextKey)
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		stakedData, err := r.getOrCreateRegisteredData(element.BLSPublicKey)
+		if err != nil {
+			r.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		r.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
+		r.eei.Finish([]byte(strconv.Itoa(int(stakedData.RegisterNonce))))
+
+		index++
+		copy(nextKey, element.NextKey)
+	}
+
+	return vmcommon.Ok
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (r *stakingSC) EpochConfirmed(epoch uint32) {
+	r.flagStake.Toggle(epoch >= r.enableStakingEpoch)
+	log.Debug("stakingSC: stake/unstake/unbond", "enabled", r.flagStake.IsSet())
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

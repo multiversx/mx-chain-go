@@ -256,6 +256,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 	}
 
 	for _, nonce := range missingNonces {
+		bp.addHeaderIntoTrackerPool(nonce, shardId)
 		go bp.requestHeaderByShardAndNonce(shardId, nonce)
 	}
 
@@ -1223,5 +1224,18 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
+	}
+}
+
+func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) {
+	headersPool := bp.dataPool.Headers()
+	headers, hashes, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err != nil {
+		log.Trace("baseProcessor.addHeaderIntoTrackerPool", "error", err.Error())
+		return
+	}
+
+	for i := 0; i < len(headers); i++ {
+		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
 }
