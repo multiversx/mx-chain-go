@@ -11,7 +11,7 @@ type BlockTrackerHandlerMock struct {
 	ComputeCrossInfoCalled        func(headers []data.HeaderHandler)
 	ComputeLongestSelfChainCalled func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonceCalled    func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
-	RemoveHeaderFromPoolCalled    func(shardID uint32, nonce uint64)
+	AddHeaderFromPoolCalled       func(shardID uint32, nonce uint64)
 }
 
 // GetSelfHeaders -
@@ -48,10 +48,10 @@ func (bthm *BlockTrackerHandlerMock) SortHeadersFromNonce(shardID uint32, nonce 
 	return nil, nil
 }
 
-// RemoveHeaderFromPool -
-func (bthm *BlockTrackerHandlerMock) RemoveHeaderFromPool(shardID uint32, nonce uint64) {
-	if bthm.RemoveHeaderFromPoolCalled != nil {
-		bthm.RemoveHeaderFromPoolCalled(shardID, nonce)
+// AddHeaderFromPool -
+func (bthm *BlockTrackerHandlerMock) AddHeaderFromPool(shardID uint32, nonce uint64) {
+	if bthm.AddHeaderFromPoolCalled != nil {
+		bthm.AddHeaderFromPoolCalled(shardID, nonce)
 	}
 }
 

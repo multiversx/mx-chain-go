@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -291,6 +292,13 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 		return ErrInvalidIdentifier
 	}
 	identifier := data.TriePruningIdentifier(rootHash[lastBytePos])
+
+	sw := core.NewStopWatch()
+	sw.Start("removeFromDb")
+	defer func() {
+		sw.Stop("removeFromDb")
+		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
+	}()
 
 	var hash []byte
 	var shouldKeepHash bool
