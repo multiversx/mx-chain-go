@@ -89,13 +89,16 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
 	}
 	if check.IfNil(args.ArgumentsParser) {
-		return epochStart.ErrNilArgumentsParser
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilArgumentsParser)
 	}
 	if check.IfNil(args.StatusHandler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStatusHandler)
 	}
 	if check.IfNil(args.HeaderIntegrityVerifier) {
-		return epochStart.ErrNilHeaderIntegrityVerifier
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHeaderIntegrityVerifier)
+	}
+	if check.IfNil(args.CurrentNetworkEpochSetter) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilCurrentNetworkEpochSetter)
 	}
 
 	return nil

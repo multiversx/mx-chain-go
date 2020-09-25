@@ -22,9 +22,8 @@ func NewCurrentNetworkEpochProvider(numActivePersisters int) *currentNetworkEpoc
 
 // SetCurrentEpoch will update the component's current epoch
 func (cnrp *currentNetworkEpochProvider) SetCurrentEpoch(epoch uint32) {
-	// TODO: analyze where to call this from. For now, the only solution seems to be by requesting
-	// the last epoch start metablock from network. Analyze if a mechanism similar to epoch bootstrapper
-	// is needed, so a consensus has to be made over the received meta block. This may be slow.
+	// TODO: analyze where to call this from. For now, it is only called from epoch start bootstrapper so the value will
+	// be accurate only when the node starts
 	cnrp.mutCurrentEpoch.Lock()
 	cnrp.currentEpoch = epoch
 	cnrp.mutCurrentEpoch.Unlock()

@@ -105,6 +105,7 @@ type epochStartBootstrap struct {
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
+	currentNetworkEpochSetter  CurrentNetworkEpochSetter
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -174,6 +175,7 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
+	CurrentNetworkEpochSetter  CurrentNetworkEpochSetter
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -215,6 +217,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
+		currentNetworkEpochSetter:  args.CurrentNetworkEpochSetter,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -314,6 +317,18 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		log.Warn("fast bootstrap is disabled")
 
+		err := e.initEpochStartMetaBlockSyncer()
+		if err != nil {
+			return Parameters{}, nil
+		}
+
+		epochStartMb, err := e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
+		if err != nil {
+			return Parameters{}, nil
+		}
+
+		e.currentNetworkEpochSetter.SetCurrentEpoch(epochStartMb.Epoch)
+
 		e.initializeFromLocalStorage()
 		if !e.baseData.storageExists {
 			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
@@ -388,6 +403,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		parameters, errPrepare := e.prepareEpochFromStorage()
 		if errPrepare == nil {
+			e.currentNetworkEpochSetter.SetCurrentEpoch(parameters.Epoch)
 			return parameters, nil
 		}
 
@@ -410,6 +426,8 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 	e.setEpochStartMetrics()
+
+	e.currentNetworkEpochSetter.SetCurrentEpoch(e.epochStartMeta.Epoch)
 
 	err = e.createSyncers()
 	if err != nil {
@@ -453,6 +471,10 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	return e.initEpochStartMetaBlockSyncer()
+}
+
+func (e *epochStartBootstrap) initEpochStartMetaBlockSyncer() error {
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		RequestHandler:          e.requestHandler,
 		Messenger:               e.messenger,
@@ -472,6 +494,8 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
+
+	var err error
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err

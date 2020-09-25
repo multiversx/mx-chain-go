@@ -42,6 +42,7 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -962,6 +963,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	// TODO: use this where it is needed
+	currentNetworkEpochProvider := epochproviders.NewCurrentNetworkEpochProvider(int(generalConfig.StoragePruning.NumActivePersisters))
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -992,6 +996,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		CurrentNetworkEpochSetter:  currentNetworkEpochProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
