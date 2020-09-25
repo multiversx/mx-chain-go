@@ -7,6 +7,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,53 +50,19 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	dataComponents, _ := createDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, coreComponents)
 	time.Sleep(2 * time.Second)
 
-	log := logger.GetOrCreate("test")
-
 	nodesSetup := coreComponents.GenesisNodesSetup()
-
-	genesisShardCoordinator, _, _ := mainFactory.CreateShardCoordinator(
-		nodesSetup,
-		cryptoComponents.PublicKey(),
-		prefsConfig.Preferences,
-		log,
-	)
-	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   *ratingsConfig,
-		ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
-		MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
-		ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
-		MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
-		RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
-	}
-
-	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
-	rater, _ := rating.NewBlockSigningRater(ratingsData)
-
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		nodesSetup.MinNumberOfShardNodes(),
-		nodesSetup.MinNumberOfMetaNodes(),
-		nodesSetup.GetHysteresis(),
-		nodesSetup.GetAdaptivity(),
-		true,
-	)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
-	nodesCoordinator, _, _ := mainFactory.CreateNodesCoordinator(
-		log,
+	genesisShardCoordinator, nodesCoordinator, _, _, _ := createCoordinators(
+		generalConfig,
+		prefsConfig,
+		ratingsConfig,
 		nodesSetup,
-		prefsConfig.Preferences,
 		epochStartNotifier,
-		cryptoComponents.PublicKey(),
-		coreComponents.InternalMarshalizer(),
-		coreComponents.Hasher(),
-		rater,
-		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-		nodesShuffler,
-		generalConfig.EpochStartConfig,
-		genesisShardCoordinator.SelfId(),
 		chanStopNodeProcess,
-		bootstrapComponents.EpochBootstrapParams(),
-		bootstrapComponents.EpochBootstrapParams().Epoch(),
-	)
+		coreComponents,
+		cryptoComponents,
+		dataComponents,
+		bootstrapComponents)
 
 	statusComponents, err := createStatusComponents(
 		*generalConfig,
@@ -127,6 +95,66 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
+}
+
+func createCoordinators(
+	generalConfig *config.Config,
+	prefsConfig *config.Preferences,
+	ratingsConfig *config.RatingsConfig,
+	nodesSetup mainFactory.NodesSetupHandler,
+	epochStartNotifier factory.EpochStartNotifier,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	coreComponents mainFactory.CoreComponentsHandler,
+	cryptoComponents mainFactory.CryptoComponentsHandler,
+	dataComponents mainFactory.DataComponentsHandler,
+	bootstrapComponents mainFactory.BootstrapComponentsHandler,
+) (sharding.Coordinator, sharding.NodesCoordinator, update.Closer, *rating.RatingsData, sharding.PeerAccountListAndRatingHandler) {
+	log := logger.GetOrCreate("test")
+
+	genesisShardCoordinator, _, _ := mainFactory.CreateShardCoordinator(
+		nodesSetup,
+		cryptoComponents.PublicKey(),
+		prefsConfig.Preferences,
+		log,
+	)
+	ratingDataArgs := rating.RatingsDataArg{
+		Config:                   *ratingsConfig,
+		ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
+		MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
+		ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
+		MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
+		RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
+	}
+
+	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
+	rater, _ := rating.NewBlockSigningRater(ratingsData)
+
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
+		nodesSetup.MinNumberOfShardNodes(),
+		nodesSetup.MinNumberOfMetaNodes(),
+		nodesSetup.GetHysteresis(),
+		nodesSetup.GetAdaptivity(),
+		true,
+	)
+
+	nodesCoordinator, nodesShufflerOut, _ := mainFactory.CreateNodesCoordinator(
+		log,
+		nodesSetup,
+		prefsConfig.Preferences,
+		epochStartNotifier,
+		cryptoComponents.PublicKey(),
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+		rater,
+		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		nodesShuffler,
+		generalConfig.EpochStartConfig,
+		genesisShardCoordinator.SelfId(),
+		chanStopNodeProcess,
+		bootstrapComponents.EpochBootstrapParams(),
+		bootstrapComponents.EpochBootstrapParams().Epoch(),
+	)
+	return genesisShardCoordinator, nodesCoordinator, nodesShufflerOut, ratingsData, rater
 }
 
 func createStatusComponents(

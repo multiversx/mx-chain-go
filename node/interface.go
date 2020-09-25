@@ -49,13 +49,6 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Accumulator defines the interface able to accumulate data and periodically evict them
-type Accumulator interface {
-	AddData(data interface{})
-	OutputChannel() <-chan []interface{}
-	IsInterfaceNil() bool
-}
-
 // HardforkTrigger defines the behavior of a hardfork trigger
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)

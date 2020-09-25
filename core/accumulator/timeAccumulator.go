@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/node"
 )
 
-var _ node.Accumulator = (*timeAccumulator)(nil)
+var _ core.Accumulator = (*timeAccumulator)(nil)
 
 const minimumAlowedTime = time.Millisecond * 10
 

@@ -7,13 +7,11 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
@@ -32,7 +30,7 @@ import (
 
 // ------------ Test TestProcessComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
-	t.Skip()
+	//t.Skip()
 
 	generalConfig, _ := core.LoadMainConfig(configPath)
 	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
@@ -45,8 +43,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	nrBefore := runtime.NumGoroutine()
 	printStack()
 
-	log := logger.GetOrCreate("test")
-
 	managedCoreComponents, _ := createCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
 	managedCryptoComponents, _ := createCryptoComponents(*generalConfig, *systemSCConfig, managedCoreComponents)
 	managedNetworkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, managedCoreComponents)
@@ -58,53 +54,10 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedNetworkComponents)
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	managedDataComponents, _ := createDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, managedCoreComponents)
-
 	managedStateComponents, _ := createStateComponents(*generalConfig, managedCoreComponents, managedBootstrapComponents)
-
 	nodesSetup := managedCoreComponents.GenesisNodesSetup()
-	genesisShardCoordinator, _, _ := factory.CreateShardCoordinator(
-		nodesSetup,
-		managedCryptoComponents.PublicKey(),
-		prefsConfig.Preferences,
-		log,
-	)
-	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   *ratingsConfig,
-		ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
-		MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
-		ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
-		MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
-		RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
-	}
-
-	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
-	rater, _ := rating.NewBlockSigningRater(ratingsData)
-
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		nodesSetup.MinNumberOfShardNodes(),
-		nodesSetup.MinNumberOfMetaNodes(),
-		nodesSetup.GetHysteresis(),
-		nodesSetup.GetAdaptivity(),
-		true,
-	)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
-	nodesCoordinator, _, _ := factory.CreateNodesCoordinator(
-		log,
-		nodesSetup,
-		prefsConfig.Preferences,
-		epochStartNotifier,
-		managedCryptoComponents.PublicKey(),
-		managedCoreComponents.InternalMarshalizer(),
-		managedCoreComponents.Hasher(),
-		rater,
-		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-		nodesShuffler,
-		generalConfig.EpochStartConfig,
-		genesisShardCoordinator.SelfId(),
-		chanStopNodeProcess,
-		managedBootstrapComponents.EpochBootstrapParams(),
-		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
-	)
+	genesisShardCoordinator, nodesCoordinator, _, ratingsData, rater := createCoordinators(generalConfig, prefsConfig, ratingsConfig, nodesSetup, epochStartNotifier, chanStopNodeProcess, managedCoreComponents, managedCryptoComponents, managedDataComponents, managedBootstrapComponents)
 
 	managedStatusComponents, err := createStatusComponents(
 		*generalConfig,
@@ -117,13 +70,68 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedNetworkComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedStatusComponents)
+	require.Nil(t, err)
+	require.NotNil(t, managedStatusComponents)
 
 	time.Sleep(5 * time.Second)
 
+	managedProcessComponents, err := createProcessComponents(
+		generalConfig,
+		economicsConfig,
+		ratingsConfig,
+		systemSCConfig,
+		nodesSetup,
+		nodesCoordinator,
+		epochStartNotifier,
+		genesisShardCoordinator,
+		ratingsData,
+		rater,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedDataComponents,
+		managedStateComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedStatusComponents,
+		chanStopNodeProcess)
+	require.Nil(t, err)
+
+	time.Sleep(5 * time.Second)
+
+	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.StartPolling()
+
+	time.Sleep(5 * time.Second)
+
+	err = managedProcessComponents.Close()
+
+	time.Sleep(5 * time.Second)
+
+	_ = managedStatusComponents.Close()
+	_ = managedStateComponents.Close()
+	_ = managedDataComponents.Close()
+	_ = managedBootstrapComponents.Close()
+	_ = managedNetworkComponents.Close()
+	_ = managedCryptoComponents.Close()
+	_ = managedCoreComponents.Close()
+
+	time.Sleep(5 * time.Second)
+
+	nrAfter := runtime.NumGoroutine()
+	if nrBefore != nrAfter {
+		printStack()
+	}
+
+	require.Equal(t, nrBefore, nrAfter)
+}
+
+func createProcessComponents(generalConfig *config.Config, economicsConfig *config.EconomicsConfig, ratingsConfig *config.RatingsConfig, systemSCConfig *config.SystemSmartContractsConfig, nodesSetup factory.NodesSetupHandler, nodesCoordinator sharding.NodesCoordinator, epochStartNotifier factory.EpochStartNotifier, genesisShardCoordinator sharding.Coordinator, ratingsData *rating.RatingsData, rater sharding.PeerAccountListAndRatingHandler, managedCoreComponents factory.CoreComponentsHandler, managedCryptoComponents factory.CryptoComponentsHandler, managedDataComponents factory.DataComponentsHandler, managedStateComponents factory.StateComponentsHandler, managedNetworkComponents factory.NetworkComponentsHandler, managedBootstrapComponents factory.BootstrapComponentsHandler, managedStatusComponents factory.StatusComponentsHandler, chanStopNodeProcess chan endProcess.ArgEndProcess) (factory.ProcessComponentsHandler, error) {
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
-	totalSupply, ok := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
+	totalSupply, _ := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	gasSchedule, err := core.LoadGasScheduleConfig(gasSchedule)
-	require.True(t, ok)
+	if err != nil {
+		return nil, err
+	}
 
 	accountsParser, err := parsing.NewAccountsParser(
 		genesisPath,
@@ -131,31 +139,40 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 	)
-	require.Nil(t, err)
-	require.NotNil(t, accountsParser)
+	if err != nil {
+		return nil, err
+	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		genesisSmartContracts,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 	)
-	require.Nil(t, err)
-	require.NotNil(t, smartContractParser)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Trace("creating time cache for requested items components")
 	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesSetup.GetRoundDuration()))
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListPool))
-	require.Nil(t, err)
-	require.NotNil(t, whiteListCache)
+	if err != nil {
+		return nil, err
+	}
 
 	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
-	require.Nil(t, err)
-	require.NotNil(t, whiteListRequest)
+	if err != nil {
+		return nil, err
+	}
 
 	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(generalConfig)
-	require.Nil(t, err)
-	require.NotNil(t, whiteListerVerifiedTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join("workingDir", core.DefaultDBPath), "appVersion")
+	if err != nil {
+		return nil, err
+	}
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
 		SelfShardID: genesisShardCoordinator.SelfId(),
@@ -165,12 +182,14 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		Store:       managedDataComponents.StorageService(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
-	require.Nil(t, err)
-	require.NotNil(t, historyRepositoryFactory)
+	if err != nil {
+		return nil, err
+	}
 
 	historyRepository, err := historyRepositoryFactory.Create()
-	require.Nil(t, err)
-	require.NotNil(t, historyRepository)
+	if err != nil {
+		return nil, err
+	}
 
 	versionsCache, _ := storageUnit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.Versions.Cache))
 	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
@@ -179,13 +198,10 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		generalConfig.Versions.DefaultVersion,
 		versionsCache,
 	)
-	require.Nil(t, err)
-	require.NotNil(t, headerIntegrityVerifier)
+	if err != nil {
+		return nil, err
+	}
 	epochNotifier := forking.NewGenericEpochNotifier()
-
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join("workingDir", core.DefaultDBPath), "appVersion")
-	require.Nil(t, err)
-	require.NotNil(t, importStartHandler)
 
 	processArgs := factory.ProcessComponentsFactoryArgs{
 		Config:                    *generalConfig,
@@ -230,38 +246,17 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		ChanGracefullyClose:       chanStopNodeProcess,
 	}
 	processComponentsFactory, err := factory.NewProcessComponentsFactory(processArgs)
-	require.Nil(t, err)
-	require.NotNil(t, processComponentsFactory)
-
-	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
-	require.Nil(t, err)
-	require.NotNil(t, managedProcessComponents)
-
-	err = managedProcessComponents.Create()
-	require.Nil(t, err)
-
-	time.Sleep(5 * time.Second)
-
-	err = managedProcessComponents.Close()
-
-	time.Sleep(5 * time.Second)
-
-	_ = managedStatusComponents.Close()
-	_ = managedStateComponents.Close()
-	_ = managedDataComponents.Close()
-	_ = managedBootstrapComponents.Close()
-	_ = managedNetworkComponents.Close()
-	_ = managedCryptoComponents.Close()
-	_ = managedCoreComponents.Close()
-
-	time.Sleep(5 * time.Second)
-
-	nrAfter := runtime.NumGoroutine()
-	if nrBefore != nrAfter {
-		printStack()
+	if err != nil {
+		return nil, err
 	}
 
-	require.Equal(t, nrBefore, nrAfter)
+	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedProcessComponents.Create()
+	return managedProcessComponents, err
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
