@@ -2409,7 +2409,9 @@ func createApiResolver(
 			config.VirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
-			argsHook)
+			argsHook,
+			config.GeneralSettings.SCDeployEnableEpoch,
+		)
 		if err != nil {
 			return nil, err
 		}

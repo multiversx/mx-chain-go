@@ -184,7 +184,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args)
+	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args, 0)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()

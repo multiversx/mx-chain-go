@@ -1035,6 +1035,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
+		0,
 	)
 
 	var err error
