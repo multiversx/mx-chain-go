@@ -1468,7 +1468,9 @@ func newShardBlockProcessor(
 		config.VirtualMachineConfig,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 		gasSchedule,
-		argsHook)
+		argsHook,
+		config.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1763,6 +1765,7 @@ func newMetaBlockProcessor(
 		systemSCConfig,
 		stateComponents.PeerAccounts,
 		rater,
+		epochNotifier,
 	)
 	if err != nil {
 		return nil, err
@@ -1929,21 +1932,17 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	scDataGetter, err := smartContract.NewSCQueryService(vmContainer, economicsData)
-	if err != nil {
-		return nil, err
-	}
-
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:  stateComponents.ValidatorPubkeyConverter,
-		Hasher:      core.Hasher,
-		Marshalizer: core.InternalMarshalizer,
-		PeerState:   stateComponents.PeerAccounts,
-		BaseState:   stateComponents.AccountsAdapter,
-		ArgParser:   argsParser,
-		CurrTxs:     data.Datapool.CurrentBlockTxs(),
-		ScQuery:     scDataGetter,
-		RatingsData: ratingsData,
+		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		PeerState:        stateComponents.PeerAccounts,
+		BaseState:        stateComponents.AccountsAdapter,
+		ArgParser:        argsParser,
+		CurrTxs:          data.Datapool.CurrentBlockTxs(),
+		RatingsData:      ratingsData,
+		EpochNotifier:    epochNotifier,
+		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -2051,15 +2050,17 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                systemVM,
-		UserAccountsDB:          stateComponents.AccountsAdapter,
-		PeerAccountsDB:          stateComponents.PeerAccounts,
-		Marshalizer:             core.InternalMarshalizer,
-		StartRating:             ratingsData.StartRating(),
-		ValidatorInfoCreator:    validatorStatisticsProcessor,
-		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
-		StakingSCAddress:        vm.StakingSCAddress,
-		ChanceComputer:          nodesCoordinator,
+		SystemVM:                     systemVM,
+		UserAccountsDB:               stateComponents.AccountsAdapter,
+		PeerAccountsDB:               stateComponents.PeerAccounts,
+		Marshalizer:                  core.InternalMarshalizer,
+		StartRating:                  ratingsData.StartRating(),
+		ValidatorInfoCreator:         validatorStatisticsProcessor,
+		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+		StakingSCAddress:             vm.StakingSCAddress,
+		ChanceComputer:               nodesCoordinator,
+		EpochNotifier:                epochNotifier,
+		SwitchJailWaitingEnableEpoch: generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -2068,7 +2069,6 @@ func newMetaBlockProcessor(
 
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
-		SCDataGetter:                 scDataGetter,
 		SCToProtocol:                 smartContractToProtocol,
 		PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
 		EpochStartDataCreator:        epochStartDataCreator,
@@ -2248,19 +2248,21 @@ func newValidatorStatisticsProcessor(
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         processComponents.state.PeerAccounts,
-		PubkeyConv:          processComponents.state.ValidatorPubkeyConverter,
-		NodesCoordinator:    processComponents.nodesCoordinator,
-		ShardCoordinator:    processComponents.shardCoordinator,
-		DataPool:            peerDataPool,
-		StorageService:      storageService,
-		Marshalizer:         processComponents.coreData.InternalMarshalizer,
-		Rater:               processComponents.rater,
-		MaxComputableRounds: processComponents.maxComputableRounds,
-		RewardsHandler:      processComponents.economicsData,
-		NodesSetup:          processComponents.nodesConfig,
-		RatingEnableEpoch:   ratingEnabledEpoch,
-		GenesisNonce:        processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
+		PeerAdapter:                  processComponents.state.PeerAccounts,
+		PubkeyConv:                   processComponents.state.ValidatorPubkeyConverter,
+		NodesCoordinator:             processComponents.nodesCoordinator,
+		ShardCoordinator:             processComponents.shardCoordinator,
+		DataPool:                     peerDataPool,
+		StorageService:               storageService,
+		Marshalizer:                  processComponents.coreData.InternalMarshalizer,
+		Rater:                        processComponents.rater,
+		MaxComputableRounds:          processComponents.maxComputableRounds,
+		RewardsHandler:               processComponents.economicsData,
+		NodesSetup:                   processComponents.nodesConfig,
+		RatingEnableEpoch:            ratingEnabledEpoch,
+		GenesisNonce:                 processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                processComponents.epochNotifier,
+		SwitchJailWaitingEnableEpoch: processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

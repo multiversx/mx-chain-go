@@ -253,6 +253,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		math.MaxUint64,
 		arg.GasMap,
 		argsHook,
+		arg.GeneralConfig.SCDeployEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -427,7 +428,12 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	queryService, err := smartContract.NewSCQueryService(
+		vmContainer,
+		arg.Economics,
+		vmFactoryImpl.BlockChainHookImpl(),
+		arg.Blkc,
+	)
 	if err != nil {
 		return nil, err
 	}

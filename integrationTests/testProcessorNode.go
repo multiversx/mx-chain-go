@@ -445,7 +445,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -549,6 +549,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
 		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -585,7 +586,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -608,7 +609,7 @@ func (tpn *TestProcessorNode) InitializeProcessors() {
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -1034,6 +1035,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
+		0,
 	)
 
 	var err error
@@ -1197,8 +1199,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1000000,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   1000000,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -1209,6 +1211,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		},
 		tpn.PeerState,
 		&mock.RaterMock{},
+		&mock.EpochNotifierStub{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1374,15 +1377,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:  TestValidatorPubkeyConverter,
-			Hasher:      TestHasher,
-			Marshalizer: TestMarshalizer,
-			PeerState:   tpn.PeerState,
-			BaseState:   tpn.AccntState,
-			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.DataPool.CurrentBlockTxs(),
-			ScQuery:     tpn.SCQueryService,
-			RatingsData: tpn.RatingsData,
+			PubkeyConv:    TestValidatorPubkeyConverter,
+			Hasher:        TestHasher,
+			Marshalizer:   TestMarshalizer,
+			PeerState:     tpn.PeerState,
+			BaseState:     tpn.AccntState,
+			ArgParser:     tpn.ArgsParser,
+			CurrTxs:       tpn.DataPool.CurrentBlockTxs(),
+			RatingsData:   tpn.RatingsData,
+			EpochNotifier: &mock.EpochNotifierStub{},
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -1444,12 +1447,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
 			ChanceComputer:          tpn.NodesCoordinator,
+			EpochNotifier:           &mock.EpochNotifierStub{},
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
-			SCDataGetter:                 tpn.SCQueryService,
 			SCToProtocol:                 scToProtocolInstance,
 			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:               epochEconomics,

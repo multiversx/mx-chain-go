@@ -20,6 +20,7 @@ type systemSCFactory struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	systemSCConfig      *config.SystemSmartContractsConfig
+	epochNotifier       vm.EpochNotifier
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -32,6 +33,7 @@ type ArgsNewSystemSCFactory struct {
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	SystemSCConfig      *config.SystemSmartContractsConfig
+	EpochNotifier       vm.EpochNotifier
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -57,6 +59,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if args.SystemSCConfig == nil {
 		return nil, vm.ErrNilSystemSCConfig
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
+	}
 
 	scf := &systemSCFactory{
 		systemEI:            args.SystemEI,
@@ -66,6 +71,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		hasher:              args.Hasher,
 		systemSCConfig:      args.SystemSCConfig,
 		economics:           args.Economics,
+		epochNotifier:       args.EpochNotifier,
 	}
 
 	err := scf.createGasConfig(args.GasMap)
@@ -124,6 +130,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
 		GasCost:              scf.gasCost,
 		Marshalizer:          scf.marshalizer,
+		EpochNotifier:        scf.epochNotifier,
 	}
 	staking, err := systemSmartContracts.NewStakingSmartContract(argsStaking)
 	return staking, err
@@ -140,6 +147,7 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 		Marshalizer:        scf.marshalizer,
 		NumOfNodesToSelect: scf.systemSCConfig.StakingSystemSCConfig.NodesToSelectInAuction,
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
+		EpochNotifier:      scf.epochNotifier,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	return auction, err

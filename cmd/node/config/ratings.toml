@@ -5,8 +5,8 @@
 
 # ProposerIncreaseRatingStep = 1/2 * (maxRating - startRating)/(nrTimesProposerPerHour * hoursToGetToMaxRating)
 # ValidatorIncreaseRatingStep = 1/2 * (maxRating - startRating)/(nrTimeValidatorPerHour * hoursToGetToMaxRating)
-# ProposerDecreaseRatingStep = -2 * ProposerIncreaseRatingStep
-# ValidatorDecreaseRatingStep = -2 * ValidatorIncreaseRatingStep
+# ProposerDecreaseRatingStep = -4 * ProposerIncreaseRatingStep
+# ValidatorDecreaseRatingStep = -4 * ValidatorIncreaseRatingStep
 
 
 [General]

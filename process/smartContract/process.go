@@ -594,7 +594,7 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
-	err = sc.processForRelayerWhenError(tx, returnMessage)
+	err = sc.processForRelayerWhenError(tx, txHash, returnMessage)
 	if err != nil {
 		return err
 	}
@@ -606,6 +606,7 @@ func (sc *scProcessor) ProcessIfError(
 
 func (sc *scProcessor) processForRelayerWhenError(
 	originalTx data.TransactionHandler,
+	txHash []byte,
 	returnMessage []byte,
 ) error {
 	relayedSCR, isRelayedTx := isRelayedTx(originalTx)
@@ -637,6 +638,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 		RcvAddr:        relayedSCR.RelayerAddr,
 		SndAddr:        relayedSCR.RcvAddr,
 		OriginalTxHash: relayedSCR.OriginalTxHash,
+		PrevTxHash:     txHash,
 		ReturnMessage:  returnMessage,
 	}
 
