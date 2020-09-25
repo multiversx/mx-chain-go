@@ -32,6 +32,7 @@ type ConsensusCore struct {
 	epochStartRegistrationHandler epochStart.RegistrationHandler
 	antifloodHandler              consensus.P2PAntifloodHandler
 	peerHonestyHandler            consensus.PeerHonestyHandler
+	headerSigVerifier             consensus.HeaderSigVerifier
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -53,6 +54,7 @@ type ConsensusCoreArgs struct {
 	EpochStartRegistrationHandler epochStart.RegistrationHandler
 	AntifloodHandler              consensus.P2PAntifloodHandler
 	PeerHonestyHandler            consensus.PeerHonestyHandler
+	HeaderSigVerifier             consensus.HeaderSigVerifier
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -77,6 +79,7 @@ func NewConsensusCore(
 		epochStartRegistrationHandler: args.EpochStartRegistrationHandler,
 		antifloodHandler:              args.AntifloodHandler,
 		peerHonestyHandler:            args.PeerHonestyHandler,
+		headerSigVerifier:             args.HeaderSigVerifier,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -170,6 +173,11 @@ func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
 func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return cc.peerHonestyHandler
+}
+
+// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
+func (cc *ConsensusCore) HeaderSigVerifier() consensus.HeaderSigVerifier {
+	return cc.headerSigVerifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
