@@ -16,8 +16,18 @@ func (fh *FeeHandler) DeveloperPercentage() float64 {
 	return 0
 }
 
+// GenesisTotalSupply -
+func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
+	return big.NewInt(0)
+}
+
 // MinGasPrice returns 0
 func (fh *FeeHandler) MinGasPrice() uint64 {
+	return 0
+}
+
+// MinGasLimit will return min gas limit
+func (fh *FeeHandler) MinGasLimit() uint64 {
 	return 0
 }
 
@@ -61,6 +71,11 @@ func (fh *FeeHandler) RevertFees(_ [][]byte) {
 // GetDeveloperFees -
 func (fh *FeeHandler) GetDeveloperFees() *big.Int {
 	return big.NewInt(0)
+}
+
+// GasPerDataByte -
+func (fh *FeeHandler) GasPerDataByte() uint64 {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

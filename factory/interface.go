@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -169,6 +170,25 @@ type CryptoComponentsHandler interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	LeaderPercentage() float64
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
+	MinInflationRate() float64
+	MaxInflationRate(year uint32) float64
+	DeveloperPercentage() float64
+	GenesisTotalSupply() *big.Int
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+	GasPerDataByte() uint64
 	IsInterfaceNil() bool
 }
 

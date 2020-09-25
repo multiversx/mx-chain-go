@@ -43,7 +43,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	numMetachainNodes := 0
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -144,7 +144,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numShards,
@@ -255,7 +255,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numShards,
@@ -383,7 +383,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -494,7 +494,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	nodes := integrationTests.CreateNodesWithFullGenesis(
@@ -604,7 +604,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	testBuiltinFunc := &integrationTests.TestBuiltinFunction{}
 	testBuiltinFunc.Function = func(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -732,7 +732,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	metaConsensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -838,7 +838,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	metaConsensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -1028,7 +1028,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	numMetachainNodes := 0
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,

@@ -53,13 +53,9 @@ func createCoreComponents(
 	generalConfig config.Config,
 	ratingsConfig config.RatingsConfig,
 	economicsConfig config.EconomicsConfig) (mainFactory.CoreComponentsHandler, error) {
-	chanCreateViews := make(chan struct{}, 1)
-	chanLogRewrite := make(chan struct{}, 1)
 
 	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-		UseTermUI:      false,
-		ChanStartViews: chanCreateViews,
-		ChanLogRewrite: chanLogRewrite,
+		UseTermUI: false,
 	}
 
 	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)

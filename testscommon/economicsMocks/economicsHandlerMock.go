@@ -58,9 +58,24 @@ func (ehm *EconomicsHandlerMock) MinGasPrice() uint64 {
 	return 0
 }
 
+// MinGasLimit will return min gas limit
+func (ehm *EconomicsHandlerMock) MinGasLimit() uint64 {
+	return 0
+}
+
+// GasPerDataByte -
+func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
+	return 0
+}
+
 // DeveloperPercentage -
 func (ehm *EconomicsHandlerMock) DeveloperPercentage() float64 {
 	return ehm.DeveloperPercentageCalled()
+}
+
+// GenesisTotalSupply -
+func (ehm *EconomicsHandlerMock) GenesisTotalSupply() *big.Int {
+	return big.NewInt(0)
 }
 
 // SetMaxGasLimitPerBlock -

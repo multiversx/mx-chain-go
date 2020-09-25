@@ -40,7 +40,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	nodes := integrationTests.CreateNodesWithFullGenesis(
@@ -119,7 +119,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "testdata/smartcontracts.json"
 	nodes := integrationTests.CreateNodesWithFullGenesis(

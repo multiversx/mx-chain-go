@@ -31,7 +31,7 @@ func TestNetworkComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
-	//	t.Skip()
+	t.Skip()
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
@@ -49,7 +49,7 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	networkComponents, _ := createNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, ccf)
 	time.Sleep(2 * time.Second)
 
-	_ = networkComponents.NetworkMessenger().Bootstrap()
+	_ = networkComponents.NetworkMessenger().Bootstrap(0)
 	time.Sleep(3 * time.Second)
 
 	err := networkComponents.Close()

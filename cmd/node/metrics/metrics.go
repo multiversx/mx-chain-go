@@ -12,9 +12,17 @@ import (
 
 const millisecondsInSecond = 1000
 
+// StatusHandlersUtils provides some functionality for statusHandlers
+type StatusHandlersUtils interface {
+	StatusHandler() core.AppStatusHandler
+	SignalStartViews()
+	SignalLogRewrite()
+	IsInterfaceNil() bool
+}
+
 // InitMetrics will init metrics for status handler
 func InitMetrics(
-	appStatusHandler core.AppStatusHandler,
+	statusHandlerUtils StatusHandlersUtils,
 	pubkeyStr string,
 	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
@@ -24,8 +32,8 @@ func InitMetrics(
 	roundsPerEpoch int64,
 	minTransactionVersion uint32,
 ) error {
-	if check.IfNil(appStatusHandler) {
-		return fmt.Errorf("nil AppStatusHandler when initializing metrics")
+	if check.IfNil(statusHandlerUtils) {
+		return fmt.Errorf("nil StatusHandlerUtils when initializing metrics")
 	}
 	if check.IfNil(shardCoordinator) {
 		return fmt.Errorf("nil shard coordinator when initializing metrics")
@@ -43,6 +51,7 @@ func InitMetrics(
 	isSyncing := uint64(1)
 	initUint := uint64(0)
 	initString := ""
+	appStatusHandler := statusHandlerUtils.StatusHandler()
 
 	appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(core.MetricNonce, initUint)
@@ -112,6 +121,9 @@ func InitMetrics(
 
 	appStatusHandler.SetUInt64Value(core.MetricNumValidators, uint64(numValidators))
 	appStatusHandler.SetUInt64Value(core.MetricConsensusGroupSize, uint64(consensusGroupSize))
+
+	statusHandlerUtils.SignalLogRewrite()
+	statusHandlerUtils.SignalStartViews()
 
 	return nil
 }

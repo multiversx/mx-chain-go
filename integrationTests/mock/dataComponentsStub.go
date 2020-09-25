@@ -10,11 +10,12 @@ import (
 
 // DataComponentsStub -
 type DataComponentsStub struct {
-	BlockChain data.ChainHandler
-	Store      dataRetriever.StorageService
-	DataPool   dataRetriever.PoolsHolder
-	MbProvider factory.MiniBlockProvider
-	mutDcm     sync.RWMutex
+	BlockChain    data.ChainHandler
+	Store         dataRetriever.StorageService
+	DataPool      dataRetriever.PoolsHolder
+	MbProvider    factory.MiniBlockProvider
+	EconomicsData factory.EconomicsHandler
+	mutDcm        sync.RWMutex
 }
 
 // Create -
@@ -60,6 +61,11 @@ func (dcs *DataComponentsStub) Datapool() dataRetriever.PoolsHolder {
 // MiniBlocksProvider -
 func (dcs *DataComponentsStub) MiniBlocksProvider() factory.MiniBlockProvider {
 	return dcs.MbProvider
+}
+
+// EconomicsHandler -
+func (dcm *DataComponentsStub) EconomicsHandler() factory.EconomicsHandler {
+	return dcm.EconomicsData
 }
 
 // Clone -

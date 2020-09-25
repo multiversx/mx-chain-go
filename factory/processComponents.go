@@ -37,7 +37,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
 	"github.com/ElrondNetwork/elrond-go/process/block/poolsCleaner"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -95,7 +94,7 @@ type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
-	EconomicsData             *economics.EconomicsData
+	EconomicsData             process.EconomicsHandler
 	NodesConfig               NodesSetupHandler
 	GasSchedule               map[string]map[string]uint64
 	Rounder                   consensus.Rounder
@@ -139,7 +138,7 @@ type processComponentsFactory struct {
 	config                    config.Config
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             *economics.EconomicsData
+	economicsData             process.EconomicsHandler
 	nodesConfig               NodesSetupHandler
 	gasSchedule               map[string]map[string]uint64
 	rounder                   consensus.Rounder

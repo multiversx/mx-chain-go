@@ -13,18 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDataComponentsFactory_NilEconomicsDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
-	args.EconomicsData = nil
-
-	dcf, err := factory.NewDataComponentsFactory(args)
-	require.Nil(t, dcf)
-	require.Equal(t, errors.ErrNilEconomicsData, err)
-}
-
 func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -132,7 +120,6 @@ func getDataArgs(coreComponents factory.CoreComponentsHolder) factory.DataCompon
 
 	return factory.DataComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
-		EconomicsData:      testEconomics.EconomicsData,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               coreComponents,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},

@@ -14,6 +14,8 @@ import (
 )
 
 func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
+	t.Skip()
+
 	generalConfig, _ := core.LoadMainConfig(configPath)
 	ratingsConfig, _ := core.LoadRatingsConfig(ratingsPath)
 	economicsConfig, _ := core.LoadEconomicsConfig(economicsPath)

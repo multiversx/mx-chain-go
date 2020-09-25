@@ -41,7 +41,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		_ = n.Messenger.Close()
 	}()
 
-	_ = n.Messenger.Bootstrap()
+	_ = n.Messenger.Bootstrap(0)
 
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 

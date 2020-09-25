@@ -10,11 +10,12 @@ import (
 
 // DataComponentsMock -
 type DataComponentsMock struct {
-	BlockChain data.ChainHandler
-	Store      dataRetriever.StorageService
-	DataPool   dataRetriever.PoolsHolder
-	MbProvider factory.MiniBlockProvider
-	mutDcm     sync.RWMutex
+	BlockChain    data.ChainHandler
+	Store         dataRetriever.StorageService
+	DataPool      dataRetriever.PoolsHolder
+	MbProvider    factory.MiniBlockProvider
+	EconomicsData factory.EconomicsHandler
+	mutDcm        sync.RWMutex
 }
 
 // Create -
@@ -59,7 +60,12 @@ func (dcm *DataComponentsMock) Datapool() dataRetriever.PoolsHolder {
 
 // MiniBlocksProvider -
 func (dcm *DataComponentsMock) MiniBlocksProvider() factory.MiniBlockProvider {
-	return dcm.MiniBlocksProvider()
+	return dcm.MbProvider
+}
+
+// EconomicsHandler -
+func (dcm *DataComponentsMock) EconomicsHandler() factory.EconomicsHandler {
+	return dcm.EconomicsData
 }
 
 // Clone -

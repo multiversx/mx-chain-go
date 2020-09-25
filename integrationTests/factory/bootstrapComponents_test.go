@@ -44,7 +44,7 @@ func TestBootstrapComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
-	//	t.Skip()
+	t.Skip()
 
 	_ = logger.SetLogLevel("*:DEBUG")
 
