@@ -41,8 +41,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   0,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   0,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -51,6 +51,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
+		EpochNotifier: &mock.EpochNotifierStub{},
 	}
 }
 

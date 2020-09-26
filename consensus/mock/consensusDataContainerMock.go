@@ -32,6 +32,7 @@ type ConsensusCoreMock struct {
 	epochStartNotifier      epochStart.RegistrationHandler
 	antifloodHandler        consensus.P2PAntifloodHandler
 	peerHonestyHandler      consensus.PeerHonestyHandler
+	headerSigVerifier       consensus.HeaderSigVerifier
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 }
 
@@ -188,6 +189,16 @@ func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 // PeerHonestyHandler -
 func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return ccm.peerHonestyHandler
+}
+
+// HeaderSigVerifier -
+func (ccm *ConsensusCoreMock) HeaderSigVerifier() consensus.HeaderSigVerifier {
+	return ccm.headerSigVerifier
+}
+
+// SetHeaderSigVerifier -
+func (ccm *ConsensusCoreMock) SetHeaderSigVerifier(headerSigVerifier consensus.HeaderSigVerifier) {
+	ccm.headerSigVerifier = headerSigVerifier
 }
 
 // FallbackHeaderValidator -

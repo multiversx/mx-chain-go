@@ -153,6 +153,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.Extend,
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
+		fct.worker.ResetConsensusMessages,
 	)
 	if err != nil {
 		return err

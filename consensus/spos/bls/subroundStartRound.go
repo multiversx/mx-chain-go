@@ -17,6 +17,7 @@ type subroundStartRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
 	executeStoredMessages         func()
+	resetConsensusMessages        func()
 
 	indexer indexer.Indexer
 }
@@ -27,6 +28,7 @@ func NewSubroundStartRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	executeStoredMessages func(),
+	resetConsensusMessages func(),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -39,6 +41,7 @@ func NewSubroundStartRound(
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
+		resetConsensusMessages:        resetConsensusMessages,
 		indexer:                       indexer.NewNilIndexer(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
@@ -76,6 +79,7 @@ func (sr *subroundStartRound) doStartRoundJob() bool {
 	sr.RoundTimeStamp = sr.Rounder().TimeStamp()
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
+	sr.resetConsensusMessages()
 	return true
 }
 

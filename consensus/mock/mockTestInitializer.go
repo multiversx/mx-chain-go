@@ -132,6 +132,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
+	headerSigVerifier := &HeaderSigVerifierStub{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 
 	container := &ConsensusCoreMock{
@@ -153,6 +154,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		epochStartNotifier:      epochStartSubscriber,
 		antifloodHandler:        antifloodHandler,
 		peerHonestyHandler:      peerHonestyHandler,
+		headerSigVerifier:       headerSigVerifier,
 		fallbackHeaderValidator: fallbackHeaderValidator,
 	}
 

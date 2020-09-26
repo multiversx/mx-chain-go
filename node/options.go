@@ -475,7 +475,7 @@ func WithRequestedItemsHandler(requestedItemsHandler dataRetriever.RequestedItem
 }
 
 // WithHeaderSigVerifier sets up a header sig verifier for the Node
-func WithHeaderSigVerifier(headerSigVerifier spos.RandSeedVerifier) Option {
+func WithHeaderSigVerifier(headerSigVerifier consensus.HeaderSigVerifier) Option {
 	return func(n *Node) error {
 		if check.IfNil(headerSigVerifier) {
 			return ErrNilHeaderSigVerifier

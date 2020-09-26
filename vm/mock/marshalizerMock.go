@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-var errMockMarshalizer = errors.New("MarshalizerMock generic error")
+var ErrMockMarshalizer = errors.New("MarshalizerMock generic error")
 
 // MarshalizerMock that will be used for testing
 type MarshalizerMock struct {
@@ -15,7 +15,7 @@ type MarshalizerMock struct {
 // Marshal converts the input object in a slice of bytes
 func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if mm.Fail {
-		return nil, errMockMarshalizer
+		return nil, ErrMockMarshalizer
 	}
 
 	if obj == nil {
@@ -28,7 +28,7 @@ func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 // Unmarshal applies the serialized values over an instantiated object
 func (mm *MarshalizerMock) Unmarshal(obj interface{}, buff []byte) error {
 	if mm.Fail {
-		return errMockMarshalizer
+		return ErrMockMarshalizer
 	}
 
 	if obj == nil {

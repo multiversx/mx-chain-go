@@ -748,6 +748,43 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, spos.ErrMessageForPastRound))
 }
 
+func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
+	t.Parallel()
+	wrk := *initWorker()
+	blk := &block.Body{}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockBody),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	msg := &mock.P2PMessageMock{
+		DataField: buff,
+		PeerField: currentPid,
+	}
+
+	err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	time.Sleep(time.Second)
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.Nil(t, err)
+
+	err = wrk.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: buff}, fromConnectedPeerId)
+	time.Sleep(time.Second)
+	assert.Equal(t, 1, len(wrk.ReceivedMessages()[bls.MtBlockBody]))
+	assert.True(t, errors.Is(err, spos.ErrMessageTypeLimitReached))
+}
+
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker()
@@ -1473,7 +1510,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 
 	workerArgs := createDefaultWorkerArgs()
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
-	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
+	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}
 

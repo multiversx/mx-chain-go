@@ -127,7 +127,7 @@ type Node struct {
 	blocksBlackListHandler  process.TimeCacher
 	bootStorer              process.BootStorer
 	requestedItemsHandler   dataRetriever.RequestedItemsHandler
-	headerSigVerifier       spos.RandSeedVerifier
+	headerSigVerifier       consensus.HeaderSigVerifier
 	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
 	chainID               []byte
@@ -341,6 +341,7 @@ func (n *Node) StartConsensus() error {
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 		AntifloodHandler:              n.inputAntifloodHandler,
 		PeerHonestyHandler:            n.peerHonestyHandler,
+		HeaderSigVerifier:             n.headerSigVerifier,
 		FallbackHeaderValidator:       n.fallbackHeaderValidator,
 	}
 
