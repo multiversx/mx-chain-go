@@ -151,8 +151,9 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler   *componentHandler.HeartbeatHandler
-	peerHonestyHandler consensus.PeerHonestyHandler
+	heartbeatHandler        *componentHandler.HeartbeatHandler
+	peerHonestyHandler      consensus.PeerHonestyHandler
+	fallbackHeaderValidator consensus.FallbackHeaderValidator
 
 	watchdog          core.WatchdogTimer
 	historyRepository dblookupext.HistoryRepository
@@ -340,6 +341,7 @@ func (n *Node) StartConsensus() error {
 		EpochStartRegistrationHandler: n.epochStartRegistrationHandler,
 		AntifloodHandler:              n.inputAntifloodHandler,
 		PeerHonestyHandler:            n.peerHonestyHandler,
+		FallbackHeaderValidator:       n.fallbackHeaderValidator,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

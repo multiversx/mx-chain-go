@@ -14,24 +14,25 @@ import (
 
 // ConsensusCoreMock -
 type ConsensusCoreMock struct {
-	blockChain             data.ChainHandler
-	blockProcessor         process.BlockProcessor
-	headersSubscriber      consensus.HeadersPoolSubscriber
-	bootstrapper           process.Bootstrapper
-	broadcastMessenger     consensus.BroadcastMessenger
-	chronologyHandler      consensus.ChronologyHandler
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	blsPrivateKey          crypto.PrivateKey
-	blsSingleSigner        crypto.SingleSigner
-	multiSigner            crypto.MultiSigner
-	rounder                consensus.Rounder
-	shardCoordinator       sharding.Coordinator
-	syncTimer              ntp.SyncTimer
-	validatorGroupSelector sharding.NodesCoordinator
-	epochStartNotifier     epochStart.RegistrationHandler
-	antifloodHandler       consensus.P2PAntifloodHandler
-	peerHonestyHandler     consensus.PeerHonestyHandler
+	blockChain              data.ChainHandler
+	blockProcessor          process.BlockProcessor
+	headersSubscriber       consensus.HeadersPoolSubscriber
+	bootstrapper            process.Bootstrapper
+	broadcastMessenger      consensus.BroadcastMessenger
+	chronologyHandler       consensus.ChronologyHandler
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	blsPrivateKey           crypto.PrivateKey
+	blsSingleSigner         crypto.SingleSigner
+	multiSigner             crypto.MultiSigner
+	rounder                 consensus.Rounder
+	shardCoordinator        sharding.Coordinator
+	syncTimer               ntp.SyncTimer
+	validatorGroupSelector  sharding.NodesCoordinator
+	epochStartNotifier      epochStart.RegistrationHandler
+	antifloodHandler        consensus.P2PAntifloodHandler
+	peerHonestyHandler      consensus.PeerHonestyHandler
+	fallbackHeaderValidator consensus.FallbackHeaderValidator
 }
 
 // GetAntiFloodHandler -
@@ -187,6 +188,11 @@ func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
 // PeerHonestyHandler -
 func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return ccm.peerHonestyHandler
+}
+
+// FallbackHeaderValidator -
+func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeaderValidator {
+	return ccm.fallbackHeaderValidator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

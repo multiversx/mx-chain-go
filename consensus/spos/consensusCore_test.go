@@ -29,6 +29,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		EpochStartRegistrationHandler: consensusCoreMock.EpochStartRegistrationHandler(),
 		AntifloodHandler:              consensusCoreMock.GetAntiFloodHandler(),
 		PeerHonestyHandler:            consensusCoreMock.PeerHonestyHandler(),
+		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
 	}
 	return args
 }

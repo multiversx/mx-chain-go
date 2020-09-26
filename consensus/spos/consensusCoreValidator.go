@@ -55,6 +55,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.PeerHonestyHandler()) {
 		return ErrNilPeerHonestyHandler
 	}
+	if check.IfNil(container.FallbackHeaderValidator()) {
+		return ErrNilFallbackHeaderValidator
+	}
 
 	return nil
 }

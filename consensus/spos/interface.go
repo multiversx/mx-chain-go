@@ -50,6 +50,8 @@ type ConsensusCoreHandler interface {
 	SingleSigner() crypto.SingleSigner
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
+	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
+	FallbackHeaderValidator() consensus.FallbackHeaderValidator
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

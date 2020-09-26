@@ -206,6 +206,10 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
 
 	threshold := sr.Threshold(sr.Current())
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
+		threshold = sr.FallbackThreshold(sr.Current())
+	}
+
 	areSignaturesCollected, numSigs := sr.signaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 	isTimeOut := sr.remainingTime() <= 0

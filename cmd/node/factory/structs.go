@@ -174,6 +174,7 @@ type processComponentsFactoryArgs struct {
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
+	fallbackHeaderValidator   process.FallbackHeaderValidator
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -221,6 +222,7 @@ func NewProcessComponentsFactoryArgs(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
 	chanGracefullyClose chan endProcess.ArgEndProcess,
+	fallbackHeaderValidator process.FallbackHeaderValidator,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -267,18 +269,20 @@ func NewProcessComponentsFactoryArgs(
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
 		storageReolverImportPath:  storageReolverImportPath,
 		chanGracefullyClose:       chanGracefullyClose,
+		fallbackHeaderValidator:   fallbackHeaderValidator,
 	}
 }
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       args.coreData.InternalMarshalizer,
-		Hasher:            args.coreData.Hasher,
-		NodesCoordinator:  args.nodesCoordinator,
-		MultiSigVerifier:  args.crypto.MultiSigner,
-		SingleSigVerifier: args.crypto.SingleSigner,
-		KeyGen:            args.crypto.BlockSignKeyGen,
+		Marshalizer:             args.coreData.InternalMarshalizer,
+		Hasher:                  args.coreData.Hasher,
+		NodesCoordinator:        args.nodesCoordinator,
+		MultiSigVerifier:        args.crypto.MultiSigner,
+		SingleSigVerifier:       args.crypto.SingleSigner,
+		KeyGen:                  args.crypto.BlockSignKeyGen,
+		FallbackHeaderValidator: args.fallbackHeaderValidator,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {

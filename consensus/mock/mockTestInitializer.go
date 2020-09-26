@@ -132,26 +132,28 @@ func InitConsensusCore() *ConsensusCoreMock {
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 
 	container := &ConsensusCoreMock{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
-		headersSubscriber:      headerPoolSubscriber,
-		bootstrapper:           bootstrapperMock,
-		broadcastMessenger:     broadcastMessengerMock,
-		chronologyHandler:      chronologyHandlerMock,
-		hasher:                 hasherMock,
-		marshalizer:            marshalizerMock,
-		blsPrivateKey:          blsPrivateKeyMock,
-		blsSingleSigner:        blsSingleSignerMock,
-		multiSigner:            multiSignerMock,
-		rounder:                rounderMock,
-		shardCoordinator:       shardCoordinatorMock,
-		syncTimer:              syncTimerMock,
-		validatorGroupSelector: validatorGroupSelector,
-		epochStartNotifier:     epochStartSubscriber,
-		antifloodHandler:       antifloodHandler,
-		peerHonestyHandler:     peerHonestyHandler,
+		blockChain:              blockChain,
+		blockProcessor:          blockProcessorMock,
+		headersSubscriber:       headerPoolSubscriber,
+		bootstrapper:            bootstrapperMock,
+		broadcastMessenger:      broadcastMessengerMock,
+		chronologyHandler:       chronologyHandlerMock,
+		hasher:                  hasherMock,
+		marshalizer:             marshalizerMock,
+		blsPrivateKey:           blsPrivateKeyMock,
+		blsSingleSigner:         blsSingleSignerMock,
+		multiSigner:             multiSignerMock,
+		rounder:                 rounderMock,
+		shardCoordinator:        shardCoordinatorMock,
+		syncTimer:               syncTimerMock,
+		validatorGroupSelector:  validatorGroupSelector,
+		epochStartNotifier:      epochStartSubscriber,
+		antifloodHandler:        antifloodHandler,
+		peerHonestyHandler:      peerHonestyHandler,
+		fallbackHeaderValidator: fallbackHeaderValidator,
 	}
 
 	return container
