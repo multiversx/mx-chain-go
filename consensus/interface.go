@@ -113,3 +113,11 @@ type InterceptorSubscriber interface {
 	RegisterHandler(handler func(toShard uint32, data []byte))
 	IsInterfaceNil() bool
 }
+
+// HeaderSigVerifier encapsulates methods that are check if header rand seed, leader signature and aggregate signature are correct
+type HeaderSigVerifier interface {
+	VerifyRandSeed(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}

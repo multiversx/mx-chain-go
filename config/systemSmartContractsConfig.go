@@ -14,8 +14,8 @@ type StakingSystemSCConfig struct {
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
-	AuctionEnableNonce                   uint64
-	StakeEnableNonce                     uint64
+	AuctionEnableEpoch                   uint32
+	StakeEnableEpoch                     uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64

@@ -23,6 +23,9 @@
    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
    PenalizedTooMuchGasEnableEpoch = 0
 
+   # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
+   SwitchJailWaitingEnableEpoch = 0
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
