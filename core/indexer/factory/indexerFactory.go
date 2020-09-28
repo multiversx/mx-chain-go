@@ -2,6 +2,7 @@ package factory
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -102,10 +103,10 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 		return indexer.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return indexer.ErrNilPubkeyConverter
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return indexer.ErrNilPubkeyConverter
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -126,7 +127,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				print("a")
 			}
 			_, err := NewIndexer(tt.argsFunc())
-			require.Equal(t, tt.exError, err)
+			require.True(t, errors.Is(err, tt.exError))
 		})
 	}
 }
