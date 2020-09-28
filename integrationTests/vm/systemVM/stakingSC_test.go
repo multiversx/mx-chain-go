@@ -100,6 +100,25 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
+	//manually setting every un-staked node status to inactive
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		for index := range nodes {
+			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
+			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount.List = string(core.InactiveList)
+			peerAccount.BLSPublicKey = pubKey
+			err := node.PeerState.SaveAccount(peerAccount)
+			require.Nil(t, err)
+		}
+
+		_, err := node.PeerState.Commit()
+		require.Nil(t, err)
+	}
+
 	////////----- send unBond
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
@@ -199,6 +218,25 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 
 	checkAccountsAfterStaking(t, nodes)
+
+	//manually setting every un-staked node status to inactive
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		for index := range nodes {
+			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
+			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount.List = string(core.InactiveList)
+			peerAccount.BLSPublicKey = pubKey
+			err := node.PeerState.SaveAccount(peerAccount)
+			require.Nil(t, err)
+		}
+
+		_, err := node.PeerState.Commit()
+		require.Nil(t, err)
+	}
 
 	/////////------ send unStake tx
 	for index, node := range nodes {
@@ -356,7 +394,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 				break
 			}
 		}
