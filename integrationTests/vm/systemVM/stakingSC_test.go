@@ -100,24 +100,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
-	//manually setting every un-staked node status to inactive
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		for index := range nodes {
-			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
-			peerAccount, _ := state.NewPeerAccount(pubKey)
-			peerAccount.List = string(core.InactiveList)
-			peerAccount.BLSPublicKey = pubKey
-			err := node.PeerState.SaveAccount(peerAccount)
-			require.Nil(t, err)
-		}
-
-		_, err := node.PeerState.Commit()
-		require.Nil(t, err)
-	}
+	manualSetToInactiveStateStakedPeers(t, nodes)
 
 	////////----- send unBond
 	for index, node := range nodes {
@@ -219,24 +202,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 
 	checkAccountsAfterStaking(t, nodes)
 
-	//manually setting every un-staked node status to inactive
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
-			continue
-		}
-
-		for index := range nodes {
-			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
-			peerAccount, _ := state.NewPeerAccount(pubKey)
-			peerAccount.List = string(core.InactiveList)
-			peerAccount.BLSPublicKey = pubKey
-			err := node.PeerState.SaveAccount(peerAccount)
-			require.Nil(t, err)
-		}
-
-		_, err := node.PeerState.Commit()
-		require.Nil(t, err)
-	}
+	manualSetToInactiveStateStakedPeers(t, nodes)
 
 	/////////------ send unStake tx
 	for index, node := range nodes {
@@ -443,4 +409,24 @@ func generateUniqueKey(identifier int) string {
 	neededLength := 192
 	uniqueIdentifier := fmt.Sprintf("%d", identifier)
 	return strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier
+}
+
+func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		for index := range nodes {
+			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
+			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount.List = string(core.InactiveList)
+			peerAccount.BLSPublicKey = pubKey
+			err := node.PeerState.SaveAccount(peerAccount)
+			require.Nil(t, err)
+		}
+
+		_, err := node.PeerState.Commit()
+		require.Nil(t, err)
+	}
 }
