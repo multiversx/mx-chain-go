@@ -424,23 +424,17 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 func (host *vmContext) IsValidator(blsKey []byte) bool {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
 	if err != nil {
-		//TODO remove this
-		log.Warn("vmContext.IsValidator", "return", false, "err", err)
 		return false
 	}
 
 	validatorAccount, ok := acc.(state.PeerAccountHandler)
 	if !ok {
-		//TODO remove this
-		log.Warn("vmContext.IsValidator", "return", false, "err", "invalid cast")
 		return false
 	}
 
 	// TODO: rename GetList from validator account
 	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
 		validatorAccount.GetList() == string(core.WaitingList) || validatorAccount.GetList() == string(core.LeavingList)
-	//TODO remove this
-	log.Warn("vmContext.IsValidator", "list", validatorAccount.GetList(), "isValidator", isValidator)
 	return isValidator
 }
 
