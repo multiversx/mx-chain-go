@@ -152,9 +152,9 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.changeValidatorKey(args)
 	case "switchJailedWithWaiting":
 		return r.switchJailedWithWaiting(args)
-	case "getWaitingListIndex":
+	case "getQueueIndex":
 		return r.getWaitingListIndex(args)
-	case "getWaitingListSize":
+	case "getQueueSize":
 		return r.getWaitingListSize(args)
 	case "getRewardAddress":
 		return r.getRewardAddress(args)
@@ -162,7 +162,7 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getBLSKeyStatus(args)
 	case "getRemainingUnBondPeriod":
 		return r.getRemainingUnbondPeriod(args)
-	case "getWaitingListRegisterNonceAndRewardAddress":
+	case "getQueueRegisterNonceAndRewardAddress":
 		return r.getWaitingListRegisterNonceAndRewardAddress(args)
 	}
 
