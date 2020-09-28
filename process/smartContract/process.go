@@ -330,7 +330,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return 0, err
 	}
 
-	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFee(tx, vmOutput)
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 
 	return vmcommon.Ok, nil
@@ -399,7 +399,7 @@ func (sc *scProcessor) isSelfShard(address []byte) bool {
 	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
 }
 
-func (sc *scProcessor) computeTotalConsumedFee(
+func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 ) (*big.Int, *big.Int) {
@@ -786,7 +786,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return 0, err
 	}
 
-	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFee(tx, vmOutput)
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 
@@ -1206,7 +1206,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		sc.updateSmartContractCode(acc, outAcc, tx)
+		sc.updateSmartContractCode(acc, outAcc)
 		// change nonce only if there is a change
 		if outAcc.Nonce != acc.GetNonce() && outAcc.Nonce != 0 {
 			if outAcc.Nonce < acc.GetNonce() {
@@ -1255,7 +1255,6 @@ func (sc *scProcessor) processSCOutputAccounts(
 func (sc *scProcessor) updateSmartContractCode(
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
-	tx data.TransactionHandler,
 ) {
 	if len(outputAccount.Code) == 0 {
 		return
@@ -1300,8 +1299,6 @@ func (sc *scProcessor) updateSmartContractCode(
 		log.Info("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
-
-	// TODO: change to return some error when IELE is updated. Currently IELE sends the code in output account even for normal SC RUN
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
