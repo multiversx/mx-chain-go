@@ -1494,7 +1494,7 @@ func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, exp
 
 func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedSize int) {
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getWaitingListSize"
+	arguments.Function = "getQueueSize"
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -1505,7 +1505,7 @@ func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedS
 
 func doGetWaitingListRegisterNonceAndRewardAddress(t *testing.T, sc *stakingSC, eei *vmContext) [][]byte {
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getWaitingListRegisterNonceAndRewardAddress"
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
 	arguments.CallerAddr = sc.stakeAccessAddr
 
 	currentOutPutIndex := len(eei.output)
@@ -1518,7 +1518,7 @@ func doGetWaitingListRegisterNonceAndRewardAddress(t *testing.T, sc *stakingSC, 
 
 func doGetWaitingListIndex(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedCode vmcommon.ReturnCode, expectedIndex int) {
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getWaitingListIndex"
+	arguments.Function = "getQueueIndex"
 	arguments.CallerAddr = sc.stakeAccessAddr
 	arguments.Arguments = [][]byte{blsKey}
 
