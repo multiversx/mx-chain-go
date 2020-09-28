@@ -206,6 +206,11 @@ func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeader
 	return ccm.fallbackHeaderValidator
 }
 
+// SetFallbackHeaderValidator -
+func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
+	ccm.fallbackHeaderValidator = fallbackHeaderValidator
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ccm *ConsensusCoreMock) IsInterfaceNil() bool {
 	return ccm == nil

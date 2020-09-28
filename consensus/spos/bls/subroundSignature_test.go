@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -459,6 +461,56 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughBu
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
 	for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.True(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return -1
+		},
+	})
+	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return false
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.False(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallbackThresholdCouldBeApplied(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return -1
+		},
+	})
+	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 	}
 
