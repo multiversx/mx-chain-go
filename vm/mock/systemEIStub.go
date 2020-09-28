@@ -30,6 +30,7 @@ type SystemEIStub struct {
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                 func(blsKey []byte) bool
 	IsBadRatingCalled               func(blsKey []byte) bool
+	TransferToAllCalled             func(sender []byte, input []byte)
 	ReturnMessage                   string
 }
 
@@ -126,6 +127,12 @@ func (s *SystemEIStub) SetSCAddress(_ []byte) {
 func (s *SystemEIStub) Finish(value []byte) {
 	if s.FinishCalled != nil {
 		s.FinishCalled(value)
+	}
+}
+
+func (s *SystemEIStub) TransferToAll(sender []byte, input []byte) {
+	if s.TransferToAllCalled != nil {
+		s.TransferToAllCalled(sender, input)
 	}
 }
 

@@ -103,13 +103,15 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	case "mint":
 		return e.mint(args)
 	case "freeze":
-		return e.freeze(args)
+		return e.freezeUnFreeze(args, core.BuiltInFunctionESDTFreeze)
+	case "unFreeze":
+		return e.freezeUnFreeze(args, core.BuiltInFunctionESDTUnFreeze)
 	case "wipe":
 		return e.wipe(args)
 	case "pause":
-		return e.pause(args)
+		return e.pauseUnPause(args, core.BuiltInFunctionESDTPause)
 	case "unPause":
-		return e.unpause(args)
+		return e.pauseUnPause(args, core.BuiltInFunctionESDTUnPause)
 	case "claim":
 		return e.claim(args)
 	case "configChange":
@@ -355,7 +357,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) freeze(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) freezeUnFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
 	if len(args.Arguments) < 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
@@ -373,7 +375,7 @@ func (e *esdt) freeze(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(token.TokenName)
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
@@ -411,13 +413,42 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) pause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
-	return vmcommon.Ok
-}
+func (e *esdt) pauseUnPause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnerChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanPause {
+		e.eei.AddReturnMessage("cannot freeze")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid arguments")
+		return vmcommon.UserError
+	}
+	if token.IsPaused && builtInFunc == core.BuiltInFunctionESDTPause {
+		e.eei.AddReturnMessage("cannot pause an already paused contract")
+		return vmcommon.UserError
+	}
+	if !token.IsPaused && builtInFunc == core.BuiltInFunctionESDTUnPause {
+		e.eei.AddReturnMessage("cannot unPause an already paused contract")
+		return vmcommon.UserError
+	}
 
-func (e *esdt) unpause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+	token.IsPaused = !token.IsPaused
+	err := e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
+	e.eei.TransferToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+
 	return vmcommon.Ok
 }
 

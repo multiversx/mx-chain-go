@@ -18,8 +18,9 @@ message ESDTData {
     bool  CanWipe        = 8 [(gogoproto.jsontag) = "CanWipe"];
     bool  Upgradable     = 10 [(gogoproto.jsontag) = "CanUpgrade"];
     bool  CanChangeOwner = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
-    bytes MintedValue    = 12 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes BurntValue     = 13 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bool  IsPaused       = 12 [(gogoproto.jsontag) = "IsPaused"];
+    bytes MintedValue    = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes BurntValue     = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message ESDTConfig {
