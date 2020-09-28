@@ -1,7 +1,7 @@
 [StakingSystemSCConfig]
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
-    UnBondPeriod = 40
+    UnBondPeriod = 250
     MinStepValue = "100000000000000000000"
     AuctionEnableEpoch = 100000000000
     StakeEnableEpoch = 2
