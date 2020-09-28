@@ -72,19 +72,8 @@ extern "C" void upgradeChild()
     byte childAddress[32];
     storageLoad((byte *)childContractAddressKey, 32, childAddress);
 
-    // TODO: Fix code in Arwen (this does not work).
-    //byte codeMetadata[2] = {1, 2};
-    //upgradeContract(childAddress, 15000000, nullptr, code, codeMetadata, codeLength, 0, nullptr, nullptr);
-
-    // "upgradeContract@code@0100"
-    int dataLength = 15 + 1 + codeLength + 1 + 4;
-    byte data[dataLength];
-    memcpy(data, (void *)"upgradeContract", 15);
-    memcpy(data + 15, (void *)"@", 1);
-    memcpy(data + 15 + 1, (void *)code, codeLength);
-    memcpy(data + 15 + 1 + codeLength, (void *)"@", 1);
-    memcpy(data + 15 + 1 + codeLength + 1, (void *)"0100", 4);
-    asyncCall(childAddress, nullptr, data, dataLength);
+    byte codeMetadata[2] = {1, 2};
+    upgradeContract(childAddress, 15000000, nullptr, code, codeMetadata, codeLength, 0, nullptr, nullptr);
 }
 
 void memcpy(void *dest, void *src, int n)

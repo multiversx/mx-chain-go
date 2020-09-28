@@ -3,10 +3,10 @@ module github.com/ElrondNetwork/elrond-go
 go 1.13
 
 require (
-	github.com/ElrondNetwork/arwen-wasm-vm v0.3.37-0.20200925145752-572872298191
+	github.com/ElrondNetwork/arwen-wasm-vm v0.3.37
 	github.com/ElrondNetwork/concurrent-map v0.1.3
 	github.com/ElrondNetwork/elrond-go-logger v1.0.4
-	github.com/ElrondNetwork/elrond-vm-common v0.2.0
+	github.com/ElrondNetwork/elrond-vm-common v0.2.1
 	github.com/beevik/ntp v0.2.0
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
@@ -46,7 +46,3 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/ElrondNetwork/protobuf v1.3.2
-
-replace github.com/ElrondNetwork/elrond-vm-common => ../elrond-vm-common
-
-replace github.com/ElrondNetwork/arwen-wasm-vm => ../arwen-wasm-vm
