@@ -274,6 +274,10 @@ func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	return sr.receivedBlockHeaderFinalInfo(cnsDta)
 }
 
+func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
+	return sr.isBlockHeaderFinalInfoValid(cnsDta)
+}
+
 func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
 	return sr.isConsensusHeaderReceived()
 }
