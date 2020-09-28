@@ -311,6 +311,14 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) removeFromJailedNodes() {
+	stakeConfig := r.getConfig()
+	if stakeConfig.JailedNodes > 0 {
+		stakeConfig.JailedNodes--
+	}
+	r.setConfig(stakeConfig)
+}
+
 func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
@@ -326,6 +334,10 @@ func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		if len(stakedData.RewardAddress) == 0 {
 			r.eei.AddReturnMessage("cannot unJail a key that is not registered")
 			return vmcommon.UserError
+		}
+
+		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
+			r.removeFromJailedNodes()
 		}
 
 		stakedData.JailedRound = math.MaxUint64
