@@ -645,11 +645,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return process.ErrWrongTypeAssertion
 			}
 			peerAccount.ResetAtNewEpoch()
-
-			shouldBeJailed := vs.flagJailedEnabled.IsSet() && validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList)
-			if shouldBeJailed {
-				peerAccount.SetListAndIndex(validator.ShardId, validator.List, validator.Index)
-			}
+			vs.setToJailedIfNeeded(peerAccount, validator)
 
 			err = vs.peerAdapter.SaveAccount(peerAccount)
 			if err != nil {
@@ -659,6 +655,24 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 	}
 
 	return nil
+}
+
+func (vs *validatorStatistics) setToJailedIfNeeded(
+	peerAccount state.PeerAccountHandler,
+	validator *state.ValidatorInfo,
+) {
+	if !vs.flagJailedEnabled.IsSet() {
+		return
+	}
+
+	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
+		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+		return
+	}
+
+	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
+		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+	}
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(
