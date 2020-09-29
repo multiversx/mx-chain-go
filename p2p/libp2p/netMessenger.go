@@ -88,7 +88,7 @@ type networkMessenger struct {
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
 	mutTopics           sync.RWMutex
-	processors          map[string]p2p.MessageProcessor
+	processors          map[string]*topicProcessors
 	topics              map[string]*pubsub.Topic
 	subscriptions       map[string]*pubsub.Subscription
 	outgoingPLB         p2p.ChannelLoadBalancer
@@ -191,7 +191,7 @@ func createMessenger(
 		ctx:               ctx,
 		cancelFunc:        cancelFunc,
 		p2pHost:           NewConnectableHost(p2pHost),
-		processors:        make(map[string]p2p.MessageProcessor),
+		processors:        make(map[string]*topicProcessors),
 		topics:            make(map[string]*pubsub.Topic),
 		subscriptions:     make(map[string]*pubsub.Subscription),
 		outgoingPLB:       loadBalancer.NewOutgoingChannelLoadBalancer(),
@@ -745,31 +745,33 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 }
 
 // RegisterMessageProcessor registers a message process on a topic
-func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilValidator
 	}
 
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
-	validator := netMes.processors[topic]
-	if !check.IfNil(validator) {
-		return fmt.Errorf("%w, operation RegisterMessageProcessor, topic %s",
-			p2p.ErrTopicValidatorOperationNotSupported,
-			topic,
-		)
+	topicProcs := netMes.processors[topic]
+	if topicProcs == nil {
+		topicProcs = newTopicProcessors()
+		netMes.processors[topic] = topicProcs
+
+		err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(topicProcs, topic))
+		if err != nil {
+			return err
+		}
 	}
 
-	err := netMes.pb.RegisterTopicValidator(topic, netMes.pubsubCallback(handler, topic))
+	err := topicProcs.addTopicProcessor(identifier, handler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w, topic %s", err, topic)
 	}
 
-	netMes.processors[topic] = handler
 	return nil
 }
 
-func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
+func (netMes *networkMessenger) pubsubCallback(topicProcs *topicProcessors, topic string) func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 	return func(ctx context.Context, pid peer.ID, message *pubsub.Message) bool {
 		fromConnectedPeer := core.PeerID(pid)
 		msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
@@ -778,21 +780,25 @@ func (netMes *networkMessenger) pubsubCallback(handler p2p.MessageProcessor, top
 			return false
 		}
 
-		err = handler.ProcessReceivedMessage(msg, fromConnectedPeer)
-		if err != nil {
-			log.Trace("p2p validator",
-				"error", err.Error(),
-				"topics", message.TopicIDs,
-				"originator", p2p.MessageOriginatorPid(msg),
-				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-				"seq no", p2p.MessageOriginatorSeq(msg),
-			)
-			netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), true)
-			return false
+		identifiers, handlers := topicProcs.getList()
+		messageOk := true
+		for index, handler := range handlers {
+			err = handler.ProcessReceivedMessage(msg, fromConnectedPeer)
+			if err != nil {
+				log.Trace("p2p validator",
+					"error", err.Error(),
+					"topics", message.TopicIDs,
+					"originator", p2p.MessageOriginatorPid(msg),
+					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
+					"seq no", p2p.MessageOriginatorSeq(msg),
+					"topic identifier", identifiers[index],
+				)
+				messageOk = false
+			}
 		}
+		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), !messageOk)
 
-		netMes.processDebugMessage(topic, fromConnectedPeer, uint64(len(message.Data)), false)
-		return true
+		return messageOk
 	}
 }
 
@@ -810,7 +816,7 @@ func (netMes *networkMessenger) transformAndCheckMessage(pbMsg *pubsub.Message, 
 
 	err := netMes.validMessageByTimestamp(msg)
 	if err != nil {
-		//not reprocessing nor rebrodcasting the same message over and over again
+		//not reprocessing nor re-broadcasting the same message over and over again
 		log.Trace("received an invalid message",
 			"originator pid", p2p.MessageOriginatorPid(msg),
 			"from connected pid", p2p.PeerIdToShortString(pid),
@@ -881,11 +887,7 @@ func (netMes *networkMessenger) UnregisterAllMessageProcessors() error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 
-	for topic, validator := range netMes.processors {
-		if check.IfNil(validator) {
-			continue
-		}
-
+	for topic := range netMes.processors {
 		err := netMes.pb.UnregisterTopicValidator(topic)
 		if err != nil {
 			return err
@@ -924,21 +926,27 @@ func (netMes *networkMessenger) UnjoinAllTopics() error {
 }
 
 // UnregisterMessageProcessor unregisters a message processes on a topic
-func (netMes *networkMessenger) UnregisterMessageProcessor(topic string) error {
+func (netMes *networkMessenger) UnregisterMessageProcessor(topic string, identifier string) error {
 	netMes.mutTopics.Lock()
 	defer netMes.mutTopics.Unlock()
 
-	validator := netMes.processors[topic]
-	if check.IfNil(validator) {
+	topicProcs := netMes.processors[topic]
+	if topicProcs == nil {
 		return nil
 	}
 
-	err := netMes.pb.UnregisterTopicValidator(topic)
+	err := topicProcs.removeTopicProcessor(identifier)
 	if err != nil {
 		return err
 	}
 
-	netMes.processors[topic] = nil
+	identifiers, _ := topicProcs.getList()
+	if len(identifiers) == 0 {
+		netMes.processors[topic] = nil
+
+		return netMes.pb.UnregisterTopicValidator(topic)
+	}
+
 	return nil
 }
 
@@ -979,8 +987,6 @@ func (netMes *networkMessenger) sendDirectToSelf(topic string, buff []byte) erro
 }
 
 func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fromConnectedPeer core.PeerID) error {
-	var processor p2p.MessageProcessor
-
 	topic := message.TopicIDs[0]
 	msg, err := netMes.transformAndCheckMessage(message, fromConnectedPeer, topic)
 	if err != nil {
@@ -988,12 +994,13 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 	}
 
 	netMes.mutTopics.RLock()
-	processor = netMes.processors[topic]
+	topicProcs := netMes.processors[topic]
 	netMes.mutTopics.RUnlock()
 
-	if processor == nil {
+	if topicProcs == nil {
 		return p2p.ErrNilValidator
 	}
+	identifiers, handlers := topicProcs.getList()
 
 	go func(msg p2p.MessageP2P) {
 		if check.IfNil(msg) {
@@ -1002,17 +1009,23 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 
 		//we won't recheck the message id against the cacher here as there might be collisions since we are using
 		// a separate sequence counter for direct sender
-		errProcess := processor.ProcessReceivedMessage(msg, fromConnectedPeer)
-		if errProcess != nil {
-			log.Trace("p2p validator",
-				"error", errProcess.Error(),
-				"topics", msg.Topics(),
-				"originator", p2p.MessageOriginatorPid(msg),
-				"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
-				"seq no", p2p.MessageOriginatorSeq(msg),
-			)
+		messageOk := true
+		for index, handler := range handlers {
+			errProcess := handler.ProcessReceivedMessage(msg, fromConnectedPeer)
+			if errProcess != nil {
+				log.Trace("p2p validator",
+					"error", errProcess.Error(),
+					"topics", msg.Topics(),
+					"originator", p2p.MessageOriginatorPid(msg),
+					"from connected peer", p2p.PeerIdToShortString(fromConnectedPeer),
+					"seq no", p2p.MessageOriginatorSeq(msg),
+					"topic identifier", identifiers[index],
+				)
+				messageOk = false
+			}
 		}
-		netMes.debugger.AddIncomingMessage(topic, uint64(len(msg.Data())), errProcess != nil)
+
+		netMes.debugger.AddIncomingMessage(topic, uint64(len(msg.Data())), !messageOk)
 	}(msg)
 
 	return nil

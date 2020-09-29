@@ -105,7 +105,7 @@ type Messenger interface {
 	// RegisterMessageProcessor adds the provided MessageProcessor to the list
 	// of handlers that are invoked whenever a message is received on the
 	// specified topic.
-	RegisterMessageProcessor(topic string, handler MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler MessageProcessor) error
 
 	// UnregisterAllMessageProcessors removes all the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
@@ -115,7 +115,7 @@ type Messenger interface {
 	// UnregisterMessageProcessor removes the MessageProcessor set by the
 	// Messenger from the list of registered handlers for the messages on the
 	// given topic.
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 
 	// BroadcastOnChannelBlocking asynchronously waits until it can send a
 	// message on the channel, but once it is able to, it synchronously sends the
