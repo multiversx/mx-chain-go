@@ -942,7 +942,7 @@ func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
 	acntSrc, _, tx := createAccountsAndTransaction()
 
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
 
@@ -961,7 +961,7 @@ func TestScProcessor_processVMOutputNilTx(t *testing.T) {
 	acntSrc, _, _ := createAccountsAndTransaction()
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 	require.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -984,7 +984,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1015,7 +1015,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1357,11 +1357,10 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_, _ = sc.createSCRForSender(
+	_ = sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		acntSrc,
 		vmcommon.DirectCall,
 	)
 	require.Nil(t, err)
@@ -1387,28 +1386,24 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed := sc.createSCRForSender(
+	sctx := sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		nil,
 		vmcommon.DirectCall,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, sctx)
-	require.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx, consumed = sc.createSCRForSender(
+	sctx = sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		nil,
 		vmcommon.DirectCall,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, sctx)
-	require.Equal(t, 0, consumed.Cmp(big.NewInt(0).SetUint64(tx.GasPrice*tx.GasLimit)))
 }
 
 func TestScProcessor_RefundGasToSender(t *testing.T) {
@@ -1437,11 +1432,10 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	scr, _ := sc.createSCRForSender(
+	scr := sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		acntSrc,
 		vmcommon.DirectCall,
 	)
 	require.Nil(t, err)
@@ -1472,15 +1466,13 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	tx.GasPrice = 15
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
-	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
-	scr, _ := sc.createSCRForSender(
+	scr := sc.createSCRForSender(
 		vmOutput,
 		tx,
 		txHash,
-		acntSrc,
 		vmcommon.AsynchronousCall,
 	)
 	require.Nil(t, err)
@@ -1501,7 +1493,7 @@ func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilVMOutput, err)
 }
@@ -1517,7 +1509,7 @@ func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
 	require.Nil(t, err)
 
 	vmOutput := &vmcommon.VMOutput{}
-	_, _, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
 
 	require.Equal(t, process.ErrNilTransaction, err)
 }
@@ -1545,7 +1537,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, _, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1665,8 +1657,10 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
 	outacc1.Nonce = 0
-	outacc1.Balance = big.NewInt(int64(5))
-	outacc1.BalanceDelta = big.NewInt(int64(15))
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(15)
+	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
 	outputAccounts = append(outputAccounts, outacc1, outacc1, outacc1)
 
 	tx := &transaction.Transaction{}

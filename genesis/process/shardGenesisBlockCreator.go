@@ -253,6 +253,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		math.MaxUint64,
 		arg.GasMap,
 		argsHook,
+		arg.GeneralConfig.SCDeployEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
