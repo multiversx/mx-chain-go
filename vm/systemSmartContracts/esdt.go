@@ -103,15 +103,15 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	case "mint":
 		return e.mint(args)
 	case "freeze":
-		return e.freezeUnFreeze(args, core.BuiltInFunctionESDTFreeze)
+		return e.toggleFreeze(args, core.BuiltInFunctionESDTFreeze)
 	case "unFreeze":
-		return e.freezeUnFreeze(args, core.BuiltInFunctionESDTUnFreeze)
+		return e.toggleFreeze(args, core.BuiltInFunctionESDTUnFreeze)
 	case "wipe":
 		return e.wipe(args)
 	case "pause":
-		return e.pauseUnPause(args, core.BuiltInFunctionESDTPause)
+		return e.togglePause(args, core.BuiltInFunctionESDTPause)
 	case "unPause":
-		return e.pauseUnPause(args, core.BuiltInFunctionESDTUnPause)
+		return e.togglePause(args, core.BuiltInFunctionESDTUnPause)
 	case "claim":
 		return e.claim(args)
 	case "configChange":
@@ -317,7 +317,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	burntValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if burntValue.Cmp(big.NewInt(0)) <= 0 {
-		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
+		e.eei.AddReturnMessage("negative or 0 value to burn")
 		return vmcommon.UserError
 	}
 	token, err := e.getExistingToken(args.Arguments[0])
@@ -345,17 +345,17 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("accepted arguments number 2/3")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 	mintValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if mintValue.Cmp(big.NewInt(0)) <= 0 {
-		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
+		e.eei.AddReturnMessage("negative or zero mint value")
 		return vmcommon.UserError
 	}
 	if !token.Mintable {
-		e.eei.AddReturnMessage("token is not burnable")
+		e.eei.AddReturnMessage("token is not mintable")
 		return vmcommon.UserError
 	}
 
@@ -385,12 +385,12 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) freezeUnFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
+func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
 	if len(args.Arguments) < 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -418,12 +418,12 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 	if !token.CanWipe {
-		e.eei.AddReturnMessage("cannot freeze")
+		e.eei.AddReturnMessage("cannot wipe")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[1]) != len(args.CallerAddr) {
@@ -441,17 +441,17 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) pauseUnPause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
+func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
 	if len(args.Arguments) < 1 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 	if !token.CanPause {
-		e.eei.AddReturnMessage("cannot freeze")
+		e.eei.AddReturnMessage("cannot pause/un-pause")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[1]) != len(args.CallerAddr) {
@@ -463,7 +463,7 @@ func (e *esdt) pauseUnPause(args *vmcommon.ContractCallInput, builtInFunc string
 		return vmcommon.UserError
 	}
 	if !token.IsPaused && builtInFunc == core.BuiltInFunctionESDTUnPause {
-		e.eei.AddReturnMessage("cannot unPause an already paused contract")
+		e.eei.AddReturnMessage("cannot unPause an already un-paused contract")
 		return vmcommon.UserError
 	}
 
@@ -475,7 +475,7 @@ func (e *esdt) pauseUnPause(args *vmcommon.ContractCallInput, builtInFunc string
 	}
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
-	e.eei.TransferToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
 }
@@ -490,7 +490,7 @@ func (e *esdt) claim(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) basicOwnerChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
+func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return nil, vmcommon.OutOfFunds
@@ -518,12 +518,12 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 		e.eei.AddReturnMessage("expected num of arguments 2")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 	if !token.CanChangeOwner {
-		e.eei.AddReturnMessage("token is not upgradable")
+		e.eei.AddReturnMessage("cannot change owner of the token")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments[1]) != len(args.CallerAddr) {
@@ -546,7 +546,7 @@ func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.Ret
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	token, returnCode := e.basicOwnerChecks(args)
+	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}

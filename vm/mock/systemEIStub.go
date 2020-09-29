@@ -30,7 +30,7 @@ type SystemEIStub struct {
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                 func(blsKey []byte) bool
 	IsBadRatingCalled               func(blsKey []byte) bool
-	TransferToAllCalled             func(sender []byte, input []byte)
+	SendGlobalSettingToAllCalled    func(sender []byte, input []byte)
 	ReturnMessage                   string
 }
 
@@ -130,9 +130,10 @@ func (s *SystemEIStub) Finish(value []byte) {
 	}
 }
 
-func (s *SystemEIStub) TransferToAll(sender []byte, input []byte) {
-	if s.TransferToAllCalled != nil {
-		s.TransferToAllCalled(sender, input)
+// SendGlobalSettingToAll -
+func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
+	if s.SendGlobalSettingToAllCalled != nil {
+		s.SendGlobalSettingToAllCalled(sender, input)
 	}
 }
 
@@ -184,6 +185,7 @@ func (s *SystemEIStub) GetStorageFromAddress(address []byte, key []byte) []byte 
 	return nil
 }
 
+// SetStorageForAddress -
 func (s *SystemEIStub) SetStorageForAddress(address []byte, key []byte, value []byte) {
 	if s.SetStorageForAddressCalled != nil {
 		s.SetStorageForAddressCalled(address, key, value)
