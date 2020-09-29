@@ -23,6 +23,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		ESDTSCAddress: []byte("address"),
 		Marshalizer:   &mock.MarshalizerMock{},
 		Hasher:        &mock.HasherMock{},
+		EpochNotifier: &mock.EpochNotifierStub{},
 	}
 }
 
@@ -146,7 +147,7 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
-	args.ESDTSCConfig.Disabled = true
+	args.ESDTSCConfig.EnabledEpoch = 1
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
