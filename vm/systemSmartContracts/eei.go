@@ -166,8 +166,14 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-	destAcc.Data = append(destAcc.Data, input...)
-	destAcc.GasLimit += gasLimit
+
+	outputTransfer := vmcommon.OutputTransfer{
+		Value:    big.NewInt(0).Set(value),
+		GasLimit: gasLimit,
+		Data:     input,
+		CallType: vmcommon.DirectCall,
+	}
+	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
 	return nil
 }
@@ -368,11 +374,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
-		if len(outAcc.Data) > 0 {
-			outAccs[addr].Data = outAcc.Data
-		}
-
-		outAccs[addr].GasLimit = outAcc.GasLimit
+		outAccs[addr].OutputTransfers = outAcc.OutputTransfers
 	}
 
 	vmOutput.OutputAccounts = outAccs
@@ -438,7 +440,7 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 
 	// TODO: rename GetList from validator account
 	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
-		validatorAccount.GetList() == string(core.WaitingList)
+		validatorAccount.GetList() == string(core.WaitingList) || validatorAccount.GetList() == string(core.LeavingList)
 	return isValidator
 }
 

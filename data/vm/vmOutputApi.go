@@ -29,16 +29,23 @@ type StorageUpdateApi struct {
 
 // OutputAccountApi is a wrapper over vmcommon's OutputAccount
 type OutputAccountApi struct {
-	Address        string                       `json:"address"`
-	Nonce          uint64                       `json:"nonce"`
-	Balance        *big.Int                     `json:"balance"`
-	BalanceDelta   *big.Int                     `json:"balanceDelta"`
-	StorageUpdates map[string]*StorageUpdateApi `json:"storageUpdates"`
-	Code           []byte                       `json:"code"`
-	CodeMetadata   []byte                       `json:"codeMetaData"`
-	Data           []byte                       `json:"data"`
-	GasLimit       uint64                       `json:"gasLimit"`
-	CallType       vmcommon.CallType            `json:"callType"`
+	Address         string                       `json:"address"`
+	Nonce           uint64                       `json:"nonce"`
+	Balance         *big.Int                     `json:"balance"`
+	BalanceDelta    *big.Int                     `json:"balanceDelta"`
+	StorageUpdates  map[string]*StorageUpdateApi `json:"storageUpdates"`
+	Code            []byte                       `json:"code"`
+	CodeMetadata    []byte                       `json:"codeMetaData"`
+	OutputTransfers []OutputTransferApi          `json:"outputTransfers"`
+	CallType        vmcommon.CallType            `json:"callType"`
+}
+
+// OutputTransferApi is a wrapper over vmcommon's OutputTransfer
+type OutputTransferApi struct {
+	Value    *big.Int          `json:"value"`
+	GasLimit uint64            `json:"gasLimit"`
+	Data     []byte            `json:"data"`
+	CallType vmcommon.CallType `json:"callType"`
 }
 
 // LogEntryApi is a wrapper over vmcommon's LogEntry

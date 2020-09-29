@@ -292,6 +292,7 @@ func CreateVMAndBlockchainHook(
 		maxGasLimitPerBlock,
 		actualGasSchedule,
 		args,
+		0,
 	)
 	if err != nil {
 		log.LogIfError(err)
