@@ -13,38 +13,35 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-var _ process.BuiltinFunction = (*esdtPause)(nil)
+var _ process.BuiltinFunction = (*esdtBurn)(nil)
 
-type esdtPause struct {
+type esdtBurn struct {
 	funcGasCost uint64
 	marshalizer marshal.Marshalizer
 	keyPrefix   []byte
-	pause       bool
 }
 
-// NewESDTPauseFunc returns the esdt pause/un-pause built-in function component
-func NewESDTPauseFunc(
+// NewESDTBurnFunc returns the esdt burn built-in function component
+func NewESDTBurnFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
-	pause bool,
-) (*esdtPause, error) {
+) (*esdtBurn, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
 
-	e := &esdtPause{
+	e := &esdtBurn{
 		funcGasCost: funcGasCost,
 		marshalizer: marshalizer,
 		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
-		pause:       pause,
 	}
 
 	return e, nil
 }
 
 // ProcessBuiltinFunction resolve ESDT function calls
-func (e *esdtPause) ProcessBuiltinFunction(
-	_, acntDst state.UserAccountHandler,
+func (e *esdtBurn) ProcessBuiltinFunction(
+	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
 	if vmInput == nil {
@@ -60,31 +57,38 @@ func (e *esdtPause) ProcessBuiltinFunction(
 	if value.Cmp(zero) <= 0 {
 		return nil, process.ErrNegativeValue
 	}
-	if !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
+	if !bytes.Equal(vmInput.RecipientAddr, vm.ESDTSCAddress) {
 		return nil, process.ErrAddressIsNotESDTSystemSC
 	}
-	if check.IfNil(acntDst) {
+	if check.IfNil(acntSnd) {
 		return nil, process.ErrNilUserAccount
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
+	log.Trace("esdtBurn", "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
 
-	err := e.togglePause(acntDst, esdtTokenKey)
+	if vmInput.GasProvided < e.funcGasCost {
+		return nil, process.ErrNotEnoughGas
+	}
+
+	err := addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer)
 	if err != nil {
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	addOutPutTransferToVMOutput(
+		core.BuiltInFunctionESDTBurn,
+		vmInput.Arguments[0],
+		vmInput.Arguments[1],
+		vmInput.RecipientAddr,
+		vmInput.CallerAddr,
+		vmOutput)
+
 	return vmOutput, nil
 }
 
-func (e *esdtPause) togglePause(_ state.UserAccountHandler, _ []byte) error {
-
-	return nil
-}
-
 // IsInterfaceNil returns true if underlying object in nil
-func (e *esdtPause) IsInterfaceNil() bool {
+func (e *esdtBurn) IsInterfaceNil() bool {
 	return e == nil
 }

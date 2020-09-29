@@ -43,7 +43,7 @@ func NewESDTTransferFunc(
 	return e, nil
 }
 
-// ProcessBuiltinFunction will transfer the underlying esdt balance of the account
+// ProcessBuiltinFunction resolve ESDT function calls
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
@@ -51,11 +51,11 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
-	if len(vmInput.Arguments) != 2 {
-		return nil, process.ErrInvalidArguments
-	}
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return nil, process.ErrBuiltInFunctionCalledWithValue
+	}
+	if len(vmInput.Arguments) != 2 {
+		return nil, process.ErrInvalidArguments
 	}
 
 	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
@@ -74,7 +74,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 
 		gasRemaining = vmInput.GasProvided - e.funcGasCost
-		err := e.addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value))
+		err := addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 	if !check.IfNil(acntDst) {
-		err := e.addToESDTBalance(acntDst, esdtTokenKey, value)
+		err := addToESDTBalance(acntDst, esdtTokenKey, value, e.marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -90,27 +90,51 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		return vmOutput, nil
 	}
 
-	if core.IsSmartContractAddress(vmInput.CallerAddr) {
-		// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
-		esdtTransferTxData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(vmInput.Arguments[0]) + "@" + hex.EncodeToString(vmInput.Arguments[1])
-		outTransfer := vmcommon.OutputTransfer{
-			Value:    big.NewInt(0),
-			GasLimit: 0,
-			Data:     []byte(esdtTransferTxData),
-			CallType: vmcommon.AsynchronousCall,
-		}
-		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
-		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
-			Address:         vmInput.RecipientAddr,
-			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
-		}
-	}
+	addOutPutTransferToVMOutput(
+		core.BuiltInFunctionESDTTransfer,
+		vmInput.Arguments[0],
+		vmInput.Arguments[1],
+		vmInput.RecipientAddr,
+		vmInput.CallerAddr,
+		vmOutput)
 
 	return vmOutput, nil
 }
 
-func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key []byte, value *big.Int) error {
-	esdtData, err := e.getESDTDataFromKey(userAcnt, key)
+func addOutPutTransferToVMOutput(
+	function string,
+	tokenName []byte,
+	tokenValue []byte,
+	recipient []byte,
+	caller []byte,
+	vmOutput *vmcommon.VMOutput,
+) {
+	if !core.IsSmartContractAddress(caller) {
+		return
+	}
+
+	// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
+	esdtTransferTxData := function + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(tokenValue)
+	outTransfer := vmcommon.OutputTransfer{
+		Value:    big.NewInt(0),
+		GasLimit: 0,
+		Data:     []byte(esdtTransferTxData),
+		CallType: vmcommon.AsynchronousCall,
+	}
+	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+	vmOutput.OutputAccounts[string(recipient)] = &vmcommon.OutputAccount{
+		Address:         recipient,
+		OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
+	}
+}
+
+func addToESDTBalance(
+	userAcnt state.UserAccountHandler,
+	key []byte,
+	value *big.Int,
+	marshalizer marshal.Marshalizer,
+) error {
+	esdtData, err := getESDTDataFromKey(userAcnt, key, marshalizer)
 	if err != nil {
 		return err
 	}
@@ -120,25 +144,42 @@ func (e *esdtTransfer) addToESDTBalance(userAcnt state.UserAccountHandler, key [
 		return process.ErrInsufficientFunds
 	}
 
-	marshaledData, err := e.marshalizer.Marshal(esdtData)
+	err = saveESDTData(userAcnt, esdtData, key, marshalizer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func saveESDTData(
+	userAcnt state.UserAccountHandler,
+	esdtData *ESDigitalToken,
+	key []byte,
+	marshalizer marshal.Marshalizer,
+) error {
+	marshaledData, err := marshalizer.Marshal(esdtData)
 	if err != nil {
 		return err
 	}
 
 	log.Trace("esdt after transfer", "addr", userAcnt.AddressBytes(), "value", esdtData.Value, "tokenKey", key)
 	userAcnt.DataTrieTracker().SaveKeyValue(key, marshaledData)
-
 	return nil
 }
 
-func (e *esdtTransfer) getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*ESDigitalToken, error) {
+func getESDTDataFromKey(
+	userAcnt state.UserAccountHandler,
+	key []byte,
+	marshalizer marshal.Marshalizer,
+) (*ESDigitalToken, error) {
 	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil
 	}
 
-	err = e.marshalizer.Unmarshal(esdtData, marshaledData)
+	err = marshalizer.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
 	}

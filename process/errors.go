@@ -883,3 +883,6 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrAddressIsNotESDTSystemSC signals that destination is not a system sc address
+var ErrAddressIsNotESDTSystemSC = errors.New("destination is not system sc address")

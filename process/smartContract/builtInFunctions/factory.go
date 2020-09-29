@@ -67,6 +67,60 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
+	newFunc, err = NewESDTBurnFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTBurn, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTFreezeWipeFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, true, false)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTFreeze, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTFreezeWipeFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, false, false)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTUnFreeze, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTFreezeWipeFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, false, true)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTWipe, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTPauseFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, true)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTPause, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTPauseFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, false)
+	if err != nil {
+		return nil, err
+	}
+	err = container.Add(core.BuiltInFunctionESDTUnPause, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
 	return container, nil
 }
 
