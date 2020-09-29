@@ -136,9 +136,8 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	return account.GetBalance()
 }
 
-// TransferToAll handles transfering an information to all the shards
-func (host *vmContext) TransferToAll(sender []byte, input []byte) {
-
+// SendGlobalSettingToAll handles sending the information to all the shards
+func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
 }
 
 // Transfer handles any necessary value transfer required and takes
