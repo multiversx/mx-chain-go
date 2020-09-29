@@ -21,34 +21,34 @@ func NewCurrentNetworkEpochProvider(numActivePersisters int) *currentNetworkEpoc
 }
 
 // SetCurrentEpoch will update the component's current epoch
-func (cnrp *currentNetworkEpochProvider) SetCurrentEpoch(epoch uint32) {
+func (cnep *currentNetworkEpochProvider) SetCurrentEpoch(epoch uint32) {
 	// TODO: analyze where to call this from. For now, it is only called from epoch start bootstrapper so the value will
 	// be accurate only when the node starts
-	cnrp.mutCurrentEpoch.Lock()
-	cnrp.currentEpoch = epoch
-	cnrp.mutCurrentEpoch.Unlock()
+	cnep.mutCurrentEpoch.Lock()
+	cnep.currentEpoch = epoch
+	cnep.mutCurrentEpoch.Unlock()
 }
 
 // EpochIsActiveInNetwork returns true if the persister for the given epoch is active in the network
-func (cnrp *currentNetworkEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
-	cnrp.mutCurrentEpoch.RLock()
-	defer cnrp.mutCurrentEpoch.RUnlock()
+func (cnep *currentNetworkEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
+	cnep.mutCurrentEpoch.RLock()
+	defer cnep.mutCurrentEpoch.RUnlock()
 
-	lower := core.MaxInt(int(cnrp.currentEpoch)-cnrp.numActivePersisters+1, 0)
-	upper := cnrp.currentEpoch
+	lower := core.MaxInt(int(cnep.currentEpoch)-cnep.numActivePersisters+1, 0)
+	upper := cnep.currentEpoch
 
 	return epoch >= uint32(lower) && epoch <= upper
 }
 
-// CurrentEpoch returns the
-func (cnrp *currentNetworkEpochProvider) CurrentEpoch() uint32 {
-	cnrp.mutCurrentEpoch.RLock()
-	defer cnrp.mutCurrentEpoch.RUnlock()
+// CurrentEpoch returns the current epoch in the network
+func (cnep *currentNetworkEpochProvider) CurrentEpoch() uint32 {
+	cnep.mutCurrentEpoch.RLock()
+	defer cnep.mutCurrentEpoch.RUnlock()
 
-	return cnrp.currentEpoch
+	return cnep.currentEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cnrp *currentNetworkEpochProvider) IsInterfaceNil() bool {
-	return cnrp == nil
+func (cnep *currentNetworkEpochProvider) IsInterfaceNil() bool {
+	return cnep == nil
 }
