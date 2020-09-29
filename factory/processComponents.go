@@ -95,7 +95,6 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
-	NodesConfig               NodesSetupHandler
 	GasSchedule               map[string]map[string]uint64
 	Rounder                   consensus.Rounder
 	ShardCoordinator          sharding.Coordinator
@@ -139,7 +138,6 @@ type processComponentsFactory struct {
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
-	nodesConfig               NodesSetupHandler
 	gasSchedule               map[string]map[string]uint64
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
@@ -190,7 +188,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
-		nodesConfig:               args.NodesConfig,
 		gasSchedule:               args.GasSchedule,
 		rounder:                   args.Rounder,
 		shardCoordinator:          args.ShardCoordinator,
@@ -470,7 +467,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = nodesSetupChecker.Check(pcf.nodesConfig.AllInitialNodes())
+	err = nodesSetupChecker.Check(pcf.coreData.GenesisNodesSetup().AllInitialNodes())
 	if err != nil {
 		return nil, err
 	}
@@ -533,7 +530,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		Rater:               pcf.rater,
 		MaxComputableRounds: pcf.maxComputableRounds,
 		RewardsHandler:      pcf.economicsData,
-		NodesSetup:          pcf.nodesConfig,
+		NodesSetup:          pcf.coreData.GenesisNodesSetup(),
 		RatingEnableEpoch:   ratingEnabledEpoch,
 		GenesisNonce:        pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
 	}
@@ -593,7 +590,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
 		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(pcf.nodesConfig.GetStartTime(), 0),
+			GenesisTime:        time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
 			Settings:           &pcf.config.EpochStartConfig,
 			Epoch:              pcf.startEpochNum,
 			EpochStartRound:    pcf.data.Blockchain().GetGenesisHeader().GetRound(),
@@ -626,10 +623,10 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	arg := processGenesis.ArgsGenesisBlockCreator{
 		Core:                 pcf.coreData,
 		Data:                 pcf.data,
-		GenesisTime:          uint64(pcf.nodesConfig.GetStartTime()),
+		GenesisTime:          uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
 		StartEpochNum:        pcf.startEpochNum,
 		Accounts:             pcf.state.AccountsAdapter(),
-		InitialNodesSetup:    pcf.nodesConfig,
+		InitialNodesSetup:    pcf.coreData.GenesisNodesSetup(),
 		Economics:            pcf.economicsData,
 		ShardCoordinator:     pcf.shardCoordinator,
 		AccountsParser:       pcf.accountsParser,
@@ -1096,10 +1093,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.GetStartTime())
+		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.nodesConfig.GetStartTime())
+		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")
@@ -1189,9 +1186,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if args.EconomicsData == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEconomicsData)
-	}
-	if args.NodesConfig == nil {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilNodesConfig)
 	}
 	if args.GasSchedule == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGasSchedule)

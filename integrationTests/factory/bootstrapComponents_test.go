@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/require"
@@ -96,16 +95,6 @@ func createBootstrapComponents(
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
-	nodesSetup := managedCoreComponents.GenesisNodesSetup()
-
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		nodesSetup.MinNumberOfShardNodes(),
-		nodesSetup.MinNumberOfMetaNodes(),
-		nodesSetup.GetHysteresis(),
-		nodesSetup.GetAdaptivity(),
-		true,
-	)
-
 	destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(preferencesConfig.DestinationShardAsObserver)
 	if err != nil {
 		return nil, err
@@ -137,8 +126,6 @@ func createBootstrapComponents(
 		Config:                  config,
 		WorkingDir:              "workingDir",
 		DestinationAsObserver:   destShardIdAsObserver,
-		GenesisNodesSetup:       nodesSetup,
-		NodeShuffler:            nodesShuffler,
 		ShardCoordinator:        genesisShardCoordinator,
 		CoreComponents:          managedCoreComponents,
 		CryptoComponents:        managedCryptoComponents,

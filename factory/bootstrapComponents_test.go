@@ -60,18 +60,6 @@ func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilNetworkComponentsHolder, err)
 }
 
-func TestNewBootstrapComponentsFactory_NilNodeShuffler(t *testing.T) {
-	t.Parallel()
-
-	args := getBootStrapArgs()
-	args.NodeShuffler = nil
-
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
-
-	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilShuffler, err)
-}
-
 func TestNewBootstrapComponentsFactory_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
@@ -82,18 +70,6 @@ func TestNewBootstrapComponentsFactory_NilShardCoordinator(t *testing.T) {
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
-}
-
-func TestNewBootstrapComponentsFactory_NilGenesisNodesSetup(t *testing.T) {
-	t.Parallel()
-
-	args := getBootStrapArgs()
-	args.GenesisNodesSetup = nil
-
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
-
-	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilGenesisNodesSetup, err)
 }
 
 func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
@@ -173,8 +149,6 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		Config:                  testscommon.GetGeneralConfig(),
 		WorkingDir:              "home",
 		DestinationAsObserver:   0,
-		GenesisNodesSetup:       &mock.NodesSetupStub{},
-		NodeShuffler:            &mock.NodeShufflerMock{},
 		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(2),
 		CoreComponents:          coreComponents,
 		CryptoComponents:        cryptoComponents,

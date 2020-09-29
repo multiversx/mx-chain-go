@@ -240,18 +240,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 		closableComponents = append(closableComponents, managedNetworkComponents)
 
-		log.Trace("creating ratings data components")
-
-		nodesSetup := managedCoreComponents.GenesisNodesSetup()
-
-		nodesShuffler := sharding.NewHashValidatorsShuffler(
-			nodesSetup.MinNumberOfShardNodes(),
-			nodesSetup.MinNumberOfMetaNodes(),
-			nodesSetup.GetHysteresis(),
-			nodesSetup.GetAdaptivity(),
-			true,
-		)
-
 		destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(cfgs.preferencesConfig.Preferences.DestinationShardAsObserver)
 		if err != nil {
 			return err
@@ -284,8 +272,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			Config:                  *cfgs.generalConfig,
 			WorkingDir:              workingDir,
 			DestinationAsObserver:   destShardIdAsObserver,
-			GenesisNodesSetup:       nodesSetup,
-			NodeShuffler:            nodesShuffler,
 			ShardCoordinator:        genesisShardCoordinator,
 			CoreComponents:          managedCoreComponents,
 			CryptoComponents:        managedCryptoComponents,
@@ -405,7 +391,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCryptoComponents.PublicKeyString(),
 			nodeType,
 			shardCoordinator,
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			version,
 			cfgs.economicsConfig,
 			cfgs.generalConfig.EpochStartConfig.RoundsPerEpoch,
@@ -435,7 +421,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		nodesCoordinator, nodeShufflerOut, err := mainFactory.CreateNodesCoordinator(
 			log,
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.preferencesConfig.Preferences,
 			epochStartNotifier,
 			managedCryptoComponents.PublicKey(),
@@ -443,7 +429,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCoreComponents.Hasher(),
 			managedCoreComponents.Rater(),
 			managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-			nodesShuffler,
+			managedCoreComponents.NodesShuffler(),
 			cfgs.generalConfig.EpochStartConfig,
 			shardCoordinator.SelfId(),
 			chanStopNodeProcess,
@@ -508,7 +494,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating time cache for requested items components")
-		requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesSetup.GetRoundDuration()))
+		requestedItemsHandler := timecache.NewTimeCache(
+			time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 		whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.WhiteListPool))
 		if err != nil {
@@ -545,7 +532,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statArgs := mainFactory.StatusComponentsFactoryArgs{
 			Config:             *cfgs.generalConfig,
 			ExternalConfig:     *cfgs.externalConfig,
-			RoundDurationSec:   nodesSetup.GetRoundDuration() / 1000,
 			ElasticOptions:     &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 			ShardCoordinator:   shardCoordinator,
 			NodesCoordinator:   nodesCoordinator,
@@ -601,7 +587,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			Config:                    *cfgs.generalConfig,
 			AccountsParser:            accountsParser,
 			SmartContractParser:       smartContractParser,
-			NodesConfig:               nodesSetup,
 			GasSchedule:               gasSchedule,
 			Rounder:                   managedCoreComponents.Rounder(),
 			ShardCoordinator:          shardCoordinator,
@@ -672,7 +657,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			chanStopNodeProcess,
 			epochStartNotifier,
 			importStartHandler,
-			nodesSetup,
 			workingDir,
 		)
 		if err != nil {
@@ -694,7 +678,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		currentNode, err := createNode(
 			cfgs.generalConfig,
 			cfgs.preferencesConfig,
-			nodesSetup,
 			managedBootstrapComponents,
 			managedCoreComponents,
 			managedCryptoComponents,
@@ -753,7 +736,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			gasSchedule,
 			managedCoreComponents.EconomicsData(),
 			managedCryptoComponents.MessageSignVerifier(),
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.systemSCConfig,
 		)
 		if err != nil {
@@ -793,7 +776,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 			Config:              *cfgs.generalConfig,
-			ConsensusGroupSize:  int(nodesSetup.GetShardConsensusGroupSize()),
+			ConsensusGroupSize:  int(managedCoreComponents.GenesisNodesSetup().GetShardConsensusGroupSize()),
 			BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
 			HardforkTrigger:     hardForkTrigger,
 			CoreComponents:      managedCoreComponents,
@@ -1155,7 +1138,7 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	log.Trace("gops", "enabled", gopsEnabled)
 }
 
-func getConsensusGroupSize(nodesConfig mainFactory.NodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.GetMetaConsensusGroupSize(), nil
 	}
@@ -1181,7 +1164,6 @@ func createHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
-	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (node.HardforkTrigger, error) {
 
@@ -1222,7 +1204,6 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
 		ValidityAttester:         process.BlockTracker(),
 		Rounder:                  process.Rounder(),
-		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -1254,7 +1235,6 @@ func createHardForkTrigger(
 func createNode(
 	config *config.Config,
 	preferencesConfig *config.Preferences,
-	nodesConfig mainFactory.NodesSetupHandler,
 	bootstrapComponents mainFactory.BootstrapComponentsHandler,
 	coreComponents mainFactory.CoreComponentsHandler,
 	cryptoComponents mainFactory.CryptoComponentsHandler,
@@ -1274,7 +1254,7 @@ func createNode(
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
-	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, processComponents.ShardCoordinator())
+	consensusGroupSize, err = getConsensusGroupSize(coreComponents.GenesisNodesSetup(), processComponents.ShardCoordinator())
 	if err != nil {
 		return nil, err
 	}
@@ -1305,7 +1285,7 @@ func createNode(
 		return nil, err
 	}
 
-	genesisTime := time.Unix(nodesConfig.GetStartTime(), 0)
+	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
 		Config:            *config,
 		Prefs:             *preferencesConfig,
@@ -1344,8 +1324,8 @@ func createNode(
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithStatusComponents(statusComponents),
-		node.WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		node.WithRoundDuration(nodesConfig.GetRoundDuration()),
+		node.WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
+		node.WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
 		node.WithConsensusGroupSize(int(consensusGroupSize)),
 		node.WithGenesisTime(genesisTime),
 		node.WithConsensusType(config.Consensus.Type),

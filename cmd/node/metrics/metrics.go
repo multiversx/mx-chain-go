@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -26,7 +25,7 @@ func InitMetrics(
 	pubkeyStr string,
 	nodeType core.NodeType,
 	shardCoordinator sharding.Coordinator,
-	nodesConfig factory.NodesSetupHandler,
+	nodesConfig sharding.GenesisNodesSetupHandler,
 	version string,
 	economicsConfig *config.EconomicsConfig,
 	roundsPerEpoch int64,

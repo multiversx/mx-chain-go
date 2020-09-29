@@ -379,7 +379,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.economicsData,
 		pcf.crypto.MessageSignVerifier(),
 		pcf.gasSchedule,
-		pcf.nodesConfig,
+		pcf.coreData.GenesisNodesSetup(),
 		pcf.coreData.Hasher(),
 		pcf.coreData.InternalMarshalizer(),
 		pcf.systemSCConfig,

@@ -11,7 +11,8 @@ import (
 
 // ------------ Test TestManagedProcessComponents --------------------
 func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	processArgs := getProcessComponentsArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
 	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
@@ -23,21 +24,25 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
-
-	dataArgs := getDataArgs(coreComponents)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.SelfIDCalled = func() uint32 {
+		return core.MetachainShardId
+	}
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
+			return core.MetachainShardId
+		}
+
 		return 0
 	}
+
 	shardCoordinator.CurrentShard = core.MetachainShardId
-	dataArgs.ShardCoordinator = shardCoordinator
-	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
 	networkComponents := getNetworkComponents()
 	cryptoComponents := getCryptoComponents(coreComponents)
-	stateComponents := getStateComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
 	processArgs := getProcessArgs(
+		shardCoordinator,
 		coreComponents,
 		dataComponents,
 		cryptoComponents,
@@ -45,8 +50,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 		networkComponents,
 	)
 
-	processArgs.ShardCoordinator = shardCoordinator
-	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
+	processComponentsFactory, err := factory.NewProcessComponentsFactory(processArgs)
+	require.Nil(t, err)
 	managedProcessComponents, err := factory.NewManagedProcessComponents(processComponentsFactory)
 	require.NoError(t, err)
 	require.Nil(t, managedProcessComponents.NodesCoordinator())
@@ -93,7 +98,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {
-	processArgs := getProcessComponentsArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, _ := factory.NewManagedProcessComponents(processComponentsFactory)
 	err := managedProcessComponents.Create()

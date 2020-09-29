@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -20,6 +21,7 @@ type CoreComponentsMock struct {
 	StatusHandlerCalled         func() core.AppStatusHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
+	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
 }
 
 // InternalMarshalizer -
@@ -83,6 +85,14 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
 	if ccm.StatusHandlerCalled != nil {
 		return ccm.StatusHandlerCalled()
+	}
+	return nil
+}
+
+// GenesisNodesSetup -
+func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
+	if ccm.GenesisNodesSetupCalled != nil {
+		return ccm.GenesisNodesSetupCalled()
 	}
 	return nil
 }

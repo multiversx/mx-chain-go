@@ -961,6 +961,7 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	StatusHandler() core.AppStatusHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	IsInterfaceNil() bool
 }
 

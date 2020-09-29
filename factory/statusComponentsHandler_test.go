@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test ManagedStatusComponents --------------------
 func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	coreComponents := getDefaultCoreComponents()
 	statusArgs.CoreComponents = coreComponents
 
@@ -23,7 +25,8 @@ func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
-	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, err := factory.NewManagedStatusComponents(statusComponentsFactory)
 	require.NoError(t, err)
@@ -39,7 +42,8 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Close(t *testing.T) {
-	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
 	err := managedStatusComponents.Create()
@@ -50,7 +54,8 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 }
 
 func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
-	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
 	managedStatusComponents, _ := factory.NewManagedStatusComponents(statusComponentsFactory)
 	err := managedStatusComponents.Create()

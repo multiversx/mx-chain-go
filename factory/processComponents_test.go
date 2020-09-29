@@ -1,30 +1,30 @@
 package factory_test
 
 import (
-	"strconv"
+	"math/big"
 	"testing"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/ElrondNetwork/elrond-go/genesis/data"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
-var minTxGasPrice = uint64(10)
-var minTxGasLimit = uint64(1000)
-var maxGasLimitPerBlock = uint64(3000000)
-
 // ------------ Test TestProcessComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	processArgs := getProcessComponentsArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	processArgs := getProcessComponentsArgs(shardCoordinator)
 	pcf, _ := factory.NewProcessComponentsFactory(processArgs)
 	pc, _ := pcf.Create()
 
@@ -32,13 +32,14 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
+func getProcessComponentsArgs(shardCoordinator sharding.Coordinator) factory.ProcessComponentsFactoryArgs {
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
-	dataComponents := getDataComponents(coreComponents)
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := getCryptoComponents(coreComponents)
-	stateComponents := getStateComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
 	processArgs := getProcessArgs(
+		shardCoordinator,
 		coreComponents,
 		dataComponents,
 		cryptoComponents,
@@ -49,6 +50,7 @@ func getProcessComponentsArgs() factory.ProcessComponentsFactoryArgs {
 }
 
 func getProcessArgs(
+	shardCoordinator sharding.Coordinator,
 	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -66,25 +68,64 @@ func getProcessArgs(
 	epochStartConfig := getEpochStartConfig()
 
 	return factory.ProcessComponentsFactoryArgs{
-		Config:              testscommon.GetGeneralConfig(),
-		AccountsParser:      &mock.AccountsParserStub{},
+		Config: testscommon.GetGeneralConfig(),
+		AccountsParser: &mock.AccountsParserStub{
+			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+				addrConverter, _ := factory2.NewPubkeyConverter(config.PubkeyConfig{
+					Length:          32,
+					Type:            "bech32",
+					SignatureLength: 0,
+				})
+				balance := big.NewInt(0)
+				acc1 := data.InitialAccount{
+					Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Balance:      balance,
+					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Delegation: &data.DelegationData{
+						Address: "",
+						Value:   big.NewInt(0),
+					},
+				}
+				acc2 := data.InitialAccount{
+					Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Balance:      balance,
+					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Delegation: &data.DelegationData{
+						Address: "",
+						Value:   big.NewInt(0),
+					},
+				}
+				acc3 := data.InitialAccount{
+					Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Balance:      balance,
+					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+					Delegation: &data.DelegationData{
+						Address: "",
+						Value:   big.NewInt(0),
+					},
+				}
+
+				acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+				acc1.SetAddressBytes(acc1Bytes)
+				acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+				acc2.SetAddressBytes(acc2Bytes)
+				acc3Bytes, _ := addrConverter.Decode(acc3.Address)
+				acc3.SetAddressBytes(acc3Bytes)
+				initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
+
+				return initialAccounts
+			},
+		},
 		SmartContractParser: &mock.SmartContractParserStub{},
 		EconomicsData:       CreateEconomicsData(),
-		NodesConfig: &sharding.NodesSetup{
-			StartTime:                   0,
-			RoundDuration:               5,
-			ConsensusGroupSize:          3,
-			MinNodesPerShard:            3,
-			MetaChainConsensusGroupSize: 3,
-			MetaChainMinNodes:           3,
-			Hysteresis:                  0,
-			Adaptivity:                  false,
-		},
-		GasSchedule: gasSchedule,
+		GasSchedule:         gasSchedule,
 		Rounder: &mock.RounderMock{
 			RoundTimeDuration: time.Second,
 		},
-		ShardCoordinator:          mock.NewMultiShardsCoordinatorMock(2),
+		ShardCoordinator:          shardCoordinator,
 		NodesCoordinator:          &mock.NodesCoordinatorMock{},
 		Data:                      dataComponents,
 		CoreData:                  coreComponents,
@@ -120,7 +161,7 @@ func getProcessArgs(
 				MinVetoThreshold: 50,
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "100",
+				GenesisNodePrice:                     "2500000000000000000000",
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
@@ -146,36 +187,9 @@ func getProcessArgs(
 
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
-	maxGasLimitPerBlock := strconv.FormatUint(maxGasLimitPerBlock, 10)
-	minGasPrice := strconv.FormatUint(minTxGasPrice, 10)
-	minGasLimit := strconv.FormatUint(minTxGasLimit, 10)
-
+	economicsConfig := createDummyEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(
-		&config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply: "2000000000000000000000",
-				MinimumInflation:   0,
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-			},
-			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
-			},
-		},
+		&economicsConfig,
 	)
 	return economicsData
 }

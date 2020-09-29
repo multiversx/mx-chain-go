@@ -21,8 +21,6 @@ type BootstrapComponentsFactoryArgs struct {
 	Config                  config.Config
 	WorkingDir              string
 	DestinationAsObserver   uint32
-	GenesisNodesSetup       sharding.GenesisNodesSetupHandler
-	NodeShuffler            sharding.NodesShuffler
 	ShardCoordinator        sharding.Coordinator
 	CoreComponents          CoreComponentsHolder
 	CryptoComponents        CryptoComponentsHolder
@@ -34,8 +32,6 @@ type bootstrapComponentsFactory struct {
 	config                  config.Config
 	workingDir              string
 	destinationAsObserver   uint32
-	genesisNodesSetup       sharding.GenesisNodesSetupHandler
-	nodesShuffler           sharding.NodesShuffler
 	shardCoordinator        sharding.Coordinator
 	coreComponents          CoreComponentsHolder
 	cryptoComponents        CryptoComponentsHolder
@@ -63,14 +59,8 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
 	}
-	if check.IfNil(args.NodeShuffler) {
-		return nil, errors.ErrNilShuffler
-	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.GenesisNodesSetup) {
-		return nil, errors.ErrNilGenesisNodesSetup
 	}
 	if check.IfNil(args.HeaderIntegrityVerifier) {
 		return nil, errors.ErrNilHeaderIntegrityVerifier
@@ -83,8 +73,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		config:                  args.Config,
 		workingDir:              args.WorkingDir,
 		destinationAsObserver:   args.DestinationAsObserver,
-		genesisNodesSetup:       args.GenesisNodesSetup,
-		nodesShuffler:           args.NodeShuffler,
 		shardCoordinator:        args.ShardCoordinator,
 		coreComponents:          args.CoreComponents,
 		cryptoComponents:        args.CryptoComponents,
@@ -135,12 +123,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Messenger:                  bcf.networkComponents.NetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:         bcf.genesisNodesSetup,
+		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
 		GenesisShardCoordinator:    bcf.shardCoordinator,
 		StorageUnitOpener:          unitOpener,
 		Rater:                      bcf.coreComponents.Rater(),
 		DestinationShardAsObserver: bcf.destinationAsObserver,
-		NodeShuffler:               bcf.nodesShuffler,
+		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
 		Rounder:                    bcf.coreComponents.Rounder(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),

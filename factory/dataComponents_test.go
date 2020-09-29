@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -16,8 +17,9 @@ import (
 func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	args.ShardCoordinator = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -28,7 +30,8 @@ func TestNewDataComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getDataArgs(nil)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(nil, shardCoordinator)
 	args.Core = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -39,8 +42,9 @@ func TestNewDataComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	args.EpochStartNotifier = nil
 
 	dcf, err := factory.NewDataComponentsFactory(args)
@@ -51,8 +55,9 @@ func TestNewDataComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, dcf)
@@ -61,8 +66,9 @@ func TestNewDataComponentsFactory_OkValsShouldWork(t *testing.T) {
 func TestDataComponentsFactory_CreateShouldErrDueBadConfig(t *testing.T) {
 	t.Parallel()
 
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.NoError(t, err)
@@ -76,7 +82,8 @@ func TestDataComponentsFactory_CreateForShardShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dcf, err := factory.NewDataComponentsFactory(args)
 
 	require.NoError(t, err)
@@ -89,10 +96,10 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
-	multiShrdCoord := mock.NewMultiShardsCoordinatorMock(3)
-	multiShrdCoord.CurrentShard = core.MetachainShardId
-	args.ShardCoordinator = multiShrdCoord
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	args := getDataArgs(coreComponents, shardCoordinator)
+
 	dcf, err := factory.NewDataComponentsFactory(args)
 	require.NoError(t, err)
 	dc, err := dcf.Create()
@@ -105,7 +112,8 @@ func TestManagedDataComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dcf, _ := factory.NewDataComponentsFactory(args)
 
 	dc, _ := dcf.Create()
@@ -114,13 +122,13 @@ func TestManagedDataComponents_Close_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func getDataArgs(coreComponents factory.CoreComponentsHolder) factory.DataComponentsFactoryArgs {
+func getDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsFactoryArgs {
 	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
 	testEconomics.SetMinGasPrice(200000000000)
 
 	return factory.DataComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
+		ShardCoordinator:   shardCoordinator,
 		Core:               coreComponents,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CurrentEpoch:       0,

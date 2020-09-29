@@ -55,7 +55,6 @@ type ArgsExporter struct {
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
 	Rounder                  process.Rounder
-	GenesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 type exportHandlerFactory struct {
@@ -87,7 +86,6 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler    process.P2PAntifloodHandler
 	outputAntifloodHandler   process.P2PAntifloodHandler
 	rounder                  process.Rounder
-	genesisNodesSetupHandler update.GenesisNodesSetupHandler
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -185,9 +183,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.Rounder) {
 		return nil, update.ErrNilRounder
 	}
-	if check.IfNil(args.GenesisNodesSetupHandler) {
-		return nil, update.ErrNilGenesisNodesSetupHandler
-	}
 
 	e := &exportHandlerFactory{
 		CoreComponents:           args.CoreComponents,
@@ -216,7 +211,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 		rounder:                  args.Rounder,
-		genesisNodesSetupHandler: args.GenesisNodesSetupHandler,
 	}
 
 	return e, nil
@@ -395,7 +389,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		ExportFolder:             e.exportFolder,
 		ValidatorPubKeyConverter: e.CoreComponents.ValidatorPubKeyConverter(),
 		AddressPubKeyConverter:   e.CoreComponents.AddressPubKeyConverter(),
-		GenesisNodesSetupHandler: e.genesisNodesSetupHandler,
+		GenesisNodesSetupHandler: e.CoreComponents.GenesisNodesSetup(),
 	}
 	exportHandler, err := genesis.NewStateExporter(argsExporter)
 	if err != nil {

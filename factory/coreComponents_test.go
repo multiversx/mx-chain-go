@@ -334,7 +334,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 func createDummyEconomicsConfig() config.EconomicsConfig {
 	return config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
-			GenesisTotalSupply: "2000000000000000000000",
+			GenesisTotalSupply: "20000000000000000000000000",
 			MinimumInflation:   0,
 			YearSettings: []*config.YearSetting{
 				{
@@ -349,12 +349,12 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     "100000",
-			MaxGasLimitPerMetaBlock: "1000000",
-			MinGasPrice:             "18446744073709551615",
-			MinGasLimit:             "500",
-			GasPerDataByte:          "1",
-			DataLimitForBaseCalc:    "100000000",
+			MaxGasLimitPerBlock:     "1500000000",
+			MaxGasLimitPerMetaBlock: "15000000000",
+			MinGasPrice:             "1000000000",
+			MinGasLimit:             "50000",
+			GasPerDataByte:          "1500",
+			DataLimitForBaseCalc:    "10000",
 		},
 	}
 }
@@ -362,15 +362,15 @@ func createDummyEconomicsConfig() config.EconomicsConfig {
 func createDummyRatingsConfig() config.RatingsConfig {
 	return config.RatingsConfig{
 		General: config.General{
-			StartRating:           4000,
-			MaxRating:             10000,
+			StartRating:           5000001,
+			MaxRating:             10000000,
 			MinRating:             1,
 			SignedBlocksThreshold: signedBlocksThreshold,
 			SelectionChances: []*config.SelectionChance{
 				{MaxThreshold: 0, ChancePercent: 5},
-				{MaxThreshold: 2500, ChancePercent: 19},
-				{MaxThreshold: 7500, ChancePercent: 20},
-				{MaxThreshold: 10000, ChancePercent: 21},
+				{MaxThreshold: 2500000, ChancePercent: 19},
+				{MaxThreshold: 7500000, ChancePercent: 20},
+				{MaxThreshold: 10000000, ChancePercent: 21},
 			},
 		},
 		ShardChain: config.ShardChain{

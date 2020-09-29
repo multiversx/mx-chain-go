@@ -385,7 +385,7 @@ func (mcc *managedCoreComponents) Rater() sharding.PeerAccountListAndRatingHandl
 }
 
 // GenesisNodesSetup returns the genesis nodes setup
-func (mcc *managedCoreComponents) GenesisNodesSetup() NodesSetupHandler {
+func (mcc *managedCoreComponents) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -406,6 +406,18 @@ func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
 	}
 
 	return mcc.coreComponents.rounder
+}
+
+// NodesShuffler returns the nodes shuffler
+func (mcc *managedCoreComponents) NodesShuffler() sharding.NodesShuffler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.nodesShuffler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
