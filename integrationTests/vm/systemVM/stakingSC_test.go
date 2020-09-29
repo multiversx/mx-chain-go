@@ -100,6 +100,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
+	manualSetToInactiveStateStakedPeers(t, nodes)
+
 	////////----- send unBond
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
@@ -199,6 +201,8 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	consumedBalance.Mul(consumedBalance, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 
 	checkAccountsAfterStaking(t, nodes)
+
+	manualSetToInactiveStateStakedPeers(t, nodes)
 
 	/////////------ send unStake tx
 	for index, node := range nodes {
@@ -356,7 +360,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 				break
 			}
 		}
@@ -405,4 +409,24 @@ func generateUniqueKey(identifier int) string {
 	neededLength := 192
 	uniqueIdentifier := fmt.Sprintf("%d", identifier)
 	return strings.Repeat("0", neededLength-len(uniqueIdentifier)) + uniqueIdentifier
+}
+
+func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		for index := range nodes {
+			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
+			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount.List = string(core.InactiveList)
+			peerAccount.BLSPublicKey = pubKey
+			err := node.PeerState.SaveAccount(peerAccount)
+			require.Nil(t, err)
+		}
+
+		_, err := node.PeerState.Commit()
+		require.Nil(t, err)
+	}
 }

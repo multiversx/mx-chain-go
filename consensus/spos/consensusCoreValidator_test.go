@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +23,8 @@ func initConsensusDataContainer() *ConsensusCore {
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := &mock.NodesCoordinatorMock{}
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:         blockChain,
@@ -38,6 +41,8 @@ func initConsensusDataContainer() *ConsensusCore {
 		shardCoordinator:   shardCoordinatorMock,
 		syncTimer:          syncTimerMock,
 		nodesCoordinator:   validatorGroupSelector,
+		antifloodHandler:   antifloodHandler,
+		peerHonestyHandler: peerHonestyHandler,
 	}
 }
 
@@ -160,4 +165,37 @@ func TestConsensusContainerValidator_ValidateNilValidatorGroupSelectorShouldFail
 	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, ErrNilNodesCoordinator, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilAntifloodHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.antifloodHandler = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilAntifloodHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilPeerHonestyHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.peerHonestyHandler = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilPeerHonestyHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilHeaderSigVerifierShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.headerSigVerifier = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilHeaderSigVerifier, err)
 }

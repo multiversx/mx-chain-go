@@ -57,6 +57,7 @@ const timeBetweenPeerPrints = time.Second * 20
 const timeBetweenExternalLoggersCheck = time.Second * 20
 const defaultThresholdMinConnectedPeers = 3
 const minRangePortValue = 1025
+const noSignPolicy = pubsub.MessageSignaturePolicy(0) //should be used only in tests
 
 //TODO remove the header size of the message when commit d3c5ecd3a3e884206129d9f2a9a4ddfd5e7c8951 from
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
@@ -239,8 +240,10 @@ func createMessenger(
 }
 
 func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
-	optsPS := []pubsub.Option{
-		pubsub.WithMessageSigning(withMessageSigning),
+	optsPS := make([]pubsub.Option, 0)
+	if !withMessageSigning {
+		log.Warn("signature verification is turned off in network messenger instance")
+		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
 	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
@@ -414,15 +417,15 @@ func (netMes *networkMessenger) printLogsStats() {
 		log.Debug("network connection status",
 			"known peers", len(netMes.Peers()),
 			"connected peers", len(netMes.ConnectedPeers()),
-			"intra shard validators", len(peersInfo.IntraShardValidators),
-			"intra shard observers", len(peersInfo.IntraShardObservers),
-			"cross shard validators", len(peersInfo.CrossShardValidators),
-			"cross shard observers", len(peersInfo.CrossShardObservers),
-			"full history observers", len(peersInfo.FullHistoryObservers),
+			"intra shard validators", peersInfo.NumIntraShardValidators,
+			"intra shard observers", peersInfo.NumIntraShardObservers,
+			"cross shard validators", peersInfo.NumCrossShardValidators,
+			"cross shard observers", peersInfo.NumCrossShardObservers,
+			"full history observers", peersInfo.NumFullHistoryObservers,
 			"unknown", len(peersInfo.UnknownPeers),
 			"current shard", peersInfo.SelfShardID,
-			"validators histogram", netMes.mapHistogram(peersInfo.NumValidators),
-			"observers histogram", netMes.mapHistogram(peersInfo.NumObservers),
+			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
+			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
 		)
 
 		connsPerSec := conns / uint32(timeBetweenPeerPrints/time.Second)
@@ -1088,8 +1091,8 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		CrossShardValidators: make(map[uint32][]string),
 		CrossShardObservers:  make(map[uint32][]string),
 		FullHistoryObservers: make(map[uint32][]string),
-		NumObservers:         make(map[uint32]int),
-		NumValidators:        make(map[uint32]int),
+		NumObserversOnShard:  make(map[uint32]int),
+		NumValidatorsOnShard: make(map[uint32]int),
 	}
 	selfPeerInfo := netMes.peerShardResolver.GetPeerInfo(netMes.ID())
 	connPeerInfo.SelfShardID = selfPeerInfo.ShardID
@@ -1106,23 +1109,29 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		case core.UnknownPeer:
 			connPeerInfo.UnknownPeers = append(connPeerInfo.UnknownPeers, connString)
 		case core.ValidatorPeer:
-			connPeerInfo.NumValidators[peerInfo.ShardID]++
+			connPeerInfo.NumValidatorsOnShard[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
 				connPeerInfo.CrossShardValidators[peerInfo.ShardID] = append(connPeerInfo.CrossShardValidators[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardValidators++
 			} else {
 				connPeerInfo.IntraShardValidators[peerInfo.ShardID] = append(connPeerInfo.IntraShardValidators[peerInfo.ShardID], connString)
+				connPeerInfo.NumIntraShardValidators++
 			}
 		case core.ObserverPeer:
-			connPeerInfo.NumObservers[peerInfo.ShardID]++
+			connPeerInfo.NumObserversOnShard[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {
 				connPeerInfo.CrossShardObservers[peerInfo.ShardID] = append(connPeerInfo.CrossShardObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumCrossShardObservers++
 				break
 			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumFullHistoryObservers++
 				break
 			}
+
 			connPeerInfo.IntraShardObservers[peerInfo.ShardID] = append(connPeerInfo.IntraShardObservers[peerInfo.ShardID], connString)
+			connPeerInfo.NumIntraShardObservers++
 		}
 	}
 

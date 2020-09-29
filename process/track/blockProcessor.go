@@ -231,7 +231,7 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 	var sortedHeadersHashes [][]byte
 
 	defer func() {
-		bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
+		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 	}()
 
 	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
@@ -435,12 +435,12 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 			"shard", shardID,
 			"nonce", nonce)
 
-		bp.blockTracker.RemoveHeaderFromPool(shardID, nonce)
+		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
 
 		if shardID == core.MetachainShardId {
-			go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		} else {
-			go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 		}
 	}
 }

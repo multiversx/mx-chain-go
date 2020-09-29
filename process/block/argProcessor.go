@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -58,7 +57,6 @@ type ArgShardProcessor struct {
 type ArgMetaProcessor struct {
 	ArgBaseProcessor
 	PendingMiniBlocksHandler     process.PendingMiniBlocksHandler
-	SCDataGetter                 external.SCQueryService
 	SCToProtocol                 process.SmartContractToProtocolHandler
 	EpochStartDataCreator        process.EpochStartDataCreator
 	EpochEconomics               process.EndOfEpochEconomics
