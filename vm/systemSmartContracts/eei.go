@@ -136,6 +136,10 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	return account.GetBalance()
 }
 
+// SendGlobalSettingToAll handles sending the information to all the shards
+func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
+}
+
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {

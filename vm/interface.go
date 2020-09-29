@@ -34,6 +34,7 @@ type SystemSCContainer interface {
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
+	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
 	SetStorageForAddress(address []byte, key []byte, value []byte)

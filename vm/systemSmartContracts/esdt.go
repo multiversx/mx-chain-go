@@ -23,6 +23,8 @@ const mintable = "mintable"
 const canPause = "canPause"
 const canFreeze = "canFreeze"
 const canWipe = "canWipe"
+const canChangeOwner = "canChangeOwner"
+const upgradable = "uppgradable"
 
 const conversionBase = 10
 
@@ -59,8 +61,8 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrNilHasher
 	}
 
-	baseIssuingCost, ok := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
-	if !ok || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
+	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
+	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
@@ -101,19 +103,23 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	case "mint":
 		return e.mint(args)
 	case "freeze":
-		return e.freeze(args)
+		return e.toggleFreeze(args, core.BuiltInFunctionESDTFreeze)
+	case "unFreeze":
+		return e.toggleFreeze(args, core.BuiltInFunctionESDTUnFreeze)
 	case "wipe":
 		return e.wipe(args)
 	case "pause":
-		return e.pause(args)
+		return e.togglePause(args, core.BuiltInFunctionESDTPause)
 	case "unPause":
-		return e.unpause(args)
+		return e.togglePause(args, core.BuiltInFunctionESDTUnPause)
 	case "claim":
 		return e.claim(args)
 	case "configChange":
 		return e.configChange(args)
 	case "esdtControlChanges":
 		return e.esdtControlChanges(args)
+	case "transferOwnership":
+		return e.transferOwnership(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -224,39 +230,20 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	}
 
 	newESDTToken := &ESDTData{
-		IssuerAddress: owner,
-		TokenName:     tokenName,
-		Mintable:      false,
-		Burnable:      false,
-		CanPause:      false,
-		Paused:        false,
-		CanFreeze:     false,
-		CanWipe:       false,
-		MintedValue:   initialSupply,
-		BurntValue:    big.NewInt(0),
+		OwnerAddress: owner,
+		TokenName:    tokenName,
+		MintedValue:  initialSupply,
+		BurntValue:   big.NewInt(0),
+		Upgradable:   true,
 	}
-	for i := 2; i < len(arguments); i++ {
-		optionalArg := string(arguments[i])
-		switch optionalArg {
-		case burnable:
-			newESDTToken.Burnable = true
-		case mintable:
-			newESDTToken.Mintable = true
-		case canPause:
-			newESDTToken.CanPause = true
-		case canFreeze:
-			newESDTToken.CanFreeze = true
-		case canWipe:
-			newESDTToken.CanWipe = true
-		}
-	}
-
-	marshaledData, err := e.marshalizer.Marshal(newESDTToken)
+	err := upgradeProperties(newESDTToken, arguments[2:])
 	if err != nil {
 		return err
 	}
-
-	e.eei.SetStorage(tokenName, marshaledData)
+	err = e.saveToken(newESDTToken)
+	if err != nil {
+		return err
+	}
 
 	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(initialSupply.Bytes())
 	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
@@ -267,33 +254,229 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	return nil
 }
 
-func (e *esdt) burn(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func upgradeProperties(token *ESDTData, args [][]byte) error {
+	if len(args) == 0 {
+		return nil
+	}
+	if len(args)%2 != 0 {
+		return vm.ErrInvalidNumOfArguments
+	}
+
+	for i := 0; i < len(args); i += 2 {
+		optionalArg := string(args[i])
+		val, err := checkAndGetSetting(string(args[i+1]))
+		if err != nil {
+			return err
+		}
+		switch optionalArg {
+		case burnable:
+			token.Burnable = val
+		case mintable:
+			token.Mintable = val
+		case canPause:
+			token.CanPause = val
+		case canFreeze:
+			token.CanFreeze = val
+		case canWipe:
+			token.CanWipe = val
+		case upgradable:
+			token.Upgradable = val
+		case canChangeOwner:
+			token.CanChangeOwner = val
+		default:
+			return vm.ErrInvalidArgument
+		}
+	}
+
+	return nil
+}
+
+func checkAndGetSetting(arg string) (bool, error) {
+	if arg == "true" {
+		return true, nil
+	}
+	if arg == "false" {
+		return false, nil
+	}
+	return false, vm.ErrInvalidArgument
+}
+
+func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 2 {
+		e.eei.AddReturnMessage("number of arguments must be equal with 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.OutOfFunds
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+	burntValue := big.NewInt(0).SetBytes(args.Arguments[1])
+	if burntValue.Cmp(big.NewInt(0)) <= 0 {
+		e.eei.AddReturnMessage("negative or 0 value to burn")
+		return vmcommon.UserError
+	}
+	token, err := e.getExistingToken(args.Arguments[0])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if !token.Burnable {
+		e.eei.AddReturnMessage("token is not burnable")
+		return vmcommon.UserError
+	}
+	token.BurntValue.Add(token.BurntValue, burntValue)
+
+	err = e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (e *esdt) mint(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 2 || len(args.Arguments) > 3 {
+		e.eei.AddReturnMessage("accepted arguments number 2/3")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	mintValue := big.NewInt(0).SetBytes(args.Arguments[1])
+	if mintValue.Cmp(big.NewInt(0)) <= 0 {
+		e.eei.AddReturnMessage("negative or zero mint value")
+		return vmcommon.UserError
+	}
+	if !token.Mintable {
+		e.eei.AddReturnMessage("token is not mintable")
+		return vmcommon.UserError
+	}
+
+	token.MintedValue.Add(token.MintedValue, mintValue)
+	err := e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	destination := token.OwnerAddress
+	if len(args.Arguments) == 3 {
+		if len(args.Arguments[2]) != len(args.CallerAddr) {
+			e.eei.AddReturnMessage("destination address of invalid length")
+			return vmcommon.UserError
+		}
+		destination = args.Arguments[2]
+	}
+
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(token.TokenName) + "@" + hex.EncodeToString(mintValue.Bytes())
+	err = e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (e *esdt) freeze(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanFreeze {
+		e.eei.AddReturnMessage("cannot freeze")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid arguments")
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
+	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (e *esdt) wipe(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanWipe {
+		e.eei.AddReturnMessage("cannot wipe")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid arguments")
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(token.TokenName)
+	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (e *esdt) pause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
-	return vmcommon.Ok
-}
+func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
+	if len(args.Arguments) < 1 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanPause {
+		e.eei.AddReturnMessage("cannot pause/un-pause")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid arguments")
+		return vmcommon.UserError
+	}
+	if token.IsPaused && builtInFunc == core.BuiltInFunctionESDTPause {
+		e.eei.AddReturnMessage("cannot pause an already paused contract")
+		return vmcommon.UserError
+	}
+	if !token.IsPaused && builtInFunc == core.BuiltInFunctionESDTUnPause {
+		e.eei.AddReturnMessage("cannot unPause an already un-paused contract")
+		return vmcommon.UserError
+	}
 
-func (e *esdt) unpause(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+	token.IsPaused = !token.IsPaused
+	err := e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
+	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+
 	return vmcommon.Ok
 }
 
@@ -307,9 +490,104 @@ func (e *esdt) claim(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) esdtControlChanges(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return nil, vmcommon.OutOfFunds
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage("not enough gas")
+		return nil, vmcommon.OutOfGas
+	}
+	token, err := e.getExistingToken(args.Arguments[0])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+	if !bytes.Equal(token.OwnerAddress, args.CallerAddr) {
+		e.eei.AddReturnMessage("mint can be called by owner only")
+		return nil, vmcommon.UserError
+	}
+
+	return token, vmcommon.Ok
+}
+
+func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 2 {
+		e.eei.AddReturnMessage("expected num of arguments 2")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.CanChangeOwner {
+		e.eei.AddReturnMessage("cannot change owner of the token")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[1]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("destination address of invalid length")
+		return vmcommon.UserError
+	}
+
+	token.OwnerAddress = args.Arguments[1]
+	err := e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
+}
+
+func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) < 2 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !token.Upgradable {
+		e.eei.AddReturnMessage("token is not upgradable")
+		return vmcommon.UserError
+	}
+
+	err := upgradeProperties(token, args.Arguments[1:])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	err = e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) saveToken(token *ESDTData) error {
+	marshaledData, err := e.marshalizer.Marshal(token)
+	if err != nil {
+		return err
+	}
+
+	e.eei.SetStorage(token.TokenName, marshaledData)
+	return nil
+}
+
+func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
+	marshalledData := e.eei.GetStorage(tokenName)
+	if len(marshalledData) == 0 {
+		return nil, vm.ErrNoTokenWithGivenName
+	}
+
+	token := &ESDTData{}
+	err := e.marshalizer.Unmarshal(token, marshalledData)
+	return token, err
 }
 
 // IsInterfaceNil returns true if underlying object is nil
