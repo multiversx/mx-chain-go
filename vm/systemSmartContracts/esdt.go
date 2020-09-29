@@ -61,8 +61,8 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrNilHasher
 	}
 
-	baseIssuingCost, ok := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
-	if !ok || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
+	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
+	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
@@ -118,8 +118,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.configChange(args)
 	case "esdtControlChanges":
 		return e.esdtControlChanges(args)
-	case "changeOwner":
-		return e.changeOwner(args)
+	case "transferOwnership":
+		return e.transferOwnership(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -234,10 +234,13 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		TokenName:    tokenName,
 		MintedValue:  initialSupply,
 		BurntValue:   big.NewInt(0),
+		Upgradable:   true,
 	}
-	e.upgradeProperties(newESDTToken, arguments[2:])
-
-	err := e.saveToken(newESDTToken)
+	err := upgradeProperties(newESDTToken, arguments[2:])
+	if err != nil {
+		return err
+	}
+	err = e.saveToken(newESDTToken)
 	if err != nil {
 		return err
 	}
@@ -251,26 +254,51 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	return nil
 }
 
-func (e *esdt) upgradeProperties(token *ESDTData, args [][]byte) {
-	for _, arg := range args {
-		optionalArg := string(arg)
+func upgradeProperties(token *ESDTData, args [][]byte) error {
+	if len(args) == 0 {
+		return nil
+	}
+	if len(args)%2 != 0 {
+		return vm.ErrInvalidNumOfArguments
+	}
+
+	for i := 0; i < len(args); i += 2 {
+		optionalArg := string(args[i])
+		val, err := checkAndGetSetting(string(args[i+1]))
+		if err != nil {
+			return err
+		}
 		switch optionalArg {
 		case burnable:
-			token.Burnable = true
+			token.Burnable = val
 		case mintable:
-			token.Mintable = true
+			token.Mintable = val
 		case canPause:
-			token.CanPause = true
+			token.CanPause = val
 		case canFreeze:
-			token.CanFreeze = true
+			token.CanFreeze = val
 		case canWipe:
-			token.CanWipe = true
+			token.CanWipe = val
 		case upgradable:
-			token.Upgradable = true
+			token.Upgradable = val
 		case canChangeOwner:
-			token.CanChangeOwner = true
+			token.CanChangeOwner = val
+		default:
+			return vm.ErrInvalidArgument
 		}
 	}
+
+	return nil
+}
+
+func checkAndGetSetting(arg string) (bool, error) {
+	if arg == "true" {
+		return true, nil
+	}
+	if arg == "false" {
+		return false, nil
+	}
+	return false, vm.ErrInvalidArgument
 }
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -485,7 +513,7 @@ func (e *esdt) basicOwnerChecks(args *vmcommon.ContractCallInput) (*ESDTData, vm
 	return token, vmcommon.Ok
 }
 
-func (e *esdt) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("expected num of arguments 2")
 		return vmcommon.FunctionWrongSignature
@@ -527,8 +555,12 @@ func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	e.upgradeProperties(token, args.Arguments[1:])
-	err := e.saveToken(token)
+	err := upgradeProperties(token, args.Arguments[1:])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	err = e.saveToken(token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
