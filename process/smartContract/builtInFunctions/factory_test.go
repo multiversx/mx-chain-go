@@ -70,5 +70,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, container.Len(), 5)
+	assert.Equal(t, container.Len(), 11)
 }

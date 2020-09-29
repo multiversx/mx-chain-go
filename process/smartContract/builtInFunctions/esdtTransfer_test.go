@@ -18,7 +18,11 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
-	input := &vmcommon.ContractCallInput{}
+	input := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue: big.NewInt(0),
+		},
+	}
 	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
