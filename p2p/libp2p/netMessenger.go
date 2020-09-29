@@ -421,7 +421,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"intra shard observers", peersInfo.NumIntraShardObservers,
 			"cross shard validators", peersInfo.NumCrossShardValidators,
 			"cross shard observers", peersInfo.NumCrossShardObservers,
-			"full history observers", len(peersInfo.FullHistoryObservers),
+			"full history observers", peersInfo.NumFullHistoryObservers,
 			"unknown", len(peersInfo.UnknownPeers),
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
@@ -1077,8 +1077,6 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		CrossShardValidators: make(map[uint32][]string),
 		CrossShardObservers:  make(map[uint32][]string),
 		FullHistoryObservers: make(map[uint32][]string),
-		NumObservers:         make(map[uint32]int),
-		NumValidators:        make(map[uint32]int),
 		NumObserversOnShard:  make(map[uint32]int),
 		NumValidatorsOnShard: make(map[uint32]int),
 	}
@@ -1114,6 +1112,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			}
 			if peerInfo.PeerSubType == core.FullHistoryObserver {
 				connPeerInfo.FullHistoryObservers[peerInfo.ShardID] = append(connPeerInfo.FullHistoryObservers[peerInfo.ShardID], connString)
+				connPeerInfo.NumFullHistoryObservers++
 				break
 			}
 
