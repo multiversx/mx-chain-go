@@ -198,7 +198,8 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, 0, numIntraShardPeers+numCrossShardPeers)
+	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers)
 	if err != nil {
 		return err
 	}

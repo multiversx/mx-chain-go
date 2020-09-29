@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,15 +20,17 @@ var defaultHashes = [][]byte{[]byte("hash")}
 
 func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
 	return topicResolverSender.ArgTopicResolverSender{
-		Messenger:          &mock.MessageHandlerStub{},
-		TopicName:          "topic",
-		PeerListCreator:    &mock.PeerListCreatorStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
-		Randomizer:         &mock.IntRandomizerStub{},
-		TargetShardId:      0,
-		OutputAntiflooder:  &mock.P2PAntifloodHandlerStub{},
-		NumIntraShardPeers: 2,
-		NumCrossShardPeers: 2,
+		Messenger:                   &mock.MessageHandlerStub{},
+		TopicName:                   "topic",
+		PeerListCreator:             &mock.PeerListCreatorStub{},
+		Marshalizer:                 &mock.MarshalizerMock{},
+		Randomizer:                  &mock.IntRandomizerStub{},
+		TargetShardId:               0,
+		OutputAntiflooder:           &mock.P2PAntifloodHandlerStub{},
+		NumIntraShardPeers:          2,
+		NumCrossShardPeers:          2,
+		NumFullHistoryPeers:         3,
+		CurrentNetworkEpochProvider: &mock2.NilCurrentNetworkEpochProviderHandler{},
 	}
 }
 

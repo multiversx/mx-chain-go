@@ -18,6 +18,11 @@ func (m *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
 	return []core.PeerID{"peer0"}
 }
 
+// ConnectedFullHistoryPeersOnTopic -
+func (m *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return []core.PeerID{"peer0"}
+}
+
 // SendToConnectedPeer -
 func (m *MessengerStub) SendToConnectedPeer(_ string, _ []byte, _ core.PeerID) error {
 	return nil

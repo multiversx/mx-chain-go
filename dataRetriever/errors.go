@@ -155,6 +155,9 @@ var ErrBadRequest = errors.New("request should not be done as it doesn't follow 
 // ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
 var ErrNilAntifloodHandler = errors.New("nil antiflood handler")
 
+// ErrNilAntifloodHandler signals that a nil antiflood handler has been provided
+var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch provider")
+
 // ErrSystemBusy signals that the system is busy and can not process more requests
 var ErrSystemBusy = errors.New("system busy")
 

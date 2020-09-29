@@ -85,6 +85,10 @@ type Messenger interface {
 	// is currently connected, but filtered by a topic they are registered to.
 	ConnectedPeersOnTopic(topic string) []core.PeerID
 
+	// ConnectedFullHistoryPeersOnTopic returns the IDs of the full history peers to which the Messenger
+	// is currently connected, but filtered by a topic they are registered to.
+	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
+
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
 	Bootstrap() error

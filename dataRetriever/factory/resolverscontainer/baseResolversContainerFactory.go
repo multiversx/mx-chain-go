@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -22,6 +23,7 @@ const defaultTargetShardID = uint32(0)
 //TODO extract these in config
 const numCrossShardPeers = 2
 const numIntraShardPeers = 1
+const numFullHistoryPeers = 3
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -230,7 +232,8 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	excludedTopic string,
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
-	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId, numCrossShardPeers, numIntraShardPeers)
+	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
+		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers)
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
@@ -239,6 +242,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	targetShardId uint32,
 	numCrossShard int,
 	numIntraShard int,
+	numFullHistory int,
 ) (dataRetriever.TopicResolverSender, error) {
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
@@ -247,15 +251,17 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	}
 
 	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:          brcf.messenger,
-		TopicName:          topic,
-		PeerListCreator:    peerListCreator,
-		Marshalizer:        brcf.marshalizer,
-		Randomizer:         brcf.intRandomizer,
-		TargetShardId:      targetShardId,
-		OutputAntiflooder:  brcf.outputAntifloodHandler,
-		NumCrossShardPeers: numCrossShard,
-		NumIntraShardPeers: numIntraShard,
+		Messenger:                   brcf.messenger,
+		TopicName:                   topic,
+		PeerListCreator:             peerListCreator,
+		Marshalizer:                 brcf.marshalizer,
+		Randomizer:                  brcf.intRandomizer,
+		TargetShardId:               targetShardId,
+		OutputAntiflooder:           brcf.outputAntifloodHandler,
+		NumCrossShardPeers:          numCrossShard,
+		NumIntraShardPeers:          numIntraShard,
+		NumFullHistoryPeers:         numFullHistory,
+		CurrentNetworkEpochProvider: &mock.NilCurrentNetworkEpochProviderHandler{},
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
@@ -272,6 +278,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	trieId string,
 	numCrossShard int,
 	numIntraShard int,
+	numFullHistory int,
 ) (dataRetriever.Resolver, error) {
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
 		topic,
@@ -279,6 +286,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		defaultTargetShardID,
 		numCrossShard,
 		numIntraShard,
+		numFullHistory,
 	)
 	if err != nil {
 		return nil, err

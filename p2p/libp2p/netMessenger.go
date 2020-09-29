@@ -634,6 +634,20 @@ func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []core.PeerI
 	return netMes.poc.ConnectedPeersOnChannel(topic)
 }
 
+// ConnectedFullHistoryPeersOnTopic returns the connected peers on a provided topic
+func (netMes *networkMessenger) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
+	peerList := netMes.ConnectedPeersOnTopic(topic)
+	fullHistoryList := make([]core.PeerID, 0)
+	for _, peer := range peerList {
+		peerInfo := netMes.peerShardResolver.GetPeerInfo(peer)
+		if peerInfo.PeerSubType == core.FullHistoryObserver {
+			fullHistoryList = append(fullHistoryList, peer)
+		}
+	}
+
+	return fullHistoryList
+}
+
 // CreateTopic opens a new topic using pubsub infrastructure
 func (netMes *networkMessenger) CreateTopic(name string, createChannelForTopic bool) error {
 	netMes.mutTopics.Lock()
