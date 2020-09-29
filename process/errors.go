@@ -883,3 +883,12 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
+var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
+
+// ErrNilNumConnectedPeersProvider signals that a nil number of connected peers provider has been provided
+var ErrNilNumConnectedPeersProvider = errors.New("nil number of connected peers provider")
