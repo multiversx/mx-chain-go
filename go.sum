@@ -12,6 +12,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOv
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33/go.mod h1:TktLl1iYOuio2TYGRVTUFI47QX0gEuOml7l3pyGsbog=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.37-0.20200925145752-572872298191 h1:iP9ZIHp7N9eDoqMcivg+JOtiueG4neOsWzbs06bYzak=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.37-0.20200925145752-572872298191/go.mod h1:yLPa4CfijGcnkudEmNEJTTSGmdOXsKaXNIkp4p0K2ao=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.37 h1:PNiO6i05TPTkm697VDfbMRQi210hwRjwhs0PX1wjXdM=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.37/go.mod h1:3NFiVRkjxleUw29pr6NLt0llekg4D29SVYr1Csj57Fc=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
