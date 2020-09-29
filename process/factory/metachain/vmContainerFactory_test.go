@@ -63,8 +63,8 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   0,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   0,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -75,6 +75,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		},
 		&mock.AccountsStub{},
 		&mock.RaterMock{},
+		&mock.EpochNotifierStub{},
 	)
 
 	assert.NotNil(t, vmf)
@@ -142,8 +143,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1,
-				StakeEnableNonce:                     1,
+				AuctionEnableEpoch:                   1,
+				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -154,6 +155,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		},
 		&mock.AccountsStub{},
 		&mock.RaterMock{},
+		&mock.EpochNotifierStub{},
 	)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)

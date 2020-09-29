@@ -551,7 +551,7 @@ func ComputeExpectedBalance(
 
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, _ := CreateVMAndBlockchainHook(accnts, gasSchedule)
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -562,7 +562,7 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 		},
 	}
 
-	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler)
+	scQueryService, _ := smartContract.NewSCQueryService(vmContainer, feeHandler, blockChainHook, &mock.BlockChainMock{})
 
 	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,

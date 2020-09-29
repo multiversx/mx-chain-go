@@ -396,7 +396,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	if err != nil {
 		return err
 	}
-	if acnt == nil {
+	if check.IfNil(acnt) {
 		return fmt.Errorf("%w in RemoveAccount for address %s", ErrAccNotFound, address)
 	}
 
@@ -497,7 +497,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	if acnt == nil {
+	if check.IfNil(acnt) {
 		return adb.accountFactory.CreateAccount(address)
 	}
 
@@ -556,7 +556,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error
 	if err != nil {
 		return nil, err
 	}
-	if acnt == nil {
+	if check.IfNil(acnt) {
 		return nil, ErrAccNotFound
 	}
 
@@ -789,9 +789,9 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, 
 		}
 
 		if len(account.RootHash) > 0 {
-			dataTrie, err := adb.mainTrie.Recreate(account.RootHash)
-			if err != nil {
-				return nil, err
+			dataTrie, errRecreate := adb.mainTrie.Recreate(account.RootHash)
+			if errRecreate != nil {
+				return nil, errRecreate
 			}
 
 			allTries[string(account.RootHash)] = dataTrie
