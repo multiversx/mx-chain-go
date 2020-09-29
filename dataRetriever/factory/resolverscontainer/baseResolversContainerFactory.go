@@ -233,7 +233,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
-		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers)
+		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
@@ -243,6 +243,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 	numCrossShard int,
 	numIntraShard int,
 	numFullHistory int,
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.TopicResolverSender, error) {
 
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(brcf.messenger, topic, brcf.intraShardTopic, excludedTopic)
@@ -261,7 +262,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedN
 		NumCrossShardPeers:          numCrossShard,
 		NumIntraShardPeers:          numIntraShard,
 		NumFullHistoryPeers:         numFullHistory,
-		CurrentNetworkEpochProvider: &mock.NilCurrentNetworkEpochProviderHandler{},
+		CurrentNetworkEpochProvider: currentNetworkEpochProvider,
 	}
 	//TODO instantiate topic sender resolver with the shard IDs for which this resolver is supposed to serve the data
 	// this will improve the serving of transactions as the searching will be done only on 2 sharded data units
@@ -279,6 +280,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	numCrossShard int,
 	numIntraShard int,
 	numFullHistory int,
+	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler,
 ) (dataRetriever.Resolver, error) {
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(
 		topic,
@@ -287,6 +289,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		numCrossShard,
 		numIntraShard,
 		numFullHistory,
+		currentNetworkEpochProviderHandler,
 	)
 	if err != nil {
 		return nil, err
