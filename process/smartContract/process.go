@@ -1274,7 +1274,8 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	currentOwner := stateAccount.GetOwnerAddress()
-	isCodeDeployerOwner := bytes.Equal(currentOwner, outputAccount.CodeDeployerAddress)
+	isCodeDeployerSet := len(outputAccount.CodeDeployerAddress) > 0
+	isCodeDeployerOwner := bytes.Equal(currentOwner, outputAccount.CodeDeployerAddress) && isCodeDeployerSet
 
 	noExistingCode := len(stateAccount.GetCode()) == 0
 	noExistingOwner := len(currentOwner) == 0
