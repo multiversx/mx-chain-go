@@ -37,7 +37,7 @@ func NewESDTPauseFunc(
 	return e, nil
 }
 
-// ProcessBuiltinFunction resolve ESDT function calls
+// ProcessBuiltinFunction resolves ESDT pause function call
 func (e *esdtPause) ProcessBuiltinFunction(
 	_, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,

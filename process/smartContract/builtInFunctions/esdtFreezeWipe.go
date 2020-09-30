@@ -41,7 +41,7 @@ func NewESDTFreezeWipeFunc(
 	return e, nil
 }
 
-// ProcessBuiltinFunction resolve ESDT function calls
+// ProcessBuiltinFunction resolves ESDT transfer function call
 func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,

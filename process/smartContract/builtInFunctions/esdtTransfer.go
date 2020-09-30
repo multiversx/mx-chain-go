@@ -52,7 +52,7 @@ func NewESDTTransferFunc(
 	return e, nil
 }
 
-// ProcessBuiltinFunction resolve ESDT function calls
+// ProcessBuiltinFunction resolves ESDT transfer function calls
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,

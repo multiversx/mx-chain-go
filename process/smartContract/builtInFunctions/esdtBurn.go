@@ -45,7 +45,7 @@ func NewESDTBurnFunc(
 	return e, nil
 }
 
-// ProcessBuiltinFunction resolve ESDT function calls
+// ProcessBuiltinFunction resolves ESDT burn function call
 func (e *esdtBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
