@@ -2370,6 +2370,7 @@ func createApiResolver(
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
+		Accounts:        accnts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

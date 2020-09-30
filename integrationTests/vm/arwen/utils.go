@@ -160,6 +160,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GasMap:          context.GasSchedule,
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
+		Accounts:        context.Accounts,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)

@@ -232,6 +232,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Marshalizer,
+		Accounts:             arg.Accounts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

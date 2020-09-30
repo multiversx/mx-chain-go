@@ -1009,6 +1009,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		GasMap:          gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
