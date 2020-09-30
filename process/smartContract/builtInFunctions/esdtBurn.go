@@ -16,24 +16,30 @@ import (
 var _ process.BuiltinFunction = (*esdtBurn)(nil)
 
 type esdtBurn struct {
-	funcGasCost uint64
-	marshalizer marshal.Marshalizer
-	keyPrefix   []byte
+	funcGasCost  uint64
+	marshalizer  marshal.Marshalizer
+	keyPrefix    []byte
+	pauseHandler process.ESDTPauseHandler
 }
 
 // NewESDTBurnFunc returns the esdt burn built-in function component
 func NewESDTBurnFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
+	pauseHandler process.ESDTPauseHandler,
 ) (*esdtBurn, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(pauseHandler) {
+		return nil, process.ErrNilPauseHandler
+	}
 
 	e := &esdtBurn{
-		funcGasCost: funcGasCost,
-		marshalizer: marshalizer,
-		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		funcGasCost:  funcGasCost,
+		marshalizer:  marshalizer,
+		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		pauseHandler: pauseHandler,
 	}
 
 	return e, nil
@@ -71,7 +77,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 		return nil, process.ErrNotEnoughGas
 	}
 
-	err := addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer)
+	err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 	if err != nil {
 		return nil, err
 	}

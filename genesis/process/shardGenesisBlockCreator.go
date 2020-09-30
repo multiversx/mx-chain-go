@@ -264,6 +264,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		return nil, err
 	}
 
+	err = builtInFunctions.SetIsPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
 		arg.Marshalizer,

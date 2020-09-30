@@ -927,3 +927,15 @@ type EpochNotifier interface {
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+// ESDTPauseHandler provides IsPaused function for an ESDT token
+type ESDTPauseHandler interface {
+	IsPaused(token []byte) bool
+	IsInterfaceNil() bool
+}
+
+// IsPayableHandler provides IsPayable function which returns if an account is payable or not
+type IsPayableHandler interface {
+	IsPayable(address []byte) (bool, error)
+	IsInterfaceNil() bool
+}

@@ -4,6 +4,9 @@ import (
 	"bytes"
 )
 
+// SystemAccountAddress is the hard-coded address in which we save global settings on all shards
+var SystemAccountAddress = bytes.Repeat([]byte{255}, 32)
+
 // NumInitCharactersForScAddress numbers of characters for smart contract address identifier
 const NumInitCharactersForScAddress = 10
 
@@ -16,6 +19,11 @@ const ShardIdentiferLen = 2
 
 const metaChainShardIdentifier uint8 = 255
 const numInitCharactersForOnMetachainSC = 15
+
+// IsSystemAccountAddress returns true if given address is system account address
+func IsSystemAccountAddress(address []byte) bool {
+	return bytes.Equal(address, SystemAccountAddress)
+}
 
 // IsSmartContractAddress verifies if a set address is of type smart contract
 func IsSmartContractAddress(rcvAddress []byte) bool {

@@ -2,6 +2,7 @@
 package builtInFunctions
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -20,24 +22,31 @@ var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 var zero = big.NewInt(0)
 
 type esdtTransfer struct {
-	funcGasCost uint64
-	marshalizer marshal.Marshalizer
-	keyPrefix   []byte
+	funcGasCost    uint64
+	marshalizer    marshal.Marshalizer
+	keyPrefix      []byte
+	pauseHandler   process.ESDTPauseHandler
+	payableHandler process.IsPayableHandler
 }
 
 // NewESDTTransferFunc returns the esdt transfer built-in function component
 func NewESDTTransferFunc(
 	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
+	pauseHandler process.ESDTPauseHandler,
 ) (*esdtTransfer, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(pauseHandler) {
+		return nil, process.ErrNilPauseHandler
+	}
 
 	e := &esdtTransfer{
-		funcGasCost: funcGasCost,
-		marshalizer: marshalizer,
-		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		funcGasCost:  funcGasCost,
+		marshalizer:  marshalizer,
+		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		pauseHandler: pauseHandler,
 	}
 
 	return e, nil
@@ -74,7 +83,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 
 		gasRemaining = vmInput.GasProvided - e.funcGasCost
-		err := addToESDTBalance(acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer)
+		err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +91,15 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 	if !check.IfNil(acntDst) {
-		err := addToESDTBalance(acntDst, esdtTokenKey, value, e.marshalizer)
+		isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
+		if err != nil {
+			return nil, err
+		}
+		if !isPayable {
+			return nil, process.ErrAccountNotPayable
+		}
+
+		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -129,14 +146,27 @@ func addOutPutTransferToVMOutput(
 }
 
 func addToESDTBalance(
+	senderAddr []byte,
 	userAcnt state.UserAccountHandler,
 	key []byte,
 	value *big.Int,
 	marshalizer marshal.Marshalizer,
+	pauseHandler process.ESDTPauseHandler,
 ) error {
 	esdtData, err := getESDTDataFromKey(userAcnt, key, marshalizer)
 	if err != nil {
 		return err
+	}
+
+	if !bytes.Equal(senderAddr, vm.ESDTSCAddress) {
+		esdtUserMetaData := ESDTUserMetadataFromBytes(esdtData.Properties)
+		if esdtUserMetaData.Frozen {
+			return process.ErrESDTIsFrozenForAccount
+		}
+
+		if pauseHandler.IsPaused(key) {
+			return process.ErrESDTTokenIsPaused
+		}
 	}
 
 	esdtData.Value.Add(esdtData.Value, value)
@@ -185,6 +215,15 @@ func getESDTDataFromKey(
 	}
 
 	return esdtData, nil
+}
+
+func (e *esdtTransfer) setIsPayable(isPayableHandler process.IsPayableHandler) error {
+	if check.IfNil(isPayableHandler) {
+		return process.ErrNilIsPayableHandler
+	}
+
+	e.payableHandler = isPayableHandler
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil

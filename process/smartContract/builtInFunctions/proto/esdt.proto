@@ -10,6 +10,6 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // ESDigitalToken holds the data for a elrond standard digital token transaction
 message ESDigitalToken {
-	bytes Value  = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-	bool  Frozen = 2 [(gogoproto.jsontag) = "frozen"];
+	bytes Value      = 1 [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+	bytes Properties = 3 [(gogoproto.jsontag) = "properties"];
 }

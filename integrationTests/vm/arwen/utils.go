@@ -190,6 +190,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetIsPayableHandler(builtInFuncs, context.BlockchainHook)
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {

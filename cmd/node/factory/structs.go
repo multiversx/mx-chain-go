@@ -1480,6 +1480,11 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
+	err = builtInFunctions.SetIsPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.InternalMarshalizer,

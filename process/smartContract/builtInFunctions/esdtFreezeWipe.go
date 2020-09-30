@@ -2,7 +2,6 @@ package builtInFunctions
 
 import (
 	"bytes"
-	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -16,7 +15,6 @@ import (
 var _ process.BuiltinFunction = (*esdtFreezeWipe)(nil)
 
 type esdtFreezeWipe struct {
-	funcGasCost uint64
 	marshalizer marshal.Marshalizer
 	keyPrefix   []byte
 	wipe        bool
@@ -25,7 +23,6 @@ type esdtFreezeWipe struct {
 
 // NewESDTFreezeWipeFunc returns the esdt freeze/un-freeze/wipe built-in function component
 func NewESDTFreezeWipeFunc(
-	funcGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	freeze bool,
 	wipe bool,
@@ -35,7 +32,6 @@ func NewESDTFreezeWipeFunc(
 	}
 
 	e := &esdtFreezeWipe{
-		funcGasCost: funcGasCost,
 		marshalizer: marshalizer,
 		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
 		freeze:      freeze,
@@ -56,12 +52,8 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return nil, process.ErrBuiltInFunctionCalledWithValue
 	}
-	if len(vmInput.Arguments) != 2 {
+	if len(vmInput.Arguments) != 1 {
 		return nil, process.ErrInvalidArguments
-	}
-	value := big.NewInt(0).SetBytes(vmInput.Arguments[1])
-	if value.Cmp(zero) <= 0 {
-		return nil, process.ErrNegativeValue
 	}
 	if !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress) {
 		return nil, process.ErrAddressIsNotESDTSystemSC
@@ -71,7 +63,7 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	}
 
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
-	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
+	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "token", esdtTokenKey)
 
 	if e.wipe {
 		acntDst.DataTrieTracker().SaveKeyValue(esdtTokenKey, nil)
@@ -92,7 +84,9 @@ func (e *esdtFreezeWipe) toggleFreeze(acntDst state.UserAccountHandler, tokenKey
 		return err
 	}
 
-	tokenData.Frozen = e.freeze
+	esdtUserMetadata := ESDTUserMetadataFromBytes(tokenData.Properties)
+	esdtUserMetadata.Frozen = e.freeze
+	tokenData.Properties = esdtUserMetadata.ToBytes()
 
 	err = saveESDTData(acntDst, tokenData, tokenKey, e.marshalizer)
 	if err != nil {
