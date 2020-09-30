@@ -130,8 +130,8 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	}
 	args.ConsensusPercentage = 50 // 50% , so at least 3/6 have to send the same meta block
 
-	esmbp, _ := interceptors.NewEpochStartMetaBlockInterceptor(args)
-	require.NotNil(t, esmbp)
+	esmbi, _ := interceptors.NewEpochStartMetaBlockInterceptor(args)
+	require.NotNil(t, esmbi)
 
 	metaBlock := &block.MetaBlock{Epoch: expectedEpoch}
 	metaBlockBytes, _ := args.Marshalizer.Marshal(metaBlock)
@@ -139,23 +139,23 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	wrongMetaBlock := &block.MetaBlock{Epoch: 0}
 	wrongMetaBlockBytes, _ := args.Marshalizer.Marshal(wrongMetaBlock)
 
-	err := esmbp.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer0")
+	err := esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer0")
 	require.NoError(t, err)
 	require.False(t, wasCalled)
 
-	_ = esmbp.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
+	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
 	require.False(t, wasCalled)
 
 	// send again from peer1 => should not be taken into account
-	_ = esmbp.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
+	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer1")
 	require.False(t, wasCalled)
 
 	// send another meta block
-	_ = esmbp.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: wrongMetaBlockBytes}, "peer2")
+	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: wrongMetaBlockBytes}, "peer2")
 	require.False(t, wasCalled)
 
 	// send the last needed metablock from a new peer => should fetch the epoch
-	_ = esmbp.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer3")
+	_ = esmbi.ProcessReceivedMessage(&mock.P2PMessageMock{DataField: metaBlockBytes}, "peer3")
 	require.True(t, wasCalled)
 
 }

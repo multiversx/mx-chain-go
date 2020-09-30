@@ -209,6 +209,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
+		CurrentNetworkEpochSetter:  &mock.CurrentNetworkEpochSetterStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)
