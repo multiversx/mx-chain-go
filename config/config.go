@@ -210,6 +210,7 @@ type GeneralSettingsConfig struct {
 	BuiltInFunctionsEnableEpoch    uint32
 	RelayedTransactionsEnableEpoch uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	SwitchJailWaitingEnableEpoch   uint32
 	GenesisString                  string
 }
 
