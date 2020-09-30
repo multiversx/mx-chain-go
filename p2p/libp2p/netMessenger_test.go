@@ -1411,3 +1411,79 @@ func TestNetworkMessenger_ValidMessageByTimestampMessageAtUpperLimitShouldWork(t
 
 	assert.Nil(t, err)
 }
+
+func TestNetworkMessenger_GetConnectedPeersInfo(t *testing.T) {
+	netw := mocknet.New(context.Background())
+
+	peers := []peer.ID{
+		"valI1",
+		"valC1",
+		"valC2",
+		"obsI1",
+		"obsI2",
+		"obsI3",
+		"obsC1",
+		"obsC2",
+		"obsC3",
+		"obsC4",
+		"unknown",
+	}
+	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	mes.SetHost(&mock.ConnectableHostStub{
+		NetworkCalled: func() network.Network {
+			return &mock.NetworkStub{
+				PeersCall: func() []peer.ID {
+					return peers
+				},
+				ConnsToPeerCalled: func(p peer.ID) []network.Conn {
+					return make([]network.Conn, 0)
+				},
+			}
+		},
+	})
+	selfShardID := uint32(0)
+	crossShardID := uint32(1)
+	_ = mes.SetPeerShardResolver(&mock.PeerShardResolverStub{
+		GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+			pinfo := core.P2PPeerInfo{
+				PeerType: core.UnknownPeer,
+			}
+			if pid.Pretty() == mes.ID().Pretty() {
+				pinfo.ShardID = selfShardID
+				pinfo.PeerType = core.ObserverPeer
+				return pinfo
+			}
+
+			strPid := string(pid)
+			if strings.Contains(strPid, "I") {
+				pinfo.ShardID = selfShardID
+			}
+			if strings.Contains(strPid, "C") {
+				pinfo.ShardID = crossShardID
+			}
+
+			if strings.Contains(strPid, "val") {
+				pinfo.PeerType = core.ValidatorPeer
+			}
+
+			if strings.Contains(strPid, "obs") {
+				pinfo.PeerType = core.ObserverPeer
+			}
+
+			return pinfo
+		},
+	})
+
+	cpi := mes.GetConnectedPeersInfo()
+
+	assert.Equal(t, 4, cpi.NumCrossShardObservers)
+	assert.Equal(t, 2, cpi.NumCrossShardValidators)
+	assert.Equal(t, 3, cpi.NumIntraShardObservers)
+	assert.Equal(t, 1, cpi.NumIntraShardValidators)
+	assert.Equal(t, 3, cpi.NumObserversOnShard[selfShardID])
+	assert.Equal(t, 4, cpi.NumObserversOnShard[crossShardID])
+	assert.Equal(t, 1, cpi.NumValidatorsOnShard[selfShardID])
+	assert.Equal(t, 2, cpi.NumValidatorsOnShard[crossShardID])
+	assert.Equal(t, selfShardID, cpi.SelfShardID)
+	assert.Equal(t, 1, len(cpi.UnknownPeers))
+}

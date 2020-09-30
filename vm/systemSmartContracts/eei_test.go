@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -186,4 +187,91 @@ func TestVmContext_Transfer(t *testing.T) {
 
 	vmOutput := vmContext.CreateVMOutput()
 	assert.Equal(t, 2, len(vmOutput.OutputAccounts))
+}
+
+func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
+	t.Parallel()
+
+	vmc, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return nil, errors.New("not found")
+			},
+		},
+		&mock.RaterMock{})
+
+	assert.False(t, vmc.IsValidator([]byte("bls key")))
+}
+
+func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
+	t.Parallel()
+
+	vmc, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+				return state.NewEmptyUserAccount(), nil
+			},
+		},
+		&mock.RaterMock{})
+
+	assert.False(t, vmc.IsValidator([]byte("bls key")))
+}
+
+func TestVmContext_IsValidator(t *testing.T) {
+	t.Parallel()
+
+	type testIO struct {
+		peerType       core.PeerType
+		expectedResult bool
+	}
+
+	testData := []testIO{
+		{
+			peerType:       core.LeavingList,
+			expectedResult: true,
+		},
+		{
+			peerType:       core.EligibleList,
+			expectedResult: true,
+		},
+		{
+			peerType:       core.WaitingList,
+			expectedResult: true,
+		},
+		{
+			peerType:       core.NewList,
+			expectedResult: false,
+		},
+		{
+			peerType:       core.JailedList,
+			expectedResult: false,
+		},
+	}
+
+	for _, tio := range testData {
+		blsKey := []byte("bls key")
+		vmc, _ := NewVMContext(
+			&mock.BlockChainHookStub{},
+			hooks.NewVMCryptoHook(),
+			&mock.ArgumentParserMock{},
+			&mock.AccountsStub{
+				GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+					assert.Equal(t, blsKey, address)
+
+					acnt := state.NewEmptyPeerAccount()
+					acnt.List = string(tio.peerType)
+
+					return acnt, nil
+				},
+			},
+			&mock.RaterMock{})
+
+		assert.Equal(t, tio.expectedResult, vmc.IsValidator(blsKey))
+	}
 }

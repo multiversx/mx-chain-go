@@ -34,8 +34,8 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
-			AuctionEnableNonce:                   0,
-			StakeEnableNonce:                     0,
+			AuctionEnableEpoch:                   0,
+			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
@@ -43,6 +43,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
+		EpochNotifier: &mock.EpochNotifierStub{},
 	}
 }
 
@@ -1031,7 +1032,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.StakeEnableNonce = 10
+	args.StakingSCConfig.StakeEnableEpoch = 10
 	args.StakingAccessAddr = stakingAccessAddress
 	args.Eei = eei
 	args.StakingSCConfig.NumRoundsWithoutBleed = 100
@@ -1232,7 +1233,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "jailed")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
-	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "waiting")
+	doGetStatus(t, stakingSmartContract, eei, []byte("firsstKey"), "queued")
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 
 	waitingList, _ := stakingSmartContract.getWaitingListHead()
@@ -1247,6 +1248,16 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("fifthhKey"), vmcommon.Ok, 3)
 	doGetWaitingListIndex(t, stakingSmartContract, eei, []byte("sixthhKey"), vmcommon.Ok, 4)
 
+	outPut := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, 8, len(outPut))
+	for i, out := range outPut {
+		if i%2 == 1 {
+			assert.Equal(t, []byte(strconv.Itoa(0)), out)
+		} else {
+			assert.Equal(t, []byte(hex.EncodeToString(stakerAddress)), out)
+		}
+	}
+
 	stakingSmartContract.unBondPeriod = 0
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"), vmcommon.Ok)
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
@@ -1260,7 +1271,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
 	doGetRewardAddress(t, stakingSmartContract, eei, []byte("fifthhKey"), string(stakerAddress))
-	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "waiting")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fifthhKey"), "queued")
 	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 
 	stakingSmartContract.unBondPeriod = 100
@@ -1279,6 +1290,13 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 		return 101
 	}
 	doGetRemainingUnbondPeriod(t, stakingSmartContract, eei, []byte("fourthKey"), 0)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("seventKey"))
+	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
+	outPut = doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, 4, len(outPut))
+	assert.Equal(t, []byte(strconv.Itoa(101)), outPut[3])
+	assert.Equal(t, []byte(hex.EncodeToString(stakerAddress)), outPut[2])
 }
 
 func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
@@ -1476,7 +1494,7 @@ func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, exp
 
 func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedSize int) {
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getWaitingListSize"
+	arguments.Function = "getQueueSize"
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
@@ -1485,9 +1503,22 @@ func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedS
 	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expectedSize))))
 }
 
+func doGetWaitingListRegisterNonceAndRewardAddress(t *testing.T, sc *stakingSC, eei *vmContext) [][]byte {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueRegisterNonceAndRewardAddress"
+	arguments.CallerAddr = sc.stakeAccessAddr
+
+	currentOutPutIndex := len(eei.output)
+
+	retCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	return eei.output[currentOutPutIndex:]
+}
+
 func doGetWaitingListIndex(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedCode vmcommon.ReturnCode, expectedIndex int) {
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "getWaitingListIndex"
+	arguments.Function = "getQueueIndex"
 	arguments.CallerAddr = sc.stakeAccessAddr
 	arguments.Arguments = [][]byte{blsKey}
 

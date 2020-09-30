@@ -3,6 +3,7 @@ package vm
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -84,5 +85,13 @@ type ArgumentsParser interface {
 // NodesConfigProvider defines the functionality which is needed for nodes config in system smart contracts
 type NodesConfigProvider interface {
 	MinNumberOfNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
