@@ -24,6 +24,7 @@ type networkShardingCollectorMock struct {
 func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 	return &networkShardingCollectorMock{
 		peerIdPkMap:         make(map[core.PeerID][]byte),
+		peerIdSubType:       make(map[core.PeerID]uint32),
 		fallbackPkShardMap:  make(map[string]uint32),
 		fallbackPidShardMap: make(map[string]uint32),
 	}
@@ -50,6 +51,7 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIdShardId(pid core.PeerID, s
 	nscm.mutFallbackPidShardMap.Unlock()
 }
 
+// UpdatePeerIdSubType -
 func (nscm *networkShardingCollectorMock) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
 	nscm.mutPeerIdSubType.Lock()
 	nscm.peerIdSubType[pid] = uint32(peerSubType)
@@ -57,8 +59,14 @@ func (nscm *networkShardingCollectorMock) UpdatePeerIdSubType(pid core.PeerID, p
 }
 
 // GetPeerInfo -
-func (nscm *networkShardingCollectorMock) GetPeerInfo(_ core.PeerID) core.P2PPeerInfo {
-	return core.P2PPeerInfo{}
+func (nscm *networkShardingCollectorMock) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
+	nscm.mutPeerIdSubType.Lock()
+	defer nscm.mutPeerIdSubType.Unlock()
+
+	return core.P2PPeerInfo{
+		PeerType:    core.ObserverPeer,
+		PeerSubType: core.P2PPeerSubType(nscm.peerIdSubType[pid]),
+	}
 }
 
 // IsInterfaceNil -

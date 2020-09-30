@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -93,6 +94,16 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 
 	_ = netw.LinkAll()
+
+	nscm1 := mock2.NewNetworkShardingCollectorMock()
+	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	_ = mes1.SetPeerShardResolver(nscm1)
+
+	nscm2 := mock2.NewNetworkShardingCollectorMock()
+	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	_ = mes2.SetPeerShardResolver(nscm2)
 
 	return netw, mes1, mes2
 }
@@ -864,6 +875,31 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 	_ = mes2.Close()
 	_ = mes3.Close()
 	_ = mes4.Close()
+}
+
+//------- ConnectedFullHistoryPeersOnTopic
+
+func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
+	_, mes1, mes2 := createMockNetworkOf2()
+
+	adr2 := mes2.Addresses()[0]
+	fmt.Printf("Connecting to %s...\n", adr2)
+
+	_ = mes1.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2
+
+	_ = mes1.CreateTopic("topic123", false)
+	_ = mes2.CreateTopic("topic123", false)
+
+	//wait a bit for topic announcements
+	time.Sleep(time.Second)
+
+	connFullHistoryPeers := mes1.ConnectedFullHistoryPeersOnTopic("topic123")
+
+	assert.Equal(t, 1, len(connFullHistoryPeers))
+
+	_ = mes1.Close()
+	_ = mes2.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {

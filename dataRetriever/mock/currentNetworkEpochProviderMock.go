@@ -6,29 +6,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-type CurrentNetworkEpochProviderStub struct {
+// CurrentNetworkEpochProviderMock is a mock implementation of a CurrentNetworkEpochProvider interface
+type CurrentNetworkEpochProviderMock struct {
 	currentEpoch        uint32
 	mutCurrentEpoch     sync.RWMutex
 	numActivePersisters int
 }
 
-// NewCurrentNetworkEpochProvider will return a new instance of CurrentNetworkEpochProviderStub
-func NewCurrentNetworkEpochProvider(numActivePersisters int) *CurrentNetworkEpochProviderStub {
-	return &CurrentNetworkEpochProviderStub{
+// NewCurrentNetworkEpochProvider will return a new instance of CurrentNetworkEpochProviderMock
+func NewCurrentNetworkEpochProvider(numActivePersisters int) *CurrentNetworkEpochProviderMock {
+	return &CurrentNetworkEpochProviderMock{
 		currentEpoch:        uint32(0),
 		numActivePersisters: numActivePersisters,
 	}
 }
 
 // SetCurrentEpoch will update the component's current epoch
-func (cnep *CurrentNetworkEpochProviderStub) SetCurrentEpoch(epoch uint32) {
+func (cnep *CurrentNetworkEpochProviderMock) SetCurrentEpoch(epoch uint32) {
 	cnep.mutCurrentEpoch.Lock()
 	cnep.currentEpoch = epoch
 	cnep.mutCurrentEpoch.Unlock()
 }
 
 // EpochIsActiveInNetwork returns true if the persister for the given epoch is active in the network
-func (cnep *CurrentNetworkEpochProviderStub) EpochIsActiveInNetwork(epoch uint32) bool {
+func (cnep *CurrentNetworkEpochProviderMock) EpochIsActiveInNetwork(epoch uint32) bool {
 	cnep.mutCurrentEpoch.RLock()
 	defer cnep.mutCurrentEpoch.RUnlock()
 
@@ -39,7 +40,7 @@ func (cnep *CurrentNetworkEpochProviderStub) EpochIsActiveInNetwork(epoch uint32
 }
 
 // CurrentEpoch returns the current network epoch
-func (cnep *CurrentNetworkEpochProviderStub) CurrentEpoch() uint32 {
+func (cnep *CurrentNetworkEpochProviderMock) CurrentEpoch() uint32 {
 	cnep.mutCurrentEpoch.RLock()
 	defer cnep.mutCurrentEpoch.RUnlock()
 
@@ -47,6 +48,6 @@ func (cnep *CurrentNetworkEpochProviderStub) CurrentEpoch() uint32 {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (cnep *CurrentNetworkEpochProviderStub) IsInterfaceNil() bool {
+func (cnep *CurrentNetworkEpochProviderMock) IsInterfaceNil() bool {
 	return cnep == nil
 }

@@ -73,6 +73,7 @@ func (dplc *DiffPeerListCreator) IntraShardPeerList() []core.PeerID {
 	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
 }
 
+// FullHistoryList returns the full history peers list
 func (dplc *DiffPeerListCreator) FullHistoryList() []core.PeerID {
 	return dplc.messenger.ConnectedFullHistoryPeersOnTopic(dplc.intraShardTopic)
 }
