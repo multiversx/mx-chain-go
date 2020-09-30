@@ -100,6 +100,11 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) data.
 func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
+// Close -
+func (bps *BlockProcessorStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil

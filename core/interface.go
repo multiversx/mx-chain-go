@@ -64,3 +64,10 @@ type EpochSubscriberHandler interface {
 	EpochConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+// Accumulator defines the interface able to accumulate data and periodically evict them
+type Accumulator interface {
+	AddData(data interface{})
+	OutputChannel() <-chan []interface{}
+	IsInterfaceNil() bool
+}

@@ -79,6 +79,7 @@ type baseProcessor struct {
 	tpsBenchmark  statistics.TPSBenchmark
 	historyRepo   dblookupext.HistoryRepository
 	epochNotifier process.EpochNotifier
+	vmContainer   process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -1223,4 +1224,13 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 	if err != nil {
 		log.Warn("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
+}
+
+// Close - closes all underlying components
+func (bp *baseProcessor) Close() error {
+	if !check.IfNil(bp.vmContainer) {
+		return bp.vmContainer.Close()
+	}
+
+	return nil
 }

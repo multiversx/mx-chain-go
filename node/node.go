@@ -71,7 +71,7 @@ type Node struct {
 
 	sizeCheckDelta uint32
 	txSentCounter  uint32
-	txAcumulator   Accumulator
+	txAcumulator   core.Accumulator
 
 	signatureSize int
 	publicKeySize int

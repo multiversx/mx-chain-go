@@ -58,6 +58,7 @@ type ArgBaseProcessor struct {
 	EpochNotifier           process.EpochNotifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	AppStatusHandler        core.AppStatusHandler
+	VmContainer             process.VirtualMachinesContainer
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

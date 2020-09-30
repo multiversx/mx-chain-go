@@ -2117,3 +2117,8 @@ func (mp *metaProcessor) removeStartOfEpochBlockDataFromPools(
 
 	return nil
 }
+
+// Close - closes all underlying components
+func (mp *metaProcessor) Close() error {
+	return mp.baseProcessor.Close()
+}

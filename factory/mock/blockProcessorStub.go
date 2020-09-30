@@ -105,6 +105,11 @@ func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
 }
 
+// Close -
+func (bps *BlockProcessorStub) Close() error {
+	return nil
+}
+
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) error {
 	if bps.RevertStateToBlockCalled != nil {

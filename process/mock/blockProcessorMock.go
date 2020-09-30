@@ -109,6 +109,11 @@ func (bpm *BlockProcessorMock) PruneStateOnRollback(currHeader data.HeaderHandle
 	}
 }
 
+// Close -
+func (bpm *BlockProcessorMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bpm *BlockProcessorMock) IsInterfaceNil() bool {
 	return bpm == nil

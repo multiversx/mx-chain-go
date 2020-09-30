@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -221,7 +222,7 @@ func WithNetworkShardingCollector(networkShardingCollector NetworkShardingCollec
 }
 
 // WithTxAccumulator sets up a transaction accumulator handler for the Node
-func WithTxAccumulator(accumulator Accumulator) Option {
+func WithTxAccumulator(accumulator core.Accumulator) Option {
 	return func(n *Node) error {
 		if check.IfNil(accumulator) {
 			return ErrNilTxAccumulator

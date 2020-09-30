@@ -224,6 +224,7 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
@@ -263,6 +264,7 @@ type TransactionLogProcessorDatabase interface {
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*state.ValidatorApiResponse
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure

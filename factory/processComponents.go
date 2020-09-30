@@ -85,8 +85,10 @@ type processComponents struct {
 	txLogsProcessor             process.TransactionLogProcessorDatabase
 	headerConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper      process.NetworkShardingCollector
-	txSimulatorProcessor TransactionSimulatorProcessor
+	peerShardMapper       process.NetworkShardingCollector
+	txSimulatorProcessor  TransactionSimulatorProcessor
+	miniBlocksPoolCleaner process.PoolsCleaner
+	txsPoolCleaner        process.PoolsCleaner
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -502,6 +504,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		headerIntegrityVerifier:     pcf.headerIntegrityVerifier,
 		peerShardMapper:             peerShardMapper,
 		txSimulatorProcessor:        txSimulator,
+		miniBlocksPoolCleaner:       mbsPoolsCleaner,
+		txsPoolCleaner:              txsPoolsCleaner,
 	}, nil
 }
 
@@ -1253,7 +1257,20 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 
 // Close closes all underlying components that need closing
 func (pc *processComponents) Close() error {
-	//TODO: close all components
-
+	if !check.IfNil(pc.blockProcessor) {
+		log.LogIfError(pc.blockProcessor.Close())
+	}
+	if !check.IfNil(pc.validatorsProvider) {
+		log.LogIfError(pc.validatorsProvider.Close())
+	}
+	if !check.IfNil(pc.miniBlocksPoolCleaner) {
+		log.LogIfError(pc.miniBlocksPoolCleaner.Close())
+	}
+	if !check.IfNil(pc.txsPoolCleaner) {
+		log.LogIfError(pc.txsPoolCleaner.Close())
+	}
+	if !check.IfNil(pc.epochStartTrigger) {
+		log.LogIfError(pc.epochStartTrigger.Close())
+	}
 	return nil
 }
