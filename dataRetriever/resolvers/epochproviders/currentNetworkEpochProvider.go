@@ -82,6 +82,11 @@ func (cnep *currentNetworkEpochProvider) CurrentEpoch() uint32 {
 	return cnep.currentEpoch
 }
 
+// SetRequestHandler will update the inner request handler
+func (cnep *currentNetworkEpochProvider) SetRequestHandler(rh process.RequestHandler) {
+	cnep.requestHandler = rh
+}
+
 // TODO: analyze when to call this func
 func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
 	cnep.epochStartMetaBlockInterceptor.RegisterHandler(cnep.handlerEpochStartMetaBlock)

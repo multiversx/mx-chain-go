@@ -49,6 +49,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -963,8 +964,23 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	epochStartMetaBlockInterceptor, err := interceptors.NewEpochStartMetaBlockInterceptor(
+		interceptors.ArgsEpochStartMetaBlockInterceptor{
+			Marshalizer:               coreComponents.InternalMarshalizer,
+			Hasher:                    coreComponents.Hasher,
+			NumConnectedPeersProvider: networkComponents.NetMessenger,
+			ConsensusPercentage:       50,
+		})
+	if err != nil {
+		return err
+	}
 	// TODO: use this where it is needed
-	currentNetworkEpochProvider := epochproviders.NewCurrentNetworkEpochProvider(int(generalConfig.StoragePruning.NumActivePersisters))
+	currentNetworkEpochProvider, err := epochproviders.NewCurrentNetworkEpochProvider(epochproviders.ArgsCurrentNetworkProvider{
+		RequestHandler:                 &disabled.RequestHandler{},
+		Messenger:                      networkComponents.NetMessenger,
+		EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
+		NumActivePersisters:            int(generalConfig.StoragePruning.NumActivePersisters),
+	})
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
