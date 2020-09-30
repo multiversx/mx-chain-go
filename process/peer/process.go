@@ -591,11 +591,12 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
-	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+	validatorAppearances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
+	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppearances)
 
 	if computedThreshold <= signedThreshold {
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
+		increasedRatingTimes := validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, increasedRatingTimes)
 		pa, err := vs.loadPeerAccount(validator.PublicKey)
 		if err != nil {
 			return err
