@@ -1326,6 +1326,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	currentNetworkEpochProvider.SetRequestHandler(processComponents.RequestHandler)
+
 	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
 		return err
