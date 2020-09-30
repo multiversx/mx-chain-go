@@ -131,6 +131,16 @@ func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
 }
 
+// UnregisterAllMessageProcessors -
+func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
+	return nil
+}
+
+// UnjoinAllTopics -
+func (ms *MessengerStub) UnjoinAllTopics() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil

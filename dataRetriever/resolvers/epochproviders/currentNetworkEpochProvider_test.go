@@ -1,9 +1,11 @@
 package epochproviders_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/stretchr/testify/require"
 )
@@ -11,14 +13,61 @@ import (
 func TestNewCurrentNetworkEpochProvider(t *testing.T) {
 	t.Parallel()
 
-	cnep := epochproviders.NewCurrentNetworkEpochProvider(3)
-	require.False(t, check.IfNil(cnep))
+	tests := []struct {
+		argsFunc     func() epochproviders.ArgsCurrentNetworkProvider
+		expectedErr  error
+		shouldNotErr bool
+	}{
+		{
+			argsFunc: func() epochproviders.ArgsCurrentNetworkProvider {
+				args := getArgs()
+				args.Messenger = nil
+				return args
+			},
+			expectedErr: epochproviders.ErrNilMessenger,
+		},
+		{
+			argsFunc: func() epochproviders.ArgsCurrentNetworkProvider {
+				args := getArgs()
+				args.RequestHandler = nil
+				return args
+			},
+			expectedErr: epochproviders.ErrNilRequestHandler,
+		},
+		{
+			argsFunc: func() epochproviders.ArgsCurrentNetworkProvider {
+				args := getArgs()
+				args.EpochStartMetaBlockInterceptor = nil
+				return args
+			},
+			expectedErr: epochproviders.ErrNilEpochStartMetaBlockInterceptor,
+		},
+		{
+			argsFunc: func() epochproviders.ArgsCurrentNetworkProvider {
+				args := getArgs()
+				return args
+			},
+			expectedErr:  nil,
+			shouldNotErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		cnep, err := epochproviders.NewCurrentNetworkEpochProvider(tt.argsFunc())
+		if !tt.shouldNotErr {
+			require.True(t, errors.Is(err, tt.expectedErr))
+			require.True(t, check.IfNil(cnep))
+		} else {
+			require.NotNil(t, cnep)
+			require.NoError(t, err)
+		}
+	}
 }
 
 func TestCurrentNetworkEpochProvider_CurrentEpoch(t *testing.T) {
 	t.Parallel()
 
-	cnep := epochproviders.NewCurrentNetworkEpochProvider(3)
+	cnep, _ := epochproviders.NewCurrentNetworkEpochProvider(getArgs())
 
 	expEpoch := uint32(37)
 	cnep.SetCurrentEpoch(expEpoch)
@@ -28,8 +77,9 @@ func TestCurrentNetworkEpochProvider_CurrentEpoch(t *testing.T) {
 func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 	t.Parallel()
 
-	numActPersisters := 3
-	cnep := epochproviders.NewCurrentNetworkEpochProvider(numActPersisters)
+	args := getArgs()
+	args.NumActivePersisters = 3
+	cnep, _ := epochproviders.NewCurrentNetworkEpochProvider(args)
 
 	tests := []struct {
 		networkEpoch uint32
@@ -103,5 +153,14 @@ func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 				tt.networkEpoch,
 			)
 		}
+	}
+}
+
+func getArgs() epochproviders.ArgsCurrentNetworkProvider {
+	return epochproviders.ArgsCurrentNetworkProvider{
+		RequestHandler:                 &mock.RequestHandlerStub{},
+		Messenger:                      &mock.MessengerStub{},
+		EpochStartMetaBlockInterceptor: &mock.InterceptorStub{},
+		NumActivePersisters:            2,
 	}
 }

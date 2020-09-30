@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
 
 // ArgsEpochStartMetaBlockInterceptor holds the arguments needed for creating a new epochStartMetaBlockInterceptor
@@ -18,7 +19,6 @@ type ArgsEpochStartMetaBlockInterceptor struct {
 	Marshalizer               marshal.Marshalizer
 	Hasher                    hashing.Hasher
 	NumConnectedPeersProvider process.NumConnectedPeersProvider
-	CurrentNetworkEpochSetter process.CurrentNetworkEpochSetter
 	ConsensusPercentage       int
 }
 
@@ -26,11 +26,14 @@ type epochStartMetaBlockInterceptor struct {
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
 	numConnectedPeersProvider process.NumConnectedPeersProvider
-	currentNetworkEpochSetter process.CurrentNetworkEpochSetter
 	consensusPercentage       float32
-	mutReceivedMetaBlocks     sync.RWMutex
-	mapReceivedMetaBlocks     map[string]*block.MetaBlock
-	mapMetaBlocksFromPeers    map[string][]core.PeerID
+
+	mutReceivedMetaBlocks  sync.RWMutex
+	mapReceivedMetaBlocks  map[string]*block.MetaBlock
+	mapMetaBlocksFromPeers map[string][]core.PeerID
+
+	registeredHandlers []func(topic string, hash []byte, data interface{})
+	mutHandlers        sync.RWMutex
 }
 
 // NewEpochStartMetaBlockInterceptor returns a new instance of epochStartMetaBlockInterceptor
@@ -45,10 +48,10 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 		marshalizer:               args.Marshalizer,
 		hasher:                    args.Hasher,
 		numConnectedPeersProvider: args.NumConnectedPeersProvider,
-		currentNetworkEpochSetter: args.CurrentNetworkEpochSetter,
 		consensusPercentage:       consensusPercentageFloat,
 		mapReceivedMetaBlocks:     make(map[string]*block.MetaBlock),
 		mapMetaBlocksFromPeers:    make(map[string][]core.PeerID),
+		registeredHandlers:        make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
 
@@ -126,12 +129,24 @@ func (e *epochStartMetaBlockInterceptor) SetInterceptedDebugHandler(_ process.In
 	return nil
 }
 
-// RegisterHandler won't do anything as the logic is handled inside the interceptor
-func (e *epochStartMetaBlockInterceptor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+// RegisterHandler will append the handler to the slice so it will be called when the epoch start meta block is fetched
+func (e *epochStartMetaBlockInterceptor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
+	if handler == nil {
+		return
+	}
+
+	e.mutHandlers.Lock()
+	e.registeredHandlers = append(e.registeredHandlers, handler)
+	e.mutHandlers.Unlock()
 }
 
 func (e *epochStartMetaBlockInterceptor) handleFoundEpochStartMetaBlock(metaBlock *block.MetaBlock) {
-	e.currentNetworkEpochSetter.SetCurrentEpoch(metaBlock.Epoch)
+	e.mutHandlers.RLock()
+	for _, handler := range e.registeredHandlers {
+		handler(factory.MetachainBlocksTopic, []byte(""), metaBlock)
+	}
+	e.mutHandlers.RUnlock()
+
 	e.resetMaps()
 }
 
@@ -156,9 +171,6 @@ func checkArgs(args ArgsEpochStartMetaBlockInterceptor) error {
 	}
 	if check.IfNil(args.NumConnectedPeersProvider) {
 		return wrapArgsError(process.ErrNilNumConnectedPeersProvider)
-	}
-	if check.IfNil(args.CurrentNetworkEpochSetter) {
-		return wrapArgsError(process.ErrNilCurrentNetworkEpochSetter)
 	}
 	if !(args.ConsensusPercentage >= 0 && args.ConsensusPercentage <= 100) {
 		return wrapArgsError(process.ErrInvalidEpochStartMetaBlockConsensusPercentage)

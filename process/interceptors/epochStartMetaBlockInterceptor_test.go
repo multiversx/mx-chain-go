@@ -50,15 +50,6 @@ func TestNewEpochStartMetaBlockInterceptor(t *testing.T) {
 			exptectedErr: process.ErrNilNumConnectedPeersProvider,
 		},
 		{
-			description: "nil current network epoch setter",
-			argsFunc: func() interceptors.ArgsEpochStartMetaBlockInterceptor {
-				args := getArgsEpochStartMetaBlockInterceptor()
-				args.CurrentNetworkEpochSetter = nil
-				return args
-			},
-			exptectedErr: process.ErrNilCurrentNetworkEpochSetter,
-		},
-		{
 			description: "consensus percentage lower than 0",
 			argsFunc: func() interceptors.ArgsEpochStartMetaBlockInterceptor {
 				args := getArgsEpochStartMetaBlockInterceptor()
@@ -117,11 +108,10 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	expectedEpoch := uint32(37)
 	wasCalled := false
 	args := getArgsEpochStartMetaBlockInterceptor()
-	args.CurrentNetworkEpochSetter = &mock.CurrentNetworkEpochSetterStub{
-		SetCurrentEpochCalled: func(epoch uint32) {
-			require.Equal(t, expectedEpoch, epoch)
-			wasCalled = true
-		},
+	handlerFunc := func(topic string, hash []byte, data interface{}) {
+		mbEpoch := data.(*block.MetaBlock).Epoch
+		require.Equal(t, expectedEpoch, mbEpoch)
+		wasCalled = true
 	}
 	args.NumConnectedPeersProvider = &mock.MessengerStub{
 		ConnectedPeersCalled: func() []core.PeerID {
@@ -132,6 +122,7 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 
 	esmbi, _ := interceptors.NewEpochStartMetaBlockInterceptor(args)
 	require.NotNil(t, esmbi)
+	esmbi.RegisterHandler(handlerFunc)
 
 	metaBlock := &block.MetaBlock{Epoch: expectedEpoch}
 	metaBlockBytes, _ := args.Marshalizer.Marshal(metaBlock)
@@ -165,7 +156,6 @@ func getArgsEpochStartMetaBlockInterceptor() interceptors.ArgsEpochStartMetaBloc
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &mock.HasherMock{},
 		NumConnectedPeersProvider: &mock.MessengerStub{},
-		CurrentNetworkEpochSetter: &mock.CurrentNetworkEpochSetterStub{},
 		ConsensusPercentage:       50,
 	}
 }
