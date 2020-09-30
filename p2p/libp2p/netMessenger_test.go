@@ -285,37 +285,6 @@ func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T)
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("one topic"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-	_ = mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
-
-	assert.True(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
 func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
@@ -358,7 +327,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	//re-registration
 	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
-	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 
 	_ = mes.Close()
 }

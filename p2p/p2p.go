@@ -98,10 +98,6 @@ type Messenger interface {
 	// and it is listening to messages referencing it.
 	HasTopic(name string) bool
 
-	// HasTopicValidator returns true if the Messenger has registered a custom
-	// validator for a given topic name.
-	HasTopicValidator(name string) bool
-
 	// RegisterMessageProcessor adds the provided MessageProcessor to the list
 	// of handlers that are invoked whenever a message is received on the
 	// specified topic.

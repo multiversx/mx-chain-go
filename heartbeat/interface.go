@@ -20,8 +20,7 @@ type P2PMessenger interface {
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
 	CreateTopic(name string, createChannelForTopic bool) error
 	HasTopic(name string) bool
-	HasTopicValidator(name string) bool
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 	PeerAddresses(pid core.PeerID) []string
 	IsConnectedToTheNetwork() bool
 	ID() core.PeerID

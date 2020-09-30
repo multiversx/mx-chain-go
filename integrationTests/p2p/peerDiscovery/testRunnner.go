@@ -23,14 +23,10 @@ func RunTest(peers []p2p.Messenger, testIndex int, topic string) bool {
 
 	//add a new message processor for each messenger
 	for i, peer := range peers {
-		if peer.HasTopicValidator(topic) {
-			_ = peer.UnregisterMessageProcessor(topic)
-		}
-
 		mp := NewMessageProcessor(chanMessageProcessor, []byte(testMessage))
 
 		messageProcessors[i] = mp
-		err := peer.RegisterMessageProcessor(topic, mp)
+		err := peer.RegisterMessageProcessor(topic, "test", mp)
 		if err != nil {
 			fmt.Println(err.Error())
 			return false

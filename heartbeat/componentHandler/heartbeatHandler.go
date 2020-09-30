@@ -90,10 +90,6 @@ func (hbh *HeartbeatHandler) create() error {
 		return heartbeat.ErrNilMessenger
 	}
 
-	if arg.Messenger.HasTopicValidator(core.HeartbeatTopic) {
-		return heartbeat.ErrValidatorAlreadySet
-	}
-
 	if !arg.Messenger.HasTopic(core.HeartbeatTopic) {
 		err = arg.Messenger.CreateTopic(core.HeartbeatTopic, true)
 		if err != nil {
@@ -195,7 +191,7 @@ func (hbh *HeartbeatHandler) create() error {
 		return err
 	}
 
-	err = arg.Messenger.RegisterMessageProcessor(core.HeartbeatTopic, hbh.monitor)
+	err = arg.Messenger.RegisterMessageProcessor(core.HeartbeatTopic, core.DefaultInterceptorsIdentifier, hbh.monitor)
 	if err != nil {
 		return err
 	}

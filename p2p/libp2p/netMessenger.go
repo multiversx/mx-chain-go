@@ -686,15 +686,6 @@ func (netMes *networkMessenger) HasTopic(name string) bool {
 	return found
 }
 
-// HasTopicValidator returns true if the topic has a validator set
-func (netMes *networkMessenger) HasTopicValidator(name string) bool {
-	netMes.mutTopics.RLock()
-	validator := netMes.processors[name]
-	netMes.mutTopics.RUnlock()
-
-	return validator != nil
-}
-
 // BroadcastOnChannelBlocking tries to send a byte buffer onto a topic using provided channel
 // It is a blocking method. It needs to be launched on a go routine
 func (netMes *networkMessenger) BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error {
