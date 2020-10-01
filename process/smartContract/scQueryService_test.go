@@ -22,7 +22,7 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(nil, &mock.FeeHandlerStub{})
+	target, err := NewSCQueryService(nil, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNoVM, err)
@@ -31,7 +31,7 @@ func TestNewSCQueryService_NilVmShouldErr(t *testing.T) {
 func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil)
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, nil, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
 
 	assert.Nil(t, target)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
@@ -40,7 +40,7 @@ func TestNewSCQueryService_NilFeeHandlerShouldErr(t *testing.T) {
 func TestNewSCQueryService_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
 
 	assert.NotNil(t, target)
 	assert.Nil(t, err)
@@ -50,7 +50,7 @@ func TestNewSCQueryService_ShouldWork(t *testing.T) {
 func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
 
 	query := process.SCQuery{
 		ScAddress: nil,
@@ -67,7 +67,7 @@ func TestExecuteQuery_GetNilAddressShouldErr(t *testing.T) {
 func TestExecuteQuery_EmptyFunctionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{})
+	target, _ := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
 
 	query := process.SCQuery{
 		ScAddress: []byte{0},
@@ -114,6 +114,8 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	dataArgs := make([][]byte, len(args))
@@ -155,6 +157,8 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	query := process.SCQuery{
@@ -192,6 +196,8 @@ func TestExecuteQuery_WhenNotOkCodeShouldErr(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	query := process.SCQuery{
@@ -240,6 +246,8 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	noOfGoRoutines := 50
@@ -288,6 +296,8 @@ func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *tes
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	query := process.SCQuery{
@@ -330,6 +340,8 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	query := process.SCQuery{
@@ -369,6 +381,8 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 				return uint64(math.MaxUint64)
 			},
 		},
+		&mock.BlockChainHookHandlerMock{},
+		&mock.BlockChainMock{},
 	)
 
 	tx := &transaction.Transaction{

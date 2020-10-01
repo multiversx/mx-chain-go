@@ -184,6 +184,23 @@ func (hsv *HeaderSigVerifier) VerifyRandSeed(header data.HeaderHandler) error {
 	return nil
 }
 
+// VerifyLeaderSignature will check if leader signature is correct
+func (hsv *HeaderSigVerifier) VerifyLeaderSignature(header data.HeaderHandler) error {
+	leaderPubKey, err := hsv.getLeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = hsv.verifyLeaderSignature(leaderPubKey, header)
+	if err != nil {
+		log.Trace("block leader's signature",
+			"error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // VerifyRandSeedAndLeaderSignature will check if rand seed and leader signature is correct
 func (hsv *HeaderSigVerifier) VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error {
 	leaderPubKey, err := hsv.getLeader(header)

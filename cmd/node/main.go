@@ -1399,6 +1399,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		genesisNodesConfig,
 		systemSCConfig,
 		rater,
+		epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -2361,6 +2362,7 @@ func createApiResolver(
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2398,6 +2400,7 @@ func createApiResolver(
 			systemSCConfig,
 			validatorAccounts,
 			rater,
+			epochNotifier,
 		)
 		if err != nil {
 			return nil, err
@@ -2418,7 +2421,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics)
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
 	if err != nil {
 		return nil, err
 	}
