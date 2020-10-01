@@ -89,7 +89,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		err := ss.tries.SyncTriesFrom(meta, time.Hour)
+		err = ss.tries.SyncTriesFrom(meta, time.Hour)
 		if err != nil {
 			mutErr.Lock()
 			errFound = err
@@ -102,7 +102,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		defer wg.Done()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-		err := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
+		err = ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
 		cancel()
 		if err != nil {
 			mutErr.Lock()
@@ -111,7 +111,8 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 			return
 		}
 
-		syncedMiniBlocks, err := ss.miniBlocks.GetMiniBlocks()
+		var syncedMiniBlocks map[string]*block.MiniBlock
+		syncedMiniBlocks, err = ss.miniBlocks.GetMiniBlocks()
 		if err != nil {
 			mutErr.Lock()
 			errFound = err
@@ -132,11 +133,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
-	if errFound != nil {
-		return errFound
-	}
-
-	return nil
+	return errFound
 }
 
 func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
