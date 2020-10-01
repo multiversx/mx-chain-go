@@ -517,3 +517,20 @@ const DefaultLogProfileIdentifier = "[default log profile]"
 // Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
 // considering that constant below is set to 3
 const MultiplyFactorForScCall = 3
+
+// DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
+//(that makes the node run properly)
+const DefaultResolversIdentifier = "default resolver"
+
+// DefaultInterceptorsIdentifier represents the identifier that is used in conjunction with regular interceptors
+//(that makes the node run properly)
+const DefaultInterceptorsIdentifier = "default interceptor"
+
+// HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
+const HardforkInterceptorsIdentifier = "hardfork interceptor"
+
+// HardforkResolversIdentifier represents the resolver that is used in the hardfork process
+const HardforkResolversIdentifier = "hardfork resolver"
+
+// EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
+const EpochStartInterceptorsIdentifier = "epoch start interceptor"

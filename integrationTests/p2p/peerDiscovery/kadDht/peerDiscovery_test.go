@@ -193,14 +193,10 @@ func TestPeerDiscoveryAndMessageSendingWithOneAdvertiserAndProtocolID(t *testing
 func assignProcessors(peers []p2p.Messenger, topic string) []*peerDiscovery.SimpleMessageProcessor {
 	processors := make([]*peerDiscovery.SimpleMessageProcessor, 0, len(peers))
 	for _, peer := range peers {
-		if peer.HasTopicValidator(topic) {
-			_ = peer.UnregisterMessageProcessor(topic)
-		}
-
 		proc := &peerDiscovery.SimpleMessageProcessor{}
 		processors = append(processors, proc)
 
-		err := peer.RegisterMessageProcessor(topic, proc)
+		err := peer.RegisterMessageProcessor(topic, "test", proc)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

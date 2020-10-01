@@ -36,7 +36,7 @@ func TestRegisteringTopics(t *testing.T) {
 	processor := &mock.MessageProcessorStub{}
 
 	// Cannot register a MessageProcessor to a topic that doesn't exist.
-	err = messenger.RegisterMessageProcessor("rocket", processor)
+	err = messenger.RegisterMessageProcessor("rocket", "", processor)
 	assert.True(t, errors.Is(err, p2p.ErrNilTopic))
 
 	// Create a proper topic.
@@ -47,24 +47,24 @@ func TestRegisteringTopics(t *testing.T) {
 	// The newly created topic has no MessageProcessor attached to it, so we
 	// attach one now.
 	assert.Nil(t, messenger.TopicValidator("rocket"))
-	err = messenger.RegisterMessageProcessor("rocket", processor)
+	err = messenger.RegisterMessageProcessor("rocket", "", processor)
 	assert.Nil(t, err)
 	assert.Equal(t, processor, messenger.TopicValidator("rocket"))
 
 	// Cannot unregister a MessageProcessor from a topic that doesn't exist.
-	err = messenger.UnregisterMessageProcessor("albatross")
+	err = messenger.UnregisterMessageProcessor("albatross", "")
 	assert.True(t, errors.Is(err, p2p.ErrNilTopic))
 
 	// Cannot unregister a MessageProcessor from a topic that doesn't have a
 	// MessageProcessor, even if the topic itself exists.
 	err = messenger.CreateTopic("nitrous_oxide", false)
 	assert.Nil(t, err)
-	err = messenger.UnregisterMessageProcessor("nitrous_oxide")
+	err = messenger.UnregisterMessageProcessor("nitrous_oxide", "")
 	assert.Equal(t, p2p.ErrTopicValidatorOperationNotSupported, err)
 
 	// Unregister the MessageProcessor from a topic that exists and has a
 	// MessageProcessor.
-	err = messenger.UnregisterMessageProcessor("rocket")
+	err = messenger.UnregisterMessageProcessor("rocket", "")
 	assert.Nil(t, err)
 	assert.True(t, messenger.HasTopic("rocket"))
 	assert.Nil(t, messenger.TopicValidator("rocket"))
@@ -135,9 +135,9 @@ func TestConnectivityAndTopics(t *testing.T) {
 
 	// Peers 2 and 3 also listen on the topic "carbohydrate"
 	_ = peers[2].CreateTopic("carbohydrate", false)
-	_ = peers[2].RegisterMessageProcessor("carbohydrate", &mock.MessageProcessorStub{})
+	_ = peers[2].RegisterMessageProcessor("carbohydrate", "", &mock.MessageProcessorStub{})
 	_ = peers[3].CreateTopic("carbohydrate", false)
-	_ = peers[3].RegisterMessageProcessor("carbohydrate", &mock.MessageProcessorStub{})
+	_ = peers[3].RegisterMessageProcessor("carbohydrate", "", &mock.MessageProcessorStub{})
 
 	// Test to which peers is Peer0 connected, based on the topics they listen to.
 	peer0 := peers[0]

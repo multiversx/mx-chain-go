@@ -154,7 +154,7 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (*bl
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
+	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
@@ -168,7 +168,7 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, core.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}

@@ -694,11 +694,7 @@ func (n *Node) createConsensusTopic(messageProcessor p2p.MessageProcessor) error
 		}
 	}
 
-	if n.messenger.HasTopicValidator(n.consensusTopic) {
-		return ErrValidatorAlreadySet
-	}
-
-	return n.messenger.RegisterMessageProcessor(n.consensusTopic, messageProcessor)
+	return n.messenger.RegisterMessageProcessor(n.consensusTopic, core.DefaultInterceptorsIdentifier, messageProcessor)
 }
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes

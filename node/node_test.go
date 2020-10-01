@@ -815,11 +815,11 @@ func TestNode_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return true
-			},
 			HasTopicCalled: func(name string) bool {
 				return true
+			},
+			RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+				return node.ErrValidatorAlreadySet
 			},
 		}),
 	)
@@ -836,9 +836,6 @@ func TestNode_ConsensusTopicCreateTopicError(t *testing.T) {
 	n, _ := node.NewNode(
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{}),
 		node.WithMessenger(&mock.MessengerStub{
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
 			HasTopicCalled: func(name string) bool {
 				return false
 			},
@@ -1410,13 +1407,10 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 			IsConnectedToTheNetworkCalled: func() bool {
 				return false
 			},
-			HasTopicValidatorCalled: func(name string) bool {
-				return false
-			},
 			HasTopicCalled: func(name string) bool {
 				return true
 			},
-			RegisterMessageProcessorCalled: func(topic string, handler p2p.MessageProcessor) error {
+			RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
 				return nil
 			},
 		}),
