@@ -92,14 +92,12 @@ func (cnep *currentNetworkEpochProvider) SetRequestHandler(rh process.RequestHan
 func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
 	cnep.epochStartMetaBlockInterceptor.RegisterHandler(cnep.handlerEpochStartMetaBlock)
 
-	// TODO: use the new function after merging
 	err := cnep.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, metaBlocksTopicIdentifier, cnep.epochStartMetaBlockInterceptor)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		// TODO: use the new function after merging
 		err = cnep.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, metaBlocksTopicIdentifier)
 		log.LogIfError(err)
 	}()
