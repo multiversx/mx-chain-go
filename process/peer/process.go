@@ -38,41 +38,43 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer                  marshal.Marshalizer
-	NodesCoordinator             sharding.NodesCoordinator
-	ShardCoordinator             sharding.Coordinator
-	DataPool                     DataPool
-	StorageService               dataRetriever.StorageService
-	PubkeyConv                   core.PubkeyConverter
-	PeerAdapter                  state.AccountsAdapter
-	Rater                        sharding.PeerAccountListAndRatingHandler
-	RewardsHandler               process.RewardsHandler
-	MaxComputableRounds          uint64
-	NodesSetup                   sharding.GenesisNodesSetupHandler
-	GenesisNonce                 uint64
-	RatingEnableEpoch            uint32
-	SwitchJailWaitingEnableEpoch uint32
-	EpochNotifier                process.EpochNotifier
+	Marshalizer                     marshal.Marshalizer
+	NodesCoordinator                sharding.NodesCoordinator
+	ShardCoordinator                sharding.Coordinator
+	DataPool                        DataPool
+	StorageService                  dataRetriever.StorageService
+	PubkeyConv                      core.PubkeyConverter
+	PeerAdapter                     state.AccountsAdapter
+	Rater                           sharding.PeerAccountListAndRatingHandler
+	RewardsHandler                  process.RewardsHandler
+	MaxComputableRounds             uint64
+	NodesSetup                      sharding.GenesisNodesSetupHandler
+	GenesisNonce                    uint64
+	RatingEnableEpoch               uint32
+	SwitchJailWaitingEnableEpoch    uint32
+	BelowSignedThresholdEnableEpoch uint32
+	EpochNotifier                   process.EpochNotifier
 }
 
 type validatorStatistics struct {
-	marshalizer            marshal.Marshalizer
-	dataPool               DataPool
-	storageService         dataRetriever.StorageService
-	nodesCoordinator       sharding.NodesCoordinator
-	shardCoordinator       sharding.Coordinator
-	pubkeyConv             core.PubkeyConverter
-	peerAdapter            state.AccountsAdapter
-	rater                  sharding.PeerAccountListAndRatingHandler
-	rewardsHandler         process.RewardsHandler
-	maxComputableRounds    uint64
-	missedBlocksCounters   validatorRoundCounters
-	mutValidatorStatistics sync.RWMutex
-	genesisNonce           uint64
-	ratingEnableEpoch      uint32
-	lastFinalizedRootHash  []byte
-	jailedEnableEpoch      uint32
-	flagJailedEnabled      atomic.Flag
+	marshalizer                     marshal.Marshalizer
+	dataPool                        DataPool
+	storageService                  dataRetriever.StorageService
+	nodesCoordinator                sharding.NodesCoordinator
+	shardCoordinator                sharding.Coordinator
+	pubkeyConv                      core.PubkeyConverter
+	peerAdapter                     state.AccountsAdapter
+	rater                           sharding.PeerAccountListAndRatingHandler
+	rewardsHandler                  process.RewardsHandler
+	maxComputableRounds             uint64
+	missedBlocksCounters            validatorRoundCounters
+	mutValidatorStatistics          sync.RWMutex
+	genesisNonce                    uint64
+	ratingEnableEpoch               uint32
+	lastFinalizedRootHash           []byte
+	jailedEnableEpoch               uint32
+	belowSignedThresholdEnableEpoch uint32
+	flagJailedEnabled               atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -116,20 +118,21 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:          arguments.PeerAdapter,
-		pubkeyConv:           arguments.PubkeyConv,
-		nodesCoordinator:     arguments.NodesCoordinator,
-		shardCoordinator:     arguments.ShardCoordinator,
-		dataPool:             arguments.DataPool,
-		storageService:       arguments.StorageService,
-		marshalizer:          arguments.Marshalizer,
-		missedBlocksCounters: make(validatorRoundCounters),
-		rater:                arguments.Rater,
-		rewardsHandler:       arguments.RewardsHandler,
-		maxComputableRounds:  arguments.MaxComputableRounds,
-		genesisNonce:         arguments.GenesisNonce,
-		ratingEnableEpoch:    arguments.RatingEnableEpoch,
-		jailedEnableEpoch:    arguments.SwitchJailWaitingEnableEpoch,
+		peerAdapter:                     arguments.PeerAdapter,
+		pubkeyConv:                      arguments.PubkeyConv,
+		nodesCoordinator:                arguments.NodesCoordinator,
+		shardCoordinator:                arguments.ShardCoordinator,
+		dataPool:                        arguments.DataPool,
+		storageService:                  arguments.StorageService,
+		marshalizer:                     arguments.Marshalizer,
+		missedBlocksCounters:            make(validatorRoundCounters),
+		rater:                           arguments.Rater,
+		rewardsHandler:                  arguments.RewardsHandler,
+		maxComputableRounds:             arguments.MaxComputableRounds,
+		genesisNonce:                    arguments.GenesisNonce,
+		ratingEnableEpoch:               arguments.RatingEnableEpoch,
+		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
+		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
 	}
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
@@ -586,7 +589,6 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 	shardId uint32,
 	epoch uint32,
 ) error {
-
 	if epoch < vs.ratingEnableEpoch {
 		return nil
 	}
@@ -595,7 +597,13 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppearances)
 
 	if computedThreshold <= signedThreshold {
-		increasedRatingTimes := validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+		increasedRatingTimes := uint32(0)
+		if epoch < vs.belowSignedThresholdEnableEpoch {
+			increasedRatingTimes = validator.ValidatorFailure
+		} else {
+			increasedRatingTimes = validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+		}
+
 		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, increasedRatingTimes)
 		pa, err := vs.loadPeerAccount(validator.PublicKey)
 		if err != nil {

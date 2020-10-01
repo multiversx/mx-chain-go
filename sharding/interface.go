@@ -115,6 +115,7 @@ type PeerAccountListAndRatingHandler interface {
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
+	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 

@@ -26,6 +26,9 @@
    # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
    SwitchJailWaitingEnableEpoch = 2
 
+   # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
+   BelowSignedThresholdEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
