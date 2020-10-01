@@ -145,7 +145,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		return err
 	}
 
-	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		return err
 	}
 
-	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = srcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}

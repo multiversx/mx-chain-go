@@ -255,7 +255,7 @@ func (tP2pNode *TestP2PNode) RegisterTopicValidator(topic string, processor p2p.
 		return
 	}
 
-	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, processor)
+	err = tP2pNode.Messenger.RegisterMessageProcessor(topic, "test", processor)
 	if err != nil {
 		fmt.Printf("error while registering topic validator %s: %s\n", topic, err.Error())
 		return

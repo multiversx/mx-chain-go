@@ -42,7 +42,7 @@ func waitDoneWithTimeout(t *testing.T, chanDone chan bool, timeout time.Duration
 func prepareMessengerForMatchDataReceive(mes p2p.Messenger, matchData []byte, wg *sync.WaitGroup) {
 	_ = mes.CreateTopic("test", false)
 
-	_ = mes.RegisterMessageProcessor("test",
+	_ = mes.RegisterMessageProcessor("test", "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				if bytes.Equal(matchData, message.Data()) {
@@ -285,41 +285,10 @@ func TestLibp2pMessenger_HasTopicIfDoNotHaveTopicShouldReturnFalse(t *testing.T)
 	_ = mes.Close()
 }
 
-func TestLibp2pMessenger_HasTopicValidatorDoNotHaveTopicShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("one topic"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicDoNotHaveValidatorShouldReturnFalse(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-
-	assert.False(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
-func TestLibp2pMessenger_HasTopicValidatorHaveTopicHaveValidatorShouldReturnTrue(t *testing.T) {
-	mes := createMockMessenger()
-
-	_ = mes.CreateTopic("test", false)
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
-
-	assert.True(t, mes.HasTopicValidator("test"))
-
-	_ = mes.Close()
-}
-
 func TestLibp2pMessenger_RegisterTopicValidatorOnInexistentTopicShouldWork(t *testing.T) {
 	mes := createMockMessenger()
 
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 
@@ -331,7 +300,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testin
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterMessageProcessor("test", nil)
+	err := mes.RegisterMessageProcessor("test", "identifier", nil)
 
 	assert.Equal(t, p2p.ErrNilValidator, err)
 
@@ -343,7 +312,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorOkValsShouldWork(t *testing.T) {
 
 	_ = mes.CreateTopic("test", false)
 
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	assert.Nil(t, err)
 
@@ -354,11 +323,11 @@ func TestLibp2pMessenger_RegisterTopicValidatorReregistrationShouldErr(t *testin
 	mes := createMockMessenger()
 	_ = mes.CreateTopic("test", false)
 	//registration
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 	//re-registration
-	err := mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	err := mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
-	assert.True(t, errors.Is(err, p2p.ErrTopicValidatorOperationNotSupported))
+	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 
 	_ = mes.Close()
 }
@@ -367,7 +336,7 @@ func TestLibp2pMessenger_UnegisterTopicValidatorOnANotRegisteredTopicShouldNotEr
 	mes := createMockMessenger()
 
 	_ = mes.CreateTopic("test", false)
-	err := mes.UnregisterMessageProcessor("test")
+	err := mes.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
 
@@ -380,10 +349,10 @@ func TestLibp2pMessenger_UnregisterTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 
 	//registration
-	_ = mes.RegisterMessageProcessor("test", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test", "identifier", &mock.MessageProcessorStub{})
 
 	//unregistration
-	err := mes.UnregisterMessageProcessor("test")
+	err := mes.UnregisterMessageProcessor("test", "identifier")
 
 	assert.Nil(t, err)
 
@@ -395,16 +364,57 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.CreateTopic("test", false)
 	//registration
 	_ = mes.CreateTopic("test1", false)
-	_ = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
 	_ = mes.CreateTopic("test2", false)
-	_ = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	_ = mes.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
 	//unregistration
 	err := mes.UnregisterAllMessageProcessors()
 	assert.Nil(t, err)
-	err = mes.RegisterMessageProcessor("test1", &mock.MessageProcessorStub{})
+	err = mes.RegisterMessageProcessor("test1", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
-	err = mes.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{})
+	err = mes.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{})
 	assert.Nil(t, err)
+	_ = mes.Close()
+}
+
+func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic: %v", r))
+		}
+	}()
+
+	mes := createMockMessenger()
+	topic := "test topic"
+	_ = mes.CreateTopic(topic, false)
+
+	numIdentifiers := 100
+	identifiers := make([]string, 0, numIdentifiers)
+	for i := 0; i < numIdentifiers; i++ {
+		identifiers = append(identifiers, fmt.Sprintf("identifier%d", i))
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(numIdentifiers * 3)
+	for i := 0; i < numIdentifiers; i++ {
+		go func(index int) {
+			_ = mes.RegisterMessageProcessor(topic, identifiers[index], &mock.MessageProcessorStub{})
+			wg.Done()
+		}(i)
+
+		go func(index int) {
+			_ = mes.UnregisterMessageProcessor(topic, identifiers[index])
+			wg.Done()
+		}(i)
+
+		go func() {
+			mes.Broadcast(topic, []byte("buff"))
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
 	_ = mes.Close()
 }
 

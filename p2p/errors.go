@@ -143,3 +143,9 @@ var ErrUnsupportedMessageVersion = errors.New("unsupported message version")
 
 // ErrNilSyncTimer signals that a nil sync timer was provided
 var ErrNilSyncTimer = errors.New("nil sync timer")
+
+// ErrMessageProcessorAlreadyDefined signals that a message processor was already defined on the provided topic and identifier
+var ErrMessageProcessorAlreadyDefined = errors.New("message processor already defined")
+
+// ErrMessageProcessorDoesNotExists signals that a message processor does not exist on the provided topic and identifier
+var ErrMessageProcessorDoesNotExists = errors.New("message processor does not exists")

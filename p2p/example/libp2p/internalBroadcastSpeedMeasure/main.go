@@ -59,7 +59,7 @@ func main() {
 	bytesReceived2 := int64(0)
 	bytesReceived3 := int64(0)
 
-	_ = mes1.RegisterMessageProcessor("test1",
+	_ = mes1.RegisterMessageProcessor("test1", "identifier",
 		&mock.MessageProcessorStub{
 			ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 				atomic.AddInt64(&bytesReceived1, int64(len(message.Data())))
@@ -68,7 +68,7 @@ func main() {
 			},
 		})
 
-	_ = mes1.RegisterMessageProcessor("test2", &mock.MessageProcessorStub{
+	_ = mes1.RegisterMessageProcessor("test2", "identifier", &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			atomic.AddInt64(&bytesReceived2, int64(len(message.Data())))
 
@@ -76,7 +76,7 @@ func main() {
 		},
 	})
 
-	_ = mes1.RegisterMessageProcessor("test3", &mock.MessageProcessorStub{
+	_ = mes1.RegisterMessageProcessor("test3", "identifier", &mock.MessageProcessorStub{
 		ProcessMessageCalled: func(message p2p.MessageP2P, _ core.PeerID) error {
 			atomic.AddInt64(&bytesReceived3, int64(len(message.Data())))
 
