@@ -327,7 +327,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			return Parameters{}, nil
 		}
 
-		e.currentNetworkEpochSetter.SetCurrentEpoch(epochStartMb.Epoch)
+		e.currentNetworkEpochSetter.SetNetworkEpochAtBootstrap(epochStartMb.Epoch)
 
 		e.initializeFromLocalStorage()
 		if !e.baseData.storageExists {
@@ -403,7 +403,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 		parameters, errPrepare := e.prepareEpochFromStorage()
 		if errPrepare == nil {
-			e.currentNetworkEpochSetter.SetCurrentEpoch(parameters.Epoch)
+			e.currentNetworkEpochSetter.SetNetworkEpochAtBootstrap(parameters.Epoch)
 			return parameters, nil
 		}
 
@@ -427,7 +427,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.Epoch, "nonce", e.epochStartMeta.Nonce)
 	e.setEpochStartMetrics()
 
-	e.currentNetworkEpochSetter.SetCurrentEpoch(e.epochStartMeta.Epoch)
+	e.currentNetworkEpochSetter.SetNetworkEpochAtBootstrap(e.epochStartMeta.Epoch)
 
 	err = e.createSyncers()
 	if err != nil {

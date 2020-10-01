@@ -31,6 +31,7 @@ type ArgsCurrentNetworkProvider struct {
 
 type currentNetworkEpochProvider struct {
 	currentEpoch                   uint32
+	isSynced                       bool
 	mutCurrentEpoch                sync.RWMutex
 	requestHandler                 process.RequestHandler
 	epochStartMetaBlockInterceptor process.Interceptor
@@ -48,6 +49,7 @@ func NewCurrentNetworkEpochProvider(args ArgsCurrentNetworkProvider) (*currentNe
 
 	return &currentNetworkEpochProvider{
 		currentEpoch:                   uint32(0),
+		isSynced:                       false,
 		numActivePersisters:            args.NumActivePersisters,
 		requestHandler:                 args.RequestHandler,
 		messenger:                      args.Messenger,
@@ -55,8 +57,8 @@ func NewCurrentNetworkEpochProvider(args ArgsCurrentNetworkProvider) (*currentNe
 	}, nil
 }
 
-// SetCurrentEpoch will update the component's current epoch
-func (cnep *currentNetworkEpochProvider) SetCurrentEpoch(epoch uint32) {
+// SetNetworkEpochAtBootstrap will update the component's current epoch at bootstrap
+func (cnep *currentNetworkEpochProvider) SetNetworkEpochAtBootstrap(epoch uint32) {
 	cnep.mutCurrentEpoch.Lock()
 	cnep.currentEpoch = epoch
 	cnep.mutCurrentEpoch.Unlock()
@@ -64,15 +66,38 @@ func (cnep *currentNetworkEpochProvider) SetCurrentEpoch(epoch uint32) {
 
 // EpochIsActiveInNetwork returns true if the persister for the given epoch is active in the network
 func (cnep *currentNetworkEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
+	if cnep.isSynced {
+		return true
+	}
+
 	cnep.mutCurrentEpoch.RLock()
 	defer cnep.mutCurrentEpoch.RUnlock()
 
+	isSynced := cnep.isEpochInRange(epoch)
+	if !isSynced {
+		return false
+	}
+
+	// epoch is in range. confirm with the network if it is already synced or in process of syncing
+	err := cnep.syncCurrentEpochFromNetwork()
+	if err != nil {
+		log.Warn("cannot sync current epoch from network", "error", err)
+		return false
+	}
+
+	if cnep.isEpochInRange(epoch) {
+		cnep.isSynced = true
+		return true
+	}
+
+	return false
+}
+
+func (cnep *currentNetworkEpochProvider) isEpochInRange(epoch uint32) bool {
 	lower := core.MaxInt(int(cnep.currentEpoch)-cnep.numActivePersisters+1, 0)
 	upper := cnep.currentEpoch
 
-	isSynced := epoch >= uint32(lower) && epoch <= upper
-
-	return isSynced
+	return epoch >= uint32(lower) && epoch <= upper
 }
 
 // CurrentEpoch returns the current epoch in the network
@@ -88,7 +113,6 @@ func (cnep *currentNetworkEpochProvider) SetRequestHandler(rh process.RequestHan
 	cnep.requestHandler = rh
 }
 
-// TODO: analyze when to call this func
 func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
 	cnep.epochStartMetaBlockInterceptor.RegisterHandler(cnep.handlerEpochStartMetaBlock)
 

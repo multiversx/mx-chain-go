@@ -51,6 +51,6 @@ type RequestHandler interface {
 
 // CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
 type CurrentNetworkEpochSetter interface {
-	SetCurrentEpoch(epoch uint32)
+	SetNetworkEpochAtBootstrap(epoch uint32)
 	IsInterfaceNil() bool
 }

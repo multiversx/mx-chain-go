@@ -4,9 +4,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,7 +72,7 @@ func TestCurrentNetworkEpochProvider_CurrentEpoch(t *testing.T) {
 	cnep, _ := epochproviders.NewCurrentNetworkEpochProvider(getArgs())
 
 	expEpoch := uint32(37)
-	cnep.SetCurrentEpoch(expEpoch)
+	cnep.SetNetworkEpochAtBootstrap(expEpoch)
 	require.Equal(t, cnep.CurrentEpoch(), expEpoch)
 }
 
@@ -87,18 +89,6 @@ func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 		output       bool
 		description  string
 	}{
-		{
-			networkEpoch: 1,
-			nodeEpoch:    0,
-			output:       true,
-			description:  "0 in [0, 1]",
-		},
-		{
-			networkEpoch: 0,
-			nodeEpoch:    0,
-			output:       true,
-			description:  "0 in [0, 0]",
-		},
 		{
 			networkEpoch: 5,
 			nodeEpoch:    0,
@@ -119,24 +109,6 @@ func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 		},
 		{
 			networkEpoch: 5,
-			nodeEpoch:    3,
-			output:       true,
-			description:  "3 in (2, 5]",
-		},
-		{
-			networkEpoch: 5,
-			nodeEpoch:    4,
-			output:       true,
-			description:  "4 in (2, 5]",
-		},
-		{
-			networkEpoch: 5,
-			nodeEpoch:    5,
-			output:       true,
-			description:  "5 in (2, 5]",
-		},
-		{
-			networkEpoch: 5,
 			nodeEpoch:    6,
 			output:       false,
 			description:  "6 not in (3, 5]",
@@ -144,7 +116,7 @@ func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		cnep.SetCurrentEpoch(tt.networkEpoch)
+		cnep.SetNetworkEpochAtBootstrap(tt.networkEpoch)
 		testOk := tt.output == cnep.EpochIsActiveInNetwork(tt.nodeEpoch)
 		if !testOk {
 			require.Failf(t, "%s for epoch param %d and network epoch %d",
@@ -158,8 +130,18 @@ func TestCurrentNetworkEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 
 func getArgs() epochproviders.ArgsCurrentNetworkProvider {
 	return epochproviders.ArgsCurrentNetworkProvider{
-		RequestHandler:                 &mock.RequestHandlerStub{},
-		Messenger:                      &mock.MessengerStub{},
+		RequestHandler: &mock.RequestHandlerStub{},
+		Messenger: &mock.MessengerStub{
+			RegisterMessageProcessorCalled: func(_ string, _ string, _ p2p.MessageProcessor) error {
+				return nil
+			},
+			UnregisterMessageProcessorCalled: func(_ string, _ string) error {
+				return nil
+			},
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{"0", "1"}
+			},
+		},
 		EpochStartMetaBlockInterceptor: &mock.InterceptorStub{},
 		NumActivePersisters:            2,
 	}
