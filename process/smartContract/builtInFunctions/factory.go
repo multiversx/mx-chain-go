@@ -157,8 +157,8 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {
 	return &gasCost, nil
 }
 
-// SetIsPayableHandler sets the payable interface to the needed functions
-func SetIsPayableHandler(container process.BuiltInFunctionContainer, isPayableHandler process.IsPayableHandler) error {
+// SetPayableHandler sets the payable interface to the needed functions
+func SetPayableHandler(container process.BuiltInFunctionContainer, isPayableHandler process.PayableHandler) error {
 	builtInFunc, err := container.Get(core.BuiltInFunctionESDTTransfer)
 	if err != nil {
 		log.Warn("SetIsPayable", "error", err.Error())
@@ -171,5 +171,5 @@ func SetIsPayableHandler(container process.BuiltInFunctionContainer, isPayableHa
 		return process.ErrWrongTypeAssertion
 	}
 
-	return esdtTransferFunc.setIsPayable(isPayableHandler)
+	return esdtTransferFunc.setPayableHandler(isPayableHandler)
 }

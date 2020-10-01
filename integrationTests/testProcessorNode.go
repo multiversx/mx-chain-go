@@ -1046,7 +1046,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = builtInFunctions.SetIsPayableHandler(builtInFuncs, tpn.BlockchainHook)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm

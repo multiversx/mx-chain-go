@@ -899,5 +899,5 @@ var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
 // ErrESDTIsFrozenForAccount signals that account is frozen for given esdt token
 var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt token")
 
-// ErrNilIsPayableHandler signals that nil isPayableHandler was provided
-var ErrNilIsPayableHandler = errors.New("nil isPayableHandler was provided")
+// ErrNilPayableHandler signals that nil isPayableHandler was provided
+var ErrNilPayableHandler = errors.New("nil isPayableHandler was provided")

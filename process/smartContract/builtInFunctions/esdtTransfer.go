@@ -26,7 +26,7 @@ type esdtTransfer struct {
 	marshalizer    marshal.Marshalizer
 	keyPrefix      []byte
 	pauseHandler   process.ESDTPauseHandler
-	payableHandler process.IsPayableHandler
+	payableHandler process.PayableHandler
 }
 
 // NewESDTTransferFunc returns the esdt transfer built-in function component
@@ -43,10 +43,11 @@ func NewESDTTransferFunc(
 	}
 
 	e := &esdtTransfer{
-		funcGasCost:  funcGasCost,
-		marshalizer:  marshalizer,
-		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
-		pauseHandler: pauseHandler,
+		funcGasCost:    funcGasCost,
+		marshalizer:    marshalizer,
+		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		pauseHandler:   pauseHandler,
+		payableHandler: &disabledPayableHandler{},
 	}
 
 	return e, nil
@@ -217,12 +218,12 @@ func getESDTDataFromKey(
 	return esdtData, nil
 }
 
-func (e *esdtTransfer) setIsPayable(isPayableHandler process.IsPayableHandler) error {
-	if check.IfNil(isPayableHandler) {
-		return process.ErrNilIsPayableHandler
+func (e *esdtTransfer) setPayableHandler(payableHandler process.PayableHandler) error {
+	if check.IfNil(payableHandler) {
+		return process.ErrNilPayableHandler
 	}
 
-	e.payableHandler = isPayableHandler
+	e.payableHandler = payableHandler
 	return nil
 }
 

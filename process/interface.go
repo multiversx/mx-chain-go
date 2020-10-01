@@ -934,8 +934,8 @@ type ESDTPauseHandler interface {
 	IsInterfaceNil() bool
 }
 
-// IsPayableHandler provides IsPayable function which returns if an account is payable or not
-type IsPayableHandler interface {
+// PayableHandler provides IsPayable function which returns if an account is payable or not
+type PayableHandler interface {
 	IsPayable(address []byte) (bool, error)
 	IsInterfaceNil() bool
 }

@@ -1481,7 +1481,7 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	err = builtInFunctions.SetIsPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}

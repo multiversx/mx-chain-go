@@ -15,7 +15,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
 	esdt, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{})
-	_ = esdt.setIsPayable(&mock.IsPayableHandlerStub{})
+	_ = esdt.setIsPayable(&mock.PayableHandlerStub{})
 	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
@@ -50,7 +50,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
-	_ = esdt.setIsPayable(&mock.IsPayableHandlerStub{})
+	_ = esdt.setIsPayable(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -88,7 +88,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
-	_ = esdt.setIsPayable(&mock.IsPayableHandlerStub{})
+	_ = esdt.setIsPayable(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -118,7 +118,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
-	_ = esdt.setIsPayable(&mock.IsPayableHandlerStub{})
+	_ = esdt.setIsPayable(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

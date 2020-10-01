@@ -305,7 +305,7 @@ func CreateVMAndBlockchainHook(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
-	_ = builtInFunctions.SetIsPayableHandler(builtInFuncs, blockChainHook)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
 }

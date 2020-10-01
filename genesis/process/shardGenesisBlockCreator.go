@@ -265,7 +265,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		return nil, err
 	}
 
-	err = builtInFunctions.SetIsPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
