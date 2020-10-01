@@ -30,9 +30,7 @@ func TestTopicProcessorsAddShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(tp.processors))
-	require.Equal(t, 1, len(tp.identifiers))
 	assert.True(t, proc == tp.processors[identifier]) //pointer testing
-	assert.Equal(t, identifier, tp.identifiers[0])
 }
 
 func TestTopicProcessorsDoubleAddShouldErr(t *testing.T) {
@@ -46,7 +44,6 @@ func TestTopicProcessorsDoubleAddShouldErr(t *testing.T) {
 
 	assert.True(t, errors.Is(err, p2p.ErrMessageProcessorAlreadyDefined))
 	require.Equal(t, 1, len(tp.processors))
-	require.Equal(t, 1, len(tp.identifiers))
 }
 
 func TestTopicProcessorsRemoveInexistentShouldErr(t *testing.T) {
@@ -71,19 +68,16 @@ func TestTopicProcessorsRemoveShouldWork(t *testing.T) {
 	_ = tp.addTopicProcessor(identifier2, &mock.MessageProcessorStub{})
 
 	require.Equal(t, 2, len(tp.processors))
-	require.Equal(t, 2, len(tp.identifiers))
 
 	err := tp.removeTopicProcessor(identifier2)
 
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(tp.processors))
-	require.Equal(t, 1, len(tp.identifiers))
 
 	err = tp.removeTopicProcessor(identifier1)
 
 	assert.Nil(t, err)
 	require.Equal(t, 0, len(tp.processors))
-	require.Equal(t, 0, len(tp.identifiers))
 }
 
 func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
@@ -115,16 +109,15 @@ func TestTopicProcessorsGetListShouldWorkAndPreserveOrder(t *testing.T) {
 	_ = tp.addTopicProcessor(identifier2, handler2)
 
 	require.Equal(t, 3, len(tp.processors))
-	require.Equal(t, 3, len(tp.identifiers))
 
 	identifiers, handlers := tp.getList()
-	assert.Equal(t, identifiers, []string{identifier3, identifier1, identifier2})
-	assert.Equal(t, handlers, []p2p.MessageProcessor{handler3, handler1, handler2})
+	assert.ElementsMatch(t, identifiers, []string{identifier1, identifier2, identifier3})
+	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler1, handler2, handler3})
 
 	_ = tp.removeTopicProcessor(identifier1)
 	identifiers, handlers = tp.getList()
-	assert.Equal(t, identifiers, []string{identifier3, identifier2})
-	assert.Equal(t, handlers, []p2p.MessageProcessor{handler3, handler2})
+	assert.ElementsMatch(t, identifiers, []string{identifier2, identifier3})
+	assert.ElementsMatch(t, handlers, []p2p.MessageProcessor{handler2, handler3})
 
 	_ = tp.removeTopicProcessor(identifier2)
 	identifiers, handlers = tp.getList()

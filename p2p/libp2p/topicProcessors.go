@@ -9,14 +9,12 @@ import (
 
 type topicProcessors struct {
 	processors    map[string]p2p.MessageProcessor
-	identifiers   []string
 	mutProcessors sync.RWMutex
 }
 
 func newTopicProcessors() *topicProcessors {
 	return &topicProcessors{
-		processors:  make(map[string]p2p.MessageProcessor),
-		identifiers: make([]string, 0),
+		processors: make(map[string]p2p.MessageProcessor),
 	}
 }
 
@@ -33,7 +31,6 @@ func (tp *topicProcessors) addTopicProcessor(identifier string, processor p2p.Me
 	}
 
 	tp.processors[identifier] = processor
-	tp.identifiers = append(tp.identifiers, identifier)
 
 	return nil
 }
@@ -51,12 +48,6 @@ func (tp *topicProcessors) removeTopicProcessor(identifier string) error {
 	}
 
 	delete(tp.processors, identifier)
-	for i := 0; i < len(tp.identifiers); i++ {
-		if identifier == tp.identifiers[i] {
-			tp.identifiers = append(tp.identifiers[:i], tp.identifiers[i+1:]...)
-			break
-		}
-	}
 
 	return nil
 }
@@ -65,13 +56,13 @@ func (tp *topicProcessors) getList() ([]string, []p2p.MessageProcessor) {
 	tp.mutProcessors.RLock()
 	defer tp.mutProcessors.RUnlock()
 
-	list := make([]p2p.MessageProcessor, 0, len(tp.identifiers))
-	identifiersCopy := make([]string, len(tp.identifiers))
-	copy(identifiersCopy, tp.identifiers)
+	list := make([]p2p.MessageProcessor, 0, len(tp.processors))
+	identifiers := make([]string, 0, len(tp.processors))
 
-	for _, identifier := range tp.identifiers {
-		list = append(list, tp.processors[identifier])
+	for identifier, handler := range tp.processors {
+		list = append(list, handler)
+		identifiers = append(identifiers, identifier)
 	}
 
-	return identifiersCopy, list
+	return identifiers, list
 }

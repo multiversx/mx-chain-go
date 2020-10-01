@@ -377,6 +377,47 @@ func TestLibp2pMessenger_UnregisterAllTopicValidatorShouldWork(t *testing.T) {
 	_ = mes.Close()
 }
 
+func TestLibp2pMessenger_RegisterUnregisterConcurrentlyShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panic: %v", r))
+		}
+	}()
+
+	mes := createMockMessenger()
+	topic := "test topic"
+	_ = mes.CreateTopic(topic, false)
+
+	numIdentifiers := 100
+	identifiers := make([]string, 0, numIdentifiers)
+	for i := 0; i < numIdentifiers; i++ {
+		identifiers = append(identifiers, fmt.Sprintf("identifier%d", i))
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(numIdentifiers * 3)
+	for i := 0; i < numIdentifiers; i++ {
+		go func(index int) {
+			_ = mes.RegisterMessageProcessor(topic, identifiers[index], &mock.MessageProcessorStub{})
+			wg.Done()
+		}(i)
+
+		go func(index int) {
+			_ = mes.UnregisterMessageProcessor(topic, identifiers[index])
+			wg.Done()
+		}(i)
+
+		go func() {
+			mes.Broadcast(topic, []byte("buff"))
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	_ = mes.Close()
+}
+
 func TestLibp2pMessenger_BroadcastDataLargeMessageShouldNotCallSend(t *testing.T) {
 	msg := make([]byte, libp2p.MaxSendBuffSize+1)
 	mes, _ := libp2p.NewNetworkMessenger(createMockNetworkArgs())

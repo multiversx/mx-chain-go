@@ -738,7 +738,9 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 	netMes.BroadcastOnChannel(topic, topic, buff)
 }
 
-// RegisterMessageProcessor registers a message process on a topic
+// RegisterMessageProcessor registers a message process on a topic. The function allows registering multiple handlers
+// on a topic. Each handler should be associated with a new identifier on the same topic. Using same identifier on different
+// topics is allowed. The order of handler calling on a particular topic is not deterministic.
 func (netMes *networkMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if check.IfNil(handler) {
 		return p2p.ErrNilValidator

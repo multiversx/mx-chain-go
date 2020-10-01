@@ -519,11 +519,11 @@ const DefaultLogProfileIdentifier = "[default log profile]"
 const MultiplyFactorForScCall = 3
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
-//(that make the node run properly)
+//(that makes the node run properly)
 const DefaultResolversIdentifier = "default resolver"
 
 // DefaultInterceptorsIdentifier represents the identifier that is used in conjunction with regular interceptors
-//(that make the node run properly)
+//(that makes the node run properly)
 const DefaultInterceptorsIdentifier = "default interceptor"
 
 // HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
@@ -532,5 +532,5 @@ const HardforkInterceptorsIdentifier = "hardfork interceptor"
 // HardforkResolversIdentifier represents the resolver that is used in the hardfork process
 const HardforkResolversIdentifier = "hardfork resolver"
 
-// EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch porcess
+// EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
