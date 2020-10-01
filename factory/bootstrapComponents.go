@@ -10,33 +10,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config                  config.Config
-	WorkingDir              string
-	DestinationAsObserver   uint32
-	ShardCoordinator        sharding.Coordinator
-	CoreComponents          CoreComponentsHolder
-	CryptoComponents        CryptoComponentsHolder
-	NetworkComponents       NetworkComponentsHolder
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	Config            config.Config
+	PrefConfig        config.Preferences
+	WorkingDir        string
+	CoreComponents    CoreComponentsHolder
+	CryptoComponents  CryptoComponentsHolder
+	NetworkComponents NetworkComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
-	config                  config.Config
-	workingDir              string
-	destinationAsObserver   uint32
-	shardCoordinator        sharding.Coordinator
-	coreComponents          CoreComponentsHolder
-	cryptoComponents        CryptoComponentsHolder
-	networkComponents       NetworkComponentsHolder
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	config            config.Config
+	prefConfig        config.Preferences
+	workingDir        string
+	coreComponents    CoreComponentsHolder
+	cryptoComponents  CryptoComponentsHolder
+	networkComponents NetworkComponentsHolder
 }
 
 type bootstrapParamsHolder struct {
@@ -44,8 +41,11 @@ type bootstrapParamsHolder struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstraper  EpochStartBootstrapper
-	bootstrapParamsHandler BootstrapParamsHandler
+	epochStartBootstraper   EpochStartBootstrapper
+	bootstrapParamsHandler  BootstrapParamsHandler
+	nodeType                core.NodeType
+	shardCoordinator        sharding.Coordinator
+	headerIntegrityVerifier HeaderIntegrityVerifierHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -59,31 +59,50 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
 	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, errors.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.HeaderIntegrityVerifier) {
-		return nil, errors.ErrNilHeaderIntegrityVerifier
-	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
 
 	return &bootstrapComponentsFactory{
-		config:                  args.Config,
-		workingDir:              args.WorkingDir,
-		destinationAsObserver:   args.DestinationAsObserver,
-		shardCoordinator:        args.ShardCoordinator,
-		coreComponents:          args.CoreComponents,
-		cryptoComponents:        args.CryptoComponents,
-		networkComponents:       args.NetworkComponents,
-		headerIntegrityVerifier: args.HeaderIntegrityVerifier,
+		config:            args.Config,
+		prefConfig:        args.PrefConfig,
+		workingDir:        args.WorkingDir,
+		coreComponents:    args.CoreComponents,
+		cryptoComponents:  args.CryptoComponents,
+		networkComponents: args.NetworkComponents,
 	}, nil
 }
 
 // Create creates the bootstrap components
 func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
-	var err error
+	destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(bcf.prefConfig.Preferences.DestinationShardAsObserver)
+	if err != nil {
+		return nil, err
+	}
+
+	versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
+	if err != nil {
+		return nil, err
+	}
+
+	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
+		[]byte(bcf.coreComponents.ChainID()),
+		bcf.config.Versions.VersionsByEpochs,
+		bcf.config.Versions.DefaultVersion,
+		versionsCache,
+	)
+	if err != nil {
+		return nil, err
+	}
+	genesisShardCoordinator, nodeType, err := CreateShardCoordinator(
+		bcf.coreComponents.GenesisNodesSetup(),
+		bcf.cryptoComponents.PublicKey(),
+		bcf.prefConfig.Preferences,
+		log,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	bootstrapDataProvider, err := storageFactory.NewBootstrapDataProvider(bcf.coreComponents.InternalMarshalizer())
 	if err != nil {
@@ -124,16 +143,16 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		GeneralConfig:              bcf.config,
 		EconomicsData:              bcf.coreComponents.EconomicsData(),
 		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:    bcf.shardCoordinator,
+		GenesisShardCoordinator:    genesisShardCoordinator,
 		StorageUnitOpener:          unitOpener,
 		Rater:                      bcf.coreComponents.Rater(),
-		DestinationShardAsObserver: bcf.destinationAsObserver,
+		DestinationShardAsObserver: destShardIdAsObserver,
 		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
 		Rounder:                    bcf.coreComponents.Rounder(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
-		HeaderIntegrityVerifier:    bcf.headerIntegrityVerifier,
+		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 	}
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -157,6 +176,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHandler: &bootstrapParamsHolder{
 			bootstrapParams: bootstrapParameters,
 		},
+		nodeType:                nodeType,
+		shardCoordinator:        genesisShardCoordinator,
+		headerIntegrityVerifier: headerIntegrityVerifier,
 	}, nil
 }
 
@@ -188,6 +210,21 @@ func (bph *bootstrapParamsHolder) NumOfShards() uint32 {
 // NodesConfig returns the nodes coordinator config after bootstrap
 func (bph *bootstrapParamsHolder) NodesConfig() *sharding.NodesCoordinatorRegistry {
 	return bph.bootstrapParams.NodesConfig
+}
+
+// NodeType returns the node type
+func (bph *bootstrapComponents) NodeType() core.NodeType {
+	return bph.nodeType
+}
+
+// ShardCoordinator returns the shard coordinator
+func (bph *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
+	return bph.shardCoordinator
+}
+
+// HeaderIntegrityVerifier returns the header integrity verifier
+func (bph *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
+	return bph.headerIntegrityVerifier
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

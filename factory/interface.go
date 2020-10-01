@@ -393,6 +393,9 @@ type EpochStartBootstrapper interface {
 type BootstrapComponentsHolder interface {
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHandler
+	NodeType() core.NodeType
+	ShardCoordinator() sharding.Coordinator
+	HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 

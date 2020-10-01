@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -60,18 +61,6 @@ func TestNewBootstrapComponentsFactory_NilNetworkComponents(t *testing.T) {
 	require.Equal(t, errorsErd.ErrNilNetworkComponentsHolder, err)
 }
 
-func TestNewBootstrapComponentsFactory_NilShardCoordinator(t *testing.T) {
-	t.Parallel()
-
-	args := getBootStrapArgs()
-	args.ShardCoordinator = nil
-
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
-
-	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
-}
-
 func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 	t.Parallel()
 
@@ -82,18 +71,6 @@ func TestNewBootstrapComponentsFactory_NilWorkingDir(t *testing.T) {
 
 	require.Nil(t, bcf)
 	require.Equal(t, errorsErd.ErrInvalidWorkingDir, err)
-}
-
-func TestNewBootstrapComponentsFactory_NilHeaderIntegrityVerifier(t *testing.T) {
-	t.Parallel()
-
-	args := getBootStrapArgs()
-	args.HeaderIntegrityVerifier = nil
-
-	bcf, err := factory.NewBootstrapComponentsFactory(args)
-
-	require.Nil(t, bcf)
-	require.Equal(t, errorsErd.ErrNilHeaderIntegrityVerifier, err)
 }
 
 func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
@@ -146,14 +123,16 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 	networkComponents := getNetworkComponents()
 	cryptoComponents := getCryptoComponents(coreComponents)
 	return factory.BootstrapComponentsFactoryArgs{
-		Config:                  testscommon.GetGeneralConfig(),
-		WorkingDir:              "home",
-		DestinationAsObserver:   0,
-		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(2),
-		CoreComponents:          coreComponents,
-		CryptoComponents:        cryptoComponents,
-		NetworkComponents:       networkComponents,
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		Config:            testscommon.GetGeneralConfig(),
+		WorkingDir:        "home",
+		CoreComponents:    coreComponents,
+		CryptoComponents:  cryptoComponents,
+		NetworkComponents: networkComponents,
+		PrefConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				DestinationShardAsObserver: "0",
+			},
+		},
 	}
 }
 

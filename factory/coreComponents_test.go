@@ -321,6 +321,15 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			SoftwareVersionConfig: config.SoftwareVersionConfig{
 				PollingIntervalInMinutes: 30,
 			},
+			Versions: config.VersionsConfig{
+				DefaultVersion:   "1",
+				VersionsByEpochs: nil,
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+					Shards:   1,
+				},
+			},
 		},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),

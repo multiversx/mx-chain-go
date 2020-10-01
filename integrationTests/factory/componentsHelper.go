@@ -161,47 +161,18 @@ func CreateNetworkComponents(
 // CreateBootstrapComponents -
 func CreateBootstrapComponents(
 	config config.Config,
-	preferencesConfig config.PreferencesConfig,
+	preferences config.Preferences,
 	managedCoreComponents factory.CoreComponentsHandler,
 	managedCryptoComponents factory.CryptoComponentsHandler,
 	managedNetworkComponents factory.NetworkComponentsHandler,
 ) (factory.BootstrapComponentsHandler, error) {
-	destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(preferencesConfig.DestinationShardAsObserver)
-	if err != nil {
-		return nil, err
-	}
-
-	versionsCache, err := storageUnit.NewCache(factory3.GetCacherFromConfig(config.Versions.Cache))
-	if err != nil {
-		return nil, err
-	}
-
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-		[]byte(managedCoreComponents.ChainID()),
-		config.Versions.VersionsByEpochs,
-		config.Versions.DefaultVersion,
-		versionsCache,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	genesisShardCoordinator, _, err := factory.CreateShardCoordinator(
-		managedCoreComponents.GenesisNodesSetup(),
-		managedCryptoComponents.PublicKey(),
-		preferencesConfig,
-		logger.GetOrCreate("bootstrapTest"),
-	)
-
 	bootstrapComponentsFactoryArgs := factory.BootstrapComponentsFactoryArgs{
-		Config:                  config,
-		WorkingDir:              "workingDir",
-		DestinationAsObserver:   destShardIdAsObserver,
-		ShardCoordinator:        genesisShardCoordinator,
-		CoreComponents:          managedCoreComponents,
-		CryptoComponents:        managedCryptoComponents,
-		NetworkComponents:       managedNetworkComponents,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		Config:            config,
+		PrefConfig:        preferences,
+		WorkingDir:        "workingDir",
+		CoreComponents:    managedCoreComponents,
+		CryptoComponents:  managedCryptoComponents,
+		NetworkComponents: managedNetworkComponents,
 	}
 
 	bootstrapComponentsFactory, err := factory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

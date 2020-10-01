@@ -41,7 +41,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	bootstrapComponents, err := factory.CreateBootstrapComponents(
 		*generalConfig,
-		prefsConfig.Preferences,
+		*prefsConfig,
 		coreComponents,
 		cryptoComponents,
 		networkComponents)

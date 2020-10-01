@@ -35,7 +35,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -231,56 +230,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 		closableComponents = append(closableComponents, managedNetworkComponents)
 
-		destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(cfgs.preferencesConfig.Preferences.DestinationShardAsObserver)
-		if err != nil {
-			return err
-		}
-
-		versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.Versions.Cache))
-		if err != nil {
-			return err
-		}
-
-		headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-			[]byte(managedCoreComponents.ChainID()),
-			cfgs.generalConfig.Versions.VersionsByEpochs,
-			cfgs.generalConfig.Versions.DefaultVersion,
-			versionsCache,
-		)
-		if err != nil {
-			return err
-		}
-		genesisShardCoordinator, nodeType, err := mainFactory.CreateShardCoordinator(
-			managedCoreComponents.GenesisNodesSetup(),
-			managedCryptoComponents.PublicKey(),
-			cfgs.preferencesConfig.Preferences,
-			log,
-		)
-		if err != nil {
-			return err
-		}
-		bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-			Config:                  *cfgs.generalConfig,
-			WorkingDir:              workingDir,
-			DestinationAsObserver:   destShardIdAsObserver,
-			ShardCoordinator:        genesisShardCoordinator,
-			CoreComponents:          managedCoreComponents,
-			CryptoComponents:        managedCryptoComponents,
-			NetworkComponents:       managedNetworkComponents,
-			HeaderIntegrityVerifier: headerIntegrityVerifier,
-		}
-
-		bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-		if err != nil {
-			return fmt.Errorf("NewBootstrapComponentsFactory failed: %w", err)
-		}
-
-		managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedBootstrapComponents.Create()
+		managedBootstrapComponents, err := createManagedBootstrapComponents(cfgs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, workingDir)
 		if err != nil {
 			return err
 		}
@@ -311,7 +261,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		logger.SetCorrelationShard(shardIdString)
 
 		log.Trace("initializing stats file")
-		var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
+		var shardId = core.GetShardIDString(managedBootstrapComponents.ShardCoordinator().SelfId())
 		err = initStatsFileMonitor(
 			cfgs.generalConfig,
 			managedCoreComponents.PathHandler(),
@@ -380,7 +330,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		err = metrics.InitMetrics(
 			managedCoreComponents.StatusHandlerUtils(),
 			managedCryptoComponents.PublicKeyString(),
-			nodeType,
+			managedBootstrapComponents.NodeType(),
 			shardCoordinator,
 			managedCoreComponents.GenesisNodesSetup(),
 			version,
@@ -611,7 +561,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 			HistoryRepo:               historyRepository,
 			EpochNotifier:             epochNotifier,
-			HeaderIntegrityVerifier:   headerIntegrityVerifier,
+			HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 			ChanGracefullyClose:       chanStopNodeProcess,
 		}
 		processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
@@ -847,6 +797,41 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	return nil
+}
+
+func createManagedBootstrapComponents(
+	cfgs *configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	workingDir string,
+) (mainFactory.BootstrapComponentsHandler, error) {
+
+	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
+		Config:            *cfgs.generalConfig,
+		PrefConfig:        *cfgs.preferencesConfig,
+		WorkingDir:        workingDir,
+		CoreComponents:    managedCoreComponents,
+		CryptoComponents:  managedCryptoComponents,
+		NetworkComponents: managedNetworkComponents,
+	}
+
+	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewBootstrapComponentsFactory failed: %w", err)
+	}
+
+	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedBootstrapComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedBootstrapComponents, nil
 }
 
 func createManagedNetworkComponents(
