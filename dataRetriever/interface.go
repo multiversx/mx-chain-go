@@ -216,7 +216,7 @@ type TopicMessageHandler interface {
 type Messenger interface {
 	MessageHandler
 	TopicHandler
-	UnregisterMessageProcessor(topic string) error
+	UnregisterMessageProcessor(topic string, identifier string) error
 	UnregisterAllMessageProcessors() error
 	UnjoinAllTopics() error
 	ConnectedPeers() []core.PeerID

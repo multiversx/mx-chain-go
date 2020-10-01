@@ -19,6 +19,7 @@ var log = logger.GetOrCreate("resolvers/epochproviders")
 
 const durationBetweenChecks = 200 * time.Millisecond
 const maxNumTriesForFetchingEpoch = 50
+const metaBlocksTopicIdentifier = "network epoch"
 
 // ArgsCurrentNetworkProvider holds the arguments needed for creating a new currentNetworkEpochProvider
 type ArgsCurrentNetworkProvider struct {
@@ -92,14 +93,14 @@ func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
 	cnep.epochStartMetaBlockInterceptor.RegisterHandler(cnep.handlerEpochStartMetaBlock)
 
 	// TODO: use the new function after merging
-	err := cnep.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, cnep.epochStartMetaBlockInterceptor)
+	err := cnep.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, metaBlocksTopicIdentifier, cnep.epochStartMetaBlockInterceptor)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		// TODO: use the new function after merging
-		err = cnep.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic)
+		err = cnep.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, metaBlocksTopicIdentifier)
 		log.LogIfError(err)
 	}()
 
