@@ -21,8 +21,8 @@ type MessengerStub struct {
 	HasTopicValidatorCalled           func(name string) bool
 	BroadcastOnChannelCalled          func(channel string, topic string, buff []byte)
 	BroadcastCalled                   func(topic string, buff []byte)
-	RegisterMessageProcessorCalled    func(topic string, handler p2p.MessageProcessor) error
-	UnregisterMessageProcessorCalled  func(topic string) error
+	RegisterMessageProcessorCalled    func(topic string, identifier string, handler p2p.MessageProcessor) error
+	UnregisterMessageProcessorCalled  func(topic string, identifier string) error
 	SendToConnectedPeerCalled         func(topic string, buff []byte, peerID core.PeerID) error
 	OutgoingChannelLoadBalancerCalled func() p2p.ChannelLoadBalancer
 	BootstrapCalled                   func() error
@@ -38,13 +38,13 @@ func (ms *MessengerStub) ConnectedPeersOnTopic(topic string) []core.PeerID {
 }
 
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
-	return ms.RegisterMessageProcessorCalled(topic, handler)
+func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+	return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(topic string) error {
-	return ms.UnregisterMessageProcessorCalled(topic)
+func (ms *MessengerStub) UnregisterMessageProcessor(topic string, identifier string) error {
+	return ms.UnregisterMessageProcessorCalled(topic, identifier)
 }
 
 // Broadcast -
