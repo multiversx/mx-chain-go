@@ -35,6 +35,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		GovernanceSCAddress: []byte("governanceSC"),
 		StakingSCAddress:    []byte("stakingSC"),
 		AuctionSCAddress:    nil,
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 }
 
@@ -253,7 +254,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 			}
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			if strings.Contains(string(key), string(proposalPrefix)) {
+			if strings.Contains(string(key), proposalPrefix) {
 				genProposal := &GeneralProposal{}
 				_ = json.Unmarshal(value, genProposal)
 				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
@@ -301,7 +302,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 			}
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			if strings.Contains(string(key), string(proposalPrefix)) {
+			if strings.Contains(string(key), proposalPrefix) {
 				genProposal := &GeneralProposal{}
 				_ = json.Unmarshal(value, genProposal)
 				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
@@ -317,7 +318,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 			require.Equal(t, whiteListProp.WhiteListAddress, callerAddr)
 		},
 	}
-	args.GovernanceConfig.Disabled = true
+	args.GovernanceConfig.EnabledEpoch = 1
 	gsc, _ := NewGovernanceContract(args)
 	gsc.ownerAddress = callerAddr
 
