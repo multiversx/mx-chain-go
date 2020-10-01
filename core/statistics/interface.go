@@ -43,3 +43,11 @@ type SoftwareVersionChecker interface {
 	IsInterfaceNil() bool
 	Close() error
 }
+
+type ResourceMonitorHandler interface {
+	GenerateStatistics() []interface{}
+	SaveStatistics()
+	StartMonitoring()
+	Close() error
+	IsInterfaceNil() bool
+}

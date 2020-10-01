@@ -166,3 +166,8 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() PeerHonestyHandler {
 func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 	return mnc == nil
 }
+
+// String returns the name of the component
+func (mbf *managedNetworkComponents) String() string {
+	return "managedNetworkComponents"
+}

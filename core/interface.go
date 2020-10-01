@@ -69,5 +69,6 @@ type EpochSubscriberHandler interface {
 type Accumulator interface {
 	AddData(data interface{})
 	OutputChannel() <-chan []interface{}
+	Close() error
 	IsInterfaceNil() bool
 }

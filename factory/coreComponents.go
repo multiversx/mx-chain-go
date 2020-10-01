@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -263,13 +264,13 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 
 // Close closes all underlying components
 func (cc *coreComponents) Close() error {
-	if cc.statusHandlersUtils != nil {
+	if !check.IfNil(cc.statusHandlersUtils) {
 		cc.statusHandlersUtils.StatusHandler().Close()
 	}
-	if cc.alarmScheduler != nil {
+	if !check.IfNil(cc.alarmScheduler) {
 		cc.alarmScheduler.Close()
 	}
-	if cc.syncTimer != nil {
+	if !check.IfNil(cc.syncTimer) {
 		err := cc.syncTimer.Close()
 		if err != nil {
 			return err

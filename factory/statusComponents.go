@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 // TODO: move app status handler initialization here
@@ -23,6 +24,7 @@ type statusComponents struct {
 	tpsBenchmark    statistics.TPSBenchmark
 	elasticIndexer  indexer.Indexer
 	softwareVersion statistics.SoftwareVersionChecker
+	resourceMonitor statistics.ResourceMonitorHandler
 	cancelFunc      func()
 }
 
@@ -105,7 +107,20 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 // Create will create and return the status components
 func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	_, cancelFunc := context.WithCancel(context.Background())
+	var err error
+	var resMon *statistics.ResourceMonitor
+	log.Trace("initializing stats file")
+	if scf.config.ResourceStats.Enabled {
+		resMon, err = startStatisticsMonitor(
+			&scf.config,
+			scf.coreComponents.PathHandler(),
+			core.GetShardIDString(scf.shardCoordinator.SelfId()))
+		if err != nil {
+			return nil, err
+		}
+	}
 
+	log.Trace("creating software checker structure")
 	softwareVersionCheckerFactory, err := factory.NewSoftwareVersionFactory(
 		scf.coreComponents.StatusHandler(),
 		scf.config.SoftwareVersionConfig,
@@ -115,7 +130,9 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	}
 	softwareVersionChecker, err := softwareVersionCheckerFactory.Create()
 	if err != nil {
-		return nil, err
+		log.Debug("nil software version checker", "error", err.Error())
+	} else {
+		softwareVersionChecker.StartCheckSoftwareVersion()
 	}
 
 	initialTpsBenchmark := scf.coreComponents.StatusHandlerUtils().LoadTpsBenchmarkFromStorage(
@@ -143,6 +160,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		tpsBenchmark:    tpsBenchmark,
 		elasticIndexer:  elasticIndexer,
 		statusHandler:   scf.coreComponents.StatusHandler(),
+		resourceMonitor: resMon,
 		cancelFunc:      cancelFunc,
 	}, nil
 }
@@ -157,7 +175,11 @@ func (pc *statusComponents) Close() error {
 	pc.cancelFunc()
 
 	if !check.IfNil(pc.softwareVersion) {
-		return pc.softwareVersion.Close()
+		log.LogIfError(pc.softwareVersion.Close())
+	}
+
+	if !check.IfNil(pc.resourceMonitor) {
+		log.LogIfError(pc.resourceMonitor.Close())
 	}
 
 	return nil
@@ -187,4 +209,18 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 	}
 
 	return indexer.NewElasticIndexer(elasticIndexerArgs)
+}
+
+func startStatisticsMonitor(
+	generalConfig *config.Config,
+	pathManager storage.PathManagerHandler,
+	shardId string,
+) (*statistics.ResourceMonitor, error) {
+	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
+		return nil, fmt.Errorf("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
+	}
+	resMon := statistics.NewResourceMonitor(generalConfig, pathManager, shardId)
+	resMon.StartMonitoring()
+
+	return resMon, nil
 }

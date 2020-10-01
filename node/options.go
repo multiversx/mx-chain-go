@@ -25,6 +25,8 @@ func WithBootstrapComponents(bootstrapComponents mainFactory.BootstrapComponents
 			return err
 		}
 		n.bootstrapComponents = bootstrapComponents
+		n.closableComponents = append(n.closableComponents, bootstrapComponents)
+
 		return nil
 	}
 }
@@ -40,6 +42,7 @@ func WithCoreComponents(coreComponents mainFactory.CoreComponentsHandler) Option
 			return err
 		}
 		n.coreComponents = coreComponents
+		n.closableComponents = append(n.closableComponents, coreComponents)
 		return nil
 	}
 }
@@ -55,6 +58,7 @@ func WithCryptoComponents(cryptoComponents mainFactory.CryptoComponentsHandler) 
 			return err
 		}
 		n.cryptoComponents = cryptoComponents
+		n.closableComponents = append(n.closableComponents, cryptoComponents)
 		return nil
 	}
 }
@@ -70,6 +74,7 @@ func WithDataComponents(dataComponents mainFactory.DataComponentsHandler) Option
 			return err
 		}
 		n.dataComponents = dataComponents
+		n.closableComponents = append(n.closableComponents, dataComponents)
 		return nil
 	}
 }
@@ -85,6 +90,7 @@ func WithNetworkComponents(networkComponents mainFactory.NetworkComponentsHandle
 			return err
 		}
 		n.networkComponents = networkComponents
+		n.closableComponents = append(n.closableComponents, networkComponents)
 		return nil
 	}
 }
@@ -100,6 +106,7 @@ func WithProcessComponents(processComponents mainFactory.ProcessComponentsHandle
 			return err
 		}
 		n.processComponents = processComponents
+		n.closableComponents = append(n.closableComponents, processComponents)
 		return nil
 	}
 }
@@ -115,6 +122,7 @@ func WithStateComponents(stateComponents mainFactory.StateComponentsHandler) Opt
 			return err
 		}
 		n.stateComponents = stateComponents
+		n.closableComponents = append(n.closableComponents, stateComponents)
 		return nil
 	}
 }
@@ -130,6 +138,39 @@ func WithStatusComponents(statusComponents mainFactory.StatusComponentsHandler) 
 			return err
 		}
 		n.statusComponents = statusComponents
+		n.closableComponents = append(n.closableComponents, statusComponents)
+		return nil
+	}
+}
+
+// WithHeartbeatComponents sets up the Node heartbeat components
+func WithHeartbeatComponents(heartbeatComponents mainFactory.HeartbeatComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(heartbeatComponents) {
+			return ErrNilStatusComponents
+		}
+		err := heartbeatComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.heartbeatComponents = heartbeatComponents
+		n.closableComponents = append(n.closableComponents, heartbeatComponents)
+		return nil
+	}
+}
+
+// WithConsensusComponents sets up the Node consensus components
+func WithConsensusComponents(consensusComponents mainFactory.ConsensusComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(consensusComponents) {
+			return ErrNilStatusComponents
+		}
+		err := consensusComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.consensusComponents = consensusComponents
+		n.closableComponents = append(n.closableComponents, consensusComponents)
 		return nil
 	}
 }
@@ -227,10 +268,16 @@ func WithTxAccumulator(accumulator core.Accumulator) Option {
 		if check.IfNil(accumulator) {
 			return ErrNilTxAccumulator
 		}
+		if !check.IfNil(n.txAcumulator) {
+			log.LogIfError(n.txAcumulator.Close())
+
+		}
 		n.txAcumulator = accumulator
 
-		go n.sendFromTxAccumulator()
-		go n.printTxSentCounter()
+		n.closableComponents = append(n.closableComponents, accumulator)
+
+		go n.sendFromTxAccumulator(n.ctx)
+		go n.printTxSentCounter(n.ctx)
 
 		return nil
 	}

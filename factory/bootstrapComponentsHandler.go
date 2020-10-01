@@ -106,3 +106,8 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHan
 func (mbf *managedBootstrapComponents) IsInterfaceNil() bool {
 	return mbf == nil
 }
+
+// String returns the name of the component
+func (mbf *managedBootstrapComponents) String() string {
+	return "managedBootstrapComponents"
+}

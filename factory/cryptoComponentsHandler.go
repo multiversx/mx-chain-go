@@ -290,3 +290,8 @@ func (mcc *managedCryptoComponents) Clone() interface{} {
 func (mcc *managedCryptoComponents) IsInterfaceNil() bool {
 	return mcc == nil
 }
+
+// String returns the name of the component
+func (mbf *managedCryptoComponents) String() string {
+	return "managedCryptoComponents"
+}

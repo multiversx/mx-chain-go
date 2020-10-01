@@ -122,3 +122,8 @@ func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 func (mcf *managedConsensusComponents) IsInterfaceNil() bool {
 	return mcf == nil
 }
+
+// String returns the name of the component
+func (mbf *managedConsensusComponents) String() string {
+	return "managedConsensusComponents"
+}

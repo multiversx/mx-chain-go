@@ -2,6 +2,7 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -58,6 +59,7 @@ type Monitor struct {
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
+	cancelFunc                         context.CancelFunc
 }
 
 // NewMonitor returns a new monitor instance
@@ -99,6 +101,8 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	mon := &Monitor{
 		marshalizer:                        arg.Marshalizer,
 		heartbeatMessages:                  make(map[string]*heartbeatMessageInfo),
@@ -114,6 +118,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		validatorPubkeyConverter:           arg.ValidatorPubkeyConverter,
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
+		cancelFunc:                         cancelFunc,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -131,7 +136,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
 
-	mon.startValidatorProcessing()
+	mon.startValidatorProcessing(ctx)
 
 	return mon, nil
 }
@@ -479,6 +484,13 @@ func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
 	return false
 }
 
+// Close closes all underlying components
+func (m *Monitor) Close() error {
+	m.cancelFunc()
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *Monitor) IsInterfaceNil() bool {
 	return m == nil
@@ -532,13 +544,17 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 }
 
 // startValidatorProcessing will start the updating of the information about the nodes
-func (m *Monitor) startValidatorProcessing() {
+func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 	go func() {
 		refreshInterval := time.Duration(m.heartbeatRefreshIntervalInSec) * time.Second
 
 		for {
-			m.refreshHeartbeatMessageInfo()
-			time.Sleep(refreshInterval)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(refreshInterval):
+				m.refreshHeartbeatMessageInfo()
+			}
 		}
 	}()
 }

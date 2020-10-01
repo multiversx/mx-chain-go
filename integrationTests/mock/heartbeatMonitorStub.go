@@ -29,6 +29,11 @@ func (hbms *HeartbeatMonitorStub) GetHeartbeats() []heartbeatData.PubKeyHeartbea
 	return nil
 }
 
+// Close -
+func (hbms *HeartbeatMonitorStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (hbms *HeartbeatMonitorStub) IsInterfaceNil() bool {
 	return hbms == nil

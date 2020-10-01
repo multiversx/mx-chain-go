@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,7 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
-	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
@@ -40,7 +38,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -196,6 +193,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	for {
+		goRoutinesNumberStart := runtime.NumGoroutine()
+
+		log.Debug("\n\n====================Starting managedComponents creation================================")
+
 		log.Trace("creating core components")
 
 		chanCreateViews := make(chan struct{}, 1)
@@ -422,16 +423,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
 		logger.SetCorrelationShard(shardIdString)
 
-		log.Trace("initializing stats file")
-		var shardId = core.GetShardIDString(genesisShardCoordinator.SelfId())
-		err = initStatsFileMonitor(
-			cfgs.generalConfig,
-			managedCoreComponents.PathHandler(),
-			shardId)
-		if err != nil {
-			return err
-		}
-
 		log.Trace("creating state components")
 		triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 		stateArgs := mainFactory.StateComponentsFactoryArgs{
@@ -573,7 +564,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 			"PkBlockSign", managedCryptoComponents.PublicKeyString(),
-			"ShardId", shardId,
+			"ShardId", shardIdString,
 			"TotalShards", shardCoordinator.NumberOfShards(),
 			"AppVersion", version,
 			"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
@@ -803,10 +794,72 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
 		}
 
+		genesisTime := time.Unix(nodesSetup.GetStartTime(), 0)
+		heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+			Config:            *cfgs.generalConfig,
+			Prefs:             *cfgs.preferencesConfig,
+			AppVersion:        version,
+			GenesisTime:       genesisTime,
+			HardforkTrigger:   hardForkTrigger,
+			CoreComponents:    managedCoreComponents,
+			DataComponents:    managedDataComponents,
+			NetworkComponents: managedNetworkComponents,
+			CryptoComponents:  managedCryptoComponents,
+			ProcessComponents: managedProcessComponents,
+		}
+
+		heartbeatComponentsFactory, err := mainFactory.NewHeartbeatComponentsFactory(heartbeatArgs)
+		if err != nil {
+			return fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
+		}
+
+		managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
+		if err != nil {
+			return err
+		}
+
+		err = managedHeartbeatComponents.Create()
+		if err != nil {
+			return err
+		}
+		closableComponents = append(closableComponents, managedHeartbeatComponents)
+
+		log.Debug("starting node...")
+
+		consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
+			Config:              *cfgs.generalConfig,
+			ConsensusGroupSize:  int(nodesSetup.GetShardConsensusGroupSize()),
+			BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
+			HardforkTrigger:     hardForkTrigger,
+			CoreComponents:      managedCoreComponents,
+			NetworkComponents:   managedNetworkComponents,
+			CryptoComponents:    managedCryptoComponents,
+			DataComponents:      managedDataComponents,
+			ProcessComponents:   managedProcessComponents,
+			StateComponents:     managedStateComponents,
+			StatusComponents:    managedStatusComponents,
+		}
+
+		consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
+		if err != nil {
+			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+		}
+
+		managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusFactory)
+		if err != nil {
+			return err
+		}
+
+		err = managedConsensusComponents.Create()
+		if err != nil {
+			log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
+			return err
+		}
+		closableComponents = append(closableComponents, managedConsensusComponents)
+
 		log.Trace("creating node structure")
 		currentNode, err := node.CreateNode(
 			cfgs.generalConfig,
-			cfgs.preferencesConfig,
 			nodesSetup,
 			managedBootstrapComponents,
 			managedCoreComponents,
@@ -816,8 +869,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedProcessComponents,
 			managedStateComponents,
 			managedStatusComponents,
+			managedHeartbeatComponents,
+			managedConsensusComponents,
 			ctx.GlobalUint64(bootstrapRoundIndex.Name),
-			version,
 			requestedItemsHandler,
 			whiteListRequest,
 			whiteListerVerifiedTxs,
@@ -827,17 +881,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		)
 		if err != nil {
 			return err
-		}
-
-		log.Trace("creating software checker structure")
-		softwareVersionChecker, err := factory.CreateSoftwareVersionChecker(
-			managedCoreComponents.StatusHandler(),
-			cfgs.generalConfig.SoftwareVersionConfig,
-		)
-		if err != nil {
-			log.Debug("nil software version checker", "error", err.Error())
-		} else {
-			softwareVersionChecker.StartCheckSoftwareVersion()
 		}
 
 		if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -902,39 +945,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Trace("starting background services")
 		ef.StartBackgroundServices()
 
-		log.Debug("starting node...")
-
-		consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-			Config:              *cfgs.generalConfig,
-			ConsensusGroupSize:  int(nodesSetup.GetShardConsensusGroupSize()),
-			BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
-			HardforkTrigger:     hardForkTrigger,
-			CoreComponents:      managedCoreComponents,
-			NetworkComponents:   managedNetworkComponents,
-			CryptoComponents:    managedCryptoComponents,
-			DataComponents:      managedDataComponents,
-			ProcessComponents:   managedProcessComponents,
-			StateComponents:     managedStateComponents,
-			StatusComponents:    managedStatusComponents,
-		}
-
-		consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
-		if err != nil {
-			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
-		}
-
-		managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedConsensusComponents.Create()
-		if err != nil {
-			log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
-			return err
-		}
-		closableComponents = append(closableComponents, managedConsensusComponents)
-
 		log.Info("application is now running")
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -952,7 +962,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		chanCloseComponents := make(chan struct{})
 		go func() {
-			closeAllComponents(log, healthService, closableComponents, chanCloseComponents)
+			closeAllComponents(log, healthService, closableComponents, ef, currentNode, chanCloseComponents)
 		}()
 
 		select {
@@ -965,13 +975,18 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		if reshuffled {
 			log.Info("=============================Shuffled out - soft restart==================================")
+
+			time.Sleep(time.Second * 25)
+
 			buffer := new(bytes.Buffer)
 			err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
 			if err != nil {
 				log.Error("could not dump goroutines")
 			}
+			log.Debug("go routines number",
+				"start", goRoutinesNumberStart,
+				"end", runtime.NumGoroutine())
 
-			log.Error("Remaining goroutines", "num", runtime.NumGoroutine)
 			log.Warn(buffer.String())
 		} else {
 			break
@@ -1005,19 +1020,19 @@ func closeAllComponents(
 	log logger.Logger,
 	healthService io.Closer,
 	closableComponents []mainFactory.Closer,
+	facade mainFactory.Closer,
+	node *node.Node,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
 
-	log.Debug("closing all components")
-	for i := len(closableComponents) - 1; i >= 0; i-- {
-		managedComponent := closableComponents[i]
-		log.Debug("closing", fmt.Sprintf("managedComponent %t", managedComponent))
-		err = managedComponent.Close()
-		log.LogIfError(err)
-	}
+	log.Debug("closing facade")
+	log.LogIfError(facade.Close())
+
+	log.Debug("closing node")
+	log.LogIfError(node.Close())
 
 	chanCloseComponents <- struct{}{}
 }
@@ -1155,44 +1170,6 @@ func enableGopsIfNeeded(ctx *cli.Context, log logger.Logger) {
 	}
 
 	log.Trace("gops", "enabled", gopsEnabled)
-}
-
-func initStatsFileMonitor(
-	config *config.Config,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) error {
-	err := startStatisticsMonitor(config, pathManager, shardId)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func startStatisticsMonitor(
-	generalConfig *config.Config,
-	pathManager storage.PathManagerHandler,
-	shardId string,
-) error {
-	if !generalConfig.ResourceStats.Enabled {
-		return nil
-	}
-
-	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
-		return errors.New("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
-	}
-
-	resMon := statistics.NewResourceMonitor()
-
-	go func() {
-		for {
-			resMon.SaveStatistics(generalConfig, pathManager, shardId)
-			time.Sleep(time.Second * time.Duration(generalConfig.ResourceStats.RefreshIntervalInSec))
-		}
-	}()
-
-	return nil
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

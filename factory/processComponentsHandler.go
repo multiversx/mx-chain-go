@@ -408,3 +408,8 @@ func (m *managedProcessComponents) TransactionSimulatorProcessor() TransactionSi
 func (m *managedProcessComponents) IsInterfaceNil() bool {
 	return m == nil
 }
+
+// String returns the name of the component
+func (mbf *managedProcessComponents) String() string {
+	return "managedProcessComponents"
+}

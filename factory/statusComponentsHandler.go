@@ -410,3 +410,8 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
 	})
 }
+
+// String returns the name of the component
+func (mbf *managedStatusComponents) String() string {
+	return "managedStatusComponents"
+}

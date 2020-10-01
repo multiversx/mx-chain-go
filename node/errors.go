@@ -123,3 +123,6 @@ var ErrTransactionNotFound = errors.New("transaction not found")
 
 // ErrCannotRetrieveTransaction signals that a transaction was not found
 var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
+
+// ErrNodeCloseFailed signals that the close function of the node failed
+var ErrNodeCloseFailed = errors.New("node closing failed ")

@@ -3,9 +3,6 @@ package factory
 import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
-	factorySoftwareVersion "github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -24,25 +21,6 @@ type EpochStartNotifier interface {
 	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
-}
-
-// CreateSoftwareVersionChecker will create a new software version checker and will start check if a new software version
-// is available
-func CreateSoftwareVersionChecker(
-	statusHandler core.AppStatusHandler,
-	config config.SoftwareVersionConfig,
-) (*softwareVersion.SoftwareVersionChecker, error) {
-	softwareVersionCheckerFactory, err := factorySoftwareVersion.NewSoftwareVersionFactory(statusHandler, config)
-	if err != nil {
-		return nil, err
-	}
-
-	softwareVersionChecker, err := softwareVersionCheckerFactory.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return softwareVersionChecker, nil
 }
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler

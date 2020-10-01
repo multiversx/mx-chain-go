@@ -116,8 +116,9 @@ func (ta *timeAccumulator) doEviction() bool {
 }
 
 // Close stops the time accumulator's eviction loop and closes the output chan
-func (ta *timeAccumulator) Close() {
+func (ta *timeAccumulator) Close() error {
 	ta.cancel()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -140,7 +140,6 @@ func prepareOpenTopics(
 
 func CreateNode(
 	config *config.Config,
-	preferencesConfig *config.Preferences,
 	nodesConfig factory.NodesSetupHandler,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
@@ -150,8 +149,9 @@ func CreateNode(
 	processComponents factory.ProcessComponentsHandler,
 	stateComponents factory.StateComponentsHandler,
 	statusComponents factory.StatusComponentsHandler,
+	heartbeatComponents factory.HeartbeatComponentsHandler,
+	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
-	version string,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
@@ -193,44 +193,19 @@ func CreateNode(
 	}
 
 	genesisTime := time.Unix(nodesConfig.GetStartTime(), 0)
-	heartbeatArgs := factory.HeartbeatComponentsFactoryArgs{
-		Config:            *config,
-		Prefs:             *preferencesConfig,
-		AppVersion:        version,
-		GenesisTime:       genesisTime,
-		HardforkTrigger:   hardForkTrigger,
-		CoreComponents:    coreComponents,
-		DataComponents:    dataComponents,
-		NetworkComponents: networkComponents,
-		CryptoComponents:  cryptoComponents,
-		ProcessComponents: processComponents,
-	}
-
-	heartbeatComponentsFactory, err := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
-	if err != nil {
-		return nil, fmt.Errorf("NewHeartbeatComponentsFactory failed: %w", err)
-	}
-
-	managedHeartbeatComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	err = managedHeartbeatComponents.Create()
-	if err != nil {
-		return nil, err
-	}
 
 	var nd *Node
 	nd, err = NewNode(
-		WithBootstrapComponents(bootstrapComponents),
 		WithCoreComponents(coreComponents),
-		WithDataComponents(dataComponents),
-		WithNetworkComponents(networkComponents),
-		WithProcessComponents(processComponents),
 		WithCryptoComponents(cryptoComponents),
+		WithNetworkComponents(networkComponents),
+		WithBootstrapComponents(bootstrapComponents),
 		WithStateComponents(stateComponents),
+		WithDataComponents(dataComponents),
 		WithStatusComponents(statusComponents),
+		WithProcessComponents(processComponents),
+		WithHeartbeatComponents(heartbeatComponents),
+		WithConsensusComponents(consensusComponents),
 		WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
 		WithRoundDuration(nodesConfig.GetRoundDuration()),
 		WithConsensusGroupSize(int(consensusGroupSize)),

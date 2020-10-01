@@ -296,6 +296,7 @@ type HeartbeatMonitor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // HeartbeatStorer provides storage functionality for the heartbeat component

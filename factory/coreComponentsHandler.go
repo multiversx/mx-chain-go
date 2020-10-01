@@ -412,3 +412,8 @@ func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil
 }
+
+// String returns the name of the component
+func (mbf *managedCoreComponents) String() string {
+	return "managedCoreComponents"
+}
