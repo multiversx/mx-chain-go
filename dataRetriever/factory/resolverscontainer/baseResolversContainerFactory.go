@@ -147,7 +147,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), txBlkResolver)
+	err = brcf.messenger.RegisterMessageProcessor(txBlkResolver.RequestTopic(), core.DefaultResolversIdentifier, txBlkResolver)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 		return nil, err
 	}
 
-	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = brcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

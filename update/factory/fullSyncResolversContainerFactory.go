@@ -192,7 +192,7 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

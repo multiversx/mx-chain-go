@@ -144,7 +144,7 @@ func prepareNodes(
 			senders = append(senders, sender)
 			pks = append(pks, pk)
 		} else {
-			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, monitor)
+			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
 
 		_ = nodes[i].Bootstrap()

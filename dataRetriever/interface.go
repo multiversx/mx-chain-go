@@ -203,7 +203,7 @@ type MessageHandler interface {
 type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
-	RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
 }
 
 // TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data

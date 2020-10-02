@@ -31,7 +31,7 @@ func createStubTopicMessageHandlerForMeta(matchStrToErrOnCreate string, matchStr
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, handler p2p.MessageProcessor) error {
+	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}

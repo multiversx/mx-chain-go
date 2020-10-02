@@ -197,7 +197,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), resolver)
+	err = mrcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), core.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
