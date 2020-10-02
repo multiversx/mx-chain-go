@@ -22,7 +22,8 @@ import (
 func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
 
@@ -33,7 +34,8 @@ func TestNewConsensusComponentsFactory_OkValuesShouldWork(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.CoreComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -45,7 +47,8 @@ func TestNewConsensusComponentsFactory_NilCoreComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilDataComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.DataComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -57,7 +60,8 @@ func TestNewConsensusComponentsFactory_NilDataComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.CryptoComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -69,7 +73,8 @@ func TestNewConsensusComponentsFactory_NilCryptoComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilNetworkComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.NetworkComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -81,7 +86,8 @@ func TestNewConsensusComponentsFactory_NilNetworkComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilProcessComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.ProcessComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -93,7 +99,8 @@ func TestNewConsensusComponentsFactory_NilProcessComponents(t *testing.T) {
 func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.StateComponents = nil
 
 	bcf, err := factory.NewConsensusComponentsFactory(args)
@@ -106,7 +113,8 @@ func TestNewConsensusComponentsFactory_NilStateComponents(t *testing.T) {
 func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t *testing.T) {
 	t.Parallel()
 
-	consensusArgs := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	consensusArgs := getConsensusArgs(shardCoordinator)
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
 	managedConsensusComponents, _ := factory.NewManagedConsensusComponents(consensusComponentsFactory)
 
@@ -129,7 +137,8 @@ func TestConsensusComponentsFactory_Create_GenesisBlockNotInitializedShouldErr(t
 func TestConsensusComponentsFactory_CreateForShard(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	ccf, _ := factory.NewConsensusComponentsFactory(args)
 	require.NotNil(t, ccf)
 
@@ -154,7 +163,8 @@ func (wp *wrappedProcessComponents) ShardCoordinator() sharding.Coordinator {
 func TestConsensusComponentsFactory_CreateForMeta(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 
 	args.ProcessComponents = &wrappedProcessComponents{
 		ProcessComponentsHolder: args.ProcessComponents,
@@ -167,10 +177,11 @@ func TestConsensusComponentsFactory_CreateForMeta(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
-func TestConsensusComponentsFactory_Create_NilRounder(t *testing.T) {
+func TestConsensusComponentsFactory_Create_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
-	consensusArgs := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	consensusArgs := getConsensusArgs(shardCoordinator)
 	processComponents := &mock.ProcessComponentsMock{}
 	consensusArgs.ProcessComponents = processComponents
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
@@ -184,7 +195,8 @@ func TestConsensusComponentsFactory_Create_NilRounder(t *testing.T) {
 func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &mock.MessengerStub{
 		HasTopicValidatorCalled: func(name string) bool {
@@ -207,7 +219,8 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *tes
 	t.Parallel()
 
 	localError := errors.New("error")
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = &mock.MessengerStub{
 		HasTopicValidatorCalled: func(name string) bool {
@@ -232,7 +245,8 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *tes
 func TestConsensusComponentsFactory_Create_ConsensusTopicNilMessageProcessor(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	networkComponents := getDefaultNetworkComponents()
 	networkComponents.Messenger = nil
 	args.NetworkComponents = networkComponents
@@ -247,7 +261,8 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicNilMessageProcessor(t *
 func TestConsensusComponentsFactory_Create_NilSyncTimer(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.NtpSyncTimer = nil
 	args.CoreComponents = coreComponents
@@ -261,7 +276,8 @@ func TestConsensusComponentsFactory_Create_NilSyncTimer(t *testing.T) {
 func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	stateComponents := getDefaultStateComponents()
 	stateComponents.Accounts = nil
 	args.StateComponents = stateComponents
@@ -274,15 +290,13 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 
 func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
-
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.CurrentShard = 0
+	args := getConsensusArgs(shardCoordinator)
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = nil
 	args.DataComponents = dataComponents
-	processComponents := getDefaultProcessComponents()
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardCoordinator.CurrentShard = 0
-	processComponents.ShardCoord = shardCoordinator
+	processComponents := getDefaultProcessComponents(shardCoordinator)
 	args.ProcessComponents = processComponents
 	bcf, _ := factory.NewConsensusComponentsFactory(args)
 	cc, err := bcf.Create()
@@ -294,16 +308,22 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
+			return core.MetachainShardId
+		}
+
+		return 0
+	}
+	args := getConsensusArgs(shardCoordinator)
 	dataComponents := getDefaultDataComponents()
 	dataComponents.DataPool = nil
 	args.DataComponents = dataComponents
-	processComponents := getDefaultProcessComponents()
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardCoordinator.CurrentShard = core.MetachainShardId
-	processComponents.ShardCoord = shardCoordinator
-	args.ProcessComponents = processComponents
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	bcf, err := factory.NewConsensusComponentsFactory(args)
+	require.Nil(t, err)
+	require.NotNil(t, bcf)
 	cc, err := bcf.Create()
 
 	require.Nil(t, cc)
@@ -313,13 +333,13 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
-	processComponents := getDefaultProcessComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	shardCoordinator.CurrentShard = 2
-	processComponents.ShardCoord = shardCoordinator
+	args := getConsensusArgs(shardCoordinator)
+	processComponents := getDefaultProcessComponents(shardCoordinator)
 	args.ProcessComponents = processComponents
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	bcf, err := factory.NewConsensusComponentsFactory(args)
+	require.Nil(t, err)
+	shardCoordinator.CurrentShard = 2
 	cc, err := bcf.Create()
 
 	require.Nil(t, cc)
@@ -330,7 +350,8 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 	t.Parallel()
 
 	localErr := errors.New("err")
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	cryptoParams := getDefaultCryptoComponents()
 	cryptoParams.PubKey = &mock.PublicKeyMock{
 		ToByteArrayHandler: func() (i []byte, err error) {
@@ -347,21 +368,24 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 	t.Parallel()
 
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	args.Config.Consensus.Type = "invalid"
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
+	bcf, err := factory.NewConsensusComponentsFactory(args)
+	require.Nil(t, err)
 	cc, err := bcf.Create()
 	require.Nil(t, cc)
 	require.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
 
-func getConsensusArgs() factory.ConsensusComponentsFactoryArgs {
+func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusComponentsFactoryArgs {
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
-	stateComponents := getStateComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
 	cryptoComponents := getCryptoComponents(coreComponents)
-	dataComponents := getDataComponents(coreComponents)
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
 	processComponents := getProcessComponents(
+		shardCoordinator,
 		coreComponents,
 		networkComponents,
 		dataComponents,
@@ -417,13 +441,10 @@ func getDefaultDataComponents() *mock.DataComponentsMock {
 	}
 }
 
-func getDefaultProcessComponents() *mock.ProcessComponentsMock {
+func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.ProcessComponentsMock {
 	return &mock.ProcessComponentsMock{
-		NodesCoord: &mock.NodesCoordinatorMock{},
-		ShardCoord: &testscommon.ShardsCoordinatorMock{
-			NoShards:     1,
-			CurrentShard: 0,
-		},
+		NodesCoord:               &mock.NodesCoordinatorMock{},
+		ShardCoord:               shardCoordinator,
 		IntContainer:             &mock.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
 		RoundHandler:             &testscommon.RounderMock{},

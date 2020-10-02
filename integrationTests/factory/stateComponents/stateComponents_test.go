@@ -11,6 +11,9 @@ import (
 )
 
 func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
+	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
+
 	nrBefore := runtime.NumGoroutine()
 
 	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
@@ -33,7 +36,7 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.NotNil(t, networkComponents)
 
 	bootstrapComponents, err := factory.CreateBootstrapComponents(
-		*generalConfig, preferencesConfig.Preferences, coreComponents, crytoComponents, networkComponents,
+		*generalConfig, *preferencesConfig, coreComponents, crytoComponents, networkComponents,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, bootstrapComponents)
@@ -67,6 +70,4 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
-	factory.CleanupWorkingDir()
 }

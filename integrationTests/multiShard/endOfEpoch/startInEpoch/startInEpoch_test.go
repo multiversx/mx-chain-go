@@ -50,7 +50,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numMetachainNodes := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -174,7 +174,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
 	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
-	_ = messenger.Bootstrap()
+	_ = messenger.Bootstrap(0)
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 

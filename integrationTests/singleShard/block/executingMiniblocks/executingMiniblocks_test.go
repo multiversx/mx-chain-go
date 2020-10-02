@@ -29,7 +29,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	maxShards := uint32(1)
 	numOfNodes := 4
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
@@ -47,7 +47,7 @@ func TestShardShouldNotProposeAndExecuteTwoBlocksInSameRound(t *testing.T) {
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
@@ -96,7 +96,7 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	maxShards := uint32(1)
 	numOfNodes := 2
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numOfNodes)
@@ -115,7 +115,7 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")

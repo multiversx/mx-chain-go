@@ -12,6 +12,9 @@ import (
 )
 
 func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
+	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
+
 	nrBefore := runtime.NumGoroutine()
 
 	factory.PrintStack()
@@ -27,7 +30,7 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.NotNil(t, coreComponents)
 
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataComponents, err := factory.CreateDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, coreComponents)
+	dataComponents, err := factory.CreateDataComponents(*generalConfig, epochStartNotifier, coreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, dataComponents)
 	time.Sleep(2 * time.Second)
@@ -46,6 +49,4 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
-	factory.CleanupWorkingDir()
 }

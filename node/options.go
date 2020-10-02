@@ -270,7 +270,6 @@ func WithTxAccumulator(accumulator core.Accumulator) Option {
 		}
 		if !check.IfNil(n.txAcumulator) {
 			log.LogIfError(n.txAcumulator.Close())
-
 		}
 		n.txAcumulator = accumulator
 

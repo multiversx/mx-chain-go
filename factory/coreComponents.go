@@ -68,10 +68,11 @@ type coreComponents struct {
 	rounder                  consensus.Rounder
 	alarmScheduler           core.TimersScheduler
 	watchdog                 core.WatchdogTimer
-	nodesSetupHandler        NodesSetupHandler
+	nodesSetupHandler        sharding.GenesisNodesSetupHandler
 	economicsData            process.EconomicsHandler
 	ratingsData              process.RatingsInfoHandler
 	rater                    sharding.PeerAccountListAndRatingHandler
+	nodesShuffler            sharding.NodesShuffler
 	genesisTime              time.Time
 	chainID                  string
 	minTransactionVersion    uint32
@@ -218,6 +219,14 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
+		genesisNodesConfig.MinNumberOfShardNodes(),
+		genesisNodesConfig.MinNumberOfMetaNodes(),
+		genesisNodesConfig.GetHysteresis(),
+		genesisNodesConfig.GetAdaptivity(),
+		true,
+	)
+
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -236,6 +245,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		economicsData:            economicsData,
 		ratingsData:              ratingsData,
 		rater:                    rater,
+		nodesShuffler:            nodesShuffler,
 		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,

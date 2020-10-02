@@ -275,29 +275,31 @@ func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
 func (n *Node) sendFromTxAccumulator(ctx context.Context) {
 	outputChannel := n.txAcumulator.OutputChannel()
 
-	select {
-	case objs := <-outputChannel:
-		{
-			if len(objs) == 0 {
-				break
-			}
-
-			txs := make([]*transaction.Transaction, 0, len(objs))
-			for _, obj := range objs {
-				tx, ok := obj.(*transaction.Transaction)
-				if !ok {
-					continue
+	for {
+		select {
+		case objs := <-outputChannel:
+			{
+				if len(objs) == 0 {
+					break
 				}
 
-				txs = append(txs, tx)
+				txs := make([]*transaction.Transaction, 0, len(objs))
+				for _, obj := range objs {
+					tx, ok := obj.(*transaction.Transaction)
+					if !ok {
+						continue
+					}
+
+					txs = append(txs, tx)
+				}
+
+				atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
+
+				n.sendBulkTransactions(txs)
 			}
-
-			atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
-
-			n.sendBulkTransactions(txs)
+		case <-ctx.Done():
+			return
 		}
-	case <-ctx.Done():
-		return
 	}
 }
 

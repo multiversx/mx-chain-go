@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,8 @@ import (
 func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	args.CoreComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -28,7 +30,8 @@ func TestNewStatusComponentsFactory_NilCoreComponentsShouldErr(t *testing.T) {
 func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	args.NodesCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -38,7 +41,8 @@ func TestNewStatusComponentsFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	args.EpochStartNotifier = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -48,7 +52,8 @@ func TestNewStatusComponentsFactory_NilEpochStartNotifierShouldErr(t *testing.T)
 func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	args.NetworkComponents = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
@@ -58,27 +63,59 @@ func TestNewStatusComponentsFactory_NilNetworkComponentsShouldErr(t *testing.T) 
 func TestNewStatusComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	args.ShardCoordinator = nil
 	scf, err := factory.NewStatusComponentsFactory(args)
 	assert.True(t, check.IfNil(scf))
 	assert.Equal(t, errors.ErrNilShardCoordinator, err)
 }
 
-func TestNewStatusComponentsFactory_InvalidRoundDurationShouldErr(t *testing.T) {
+func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
-	args.RoundDurationSec = 0
-	scf, err := factory.NewStatusComponentsFactory(args)
-	assert.True(t, check.IfNil(scf))
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	coreArgs := getCoreArgs()
+	coreArgs.NodesFilename = "mock/nodesSetupMockInvalidRound.json"
+	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
+	coreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
+	require.Nil(t, err)
+	require.NotNil(t, coreComponents)
+	err = coreComponents.Create()
+	require.Nil(t, err)
+	networkComponents := getNetworkComponents()
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
+	cryptoComponents := getCryptoComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
+	processComponents := getProcessComponents(
+		shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents,
+	)
+
+	statusArgs := factory.StatusComponentsFactoryArgs{
+		Config:             testscommon.GetGeneralConfig(),
+		ExternalConfig:     config.ExternalConfig{},
+		ElasticOptions:     &indexer.Options{},
+		ShardCoordinator:   processComponents.ShardCoordinator(),
+		NodesCoordinator:   processComponents.NodesCoordinator(),
+		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+	}
+	scf, err := factory.NewStatusComponentsFactory(statusArgs)
+	assert.Nil(t, err)
+	assert.NotNil(t, scf)
+
+	statusComponents, err := scf.Create()
+	assert.Nil(t, statusComponents)
 	assert.Equal(t, errors.ErrInvalidRoundDuration, err)
 }
 
 func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	scf, err := factory.NewStatusComponentsFactory(args)
 	require.NoError(t, err)
 	require.False(t, check.IfNil(scf))
@@ -87,7 +124,8 @@ func TestNewStatusComponentsFactory_ShouldWork(t *testing.T) {
 func TestStatusComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	args, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	scf, err := factory.NewStatusComponentsFactory(args)
 	require.Nil(t, err)
 
@@ -98,7 +136,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_Close_ShouldWork(t *testing.T) {
-	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	scf, _ := factory.NewStatusComponentsFactory(statusArgs)
 	cc, err := scf.Create()
 	require.Nil(t, err)
@@ -116,9 +155,8 @@ func getStatusComponents(
 	statusArgs := factory.StatusComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
 		ExternalConfig:     config.ExternalConfig{},
-		RoundDurationSec:   4,
 		ElasticOptions:     &indexer.Options{},
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
+		ShardCoordinator:   processComponents.ShardCoordinator(),
 		NodesCoordinator:   processComponents.NodesCoordinator(),
 		EpochStartNotifier: processComponents.EpochStartNotifier(),
 		CoreComponents:     coreComponents,
@@ -139,13 +177,14 @@ func getStatusComponents(
 	return managedStatusComponents
 }
 
-func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
+func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (factory.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
-	dataComponents := getDataComponents(coreComponents)
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := getCryptoComponents(coreComponents)
-	stateComponents := getStateComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
 	processComponents := getProcessComponents(
+		shardCoordinator,
 		coreComponents,
 		networkComponents,
 		dataComponents,
@@ -156,7 +195,6 @@ func getStatusComponentsFactoryArgsAndProcessComponents() (factory.StatusCompone
 	return factory.StatusComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
 		ExternalConfig:     config.ExternalConfig{},
-		RoundDurationSec:   4,
 		ElasticOptions:     &indexer.Options{},
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		NodesCoordinator:   processComponents.NodesCoordinator(),
@@ -177,8 +215,8 @@ func getNetworkComponents() factory.NetworkComponentsHolder {
 	return networkComponents
 }
 
-func getDataComponents(coreComponents factory.CoreComponentsHolder) factory.DataComponentsHolder {
-	dataArgs := getDataArgs(coreComponents)
+func getDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
+	dataArgs := getDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
@@ -202,9 +240,10 @@ func getCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 	return cryptoComponents
 }
 
-func getStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
-	stateArgs := getStateArgs(coreComponents)
-	stateComponentsFactory, _ := factory.NewStateComponentsFactory(stateArgs)
+func getStateComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsHolder {
+	stateArgs := getStateArgs(coreComponents, shardCoordinator)
+	stateComponentsFactory, err := factory.NewStateComponentsFactory(stateArgs)
+
 	stateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
 		fmt.Println("getStateComponents NewManagedStateComponents", "error", err.Error())
@@ -218,6 +257,7 @@ func getStateComponents(coreComponents factory.CoreComponentsHolder) factory.Sta
 }
 
 func getProcessComponents(
+	shardCoordinator sharding.Coordinator,
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
@@ -225,6 +265,7 @@ func getProcessComponents(
 	stateComponents factory.StateComponentsHolder,
 ) factory.ProcessComponentsHolder {
 	processArgs := getProcessArgs(
+		shardCoordinator,
 		coreComponents,
 		dataComponents,
 		cryptoComponents,

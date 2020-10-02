@@ -585,8 +585,13 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap() error {
-	return netMes.peerDiscoverer.Bootstrap()
+func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+	err := netMes.peerDiscoverer.Bootstrap()
+	if err == nil {
+		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
+		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+	}
+	return err
 }
 
 // IsConnected returns true if current node is connected to provided peer

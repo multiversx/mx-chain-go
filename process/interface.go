@@ -541,12 +541,15 @@ type RewardsHandler interface {
 }
 
 type feeHandler interface {
+	GenesisTotalSupply() *big.Int
 	DeveloperPercentage() float64
+	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
+	MinGasLimit() uint64
 }
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
@@ -960,6 +963,7 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	StatusHandler() core.AppStatusHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	IsInterfaceNil() bool
 }
 

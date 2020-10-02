@@ -31,9 +31,24 @@ func (fhs *EconomicsHandlerStub) MinGasPrice() uint64 {
 	return 0
 }
 
+// MinGasLimit will return min gas limit
+func (fhs *EconomicsHandlerStub) MinGasLimit() uint64 {
+	return 0
+}
+
+// GasPerDataByte -
+func (fhs *EconomicsHandlerStub) GasPerDataByte() uint64 {
+	return 0
+}
+
 // DeveloperPercentage -
 func (fhs *EconomicsHandlerStub) DeveloperPercentage() float64 {
 	return fhs.DeveloperPercentageCalled()
+}
+
+// GenesisTotalSupply -
+func (fhs *EconomicsHandlerStub) GenesisTotalSupply() *big.Int {
+	return big.NewInt(0)
 }
 
 // MaxGasLimitPerBlock -

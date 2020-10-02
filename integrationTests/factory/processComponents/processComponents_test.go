@@ -14,6 +14,9 @@ import (
 
 // ------------ Test TestProcessComponents --------------------
 func TestProcessComponents_Close_ShouldWork(t *testing.T) {
+	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
+
 	nrBefore := runtime.NumGoroutine()
 
 	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
@@ -38,7 +41,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	managedBootstrapComponents, err := factory.CreateBootstrapComponents(
 		*generalConfig,
-		prefsConfig.Preferences,
+		*prefsConfig,
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents)
@@ -46,7 +49,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.NotNil(t, managedBootstrapComponents)
 
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	managedDataComponents, err := factory.CreateDataComponents(*generalConfig, *economicsConfig, epochStartNotifier, managedCoreComponents)
+	managedDataComponents, err := factory.CreateDataComponents(*generalConfig, epochStartNotifier, managedCoreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedDataComponents)
 
@@ -77,7 +80,6 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		economicsConfig,
 		ratingsConfig,
 		systemSCConfig,
-		nodesSetup,
 		nodesCoordinator,
 		epochStartNotifier,
 		genesisShardCoordinator,
@@ -134,6 +136,4 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
-	factory.CleanupWorkingDir()
 }

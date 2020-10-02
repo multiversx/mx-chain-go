@@ -22,22 +22,24 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	P2pConfig     config.P2PConfig
-	MainConfig    config.Config
-	RatingsConfig config.RatingsConfig
-	StatusHandler core.AppStatusHandler
-	Marshalizer   marshal.Marshalizer
-	Syncer        p2p.SyncTimer
+	P2pConfig            config.P2PConfig
+	MainConfig           config.Config
+	RatingsConfig        config.RatingsConfig
+	StatusHandler        core.AppStatusHandler
+	Marshalizer          marshal.Marshalizer
+	Syncer               p2p.SyncTimer
+	BootstrapWaitSeconds uint32
 }
 
 type networkComponentsFactory struct {
-	p2pConfig     config.P2PConfig
-	mainConfig    config.Config
-	ratingsConfig config.RatingsConfig
-	statusHandler core.AppStatusHandler
-	listenAddress string
-	marshalizer   marshal.Marshalizer
-	syncer        p2p.SyncTimer
+	p2pConfig            config.P2PConfig
+	mainConfig           config.Config
+	ratingsConfig        config.RatingsConfig
+	statusHandler        core.AppStatusHandler
+	listenAddress        string
+	marshalizer          marshal.Marshalizer
+	syncer               p2p.SyncTimer
+	bootstrapWaitSeconds uint32
 }
 
 // networkComponents struct holds the network components
@@ -69,13 +71,14 @@ func NewNetworkComponentsFactory(
 	}
 
 	return &networkComponentsFactory{
-		p2pConfig:     args.P2pConfig,
-		ratingsConfig: args.RatingsConfig,
-		marshalizer:   args.Marshalizer,
-		mainConfig:    args.MainConfig,
-		statusHandler: args.StatusHandler,
-		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		syncer:        args.Syncer,
+		p2pConfig:            args.P2pConfig,
+		ratingsConfig:        args.RatingsConfig,
+		marshalizer:          args.Marshalizer,
+		mainConfig:           args.MainConfig,
+		statusHandler:        args.StatusHandler,
+		listenAddress:        libp2p.ListenAddrWithIp4AndTcp,
+		syncer:               args.Syncer,
+		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
 	}, nil
 }
 
@@ -133,6 +136,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		ncf.ratingsConfig,
 		antiFloodComponents.PubKeysCacher,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.Bootstrap(ncf.bootstrapWaitSeconds)
 	if err != nil {
 		return nil, err
 	}

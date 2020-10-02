@@ -1276,7 +1276,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skTxBuff),
 			TestAddressPubkeyConverter.Encode(pkTxBuff),
 		)
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -1984,7 +1984,7 @@ func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
 // StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
 func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
@@ -2001,7 +2001,7 @@ func SetupSyncNodesOneShardAndMeta(
 	shardId := uint32(0)
 
 	advertiser := CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := GetConnectableAddress(advertiser)
 
 	var nodes []*TestProcessorNode

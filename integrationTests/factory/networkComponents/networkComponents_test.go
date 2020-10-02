@@ -12,6 +12,9 @@ import (
 
 // ------------ Test NetworkComponents --------------------
 func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
+	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
+
 	nrBefore := runtime.NumGoroutine()
 
 	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
@@ -28,12 +31,6 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	networkComponents, err := factory.CreateNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, networkComponents)
-
-	time.Sleep(2 * time.Second)
-
-	err = networkComponents.NetworkMessenger().Bootstrap()
-	require.Nil(t, err)
-
 	time.Sleep(2 * time.Second)
 
 	err = networkComponents.Close()
@@ -52,6 +49,4 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
-	factory.CleanupWorkingDir()
 }
