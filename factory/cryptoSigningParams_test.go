@@ -12,7 +12,7 @@ import (
 func TestNewCryptoSigningParamsLoader_NilPubKeyConverterShoulldErr(t *testing.T) {
 	t.Parallel()
 
-	cspf, err := NewCryptoSigningParamsLoader(nil, 0, "name", &mock.SuiteStub{})
+	cspf, err := NewCryptoSigningParamsLoader(nil, 0, "name", &mock.SuiteStub{}, false)
 	require.Nil(t, cspf)
 	require.Equal(t, ErrNilPubKeyConverter, err)
 }
@@ -20,7 +20,7 @@ func TestNewCryptoSigningParamsLoader_NilPubKeyConverterShoulldErr(t *testing.T)
 func TestNewCryptoSigningParamsLoader_NilSuiteShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cspf, err := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", nil)
+	cspf, err := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", nil, false)
 	require.Nil(t, cspf)
 	require.Equal(t, ErrNilSuite, err)
 }
@@ -28,7 +28,7 @@ func TestNewCryptoSigningParamsLoader_NilSuiteShouldErr(t *testing.T) {
 func TestNewCryptoSigningParamsLoader_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	cspf, err := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
+	cspf, err := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{}, false)
 	require.NoError(t, err)
 	require.NotNil(t, cspf)
 }
@@ -37,7 +37,7 @@ func TestCryptoSigningParamsLoader_Create_GetSkPkErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("error while getting the sk and pk")
-	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
+	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{}, false)
 
 	cspf.SetSkPkProviderHandler(func() ([]byte, []byte, error) {
 		return nil, nil, expectedErr
@@ -70,7 +70,7 @@ func TestCryptoSigningParamsLoader_Create_PubKeyMissmatchShouldErr(t *testing.T)
 			}
 		},
 	}
-	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", suite)
+	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", suite, false)
 
 	cspf.SetSkPkProviderHandler(func() ([]byte, []byte, error) {
 		return []byte("sk"), diffPubkey2, nil
@@ -103,7 +103,7 @@ func TestCryptoSigningParamsLoader_CreateShouldWork(t *testing.T) {
 			}
 		},
 	}
-	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", suite)
+	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", suite, false)
 
 	cspf.SetSkPkProviderHandler(func() ([]byte, []byte, error) {
 		return []byte("sk"), pubKey, nil
@@ -116,7 +116,7 @@ func TestCryptoSigningParamsLoader_CreateShouldWork(t *testing.T) {
 func TestCryptoSigningParamsLoader_GetSkPk_PathNotFound(t *testing.T) {
 	t.Parallel()
 
-	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{})
+	cspf, _ := NewCryptoSigningParamsLoader(&mock.PubkeyConverterStub{}, 0, "name", &mock.SuiteStub{}, false)
 	sk, pk, err := cspf.GetSkPk()
 	require.Error(t, err)
 	require.Nil(t, sk)
