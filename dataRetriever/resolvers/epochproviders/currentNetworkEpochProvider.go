@@ -178,6 +178,11 @@ func (cnep *currentNetworkEpochProvider) requestEpochStartMetaBlockFromNetwork()
 func (cnep *currentNetworkEpochProvider) handlerEpochStartMetaBlock(_ string, _ []byte, data interface{}) {
 	metaBlock, ok := data.(*block.MetaBlock)
 	if !ok {
+		log.Warn("currentNetworkEpochProvider-handlerEpochStartMetaBlock: cannot cast received epoch start meta block")
+		return
+	}
+	if !metaBlock.IsStartOfEpochBlock() {
+		log.Warn("received meta block is not of type epoch start meta block")
 		return
 	}
 

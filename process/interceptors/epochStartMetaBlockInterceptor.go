@@ -68,6 +68,12 @@ func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.Mess
 		return err
 	}
 
+	if !epochStartMb.IsStartOfEpochBlock() {
+		log.Debug("epochStartMetaBlockInterceptor-ProcessReceivedMessage: received meta block is not of "+
+			"type epoch start meta block", "hash", mbHash)
+		return process.ErrNotEpochStartBlock
+	}
+
 	log.Debug("received epoch start meta", "epoch", epochStartMb.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
 	e.mapReceivedMetaBlocks[string(mbHash)] = &epochStartMb

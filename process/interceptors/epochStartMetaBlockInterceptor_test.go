@@ -124,7 +124,19 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	require.NotNil(t, esmbi)
 	esmbi.RegisterHandler(handlerFunc)
 
-	metaBlock := &block.MetaBlock{Epoch: expectedEpoch}
+	metaBlock := &block.MetaBlock{
+		Epoch: expectedEpoch,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					ShardID: 0,
+				},
+				{
+					ShardID: 1,
+				},
+			},
+		},
+	}
 	metaBlockBytes, _ := args.Marshalizer.Marshal(metaBlock)
 
 	wrongMetaBlock := &block.MetaBlock{Epoch: 0}

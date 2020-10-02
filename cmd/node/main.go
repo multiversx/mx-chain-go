@@ -969,18 +969,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			Marshalizer:               coreComponents.InternalMarshalizer,
 			Hasher:                    coreComponents.Hasher,
 			NumConnectedPeersProvider: networkComponents.NetMessenger,
-			ConsensusPercentage:       50,
-		})
+			ConsensusPercentage:       core.ConsensusPercentageForInterceptedEpochStartMetaBlocks,
+		},
+	)
 	if err != nil {
 		return err
 	}
 	// TODO: use this where it is needed
-	currentNetworkEpochProvider, err := epochproviders.NewCurrentNetworkEpochProvider(epochproviders.ArgsCurrentNetworkProvider{
-		RequestHandler:                 &disabled.RequestHandler{},
-		Messenger:                      networkComponents.NetMessenger,
-		EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
-		NumActivePersisters:            int(generalConfig.StoragePruning.NumActivePersisters),
-	})
+	currentNetworkEpochProvider, err := epochproviders.NewCurrentNetworkEpochProvider(
+		epochproviders.ArgsCurrentNetworkProvider{
+			RequestHandler:                 &disabled.RequestHandler{},
+			Messenger:                      networkComponents.NetMessenger,
+			EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
+			NumActivePersisters:            int(generalConfig.StoragePruning.NumActivePersisters),
+		},
+	)
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
