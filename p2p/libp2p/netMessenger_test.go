@@ -108,6 +108,36 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 	return netw, mes1, mes2
 }
 
+func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
+	netw := mocknet.New(context.Background())
+
+	mes1, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	mes2, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+	mes3, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
+
+	_ = netw.LinkAll()
+
+	nscm1 := mock2.NewNetworkShardingCollectorMock()
+	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm1.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes1.SetPeerShardResolver(nscm1)
+
+	nscm2 := mock2.NewNetworkShardingCollectorMock()
+	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm2.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes2.SetPeerShardResolver(nscm2)
+
+	nscm3 := mock2.NewNetworkShardingCollectorMock()
+	nscm3.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
+	nscm3.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
+	nscm3.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
+	_ = mes3.SetPeerShardResolver(nscm3)
+
+	return mes1, mes2, mes3
+}
+
 func createMockMessenger() p2p.Messenger {
 	netw := mocknet.New(context.Background())
 
@@ -880,26 +910,31 @@ func TestLibp2pMessenger_ConnectedPeersOnTopicTwoTopicsShouldWork(t *testing.T) 
 //------- ConnectedFullHistoryPeersOnTopic
 
 func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T) {
-	_, mes1, mes2 := createMockNetworkOf2()
+	mes1, mes2, mes3 := createMockNetworkOf3()
 
 	adr2 := mes2.Addresses()[0]
 	fmt.Printf("Connecting to %s...\n", adr2)
 
 	_ = mes1.ConnectToPeer(adr2)
-	//connected peers:  1 ----- 2
+	_ = mes3.ConnectToPeer(adr2)
+	//connected peers:  1 ----- 2 ----- 3
 
 	_ = mes1.CreateTopic("topic123", false)
 	_ = mes2.CreateTopic("topic123", false)
+	_ = mes3.CreateTopic("topic123", false)
 
 	//wait a bit for topic announcements
 	time.Sleep(time.Second)
 
-	connFullHistoryPeers := mes1.ConnectedFullHistoryPeersOnTopic("topic123")
+	connPeers := mes2.ConnectedPeersOnTopic("topic123")
+	connFullHistoryPeers := mes2.ConnectedFullHistoryPeersOnTopic("topic123")
 
+	assert.Equal(t, 2, len(connPeers))
 	assert.Equal(t, 1, len(connFullHistoryPeers))
 
 	_ = mes1.Close()
 	_ = mes2.Close()
+	_ = mes3.Close()
 }
 
 func TestLibp2pMessenger_ConnectedPeersShouldReturnUniquePeers(t *testing.T) {

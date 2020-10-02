@@ -641,10 +641,10 @@ func (netMes *networkMessenger) ConnectedPeersOnTopic(topic string) []core.PeerI
 func (netMes *networkMessenger) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
 	peerList := netMes.ConnectedPeersOnTopic(topic)
 	fullHistoryList := make([]core.PeerID, 0)
-	for _, peer := range peerList {
-		peerInfo := netMes.peerShardResolver.GetPeerInfo(peer)
+	for _, topicPeer := range peerList {
+		peerInfo := netMes.peerShardResolver.GetPeerInfo(topicPeer)
 		if peerInfo.PeerSubType == core.FullHistoryObserver {
-			fullHistoryList = append(fullHistoryList, peer)
+			fullHistoryList = append(fullHistoryList, topicPeer)
 		}
 	}
 
