@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	mock2 "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	mocktests "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -95,16 +95,6 @@ func createMockNetworkOf2() (mocknet.Mocknet, p2p.Messenger, p2p.Messenger) {
 
 	_ = netw.LinkAll()
 
-	nscm1 := mock2.NewNetworkShardingCollectorMock()
-	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
-	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
-	_ = mes1.SetPeerShardResolver(nscm1)
-
-	nscm2 := mock2.NewNetworkShardingCollectorMock()
-	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
-	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
-	_ = mes2.SetPeerShardResolver(nscm2)
-
 	return netw, mes1, mes2
 }
 
@@ -117,19 +107,19 @@ func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 
 	_ = netw.LinkAll()
 
-	nscm1 := mock2.NewNetworkShardingCollectorMock()
+	nscm1 := mocktests.NewNetworkShardingCollectorMock()
 	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm1.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
 	_ = mes1.SetPeerShardResolver(nscm1)
 
-	nscm2 := mock2.NewNetworkShardingCollectorMock()
+	nscm2 := mocktests.NewNetworkShardingCollectorMock()
 	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm2.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
 	_ = mes2.SetPeerShardResolver(nscm2)
 
-	nscm3 := mock2.NewNetworkShardingCollectorMock()
+	nscm3 := mocktests.NewNetworkShardingCollectorMock()
 	nscm3.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm3.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm3.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
@@ -913,11 +903,15 @@ func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T
 	mes1, mes2, mes3 := createMockNetworkOf3()
 
 	adr2 := mes2.Addresses()[0]
-	fmt.Printf("Connecting to %s...\n", adr2)
+	adr3 := mes3.Addresses()[0]
+	fmt.Println("Connecting ...")
 
 	_ = mes1.ConnectToPeer(adr2)
 	_ = mes3.ConnectToPeer(adr2)
-	//connected peers:  1 ----- 2 ----- 3
+	_ = mes1.ConnectToPeer(adr3)
+	//connected peers:  1 ----- 2
+	//                  |       |
+	//                  3 ------+
 
 	_ = mes1.CreateTopic("topic123", false)
 	_ = mes2.CreateTopic("topic123", false)
@@ -926,11 +920,14 @@ func TestLibp2pMessenger_ConnectedFullHistoryPeersOnTopicShouldWork(t *testing.T
 	//wait a bit for topic announcements
 	time.Sleep(time.Second)
 
-	connPeers := mes2.ConnectedPeersOnTopic("topic123")
-	connFullHistoryPeers := mes2.ConnectedFullHistoryPeersOnTopic("topic123")
+	assert.Equal(t, 2, len(mes1.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 1, len(mes1.ConnectedFullHistoryPeersOnTopic("topic123")))
 
-	assert.Equal(t, 2, len(connPeers))
-	assert.Equal(t, 1, len(connFullHistoryPeers))
+	assert.Equal(t, 2, len(mes2.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 1, len(mes2.ConnectedFullHistoryPeersOnTopic("topic123")))
+
+	assert.Equal(t, 2, len(mes3.ConnectedPeersOnTopic("topic123")))
+	assert.Equal(t, 2, len(mes3.ConnectedFullHistoryPeersOnTopic("topic123")))
 
 	_ = mes1.Close()
 	_ = mes2.Close()
