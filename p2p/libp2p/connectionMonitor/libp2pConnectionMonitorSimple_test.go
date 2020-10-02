@@ -14,15 +14,6 @@ import (
 const durationTimeoutWaiting = time.Second * 2
 const durationStartGoRoutine = time.Second
 
-func TestNewLibp2pConnectionMonitorSimple_WithNegativeThresholdShouldErr(t *testing.T) {
-	t.Parallel()
-
-	lcms, err := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, -1, &mock.SharderStub{})
-
-	assert.Equal(t, p2p.ErrInvalidValue, err)
-	assert.True(t, check.IfNil(lcms))
-}
-
 func TestNewLibp2pConnectionMonitorSimple_WithNilReconnecterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -162,12 +153,12 @@ func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeers(t *testing.
 func TestLibp2pConnectionMonitorSimple_SetThresholdMinConnectedPeersNilNetwShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
-	minConnPeers := 3
+	minConnPeers := uint32(3)
 	lcms, _ := NewLibp2pConnectionMonitorSimple(&mock.ReconnecterStub{}, minConnPeers, &mock.SharderStub{})
 
 	thr := 10
 	lcms.SetThresholdMinConnectedPeers(thr, nil)
 	thrSet := lcms.ThresholdMinConnectedPeers()
 
-	assert.Equal(t, thrSet, minConnPeers)
+	assert.Equal(t, uint32(thrSet), minConnPeers)
 }

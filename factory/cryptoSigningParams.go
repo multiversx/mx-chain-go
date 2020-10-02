@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -12,6 +13,7 @@ import (
 )
 
 // TODO: merge this with Crypto Components
+var log = logger.GetOrCreate("main/factory")
 
 type cryptoSigningParamsLoader struct {
 	pubkeyConverter     core.PubkeyConverter
@@ -19,6 +21,7 @@ type cryptoSigningParamsLoader struct {
 	skPemFileName       string
 	suite               crypto.Suite
 	skPkProviderHandler func() ([]byte, []byte, error)
+	isInImportMode      bool
 }
 
 // NewCryptoSigningParamsLoader returns a new instance of cryptoSigningParamsLoader
@@ -27,6 +30,7 @@ func NewCryptoSigningParamsLoader(
 	skIndex int,
 	skPemFileName string,
 	suite crypto.Suite,
+	isInImportMode bool,
 ) (*cryptoSigningParamsLoader, error) {
 	if check.IfNil(pubkeyConverter) {
 		return nil, ErrNilPubKeyConverter
@@ -40,6 +44,7 @@ func NewCryptoSigningParamsLoader(
 		skIndex:         skIndex,
 		skPemFileName:   skPemFileName,
 		suite:           suite,
+		isInImportMode:  isInImportMode,
 	}
 	cspf.skPkProviderHandler = cspf.getSkPk
 
@@ -49,12 +54,21 @@ func NewCryptoSigningParamsLoader(
 // Get returns a key generator, a private key, and a public key
 func (cspf *cryptoSigningParamsLoader) Get() (*CryptoParams, error) {
 	cryptoParams := &CryptoParams{}
+	cryptoParams.KeyGenerator = signing.NewKeyGenerator(cspf.suite)
+
+	if cspf.isInImportMode {
+		return cspf.generateCryptoParams(cryptoParams)
+	}
+
+	return cspf.readCryptoParams(cryptoParams)
+}
+
+func (cspf *cryptoSigningParamsLoader) readCryptoParams(cryptoParams *CryptoParams) (*CryptoParams, error) {
 	sk, readPk, err := cspf.skPkProviderHandler()
 	if err != nil {
 		return nil, err
 	}
 
-	cryptoParams.KeyGenerator = signing.NewKeyGenerator(cspf.suite)
 	cryptoParams.PrivateKey, err = cryptoParams.KeyGenerator.PrivateKeyFromByteArray(sk)
 	if err != nil {
 		return nil, err
@@ -62,7 +76,6 @@ func (cspf *cryptoSigningParamsLoader) Get() (*CryptoParams, error) {
 
 	cryptoParams.PublicKey = cryptoParams.PrivateKey.GeneratePublic()
 	if len(readPk) > 0 {
-
 		cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
 		if err != nil {
 			return nil, err
@@ -71,6 +84,21 @@ func (cspf *cryptoSigningParamsLoader) Get() (*CryptoParams, error) {
 		if !bytes.Equal(cryptoParams.PublicKeyBytes, readPk) {
 			return nil, ErrPublicKeyMismatch
 		}
+	}
+
+	cryptoParams.PublicKeyString = cspf.pubkeyConverter.Encode(cryptoParams.PublicKeyBytes)
+
+	return cryptoParams, nil
+}
+
+func (cspf *cryptoSigningParamsLoader) generateCryptoParams(cryptoParams *CryptoParams) (*CryptoParams, error) {
+	log.Warn("the node is import mode! Will generate a fresh new BLS key")
+	cryptoParams.PrivateKey, cryptoParams.PublicKey = cryptoParams.KeyGenerator.GeneratePair()
+
+	var err error
+	cryptoParams.PublicKeyBytes, err = cryptoParams.PublicKey.ToByteArray()
+	if err != nil {
+		return nil, err
 	}
 
 	cryptoParams.PublicKeyString = cspf.pubkeyConverter.Encode(cryptoParams.PublicKeyBytes)
