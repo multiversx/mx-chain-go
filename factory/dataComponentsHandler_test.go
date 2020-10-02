@@ -5,13 +5,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test ManagedDataComponents --------------------
 func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
 	managedDataComponents, err := factory.NewManagedDataComponents(dataComponentsFactory)
@@ -23,7 +25,8 @@ func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 
 func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
 	managedDataComponents, err := factory.NewManagedDataComponents(dataComponentsFactory)
 	require.NoError(t, err)
@@ -40,7 +43,8 @@ func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedDataComponents_Close(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
 	managedDataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 	err := managedDataComponents.Create()
@@ -53,7 +57,8 @@ func TestManagedDataComponents_Close(t *testing.T) {
 
 func TestManagedDataComponents_Clone(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getDataArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(args)
 	managedDataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 

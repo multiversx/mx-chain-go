@@ -41,7 +41,6 @@ func CreateHardForkTrigger(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	epochNotifier factory2.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
-	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
 ) (HardforkTrigger, error) {
 
@@ -82,7 +81,6 @@ func CreateHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
 		ValidityAttester:         process.BlockTracker(),
 		Rounder:                  process.Rounder(),
-		GenesisNodesSetupHandler: nodesSetup,
 	}
 	hardForkExportFactory, err := factory3.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -111,7 +109,7 @@ func CreateHardForkTrigger(
 	return hardforkTrigger, nil
 }
 
-func getConsensusGroupSize(nodesConfig factory.NodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return nodesConfig.GetMetaConsensusGroupSize(), nil
 	}
@@ -140,7 +138,7 @@ func prepareOpenTopics(
 
 func CreateNode(
 	config *config.Config,
-	nodesConfig factory.NodesSetupHandler,
+	preferencesConfig *config.Preferences,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -161,7 +159,7 @@ func CreateNode(
 ) (*Node, error) {
 	var err error
 	var consensusGroupSize uint32
-	consensusGroupSize, err = getConsensusGroupSize(nodesConfig, processComponents.ShardCoordinator())
+	consensusGroupSize, err = getConsensusGroupSize(coreComponents.GenesisNodesSetup(), processComponents.ShardCoordinator())
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +190,8 @@ func CreateNode(
 		return nil, err
 	}
 
-	genesisTime := time.Unix(nodesConfig.GetStartTime(), 0)
+	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
+
 
 	var nd *Node
 	nd, err = NewNode(
@@ -206,8 +205,8 @@ func CreateNode(
 		WithProcessComponents(processComponents),
 		WithHeartbeatComponents(heartbeatComponents),
 		WithConsensusComponents(consensusComponents),
-		WithInitialNodesPubKeys(nodesConfig.InitialNodesPubKeys()),
-		WithRoundDuration(nodesConfig.GetRoundDuration()),
+		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
+		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
 		WithConsensusGroupSize(int(consensusGroupSize)),
 		WithGenesisTime(genesisTime),
 		WithConsensusType(config.Consensus.Type),

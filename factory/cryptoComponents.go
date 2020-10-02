@@ -144,6 +144,8 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	log.Debug("block sign pubkey", "value", cp.publicKeyString)
+
 	return &cryptoComponents{
 		txSingleSigner:      txSingleSigner,
 		blockSingleSigner:   singleSigner,

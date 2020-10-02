@@ -33,12 +33,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
+// PrintStack -
 func PrintStack() {
 	stackSlice := make([]byte, 10240)
 	s := runtime.Stack(stackSlice, true)
 	fmt.Printf("\n%s", stackSlice[0:s])
 }
 
+// CreateWhiteListerVerifiedTxs -
 func CreateWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
 	whiteListCacheVerified, err := storageUnit.NewCache(factory3.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
 	if err != nil {
@@ -47,17 +49,14 @@ func CreateWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
+// CreateCoreComponents -
 func CreateCoreComponents(
 	generalConfig config.Config,
 	ratingsConfig config.RatingsConfig,
 	economicsConfig config.EconomicsConfig) (factory.CoreComponentsHandler, error) {
-	chanCreateViews := make(chan struct{}, 1)
-	chanLogRewrite := make(chan struct{}, 1)
 
 	statusHandlersFactoryArgs := &nodeFactory.StatusHandlersFactoryArgs{
-		UseTermUI:      false,
-		ChanStartViews: chanCreateViews,
-		ChanLogRewrite: chanLogRewrite,
+		UseTermUI: false,
 	}
 
 	statusHandlersFactory, err := nodeFactory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
@@ -95,6 +94,7 @@ func CreateCoreComponents(
 	return managedCoreComponents, nil
 }
 
+// CreateCryptoComponents -
 func CreateCryptoComponents(
 	generalConfig config.Config,
 	systemSCConfig config.SystemSmartContractsConfig,
@@ -126,6 +126,7 @@ func CreateCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
+// CreateNetworkComponents -
 func CreateNetworkComponents(
 	config config.Config,
 	p2pConfig config.P2PConfig,
@@ -157,62 +158,21 @@ func CreateNetworkComponents(
 	return managedNetworkComponents, nil
 }
 
+// CreateBootstrapComponents -
 func CreateBootstrapComponents(
 	config config.Config,
-	preferencesConfig config.PreferencesConfig,
+	preferences config.Preferences,
 	managedCoreComponents factory.CoreComponentsHandler,
 	managedCryptoComponents factory.CryptoComponentsHandler,
 	managedNetworkComponents factory.NetworkComponentsHandler,
 ) (factory.BootstrapComponentsHandler, error) {
-
-	nodesSetup := managedCoreComponents.GenesisNodesSetup()
-
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		nodesSetup.MinNumberOfShardNodes(),
-		nodesSetup.MinNumberOfMetaNodes(),
-		nodesSetup.GetHysteresis(),
-		nodesSetup.GetAdaptivity(),
-		true,
-	)
-
-	destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(preferencesConfig.DestinationShardAsObserver)
-	if err != nil {
-		return nil, err
-	}
-
-	versionsCache, err := storageUnit.NewCache(factory3.GetCacherFromConfig(config.Versions.Cache))
-	if err != nil {
-		return nil, err
-	}
-
-	headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-		[]byte(managedCoreComponents.ChainID()),
-		config.Versions.VersionsByEpochs,
-		config.Versions.DefaultVersion,
-		versionsCache,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	genesisShardCoordinator, _, err := factory.CreateShardCoordinator(
-		managedCoreComponents.GenesisNodesSetup(),
-		managedCryptoComponents.PublicKey(),
-		preferencesConfig,
-		logger.GetOrCreate("bootstrapTest"),
-	)
-
 	bootstrapComponentsFactoryArgs := factory.BootstrapComponentsFactoryArgs{
-		Config:                  config,
-		WorkingDir:              "workingDir",
-		DestinationAsObserver:   destShardIdAsObserver,
-		GenesisNodesSetup:       nodesSetup,
-		NodeShuffler:            nodesShuffler,
-		ShardCoordinator:        genesisShardCoordinator,
-		CoreComponents:          managedCoreComponents,
-		CryptoComponents:        managedCryptoComponents,
-		NetworkComponents:       managedNetworkComponents,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
+		Config:            config,
+		PrefConfig:        preferences,
+		WorkingDir:        "workingDir",
+		CoreComponents:    managedCoreComponents,
+		CryptoComponents:  managedCryptoComponents,
+		NetworkComponents: managedNetworkComponents,
 	}
 
 	bootstrapComponentsFactory, err := factory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -233,19 +193,13 @@ func CreateBootstrapComponents(
 	return managedBootstrapComponents, nil
 }
 
+// CreateDataComponents -
 func CreateDataComponents(
 	genConfig config.Config,
-	econConfig config.EconomicsConfig,
 	epochStartNotifier factory.EpochStartNotifier,
 	coreComponents factory.CoreComponentsHolder,
 ) (factory.DataComponentsHandler, error) {
 	currentEpoch := uint32(0)
-
-	economicsData, err := economics.NewEconomicsData(&econConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	nbShards := uint32(3)
 	selfShardID := uint32(0)
 	shardCoordinator, err := sharding.NewMultiShardCoordinator(nbShards, selfShardID)
@@ -255,7 +209,6 @@ func CreateDataComponents(
 
 	dataArgs := factory.DataComponentsFactoryArgs{
 		Config:             genConfig,
-		EconomicsData:      economicsData,
 		ShardCoordinator:   shardCoordinator,
 		Core:               coreComponents,
 		EpochStartNotifier: epochStartNotifier,
@@ -278,6 +231,7 @@ func CreateDataComponents(
 	return managedDataComponents, nil
 }
 
+// CreateStatusComponents -
 func CreateStatusComponents(
 	generalConfig config.Config,
 	externalConfig config.ExternalConfig,
@@ -292,7 +246,6 @@ func CreateStatusComponents(
 	statArgs := factory.StatusComponentsFactoryArgs{
 		Config:             generalConfig,
 		ExternalConfig:     externalConfig,
-		RoundDurationSec:   managedCoreComponents.GenesisNodesSetup().GetRoundDuration() / 1000,
 		ElasticOptions:     &indexer.Options{TxIndexingEnabled: true},
 		ShardCoordinator:   shardCoordinator,
 		NodesCoordinator:   nodesCoordinator,
@@ -319,6 +272,7 @@ func CreateStatusComponents(
 	return managedStatusComponents, nil
 }
 
+// CreateStateComponents -
 func CreateStateComponents(
 	genConfig config.Config,
 	coreComponents factory.CoreComponentsHolder,
@@ -358,11 +312,12 @@ func CreateStateComponents(
 	return managedStateComponents, nil
 }
 
+// CreateCoordinators -
 func CreateCoordinators(
 	generalConfig *config.Config,
 	prefsConfig *config.Preferences,
 	ratingsConfig *config.RatingsConfig,
-	nodesSetup factory.NodesSetupHandler,
+	nodesSetup sharding.GenesisNodesSetupHandler,
 	epochStartNotifier nodeFactory.EpochStartNotifier,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	coreComponents factory.CoreComponentsHandler,
@@ -418,7 +373,26 @@ func CreateCoordinators(
 	return genesisShardCoordinator, nodesCoordinator, nodesShufflerOut, ratingsData, rater
 }
 
-func CreateProcessComponents(generalConfig *config.Config, economicsConfig *config.EconomicsConfig, ratingsConfig *config.RatingsConfig, systemSCConfig *config.SystemSmartContractsConfig, nodesSetup factory.NodesSetupHandler, nodesCoordinator sharding.NodesCoordinator, epochStartNotifier factory.EpochStartNotifier, genesisShardCoordinator sharding.Coordinator, ratingsData *rating.RatingsData, rater sharding.PeerAccountListAndRatingHandler, managedCoreComponents factory.CoreComponentsHandler, managedCryptoComponents factory.CryptoComponentsHandler, managedDataComponents factory.DataComponentsHandler, managedStateComponents factory.StateComponentsHandler, managedNetworkComponents factory.NetworkComponentsHandler, managedBootstrapComponents factory.BootstrapComponentsHandler, managedStatusComponents factory.StatusComponentsHandler, chanStopNodeProcess chan endProcess.ArgEndProcess) (factory.ProcessComponentsHandler, error) {
+// CreateProcessComponents -
+func CreateProcessComponents(
+	generalConfig *config.Config,
+	economicsConfig *config.EconomicsConfig,
+	ratingsConfig *config.RatingsConfig,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	nodesCoordinator sharding.NodesCoordinator,
+	epochStartNotifier factory.EpochStartNotifier,
+	genesisShardCoordinator sharding.Coordinator,
+	ratingsData *rating.RatingsData,
+	rater sharding.PeerAccountListAndRatingHandler,
+	managedCoreComponents factory.CoreComponentsHandler,
+	managedCryptoComponents factory.CryptoComponentsHandler,
+	managedDataComponents factory.DataComponentsHandler,
+	managedStateComponents factory.StateComponentsHandler,
+	managedNetworkComponents factory.NetworkComponentsHandler,
+	managedBootstrapComponents factory.BootstrapComponentsHandler,
+	managedStatusComponents factory.StatusComponentsHandler,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (factory.ProcessComponentsHandler, error) {
 	economicsData, err := economics.NewEconomicsData(economicsConfig)
 	totalSupply, _ := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	fmt.Println(os.Getwd())
@@ -446,7 +420,7 @@ func CreateProcessComponents(generalConfig *config.Config, economicsConfig *conf
 		return nil, err
 	}
 
-	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesSetup.GetRoundDuration()))
+	requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	whiteListCache, err := storageUnit.NewCache(factory3.GetCacherFromConfig(generalConfig.WhiteListPool))
 	if err != nil {
@@ -502,7 +476,6 @@ func CreateProcessComponents(generalConfig *config.Config, economicsConfig *conf
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
 		EconomicsData:             economicsData,
-		NodesConfig:               nodesSetup,
 		GasSchedule:               gasSchedule,
 		Rounder:                   managedCoreComponents.Rounder(),
 		ShardCoordinator:          genesisShardCoordinator,
@@ -553,6 +526,7 @@ func CreateProcessComponents(generalConfig *config.Config, economicsConfig *conf
 	return managedProcessComponents, err
 }
 
+// CleanupWorkingDir -
 func CleanupWorkingDir() {
 	workingDir := "workingDir"
 	if _, err := os.Stat(workingDir); !os.IsNotExist(err) {

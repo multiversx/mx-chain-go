@@ -8,7 +8,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -41,7 +40,8 @@ type CoreComponentsMock struct {
 	EconomicsHandler            process.EconomicsHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 factory.NodesSetupHandler
+	NodesConfig                 sharding.GenesisNodesSetupHandler
+	Shuffler                    sharding.NodesShuffler
 	StartTime                   time.Time
 }
 
@@ -170,8 +170,13 @@ func (ccm *CoreComponentsMock) Rater() sharding.PeerAccountListAndRatingHandler 
 }
 
 // GenesisNodesSetup -
-func (ccm *CoreComponentsMock) GenesisNodesSetup() factory.NodesSetupHandler {
+func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	return ccm.NodesConfig
+}
+
+// NodesShuffler -
+func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
+	return ccm.Shuffler
 }
 
 // IsInterfaceNil -

@@ -12,6 +12,9 @@ import (
 
 // ------------ Test CryptoComponents --------------------
 func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
+	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
+
 	nrBefore := runtime.NumGoroutine()
 
 	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
@@ -45,6 +48,4 @@ func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
 	}
 
 	require.Equal(t, nrBefore, nrAfter)
-
-	factory.CleanupWorkingDir()
 }

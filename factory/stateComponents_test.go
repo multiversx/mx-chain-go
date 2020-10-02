@@ -6,10 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,7 +20,8 @@ func TestNewStateComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	args.ShardCoordinator = nil
 
 	scf, err := factory.NewStateComponentsFactory(args)
@@ -29,7 +33,8 @@ func TestNewStateComponentsFactory_NilCoreComponents(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	args.Core = nil
 
 	scf, err := factory.NewStateComponentsFactory(args)
@@ -41,7 +46,8 @@ func TestNewStateComponentsFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 
 	scf, err := factory.NewStateComponentsFactory(args)
 	require.NoError(t, err)
@@ -52,7 +58,8 @@ func TestStateComponentsFactory_Create_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 
 	scf, _ := factory.NewStateComponentsFactory(args)
 
@@ -66,7 +73,8 @@ func TestStateComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	scf, _ := factory.NewStateComponentsFactory(args)
 
 	sc, _ := scf.Create()
@@ -75,10 +83,21 @@ func TestStateComponents_Close_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComponentsFactoryArgs {
-	storageManagers := make(map[string]data.StorageManager)
-	storageManagers[trieFactory.UserAccountTrie] = &mock.StorageManagerStub{}
-	storageManagers[trieFactory.PeerAccountTrie] = &mock.StorageManagerStub{}
+func getStateArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.StateComponentsFactoryArgs {
+	memDBUsers := mock.NewMemDbMock()
+	memdbPeers := mock.NewMemDbMock()
+	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(memDBUsers)
+	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(memdbPeers)
+
+	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
+	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
+
+	triesHolder := state.NewDataTriesHolder()
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
+	triesHolder.Put([]byte(trieFactory.UserAccountTrie), trieUsers)
+	triesHolder.Put([]byte(trieFactory.PeerAccountTrie), triePeers)
 
 	stateComponentsFactoryArgs := factory.StateComponentsFactoryArgs{
 		Config: config.Config{
@@ -150,14 +169,10 @@ func getStateArgs(coreComponents factory.CoreComponentsHolder) factory.StateComp
 				MaxSnapshots:       2,
 			},
 		},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
-		Core:             coreComponents,
-		TriesContainer: &mock.TriesHolderStub{
-			GetCalled: func(bytes []byte) data.Trie {
-				return &mock.TrieStub{}
-			},
-		},
-		TrieStorageManagers: storageManagers,
+		ShardCoordinator:    shardCoordinator,
+		Core:                coreComponents,
+		TriesContainer:      triesHolder,
+		TrieStorageManagers: trieStorageManagers,
 	}
 
 	return stateComponentsFactoryArgs

@@ -21,7 +21,7 @@ import (
 )
 
 func CreateShardCoordinator(
-	nodesConfig NodesSetupHandler,
+	nodesConfig sharding.GenesisNodesSetupHandler,
 	pubKey crypto.PublicKey,
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
@@ -61,7 +61,7 @@ func CreateShardCoordinator(
 	return shardCoordinator, nodeType, nil
 }
 
-func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig NodesSetupHandler) (uint32, error) {
+func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig sharding.GenesisNodesSetupHandler) (uint32, error) {
 	if pubKey == nil {
 		return 0, errors.New("nil public key")
 	}
@@ -81,7 +81,7 @@ func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig NodesSetupHan
 
 func CreateNodesCoordinator(
 	log logger.Logger,
-	nodesConfig NodesSetupHandler,
+	nodesConfig sharding.GenesisNodesSetupHandler,
 	prefsConfig config.PreferencesConfig,
 	epochStartNotifier epochStart.RegistrationHandler,
 	pubKey crypto.PublicKey,

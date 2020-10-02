@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -37,27 +38,6 @@ type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
-	IsInterfaceNil() bool
-}
-
-// NodesSetupHandler defines which actions should be done for handling initial nodes setup
-type NodesSetupHandler interface {
-	AllInitialNodes() []sharding.GenesisNodeInfoHandler
-	InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	GetStartTime() int64
-	InitialNodesPubKeys() map[uint32][]string
-	NumberOfShards() uint32
-	GetShardIDForPubKey(pubkey []byte) (uint32, error)
-	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
-	GetShardConsensusGroupSize() uint32
-	GetMetaConsensusGroupSize() uint32
-	GetRoundDuration() uint64
-	MinNumberOfMetaNodes() uint32
-	MinNumberOfShardNodes() uint32
-	MinNumberOfNodes() uint32
-	GetHysteresis() float32
-	GetAdaptivity() bool
 	IsInterfaceNil() bool
 }
 
@@ -117,7 +97,8 @@ type CoreComponentsHolder interface {
 	EconomicsData() process.EconomicsHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
-	GenesisNodesSetup() NodesSetupHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
+	NodesShuffler() sharding.NodesShuffler
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
@@ -169,6 +150,25 @@ type CryptoComponentsHandler interface {
 type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	IsInterfaceNil() bool
+}
+
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	LeaderPercentage() float64
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
+	MinInflationRate() float64
+	MaxInflationRate(year uint32) float64
+	DeveloperPercentage() float64
+	GenesisTotalSupply() *big.Int
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+	GasPerDataByte() uint64
 	IsInterfaceNil() bool
 }
 
@@ -394,6 +394,9 @@ type EpochStartBootstrapper interface {
 type BootstrapComponentsHolder interface {
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHandler
+	NodeType() core.NodeType
+	ShardCoordinator() sharding.Coordinator
+	HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 

@@ -12,7 +12,8 @@ import (
 // ------------ Test ManagedStateComponents --------------------
 func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
 	managedStateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, err)
@@ -24,7 +25,8 @@ func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 
 func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
 	managedStateComponents, err := factory.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, err)
@@ -43,7 +45,8 @@ func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 
 func TestManagedStateComponents_Close(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
 	managedStateComponents, _ := factory.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()
@@ -56,7 +59,8 @@ func TestManagedStateComponents_Close(t *testing.T) {
 
 func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
 	managedStateComponents, _ := factory.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()
@@ -68,7 +72,8 @@ func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 
 func TestManagedStateComponents_Setters(t *testing.T) {
 	coreComponents := getCoreComponents()
-	args := getStateArgs(coreComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getStateArgs(coreComponents, shardCoordinator)
 	stateComponentsFactory, _ := factory.NewStateComponentsFactory(args)
 	managedStateComponents, _ := factory.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()

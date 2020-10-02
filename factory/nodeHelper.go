@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -38,7 +37,7 @@ func CreateApiResolver(
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
 	gasSchedule map[string]map[string]uint64,
-	economics *economics.EconomicsData,
+	economics process.EconomicsHandler,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,

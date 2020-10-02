@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -37,7 +36,8 @@ type CoreComponentsStub struct {
 	EconomicsHandler            process.EconomicsHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 factory.NodesSetupHandler
+	NodesConfig                 sharding.GenesisNodesSetupHandler
+	Shuffler                    sharding.NodesShuffler
 	StartTime                   time.Time
 }
 
@@ -108,8 +108,13 @@ func (ccs *CoreComponentsStub) Rater() sharding.PeerAccountListAndRatingHandler 
 }
 
 // GenesisNodesSetup -
-func (ccs *CoreComponentsStub) GenesisNodesSetup() factory.NodesSetupHandler {
+func (ccs *CoreComponentsStub) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	return ccs.NodesConfig
+}
+
+// NodesShuffler -
+func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
+	return ccs.Shuffler
 }
 
 // GenesisTime -

@@ -33,10 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -192,208 +189,49 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		cfgs.generalConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
 	}
 
+	err = cleanupStorageIfNecessary(workingDir, ctx, log)
+	if err != nil {
+		return err
+	}
+
 	for {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 
 		log.Debug("\n\n====================Starting managedComponents creation================================")
-
-		log.Trace("creating core components")
-
-		chanCreateViews := make(chan struct{}, 1)
-		chanLogRewrite := make(chan struct{}, 1)
-
-		useTermui := !ctx.GlobalBool(useLogView.Name)
-		statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-			UseTermUI:      useTermui,
-			ChanStartViews: chanCreateViews,
-			ChanLogRewrite: chanLogRewrite,
-		}
-
-		statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
-		if err != nil {
-			return err
-		}
-
-		coreArgs := mainFactory.CoreComponentsFactoryArgs{
-			Config:                *cfgs.generalConfig,
-			RatingsConfig:         *cfgs.ratingsConfig,
-			EconomicsConfig:       *cfgs.economicsConfig,
-			NodesFilename:         nodesFileName,
-			WorkingDirectory:      workingDir,
-			ChanStopNodeProcess:   chanStopNodeProcess,
-			StatusHandlersFactory: statusHandlersFactory,
-		}
-
-		coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
-		if err != nil {
-			return fmt.Errorf("NewCoreComponentsFactory failed: %w", err)
-		}
-
-		managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreComponentsFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedCoreComponents.Create()
-		if err != nil {
-			return err
-		}
-
-		closableComponents = append(closableComponents, managedCoreComponents)
-
-		log.Trace("creating crypto components")
-		validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
-		cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
-			ValidatorKeyPemFileName:              validatorKeyPemFileName,
-			SkIndex:                              ctx.GlobalInt(validatorKeyIndex.Name),
-			Config:                               *cfgs.generalConfig,
-			CoreComponentsHolder:                 managedCoreComponents,
-			ActivateBLSPubKeyMessageVerification: cfgs.systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
-			KeyLoader:                            &core.KeyLoader{},
-		}
-
-		cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
-		if err != nil {
-			return fmt.Errorf("NewCryptoComponentsFactory failed: %w", err)
-		}
-
-		managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedCryptoComponents.Create()
-		if err != nil {
-			return err
-		}
-		closableComponents = append(closableComponents, managedCryptoComponents)
-
-		log.Debug("block sign pubkey", "value", managedCryptoComponents.PublicKeyString())
-
-		if ctx.IsSet(destinationShardAsObserver.Name) {
-			cfgs.preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
-		}
-
-		if ctx.IsSet(nodeDisplayName.Name) {
-			cfgs.preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
-		}
-
-		if ctx.IsSet(identityFlagName.Name) {
-			cfgs.preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
-		}
-
-		err = cleanupStorageIfNecessary(workingDir, ctx, log)
-		if err != nil {
-			return err
-		}
 
 		healthService := health.NewHealthService(cfgs.generalConfig.Health, workingDir)
 		if ctx.IsSet(useHealthService.Name) {
 			healthService.Start()
 		}
 
-		log.Trace("creating network components")
-		networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-			P2pConfig:     *cfgs.p2pConfig,
-			MainConfig:    *cfgs.generalConfig,
-			RatingsConfig: *cfgs.ratingsConfig,
-			StatusHandler: managedCoreComponents.StatusHandler(),
-			Marshalizer:   managedCoreComponents.InternalMarshalizer(),
-			Syncer:        managedCoreComponents.SyncTimer(),
-		}
-
-		networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
-		if err != nil {
-			return fmt.Errorf("NewNetworkComponentsFactory failed: %w", err)
-		}
-
-		managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(networkComponentsFactory)
+		log.Trace("creating core components")
+		managedCoreComponents, err := createManagedCoreComponents(
+			ctx,
+			cfgs,
+			nodesFileName,
+			workingDir,
+			chanStopNodeProcess,
+		)
 		if err != nil {
 			return err
 		}
-		err = managedNetworkComponents.Create()
+		closableComponents = append(closableComponents, managedCoreComponents)
+
+		log.Trace("creating crypto components")
+		managedCryptoComponents, err := createManagedCryptoComponents(ctx, cfgs, managedCoreComponents)
+		if err != nil {
+			return err
+		}
+		closableComponents = append(closableComponents, managedCryptoComponents)
+
+		log.Trace("creating network components")
+		managedNetworkComponents, err := createManagedNetworkComponents(cfgs, managedCoreComponents)
 		if err != nil {
 			return err
 		}
 		closableComponents = append(closableComponents, managedNetworkComponents)
 
-		err = managedNetworkComponents.NetworkMessenger().Bootstrap()
-		if err != nil {
-			return err
-		}
-		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", core.SecondsToWaitForP2PBootstrap))
-		time.Sleep(core.SecondsToWaitForP2PBootstrap * time.Second)
-
-		log.Trace("creating economics data components")
-		economicsData, err := economics.NewEconomicsData(cfgs.economicsConfig)
-		if err != nil {
-			return err
-		}
-
-		log.Trace("creating ratings data components")
-
-		nodesSetup := managedCoreComponents.GenesisNodesSetup()
-
-		nodesShuffler := sharding.NewHashValidatorsShuffler(
-			nodesSetup.MinNumberOfShardNodes(),
-			nodesSetup.MinNumberOfMetaNodes(),
-			nodesSetup.GetHysteresis(),
-			nodesSetup.GetAdaptivity(),
-			true,
-		)
-
-		destShardIdAsObserver, err := core.ProcessDestinationShardAsObserver(cfgs.preferencesConfig.Preferences.DestinationShardAsObserver)
-		if err != nil {
-			return err
-		}
-
-		versionsCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.Versions.Cache))
-		if err != nil {
-			return err
-		}
-
-		headerIntegrityVerifier, err := headerCheck.NewHeaderIntegrityVerifier(
-			[]byte(managedCoreComponents.ChainID()),
-			cfgs.generalConfig.Versions.VersionsByEpochs,
-			cfgs.generalConfig.Versions.DefaultVersion,
-			versionsCache,
-		)
-		if err != nil {
-			return err
-		}
-		genesisShardCoordinator, nodeType, err := mainFactory.CreateShardCoordinator(
-			managedCoreComponents.GenesisNodesSetup(),
-			managedCryptoComponents.PublicKey(),
-			cfgs.preferencesConfig.Preferences,
-			log,
-		)
-		if err != nil {
-			return err
-		}
-		bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-			Config:                  *cfgs.generalConfig,
-			WorkingDir:              workingDir,
-			DestinationAsObserver:   destShardIdAsObserver,
-			GenesisNodesSetup:       nodesSetup,
-			NodeShuffler:            nodesShuffler,
-			ShardCoordinator:        genesisShardCoordinator,
-			CoreComponents:          managedCoreComponents,
-			CryptoComponents:        managedCryptoComponents,
-			NetworkComponents:       managedNetworkComponents,
-			HeaderIntegrityVerifier: headerIntegrityVerifier,
-		}
-
-		bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-		if err != nil {
-			return fmt.Errorf("NewBootstrapComponentsFactory failed: %w", err)
-		}
-
-		managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedBootstrapComponents.Create()
+		managedBootstrapComponents, err := createManagedBootstrapComponents(cfgs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, workingDir)
 		if err != nil {
 			return err
 		}
@@ -422,6 +260,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
 		logger.SetCorrelationShard(shardIdString)
+
+		log.Trace("initializing stats file")
+		var shardId = core.GetShardIDString(managedBootstrapComponents.ShardCoordinator().SelfId())
+		err = initStatsFileMonitor(
+			cfgs.generalConfig,
+			managedCoreComponents.PathHandler(),
+			shardId)
+		if err != nil {
+			return err
+		}
 
 		log.Trace("creating state components")
 		triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
@@ -455,7 +303,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		dataArgs := mainFactory.DataComponentsFactoryArgs{
 			Config:             *cfgs.generalConfig,
-			EconomicsData:      economicsData,
 			ShardCoordinator:   shardCoordinator,
 			Core:               managedCoreComponents,
 			EpochStartNotifier: epochStartNotifier,
@@ -482,37 +329,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		log.Trace("initializing metrics")
 		err = metrics.InitMetrics(
-			managedCoreComponents.StatusHandler(),
+			managedCoreComponents.StatusHandlerUtils(),
 			managedCryptoComponents.PublicKeyString(),
-			nodeType,
+			managedBootstrapComponents.NodeType(),
 			shardCoordinator,
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			version,
 			cfgs.economicsConfig,
 			cfgs.generalConfig.EpochStartConfig.RoundsPerEpoch,
 			managedCoreComponents.MinTransactionVersion(),
 		)
-		if err != nil {
-			return err
-		}
-
-		chanLogRewrite <- struct{}{}
-		chanCreateViews <- struct{}{}
-
-		ratingDataArgs := rating.RatingsDataArg{
-			Config:                   *cfgs.ratingsConfig,
-			ShardConsensusSize:       nodesSetup.GetShardConsensusGroupSize(),
-			MetaConsensusSize:        nodesSetup.GetMetaConsensusGroupSize(),
-			ShardMinNodes:            nodesSetup.MinNumberOfShardNodes(),
-			MetaMinNodes:             nodesSetup.MinNumberOfMetaNodes(),
-			RoundDurationMiliseconds: nodesSetup.GetRoundDuration(),
-		}
-		ratingsData, err := rating.NewRatingsData(ratingDataArgs)
-		if err != nil {
-			return err
-		}
-
-		rater, err := rating.NewBlockSigningRater(ratingsData)
 		if err != nil {
 			return err
 		}
@@ -537,15 +363,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		nodesCoordinator, nodeShufflerOut, err := mainFactory.CreateNodesCoordinator(
 			log,
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.preferencesConfig.Preferences,
 			epochStartNotifier,
 			managedCryptoComponents.PublicKey(),
 			managedCoreComponents.InternalMarshalizer(),
 			managedCoreComponents.Hasher(),
-			rater,
+			managedCoreComponents.Rater(),
 			managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
-			nodesShuffler,
+			managedCoreComponents.NodesShuffler(),
 			cfgs.generalConfig.EpochStartConfig,
 			shardCoordinator.SelfId(),
 			chanStopNodeProcess,
@@ -558,9 +384,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, cfgs.preferencesConfig.Preferences.NodeDisplayName)
 		metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricChainId, managedCoreComponents.ChainID())
-		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, economicsData.GasPerDataByte())
-		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, economicsData.MinGasPrice())
-		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, economicsData.MinGasLimit())
+		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
+		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, managedCoreComponents.EconomicsData().MinGasPrice())
+		metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasLimit, managedCoreComponents.EconomicsData().MinGasLimit())
 
 		sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 			"PkBlockSign", managedCryptoComponents.PublicKeyString(),
@@ -599,7 +425,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		//TODO: remove this in the future and add just a log debug
 		computedRatingsData := filepath.Join(statsFolder, "ratings.info")
-		computedRatingsDataStr := createStringFromRatingsData(ratingsData)
+		computedRatingsDataStr := createStringFromRatingsData(managedCoreComponents.RatingsData())
 		err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
 		log.LogIfError(err)
 
@@ -610,7 +436,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating time cache for requested items components")
-		requestedItemsHandler := timecache.NewTimeCache(time.Duration(uint64(time.Millisecond) * nodesSetup.GetRoundDuration()))
+		requestedItemsHandler := timecache.NewTimeCache(
+			time.Duration(uint64(time.Millisecond) * managedCoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 		whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(cfgs.generalConfig.WhiteListPool))
 		if err != nil {
@@ -647,7 +474,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		statArgs := mainFactory.StatusComponentsFactoryArgs{
 			Config:             *cfgs.generalConfig,
 			ExternalConfig:     *cfgs.externalConfig,
-			RoundDurationSec:   nodesSetup.GetRoundDuration() / 1000,
 			ElasticOptions:     &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
 			ShardCoordinator:   shardCoordinator,
 			NodesCoordinator:   nodesCoordinator,
@@ -700,11 +526,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		processArgs := mainFactory.ProcessComponentsFactoryArgs{
-			Config:                    coreArgs.Config,
+			Config:                    *cfgs.generalConfig,
 			AccountsParser:            accountsParser,
 			SmartContractParser:       smartContractParser,
-			EconomicsData:             economicsData,
-			NodesConfig:               nodesSetup,
 			GasSchedule:               gasSchedule,
 			Rounder:                   managedCoreComponents.Rounder(),
 			ShardCoordinator:          shardCoordinator,
@@ -719,8 +543,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
 			EpochStartNotifier:        epochStartNotifier,
 			EpochStart:                &cfgs.generalConfig.EpochStartConfig,
-			Rater:                     rater,
-			RatingsData:               ratingsData,
+			Rater:                     managedCoreComponents.Rater(),
+			RatingsData:               managedCoreComponents.RatingsData(),
 			StartEpochNum:             currentEpoch,
 			SizeCheckDelta:            cfgs.generalConfig.Marshalizer.SizeCheckDelta,
 			StateCheckpointModulus:    cfgs.generalConfig.StateTriesConfig.CheckpointRoundsModulus,
@@ -738,7 +562,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 			HistoryRepo:               historyRepository,
 			EpochNotifier:             epochNotifier,
-			HeaderIntegrityVerifier:   headerIntegrityVerifier,
+			HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 			ChanGracefullyClose:       chanStopNodeProcess,
 		}
 		processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
@@ -776,7 +600,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			chanStopNodeProcess,
 			epochStartNotifier,
 			importStartHandler,
-			nodesSetup,
 			workingDir,
 		)
 		if err != nil {
@@ -860,7 +683,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Trace("creating node structure")
 		currentNode, err := node.CreateNode(
 			cfgs.generalConfig,
-			nodesSetup,
+			cfgs.preferencesConfig,
 			managedBootstrapComponents,
 			managedCoreComponents,
 			managedCryptoComponents,
@@ -907,9 +730,9 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			shardCoordinator,
 			managedCoreComponents.StatusHandlerUtils().Metrics(),
 			gasSchedule,
-			economicsData,
+			managedCoreComponents.EconomicsData(),
 			managedCryptoComponents.MessageSignVerifier(),
-			nodesSetup,
+			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.systemSCConfig,
 		)
 		if err != nil {
@@ -944,6 +767,39 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		log.Trace("starting background services")
 		ef.StartBackgroundServices()
+
+		log.Debug("starting node...")
+
+		consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
+			Config:              *cfgs.generalConfig,
+			ConsensusGroupSize:  int(managedCoreComponents.GenesisNodesSetup().GetShardConsensusGroupSize()),
+			BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
+			HardforkTrigger:     hardForkTrigger,
+			CoreComponents:      managedCoreComponents,
+			NetworkComponents:   managedNetworkComponents,
+			CryptoComponents:    managedCryptoComponents,
+			DataComponents:      managedDataComponents,
+			ProcessComponents:   managedProcessComponents,
+			StateComponents:     managedStateComponents,
+			StatusComponents:    managedStatusComponents,
+		}
+
+		consensusFactory, err := mainFactory.NewConsensusComponentsFactory(consensusArgs)
+		if err != nil {
+			return fmt.Errorf("NewConsensusComponentsFactory failed: %w", err)
+		}
+
+		managedConsensusComponents, err := mainFactory.NewManagedConsensusComponents(consensusFactory)
+		if err != nil {
+			return err
+		}
+
+		err = managedConsensusComponents.Create()
+		if err != nil {
+			log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
+			return err
+		}
+		closableComponents = append(closableComponents, managedConsensusComponents)
 
 		log.Info("application is now running")
 		sigs := make(chan os.Signal, 1)
@@ -1002,6 +858,150 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
+func createManagedBootstrapComponents(
+	cfgs *configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	workingDir string,
+) (mainFactory.BootstrapComponentsHandler, error) {
+
+	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
+		Config:            *cfgs.generalConfig,
+		PrefConfig:        *cfgs.preferencesConfig,
+		WorkingDir:        workingDir,
+		CoreComponents:    managedCoreComponents,
+		CryptoComponents:  managedCryptoComponents,
+		NetworkComponents: managedNetworkComponents,
+	}
+
+	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewBootstrapComponentsFactory failed: %w", err)
+	}
+
+	managedBootstrapComponents, err := mainFactory.NewManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedBootstrapComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedBootstrapComponents, nil
+}
+
+func createManagedNetworkComponents(
+	cfgs *configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+) (mainFactory.NetworkComponentsHandler, error) {
+
+	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
+		P2pConfig:            *cfgs.p2pConfig,
+		MainConfig:           *cfgs.generalConfig,
+		RatingsConfig:        *cfgs.ratingsConfig,
+		StatusHandler:        managedCoreComponents.StatusHandler(),
+		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
+		Syncer:               managedCoreComponents.SyncTimer(),
+		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
+	}
+
+	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewNetworkComponentsFactory failed: %w", err)
+	}
+
+	managedNetworkComponents, err := mainFactory.NewManagedNetworkComponents(networkComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedNetworkComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+	return managedNetworkComponents, nil
+}
+
+func createManagedCoreComponents(
+	ctx *cli.Context,
+	cfgs *configs,
+	nodesFileName string,
+	workingDir string,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (mainFactory.CoreComponentsHandler, error) {
+	useTermui := !ctx.GlobalBool(useLogView.Name)
+	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
+		UseTermUI: useTermui,
+	}
+
+	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	coreArgs := mainFactory.CoreComponentsFactoryArgs{
+		Config:                *cfgs.generalConfig,
+		RatingsConfig:         *cfgs.ratingsConfig,
+		EconomicsConfig:       *cfgs.economicsConfig,
+		NodesFilename:         nodesFileName,
+		WorkingDirectory:      workingDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		StatusHandlersFactory: statusHandlersFactory,
+	}
+
+	coreComponentsFactory, err := mainFactory.NewCoreComponentsFactory(coreArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewCoreComponentsFactory failed: %w", err)
+	}
+
+	managedCoreComponents, err := mainFactory.NewManagedCoreComponents(coreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedCoreComponents, nil
+}
+
+func createManagedCryptoComponents(
+	ctx *cli.Context,
+	cfgs *configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+) (mainFactory.CryptoComponentsHandler, error) {
+	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
+	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
+		ValidatorKeyPemFileName:              validatorKeyPemFileName,
+		SkIndex:                              ctx.GlobalInt(validatorKeyIndex.Name),
+		Config:                               *cfgs.generalConfig,
+		CoreComponentsHolder:                 managedCoreComponents,
+		ActivateBLSPubKeyMessageVerification: cfgs.systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
+		KeyLoader:                            &core.KeyLoader{},
+	}
+
+	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewCryptoComponentsFactory failed: %w", err)
+	}
+
+	managedCryptoComponents, err := mainFactory.NewManagedCryptoComponents(cryptoComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedCryptoComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedCryptoComponents, nil
+}
+
 func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	if len(importDbDirectoryValue) > 0 {
@@ -1037,7 +1037,7 @@ func closeAllComponents(
 	chanCloseComponents <- struct{}{}
 }
 
-func createStringFromRatingsData(ratingsData *rating.RatingsData) string {
+func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string {
 	metaChainStepHandler := ratingsData.MetaChainRatingsStepHandler()
 	shardChainHandler := ratingsData.ShardChainRatingsStepHandler()
 	computedRatingsDataStr := fmt.Sprintf(
@@ -1284,6 +1284,15 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+	}
+	if ctx.IsSet(nodeDisplayName.Name) {
+		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+	}
+	if ctx.IsSet(identityFlagName.Name) {
+		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
 	return &configs{

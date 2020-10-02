@@ -32,7 +32,6 @@ type statusComponents struct {
 type StatusComponentsFactoryArgs struct {
 	Config             config.Config
 	ExternalConfig     config.ExternalConfig
-	RoundDurationSec   uint64
 	ElasticOptions     *indexer.Options
 	ShardCoordinator   sharding.Coordinator
 	NodesCoordinator   sharding.NodesCoordinator
@@ -45,7 +44,6 @@ type StatusComponentsFactoryArgs struct {
 type statusComponentsFactory struct {
 	config             config.Config
 	externalConfig     config.ExternalConfig
-	roundDurationSec   uint64
 	elasticOptions     *indexer.Options
 	shardCoordinator   sharding.Coordinator
 	nodesCoordinator   sharding.NodesCoordinator
@@ -82,9 +80,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, errors.ErrNilEpochStartNotifier
 	}
-	if args.RoundDurationSec < 1 {
-		return nil, errors.ErrInvalidRoundDuration
-	}
 
 	if args.ElasticOptions == nil {
 		return nil, errors.ErrNilElasticOptions
@@ -93,7 +88,6 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	return &statusComponentsFactory{
 		config:             args.Config,
 		externalConfig:     args.ExternalConfig,
-		roundDurationSec:   args.RoundDurationSec,
 		elasticOptions:     args.ElasticOptions,
 		shardCoordinator:   args.ShardCoordinator,
 		nodesCoordinator:   args.NodesCoordinator,
@@ -140,11 +134,15 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		scf.coreComponents.InternalMarshalizer(),
 	)
 
+	roundDurationSec := scf.coreComponents.GenesisNodesSetup().GetRoundDuration() / 1000
+	if roundDurationSec < 1 {
+		return nil, errors.ErrInvalidRoundDuration
+	}
 	tpsBenchmark, err := statistics.NewTPSBenchmarkWithInitialData(
 		scf.coreComponents.StatusHandler(),
 		initialTpsBenchmark,
 		scf.shardCoordinator.NumberOfShards(),
-		scf.roundDurationSec,
+		roundDurationSec,
 	)
 	if err != nil {
 		return nil, err

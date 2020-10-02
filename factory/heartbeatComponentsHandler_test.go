@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test ManagedHeartbeatComponents --------------------
 func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	heartbeatArgs := getDefaultHeartbeatComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatArgs.Config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 0
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
@@ -20,7 +22,8 @@ func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 }
 
 func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
-	heartbeatArgs := getDefaultHeartbeatComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, err := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	require.NoError(t, err)
@@ -38,7 +41,8 @@ func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedHeartbeatComponents_Close(t *testing.T) {
-	heartbeatArgs := getDefaultHeartbeatComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
 	managedHeartbeatComponents, _ := factory.NewManagedHeartbeatComponents(heartbeatComponentsFactory)
 	err := managedHeartbeatComponents.Create()

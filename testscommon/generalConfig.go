@@ -276,6 +276,11 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		Versions: config.VersionsConfig{
+			Cache: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 1000,
+				Shards:   1,
+			},
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{
 				{

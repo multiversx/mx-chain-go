@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +15,8 @@ import (
 func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	heartbeatArgs := getDefaultHeartbeatComponents()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	hcf, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
 	cc, _ := hcf.Create()
 
@@ -22,13 +24,14 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func getDefaultHeartbeatComponents() factory.HeartbeatComponentsFactoryArgs {
+func getDefaultHeartbeatComponents(shardCoordinator sharding.Coordinator) factory.HeartbeatComponentsFactoryArgs {
 	coreComponents := getCoreComponents()
 	networkComponents := getNetworkComponents()
-	dataComponents := getDataComponents(coreComponents)
+	dataComponents := getDataComponents(coreComponents, shardCoordinator)
 	cryptoComponents := getCryptoComponents(coreComponents)
-	stateComponents := getStateComponents(coreComponents)
+	stateComponents := getStateComponents(coreComponents, shardCoordinator)
 	processComponents := getProcessComponents(
+		shardCoordinator,
 		coreComponents,
 		networkComponents,
 		dataComponents,
