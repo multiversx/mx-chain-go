@@ -564,6 +564,10 @@ func (tsm *trieStorageManager) Close() error {
 	err1 := tsm.db.Close()
 	err2 := tsm.dbEvictionWaitingList.Close()
 
+	for _, sdb := range tsm.snapshots {
+		log.LogIfError(sdb.Close())
+	}
+
 	if err1 != nil || err2 != nil {
 		errorStr := ""
 		if err2 != nil {

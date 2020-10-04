@@ -544,10 +544,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			EpochNotifier:             epochNotifier,
 			HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 			ChanGracefullyClose:       chanStopNodeProcess,
+			EconomicsData:             managedCoreComponents.EconomicsData(),
 		}
 		processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 		if err != nil {
-			return fmt.Errorf("NewDataComponentsFactory failed: %w", err)
+			return fmt.Errorf("NewProcessComponentsFactory failed: %w", err)
 		}
 
 		managedProcessComponents, err := mainFactory.NewManagedProcessComponents(processComponentsFactory)
@@ -775,8 +776,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		if reshuffled {
 			log.Info("=============================Shuffled out - soft restart==================================")
-
-			time.Sleep(time.Second * 25)
 
 			buffer := new(bytes.Buffer)
 			err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
