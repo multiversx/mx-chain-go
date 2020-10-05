@@ -85,10 +85,8 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
 	addOutPutTransferToVMOutput(
 		core.BuiltInFunctionESDTBurn,
-		vmInput.Arguments[0],
-		vmInput.Arguments[1],
+		vmInput.Arguments,
 		vmInput.RecipientAddr,
-		vmInput.CallerAddr,
 		vmOutput)
 
 	return vmOutput, nil

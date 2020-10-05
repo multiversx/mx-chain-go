@@ -711,7 +711,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
 		return "", nil, tmpError
 	}
-	input, err := sc.createVMCallInput(tx, []byte{})
+	input, err := sc.createVMCallInput(tx, []byte{}, false)
 	require.Nil(t, input)
 	require.Equal(t, tmpError, err)
 }
@@ -735,7 +735,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	input, err := sc.createVMCallInput(tx, []byte{})
+	input, err := sc.createVMCallInput(tx, []byte{}, false)
 	require.NotNil(t, input)
 	require.Nil(t, err)
 }
