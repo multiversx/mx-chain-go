@@ -54,7 +54,7 @@ func TestSignatureOnStaking(t *testing.T) {
 
 	frontendBLSPubkey, err := hex.DecodeString("cbc8c9a6a8d9c874e89eb9366139368ae728bd3eda43f173756537877ba6bca87e01a97b815c9f691df73faa16f66b15603056540aa7252d73fecf05d24cd36b44332a88386788fbdb59d04502e8ecb0132d8ebd3d875be4c83e8b87c55eb901")
 	require.Nil(t, err)
-	frontendHexSignature := "aabbcc"
+	frontendHexSignature := "17b1f945404c0c98d2e69a576f3635f4ebe77cd396561566afb969333b0da053e7485b61ef10311f512e3ec2f351ee95"
 
 	numOfShards := 2
 	nodesPerShard := 2
