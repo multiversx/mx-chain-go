@@ -1497,7 +1497,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(isInImportMode bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"p2p.ThresholdMinConnectedPeers", 0,

@@ -92,7 +92,7 @@ func (cspf *cryptoSigningParamsLoader) readCryptoParams(cryptoParams *CryptoPara
 }
 
 func (cspf *cryptoSigningParamsLoader) generateCryptoParams(cryptoParams *CryptoParams) (*CryptoParams, error) {
-	log.Warn("the node is import mode! Will generate a fresh new BLS key")
+	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
 	cryptoParams.PrivateKey, cryptoParams.PublicKey = cryptoParams.KeyGenerator.GeneratePair()
 
 	var err error
