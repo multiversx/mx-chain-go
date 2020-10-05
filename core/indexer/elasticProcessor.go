@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -139,7 +140,7 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 
 func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy, accountsHistoryPolicy}
 	for _, indexPolicyName := range indexesPolicies {
 		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
 		if indexPolicy != nil {
@@ -167,7 +168,7 @@ func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]
 }
 
 func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
 		indexTemplate := getTemplateByName(index, indexTemplates)
 		if indexTemplate != nil {
@@ -182,7 +183,7 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 }
 
 func (ei *elasticProcessor) createIndexes() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
@@ -195,7 +196,7 @@ func (ei *elasticProcessor) createIndexes() error {
 }
 
 func (ei *elasticProcessor) createAliases() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
@@ -539,6 +540,34 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts",
+				"error", err.Error())
+			return err
+		}
+	}
+
+	return ei.saveAccountsHistory(accountsMap)
+}
+
+func (ei *elasticProcessor) saveAccountsHistory(accountInfoMap map[string]*AccountInfo) error {
+	if !ei.isIndexEnabled(accountsHistoryIndex) {
+		return nil
+	}
+
+	currentTimestamp := time.Now().Unix()
+	accountsMap := make(map[string]*AccountBalanceHistory)
+	for address, userAccount := range accountInfoMap {
+		acc := &AccountBalanceHistory{
+			BalanceNum: userAccount.BalanceNum,
+			Timestamp:  currentTimestamp,
+		}
+		accountsMap[address] = acc
+	}
+
+	buffSlice := serializeAccountsHistory(accountsMap)
+	for idx := range buffSlice {
+		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
+		if err != nil {
+			log.Warn("indexer: indexing bulk of accounts history",
 				"error", err.Error())
 			return err
 		}

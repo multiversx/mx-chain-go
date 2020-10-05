@@ -321,6 +321,45 @@ func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
 	return buffSlice
 }
 
+func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountBalanceHistory(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAcc > txsBulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write serialized tx", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
@@ -354,6 +393,20 @@ func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return
+	}
+
+	return
+}
+
+func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account history entry, will skip indexing",
 			"address", address)
 		return
 	}
@@ -430,12 +483,12 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex}
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
 		indexTemplates[index] = getTemplateByIndex(index)
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy, accountsHistoryPolicy}
 	for _, indexPolicy := range indexesPolicies {
 		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
 	}
