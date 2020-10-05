@@ -164,6 +164,10 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
 	if hsv.fallbackHeaderValidator.ShouldApplyFallbackValidation(header) {
 		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
+		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
+			"minimum number of signatures required", minNumRequiredSignatures,
+			"actual number of signatures in bitmap", numOfOnesInBitmap,
+		)
 	}
 
 	if numOfOnesInBitmap >= minNumRequiredSignatures {
