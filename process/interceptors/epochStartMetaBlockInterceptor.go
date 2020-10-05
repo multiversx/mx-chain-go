@@ -69,12 +69,12 @@ func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.Mess
 	}
 
 	if !epochStartMb.IsStartOfEpochBlock() {
-		log.Debug("epochStartMetaBlockInterceptor-ProcessReceivedMessage: received meta block is not of "+
+		log.Trace("epochStartMetaBlockInterceptor-ProcessReceivedMessage: received meta block is not of "+
 			"type epoch start meta block", "hash", mbHash)
 		return process.ErrNotEpochStartBlock
 	}
 
-	log.Debug("received epoch start meta", "epoch", epochStartMb.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
+	log.Trace("received epoch start meta", "epoch", epochStartMb.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
 	e.mapReceivedMetaBlocks[string(mbHash)] = &epochStartMb
 	e.addToPeerList(string(mbHash), fromConnectedPeer)
@@ -107,7 +107,7 @@ func (e *epochStartMetaBlockInterceptor) checkMaps() (*block.MetaBlock, bool) {
 	numConnectedPeers := len(e.numConnectedPeersProvider.ConnectedPeers())
 	numPeersTarget := int(float32(numConnectedPeers) * e.consensusPercentage)
 	for hash, peersList := range e.mapMetaBlocksFromPeers {
-		log.Debug("metablock from peers", "num peers", len(peersList), "hash", []byte(hash))
+		log.Trace("metablock from peers", "num peers", len(peersList), "hash", []byte(hash))
 		metaBlock, found := e.processEntry(peersList, hash, numPeersTarget)
 		if found {
 			return metaBlock, true
@@ -123,7 +123,7 @@ func (e *epochStartMetaBlockInterceptor) processEntry(
 	numPeersTarget int,
 ) (*block.MetaBlock, bool) {
 	if len(peersList) >= numPeersTarget {
-		log.Info("got consensus for epoch start metablock", "len", len(peersList))
+		log.Debug("got consensus for epoch start metablock", "len", len(peersList))
 		return e.mapReceivedMetaBlocks[hash], true
 	}
 
