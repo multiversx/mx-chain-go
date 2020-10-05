@@ -901,3 +901,6 @@ var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt toke
 
 // ErrNilPayableHandler signals that nil payableHandler was provided
 var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
+
+// ErrFailedExecutionAfterBuiltInFunc signals that tx execution after built in func call failed
+var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after built in func call failed")

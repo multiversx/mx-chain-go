@@ -12,6 +12,7 @@ import (
 type SCProcessorMock struct {
 	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) process.TransactionType
 	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunctionCalled          func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
@@ -60,6 +61,18 @@ func (sc *SCProcessorMock) ExecuteSmartContractTransaction(
 	}
 
 	return sc.ExecuteSmartContractTransactionCalled(tx, acntSrc, acntDst)
+}
+
+// ExecuteBuiltInFunction -
+func (sc *SCProcessorMock) ExecuteBuiltInFunction(
+	tx data.TransactionHandler,
+	acntSrc, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	if sc.ExecuteBuiltInFunctionCalled == nil {
+		return 0, nil
+	}
+
+	return sc.ExecuteBuiltInFunctionCalled(tx, acntSrc, acntDst)
 }
 
 // DeploySmartContract -

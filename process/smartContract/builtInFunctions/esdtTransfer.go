@@ -64,7 +64,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 	if vmInput.CallValue.Cmp(zero) != 0 {
 		return nil, process.ErrBuiltInFunctionCalledWithValue
 	}
-	if len(vmInput.Arguments) != 2 {
+	if len(vmInput.Arguments) < 2 {
 		return nil, process.ErrInvalidArguments
 	}
 
@@ -92,47 +92,60 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 	if !check.IfNil(acntDst) {
-		isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
-		if err != nil {
-			return nil, err
-		}
-		if !isPayable {
-			return nil, process.ErrAccountNotPayable
+		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
+		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
+			isPayable, err := e.payableHandler.IsPayable(vmInput.RecipientAddr)
+			if err != nil {
+				return nil, err
+			}
+			if !isPayable {
+				return nil, process.ErrAccountNotPayable
+			}
 		}
 
-		err = addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+		err := addToESDTBalance(vmInput.CallerAddr, acntDst, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
+		}
+
+		if core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2 {
+			var callArgs [][]byte
+			if len(vmInput.Arguments) > 3 {
+				callArgs = vmInput.Arguments[3:]
+			}
+
+			addOutPutTransferToVMOutput(
+				string(vmInput.Arguments[2]),
+				callArgs,
+				vmInput.RecipientAddr,
+				vmOutput)
 		}
 
 		return vmOutput, nil
 	}
 
-	addOutPutTransferToVMOutput(
-		core.BuiltInFunctionESDTTransfer,
-		vmInput.Arguments[0],
-		vmInput.Arguments[1],
-		vmInput.RecipientAddr,
-		vmInput.CallerAddr,
-		vmOutput)
+	// cross-shard ESDT transfer call through a smart contract
+	if core.IsSmartContractAddress(vmInput.CallerAddr) {
+		addOutPutTransferToVMOutput(
+			core.BuiltInFunctionESDTTransfer,
+			vmInput.Arguments,
+			vmInput.RecipientAddr,
+			vmOutput)
+	}
 
 	return vmOutput, nil
 }
 
 func addOutPutTransferToVMOutput(
 	function string,
-	tokenName []byte,
-	tokenValue []byte,
+	arguments [][]byte,
 	recipient []byte,
-	caller []byte,
 	vmOutput *vmcommon.VMOutput,
 ) {
-	if !core.IsSmartContractAddress(caller) {
-		return
+	esdtTransferTxData := function
+	for _, arg := range arguments {
+		esdtTransferTxData += "@" + hex.EncodeToString(arg)
 	}
-
-	// cross-shard ESDT transfer call through a smart contract - needs the storage update in order to create the smart contract result
-	esdtTransferTxData := function + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(tokenValue)
 	outTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		GasLimit: 0,
