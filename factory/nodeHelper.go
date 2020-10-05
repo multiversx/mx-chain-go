@@ -118,5 +118,5 @@ func CreateApiResolver(
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+	return external.NewNodeApiResolverWithContainer(scQueryService, statusMetrics, txCostHandler, vmContainer)
 }

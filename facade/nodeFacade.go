@@ -405,13 +405,14 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlo
 }
 
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
 	log.Debug("shutting down webserver...")
 	err := nf.server.Shutdown(nf.ctx)
 	if err != nil {
 		log.Error("failed shutting down the webserver", "error", err.Error())
 	}
+
+	log.LogIfError(nf.apiResolver.Close())
 
 	nf.cancelFunc()
 

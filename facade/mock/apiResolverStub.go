@@ -29,6 +29,11 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 	return ars.ComputeTransactionGasLimitHandler(tx)
 }
 
+// Close -
+func (ars *ApiResolverStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ars *ApiResolverStub) IsInterfaceNil() bool {
 	return ars == nil

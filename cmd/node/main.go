@@ -778,7 +778,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			log.Info("=============================Shuffled out - soft restart==================================")
 
 			buffer := new(bytes.Buffer)
-			err := pprof.Lookup("goroutine").WriteTo(buffer, 1)
+			err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
 			if err != nil {
 				log.Error("could not dump goroutines")
 			}
