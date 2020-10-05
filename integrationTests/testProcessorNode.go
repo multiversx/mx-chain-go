@@ -76,7 +76,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	process2 "github.com/ElrondNetwork/elrond-go/vm/process"
+	vmProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -1193,7 +1193,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
-		signVerifier, _ = process2.NewMessageSigVerifier(
+		signVerifier, _ = vmProcess.NewMessageSigVerifier(
 			signing.NewKeyGenerator(mcl.NewSuiteBLS12()),
 			mclsig.NewBlsSigner(),
 		)

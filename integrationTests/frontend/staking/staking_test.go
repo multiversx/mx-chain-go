@@ -103,7 +103,14 @@ func TestSignatureOnStaking(t *testing.T) {
 
 	pubKey := hex.EncodeToString(frontendBLSPubkey)
 	txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + frontendHexSignature
-	sendTransaction(nodes, stakingWalletAccount, nodePrice, txData)
+	integrationTests.PlayerSendsTransaction(
+		nodes,
+		stakingWalletAccount,
+		vm.AuctionSCAddress,
+		nodePrice,
+		txData,
+		integrationTests.MinTxGasLimit+uint64(len(txData))+1,
+	)
 
 	time.Sleep(time.Second)
 
@@ -114,30 +121,6 @@ func TestSignatureOnStaking(t *testing.T) {
 	time.Sleep(time.Second)
 
 	testStakingWasDone(t, nodes, frontendBLSPubkey)
-}
-
-func sendTransaction(
-	nodes []*integrationTests.TestProcessorNode,
-	stakingWalletAccount *integrationTests.TestWalletAccount,
-	nodePrice *big.Int,
-	txData string,
-) {
-	var senderNode *integrationTests.TestProcessorNode
-	for _, n := range nodes {
-		if n.ShardCoordinator.ComputeId(stakingWalletAccount.Address) == n.ShardCoordinator.SelfId() {
-			senderNode = n
-			break
-		}
-	}
-
-	integrationTests.CreateAndSendTransactionFromWallet(
-		senderNode,
-		stakingWalletAccount,
-		nodePrice,
-		vm.AuctionSCAddress,
-		txData,
-		1,
-	)
 }
 
 func testStakingWasDone(t *testing.T, nodes []*integrationTests.TestProcessorNode, blsKey []byte) {

@@ -75,6 +75,7 @@ var P2pBootstrapDelay = 5 * time.Second
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
 
+// AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
 var log = logger.GetOrCreate("integrationtests")
@@ -1383,38 +1384,6 @@ func CreateAndSendTransaction(
 		log.Warn("could not create transaction", "address", node.OwnAccount.Address, "error", err)
 	}
 	node.OwnAccount.Nonce++
-}
-
-// CreateAndSendTransactionFromWallet will generate a transaction with provided parameters, sign it with the provided
-// wallet's tx sign private key and send it on the transaction topic
-func CreateAndSendTransactionFromWallet(
-	node *TestProcessorNode,
-	wallet *TestWalletAccount,
-	txValue *big.Int,
-	rcvAddress []byte,
-	txData string,
-	additionalGasLimit uint64,
-) {
-	tx := &transaction.Transaction{
-		Nonce:    wallet.Nonce,
-		Value:    new(big.Int).Set(txValue),
-		SndAddr:  wallet.Address,
-		RcvAddr:  rcvAddress,
-		Data:     []byte(txData),
-		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit + uint64(len(txData)) + additionalGasLimit,
-		ChainID:  ChainID,
-		Version:  MinTransactionVersion,
-	}
-
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
-	tx.Signature, _ = wallet.SingleSigner.Sign(wallet.SkTxSign, txBuff)
-
-	_, err := node.SendTransaction(tx)
-	if err != nil {
-		log.Warn("could not create transaction", "address", wallet.Address, "error", err)
-	}
-	wallet.Nonce++
 }
 
 // CreateAndSendTransactionWithGasLimit generates and send a transaction with provided gas limit/gas price
