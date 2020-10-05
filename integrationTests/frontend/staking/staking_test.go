@@ -52,7 +52,7 @@ func TestSignatureOnStaking(t *testing.T) {
 
 	log.Info("using tx sign pk for staking", "pk", pkString)
 
-	frontendBLSPubkey, err := hex.DecodeString("cbc8c9a6a8d9c874e89eb9366139368ae728bd3eda43f173756537877ba6bca87e01a97b815c9f691df73faa16f66b15603056540aa7252d73fecf05d24cd36b44332a88386788fbdb59d04502e8ecb0132d8ebd3d875be4c83e8b87c55eb901")
+	frontendBLSPubkey, err := hex.DecodeString("309befb6387288380edda61ce174b12d42ad161d19361dfcf7e61e6a4e812caf07e45a5a1c5c1e6e1f2f4d84d794dc16d9c9db0088397d85002194b773c30a8b7839324b3b80d9b8510fe53385ba7b7383c96a4c07810db31d84b0feefafbd03")
 	require.Nil(t, err)
 	frontendHexSignature := "17b1f945404c0c98d2e69a576f3635f4ebe77cd396561566afb969333b0da053e7485b61ef10311f512e3ec2f351ee95"
 
