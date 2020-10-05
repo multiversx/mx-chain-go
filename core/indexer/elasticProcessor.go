@@ -557,10 +557,12 @@ func (ei *elasticProcessor) saveAccountsHistory(accountInfoMap map[string]*Accou
 	accountsMap := make(map[string]*AccountBalanceHistory)
 	for address, userAccount := range accountInfoMap {
 		acc := &AccountBalanceHistory{
-			BalanceNum: userAccount.BalanceNum,
-			Timestamp:  currentTimestamp,
+			Address:   address,
+			Balance:   userAccount.Balance,
+			Timestamp: currentTimestamp,
 		}
-		accountsMap[address] = acc
+		addressKey := fmt.Sprintf("%s_%d", address, currentTimestamp)
+		accountsMap[addressKey] = acc
 	}
 
 	buffSlice := serializeAccountsHistory(accountsMap)
