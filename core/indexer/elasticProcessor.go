@@ -548,14 +548,14 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 	return ei.saveAccountsHistory(accountsMap)
 }
 
-func (ei *elasticProcessor) saveAccountsHistory(accountInfoMap map[string]*AccountInfo) error {
+func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*AccountInfo) error {
 	if !ei.isIndexEnabled(accountsHistoryIndex) {
 		return nil
 	}
 
 	currentTimestamp := time.Now().Unix()
 	accountsMap := make(map[string]*AccountBalanceHistory)
-	for address, userAccount := range accountInfoMap {
+	for address, userAccount := range accountsInfoMap {
 		acc := &AccountBalanceHistory{
 			Address:   address,
 			Balance:   userAccount.Balance,

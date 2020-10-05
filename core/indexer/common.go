@@ -258,7 +258,7 @@ func serializeTransactions(
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
+		if buffLenWithCurrentTx > bulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -297,7 +297,7 @@ func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentAcc > txsBulkSizeThreshold && buff.Len() != 0 {
+		if buffLenWithCurrentAcc > bulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -309,7 +309,7 @@ func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
 		}
 		_, err = buff.Write(serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts, write serialized tx", "error", err.Error())
+			log.Warn("elastic search: serialize bulk accounts, write serialized account", "error", err.Error())
 		}
 	}
 
@@ -335,8 +335,8 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 		// append a newline for each element
 		serializedData = append(serializedData, "\n"...)
 
-		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentAcc > txsBulkSizeThreshold && buff.Len() != 0 {
+		buffLenWithCurrentAccountHistory := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAccountHistory > bulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -348,7 +348,7 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 		}
 		_, err = buff.Write(serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts history, write serialized tx", "error", err.Error())
+			log.Warn("elastic search: serialize bulk accounts history, write serialized account history", "error", err.Error())
 		}
 	}
 

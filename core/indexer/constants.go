@@ -30,5 +30,5 @@ const (
 	metachainTpsDocID   = "meta"
 	shardTpsDocIDPrefix = "shard"
 
-	txsBulkSizeThreshold = 800000 // 0.8MB
+	bulkSizeThreshold = 800000 // 0.8MB
 )
