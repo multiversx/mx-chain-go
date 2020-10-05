@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const delayAfterHardforkMessageBroadcast = time.Second * 5
+
 // ArgHeartbeatSender represents the arguments for the heartbeat sender
 type ArgHeartbeatSender struct {
 	PeerMessenger        heartbeat.P2PMessenger
@@ -124,12 +126,15 @@ func (s *Sender) SendHeartbeat() error {
 		if isPayloadRecorded {
 			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
 			// so that will be spread in an epidemic manner
+			log.Debug("broadcasting stored hardfork message")
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)
+			time.Sleep(delayAfterHardforkMessageBroadcast)
 		} else {
 			hb.Payload = s.hardforkTrigger.CreateData()
 		}
 	}
 
+	log.Debug("broadcasting message", "is hardfork triggered", isHardforkTriggered)
 	var err error
 	hb.Pubkey, err = s.privKey.GeneratePublic().ToByteArray()
 	if err != nil {

@@ -277,6 +277,7 @@ func (hbh *HeartbeatHandler) Sender() *process.Sender {
 // Close will close the endless running go routine
 func (hbh *HeartbeatHandler) Close() error {
 	hbh.cancelFunc()
+	log.Debug("calling close on heartbeat system")
 
 	return nil
 }
