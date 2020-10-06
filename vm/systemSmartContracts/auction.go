@@ -1417,11 +1417,12 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage("error in getting bls key status: bls key - " + hex.EncodeToString(blsKey))
 			continue
 		}
 
 		if len(vmOutput.ReturnData) != 1 {
-			s.eei.AddReturnMessage("could not get bls key status for key " + hex.EncodeToString(blsKey))
+			s.eei.AddReturnMessage("cannot get bls key status for key " + hex.EncodeToString(blsKey))
 			continue
 		}
 
