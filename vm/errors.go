@@ -181,3 +181,6 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrInvalidAddress signals that invalid address has been provided
+var ErrInvalidAddress = errors.New("invalid address")
