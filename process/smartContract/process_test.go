@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -263,7 +264,8 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 
 	scrs := GetAllSCRs(sc)
-	require.Equal(t, parseError.Error(), string(scrs[0].GetData()))
+	expectedError := "@" + hex.EncodeToString([]byte(parseError.Error()))
+	require.Equal(t, expectedError, string(scrs[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -305,7 +307,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
 	scrs := GetAllSCRs(sc)
-	require.Equal(t, createError.Error(), string(scrs[0].GetData()))
+	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
+	require.Equal(t, expectedError, string(scrs[0].GetData()))
 }
 
 func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
@@ -372,7 +375,7 @@ func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
 		return vm, nil
 	}
 
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	_, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrFailedTransaction, err)
 }
 
@@ -428,7 +431,7 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 		return vm, nil
 	}
 
-	_, err = sc.ExecuteSmartContractTransaction(tx, acntSrc, nil)
+	_, err = sc.ExecuteBuiltInFunction(tx, acntSrc, nil)
 	require.Equal(t, process.ErrFailedTransaction, err)
 	require.True(t, scrAdded)
 	require.True(t, badTxAdded)
@@ -711,7 +714,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	argParser.ParseCallDataCalled = func(data string) (string, [][]byte, error) {
 		return "", nil, tmpError
 	}
-	input, err := sc.createVMCallInput(tx, []byte{})
+	input, err := sc.createVMCallInput(tx, []byte{}, false)
 	require.Nil(t, input)
 	require.Equal(t, tmpError, err)
 }
@@ -735,7 +738,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	input, err := sc.createVMCallInput(tx, []byte{})
+	input, err := sc.createVMCallInput(tx, []byte{}, false)
 	require.NotNil(t, input)
 	require.Nil(t, err)
 }
@@ -925,44 +928,6 @@ func createAccountsAndTransaction() (state.UserAccountHandler, state.UserAccount
 	acntSrc, acntDst := createAccounts(tx)
 
 	return acntSrc.(state.UserAccountHandler), acntDst.(state.UserAccountHandler), tx
-}
-
-func TestScProcessor_processVMOutputNilVMOutput(t *testing.T) {
-	t.Parallel()
-
-	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.VmContainer = vm
-	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	acntSrc, _, tx := createAccountsAndTransaction()
-
-	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
-	require.Equal(t, process.ErrNilVMOutput, err)
-}
-
-func TestScProcessor_processVMOutputNilTx(t *testing.T) {
-	t.Parallel()
-
-	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
-	arguments := createMockSmartContractProcessorArguments()
-	arguments.VmContainer = vm
-	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	acntSrc, _, _ := createAccountsAndTransaction()
-
-	vmOutput := &vmcommon.VMOutput{}
-	_, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
-	require.Equal(t, process.ErrNilTransaction, err)
 }
 
 func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
@@ -1481,37 +1446,6 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	require.Equal(t, scr.Value.Cmp(scrValue), 0)
 	require.Equal(t, scr.GasLimit, vmOutput.GasRemaining)
 	require.Equal(t, scr.GasPrice, tx.GasPrice)
-}
-
-func TestScProcessor_processVMOutputNilOutput(t *testing.T) {
-	t.Parallel()
-
-	acntSrc, _, tx := createAccountsAndTransaction()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(nil, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
-
-	require.Equal(t, process.ErrNilVMOutput, err)
-}
-
-func TestScProcessor_processVMOutputNilTransaction(t *testing.T) {
-	t.Parallel()
-
-	acntSrc, _, _ := createAccountsAndTransaction()
-
-	arguments := createMockSmartContractProcessorArguments()
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
-
-	vmOutput := &vmcommon.VMOutput{}
-	_, err = sc.processVMOutput(vmOutput, nil, nil, acntSrc, vmcommon.DirectCall, 0)
-
-	require.Equal(t, process.ErrNilTransaction, err)
 }
 
 func TestScProcessor_processVMOutput(t *testing.T) {
@@ -2224,12 +2158,13 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, "string", string(scr.Data))
+	expectedError := "@" + hex.EncodeToString([]byte("string"))
+	assert.Equal(t, expectedError, string(scr.Data))
 
 	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, "string", string(scr.Data))
+	assert.Equal(t, expectedError, string(scr.Data))
 
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,

@@ -12,8 +12,8 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOv
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33/go.mod h1:TktLl1iYOuio2TYGRVTUFI47QX0gEuOml7l3pyGsbog=
-github.com/ElrondNetwork/arwen-wasm-vm v0.3.37 h1:PNiO6i05TPTkm697VDfbMRQi210hwRjwhs0PX1wjXdM=
-github.com/ElrondNetwork/arwen-wasm-vm v0.3.37/go.mod h1:3NFiVRkjxleUw29pr6NLt0llekg4D29SVYr1Csj57Fc=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.38-0.20201006075650-32709226819b h1:WL2Udv8YLpG3bvPlhOvyq79Wy/jmJqS8LnvIidL1ifo=
+github.com/ElrondNetwork/arwen-wasm-vm v0.3.38-0.20201006075650-32709226819b/go.mod h1:d5E9kck73vcjD3o+6N3dDQL6ZYey3VsoI3LdHNQBJzc=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -25,8 +25,8 @@ github.com/ElrondNetwork/elrond-go-logger v1.0.4 h1:i5Yu4qyjTZDwvBY/ykbNpp2SP9jx
 github.com/ElrondNetwork/elrond-go-logger v1.0.4/go.mod h1:e5D+c97lKUfFdAzFX7rrI2Igl/z4Y0RkKYKWyzprTGk=
 github.com/ElrondNetwork/elrond-vm-common v0.1.23/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-common v0.2.0/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
-github.com/ElrondNetwork/elrond-vm-common v0.2.1 h1:aj2f1z9XcEA93CMdk3zt9C8X58BGg/XqnsX9xRH8GLo=
-github.com/ElrondNetwork/elrond-vm-common v0.2.1/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
+github.com/ElrondNetwork/elrond-vm-common v0.3.0 h1:qI4Dfo3xJA7vcV+nm1SnlbZoVrzs/BaXpbikBH/Dve4=
+github.com/ElrondNetwork/elrond-vm-common v0.3.0/go.mod h1:ZakxPST/Wt8umnRtA9gobcy3Dw2bywxwkC54P5VhO9g=
 github.com/ElrondNetwork/elrond-vm-util v0.3.5/go.mod h1:+ecDJZLTwN/yeRXXEqd+sa9WoalLsT4nFtQWCo0YKWA=
 github.com/ElrondNetwork/elrond-vm-util v0.4.2/go.mod h1:euyDXHQF3V3p8iP6Owd39bkX6s9uVclz7NvLANIO1G4=
 github.com/ElrondNetwork/protobuf v1.3.2 h1:qoCSYiO+8GtXBEZWEjw0WPcZfM3g7QuuJrwpN+y6Mvg=
