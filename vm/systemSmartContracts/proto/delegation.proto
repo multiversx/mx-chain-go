@@ -8,22 +8,59 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message DelegationManagement {
-  uint64   RegisterNonce    = 1  [(gogoproto.jsontag) = "RegisterNonce"];
-  uint32   Epoch            = 2  [(gogoproto.jsontag) = "Epoch"];
-  bytes    RewardAddress    = 3  [(gogoproto.jsontag) = "RewardAddress"];
-  bytes    TotalStakeValue  = 4  [(gogoproto.jsontag) = "TotalStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes    LockedStake      = 5  [(gogoproto.jsontag) = "LockedStake", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes    MaxStakePerNode  = 6  [(gogoproto.jsontag) = "MaxStakePerNode", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  repeated bytes BlsPubKeys = 7  [(gogoproto.jsontag) = "BlsPubKeys"];
-  uint32   NumRegistered    = 8  [(gogoproto.jsontag) = "NumRegistered"];
+  uint32 NumberOfContract     = 1 [(gogoproto.jsontag) = "NumberOfContracts"];
+  bytes  LastAddress          = 2 [(gogoproto.jsontag) = "LastAddress"];
+  bytes  MinContractCreateFee = 3 [(gogoproto.jsontag) = "MinContractCreateFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint32 MinServiceFee        = 4 [(gogoproto.jsontag) = "MinServiceFee"];
+  uint32 MaxServiceFee        = 5 [(gogoproto.jsontag) = "MaxServiceFee"];
+  bytes  MinOperationValue    = 6 [(gogoproto.jsontag) = "MinOperationValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message DelegationContractList {
+  repeated bytes Addresses = 1 [(gogoproto.jsontag) = "Addresses"];
 }
 
 message DelegationConfig {
-  uint32 NumNodes      = 1 [(gogoproto.jsontag) = "NumNodes"];
-  bytes  MinStakeValue = 2 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  TotalSupply   = 3 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  MinStep       = 4 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  NodePrice     = 5 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  UnJailPrice   = 6 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  OwnerAddress         = 1 [(gogoproto.jsontag) = "OwnerAddress"];
+  uint64 ServiceFee           = 2 [(gogoproto.jsontag) = "NumNodes"];
+  bytes  MaxDelegationCap     = 3 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  InitialOwnerFunds    = 4 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bool   AutomaticActivation  = 5 [(gogoproto.jsontag) = "AutomaticActivation"];
+  bool   NoDelegationCap      = 6 [(gogoproto.jsontag) = "NoDelegationCap"];
+  bool   ChangeableServiceFee = 7 [(gogoproto.jsontag) = "ChangeableServiceFee"];
+  uint64 CreatedNonce         = 8 [(gogoproto.jsontag) = "CreatedNonce"];
 }
 
+message DelegationContractStatus {
+  bytes  TotalActive              = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  TotalUnStaked            = 2 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint32 NumDelegators            = 3 [(gogoproto.jsontag) = "NumDelegators"];
+  repeated bytes StakedBLSKeys    = 4 [(gogoproto.jsontag) = "StakedBLSKeys"];
+  repeated bytes NotStakedBLSKeys = 5 [(gogoproto.jsontag) = "NotStakedBLSKeys"];
+}
+
+message Fund {
+  bytes  Value   = 1 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  Address = 2 [(gogoproto.jsontag) = "Address"];
+  uint64 Nonce   = 3 [(gogoproto.jsontag) = "Nonce"];
+  uint32 Type    = 4 [(gogoproto.jsontag) = "Type"];
+}
+
+message DelegatorData {
+  bytes          TotalActive       = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
+  repeated bytes WithdrawOnlyFunds = 3 [(gogoproto.jsontag) = "WithdrawOnlyFunds"];
+}
+
+message GlobalFundData {
+  repeated bytes ActiveFunds       = 1 [(gogoproto.jsontag) = "ActiveFunds"];
+  repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
+  repeated bytes WithdrawOnlyFunds = 3 [(gogoproto.jsontag) = "WithdrawOnlyFunds"];
+
+  bytes TotalUnStakedFromNodes = 4 [(gogoproto.jsontag) = "TotalUnStakedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalUnBondedFromNodes = 5 [(gogoproto.jsontag) = "TotalUnBondedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message NodesData {
+  repeated bytes BLSKeys = 1 [(gogoproto.jsontag) = "BLSKeys"];
+}
