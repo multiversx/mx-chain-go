@@ -305,7 +305,9 @@ func (sc *scProcessor) executeSmartContractCall(
 		return nil, process.ErrNilSCDestAccount
 	}
 
-	userErrorVmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
+	userErrorVmOutput := &vmcommon.VMOutput{
+		ReturnCode: vmcommon.UserError,
+	}
 	vmExec, err := findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		returnMessage := "cannot get vm from address"
@@ -678,8 +680,16 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		return false, vmOutput, nil
 	}
 
-	userErrorVmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
+	userErrorVmOutput := &vmcommon.VMOutput{
+		ReturnCode: vmcommon.UserError,
+	}
 	if err != nil {
+		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot)
+	}
+
+	err = sc.checkUpgradePermission(acntDst, newVMInput)
+	if err != nil {
+		log.Debug("checkUpgradePermission", "error", err.Error())
 		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot)
 	}
 

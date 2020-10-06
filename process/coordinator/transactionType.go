@@ -77,10 +77,11 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 
 	funcName := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
+	if isBuiltInFunction {
+		return process.BuiltInFunctionCall
+	}
+
 	if isAsynchronousCallBack(tx) {
-		if isBuiltInFunction {
-			return process.BuiltInFunctionCall
-		}
 		return process.SCInvoking
 	}
 
@@ -93,12 +94,8 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) pro
 	}
 
 	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
-	if !isBuiltInFunction && !isDestInSelfShard {
+	if !isDestInSelfShard {
 		return process.MoveBalance
-	}
-
-	if isBuiltInFunction {
-		return process.BuiltInFunctionCall
 	}
 
 	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
