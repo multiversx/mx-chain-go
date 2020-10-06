@@ -128,6 +128,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()

@@ -1,11 +1,12 @@
 package factory
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
-	"runtime"
+	"runtime/pprof"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -35,9 +36,14 @@ import (
 
 // PrintStack -
 func PrintStack() {
-	stackSlice := make([]byte, 10240)
-	s := runtime.Stack(stackSlice, true)
-	fmt.Printf("\n%s", stackSlice[0:s])
+
+	buffer := new(bytes.Buffer)
+	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
+	if err != nil {
+		fmt.Println("could not dump goroutines")
+	}
+
+	fmt.Printf("\n%s", buffer.String())
 }
 
 // CreateWhiteListerVerifiedTxs -

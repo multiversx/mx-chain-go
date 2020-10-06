@@ -37,6 +37,7 @@ func NewMetaChainMessenger(
 		LeaderCacheSize:       args.MaxDelayCacheSize,
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
+		AlarmScheduler:        args.AlarmScheduler,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
@@ -170,6 +171,11 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[string][][]byte,
 	_ int,
 ) {
+}
+
+// Close closes all the started infinite looping goroutines and subcomponents
+func (mcm *metaChainMessenger) Close() {
+	mcm.delayedBlockBroadcaster.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

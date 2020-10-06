@@ -192,6 +192,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	buffer := new(bytes.Buffer)
+	err = pprof.Lookup("goroutine").WriteTo(buffer, 2)
+	if err != nil {
+		log.Error("could not dump goroutines")
+	}
+	log.Debug("go routines number",
+		"start", runtime.NumGoroutine())
+
+	log.Warn(buffer.String())
+
 	for {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 

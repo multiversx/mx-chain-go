@@ -142,6 +142,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.processComponents.InterceptorsContainer(),
+		ccf.coreComponents.AlarmScheduler(),
 	)
 	if err != nil {
 		return nil, err
