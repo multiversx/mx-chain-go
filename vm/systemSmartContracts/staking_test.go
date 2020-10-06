@@ -34,7 +34,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
-			AuctionEnableEpoch:                   0,
+			StakingV2Epoch:                       0,
 			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,

@@ -1012,9 +1012,9 @@ func (r *stakingSC) removeFromWaitingList(blsKey []byte) error {
 			waitingList.LastJailedKey = make([]byte, 0)
 		}
 
-		nextElement, err := r.getWaitingListElement(elementToRemove.NextKey)
-		if err != nil {
-			return err
+		nextElement, errGet := r.getWaitingListElement(elementToRemove.NextKey)
+		if errGet != nil {
+			return errGet
 		}
 
 		nextElement.PreviousKey = elementToRemove.NextKey
@@ -1372,15 +1372,15 @@ func (r *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 	nextKey := make([]byte, len(waitingListHead.FirstKey))
 	copy(nextKey, waitingListHead.FirstKey)
 	for len(nextKey) != 0 && index <= waitingListHead.Length {
-		element, err := r.getWaitingListElement(nextKey)
-		if err != nil {
-			r.eei.AddReturnMessage(err.Error())
+		element, errGet := r.getWaitingListElement(nextKey)
+		if errGet != nil {
+			r.eei.AddReturnMessage(errGet.Error())
 			return vmcommon.UserError
 		}
 
-		stakedData, err := r.getOrCreateRegisteredData(element.BLSPublicKey)
-		if err != nil {
-			r.eei.AddReturnMessage(err.Error())
+		stakedData, errGet := r.getOrCreateRegisteredData(element.BLSPublicKey)
+		if errGet != nil {
+			r.eei.AddReturnMessage(errGet.Error())
 			return vmcommon.UserError
 		}
 

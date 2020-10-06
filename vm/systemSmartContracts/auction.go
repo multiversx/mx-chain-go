@@ -36,14 +36,14 @@ type stakingAuctionSC struct {
 	unBondPeriod       uint64
 	sigVerifier        vm.MessageSignVerifier
 	baseConfig         AuctionConfig
-	enableAuctionEpoch uint32
+	stakingV2Epoch     uint32
 	stakingSCAddress   []byte
 	auctionSCAddress   []byte
 	enableStakingEpoch uint32
 	gasCost            vm.GasCost
 	marshalizer        marshal.Marshalizer
 	flagStake          atomic.Flag
-	flagAuction        atomic.Flag
+	flagStakingV2      atomic.Flag
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -93,22 +93,22 @@ func NewStakingAuctionSmartContract(
 		NumNodes:    uint32(args.NumOfNodesToSelect),
 		TotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
 	}
-	conversionBase := 10
-	ok := true
-	baseConfig.UnJailPrice, ok = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
-	if !ok || baseConfig.UnJailPrice.Cmp(zero) <= 0 {
+
+	okValue := true
+	baseConfig.UnJailPrice, okValue = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
+	if !okValue || baseConfig.UnJailPrice.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, args.StakingSCConfig.UnJailValue)
 	}
-	baseConfig.MinStakeValue, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
-	if !ok || baseConfig.MinStakeValue.Cmp(zero) <= 0 {
+	baseConfig.MinStakeValue, okValue = big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
+	if !okValue || baseConfig.MinStakeValue.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, args.StakingSCConfig.MinStakeValue)
 	}
-	baseConfig.NodePrice, ok = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
-	if !ok || baseConfig.NodePrice.Cmp(zero) <= 0 {
+	baseConfig.NodePrice, okValue = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
+	if !okValue || baseConfig.NodePrice.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, args.StakingSCConfig.GenesisNodePrice)
 	}
-	baseConfig.MinStep, ok = big.NewInt(0).SetString(args.StakingSCConfig.MinStepValue, conversionBase)
-	if !ok || baseConfig.MinStep.Cmp(zero) <= 0 {
+	baseConfig.MinStep, okValue = big.NewInt(0).SetString(args.StakingSCConfig.MinStepValue, conversionBase)
+	if !okValue || baseConfig.MinStep.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStepValue, args.StakingSCConfig.MinStepValue)
 	}
 
@@ -117,7 +117,7 @@ func NewStakingAuctionSmartContract(
 		unBondPeriod:       args.StakingSCConfig.UnBondPeriod,
 		sigVerifier:        args.SigVerifier,
 		baseConfig:         baseConfig,
-		enableAuctionEpoch: args.StakingSCConfig.AuctionEnableEpoch,
+		stakingV2Epoch:     args.StakingSCConfig.StakingV2Epoch,
 		enableStakingEpoch: args.StakingSCConfig.StakeEnableEpoch,
 		stakingSCAddress:   args.StakingSCAddress,
 		auctionSCAddress:   args.AuctionSCAddress,
@@ -212,9 +212,9 @@ func (s *stakingAuctionSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	for _, blsKey := range args.Arguments {
-		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
+		vmOutput, errExec := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
+		if errExec != nil {
+			s.eei.AddReturnMessage(errExec.Error())
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
@@ -268,8 +268,8 @@ func (s *stakingAuctionSC) unJail(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	transferBack := big.NewInt(0)
 	for _, blsKey := range args.Arguments {
-		vmOutput, err := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		vmOutput, errExec := s.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
+		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
 			transferBack.Add(transferBack, auctionConfig.UnJailPrice)
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
@@ -391,7 +391,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 		newBlsKey := args.Arguments[i+1]
 		signedWithNewKey := args.Arguments[i+2]
 
-		err := s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
+		err = s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
 		if err != nil {
 			s.eei.AddReturnMessage("invalid signature: error " + err.Error())
 			return vmcommon.UserError
@@ -571,9 +571,9 @@ func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
 	}
 
 	if s.checkConfigCorrectness(*auctionConfig) != nil {
-		baseConfigData, err := s.marshalizer.Marshal(&s.baseConfig)
-		if err != nil {
-			log.Warn("marshal error on getConfig function, returning baseConfig")
+		baseConfigData, errMarshal := s.marshalizer.Marshal(&s.baseConfig)
+		if errMarshal != nil {
+			log.Warn("marshal error on getConfig function, returning baseConfig", "error", errMarshal)
 			return s.baseConfig
 		}
 		s.eei.SetStorage(epochKey, baseConfigData)
@@ -608,7 +608,8 @@ func (s *stakingAuctionSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgu
 
 	newKeys := make([][]byte, 0)
 	for i := uint64(0); i < uint64(len(keysFromArgument)); i++ {
-		if _, ok := registeredKeysMap[string(keysFromArgument[i])]; ok {
+		_, exists := registeredKeysMap[string(keysFromArgument[i])]
+		if exists {
 			continue
 		}
 
@@ -644,9 +645,9 @@ func (s *stakingAuctionSC) registerBLSKeys(
 	}
 
 	for _, blsKey := range newKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("register@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		if err != nil {
-			s.eei.AddReturnMessage("cannot do register: " + err.Error())
+		vmOutput, errExec := s.executeOnStakingSC([]byte("register@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
+		if errExec != nil {
+			s.eei.AddReturnMessage("cannot do register: " + errExec.Error())
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			return nil, err
@@ -966,9 +967,9 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 
 	for _, blsKey := range blsKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
-		if err != nil {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), err.Error()))
+		vmOutput, errExec := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
+		if errExec != nil {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), errExec.Error()))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
 			continue
@@ -1047,15 +1048,16 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	totalUnBond := big.NewInt(0)
 	totalSlashed := big.NewInt(0)
 	for _, blsKey := range blsKeys {
-		nodeData, err := s.getStakedData(blsKey)
-		if err != nil {
-			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), err.Error()))
+		nodeData, errGet := s.getStakedData(blsKey)
+		if errGet != nil {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), errGet.Error()))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
+			continue
 		}
 		// returns what value is still under the selected bls key
-		vmOutput, err := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
-		if err != nil || vmOutput.ReturnCode != vmcommon.Ok {
+		vmOutput, errExec := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
+		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
 			s.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s", hex.EncodeToString(blsKey)))
 			s.eei.Finish(blsKey)
 			s.eei.Finish([]byte{failed})
@@ -1095,9 +1097,9 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		s.eei.SetStorage(args.CallerAddr, nil)
 	} else {
 		s.deleteUnBondedKeys(registrationData, unBondedKeys)
-		err := s.saveRegistrationData(args.CallerAddr, registrationData)
-		if err != nil {
-			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		errSave := s.saveRegistrationData(args.CallerAddr, registrationData)
+		if errSave != nil {
+			s.eei.AddReturnMessage("cannot save registration data: error " + errSave.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -1139,7 +1141,6 @@ func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.OutOfGas
 	}
 
-	zero := big.NewInt(0)
 	claimable := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	if claimable.Cmp(zero) <= 0 {
 		return vmcommon.Ok
@@ -1259,7 +1260,8 @@ func (s *stakingAuctionSC) selectRandomly(selectable map[string]float64, numNeed
 	selectedKeys := make(map[string]struct{})
 	selected := uint32(0)
 	for i := 0; selected < numNeeded && i < len(expandedList); i++ {
-		if _, ok := selectedKeys[expandedList[i]]; !ok {
+		_, exists := selectedKeys[expandedList[i]]
+		if !exists {
 			selected++
 			selectedKeys[expandedList[i]] = struct{}{}
 		}
@@ -1382,8 +1384,8 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 	s.flagStake.Toggle(epoch >= s.enableStakingEpoch)
 	log.Debug("stakingAuctionSC: stake/unstake/unbond", "enabled", s.flagStake.IsSet())
 
-	s.flagAuction.Toggle(epoch >= s.enableAuctionEpoch)
-	log.Debug("stakingAuctionSC: auction", "enabled", s.flagAuction.IsSet())
+	s.flagStakingV2.Toggle(epoch >= s.stakingV2Epoch)
+	log.Debug("stakingAuctionSC: staking v2", "enabled", s.flagStakingV2.IsSet())
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not
