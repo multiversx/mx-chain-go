@@ -269,6 +269,7 @@ func CreateVMAndBlockchainHook(
 		GasMap:          actualGasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     testMarshalizer,
+		Accounts:        accnts,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -304,6 +305,7 @@ func CreateVMAndBlockchainHook(
 	}
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, blockChainHook)
 
 	return vmContainer, blockChainHook
 }

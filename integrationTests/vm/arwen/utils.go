@@ -160,6 +160,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GasMap:          context.GasSchedule,
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
+		Accounts:        context.Accounts,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -190,6 +191,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, context.BlockchainHook)
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {

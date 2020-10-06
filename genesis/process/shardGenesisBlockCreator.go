@@ -232,6 +232,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Marshalizer,
+		Accounts:             arg.Accounts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -260,6 +261,11 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	vmContainer, err := vmFactoryImpl.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}

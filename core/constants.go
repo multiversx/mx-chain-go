@@ -439,6 +439,9 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// BuiltInFunctionESDTBurn is the key for the elrond standard digital token burn built-in function
+const BuiltInFunctionESDTBurn = "ESDTBurn"
+
 // BuiltInFunctionESDTFreeze is the key for the elrond standard digital token freeze built-in function
 const BuiltInFunctionESDTFreeze = "ESDTFreeze"
 
