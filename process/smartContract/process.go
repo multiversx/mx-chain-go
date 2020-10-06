@@ -1200,6 +1200,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		}
 	}
 
+	scr.Data = []byte(accumulatedSCRData)
 	setOriginalTxHash(scr, txHash, tx)
 	if scr.Value == nil {
 		scr.Value = big.NewInt(0)
