@@ -1510,7 +1510,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 
 	workerArgs := createDefaultWorkerArgs()
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
-	headerSigVerifier.VerifyRandSeedCaller = func(header data.HeaderHandler) error {
+	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}
 

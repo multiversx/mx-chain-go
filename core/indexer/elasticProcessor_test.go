@@ -54,7 +54,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		DBClient:                 &mock.DatabaseWriterStub{},
 		Options:                  &Options{},
 		EnabledIndexes: map[string]struct{}{
-			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {},
+			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
 		AccountsDB: &mock.AccountsStub{},
 	}

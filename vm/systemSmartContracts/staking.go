@@ -152,9 +152,9 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.changeValidatorKey(args)
 	case "switchJailedWithWaiting":
 		return r.switchJailedWithWaiting(args)
-	case "getWaitingListIndex":
+	case "getQueueIndex":
 		return r.getWaitingListIndex(args)
-	case "getWaitingListSize":
+	case "getQueueSize":
 		return r.getWaitingListSize(args)
 	case "getRewardAddress":
 		return r.getRewardAddress(args)
@@ -162,7 +162,7 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getBLSKeyStatus(args)
 	case "getRemainingUnBondPeriod":
 		return r.getRemainingUnbondPeriod(args)
-	case "getWaitingListRegisterNonceAndRewardAddress":
+	case "getQueueRegisterNonceAndRewardAddress":
 		return r.getWaitingListRegisterNonceAndRewardAddress(args)
 	}
 
@@ -311,6 +311,14 @@ func (r *stakingSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (r *stakingSC) removeFromJailedNodes() {
+	stakeConfig := r.getConfig()
+	if stakeConfig.JailedNodes > 0 {
+		stakeConfig.JailedNodes--
+	}
+	r.setConfig(stakeConfig)
+}
+
 func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
 		r.eei.AddReturnMessage("unJail function not allowed to be called by address " + string(args.CallerAddr))
@@ -326,6 +334,10 @@ func (r *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		if len(stakedData.RewardAddress) == 0 {
 			r.eei.AddReturnMessage("cannot unJail a key that is not registered")
 			return vmcommon.UserError
+		}
+
+		if stakedData.UnJailedNonce <= stakedData.JailedNonce {
+			r.removeFromJailedNodes()
 		}
 
 		stakedData.JailedRound = math.MaxUint64
