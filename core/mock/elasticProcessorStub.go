@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -20,6 +21,7 @@ type ElasticProcessorStub struct {
 	SaveRoundsInfoCalled             func(infos []workItems.RoundInfo) error
 	SaveShardValidatorsPubKeysCalled func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessorCalled         func(txLogsProc process.TransactionLogProcessorDatabase)
+	SaveAccountsCalled               func(acc []state.UserAccountHandler) error
 }
 
 // SaveShardStatistics -
@@ -99,6 +101,15 @@ func (eim *ElasticProcessorStub) SetTxLogsProcessor(txLogsProc process.Transacti
 	if eim.SetTxLogsProcessorCalled != nil {
 		eim.SetTxLogsProcessorCalled(txLogsProc)
 	}
+}
+
+// SaveAccounts -
+func (eim *ElasticProcessorStub) SaveAccounts(acc []state.UserAccountHandler) error {
+	if eim.SaveAccountsCalled != nil {
+		return eim.SaveAccountsCalled(acc)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

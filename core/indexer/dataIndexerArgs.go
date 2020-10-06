@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -11,7 +12,6 @@ import (
 
 //ArgDataIndexer is struct that is used to store all components that are needed to create a indexer
 type ArgDataIndexer struct {
-	TxIndexingEnabled  bool
 	ShardID            uint32
 	Marshalizer        marshal.Marshalizer
 	EpochStartNotifier sharding.EpochStartEventNotifier
@@ -31,4 +31,7 @@ type ArgElasticProcessor struct {
 	ValidatorPubkeyConverter core.PubkeyConverter
 	Options                  *Options
 	DBClient                 DatabaseClientHandler
+	EnabledIndexes           map[string]struct{}
+	AccountsDB               state.AccountsAdapter
+	Denomination             int
 }

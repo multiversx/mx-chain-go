@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -66,6 +67,10 @@ func (e *ElasticIndexerStub) Close() error {
 
 // RevertIndexedBlock -
 func (e *ElasticIndexerStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// SaveAccounts -
+func (e *ElasticIndexerStub) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil -

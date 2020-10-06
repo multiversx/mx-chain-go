@@ -365,16 +365,12 @@ func testCreateIndexer(t *testing.T) {
 		Hasher:                   &sha256.Sha256{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		Options: &Options{
-			TxIndexingEnabled: true,
-		},
-		DBClient: dbClient,
+		Options:                  &Options{},
+		DBClient:                 dbClient,
 	})
 
 	dataIndexer, err := NewDataIndexer(ArgDataIndexer{
-		Options: &Options{
-			TxIndexingEnabled: true,
-		},
+		Options:            &Options{},
 		Marshalizer:        &marshal.JsonMarshalizer{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     dispatcher,

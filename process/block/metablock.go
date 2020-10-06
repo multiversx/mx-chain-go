@@ -514,6 +514,14 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaBlock)
+	if err != nil {
+		log.Warn("meta indexBlock: CalculateHash", "error", err)
+		return
+	}
+
+	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
+
 	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
@@ -530,6 +538,10 @@ func (mp *metaProcessor) indexBlock(
 		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
 	)
 	if err != nil {
+		log.Debug("indexBlock: GetConsensusValidatorsPublicKeys",
+			"hash", headerHash,
+			"epoch", metaBlock.GetEpoch(),
+			"error", err.Error())
 		return
 	}
 
@@ -553,10 +565,15 @@ func (mp *metaProcessor) indexBlock(
 
 	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
+		log.Debug("indexBlock: GetValidatorsIndexes",
+			"hash", headerHash,
+			"epoch", metaBlock.GetEpoch(),
+			"error", err.Error())
 		return
 	}
 
 	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 

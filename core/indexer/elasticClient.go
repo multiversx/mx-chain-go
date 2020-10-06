@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
+
+const errPolicyAlreadyExists = "document already exists"
 
 type responseErrorHandler func(res *esapi.Response) error
 
@@ -282,7 +285,7 @@ func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) e
 		return err
 	}
 
-	if !existsRes.Ok {
+	if !existsRes.Ok && !strings.Contains(existsRes.Error, errPolicyAlreadyExists) {
 		return ErrCouldNotCreatePolicy
 	}
 

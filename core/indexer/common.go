@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"strconv"
 	"time"
@@ -257,7 +258,7 @@ func serializeTransactions(
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
+		if buffLenWithCurrentTx > bulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -270,6 +271,84 @@ func serializeTransactions(
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountInfo(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAcc > bulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write serialized account", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountBalanceHistory(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAccountHistory := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAccountHistory > bulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write serialized account history", "error", err.Error())
 		}
 	}
 
@@ -304,6 +383,34 @@ func prepareSerializedDataForATransaction(
 			return
 		}
 	}
+	return
+}
+
+func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return
+	}
+
+	return
+}
+
+func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account history entry, will skip indexing",
+			"address", address)
+		return
+	}
+
 	return
 }
 
@@ -376,12 +483,12 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex}
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
 		indexTemplates[index] = getTemplateByIndex(index)
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy, accountsHistoryPolicy}
 	for _, indexPolicy := range indexesPolicies {
 		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
 	}
@@ -391,14 +498,40 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 
 func getTemplateByIndex(index string) *bytes.Buffer {
 	indexTemplate := &bytes.Buffer{}
-	_ = core.LoadJsonFile(&indexTemplate, "./config/elasticIndexTemplates/"+index+".json")
+
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic template file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexTemplate.Grow(len(fileBytes))
+	_, err = indexTemplate.Write(fileBytes)
+	if err != nil {
+		log.Error("getTemplateByIndex: cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
 
 	return indexTemplate
 }
 
 func getPolicyByIndex(index string) *bytes.Buffer {
 	indexPolicy := &bytes.Buffer{}
-	_ = core.LoadJsonFile(&indexPolicy, "./config/elasticIndexTemplates/"+index+"_policy.json")
+
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic policy file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexPolicy.Grow(len(fileBytes))
+	_, err = indexPolicy.Write(fileBytes)
+	if err != nil {
+		log.Error("getPolicyByIndex: cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
 
 	return indexPolicy
 }

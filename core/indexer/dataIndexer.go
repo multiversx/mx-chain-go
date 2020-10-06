@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -14,13 +15,12 @@ import (
 )
 
 type dataIndexer struct {
-	isNilIndexer      bool
-	txIndexingEnabled bool
-	dispatcher        DispatcherHandler
-	coordinator       sharding.NodesCoordinator
-	elasticProcessor  ElasticProcessor
-	options           *Options
-	marshalizer       marshal.Marshalizer
+	isNilIndexer     bool
+	dispatcher       DispatcherHandler
+	coordinator      sharding.NodesCoordinator
+	elasticProcessor ElasticProcessor
+	options          *Options
+	marshalizer      marshal.Marshalizer
 }
 
 // NewDataIndexer will create a new data indexer
@@ -30,21 +30,20 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 		return nil, err
 	}
 
-	dataIndexer := &dataIndexer{
-		isNilIndexer:      false,
-		txIndexingEnabled: arguments.TxIndexingEnabled,
-		dispatcher:        arguments.DataDispatcher,
-		coordinator:       arguments.NodesCoordinator,
-		elasticProcessor:  arguments.ElasticProcessor,
-		marshalizer:       arguments.Marshalizer,
-		options:           arguments.Options,
+	dataIndexerObj := &dataIndexer{
+		isNilIndexer:     false,
+		dispatcher:       arguments.DataDispatcher,
+		coordinator:      arguments.NodesCoordinator,
+		elasticProcessor: arguments.ElasticProcessor,
+		marshalizer:      arguments.Marshalizer,
+		options:          arguments.Options,
 	}
 
 	if arguments.ShardID == core.MetachainShardId {
-		arguments.EpochStartNotifier.RegisterHandler(dataIndexer.epochStartEventHandler())
+		arguments.EpochStartNotifier.RegisterHandler(dataIndexerObj.epochStartEventHandler())
 	}
 
-	return dataIndexer, nil
+	return dataIndexerObj, nil
 }
 
 func checkIndexerArgs(arguments ArgDataIndexer) error {
@@ -95,7 +94,6 @@ func (di *dataIndexer) SaveBlock(
 	wi := workItems.NewItemBlock(
 		di.elasticProcessor,
 		di.marshalizer,
-		di.txIndexingEnabled,
 		bodyHandler,
 		headerHandler,
 		txPool,
@@ -154,6 +152,12 @@ func (di *dataIndexer) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	}
 
 	wi := workItems.NewItemTpsBenchmark(di.elasticProcessor, tpsBenchmark)
+	di.dispatcher.Add(wi)
+}
+
+// SaveAccounts will save the provided accounts
+func (di *dataIndexer) SaveAccounts(accounts []state.UserAccountHandler) {
+	wi := workItems.NewItemAccounts(di.elasticProcessor, accounts)
 	di.dispatcher.Add(wi)
 }
 

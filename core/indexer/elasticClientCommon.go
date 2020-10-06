@@ -69,9 +69,14 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 		return nil
 	}
 
+	respBodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
 	log.Warn("elasticClient.parseResponse",
 		"error returned by elastic API", res.StatusCode,
-		"body", res.Body)
+		"body", string(respBodyBytes))
 
 	return ErrBackOff
 }

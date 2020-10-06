@@ -516,6 +516,13 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	if err != nil {
+		log.Warn("indexBlockIfNeeded: CalculateHash", "error", err)
+		return
+	}
+
+	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	txPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	rewardPool := sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
@@ -550,19 +557,24 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		epoch,
 	)
 	if err != nil {
+		log.Debug("indexBlockIfNeeded: GetConsensusValidatorsPublicKeys",
+			"hash", headerHash,
+			"epoch", epoch,
+			"error", err.Error())
 		return
 	}
 
 	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
 	if err != nil {
-		log.Debug("indexBlockIfNeeded",
+		log.Debug("indexBlockIfNeeded: ShardIdForEpoch",
+			"hash", headerHash,
 			"epoch", epoch,
 			"error", err.Error())
 		return
 	}
 
 	if shardId != nodesCoordinatorShardID {
-		log.Debug("indexBlockIfNeeded",
+		log.Debug("indexBlockIfNeeded: shardId != nodesCoordinatorShardID",
 			"epoch", epoch,
 			"shardCoordinator.ShardID", shardId,
 			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
@@ -571,15 +583,17 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 
 	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error("error indexing block header",
+		log.Error("indexBlockIfNeeded: GetValidatorsIndexes",
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
+			"hash", headerHash,
 			"error", err.Error(),
 		)
 		return
 	}
 
 	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
+	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
