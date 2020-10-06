@@ -172,7 +172,7 @@ type processComponentsFactoryArgs struct {
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
-	storageReolverImportPath  string
+	storageResolverImportPath string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
@@ -265,7 +265,7 @@ func NewProcessComponentsFactoryArgs(
 		historyRepo:               historyRepo,
 		epochNotifier:             epochNotifier,
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
-		storageReolverImportPath:  storageReolverImportPath,
+		storageResolverImportPath: storageReolverImportPath,
 		chanGracefullyClose:       chanGracefullyClose,
 	}
 }
@@ -307,7 +307,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		args.tries,
 		args.sizeCheckDelta,
 		args.numConcurrentResolverJobs,
-		args.storageReolverImportPath,
+		args.storageResolverImportPath,
 		&args.mainConfig,
 		args.startEpochNum,
 		args.chanGracefullyClose,
