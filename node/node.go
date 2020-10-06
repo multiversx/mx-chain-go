@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -151,7 +151,7 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler        *componentHandler.HeartbeatHandler
+	heartbeatHandler        HeartbeatHandler
 	peerHonestyHandler      consensus.PeerHonestyHandler
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 
