@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -36,7 +37,8 @@ type esdt struct {
 	eSDTSCAddress   []byte
 	marshalizer     marshal.Marshalizer
 	hasher          hashing.Hasher
-	disabled        bool
+	enabledEpoch    uint32
+	flagEnabled     atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -47,6 +49,7 @@ type ArgsNewESDTSmartContract struct {
 	ESDTSCAddress []byte
 	Marshalizer   marshal.Marshalizer
 	Hasher        hashing.Hasher
+	EpochNotifier vm.EpochNotifier
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -60,13 +63,16 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
+	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	return &esdt{
+	e := &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
 		baseIssuingCost: baseIssuingCost,
@@ -74,8 +80,11 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		eSDTSCAddress:   args.ESDTSCAddress,
 		hasher:          args.Hasher,
 		marshalizer:     args.Marshalizer,
-		disabled:        args.ESDTSCConfig.Disabled,
-	}, nil
+		enabledEpoch:    args.ESDTSCConfig.EnabledEpoch,
+	}
+	args.EpochNotifier.RegisterNotifyHandler(e)
+
+	return e, nil
 }
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input
@@ -88,7 +97,7 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.init(args)
 	}
 
-	if e.disabled {
+	if !e.flagEnabled.IsSet() {
 		e.eei.AddReturnMessage("ESDT SC disabled")
 		return vmcommon.UserError
 	}
@@ -588,6 +597,12 @@ func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
 	token := &ESDTData{}
 	err := e.marshalizer.Unmarshal(token, marshalledData)
 	return token, err
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (e *esdt) EpochConfirmed(epoch uint32) {
+	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
+	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }
 
 // IsInterfaceNil returns true if underlying object is nil
