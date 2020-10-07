@@ -4,10 +4,9 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 
 // InitialNodesHandlerStub -
 type InitialNodesHandlerStub struct {
-	InitialNodesInfoCalled        func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	MinNumberOfNodesCalled        func() uint32
-	MinShardHysteresisNodesCalled func() uint32
-	MinMetaHysteresisNodesCalled  func() uint32
+	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	MinNumberOfNodesCalled               func() uint32
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // InitialNodesInfo -
@@ -29,19 +28,12 @@ func (inhs *InitialNodesHandlerStub) MinNumberOfNodes() uint32 {
 }
 
 // MinShardHysteresisNodes -
-func (inhs *InitialNodesHandlerStub) MinShardHysteresisNodes() uint32 {
-	if inhs.MinShardHysteresisNodesCalled != nil {
-		return inhs.MinShardHysteresisNodesCalled()
+func (inhs *InitialNodesHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if inhs.MinNumberOfNodesWithHysteresisCalled != nil {
+		return inhs.MinNumberOfNodesWithHysteresisCalled()
 	}
-	return 0
-}
 
-// MinMetaHysteresisNodes -
-func (inhs *InitialNodesHandlerStub) MinMetaHysteresisNodes() uint32 {
-	if inhs.MinMetaHysteresisNodesCalled != nil {
-		return inhs.MinMetaHysteresisNodesCalled()
-	}
-	return 0
+	return inhs.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -

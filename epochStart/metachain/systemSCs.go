@@ -134,7 +134,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	if s.flagHystNodesEnabled.IsSet() {
-		err := s.UpdateSystemSCConfig()
+		err := s.updateSystemSCConfig()
 		if err != nil {
 			return err
 		}
@@ -155,19 +155,10 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 	return nil
 }
 
-// UpdateSystemSCConfig updates the configuration of the system SC if the flags permit
-func (s *systemSCProcessor) UpdateSystemSCConfig() error {
-	var err error
-	if s.flagHystNodesEnabled.IsSet() {
-		nbShards := s.genesisNodesConfig.NumberOfShards()
-		hystNodesMeta := s.genesisNodesConfig.MinMetaHysteresisNodes()
-		hystNodesShard := s.genesisNodesConfig.MinShardHysteresisNodes()
-		minNumberOfNodes := s.genesisNodesConfig.MinNumberOfNodes()
-
-		minNumberOfNodesWithHysteresis := minNumberOfNodes + hystNodesMeta + nbShards*hystNodesShard
-
-		err = s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
-	}
+// updates the configuration of the system SC if the flags permit
+func (s *systemSCProcessor) updateSystemSCConfig() error {
+	minNumberOfNodesWithHysteresis := s.genesisNodesConfig.MinNumberOfNodesWithHysteresis()
+	err := s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
 
 	return err
 }
@@ -477,6 +468,8 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+
+	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",

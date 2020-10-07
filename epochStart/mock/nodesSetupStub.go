@@ -4,18 +4,17 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 
 // NodesSetupStub -
 type NodesSetupStub struct {
-	InitialNodesInfoForShardCalled   func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled           func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	GetStartTimeCalled               func() int64
-	GetRoundDurationCalled           func() uint64
-	GetChainIdCalled                 func() string
-	GetMinTransactionVersionCalled   func() uint32
-	GetShardConsensusGroupSizeCalled func() uint32
-	GetMetaConsensusGroupSizeCalled  func() uint32
-	NumberOfShardsCalled             func() uint32
-	MinNumberOfNodesCalled           func() uint32
-	MinShardHysteresisNodesCalled    func() uint32
-	MinMetaHysteresisNodesCalled     func() uint32
+	InitialNodesInfoForShardCalled       func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	GetStartTimeCalled                   func() int64
+	GetRoundDurationCalled               func() uint64
+	GetChainIdCalled                     func() string
+	GetMinTransactionVersionCalled       func() uint32
+	GetShardConsensusGroupSizeCalled     func() uint32
+	GetMetaConsensusGroupSizeCalled      func() uint32
+	NumberOfShardsCalled                 func() uint32
+	MinNumberOfNodesCalled               func() uint32
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // MinNumberOfNodes -
@@ -98,20 +97,12 @@ func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeIn
 	return nil, nil
 }
 
-// MinShardHysteresisNodes -
-func (n *NodesSetupStub) MinShardHysteresisNodes() uint32 {
-	if n.MinShardHysteresisNodesCalled != nil {
-		return n.MinShardHysteresisNodesCalled()
+// MinNumberOfNodesWithHysteresis -
+func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
 	}
-	return 0
-}
-
-// MinMetaHysteresisNodes -
-func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
-	if n.MinMetaHysteresisNodesCalled != nil {
-		return n.MinMetaHysteresisNodesCalled()
-	}
-	return 0
+	return n.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -

@@ -3,22 +3,21 @@ package mock
 import "github.com/ElrondNetwork/elrond-go/sharding"
 
 type NodesSetupStub struct {
-	InitialNodesInfoForShardCalled   func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled           func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	GetStartTimeCalled               func() int64
-	GetRoundDurationCalled           func() uint64
-	GetChainIdCalled                 func() string
-	GetMinTransactionVersionCalled   func() uint32
-	GetShardConsensusGroupSizeCalled func() uint32
-	GetMetaConsensusGroupSizeCalled  func() uint32
-	NumberOfShardsCalled             func() uint32
-	MinNumberOfNodesCalled           func() uint32
-	MinNumberOfShardNodesCalled      func() uint32
-	MinNumberOfMetaNodesCalled       func() uint32
-	GetHysteresisCalled              func() float32
-	GetAdaptivityCalled              func() bool
-	MinShardHysteresisNodesCalled    func() uint32
-	MinMetaHysteresisNodesCalled     func() uint32
+	InitialNodesInfoForShardCalled       func(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	GetStartTimeCalled                   func() int64
+	GetRoundDurationCalled               func() uint64
+	GetChainIdCalled                     func() string
+	GetMinTransactionVersionCalled       func() uint32
+	GetShardConsensusGroupSizeCalled     func() uint32
+	GetMetaConsensusGroupSizeCalled      func() uint32
+	NumberOfShardsCalled                 func() uint32
+	MinNumberOfNodesCalled               func() uint32
+	MinNumberOfShardNodesCalled          func() uint32
+	MinNumberOfMetaNodesCalled           func() uint32
+	GetHysteresisCalled                  func() float32
+	GetAdaptivityCalled                  func() bool
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // MinNumberOfShardNodes -
@@ -137,20 +136,12 @@ func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeIn
 	return nil, nil
 }
 
-// MinShardHysteresisNodes -
-func (n *NodesSetupStub) MinShardHysteresisNodes() uint32 {
-	if n.MinShardHysteresisNodesCalled != nil {
-		return n.MinShardHysteresisNodesCalled()
+// MinNumberOfNodesWithHysteresis
+func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
 	}
-	return 0
-}
-
-// MinMetaHysteresisNodes -
-func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
-	if n.MinMetaHysteresisNodesCalled != nil {
-		return n.MinMetaHysteresisNodesCalled()
-	}
-	return 0
+	return n.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -
