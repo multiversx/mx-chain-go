@@ -529,7 +529,16 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", configurationFileName)
 
-	applyCompatibleConfigs(log, generalConfig, ctx)
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
+	if err != nil {
+		return err
+	}
+	log.Debug("config", "file", p2pConfigurationFileName)
+
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	isInImportMode := len(importDbDirectoryValue) > 0
+	applyCompatibleConfigs(isInImportMode, log, generalConfig, p2pConfig)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
@@ -573,13 +582,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 	log.Debug("config", "file", externalConfigurationFileName)
 
-	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -677,6 +679,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ctx.GlobalInt(validatorKeyIndex.Name),
 		validatorKeyPemFileName,
 		suite,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -1503,17 +1506,17 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
-func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
-	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	if len(importDbDirectoryValue) > 0 {
+func applyCompatibleConfigs(isInImportMode bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
+	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Info("import DB directory is set, altering config values!",
+		log.Warn("the node is in import mode! Will auto-set some config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"import DB path", importDbDirectoryValue,
+			"p2p.ThresholdMinConnectedPeers", 0,
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 	}
 }
 
