@@ -329,6 +329,11 @@ func (sc *scProcessor) executeSmartContractCall(
 	}
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		if !sc.flagDeploy.IsSet() {
+			err = fmt.Errorf(vmOutput.ReturnCode.String())
+			return vmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot)
+		}
+
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnMessage, []byte(""), snapshot)
 	}
 
@@ -535,6 +540,10 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return returnCode, err
 	}
 
+	if !sc.flagBuiltin.IsSet() {
+		return vmcommon.UserError, process.ErrBuiltInFunctionsAreDisabled
+	}
+
 	snapshot := sc.accounts.JournalLen()
 	vmOutput, lockedGas, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
 	if err != nil {
@@ -643,10 +652,6 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
 	if err != nil {
 		vmOutput.ReturnMessage = err.Error()
-		return vmOutput, lockedGas, nil
-	}
-	if !check.IfNil(acntSnd) && !sc.flagBuiltin.IsSet() {
-		vmOutput.ReturnMessage = process.ErrBuiltInFunctionsAreDisabled.Error()
 		return vmOutput, lockedGas, nil
 	}
 
