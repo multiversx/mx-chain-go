@@ -2099,6 +2099,11 @@ func createShardTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) error {
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.InternalMarshalizer,
@@ -2138,16 +2143,15 @@ func createShardTxSimulatorProcessor(
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
+	scProcArgs.AccountsDB = readOnlyAccountsDB
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
 	}
 	txProcArgs.ScProcessor = scProcessor
 
-	txProcArgs.Accounts, err = txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
-	if err != nil {
-		return err
-	}
+	txProcArgs.Accounts = readOnlyAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
