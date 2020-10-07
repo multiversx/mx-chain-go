@@ -15,6 +15,7 @@ import (
 )
 
 const delegationConfigKey = "delegationConfigKey"
+const delegationStatusKey = "delegationStatusKey"
 
 type delegation struct {
 	eei                    vm.SystemEI
@@ -25,6 +26,9 @@ type delegation struct {
 	marshalizer            marshal.Marshalizer
 	delegationEnabled      atomic.Flag
 	enableDelegationEpoch  uint32
+	minServiceFee          uint64
+	maxServiceFee          uint64
+	minStakeAmount         *big.Int
 }
 
 // ArgsNewDelegation -
@@ -69,7 +73,15 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		marshalizer:            args.Marshalizer,
 		delegationEnabled:      atomic.Flag{},
 		enableDelegationEpoch:  args.DelegationSCConfig.EnabledEpoch,
+		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
 	}
+
+	minStakeAmount, okValue := big.NewInt(0).SetString(args.DelegationSCConfig.MinStakeAmount, conversionBase)
+	if !okValue {
+		return nil, vm.ErrInvalidBaseIssuingCost
+	}
+	d.minStakeAmount = minStakeAmount
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
 
@@ -152,28 +164,133 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	return vmcommon.Ok
 }
 
-func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) isOwner(args *vmcommon.ContractCallInput) bool {
 	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-	if !bytes.Equal(args.CallerAddr, ownerAddress) {
+	return bytes.Equal(args.CallerAddr, ownerAddress)
+}
+
+func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallInput) (*DelegationConfig, vmcommon.ReturnCode) {
+	if !d.isOwner(args) {
+		d.eei.AddReturnMessage("only owner can change delegation config")
+		return nil, vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return nil, vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("callValue must be 0")
+		return nil, vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.OutOfGas
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+
+	return dConfig, vmcommon.Ok
+}
+
+func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.UserError
+	}
+
+	switch string(args.Arguments[0]) {
+	case "yes":
+		dConfig.AutomaticActivation = true
+	case "no":
+		dConfig.AutomaticActivation = false
+	default:
+		d.eei.AddReturnMessage("invalid argument")
+		return vmcommon.UserError
+	}
+
+	err := d.saveDelegationContractConfig(dConfig)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.UserError
+	}
+
+	newServiceFeeBigInt, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !okConvert {
+		d.eei.AddReturnMessage("invalid new service fee")
+		return vmcommon.UserError
+	}
+
+	newServiceFee := newServiceFeeBigInt.Uint64()
+	if newServiceFee < d.minServiceFee || newServiceFee > d.maxServiceFee {
+		d.eei.AddReturnMessage("invalid new service fee")
+		return vmcommon.UserError
+	}
+
+	dConfig.ServiceFee = newServiceFee
+	err := d.saveDelegationContractConfig(dConfig)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	// TODO: update reward computation from this epoch onwards
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.UserError
+	}
+
+	newTotalDelegationCap, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !okConvert {
+		d.eei.AddReturnMessage("invalid new service fee")
+		return vmcommon.UserError
+	}
+
+	dConfig.MaxDelegationCap = newTotalDelegationCap
+	dConfig.NoDelegationCap = dConfig.MaxDelegationCap.Cmp(zero) == 0
+
+	err := d.saveDelegationContractConfig(dConfig)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.isOwner(args) {
 		d.eei.AddReturnMessage("only owner can change delegation config")
 		return vmcommon.UserError
 	}
+
 	return vmcommon.Ok
 }
 
-func (d *delegation) changeServiceFee(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
+func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.isOwner(args) {
+		d.eei.AddReturnMessage("only owner can change delegation config")
+		return vmcommon.UserError
+	}
 
-func (d *delegation) modifyTotalDelegationCap(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (d *delegation) addNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (d *delegation) removeNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
@@ -209,7 +326,7 @@ func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
 	dConfig := &DelegationConfig{}
 	marshalledData := d.eei.GetStorage([]byte(delegationConfigKey))
 	if len(marshalledData) == 0 {
-		return dConfig, nil
+		return nil, fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
 	}
 
 	err := d.marshalizer.Unmarshal(dConfig, marshalledData)
@@ -227,6 +344,31 @@ func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) err
 	}
 
 	d.eei.SetStorage([]byte(delegationConfigKey), marshalledData)
+	return nil
+}
+
+func (d *delegation) getDelegationStatus() (*DelegationContractStatus, error) {
+	dStatus := &DelegationContractStatus{}
+	marshalledData := d.eei.GetStorage([]byte(delegationStatusKey))
+	if len(marshalledData) == 0 {
+		return nil, fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	}
+
+	err := d.marshalizer.Unmarshal(dStatus, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return dStatus, nil
+}
+
+func (d *delegation) saveDelegationStatus(dStatus *DelegationContractStatus) error {
+	marshalledData, err := d.marshalizer.Marshal(dStatus)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage([]byte(delegationStatusKey), marshalledData)
 	return nil
 }
 

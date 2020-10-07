@@ -184,3 +184,6 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrInvalidAddress signals that invalid address has been provided
 var ErrInvalidAddress = errors.New("invalid address")
+
+// ErrDataNotFoundUnderKey signals that data was not found under requested key
+var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key")

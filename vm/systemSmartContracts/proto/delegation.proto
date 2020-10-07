@@ -22,9 +22,9 @@ message DelegationContractList {
 
 message DelegationConfig {
   bytes  OwnerAddress         = 1 [(gogoproto.jsontag) = "OwnerAddress"];
-  uint64 ServiceFee           = 2 [(gogoproto.jsontag) = "NumNodes"];
+  uint64 ServiceFee           = 2 [(gogoproto.jsontag) = "ServiceFee"];
   bytes  MaxDelegationCap     = 3 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  InitialOwnerFunds    = 4 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  InitialOwnerFunds    = 4 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bool   AutomaticActivation  = 5 [(gogoproto.jsontag) = "AutomaticActivation"];
   bool   NoDelegationCap      = 6 [(gogoproto.jsontag) = "NoDelegationCap"];
   bool   ChangeableServiceFee = 7 [(gogoproto.jsontag) = "ChangeableServiceFee"];
@@ -64,4 +64,12 @@ message GlobalFundData {
 message NodesData {
   bytes BLSKey    = 1 [(gogoproto.jsontag) = "BLSKey"];
   bytes SignedMsg = 2 [(gogoproto.jsontag) = "SignedMsg"];
+}
+
+message RewardComputationData {
+  bytes RewardsToDistribute = 1 [(gogoproto.jsontag) = "RewardsToDistribute", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalActive         = 2 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint64 ServiceFee         = 3 [(gogoproto.jsontag) = "ServiceFee"];
+  uint32 StartEpoch         = 4 [(gogoproto.jsontag) = "StartEpoch"];
+  uint32 EndEpoch           = 5 [(gogoproto.jsontag) = "EndEpoch"];
 }

@@ -51,4 +51,6 @@ type DelegationManagerSystemSCConfig struct {
 type DelegationSystemSCConfig struct {
 	MinStakeAmount string
 	EnabledEpoch   uint32
+	MinServiceFee  uint64
+	MaxServiceFee  uint64
 }
