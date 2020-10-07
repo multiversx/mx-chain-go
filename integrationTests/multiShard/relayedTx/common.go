@@ -54,6 +54,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	return nodes, idxProposers, players, relayerAccount, advertiser
 }
 
+// CreateAndSendRelayedAndUserTx will create and send a relayed user transaction
 func CreateAndSendRelayedAndUserTx(
 	nodes []*integrationTests.TestProcessorNode,
 	relayer *integrationTests.TestWalletAccount,
@@ -63,7 +64,7 @@ func CreateAndSendRelayedAndUserTx(
 	gasLimit uint64,
 	txData []byte,
 ) *transaction.Transaction {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
 	relayedTx := createRelayedTx(txDispatcherNode.EconomicsData, relayer, userTx)

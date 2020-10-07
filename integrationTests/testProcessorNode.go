@@ -24,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -77,6 +79,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -268,6 +271,7 @@ type TestProcessorNode struct {
 	DeployEnableEpoch              uint32
 	RelayedTxEnableEpoch           uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	UseValidVmBlsSigVerifier       bool
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -381,6 +385,22 @@ func NewTestProcessorNode(
 ) *TestProcessorNode {
 
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn.initTestNode()
+
+	return tpn
+}
+
+// NewTestProcessorNodeWithBLSSigVerifier returns a new TestProcessorNode instance with a libp2p messenger
+// with a real BLS sig verifier used in system smart contracts
+func NewTestProcessorNodeWithBLSSigVerifier(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+) *TestProcessorNode {
+
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn.UseValidVmBlsSigVerifier = true
 	tpn.initTestNode()
 
 	return tpn
@@ -1177,11 +1197,19 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+	var signVerifier vm.MessageSignVerifier
+	if tpn.UseValidVmBlsSigVerifier {
+		signVerifier, _ = vmProcess.NewMessageSigVerifier(
+			signing.NewKeyGenerator(mcl.NewSuiteBLS12()),
+			mclsig.NewBlsSigner(),
+		)
+	} else {
+		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		signVerifer,
+		signVerifier,
 		gasSchedule,
 		tpn.NodesSetup,
 		TestHasher,
@@ -1562,6 +1590,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 		node.WithHistoryRepository(tpn.HistoryRepository),
+		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
+		node.WithWhiteListHandler(tpn.WhiteListHandler),
 	)
 	log.LogIfError(err)
 
