@@ -540,11 +540,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return returnCode, err
 	}
 
+	snapshot := sc.accounts.JournalLen()
 	if !sc.flagBuiltin.IsSet() {
-		return vmcommon.UserError, process.ErrBuiltInFunctionsAreDisabled
+		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
-	snapshot := sc.accounts.JournalLen()
 	vmOutput, lockedGas, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
