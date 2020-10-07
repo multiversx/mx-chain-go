@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -151,8 +151,9 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler   *componentHandler.HeartbeatHandler
-	peerHonestyHandler consensus.PeerHonestyHandler
+	heartbeatHandler        HeartbeatHandler
+	peerHonestyHandler      consensus.PeerHonestyHandler
+	fallbackHeaderValidator consensus.FallbackHeaderValidator
 
 	watchdog          core.WatchdogTimer
 	historyRepository dblookupext.HistoryRepository
@@ -341,6 +342,7 @@ func (n *Node) StartConsensus() error {
 		AntifloodHandler:              n.inputAntifloodHandler,
 		PeerHonestyHandler:            n.peerHonestyHandler,
 		HeaderSigVerifier:             n.headerSigVerifier,
+		FallbackHeaderValidator:       n.fallbackHeaderValidator,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
