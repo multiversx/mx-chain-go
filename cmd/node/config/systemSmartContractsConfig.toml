@@ -16,12 +16,12 @@
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
     OwnerAddress = "erd1ze6pgefwc7mdx0rhje3h50kkgt26ut3gx8ytezndkz8fjcf96gsqsd7ugw"
-    Disabled = true
+    EnabledEpoch = 100000000000
 
 [GovernanceSystemSCConfig]
-	ProposalCost = "5000000000000000000" #5 eGLD
-	NumNodes     = 500
-	MinQuorum    = 400
-	MinPassThreshold = 300
-	MinVetoThreshold = 50
-	Disabled     = true
+    ProposalCost = "5000000000000000000" #5 eGLD
+    NumNodes     = 500
+    MinQuorum    = 400
+    MinPassThreshold = 300
+    MinVetoThreshold = 50
+    EnabledEpoch = 100000000000
