@@ -193,6 +193,7 @@ type EpochProviderByNonce interface {
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
+	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	ID() core.PeerID
 	IsInterfaceNil() bool
@@ -235,6 +236,7 @@ type StorageType uint8
 type PeerListCreator interface {
 	PeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
+	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -367,5 +369,13 @@ type ResolverDebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)
+	IsInterfaceNil() bool
+}
+
+// CurrentNetworkEpochProviderHandler is an interface needed to get the current epoch from the network
+type CurrentNetworkEpochProviderHandler interface {
+	SetNetworkEpochAtBootstrap(epoch uint32)
+	EpochIsActiveInNetwork(epoch uint32) bool
+	CurrentEpoch() uint32
 	IsInterfaceNil() bool
 }

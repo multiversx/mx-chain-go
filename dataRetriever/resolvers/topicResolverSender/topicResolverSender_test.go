@@ -19,15 +19,17 @@ var defaultHashes = [][]byte{[]byte("hash")}
 
 func createMockArgTopicResolverSender() topicResolverSender.ArgTopicResolverSender {
 	return topicResolverSender.ArgTopicResolverSender{
-		Messenger:          &mock.MessageHandlerStub{},
-		TopicName:          "topic",
-		PeerListCreator:    &mock.PeerListCreatorStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
-		Randomizer:         &mock.IntRandomizerStub{},
-		TargetShardId:      0,
-		OutputAntiflooder:  &mock.P2PAntifloodHandlerStub{},
-		NumIntraShardPeers: 2,
-		NumCrossShardPeers: 2,
+		Messenger:                   &mock.MessageHandlerStub{},
+		TopicName:                   "topic",
+		PeerListCreator:             &mock.PeerListCreatorStub{},
+		Marshalizer:                 &mock.MarshalizerMock{},
+		Randomizer:                  &mock.IntRandomizerStub{},
+		TargetShardId:               0,
+		OutputAntiflooder:           &mock.P2PAntifloodHandlerStub{},
+		NumIntraShardPeers:          2,
+		NumCrossShardPeers:          2,
+		NumFullHistoryPeers:         3,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 	}
 }
 
@@ -88,6 +90,17 @@ func TestNewTopicResolverSender_NilOutputAntiflooderShouldErr(t *testing.T) {
 	assert.Equal(t, dataRetriever.ErrNilAntifloodHandler, err)
 }
 
+func TestNewTopicResolverSender_NilCurrentNetworkEpochProviderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.CurrentNetworkEpochProvider = nil
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.Equal(t, dataRetriever.ErrNilCurrentNetworkEpochProvider, err)
+}
+
 func TestNewTopicResolverSender_InvalidNumIntraShardPeersShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -106,6 +119,17 @@ func TestNewTopicResolverSender_InvalidNumCrossShardPeersShouldErr(t *testing.T)
 	arg := createMockArgTopicResolverSender()
 	arg.NumCrossShardPeers = -1
 	arg.NumIntraShardPeers = 100
+	trs, err := topicResolverSender.NewTopicResolverSender(arg)
+
+	assert.True(t, check.IfNil(trs))
+	assert.True(t, errors.Is(err, dataRetriever.ErrInvalidValue))
+}
+
+func TestNewTopicResolverSender_InvalidNumberOfFullHistoryPeersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTopicResolverSender()
+	arg.NumFullHistoryPeers = -1
 	trs, err := topicResolverSender.NewTopicResolverSender(arg)
 
 	assert.True(t, check.IfNil(trs))
@@ -186,7 +210,7 @@ func TestTopicResolverSender_SendOnRequestTopicNoOneToSendShouldErr(t *testing.T
 	assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 }
 
-func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndNotSendToFullHistoryNodes(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
@@ -222,6 +246,39 @@ func TestTopicResolverSender_SendOnRequestTopicShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, sentToPid1)
 	assert.True(t, sentToPid2)
+}
+
+func TestTopicResolverSender_SendOnRequestTopicShouldWorkAndSendToFullHistoryNodes(t *testing.T) {
+	t.Parallel()
+
+	pIDfullHistory := core.PeerID("full history peer")
+	sentToFullHistoryPeer := false
+
+	arg := createMockArgTopicResolverSender()
+	arg.Messenger = &mock.MessageHandlerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			if bytes.Equal(peerID.Bytes(), pIDfullHistory.Bytes()) {
+				sentToFullHistoryPeer = true
+			}
+
+			return nil
+		},
+	}
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		FullHistoryListCalled: func() []core.PeerID {
+			return []core.PeerID{pIDfullHistory}
+		},
+	}
+	arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+		EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+			return false
+		},
+	}
+	trs, _ := topicResolverSender.NewTopicResolverSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+	assert.Nil(t, err)
+	assert.True(t, sentToFullHistoryPeer)
 }
 
 func TestTopicResolverSender_SendOnRequestShouldStopAfterSendingToRequiredNum(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -127,7 +128,8 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, numCrossShardPeers, numIntraShardPeers)
+		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
+			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
 		if err != nil {
 			return err
 		}
@@ -256,7 +258,8 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie, 0, numIntraShardPeers+numCrossShardPeers)
+	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
 	if err != nil {
 		return err
 	}
@@ -265,7 +268,8 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie, 0, numIntraShardPeers+numCrossShardPeers)
+	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie,
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
 	if err != nil {
 		return err
 	}
