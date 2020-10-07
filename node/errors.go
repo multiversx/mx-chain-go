@@ -172,6 +172,9 @@ var ErrUnknownPeerID = errors.New("unknown peer ID")
 // ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
 var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
 
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
 // ErrNilWatchdog signals that a nil watchdog has been provided
 var ErrNilWatchdog = errors.New("nil watchdog")
 
@@ -195,3 +198,6 @@ var ErrTransactionNotFound = errors.New("transaction not found")
 
 // ErrCannotRetrieveTransaction signals that a transaction was not found
 var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
+
+// ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
+var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")

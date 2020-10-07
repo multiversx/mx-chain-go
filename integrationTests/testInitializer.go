@@ -75,6 +75,7 @@ var P2pBootstrapDelay = 5 * time.Second
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
 
+// AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
 var log = logger.GetOrCreate("integrationtests")
@@ -1160,6 +1161,33 @@ func CreateNodes(
 	return nodes
 }
 
+// CreateNodesWithBLSSigVerifier creates multiple nodes in different shards
+func CreateNodesWithBLSSigVerifier(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), shardId, shardId, serviceID)
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
 // CreateNodesWithFullGenesis creates multiple nodes in different shards
 func CreateNodesWithFullGenesis(
 	numOfShards int,
@@ -1353,7 +1381,53 @@ func CreateAndSendTransaction(
 
 	_, err := node.SendTransaction(tx)
 	if err != nil {
-		log.Warn("could not create transaction", "address", node.OwnAccount.Address, "error", err)
+		log.Error("could not create transaction", "address", node.OwnAccount.Address, "error", err)
+	}
+	node.OwnAccount.Nonce++
+}
+
+// CreateAndSendTransactionOnTheCorrectShard will generate a transaction with provided parameters, sign it with the provided
+// node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
+func CreateAndSendTransactionOnTheCorrectShard(
+	node *TestProcessorNode,
+	nodes []*TestProcessorNode,
+	txValue *big.Int,
+	rcvAddress []byte,
+	txData string,
+	additionalGasLimit uint64,
+) {
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    new(big.Int).Set(txValue),
+		SndAddr:  node.OwnAccount.Address,
+		RcvAddr:  rcvAddress,
+		Data:     []byte(txData),
+		GasPrice: MinTxGasPrice,
+		GasLimit: MinTxGasLimit + uint64(len(txData)) + additionalGasLimit,
+		ChainID:  ChainID,
+		Version:  MinTransactionVersion,
+	}
+
+	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
+
+	wasSend := false
+	for _, senderNode := range nodes {
+		if senderNode.ShardCoordinator.SelfId() != senderShardID {
+			continue
+		}
+
+		_, err := senderNode.SendTransaction(tx)
+		if err != nil {
+			log.Error("could not send transaction", "address", node.OwnAccount.Address, "error", err)
+		}
+		wasSend = true
+		break
+	}
+
+	if !wasSend {
+		log.Error("no suitable node found to send the provided transaction", "address", node.OwnAccount.Address)
 	}
 	node.OwnAccount.Nonce++
 }

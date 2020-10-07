@@ -33,6 +33,8 @@ func internalInitConsensusState() *spos.ConsensusState {
 
 	rthr.SetThreshold(bls.SrBlock, 1)
 	rthr.SetThreshold(bls.SrSignature, 3)
+	rthr.SetFallbackThreshold(bls.SrBlock, 1)
+	rthr.SetFallbackThreshold(bls.SrSignature, 2)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()

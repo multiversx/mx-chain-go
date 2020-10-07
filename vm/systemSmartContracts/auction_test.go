@@ -2496,6 +2496,197 @@ func TestAuctionStakingSC_SetConfig_InvalidParameters(t *testing.T) {
 	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidUnJailCost.Error()))
 }
 
+func TestAuctionStakingSC_getBlsStatusWrongCaller(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getBlsKeysStatus"
+	arguments.CallerAddr = []byte("wrong caller")
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "this is only a view function"))
+}
+
+func TestAuctionStakingSC_getBlsStatusWrongNumOfArguments(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getBlsKeysStatus"
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "number of arguments must be equal to 1"))
+}
+
+func TestAuctionStakingSC_getBlsStatusWrongRegistrationData(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+
+	wrongStorageEntry := make(map[string][]byte)
+	wrongStorageEntry["erdKey"] = []byte("entry val")
+	eei.storageUpdate["addr"] = wrongStorageEntry
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Arguments = append(arguments.Arguments, []byte("erdKey"))
+	arguments.Function = "getBlsKeysStatus"
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, returnCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot get or create registration data: error "))
+}
+
+func TestAuctionStakingSC_getBlsStatusNoBlsKeys(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getBlsKeysStatus"
+	arguments.Arguments = append(arguments.Arguments, []byte("erd key"))
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "no bls keys"))
+}
+
+func TestAuctionStakingSC_getBlsStatusShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+
+	firstAddr := "addr 1"
+	secondAddr := "addr 2"
+	auctionData := AuctionData{
+		BlsPubKeys: [][]byte{[]byte(firstAddr), []byte(secondAddr)},
+	}
+	serializedAuctionData, _ := args.Marshalizer.Marshal(auctionData)
+
+	registrationData1 := &StakedDataV2{
+		Staked:        true,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		RewardAddress: []byte("rewards addr"),
+		JailedRound:   math.MaxUint64,
+		StakedNonce:   math.MaxUint64,
+	}
+	serializedRegistrationData1, _ := args.Marshalizer.Marshal(registrationData1)
+
+	registrationData2 := &StakedDataV2{
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		RewardAddress: []byte("rewards addr"),
+		JailedRound:   math.MaxUint64,
+		StakedNonce:   math.MaxUint64,
+	}
+	serializedRegistrationData2, _ := args.Marshalizer.Marshal(registrationData2)
+
+	storageEntry := make(map[string][]byte)
+	storageEntry["erdKey"] = serializedAuctionData
+	eei.storageUpdate["addr"] = storageEntry
+
+	stakingEntry := make(map[string][]byte)
+	stakingEntry[firstAddr] = serializedRegistrationData1
+	stakingEntry[secondAddr] = serializedRegistrationData2
+	eei.storageUpdate["staking"] = stakingEntry
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Arguments = append(arguments.Arguments, []byte("erdKey"))
+	arguments.Function = "getBlsKeysStatus"
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	output := eei.CreateVMOutput()
+	assert.Equal(t, 4, len(output.ReturnData))
+	assert.Equal(t, []byte(firstAddr), output.ReturnData[0])
+	assert.Equal(t, []byte("staked"), output.ReturnData[1])
+	assert.Equal(t, []byte(secondAddr), output.ReturnData[2])
+	assert.Equal(t, []byte("unStaked"), output.ReturnData[3])
+}
+
+func TestAuctionStakingSC_getBlsStatusShouldWorkEvenIfAnErrorOccursForOneOfTheBlsKeys(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	blockChainHook := &mock.BlockChainHookStub{}
+	args := createMockArgumentsForAuction()
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+
+	firstAddr := "addr 1"
+	secondAddr := "addr 2"
+	auctionData := AuctionData{
+		BlsPubKeys: [][]byte{[]byte(firstAddr), []byte(secondAddr)},
+	}
+	serializedAuctionData, _ := args.Marshalizer.Marshal(auctionData)
+
+	registrationData := &StakedDataV2{
+		Staked:        true,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		RewardAddress: []byte("rewards addr"),
+		JailedRound:   math.MaxUint64,
+		StakedNonce:   math.MaxUint64,
+	}
+	serializedRegistrationData, _ := args.Marshalizer.Marshal(registrationData)
+
+	storageEntry := make(map[string][]byte)
+	storageEntry["erdKey"] = serializedAuctionData
+	eei.storageUpdate["addr"] = storageEntry
+
+	stakingEntry := make(map[string][]byte)
+	stakingEntry[firstAddr] = []byte("wrong data for first bls key")
+	stakingEntry[secondAddr] = serializedRegistrationData
+	eei.storageUpdate["staking"] = stakingEntry
+	args.Eei = eei
+
+	sc, _ := NewStakingAuctionSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Arguments = append(arguments.Arguments, []byte("erdKey"))
+	arguments.Function = "getBlsKeysStatus"
+
+	returnCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	output := eei.CreateVMOutput()
+	assert.Equal(t, 2, len(output.ReturnData))
+	assert.Equal(t, []byte(secondAddr), output.ReturnData[0])
+	assert.Equal(t, []byte("staked"), output.ReturnData[1])
+}
+
 func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	t.Parallel()
 

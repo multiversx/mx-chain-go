@@ -177,11 +177,12 @@ func (inUTx *InterceptedUnsignedTransaction) Type() string {
 
 // String returns the unsigned transaction's most important fields as string
 func (inUTx *InterceptedUnsignedTransaction) String() string {
-	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s",
+	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
 		logger.DisplayByteSlice(inUTx.uTx.SndAddr),
 		inUTx.uTx.Nonce,
 		inUTx.uTx.Value.String(),
 		logger.DisplayByteSlice(inUTx.uTx.RcvAddr),
+		string(inUTx.uTx.Data),
 	)
 }
 
