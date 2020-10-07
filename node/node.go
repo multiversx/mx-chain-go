@@ -818,6 +818,11 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 
 // ValidateTransaction will validate a transaction
 func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
+	err := n.checkSenderIsInShard(tx)
+	if err != nil {
+		return err
+	}
+
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
@@ -826,7 +831,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		core.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
-		return nil
+		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
+			"error", err)
+		return err
 	}
 
 	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
@@ -859,13 +866,17 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAccountNotFound) {
-		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
-		return nil
+	return txValidator.CheckTxValidity(intTx)
+}
+
+func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
+	senderShardID := n.shardCoordinator.ComputeId(tx.SndAddr)
+	if senderShardID != n.shardCoordinator.SelfId() {
+		return fmt.Errorf("%w, tx sender shard ID: %d, node's shard ID %d",
+			ErrDifferentSenderShardId, senderShardID, n.shardCoordinator.SelfId())
 	}
 
-	return err
+	return nil
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
