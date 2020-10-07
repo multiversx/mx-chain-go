@@ -2,6 +2,8 @@ package storageResolvers
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -14,6 +16,9 @@ type storageResolver struct {
 	responseTopicName        string
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	chanGracefullyClose      chan endProcess.ArgEndProcess
+	mutSignaled              sync.Mutex
+	signaled                 bool
+	delayBeforeGracefulClose time.Duration
 }
 
 // ProcessReceivedMessage does nothing, won't be able to process network requests
@@ -40,6 +45,18 @@ func (sr *storageResolver) sendToSelf(buffToSend []byte) error {
 }
 
 func (sr *storageResolver) signalGracefullyClose() {
+	sr.mutSignaled.Lock()
+	defer sr.mutSignaled.Unlock()
+
+	if sr.signaled {
+		return
+	}
+
+	sr.signaled = true
+	go sr.asyncCallGracefullyClose()
+}
+
+func (sr *storageResolver) asyncCallGracefullyClose() {
 	crtEpoch := sr.manualEpochStartNotifier.CurrentEpoch()
 
 	argEndProcess := endProcess.ArgEndProcess{
@@ -47,6 +64,8 @@ func (sr *storageResolver) signalGracefullyClose() {
 		Description: fmt.Sprintf("import ended because data from epochs %d or %d does not exist",
 			crtEpoch-1, crtEpoch),
 	}
+
+	time.Sleep(sr.delayBeforeGracefulClose)
 
 	select {
 	case sr.chanGracefullyClose <- argEndProcess:
