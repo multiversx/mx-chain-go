@@ -325,6 +325,16 @@ func (ns *NodesSetup) MinNumberOfNodes() uint32 {
 	return ns.nrOfShards*ns.MinNodesPerShard + ns.MetaChainMinNodes
 }
 
+// MinShardHysteresisNodes returns the minimum number of hysteresis nodes per shard
+func (ns *NodesSetup) MinShardHysteresisNodes() uint32 {
+	return uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
+}
+
+// MinMetaHysteresisNodes returns the minimum number of hysteresis nodes in metachain
+func (ns *NodesSetup) MinMetaHysteresisNodes() uint32 {
+	return uint32(float32(ns.MetaChainMinNodes) * ns.Hysteresis)
+}
+
 // MinNumberOfShardNodes returns the minimum number of nodes per shard
 func (ns *NodesSetup) MinNumberOfShardNodes() uint32 {
 	return ns.MinNodesPerShard

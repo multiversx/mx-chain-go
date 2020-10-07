@@ -2048,17 +2048,19 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                     systemVM,
-		UserAccountsDB:               stateComponents.AccountsAdapter,
-		PeerAccountsDB:               stateComponents.PeerAccounts,
-		Marshalizer:                  core.InternalMarshalizer,
-		StartRating:                  ratingsData.StartRating(),
-		ValidatorInfoCreator:         validatorStatisticsProcessor,
-		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
-		StakingSCAddress:             vm.StakingSCAddress,
-		ChanceComputer:               nodesCoordinator,
-		EpochNotifier:                epochNotifier,
-		SwitchJailWaitingEnableEpoch: generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+		SystemVM:                               systemVM,
+		UserAccountsDB:                         stateComponents.AccountsAdapter,
+		PeerAccountsDB:                         stateComponents.PeerAccounts,
+		Marshalizer:                            core.InternalMarshalizer,
+		StartRating:                            ratingsData.StartRating(),
+		ValidatorInfoCreator:                   validatorStatisticsProcessor,
+		EndOfEpochCallerAddress:                vm.EndOfEpochAddress,
+		StakingSCAddress:                       vm.StakingSCAddress,
+		ChanceComputer:                         nodesCoordinator,
+		EpochNotifier:                          epochNotifier,
+		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
+		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

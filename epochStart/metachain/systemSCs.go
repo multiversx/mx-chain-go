@@ -30,8 +30,11 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	EndOfEpochCallerAddress []byte
 	StakingSCAddress        []byte
 
-	SwitchJailWaitingEnableEpoch uint32
-	EpochNotifier                process.EpochNotifier
+	SwitchJailWaitingEnableEpoch           uint32
+	SwitchHysteresisForMinNodesEnableEpoch uint32
+
+	GenesisNodesConfig sharding.GenesisNodesSetupHandler
+	EpochNotifier      process.EpochNotifier
 }
 
 type systemSCProcessor struct {
@@ -42,10 +45,13 @@ type systemSCProcessor struct {
 	chanceComputer          sharding.ChanceComputer
 	startRating             uint32
 	validatorInfoCreator    epochStart.ValidatorInfoCreator
+	genesisNodesConfig      sharding.GenesisNodesSetupHandler
 	endOfEpochCallerAddress []byte
 	stakingSCAddress        []byte
 	switchEnableEpoch       uint32
+	hystNodesEnableEpoch    uint32
 	flagSwitchEnabled       atomic.Flag
+	flagHystNodesEnabled    atomic.Flag
 
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
@@ -100,6 +106,9 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.EpochNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.GenesisNodesConfig) {
+		return nil, epochStart.ErrNilGenesisNodesConfig
+	}
 
 	s := &systemSCProcessor{
 		systemVM:                 args.SystemVM,
@@ -108,12 +117,14 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		marshalizer:              args.Marshalizer,
 		startRating:              args.StartRating,
 		validatorInfoCreator:     args.ValidatorInfoCreator,
+		genesisNodesConfig:       args.GenesisNodesConfig,
 		endOfEpochCallerAddress:  args.EndOfEpochCallerAddress,
 		stakingSCAddress:         args.StakingSCAddress,
 		chanceComputer:           args.ChanceComputer,
 		mapNumSwitchedPerShard:   make(map[uint32]uint32),
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
+		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -122,21 +133,43 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	if !s.flagSwitchEnabled.IsSet() {
-		return nil
+	if s.flagHystNodesEnabled.IsSet() {
+		err := s.UpdateSystemSCConfig()
+		if err != nil {
+			return err
+		}
 	}
 
-	err := s.computeNumWaitingPerShard(validatorInfos)
-	if err != nil {
-		return err
-	}
+	if s.flagSwitchEnabled.IsSet() {
+		err := s.computeNumWaitingPerShard(validatorInfos)
+		if err != nil {
+			return err
+		}
 
-	err = s.swapJailedWithWaiting(validatorInfos)
-	if err != nil {
-		return err
+		err = s.swapJailedWithWaiting(validatorInfos)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+// UpdateSystemSCConfig updates the configuration of the system SC if the flags permit
+func (s *systemSCProcessor) UpdateSystemSCConfig() error {
+	var err error
+	if s.flagHystNodesEnabled.IsSet() {
+		nbShards := s.genesisNodesConfig.NumberOfShards()
+		hystNodesMeta := s.genesisNodesConfig.MinMetaHysteresisNodes()
+		hystNodesShard := s.genesisNodesConfig.MinShardHysteresisNodes()
+		minNumberOfNodes := s.genesisNodesConfig.MinNumberOfNodes()
+
+		minNumberOfNodesWithHysteresis := minNumberOfNodes + hystNodesMeta + nbShards*hystNodesShard
+
+		err = s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
+	}
+
+	return err
 }
 
 func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32][]*state.ValidatorInfo) error {
@@ -404,6 +437,38 @@ func (s *systemSCProcessor) getPeerAccount(key []byte) (state.PeerAccountHandler
 	return peerAcc, nil
 }
 
+func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{big.NewInt(int64(minNumNodes)).Bytes()},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "updateConfigMinNodes",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("setMinNumberOfNodes called with",
+		"minNumNodes", minNumNodes,
+		"returnMessage", vmOutput.ReturnMessage)
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrInvalidMinNumberOfNodes
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -412,5 +477,8 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
+	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
+		"enabled", s.flagHystNodesEnabled.IsSet())
 }

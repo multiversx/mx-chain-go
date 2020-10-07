@@ -22,6 +22,8 @@ type GenesisNodesSetupHandlerStub struct {
 	GetAdaptivityCalled              func() bool
 	NumberOfShardsCalled             func() uint32
 	MinNumberOfNodesCalled           func() uint32
+	MinShardHysteresisNodesCalled    func() uint32
+	MinMetaHysteresisNodesCalled     func() uint32
 }
 
 // InitialNodesInfoForShard -
@@ -148,6 +150,22 @@ func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodes() uint32 {
 	}
 
 	return 1
+}
+
+// MinShardHysteresisNodes -
+func (g *GenesisNodesSetupHandlerStub) MinShardHysteresisNodes() uint32 {
+	if g.MinShardHysteresisNodesCalled != nil {
+		return g.MinShardHysteresisNodesCalled()
+	}
+	return 0
+}
+
+// MinMetaHysteresisNodes -
+func (g *GenesisNodesSetupHandlerStub) MinMetaHysteresisNodes() uint32 {
+	if g.MinMetaHysteresisNodesCalled != nil {
+		return g.MinMetaHysteresisNodesCalled()
+	}
+	return 0
 }
 
 // IsInterfaceNil -

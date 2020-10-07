@@ -17,6 +17,8 @@ type NodesSetupStub struct {
 	MinNumberOfMetaNodesCalled       func() uint32
 	GetHysteresisCalled              func() float32
 	GetAdaptivityCalled              func() bool
+	MinShardHysteresisNodesCalled    func() uint32
+	MinMetaHysteresisNodesCalled     func() uint32
 }
 
 // MinNumberOfShardNodes -
@@ -133,6 +135,22 @@ func (n *NodesSetupStub) InitialNodesInfo() (map[uint32][]sharding.GenesisNodeIn
 		return n.InitialNodesInfoCalled()
 	}
 	return nil, nil
+}
+
+// MinShardHysteresisNodes -
+func (n *NodesSetupStub) MinShardHysteresisNodes() uint32 {
+	if n.MinShardHysteresisNodesCalled != nil {
+		return n.MinShardHysteresisNodesCalled()
+	}
+	return 0
+}
+
+// MinMetaHysteresisNodes -
+func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
+	if n.MinMetaHysteresisNodesCalled != nil {
+		return n.MinMetaHysteresisNodesCalled()
+	}
+	return 0
 }
 
 // IsInterfaceNil -
