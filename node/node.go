@@ -829,7 +829,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		core.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
-		return fmt.Errorf("%w in Node.ValidateTransaction", err)
+		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
+			"error", err)
+		return err
 	}
 
 	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)

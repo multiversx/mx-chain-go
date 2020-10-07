@@ -1393,7 +1393,7 @@ func CreateAndSendTransactionOnTheCorrectShard(
 
 		_, err := senderNode.SendTransaction(tx)
 		if err != nil {
-			log.Error("could not create transaction", "address", node.OwnAccount.Address, "error", err)
+			log.Error("could not send transaction", "address", node.OwnAccount.Address, "error", err)
 		}
 		wasSend = true
 		break
