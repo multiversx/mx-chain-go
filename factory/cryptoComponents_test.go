@@ -58,6 +58,16 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	require.NotNil(t, ccf)
 }
 
+func TestNewCryptoComponentsFactory_MockSigShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getCryptoArgs()
+	args.UseMockSigVerifier = true
+	ccf, err := factory.NewCryptoComponentsFactory(args)
+	require.NoError(t, err)
+	require.NotNil(t, ccf)
+}
+
 func TestCryptoComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +84,18 @@ func TestCryptoComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
+	ccf, _ := factory.NewCryptoComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
+func TestCryptoComponentsFactory_CreateWithMockSig(t *testing.T) {
+	t.Parallel()
+
+	args := getCryptoArgs()
+	args.UseMockSigVerifier = true
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()

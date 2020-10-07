@@ -378,6 +378,11 @@ VERSION:
 			"and re-process everything",
 		Value: "",
 	}
+	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
+	importDbNoSigCheck = cli.BoolFlag{
+		Name:  "import-db-no-sig-check",
+		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -446,6 +451,7 @@ func main() {
 		numActivePersisters,
 		startInEpoch,
 		importDbDirectory,
+		importDbNoSigCheck,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -537,7 +543,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	isInImportMode := len(importDbDirectoryValue) > 0
-	applyCompatibleConfigs(isInImportMode, log, generalConfig, p2pConfig)
+	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
+	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, generalConfig, p2pConfig)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := loadApiConfig(configurationApiFileName)
@@ -744,6 +751,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		KeyGen:                               cryptoParams.KeyGenerator,
 		PrivKey:                              cryptoParams.PrivateKey,
 		ActivateBLSPubKeyMessageVerification: systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
+		UseMockSigVerifier:                   importDbNoSigCheckFlag,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {
@@ -1494,17 +1502,22 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
-func applyCompatibleConfigs(isInImportMode bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
+func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
 		log.Warn("the node is in import mode! Will auto-set some config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"p2p.ThresholdMinConnectedPeers", 0,
+			"no sig check", importDbNoSigCheckFlag,
+			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
+		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
+		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
+		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
 	}
 }
 

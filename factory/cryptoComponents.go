@@ -9,6 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	disabledCrypto "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled"
+	disabledmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/multisig"
+	disabledsig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
@@ -25,6 +28,8 @@ import (
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
+const disabledSigChecking = "disabled"
+
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
 	Config                               config.Config
@@ -33,9 +38,11 @@ type CryptoComponentsFactoryArgs struct {
 	KeyGen                               crypto.KeyGenerator
 	PrivKey                              crypto.PrivateKey
 	ActivateBLSPubKeyMessageVerification bool
+	UseMockSigVerifier                   bool
 }
 
 type cryptoComponentsFactory struct {
+	consensusType                        string
 	config                               config.Config
 	nodesConfig                          NodesSetupHandler
 	shardCoordinator                     sharding.Coordinator
@@ -59,14 +66,22 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		return nil, ErrNilPrivateKey
 	}
 
-	return &cryptoComponentsFactory{
+	ccf := &cryptoComponentsFactory{
+		consensusType:                        args.Config.Consensus.Type,
 		config:                               args.Config,
 		nodesConfig:                          args.NodesConfig,
 		shardCoordinator:                     args.ShardCoordinator,
 		keyGen:                               args.KeyGen,
 		privKey:                              args.PrivKey,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
-	}, nil
+	}
+	if args.UseMockSigVerifier {
+		ccf.consensusType = disabledSigChecking
+		ccf.keyGen = signing.NewKeyGenerator(disabledCrypto.NewDisabledSuite())
+		log.Warn("using disabled key generator")
+	}
+
+	return ccf, nil
 }
 
 // Create will create and return crypto components
@@ -132,16 +147,19 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 }
 
 func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
-	switch ccf.config.Consensus.Type {
+	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		return &mclsig.BlsSingleSigner{}, nil
+	case disabledSigChecking:
+		log.Warn("using disabled single signer")
+		return &disabledsig.Disabled{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}
 }
 
 func (ccf *cryptoComponentsFactory) getMultisigHasherFromConfig() (hashing.Hasher, error) {
-	if ccf.config.Consensus.Type == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
+	if ccf.consensusType == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
 		return nil, ErrMultiSigHasherMissmatch
 	}
 
@@ -149,7 +167,7 @@ func (ccf *cryptoComponentsFactory) getMultisigHasherFromConfig() (hashing.Hashe
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		if ccf.config.Consensus.Type == consensus.BlsConsensusType {
+		if ccf.consensusType == consensus.BlsConsensusType {
 			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
@@ -169,10 +187,13 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	// we care about the order of the initial public keys that signed, but we never use the entire set of initial
 	// public keys in their initial order.
 
-	switch ccf.config.Consensus.Type {
+	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, pubKeys, ccf.privKey, ccf.keyGen, uint16(0))
+	case disabledSigChecking:
+		log.Warn("using disabled multi signer")
+		return &disabledmultisig.Disabled{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}
