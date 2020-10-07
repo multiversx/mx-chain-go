@@ -244,3 +244,6 @@ var ErrNilHeaderIntegrityVerifier = errors.New("nil header integrity verifier ha
 
 // ErrNilChanceComputer signals that nil chance computer has been provided
 var ErrNilChanceComputer = errors.New("nil chance computer")
+
+// ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
+var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")

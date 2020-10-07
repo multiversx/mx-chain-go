@@ -927,3 +927,15 @@ type EpochNotifier interface {
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
+type NumConnectedPeersProvider interface {
+	ConnectedPeers() []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
+type CurrentNetworkEpochSetter interface {
+	SetNetworkEpochAtBootstrap(epoch uint32)
+	IsInterfaceNil() bool
+}

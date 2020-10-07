@@ -138,6 +138,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		CurrentNetworkEpochSetter:  &mock.CurrentNetworkEpochSetterStub{},
 	}
 }
 

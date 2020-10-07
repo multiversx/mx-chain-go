@@ -213,6 +213,16 @@ type TopicMessageHandler interface {
 	TopicHandler
 }
 
+// Messenger defines which methods a p2p messenger should implement
+type Messenger interface {
+	MessageHandler
+	TopicHandler
+	UnregisterMessageProcessor(topic string, identifier string) error
+	UnregisterAllMessageProcessors() error
+	UnjoinAllTopics() error
+	ConnectedPeers() []core.PeerID
+}
+
 // IntRandomizer interface provides functionality over generating integer numbers
 type IntRandomizer interface {
 	Intn(n int) int

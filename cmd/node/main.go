@@ -42,12 +42,14 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -962,6 +964,27 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	epochStartMetaBlockInterceptor, err := interceptors.NewEpochStartMetaBlockInterceptor(
+		interceptors.ArgsEpochStartMetaBlockInterceptor{
+			Marshalizer:               coreComponents.InternalMarshalizer,
+			Hasher:                    coreComponents.Hasher,
+			NumConnectedPeersProvider: networkComponents.NetMessenger,
+			ConsensusPercentage:       core.ConsensusPercentageForInterceptedEpochStartMetaBlocks,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	// TODO: use this where it is needed
+	currentNetworkEpochProvider, err := epochproviders.NewCurrentNetworkEpochProvider(
+		epochproviders.ArgsCurrentNetworkProvider{
+			RequestHandler:                 &disabled.RequestHandler{},
+			Messenger:                      networkComponents.NetMessenger,
+			EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
+			NumActivePersisters:            int(generalConfig.StoragePruning.NumActivePersisters),
+		},
+	)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		PublicKey:                  cryptoParams.PublicKey,
 		Marshalizer:                coreComponents.InternalMarshalizer,
@@ -992,6 +1015,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		CurrentNetworkEpochSetter:  currentNetworkEpochProvider,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -1304,6 +1328,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	if err != nil {
 		return err
 	}
+
+	currentNetworkEpochProvider.SetRequestHandler(processComponents.RequestHandler)
 
 	transactionSimulator, err := txsimulator.NewTransactionSimulator(*txSimulatorProcessorArgs)
 	if err != nil {
