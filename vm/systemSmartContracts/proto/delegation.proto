@@ -32,11 +32,11 @@ message DelegationConfig {
 }
 
 message DelegationContractStatus {
-  bytes  TotalActive              = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  TotalUnStaked            = 2 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  uint32 NumDelegators            = 3 [(gogoproto.jsontag) = "NumDelegators"];
-  repeated bytes StakedBLSKeys    = 4 [(gogoproto.jsontag) = "StakedBLSKeys"];
-  repeated bytes NotStakedBLSKeys = 5 [(gogoproto.jsontag) = "NotStakedBLSKeys"];
+  bytes  TotalActive               = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  TotalUnStaked             = 2 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint32 NumDelegators             = 3 [(gogoproto.jsontag) = "NumDelegators"];
+  repeated NodesData StakedKeys    = 4 [(gogoproto.jsontag) = "StakedKeys"];
+  repeated NodesData NotStakedKeys = 5 [(gogoproto.jsontag) = "NotStakedKeys"];
 }
 
 message Fund {
@@ -62,5 +62,6 @@ message GlobalFundData {
 }
 
 message NodesData {
-  repeated bytes BLSKeys = 1 [(gogoproto.jsontag) = "BLSKeys"];
+  bytes BLSKey    = 1 [(gogoproto.jsontag) = "BLSKey"];
+  bytes SignedMsg = 2 [(gogoproto.jsontag) = "SignedMsg"];
 }
