@@ -15,6 +15,7 @@ type EpochStartNotifier interface {
 	NotifyAll(hdr data.HeaderHandler)
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 	IsInterfaceNil() bool
 }
 

@@ -162,39 +162,16 @@ func TestTrigger_Update(t *testing.T) {
 	assert.True(t, notifierWasCalled)
 }
 
-func TestTrigger_ForceEpochStartIncorrectRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	round := uint64(1)
-	nonce := uint64(100)
-	arguments := createMockEpochStartTriggerArguments()
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-
-	epochStartTrigger.Update(round, nonce)
-
-	err := epochStartTrigger.ForceEpochStart(0)
-	assert.Equal(t, epochStart.ErrSavedRoundIsHigherThanInputRound, err)
-}
-
-func TestTrigger_ForceEpochStartRoundEqualWithSavedRoundShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockEpochStartTriggerArguments()
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-
-	err := epochStartTrigger.ForceEpochStart(0)
-	assert.Equal(t, epochStart.ErrForceEpochStartCanBeCalledOnlyOnNewRound, err)
-}
-
 func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Settings.MinRoundsBetweenEpochs = 2
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger.currentRound = 1
 
-	err := epochStartTrigger.ForceEpochStart(1)
-	assert.Equal(t, epochStart.ErrNotEnoughRoundsBetweenEpochs, err)
+	epochStartTrigger.ForceEpochStart()
+	assert.Equal(t, uint64(arguments.Settings.MinRoundsBetweenEpochs), epochStartTrigger.nextEpochStartRound)
 }
 
 func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
@@ -204,12 +181,13 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger.currentRound = 1
 
-	err := epochStartTrigger.ForceEpochStart(1)
-	assert.Nil(t, err)
+	epochStartTrigger.ForceEpochStart()
 
-	newEpoch := epochStartTrigger.Epoch()
-	assert.Equal(t, epoch+1, newEpoch)
+	assert.Equal(t, epochStartTrigger.currentRound, epochStartTrigger.nextEpochStartRound)
+
+	epochStartTrigger.Update(epochStartTrigger.currentRound, minimumNonceToStartEpoch)
 
 	isEpochStart := epochStartTrigger.IsEpochStart()
 	assert.True(t, isEpochStart)

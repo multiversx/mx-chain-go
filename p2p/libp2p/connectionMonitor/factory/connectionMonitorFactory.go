@@ -12,7 +12,7 @@ import (
 type ArgsConnectionMonitorFactory struct {
 	Reconnecter                p2p.Reconnecter
 	Sharder                    p2p.CommonSharder
-	ThresholdMinConnectedPeers int
+	ThresholdMinConnectedPeers uint32
 	TargetCount                int
 }
 
