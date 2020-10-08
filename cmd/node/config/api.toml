@@ -9,6 +9,9 @@
         # /node/metrics will return all metrics stored inside a node in the format that Prometheus expects them
         { Name = "/metrics", Open = true },
 
+        # /node/economics will return all economics related metrics
+        { Name = "/economics", Open = true },
+
         # /node/heartbeatstatus will return all heartbeats messages from the nodes in the network
         { Name = "/heartbeatstatus", Open = true },
 
