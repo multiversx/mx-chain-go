@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	transactionProcess "github.com/ElrondNetwork/elrond-go/process/transaction"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -282,7 +282,7 @@ func TestGetGasUsedFromReceipt_RefundedGas(t *testing.T) {
 	rec := &receipt.Receipt{
 		Value:   recValue,
 		SndAddr: nil,
-		Data:    []byte(transactionProcess.RefundGasMessage),
+		Data:    []byte(processTransaction.RefundGasMessage),
 		TxHash:  txHash,
 	}
 	tx := &Transaction{
@@ -292,13 +292,10 @@ func TestGetGasUsedFromReceipt_RefundedGas(t *testing.T) {
 		GasLimit: gasLimit,
 	}
 
-	expectedGasUsed := big.NewInt(0).SetUint64(gasPrice)
-	expectedGasUsed.Mul(expectedGasUsed, big.NewInt(0).SetUint64(gasLimit))
-	expectedGasUsed.Sub(expectedGasUsed, recValue)
-	expectedGasUsed.Div(expectedGasUsed, big.NewInt(0).SetUint64(gasPrice))
+	expectedGasUsed := uint64(9990)
 
 	gasUsed := getGasUsedFromReceipt(rec, tx)
-	assert.Equal(t, expectedGasUsed.Uint64(), gasUsed)
+	assert.Equal(t, expectedGasUsed, gasUsed)
 }
 
 func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
@@ -321,11 +318,10 @@ func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
 		GasLimit: gasLimit,
 	}
 
-	expectedGasUsed := big.NewInt(0)
-	expectedGasUsed = expectedGasUsed.Div(recValue, big.NewInt(0).SetUint64(gasPrice))
+	expectedGasUsed := uint64(100)
 
 	gasUsed := getGasUsedFromReceipt(rec, tx)
-	assert.Equal(t, expectedGasUsed.Uint64(), gasUsed)
+	assert.Equal(t, expectedGasUsed, gasUsed)
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {

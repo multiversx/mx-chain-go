@@ -19,7 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	transactionProcess "github.com/ElrondNetwork/elrond-go/process/transaction"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 )
 
 const (
@@ -137,7 +137,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 }
 
 func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {
-	if rec.Data != nil && string(rec.Data) == transactionProcess.RefundGasMessage {
+	if rec.Data != nil && string(rec.Data) == processTransaction.RefundGasMessage {
+		// in this gas receipt contains the refunded value
 		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
 		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
 		gasUsed.Sub(gasUsed, rec.Value)
@@ -146,6 +147,7 @@ func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {
 		return gasUsed.Uint64()
 	}
 
+	// we have an invalid transaction and receipt contains the fee of transaction
 	gasUsed := big.NewInt(0)
 	gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
 

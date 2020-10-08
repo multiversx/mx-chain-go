@@ -24,8 +24,8 @@ import (
 var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
-// RefundGasMessage is message that is returned in data field of created receipt
-//when in a move balance transaction is provided too much gas
+// RefundGasMessage is the message returned in the data field of a receipt,
+// for move balance transactions that provide more gas than needed
 const RefundGasMessage = "refundedGas"
 
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
