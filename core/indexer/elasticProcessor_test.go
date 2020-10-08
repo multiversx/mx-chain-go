@@ -113,8 +113,6 @@ func newTestBlockBody() *dataBlock.Body {
 }
 
 func TestNewElasticProcessorWithKibana(t *testing.T) {
-	t.Parallel()
-
 	args := createMockElasticProcessorArgs()
 	args.Options = &Options{
 		UseKibana: true,
