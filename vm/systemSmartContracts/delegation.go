@@ -18,6 +18,13 @@ import (
 const delegationConfigKey = "delegationConfigKey"
 const delegationStatusKey = "delegationStatusKey"
 const lastFundKey = "lastFundKey"
+const globalFundKey = "globalFundKey"
+
+const (
+	active       = uint32(0)
+	unStaked     = uint32(1)
+	withdrawOnly = uint32(2)
+)
 
 type delegation struct {
 	eei                    vm.SystemEI
@@ -140,7 +147,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		d.eei.AddReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
-
 	if len(args.Arguments) != 3 {
 		d.eei.AddReturnMessage("not enough arguments to init delegation contract")
 		return vmcommon.UserError
@@ -162,7 +168,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	if dConfig.MaxDelegationCap.Cmp(zero) == 0 {
 		dConfig.WithDelegationCap = false
 	}
-
 	err := d.saveDelegationContractConfig(dConfig)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -176,22 +181,38 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
 	}
-
 	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	_, delegator, err := d.getOrCreateDelegatorData(ownerAddress)
+	var fundKey []byte
+	fundKey, err = d.createAndSaveNextFund(ownerAddress, args.CallValue, active)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	delegator.TotalActive = big.NewInt(0).Set(args.CallValue)
-	delegator.UnStakedFunds = make([][]byte, 0)
-	delegator.WithdrawOnlyFunds = make([][]byte, 0)
+	delegator := &DelegatorData{
+		ActiveFund:        fundKey,
+		UnStakedFunds:     make([][]byte, 0),
+		WithdrawOnlyFunds: make([][]byte, 0),
+	}
+
+	globalFund := &GlobalFundData{
+		ActiveFunds:            make([][]byte, 1),
+		UnStakedFunds:          make([][]byte, 0),
+		WithdrawOnlyFunds:      make([][]byte, 0),
+		TotalUnStakedFromNodes: big.NewInt(0),
+		TotalUnBondedFromNodes: big.NewInt(0),
+	}
+	globalFund.ActiveFunds[0] = fundKey
+	err = d.saveGlobalFundData(globalFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	err = d.saveDelegatorData(ownerAddress, delegator)
 	if err != nil {
@@ -508,7 +529,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + d.minDelegationAmount.String())
 		return vmcommon.UserError
 	}
-
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -520,7 +540,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
 	dConfig, err := d.getDelegationContractConfig()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -534,8 +553,59 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	dStatus.TotalActive.Set(newTotalActive)
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	_, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(dData.ActiveFund) == 0 {
+		var fundKey []byte
+		fundKey, err = d.createAndSaveNextFund(args.CallerAddr, args.CallValue, active)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		dData.ActiveFund = fundKey
+		err = d.addNewFundToGlobalData(fundKey, active)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+	} else {
+		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	err = d.saveDelegatorData(args.CallerAddr, dData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
+	fund, err := d.getFund(key)
+	if err != nil {
+		return err
+	}
+
+	fund.Value.Add(fund.Value, value)
+	err = d.saveFund(key, fund)
+	return err
 }
 
 func (d *delegation) unDelegate(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -640,6 +710,15 @@ func (d *delegation) getFund(key []byte) (*Fund, error) {
 	return dFund, nil
 }
 
+func (d *delegation) createAndSaveNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, error) {
+	fundKey, fund := d.createNextFund(address, value, fundType)
+	err := d.saveFund(fundKey, fund)
+	if err != nil {
+		return nil, err
+	}
+	return fundKey, nil
+}
+
 func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 	marshalledData, err := d.marshalizer.Marshal(dFund)
 	if err != nil {
@@ -650,12 +729,52 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 	return nil
 }
 
-func (d *delegation) createNextFund(address []byte, value *big.Int) ([]byte, *Fund) {
+func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
+	nextKey := big.NewInt(0).Bytes()
 	lastKey := d.eei.GetStorage([]byte(lastFundKey))
-	if len(lastKey) == 0 {
-		last
+	if len(lastKey) > 0 {
+		lastIndex := big.NewInt(0).SetBytes(lastKey)
+		lastIndex.Add(lastIndex, big.NewInt(1))
+		nextKey = lastIndex.Bytes()
 	}
-	return nil, nil
+
+	fund := &Fund{
+		Value:   big.NewInt(0).Set(value),
+		Address: address,
+		Nonce:   d.eei.BlockChainHook().CurrentNonce(),
+		Type:    fundType,
+	}
+
+	return nextKey, fund
+}
+
+func (d *delegation) addNewFundToGlobalData(fundKey []byte, fundType uint32) error {
+	return nil
+}
+
+func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {
+	marshalledData := d.eei.GetStorage([]byte(globalFundKey))
+	if len(marshalledData) == 0 {
+		return nil, fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
+	}
+
+	globalFundData := &GlobalFundData{}
+	err := d.marshalizer.Unmarshal(globalFundData, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return globalFundData, nil
+}
+
+func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
+	marshalledData, err := d.marshalizer.Marshal(globalFundData)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage([]byte(globalFundKey), marshalledData)
+	return nil
 }
 
 // EpochConfirmed  is called whenever a new epoch is confirmed
