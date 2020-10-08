@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createCommonProcessor(minGasLimit, gasPerDataByte uint64) commonProcessor {
+func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProcessor {
 	return commonProcessor{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
