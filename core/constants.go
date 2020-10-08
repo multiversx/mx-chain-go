@@ -333,6 +333,21 @@ const MetricLastBlockTxCount = "erd_last_block_tx_count"
 // MetricAverageBlockTxCount holds the average count of transactions in a block
 const MetricAverageBlockTxCount = "erd_average_block_tx_count"
 
+// MetricTotalSupply holds the total supply value for the last epoch
+const MetricTotalSupply = "erd_total_supply"
+
+// MetricInflation holds the inflation value for the last epoch
+const MetricInflation = "erd_inflation"
+
+// MetricDevRewards holds the developers' rewards value for the last epoch
+const MetricDevRewards = "erd_dev_rewards"
+
+// MetricTotalFees holds the total fees value for the last epoch
+const MetricTotalFees = "erd_total_fees"
+
+// MetricEpochForEconomicsData holds the epoch for which economics data are computed
+const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
+
 // LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
 const LastNonceKeyMetricsStorage = "lastNonce"
 

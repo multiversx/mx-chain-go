@@ -18,13 +18,13 @@ import (
 
 const (
 	pidQueryParam       = "pid"
+	debugPath           = "/debug"
 	heartbeatStatusPath = "/heartbeatstatus"
-	statisticsPath      = "/statistics"
-	statusPath          = "/status"
 	metricsPath         = "/metrics"
 	p2pStatusPath       = "/p2pstatus"
-	debugPath           = "/debug"
 	peerInfoPath        = "/peerinfo"
+	statisticsPath      = "/statistics"
+	statusPath          = "/status"
 )
 
 // AccStateCheckpointsKey is used as a key for the number of account state checkpoints in the api response
