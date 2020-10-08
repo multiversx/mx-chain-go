@@ -36,6 +36,7 @@ type AccountsParser interface {
 type InitialNodesHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	MinNumberOfNodes() uint32
+	MinNumberOfNodesWithHysteresis() uint32
 	IsInterfaceNil() bool
 }
 
