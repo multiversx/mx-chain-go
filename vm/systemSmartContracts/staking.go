@@ -164,6 +164,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getRemainingUnbondPeriod(args)
 	case "getQueueRegisterNonceAndRewardAddress":
 		return r.getWaitingListRegisterNonceAndRewardAddress(args)
+	case "updateConfigMinNodes":
+		return r.updateConfigMinNodes(args)
 	}
 
 	return vmcommon.UserError
@@ -1164,6 +1166,31 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 		r.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
 		return vmcommon.UserError
 	}
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
+		r.eei.AddReturnMessage("updateConfig function not allowed to be called by address " + string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+
+	stakeConfig := r.getConfig()
+	if len(args.Arguments) != 1 {
+		r.eei.AddReturnMessage("number of arguments must be 1")
+		return vmcommon.UserError
+	}
+
+	newMinNodes := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
+	// TODO: newMinNodes extra validation?
+	if newMinNodes <= 0 {
+		r.eei.AddReturnMessage("new minimum number of nodes zero or negative")
+		return vmcommon.UserError
+	}
+
+	stakeConfig.MinNumNodes = newMinNodes
+	r.setConfig(stakeConfig)
 
 	return vmcommon.Ok
 }
