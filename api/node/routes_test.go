@@ -461,44 +461,6 @@ func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
 	assert.NotNil(t, responseInfo["info"])
 }
 
-func TestEconomicsMetrics_NilContextShouldErr(t *testing.T) {
-	ws := startNodeServer(nil)
-	req, _ := http.NewRequest("GET", "/node/economics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	response := shared.GenericAPIResponse{}
-	loadResponse(resp.Body, &response)
-
-	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
-	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
-
-}
-
-func TestEconomicsMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
-	key := core.MetricTotalSupply
-	value := "12345"
-	statusMetricsProvider.SetStringValue(key, value)
-
-	facade := mock.Facade{}
-	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
-		return statusMetricsProvider
-	}
-
-	ws := startNodeServer(&facade)
-	req, _ := http.NewRequest("GET", "/node/economics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
-
-	respBytes, _ := ioutil.ReadAll(resp.Body)
-	respStr := string(respBytes)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
-	assert.True(t, keyAndValueFoundInResponse)
-}
-
 func TestPrometheusMetrics_NilContextShouldErr(t *testing.T) {
 	ws := startNodeServer(nil)
 	req, _ := http.NewRequest("GET", "/node/metrics", nil)
@@ -591,7 +553,6 @@ func getRoutesConfig() config.ApiRoutesConfig {
 			"node": {
 				[]config.RouteConfig{
 					{Name: "/status", Open: true},
-					{Name: "/economics", Open: true},
 					{Name: "/metrics", Open: true},
 					{Name: "/statistics", Open: true},
 					{Name: "/heartbeatstatus", Open: true},

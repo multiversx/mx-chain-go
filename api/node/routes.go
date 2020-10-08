@@ -19,7 +19,6 @@ import (
 const (
 	pidQueryParam       = "pid"
 	debugPath           = "/debug"
-	economicsPath       = "/economics"
 	heartbeatStatusPath = "/heartbeatstatus"
 	metricsPath         = "/metrics"
 	p2pStatusPath       = "/p2pstatus"
@@ -85,7 +84,6 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, metricsPath, PrometheusMetrics)
 	router.RegisterHandler(http.MethodPost, debugPath, QueryDebug)
 	router.RegisterHandler(http.MethodGet, peerInfoPath, PeerInfo)
-	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
 	// placeholder for custom routes
 }
 
@@ -326,23 +324,5 @@ func PrometheusMetrics(c *gin.Context) {
 	c.String(
 		http.StatusOK,
 		metrics,
-	)
-}
-
-// EconomicsMetrics is the endpoint that will return the economics data such as total supply
-func EconomicsMetrics(c *gin.Context) {
-	facade, ok := getFacade(c)
-	if !ok {
-		return
-	}
-
-	metrics := facade.StatusMetrics().EconomicsMetrics()
-	c.JSON(
-		http.StatusOK,
-		shared.GenericAPIResponse{
-			Data:  gin.H{"metrics": metrics},
-			Error: "",
-			Code:  shared.ReturnCodeSuccess,
-		},
 	)
 }
