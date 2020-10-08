@@ -152,7 +152,7 @@ func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, e
 		return &mclSig.BlsSingleSigner{}, nil
 	case disabledSigChecking:
 		log.Warn("using disabled single signer")
-		return &disabledSig.Disabled{}, nil
+		return &disabledSig.DisabledSingleSig{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}
@@ -193,7 +193,7 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 		return multisig.NewBLSMultisig(blsSigner, pubKeys, ccf.privKey, ccf.keyGen, uint16(0))
 	case disabledSigChecking:
 		log.Warn("using disabled multi signer")
-		return &disabledMultiSig.Disabled{}, nil
+		return &disabledMultiSig.DisabledMultiSig{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}

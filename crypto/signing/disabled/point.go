@@ -17,7 +17,7 @@ func (dp *disabledPoint) UnmarshalBinary(_ []byte) error {
 	return nil
 }
 
-// Equal return false
+// Equal returns false
 func (dp *disabledPoint) Equal(_ crypto.Point) (bool, error) {
 	return false, nil
 }

@@ -4,21 +4,21 @@ import "github.com/ElrondNetwork/elrond-go/crypto"
 
 const signature = "signature"
 
-// Disabled represents a disabled singlesigner implementation
-type Disabled struct {
+// DisabledSingleSig represents a disabled singleSigner implementation
+type DisabledSingleSig struct {
 }
 
 // Sign returns a mock signature value
-func (d *Disabled) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
+func (dss *DisabledSingleSig) Sign(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return []byte(signature), nil
 }
 
 // Verify returns nil
-func (d *Disabled) Verify(_ crypto.PublicKey, _ []byte, _ []byte) error {
+func (dss *DisabledSingleSig) Verify(_ crypto.PublicKey, _ []byte, _ []byte) error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (d *Disabled) IsInterfaceNil() bool {
-	return d == nil
+func (dss *DisabledSingleSig) IsInterfaceNil() bool {
+	return dss == nil
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabled_MethodsShouldNotPanic(t *testing.T) {
+func TestDisabledSingleSig_MethodsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -16,12 +16,12 @@ func TestDisabled_MethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	d := &Disabled{}
+	dss := &DisabledSingleSig{}
 
-	recovBytes, err := d.Sign(nil, nil)
+	recovBytes, err := dss.Sign(nil, nil)
 	assert.Equal(t, []byte(signature), recovBytes)
 	assert.Nil(t, err)
 
-	assert.Nil(t, d.Verify(nil, nil, nil))
-	assert.False(t, check.IfNil(d))
+	assert.Nil(t, dss.Verify(nil, nil, nil))
+	assert.False(t, check.IfNil(dss))
 }

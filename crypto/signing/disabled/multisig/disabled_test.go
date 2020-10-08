@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDisabled_MethodsShouldNotPanic(t *testing.T) {
+func TestDisabledMultiSig_MethodsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r != nil {
@@ -16,27 +16,27 @@ func TestDisabled_MethodsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	d := &Disabled{}
-	recovInstance, err := d.Create(nil, 0)
-	assert.NotNil(t, recovInstance)
+	dms := &DisabledMultiSig{}
+	recoveredInstance, err := dms.Create(nil, 0)
+	assert.NotNil(t, recoveredInstance)
 	assert.Nil(t, err)
 
-	recovBytes, err := d.CreateSignatureShare(nil, nil)
-	assert.Equal(t, []byte(signature), recovBytes)
+	recoveredBytes, err := dms.CreateSignatureShare(nil, nil)
+	assert.Equal(t, []byte(signature), recoveredBytes)
 	assert.Nil(t, err)
 
-	recovBytes, err = d.SignatureShare(0)
-	assert.Equal(t, []byte(signature), recovBytes)
+	recoveredBytes, err = dms.SignatureShare(0)
+	assert.Equal(t, []byte(signature), recoveredBytes)
 	assert.Nil(t, err)
 
-	recovBytes, err = d.AggregateSigs(nil)
-	assert.Equal(t, []byte(signature), recovBytes)
+	recoveredBytes, err = dms.AggregateSigs(nil)
+	assert.Equal(t, []byte(signature), recoveredBytes)
 	assert.Nil(t, err)
 
-	assert.Nil(t, d.SetAggregatedSig(nil))
-	assert.Nil(t, d.Verify(nil, nil))
-	assert.False(t, check.IfNil(d))
-	assert.Nil(t, d.Reset(nil, 0))
-	assert.Nil(t, d.StoreSignatureShare(0, nil))
-	assert.Nil(t, d.VerifySignatureShare(0, nil, nil, nil))
+	assert.Nil(t, dms.SetAggregatedSig(nil))
+	assert.Nil(t, dms.Verify(nil, nil))
+	assert.False(t, check.IfNil(dms))
+	assert.Nil(t, dms.Reset(nil, 0))
+	assert.Nil(t, dms.StoreSignatureShare(0, nil))
+	assert.Nil(t, dms.VerifySignatureShare(0, nil, nil, nil))
 }

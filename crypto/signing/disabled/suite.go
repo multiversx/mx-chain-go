@@ -18,7 +18,7 @@ func NewDisabledSuite() *disabledSuite {
 	return &disabledSuite{}
 }
 
-// returns the disabled string
+// String returns the disabled string
 func (ds *disabledSuite) String() string {
 	return Disabled
 }
@@ -38,12 +38,12 @@ func (ds *disabledSuite) PointLen() int {
 	return pointLen
 }
 
-// CreatePoint create a disabledPoint instance
+// CreatePoint creates a disabledPoint instance
 func (ds *disabledSuite) CreatePoint() crypto.Point {
 	return &disabledPoint{}
 }
 
-// CreatePointForScalar create a disabledPoint instance
+// CreatePointForScalar creates a disabledPoint instance
 func (ds *disabledSuite) CreatePointForScalar(_ crypto.Scalar) (crypto.Point, error) {
 	return &disabledPoint{}, nil
 }
