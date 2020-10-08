@@ -1195,51 +1195,74 @@ func CreateNodesWithFullGenesis(
 	numMetaChainNodes int,
 	serviceID string,
 	genesisFile string,
-) []*TestProcessorNode {
+) ([]*TestProcessorNode, *TestProcessorNode) {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	hardforkStarter := createGenesisNode(serviceID, genesisFile, uint32(numOfShards), 0, nil)
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			accountParser := &mock.AccountsParserStub{}
-			smartContractParser, _ := parsing.NewSmartContractsParser(
+			nodes[idx] = createGenesisNode(
+				serviceID,
 				genesisFile,
-				TestAddressPubkeyConverter,
-				&mock.KeyGenMock{},
-			)
-			n := NewTestProcessorNodeWithFullGenesis(
 				uint32(numOfShards),
 				shardId,
-				shardId,
-				serviceID,
-				accountParser,
-				smartContractParser,
+				hardforkStarter.NodeKeys.Pk,
 			)
-			nodes[idx] = n
 			idx++
 		}
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		accountParser := &mock.AccountsParserStub{}
-		smartContractParser, _ := parsing.NewSmartContractsParser(
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = createGenesisNode(
+			serviceID,
 			genesisFile,
-			TestAddressPubkeyConverter,
-			&mock.KeyGenMock{},
-		)
-		metaNode := NewTestProcessorNodeWithFullGenesis(
 			uint32(numOfShards),
 			core.MetachainShardId,
-			0,
-			serviceID,
-			accountParser,
-			smartContractParser,
+			hardforkStarter.NodeKeys.Pk,
 		)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
 	}
 
-	return nodes
+	return nodes, hardforkStarter
+}
+
+func createGenesisNode(
+	serviceID string,
+	genesisFile string,
+	numOfShards uint32,
+	shardId uint32,
+	hardforkPk crypto.PublicKey,
+) *TestProcessorNode {
+	accountParser := &mock.AccountsParserStub{}
+	smartContractParser, _ := parsing.NewSmartContractsParser(
+		genesisFile,
+		TestAddressPubkeyConverter,
+		&mock.KeyGenMock{},
+	)
+	txSignShardID := shardId
+	if shardId == core.MetachainShardId {
+		txSignShardID = 0
+	}
+
+	strPk := ""
+	if !check.IfNil(hardforkPk) {
+		buff, err := hardforkPk.ToByteArray()
+		log.LogIfError(err)
+
+		strPk = hex.EncodeToString(buff)
+	}
+
+	return NewTestProcessorNodeWithFullGenesis(
+		numOfShards,
+		shardId,
+		txSignShardID,
+		serviceID,
+		accountParser,
+		smartContractParser,
+		strPk,
+	)
 }
 
 // CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus

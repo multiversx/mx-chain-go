@@ -2,7 +2,8 @@ package mock
 
 // NodesConfigProviderStub -
 type NodesConfigProviderStub struct {
-	MinNumberOfNodesCalled func() uint32
+	MinNumberOfNodesCalled               func() uint32
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // MinNumberOfNodes -
@@ -11,6 +12,14 @@ func (n *NodesConfigProviderStub) MinNumberOfNodes() uint32 {
 		return n.MinNumberOfNodesCalled()
 	}
 	return 1
+}
+
+// MinMetaHysteresisNodes -
+func (n *NodesConfigProviderStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
+	}
+	return n.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -
