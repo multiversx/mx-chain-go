@@ -51,6 +51,9 @@
          # /network/status will return metrics related to current status of the chain (epoch, nonce, round)
         { Name = "/status", Open = true },
 
+        # /network/economics will return all economics related metrics
+        { Name = "/economics", Open = true },
+
         # /network/config will return metrics related to current configuration of the network (number of shards,
         # consensus group size and so on)
         { Name = "/config", Open = true }
