@@ -189,6 +189,7 @@ type SigVerifier interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	MetaEpoch() uint32
+	ForceEpochStart()
 	IsInterfaceNil() bool
 }
 

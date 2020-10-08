@@ -99,7 +99,7 @@ func TestTrigger_TriggerCanNotExecuteShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func(epoch uint32) error {
+		TriggerCalled: func(_ uint32, _ bool) error {
 			return expectedErr
 		},
 	})
@@ -144,7 +144,7 @@ func TestTrigger_ManualShouldWork(t *testing.T) {
 	}
 	buffHr, _ := json.Marshal(hr)
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func(epoch uint32) error {
+		TriggerCalled: func(epoch uint32, _ bool) error {
 			atomic.StoreUint32(&recoveredEpoch, epoch)
 
 			return nil
@@ -175,7 +175,7 @@ func TestTrigger_BroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ws := startNodeServer(&mock.HardforkFacade{
-		TriggerCalled: func(_ uint32) error {
+		TriggerCalled: func(_ uint32, _ bool) error {
 			return nil
 		},
 		IsSelfTriggerCalled: func() bool {
