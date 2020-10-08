@@ -90,7 +90,7 @@ func (s *suiteEd25519) GetUnderlyingSuite() interface{} {
 	return nil
 }
 
-// IsPointValid -
+// CheckPointValid -
 func (s *suiteEd25519) CheckPointValid(pointBytes []byte) error {
 	if len(pointBytes) != s.PointLen() {
 		return crypto.ErrInvalidParam

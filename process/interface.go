@@ -940,3 +940,9 @@ type PayableHandler interface {
 	IsPayable(address []byte) (bool, error)
 	IsInterfaceNil() bool
 }
+
+// FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
+type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}

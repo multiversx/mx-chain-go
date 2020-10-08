@@ -110,6 +110,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      srcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {
@@ -136,6 +137,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      srcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {

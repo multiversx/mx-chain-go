@@ -4,8 +4,9 @@ import "github.com/ElrondNetwork/elrond-go/sharding"
 
 // InitialNodesHandlerStub -
 type InitialNodesHandlerStub struct {
-	InitialNodesInfoCalled func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	MinNumberOfNodesCalled func() uint32
+	InitialNodesInfoCalled               func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
+	MinNumberOfNodesCalled               func() uint32
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // InitialNodesInfo -
@@ -24,6 +25,15 @@ func (inhs *InitialNodesHandlerStub) MinNumberOfNodes() uint32 {
 	}
 
 	return 0
+}
+
+// MinShardHysteresisNodes -
+func (inhs *InitialNodesHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if inhs.MinNumberOfNodesWithHysteresisCalled != nil {
+		return inhs.MinNumberOfNodesWithHysteresisCalled()
+	}
+
+	return inhs.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -

@@ -3,6 +3,7 @@ package storageResolvers
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -125,6 +126,9 @@ func TestSliceResolver_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 
 	assert.Equal(t, expectedErr, err)
 	assert.False(t, sendWasCalled)
+
+	time.Sleep(time.Second)
+
 	select {
 	case argClose := <-arg.ChanGracefullyClose:
 		assert.Equal(t, core.ImportComplete, argClose.Reason)
@@ -217,6 +221,9 @@ func TestSliceResolver_GetErroredShouldReturnErr(t *testing.T) {
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.Equal(t, len(hashes)-1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
+
+	time.Sleep(time.Second)
+
 	select {
 	case argClose := <-arg.ChanGracefullyClose:
 		assert.Equal(t, core.ImportComplete, argClose.Reason)

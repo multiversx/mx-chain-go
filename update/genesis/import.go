@@ -412,8 +412,10 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 	}
 
 	if keyType != RootHash {
-		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w wanted a roothash, got %v", update.ErrWrongTypeAssertion, keyType)
 	}
+
+	log.Debug("importing state", "shard ID", shId, "root hash", rootHash)
 
 	if len(rootHash) == 0 || bytes.Equal(rootHash, trie.EmptyTrieHash) {
 		return si.saveRootHash(accountsDB, accType, shId, rootHash)
@@ -488,6 +490,8 @@ func (si *stateImport) saveRootHash(
 	if !bytes.Equal(rootHash, originalRootHash) {
 		log.Warn("imported state rootHash does not match original ", "new", rootHash, "old", originalRootHash, "accType", accType, "shardID", shardID)
 	}
+
+	log.Debug("committed trie", "shard ID", shardID, "root hash", rootHash)
 
 	return nil
 }
