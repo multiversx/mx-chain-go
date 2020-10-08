@@ -211,6 +211,7 @@ type GeneralSettingsConfig struct {
 	PenalizedTooMuchGasEnableEpoch         uint32
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	BelowSignedThresholdEnableEpoch        uint32
 	GenesisString                          string
 }
 

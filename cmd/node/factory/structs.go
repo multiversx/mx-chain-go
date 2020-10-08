@@ -2256,21 +2256,22 @@ func newValidatorStatisticsProcessor(
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                  processComponents.state.PeerAccounts,
-		PubkeyConv:                   processComponents.state.ValidatorPubkeyConverter,
-		NodesCoordinator:             processComponents.nodesCoordinator,
-		ShardCoordinator:             processComponents.shardCoordinator,
-		DataPool:                     peerDataPool,
-		StorageService:               storageService,
-		Marshalizer:                  processComponents.coreData.InternalMarshalizer,
-		Rater:                        processComponents.rater,
-		MaxComputableRounds:          processComponents.maxComputableRounds,
-		RewardsHandler:               processComponents.economicsData,
-		NodesSetup:                   processComponents.nodesConfig,
-		RatingEnableEpoch:            ratingEnabledEpoch,
-		GenesisNonce:                 processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
-		EpochNotifier:                processComponents.epochNotifier,
-		SwitchJailWaitingEnableEpoch: processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		PeerAdapter:                     processComponents.state.PeerAccounts,
+		PubkeyConv:                      processComponents.state.ValidatorPubkeyConverter,
+		NodesCoordinator:                processComponents.nodesCoordinator,
+		ShardCoordinator:                processComponents.shardCoordinator,
+		DataPool:                        peerDataPool,
+		StorageService:                  storageService,
+		Marshalizer:                     processComponents.coreData.InternalMarshalizer,
+		Rater:                           processComponents.rater,
+		MaxComputableRounds:             processComponents.maxComputableRounds,
+		RewardsHandler:                  processComponents.economicsData,
+		NodesSetup:                      processComponents.nodesConfig,
+		RatingEnableEpoch:               ratingEnabledEpoch,
+		GenesisNonce:                    processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                   processComponents.epochNotifier,
+		SwitchJailWaitingEnableEpoch:    processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: processComponents.mainConfig.GeneralSettings.BelowSignedThresholdEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
