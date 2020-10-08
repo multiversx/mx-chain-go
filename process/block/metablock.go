@@ -396,6 +396,8 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+
 	return nil
 }
 
@@ -704,6 +706,9 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 	}
 
 	metaHdr.EpochStart.Economics = *economicsData
+
+	saveEpochStartEconomicsMetrics(mp.appStatusHandler, metaHdr)
+
 	return nil
 }
 
