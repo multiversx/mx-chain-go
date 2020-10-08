@@ -511,3 +511,7 @@ const DefaultLogProfileIdentifier = "[default log profile]"
 // Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
 // considering that constant below is set to 3
 const MultiplyFactorForScCall = 3
+
+// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+// before a special action to be applied
+const MaxRoundsWithoutCommittedStartInEpochBlock = 50

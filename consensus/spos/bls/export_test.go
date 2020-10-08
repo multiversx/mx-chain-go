@@ -233,9 +233,9 @@ func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
 }
 
-// SignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
-func (sr *subroundSignature) SignaturesCollected(threshold int) (bool, int) {
-	return sr.signaturesCollected(threshold)
+// AreSignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
+func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
+	return sr.areSignaturesCollected(threshold)
 }
 
 // subroundEndRound

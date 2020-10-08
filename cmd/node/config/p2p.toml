@@ -20,6 +20,10 @@
     #p2p identity generation
     Seed = ""
 
+    #ThresholdMinConnectedPeers represents the minimum number of connections a node should have before it can start
+    #the sync and consensus mechanisms
+    ThresholdMinConnectedPeers = 3
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered

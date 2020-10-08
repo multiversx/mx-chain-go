@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -351,22 +353,22 @@ func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, false)
 	}
 
-	ok, n := sr.SignaturesCollected(2)
+	ok, n := sr.AreSignaturesCollected(2)
 	assert.False(t, ok)
 	assert.Equal(t, 0, n)
 
-	ok, _ = sr.SignaturesCollected(2)
+	ok, _ = sr.AreSignaturesCollected(2)
 	assert.False(t, ok)
 
 	_ = sr.SetJobDone("B", bls.SrSignature, true)
 	isJobDone, _ := sr.JobDone("B", bls.SrSignature)
 	assert.True(t, isJobDone)
 
-	ok, _ = sr.SignaturesCollected(2)
+	ok, _ = sr.AreSignaturesCollected(2)
 	assert.False(t, ok)
 
 	_ = sr.SetJobDone("C", bls.SrSignature, true)
-	ok, _ = sr.SignaturesCollected(2)
+	ok, _ = sr.AreSignaturesCollected(2)
 	assert.True(t, ok)
 }
 
@@ -459,6 +461,56 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughBu
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
 	for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.True(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return -1
+		},
+	})
+	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return false
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+	}
+
+	assert.False(t, sr.DoSignatureConsensusCheck())
+}
+
+func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallbackThresholdCouldBeApplied(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	container.SetRounder(&mock.RounderMock{
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return -1
+		},
+	})
+	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
+	})
+	sr := *initSubroundSignatureWithContainer(container)
+
+	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+
+	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 	}
 
