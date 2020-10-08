@@ -7,18 +7,24 @@ source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
 VALIDATOR_RES_PORT="$PORT_ORIGIN_VALIDATOR_REST"
 
 if [ -z "$1" ]; then
-  echo "epoch argument was not provided. Usage: './hardfork.sh [epoch number]' as in './hardfork.sh 1'"
+  echo "epoch argument was not provided. Usage: './hardfork.sh [epoch number] [withEarlyEndOfEpoch: true|false]' as in './hardfork.sh 1 false'"
+  exit
+fi
+
+if [ -z "$2" ]; then
+  echo "forced argument was not provided. Usage: './hardfork.sh [epoch: number] [withEarlyEndOfEpoch: true|false]' as in './hardfork.sh 1 false'"
   exit
 fi
 
 if [ $1 -lt "1" ]; then
-  echo "incorrect epoch argument was provided. Usage: './hardfork.sh [epoch number]' as in './hardfork.sh 1'"
+  echo "incorrect epoch argument was provided. Usage: './hardfork.sh [epoch number] [withEarlyEndOfEpoch: true|false]' as in './hardfork.sh 1 false'"
   exit
 fi
 
 address="http://127.0.0.1:$VALIDATOR_RES_PORT/hardfork/trigger"
 epoch=$1
-curl -d '{"epoch":'"$epoch"'}' -H 'Content-Type: application/json' $address
+forced=$2
+curl -d '{"epoch":'"$epoch"',"withEarlyEndOfEpoch":'"$forced"'}' -H 'Content-Type: application/json' $address
 
 echo " done curl"
 

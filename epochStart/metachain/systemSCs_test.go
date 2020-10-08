@@ -295,12 +295,14 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+
+	nodesSetup := &mock.NodesSetupStub{}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		createEconomicsData(),
 		signVerifer,
 		gasSchedule,
-		&mock.NodesSetupStub{},
+		nodesSetup,
 		hasher,
 		marshalizer,
 		&config.SystemSmartContractsConfig{
@@ -349,6 +351,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		StakingSCAddress:        vm.StakingSCAddress,
 		ChanceComputer:          &mock.ChanceComputerStub{},
 		EpochNotifier:           &mock.EpochNotifierStub{},
+		GenesisNodesConfig:      nodesSetup,
 	}
 	return args
 }

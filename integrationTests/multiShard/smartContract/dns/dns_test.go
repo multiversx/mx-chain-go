@@ -135,7 +135,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	_ = advertiser.Bootstrap()
 
 	genesisFile := "smartcontracts.json"
-	nodes := integrationTests.CreateNodesWithFullGenesis(
+	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,

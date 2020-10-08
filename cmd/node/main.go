@@ -2101,6 +2101,7 @@ func createHardForkTrigger(
 		ChainID:                  coreData.ChainID,
 		Rounder:                  process.Rounder,
 		GenesisNodesSetupHandler: nodesSetup,
+		InterceptorDebugConfig:   config.Debug.InterceptorResolver,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {

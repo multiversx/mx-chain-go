@@ -85,6 +85,7 @@ type ArgumentsParser interface {
 // NodesConfigProvider defines the functionality which is needed for nodes config in system smart contracts
 type NodesConfigProvider interface {
 	MinNumberOfNodes() uint32
+	MinNumberOfNodesWithHysteresis() uint32
 	IsInterfaceNil() bool
 }
 
