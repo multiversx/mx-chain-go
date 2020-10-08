@@ -749,6 +749,25 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 }
 
 func (d *delegation) addNewFundToGlobalData(fundKey []byte, fundType uint32) error {
+	globalFundData, err := d.getGlobalFundData()
+	if err != nil {
+		return err
+	}
+
+	switch fundType {
+	case active:
+		globalFundData.ActiveFunds = append(globalFundData.ActiveFunds, fundKey)
+	case unStaked:
+		globalFundData.UnStakedFunds = append(globalFundData.UnStakedFunds, fundKey)
+	case withdrawOnly:
+		globalFundData.WithdrawOnlyFunds = append(globalFundData.WithdrawOnlyFunds, fundKey)
+	}
+
+	err = d.saveGlobalFundData(globalFundData)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
