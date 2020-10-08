@@ -161,6 +161,7 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 		Marshalizer:   scf.marshalizer,
 		Hasher:        scf.hasher,
 		ESDTSCConfig:  scf.systemSCConfig.ESDTSystemSCConfig,
+		EpochNotifier: scf.epochNotifier,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err
@@ -177,6 +178,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		GovernanceSCAddress: vm.GovernanceSCAddress,
 		StakingSCAddress:    vm.StakingSCAddress,
 		AuctionSCAddress:    vm.AuctionSCAddress,
+		EpochNotifier:       scf.epochNotifier,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

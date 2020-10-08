@@ -690,6 +690,17 @@ func WithPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) Opt
 	}
 }
 
+// WithFallbackHeaderValidator sets up a fallback header validator for the Node
+func WithFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) Option {
+	return func(n *Node) error {
+		if check.IfNil(fallbackHeaderValidator) {
+			return ErrNilFallbackHeaderValidator
+		}
+		n.fallbackHeaderValidator = fallbackHeaderValidator
+		return nil
+	}
+}
+
 // WithWatchdogTimer sets up a watchdog for the Node
 func WithWatchdogTimer(watchdog core.WatchdogTimer) Option {
 	return func(n *Node) error {

@@ -23,7 +23,6 @@ copyConfig() {
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/genesis.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
-  cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/genesisSmartContracts.json ./node/config
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -59,6 +58,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/gasSchedule.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
+  cp $NODEDIR/config/genesisSmartContracts.json ./node/config
   cp -r $NODEDIR/config/elasticIndexTemplates ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts

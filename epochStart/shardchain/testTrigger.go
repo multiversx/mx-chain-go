@@ -19,9 +19,12 @@ func (t *TestTrigger) SetTrigger(triggerHandler epochStart.TriggerHandler) {
 	t.trigger = actualTrigger
 }
 
-// SetRoundsPerEpoch sets the number of round between epochs
+// SetRoundsPerEpoch does nothing as trigger in shards is not done by chronology
 func (t *TestTrigger) SetRoundsPerEpoch(_ uint64) {
-	//does nothing as trigger in shards is not done by chronology
+}
+
+// SetMinRoundsBetweenEpochs does nothing as trigger in shards is not done by chronology
+func (t *TestTrigger) SetMinRoundsBetweenEpochs(_ uint64) {
 }
 
 // GetRoundsPerEpoch gets the number of rounds per epoch
