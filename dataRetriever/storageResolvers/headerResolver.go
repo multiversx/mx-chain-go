@@ -2,6 +2,7 @@ package storageResolvers
 
 import (
 	"sync"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -23,6 +24,7 @@ type ArgHeaderResolver struct {
 	HeadersNoncesStorage     storage.Storer
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
+	DelayBeforeGracefulClose time.Duration
 }
 
 type headerResolver struct {
@@ -62,6 +64,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*headerResolver, error) {
 			responseTopicName:        arg.ResponseTopicName,
 			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
 			chanGracefullyClose:      arg.ChanGracefullyClose,
+			delayBeforeGracefulClose: arg.DelayBeforeGracefulClose,
 		},
 		hdrStorage:       arg.HdrStorage,
 		hdrNoncesStorage: arg.HeadersNoncesStorage,

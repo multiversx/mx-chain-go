@@ -46,7 +46,7 @@ func (n *oneNodeNetwork) GetMinGasPrice() uint64 {
 	return n.Node.EconomicsData.GetMinGasPrice()
 }
 
-// GetMinGasPrice returns the max gas per block
+// MaxGasLimitPerBlock returns the max gas per block
 func (n *oneNodeNetwork) MaxGasLimitPerBlock() uint64 {
 	return n.Node.EconomicsData.MaxGasLimitPerBlock(0) - 1
 }

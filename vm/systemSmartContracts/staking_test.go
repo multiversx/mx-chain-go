@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockStakingScArguments() ArgsNewStakingSmartContract {
@@ -1454,6 +1455,64 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	peerAccount.List = string(core.JailedList)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("firsstKey"), vmcommon.Ok)
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
+}
+
+func TestStakingSc_updateConfigMinNodes(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingConfig := &StakingNodesConfig{
+		MinNumNodes: 5,
+		MaxNumNodes: 40,
+		StakedNodes: 10,
+		JailedNodes: 2,
+	}
+	stakingSmartContract.setConfig(stakingConfig)
+
+	originalStakeConfigMarshalled := args.Eei.GetStorage([]byte(nodesConfigKey))
+	require.NotEqual(t, 0, originalStakeConfigMarshalled)
+
+	originalStakeConfig := &StakingNodesConfig{}
+	err := json.Unmarshal(originalStakeConfigMarshalled, originalStakeConfig)
+	require.Nil(t, err)
+	require.Equal(t, stakingConfig, originalStakeConfig)
+
+	newMinNodes := int64(100)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "updateConfigMinNodes"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{big.NewInt(0).SetInt64(newMinNodes).Bytes()}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	// check storage is updated
+	updatedStakeConfigMarshalled := args.Eei.GetStorage([]byte(nodesConfigKey))
+	require.NotEqual(t, 0, updatedStakeConfigMarshalled)
+
+	updatedStakeConfig := &StakingNodesConfig{}
+	err = json.Unmarshal(updatedStakeConfigMarshalled, updatedStakeConfig)
+	require.Nil(t, err)
+
+	require.Equal(t, originalStakeConfig.JailedNodes, updatedStakeConfig.JailedNodes)
+	require.Equal(t, originalStakeConfig.MaxNumNodes, updatedStakeConfig.MaxNumNodes)
+	require.Equal(t, originalStakeConfig.StakedNodes, updatedStakeConfig.StakedNodes)
+	require.NotEqual(t, newMinNodes, originalStakeConfig.MinNumNodes)
+	require.Equal(t, newMinNodes, updatedStakeConfig.MinNumNodes)
 }
 
 func doGetRewardAddress(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedAddress string) {
