@@ -58,11 +58,11 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	require.NotNil(t, ccf)
 }
 
-func TestNewCryptoComponentsFactory_MockSigShouldWork(t *testing.T) {
+func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	args.UseMockSigVerifier = true
+	args.UseDisabledSigVerifier = true
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ccf)
@@ -91,11 +91,11 @@ func TestCryptoComponentsFactory_Create(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
-func TestCryptoComponentsFactory_CreateWithMockSig(t *testing.T) {
+func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	args.UseMockSigVerifier = true
+	args.UseDisabledSigVerifier = true
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()

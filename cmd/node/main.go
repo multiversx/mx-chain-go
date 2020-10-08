@@ -752,7 +752,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		KeyGen:                               cryptoParams.KeyGenerator,
 		PrivKey:                              cryptoParams.PrivateKey,
 		ActivateBLSPubKeyMessageVerification: systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
-		UseMockSigVerifier:                   importDbNoSigCheckFlag,
+		UseDisabledSigVerifier:               importDbNoSigCheckFlag,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs)
 	if err != nil {

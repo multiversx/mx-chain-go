@@ -10,12 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	disabledCrypto "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled"
-	disabledmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/multisig"
-	disabledsig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
+	disabledMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/multisig"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
-	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	mclMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	mclSig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -38,7 +38,7 @@ type CryptoComponentsFactoryArgs struct {
 	KeyGen                               crypto.KeyGenerator
 	PrivKey                              crypto.PrivateKey
 	ActivateBLSPubKeyMessageVerification bool
-	UseMockSigVerifier                   bool
+	UseDisabledSigVerifier               bool
 }
 
 type cryptoComponentsFactory struct {
@@ -75,7 +75,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		privKey:                              args.PrivKey,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 	}
-	if args.UseMockSigVerifier {
+	if args.UseDisabledSigVerifier {
 		ccf.consensusType = disabledSigChecking
 		ccf.keyGen = signing.NewKeyGenerator(disabledCrypto.NewDisabledSuite())
 		log.Warn("using disabled key generator")
@@ -149,10 +149,10 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
-		return &mclsig.BlsSingleSigner{}, nil
+		return &mclSig.BlsSingleSigner{}, nil
 	case disabledSigChecking:
 		log.Warn("using disabled single signer")
-		return &disabledsig.Disabled{}, nil
+		return &disabledSig.Disabled{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}
@@ -189,11 +189,11 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
-		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
+		blsSigner := &mclMultiSig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, pubKeys, ccf.privKey, ccf.keyGen, uint16(0))
 	case disabledSigChecking:
 		log.Warn("using disabled multi signer")
-		return &disabledmultisig.Disabled{}, nil
+		return &disabledMultiSig.Disabled{}, nil
 	default:
 		return nil, ErrMissingConsensusConfig
 	}
