@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	transactionProcess "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -269,6 +270,62 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 	transactions = txDbProc.setTransactionSearchOrder(txPool)
 	assert.True(t, txPoolHasSearchOrder(transactions, 0))
 	assert.True(t, txPoolHasSearchOrder(transactions, 1))
+}
+
+func TestGetGasUsedFromReceipt_RefundedGas(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(1000)
+	gasLimit := uint64(10000)
+	recValue := big.NewInt(10000)
+	txHash := []byte("tx-hash")
+	rec := &receipt.Receipt{
+		Value:   recValue,
+		SndAddr: nil,
+		Data:    []byte(transactionProcess.RefundGasMessage),
+		TxHash:  txHash,
+	}
+	tx := &Transaction{
+		Hash: hex.EncodeToString(txHash),
+
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	expectedGasUsed := big.NewInt(0).SetUint64(gasPrice)
+	expectedGasUsed.Mul(expectedGasUsed, big.NewInt(0).SetUint64(gasLimit))
+	expectedGasUsed.Sub(expectedGasUsed, recValue)
+	expectedGasUsed.Div(expectedGasUsed, big.NewInt(0).SetUint64(gasPrice))
+
+	gasUsed := getGasUsedFromReceipt(rec, tx)
+	assert.Equal(t, expectedGasUsed.Uint64(), gasUsed)
+}
+
+func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(1000)
+	gasLimit := uint64(10000)
+	recValue := big.NewInt(100000)
+	txHash := []byte("tx-hash")
+	rec := &receipt.Receipt{
+		Value:   recValue,
+		SndAddr: nil,
+		Data:    []byte("error"),
+		TxHash:  txHash,
+	}
+	tx := &Transaction{
+		Hash: hex.EncodeToString(txHash),
+
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	expectedGasUsed := big.NewInt(0)
+	expectedGasUsed = expectedGasUsed.Div(recValue, big.NewInt(0).SetUint64(gasPrice))
+
+	gasUsed := getGasUsedFromReceipt(rec, tx)
+	assert.Equal(t, expectedGasUsed.Uint64(), gasUsed)
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {

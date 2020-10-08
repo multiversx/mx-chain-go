@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	transactionProcess "github.com/ElrondNetwork/elrond-go/process/transaction"
 )
 
 const (
@@ -79,10 +80,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
-		gasUsed := big.NewInt(0)
-		gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
-
-		tx.GasUsed = gasUsed.Uint64()
+		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
 	}
 
 	countScResults := make(map[string]int)
@@ -136,6 +134,22 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
+}
+
+func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {
+	if rec.Data != nil && string(rec.Data) == transactionProcess.RefundGasMessage {
+		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
+		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
+		gasUsed.Sub(gasUsed, rec.Value)
+		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
+
+		return gasUsed.Uint64()
+	}
+
+	gasUsed := big.NewInt(0)
+	gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
+
+	return gasUsed.Uint64()
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
