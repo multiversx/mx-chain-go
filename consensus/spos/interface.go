@@ -52,6 +52,8 @@ type ConsensusCoreHandler interface {
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
 	HeaderSigVerifier() consensus.HeaderSigVerifier
+	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
+	FallbackHeaderValidator() consensus.FallbackHeaderValidator
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

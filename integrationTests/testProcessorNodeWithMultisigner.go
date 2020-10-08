@@ -508,12 +508,13 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		args := headerCheck.ArgsHeaderSigVerifier{
-			Marshalizer:       TestMarshalizer,
-			Hasher:            TestHasher,
-			NodesCoordinator:  nodesCoordinator,
-			MultiSigVerifier:  TestMultiSig,
-			SingleSigVerifier: signer,
-			KeyGen:            keyGen,
+			Marshalizer:             TestMarshalizer,
+			Hasher:                  TestHasher,
+			NodesCoordinator:        nodesCoordinator,
+			MultiSigVerifier:        TestMultiSig,
+			SingleSigVerifier:       signer,
+			KeyGen:                  keyGen,
+			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -607,12 +608,13 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			)
 
 			args := headerCheck.ArgsHeaderSigVerifier{
-				Marshalizer:       TestMarshalizer,
-				Hasher:            TestHasher,
-				NodesCoordinator:  nodesCoordinator,
-				MultiSigVerifier:  TestMultiSig,
-				SingleSigVerifier: singleSigner,
-				KeyGen:            keyGenForBlocks,
+				Marshalizer:             TestMarshalizer,
+				Hasher:                  TestHasher,
+				NodesCoordinator:        nodesCoordinator,
+				MultiSigVerifier:        TestMultiSig,
+				SingleSigVerifier:       singleSigner,
+				KeyGen:                  keyGenForBlocks,
+				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)

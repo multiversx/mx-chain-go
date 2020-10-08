@@ -173,6 +173,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
+		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
 		node.WithPeerSignatureHandler(psh),
 		node.WithBlockChain(&mock.BlockChainMock{}),
 	)
