@@ -170,6 +170,7 @@ type GenesisNodesSetupHandler interface {
 	GetMetaConsensusGroupSize() uint32
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	MinNumberOfNodesWithHysteresis() uint32
 	IsInterfaceNil() bool
 }
 

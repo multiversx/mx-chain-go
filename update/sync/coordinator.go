@@ -73,6 +73,8 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		return err
 	}
 
+	ss.printMetablockInfo(meta)
+
 	unFinished, err := ss.headers.GetUnfinishedMetaBlocks()
 	if err != nil {
 		return err
@@ -87,10 +89,10 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		err := ss.tries.SyncTriesFrom(meta, time.Hour)
-		if err != nil {
+		errSync := ss.tries.SyncTriesFrom(meta, time.Hour)
+		if errSync != nil {
 			mutErr.Lock()
-			errFound = err
+			errFound = errSync
 			mutErr.Unlock()
 		}
 		wg.Done()
@@ -100,29 +102,29 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		defer wg.Done()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
-		err := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
+		errSync := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
 		cancel()
-		if err != nil {
+		if errSync != nil {
 			mutErr.Lock()
-			errFound = err
+			errFound = errSync
 			mutErr.Unlock()
 			return
 		}
 
-		syncedMiniBlocks, err := ss.miniBlocks.GetMiniBlocks()
-		if err != nil {
+		syncedMiniBlocks, errGet := ss.miniBlocks.GetMiniBlocks()
+		if errGet != nil {
 			mutErr.Lock()
-			errFound = err
+			errFound = errGet
 			mutErr.Unlock()
 			return
 		}
 
 		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
-		err = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
+		errSync = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
 		cancel()
-		if err != nil {
+		if errSync != nil {
 			mutErr.Lock()
-			errFound = err
+			errFound = errSync
 			mutErr.Unlock()
 			return
 		}
@@ -130,11 +132,24 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
-	if errFound != nil {
-		return errFound
-	}
+	return errFound
+}
 
-	return nil
+func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
+	log.Debug("epoch start meta block",
+		"nonce", metaBlock.Nonce,
+		"round", metaBlock.Round,
+		"root hash", metaBlock.RootHash,
+		"epoch", metaBlock.Epoch,
+	)
+	for _, shardInfo := range metaBlock.ShardInfo {
+		log.Debug("epoch start meta block -> shard info",
+			"header hash", shardInfo.HeaderHash,
+			"shard ID", shardInfo.ShardID,
+			"nonce", shardInfo.Nonce,
+			"round", shardInfo.Round,
+		)
+	}
 }
 
 // GetEpochStartMetaBlock returns the synced metablock

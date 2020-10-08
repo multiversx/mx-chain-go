@@ -29,6 +29,10 @@
    # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
    BelowSignedThresholdEnableEpoch = 2
 
+   # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
+   # also (minimum) hysteresis nodes for the minimum number of nodes
+   SwitchHysteresisForMinNodesEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
@@ -486,7 +490,7 @@
    Type = "json"
 
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 200
+    MinRoundsBetweenEpochs = 20
     RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard

@@ -33,6 +33,7 @@ type ConsensusCore struct {
 	antifloodHandler              consensus.P2PAntifloodHandler
 	peerHonestyHandler            consensus.PeerHonestyHandler
 	headerSigVerifier             consensus.HeaderSigVerifier
+	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -55,6 +56,7 @@ type ConsensusCoreArgs struct {
 	AntifloodHandler              consensus.P2PAntifloodHandler
 	PeerHonestyHandler            consensus.PeerHonestyHandler
 	HeaderSigVerifier             consensus.HeaderSigVerifier
+	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -80,6 +82,7 @@ func NewConsensusCore(
 		antifloodHandler:              args.AntifloodHandler,
 		peerHonestyHandler:            args.PeerHonestyHandler,
 		headerSigVerifier:             args.HeaderSigVerifier,
+		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -178,6 +181,11 @@ func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 // HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
 func (cc *ConsensusCore) HeaderSigVerifier() consensus.HeaderSigVerifier {
 	return cc.headerSigVerifier
+}
+
+// FallbackHeaderValidator will return the fallback header validator which will be used in subrounds
+func (cc *ConsensusCore) FallbackHeaderValidator() consensus.FallbackHeaderValidator {
+	return cc.fallbackHeaderValidator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
