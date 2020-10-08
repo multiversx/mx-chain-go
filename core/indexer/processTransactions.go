@@ -79,10 +79,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
-		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
-		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
-		gasUsed.Sub(gasUsed, rec.Value)
-		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
+		gasUsed := big.NewInt(0)
+		gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
 
 		tx.GasUsed = gasUsed.Uint64()
 	}

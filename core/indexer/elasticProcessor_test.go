@@ -416,7 +416,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -454,7 +454,7 @@ func TestSaveRoundsInfo(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -485,7 +485,7 @@ func TestUpdateTransaction(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -597,7 +597,7 @@ func TestGetMultiple(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -625,7 +625,7 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -686,7 +686,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
