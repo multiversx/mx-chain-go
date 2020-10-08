@@ -187,3 +187,6 @@ var ErrInvalidAddress = errors.New("invalid address")
 
 // ErrDataNotFoundUnderKey signals that data was not found under requested key
 var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key")
+
+// ErrInvalidBLSKeys signals that invalid bls keys has been provided
+var ErrInvalidBLSKeys = errors.New("invalid bls keys")

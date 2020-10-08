@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -19,6 +20,7 @@ const delegationStatusKey = "delegationStatusKey"
 
 type delegation struct {
 	eei                    vm.SystemEI
+	sigVerifier            vm.MessageSignVerifier
 	delegationMgrSCAddress []byte
 	stakingSCAddr          []byte
 	auctionSCAddr          []byte
@@ -35,6 +37,7 @@ type delegation struct {
 type ArgsNewDelegation struct {
 	DelegationSCConfig     config.DelegationSystemSCConfig
 	Eei                    vm.SystemEI
+	SigVerifier            vm.MessageSignVerifier
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
 	AuctionSCAddress       []byte
@@ -62,6 +65,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
+	}
+	if check.IfNil(args.SigVerifier) {
+		return nil, vm.ErrNilMessageSignVerifier
 	}
 
 	d := &delegation{
@@ -169,23 +175,33 @@ func (d *delegation) isOwner(args *vmcommon.ContractCallInput) bool {
 	return bytes.Equal(args.CallerAddr, ownerAddress)
 }
 
-func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallInput) (*DelegationConfig, vmcommon.ReturnCode) {
+func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.isOwner(args) {
 		d.eei.AddReturnMessage("only owner can change delegation config")
-		return nil, vmcommon.UserError
-	}
-	if len(args.Arguments) != 1 {
-		d.eei.AddReturnMessage("invalid number of arguments")
-		return nil, vmcommon.UserError
+		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage("callValue must be 0")
-		return nil, vmcommon.UserError
+		return vmcommon.UserError
 	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return nil, vmcommon.OutOfGas
+		return vmcommon.OutOfGas
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallInput) (*DelegationConfig, vmcommon.ReturnCode) {
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return nil, vmcommon.UserError
+	}
+
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return nil, vmcommon.UserError
 	}
 
 	dConfig, err := d.getDelegationContractConfig()
@@ -264,10 +280,21 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if newTotalDelegationCap.Cmp(dStatus.TotalActive) < 0 {
+		d.eei.AddReturnMessage("cannot make total delegation cap smaller than active")
+		return vmcommon.UserError
+	}
+
 	dConfig.MaxDelegationCap = newTotalDelegationCap
 	dConfig.NoDelegationCap = dConfig.MaxDelegationCap.Cmp(zero) == 0
 
-	err := d.saveDelegationContractConfig(dConfig)
+	err = d.saveDelegationContractConfig(dConfig)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -277,17 +304,140 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 }
 
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.isOwner(args) {
-		d.eei.AddReturnMessage("only owner can change delegation config")
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments)%2 != 0 {
+		d.eei.AddReturnMessage("arguments must be of pair length - BLSKey and signedMessage")
+		return vmcommon.UserError
+	}
+
+	numBlsKeys := uint64(len(args.Arguments) / 2)
+	err := d.eei.UseGas(numBlsKeys * d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	blsKeys, err := d.verifiedBLSKeysAndSignature(args.RecipientAddr, args.Arguments)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = verifyIfBLSPubKeysExist(dStatus, blsKeys)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for i := 0; i < len(args.Arguments); i += 2 {
+		nodesData := &NodesData{
+			BLSKey:    args.Arguments[i],
+			SignedMsg: args.Arguments[i+1],
+		}
+		dStatus.NotStakedKeys = append(dStatus.NotStakedKeys, nodesData)
+	}
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
 }
 
+func verifyIfBLSPubKeysExist(dStatus *DelegationContractStatus, arguments [][]byte) error {
+	for _, argKey := range arguments {
+		found := false
+		for _, nodeData := range dStatus.NotStakedKeys {
+			if bytes.Equal(argKey, nodeData.BLSKey) {
+				found = true
+				break
+			}
+		}
+		for _, nodeData := range dStatus.StakedKeys {
+			if bytes.Equal(argKey, nodeData.BLSKey) {
+				found = true
+				break
+			}
+		}
+		if found {
+			return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
+		}
+	}
+
+	return nil
+}
+
+func (d *delegation) verifiedBLSKeysAndSignature(txPubKey []byte, args [][]byte) ([][]byte, error) {
+	blsKeys := make([][]byte, 0)
+
+	foundInvalid := false
+	for i := 0; i < len(args); i += 2 {
+		blsKey := args[i]
+		signedMessage := args[i+1]
+		err := d.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
+		if err != nil {
+			foundInvalid = true
+			d.eei.Finish(blsKey)
+			d.eei.Finish([]byte{invalidKey})
+			continue
+		}
+
+		blsKeys = append(blsKeys, blsKey)
+	}
+	if foundInvalid {
+		return nil, vm.ErrInvalidBLSKeys
+	}
+
+	return blsKeys, nil
+}
+
 func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.isOwner(args) {
-		d.eei.AddReturnMessage("only owner can change delegation config")
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return vmcommon.UserError
+	}
+
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, blsKey := range args.Arguments {
+		found := false
+		for i, nodeData := range dStatus.NotStakedKeys {
+			if bytes.Equal(blsKey, nodeData.BLSKey) {
+				copy(dStatus.NotStakedKeys[i:], dStatus.NotStakedKeys[i+1:])
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			d.eei.AddReturnMessage("")
+			return vmcommon.UserError
+		}
+	}
+
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
