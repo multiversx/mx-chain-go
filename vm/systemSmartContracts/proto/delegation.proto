@@ -26,7 +26,7 @@ message DelegationConfig {
   bytes  MaxDelegationCap     = 3 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes  InitialOwnerFunds    = 4 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bool   AutomaticActivation  = 5 [(gogoproto.jsontag) = "AutomaticActivation"];
-  bool   NoDelegationCap      = 6 [(gogoproto.jsontag) = "NoDelegationCap"];
+  bool   WithDelegationCap    = 6 [(gogoproto.jsontag) = "WithDelegationCap"];
   bool   ChangeableServiceFee = 7 [(gogoproto.jsontag) = "ChangeableServiceFee"];
   uint64 CreatedNonce         = 8 [(gogoproto.jsontag) = "CreatedNonce"];
 }

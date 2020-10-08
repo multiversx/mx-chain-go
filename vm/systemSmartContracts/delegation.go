@@ -30,7 +30,7 @@ type delegation struct {
 	enableDelegationEpoch  uint32
 	minServiceFee          uint64
 	maxServiceFee          uint64
-	minStakeAmount         *big.Int
+	minDelegationAmount    *big.Int
 }
 
 // ArgsNewDelegation -
@@ -87,7 +87,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if !okValue {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
-	d.minStakeAmount = minStakeAmount
+	d.minDelegationAmount = minStakeAmount
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
 
@@ -152,16 +152,30 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		MaxDelegationCap:     big.NewInt(0).SetBytes(args.Arguments[1]),
 		InitialOwnerFunds:    big.NewInt(0).Set(args.CallValue),
 		AutomaticActivation:  false,
-		NoDelegationCap:      false,
+		WithDelegationCap:    true,
 		ChangeableServiceFee: true,
 		CreatedNonce:         d.eei.BlockChainHook().CurrentNonce(),
 	}
 
 	if dConfig.MaxDelegationCap.Cmp(zero) == 0 {
-		dConfig.NoDelegationCap = true
+		dConfig.WithDelegationCap = false
 	}
 
 	err := d.saveDelegationContractConfig(dConfig)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	dStatus := &DelegationContractStatus{
+		TotalActive:   big.NewInt(0).Set(args.CallValue),
+		TotalUnStaked: big.NewInt(0),
+		NumDelegators: 0,
+		StakedKeys:    make([]*NodesData, 0),
+		NotStakedKeys: make([]*NodesData, 0),
+	}
+
+	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -263,9 +277,24 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	// TODO: update reward computation from this epoch onwards
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.updateRewardComputationData(newServiceFee, dStatus.TotalActive)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) updateRewardComputationData(_ uint64, _ *big.Int) error {
+	// TODO: update reward computation from this epoch onwards
+	return nil
 }
 
 func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -292,7 +321,7 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 	}
 
 	dConfig.MaxDelegationCap = newTotalDelegationCap
-	dConfig.NoDelegationCap = dConfig.MaxDelegationCap.Cmp(zero) == 0
+	dConfig.WithDelegationCap = dConfig.MaxDelegationCap.Cmp(zero) != 0
 
 	err = d.saveDelegationContractConfig(dConfig)
 	if err != nil {
@@ -430,7 +459,7 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		}
 
 		if !found {
-			d.eei.AddReturnMessage("")
+			d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -456,7 +485,38 @@ func (d *delegation) unBondNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnC
 	return vmcommon.Ok
 }
 
-func (d *delegation) delegate(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(d.minDelegationAmount) < 0 {
+		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + d.minDelegationAmount.String())
+		return vmcommon.UserError
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	newTotalActive := big.NewInt(0).Add(dStatus.TotalActive, args.CallValue)
+	if dConfig.WithDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
+		d.eei.AddReturnMessage("total delegation cap reached, no more space to accept")
+		return vmcommon.UserError
+	}
+
+	dStatus.TotalActive.Set(newTotalActive)
+
 	return vmcommon.Ok
 }
 
