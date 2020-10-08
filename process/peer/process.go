@@ -593,8 +593,8 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorAppearances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
-	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppearances)
+	validatorOccurrences := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
+	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorOccurrences)
 
 	if computedThreshold <= signedThreshold {
 		increasedRatingTimes := uint32(0)
