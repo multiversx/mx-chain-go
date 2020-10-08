@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -41,13 +43,20 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
+	feeConfig *config.FeeSettings,
 ) *txDatabaseProcessor {
+	// this should never return error because is tested when economics file is created
+	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
+	gasPerDataByte, _ := strconv.ParseUint(feeConfig.GasPerDataByte, 10, 64)
+
 	return &txDatabaseProcessor{
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
+			minGasLimit:              minGasLimit,
+			gasPerDataByte:           gasPerDataByte,
 		},
 		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
 	}

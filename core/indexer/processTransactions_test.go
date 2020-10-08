@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -122,6 +123,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -137,6 +139,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	scAddr := []byte("addr")
@@ -225,6 +228,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -251,6 +255,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)

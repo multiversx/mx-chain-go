@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -34,6 +35,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
+			arguments.FeeConfig,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{
@@ -57,6 +59,10 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
 		AccountsDB: &mock.AccountsStub{},
+		FeeConfig: &config.FeeSettings{
+			MinGasLimit:    "10",
+			GasPerDataByte: "1",
+		},
 	}
 }
 

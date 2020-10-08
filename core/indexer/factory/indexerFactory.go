@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
@@ -35,6 +36,7 @@ type ArgsIndexerFactory struct {
 	EnabledIndexes           []string
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
+	FeeConfig                *config.FeeSettings
 }
 
 // NewIndexer will create a new instance of Indexer
@@ -107,6 +109,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
+		FeeConfig:                args.FeeConfig,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)
@@ -136,6 +139,9 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	}
 	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
+	}
+	if arguments.FeeConfig == nil {
+		return core.ErrNilFeeConfig
 	}
 
 	return nil

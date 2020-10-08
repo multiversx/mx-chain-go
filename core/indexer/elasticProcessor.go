@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
@@ -31,6 +32,7 @@ type elasticProcessor struct {
 	accountsDB             state.AccountsAdapter
 	dividerForDenomination float64
 	balancePrecision       float64
+	feeConfig              config.FeeSettings
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -57,6 +59,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
+		arguments.FeeConfig,
 	)
 
 	if arguments.Options.UseKibana {
