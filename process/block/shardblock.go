@@ -503,6 +503,7 @@ func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing() {
 
 func (sp *shardProcessor) indexBlockIfNeeded(
 	body data.BodyHandler,
+	headerHash []byte,
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
@@ -513,12 +514,6 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 	if check.IfNil(body) {
-		return
-	}
-
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
-	if err != nil {
-		log.Warn("indexBlockIfNeeded: CalculateHash", "error", err)
 		return
 	}
 
@@ -871,7 +866,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	sp.indexBlockIfNeeded(bodyHandler, headerHandler, lastBlockHeader)
+	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)

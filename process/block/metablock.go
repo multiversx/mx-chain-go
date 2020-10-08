@@ -505,18 +505,13 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
 
 func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
+	headerHash []byte,
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
 	notarizedHeadersHashes []string,
 	rewardsTxs map[string]data.TransactionHandler,
 ) {
 	if mp.indexer.IsNilIndexer() {
-		return
-	}
-
-	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaBlock)
-	if err != nil {
-		log.Warn("meta indexBlock: CalculateHash", "error", err)
 		return
 	}
 
@@ -1114,7 +1109,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(lastMetaBlock)
 
-	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
