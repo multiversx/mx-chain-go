@@ -2401,6 +2401,7 @@ func createApiResolver(
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
+		Accounts:        accnts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -2440,13 +2441,20 @@ func createApiResolver(
 			config.VirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
-			argsHook)
+			argsHook,
+			config.GeneralSettings.SCDeployEnableEpoch,
+		)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
