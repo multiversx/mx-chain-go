@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -53,6 +54,7 @@ type trigger struct {
 	epochFinalityAttestingRound uint64
 	currEpochStartRound         uint64
 	prevEpochStartRound         uint64
+	nextEpochStartRound         uint64
 	roundsPerEpoch              uint64
 	minRoundsBetweenEpochs      uint64
 	epochStartMetaHash          []byte
@@ -125,6 +127,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            &statusHandler.NilStatusHandler{},
+		nextEpochStartRound:         math.MaxUint64,
 	}
 
 	err := trig.saveState(trig.triggerStateKey)
@@ -159,38 +162,17 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 	return t.epochFinalityAttestingRound
 }
 
-// ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(round uint64) error {
+// ForceEpochStart sets the round at which the new epoch will start
+func (t *trigger) ForceEpochStart() {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	if t.currentRound > round {
-		return epochStart.ErrSavedRoundIsHigherThanInput
-	}
-	if t.currentRound == round {
-		return epochStart.ErrForceEpochStartCanBeCalledOnlyOnNewRound
-	}
-
-	t.currentRound = round
-
+	t.nextEpochStartRound = t.currentRound
 	if t.currentRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
-		return epochStart.ErrNotEnoughRoundsBetweenEpochs
+		t.nextEpochStartRound = t.currEpochStartRound + t.minRoundsBetweenEpochs
 	}
 
-	if !t.isEpochStart {
-		t.epoch += 1
-	}
-
-	t.prevEpochStartRound = t.currEpochStartRound
-	t.currEpochStartRound = t.currentRound
-	t.isEpochStart = true
-	t.saveCurrentState(round)
-
-	log.Debug("trigger.ForceEpochStart", "isEpochStart", t.isEpochStart)
-	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
-	log.Debug(display.Headline(msg, "", "#"))
-
-	return nil
+	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
 }
 
 // Update processes changes in the trigger
@@ -205,8 +187,9 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
-	isEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
-	shouldTriggerEpochStart := isEpochStart && !isZeroEpochEdgeCase
+	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
+	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
@@ -218,6 +201,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		log.Debug(display.Headline(msg, "", "#"))
 		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 		logger.SetCorrelationEpoch(t.epoch)
+		t.nextEpochStartRound = math.MaxUint64
 	}
 }
 

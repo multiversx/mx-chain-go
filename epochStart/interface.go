@@ -2,18 +2,18 @@ package epochStart
 
 import (
 	"context"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
 	Close() error
-	ForceEpochStart(round uint64) error
+	ForceEpochStart()
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32

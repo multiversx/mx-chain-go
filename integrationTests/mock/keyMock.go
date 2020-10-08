@@ -1,15 +1,20 @@
 package mock
 
 import (
+	"crypto/rand"
+
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 )
 
 // PublicKeyMock -
 type PublicKeyMock struct {
+	pubKey []byte
 }
 
 // PrivateKeyMock -
 type PrivateKeyMock struct {
+	privKey []byte
 }
 
 // KeyGenMock -
@@ -18,7 +23,7 @@ type KeyGenMock struct {
 
 // ToByteArray -
 func (sspk *PublicKeyMock) ToByteArray() ([]byte, error) {
-	return []byte("pubKey"), nil
+	return sspk.pubKey, nil
 }
 
 // Suite -
@@ -38,12 +43,14 @@ func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 
 // ToByteArray -
 func (sk *PrivateKeyMock) ToByteArray() ([]byte, error) {
-	return []byte("privKey"), nil
+	return sk.privKey, nil
 }
 
 // GeneratePublic -
 func (sk *PrivateKeyMock) GeneratePublic() crypto.PublicKey {
-	return &PublicKeyMock{}
+	return &PublicKeyMock{
+		pubKey: sha256.Sha256{}.Compute(string(sk.privKey)),
+	}
 }
 
 // Suite -
@@ -63,17 +70,28 @@ func (sk *PrivateKeyMock) IsInterfaceNil() bool {
 
 // GeneratePair -
 func (keyGen *KeyGenMock) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
-	return &PrivateKeyMock{}, &PublicKeyMock{}
+	buff := make([]byte, 32)
+	_, _ = rand.Read(buff)
+
+	sk := &PrivateKeyMock{
+		privKey: buff,
+	}
+
+	return sk, sk.GeneratePublic()
 }
 
 // PrivateKeyFromByteArray -
-func (keyGen *KeyGenMock) PrivateKeyFromByteArray(_ []byte) (crypto.PrivateKey, error) {
-	return &PrivateKeyMock{}, nil
+func (keyGen *KeyGenMock) PrivateKeyFromByteArray(buff []byte) (crypto.PrivateKey, error) {
+	return &PrivateKeyMock{
+		privKey: buff,
+	}, nil
 }
 
 // PublicKeyFromByteArray -
-func (keyGen *KeyGenMock) PublicKeyFromByteArray(_ []byte) (crypto.PublicKey, error) {
-	return &PublicKeyMock{}, nil
+func (keyGen *KeyGenMock) PublicKeyFromByteArray(buff []byte) (crypto.PublicKey, error) {
+	return &PublicKeyMock{
+		pubKey: buff,
+	}, nil
 }
 
 // CheckPublicKeyValid -
