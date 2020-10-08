@@ -47,7 +47,7 @@ message Fund {
 }
 
 message DelegatorData {
-  bytes          TotalActive       = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes          ActiveFund        = 1 [(gogoproto.jsontag) = "ActiveFund"];
   repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
   repeated bytes WithdrawOnlyFunds = 3 [(gogoproto.jsontag) = "WithdrawOnlyFunds"];
 }

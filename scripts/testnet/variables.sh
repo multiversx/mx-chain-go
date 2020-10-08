@@ -34,11 +34,11 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=10
+export NODE_NICENESS=
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
-export NODE_WATCHER=1
+export NODE_WATCHER=0
 
 # Delays after running executables.
 export SEEDNODE_DELAY=5
@@ -75,7 +75,7 @@ export ALWAYS_NEW_APP_VERSION=0
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
 # Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
-export ALWAYS_UPDATE_CONFIGS=1
+export ALWAYS_UPDATE_CONFIGS=0
 
 # Always rebuild Arwen from its sources and copy the executable to the testnet folder.
 export ALWAYS_BUILD_ARWEN=1
@@ -96,14 +96,14 @@ export P2P_SEEDNODE_ADDRESS="/ip4/127.0.0.1/tcp/$PORT_SEEDNODE/p2p/16Uiu2HAkw5SN
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=1
+export USETMUX=0
 
 # Start Nodes with TermUI or not. Looks good with TermUI, but if you want full
 # info and saved logs, set this to 0. TermUI can't save logs.
-export NODETERMUI=1
+export NODETERMUI=0
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then

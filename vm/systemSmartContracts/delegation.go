@@ -17,6 +17,7 @@ import (
 
 const delegationConfigKey = "delegationConfigKey"
 const delegationStatusKey = "delegationStatusKey"
+const lastFundKey = "lastFundKey"
 
 type delegation struct {
 	eei                    vm.SystemEI
@@ -145,9 +146,10 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	ownerAddress = args.Arguments[0]
 	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
 	dConfig := &DelegationConfig{
-		OwnerAddress:         args.Arguments[0],
+		OwnerAddress:         ownerAddress,
 		ServiceFee:           big.NewInt(0).SetBytes(args.Arguments[2]).Uint64(),
 		MaxDelegationCap:     big.NewInt(0).SetBytes(args.Arguments[1]),
 		InitialOwnerFunds:    big.NewInt(0).Set(args.CallValue),
@@ -176,6 +178,22 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	_, delegator, err := d.getOrCreateDelegatorData(ownerAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	delegator.TotalActive = big.NewInt(0).Set(args.CallValue)
+	delegator.UnStakedFunds = make([][]byte, 0)
+	delegator.WithdrawOnlyFunds = make([][]byte, 0)
+
+	err = d.saveDelegatorData(ownerAddress, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -580,6 +598,64 @@ func (d *delegation) saveDelegationStatus(dStatus *DelegationContractStatus) err
 
 	d.eei.SetStorage([]byte(delegationStatusKey), marshalledData)
 	return nil
+}
+
+func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
+	dData := &DelegatorData{}
+	marshalledData := d.eei.GetStorage(address)
+	if len(marshalledData) == 0 {
+		return false, dData, nil
+	}
+
+	err := d.marshalizer.Unmarshal(dData, marshalledData)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, dData, nil
+}
+
+func (d *delegation) saveDelegatorData(address []byte, dData *DelegatorData) error {
+	marshalledData, err := d.marshalizer.Marshal(dData)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage(address, marshalledData)
+	return nil
+}
+
+func (d *delegation) getFund(key []byte) (*Fund, error) {
+	marshalledData := d.eei.GetStorage(key)
+	if len(marshalledData) == 0 {
+		return nil, fmt.Errorf("%w getFund %s", vm.ErrDataNotFoundUnderKey, string(key))
+	}
+
+	dFund := &Fund{}
+	err := d.marshalizer.Unmarshal(dFund, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return dFund, nil
+}
+
+func (d *delegation) saveFund(key []byte, dFund *Fund) error {
+	marshalledData, err := d.marshalizer.Marshal(dFund)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage(key, marshalledData)
+	return nil
+}
+
+func (d *delegation) createNextFund(address []byte, value *big.Int) ([]byte, *Fund) {
+	lastKey := d.eei.GetStorage([]byte(lastFundKey))
+	if len(lastKey) == 0 {
+		last
+	}
+	return nil, nil
 }
 
 // EpochConfirmed  is called whenever a new epoch is confirmed
