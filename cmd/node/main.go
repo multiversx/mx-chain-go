@@ -47,6 +47,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/health"
@@ -1254,6 +1255,15 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ShardCoordinator:       shardCoordinator,
 	}
 
+	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
+		dataComponents.Datapool.Headers(),
+		coreComponents.InternalMarshalizer,
+		dataComponents.Store,
+	)
+	if err != nil {
+		return err
+	}
+
 	log.Trace("creating process components")
 	processArgs := factory.NewProcessComponentsFactoryArgs(
 		&coreArgs,
@@ -1299,6 +1309,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		txSimulatorProcessorArgs,
 		ctx.GlobalString(importDbDirectory.Name),
 		chanStopNodeProcess,
+		fallbackHeaderValidator,
 	)
 	processComponents, err := factory.ProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1373,6 +1384,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		chanStopNodeProcess,
 		hardForkTrigger,
 		historyRepository,
+		fallbackHeaderValidator,
 	)
 	if err != nil {
 		return err
@@ -2145,6 +2157,7 @@ func createNode(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	hardForkTrigger node.HardforkTrigger,
 	historyRepository dblookupext.HistoryRepository,
+	fallbackHeaderValidator consensus.FallbackHeaderValidator,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2263,6 +2276,7 @@ func createNode(
 		node.WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		node.WithNodeStopChannel(chanStopNodeProcess),
 		node.WithPeerHonestyHandler(peerHonestyHandler),
+		node.WithFallbackHeaderValidator(fallbackHeaderValidator),
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
 		node.WithHistoryRepository(historyRepository),

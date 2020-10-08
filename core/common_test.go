@@ -64,3 +64,21 @@ func TestEmptyChannelShouldWorkOnNotBufferedChannel(t *testing.T) {
 	assert.Equal(t, 0, len(ch))
 	assert.Equal(t, int32(numConcurrentWrites), atomic.LoadInt32(&readsCnt))
 }
+
+func TestGetPBFTThreshold_ShouldWork(t *testing.T) {
+	assert.Equal(t, 2, GetPBFTThreshold(2))
+	assert.Equal(t, 3, GetPBFTThreshold(3))
+	assert.Equal(t, 3, GetPBFTThreshold(4))
+	assert.Equal(t, 4, GetPBFTThreshold(5))
+	assert.Equal(t, 5, GetPBFTThreshold(6))
+	assert.Equal(t, 5, GetPBFTThreshold(7))
+}
+
+func TestGetPBFTFallbackThreshold_ShouldWork(t *testing.T) {
+	assert.Equal(t, 2, GetPBFTFallbackThreshold(2))
+	assert.Equal(t, 2, GetPBFTFallbackThreshold(3))
+	assert.Equal(t, 3, GetPBFTFallbackThreshold(4))
+	assert.Equal(t, 3, GetPBFTFallbackThreshold(5))
+	assert.Equal(t, 4, GetPBFTFallbackThreshold(6))
+	assert.Equal(t, 4, GetPBFTFallbackThreshold(7))
+}
