@@ -353,8 +353,8 @@ func (nf *nodeFacade) PprofEnabled() bool {
 }
 
 // Trigger will trigger a hardfork event
-func (nf *nodeFacade) Trigger(epoch uint32) error {
-	return nf.node.DirectTrigger(epoch)
+func (nf *nodeFacade) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
+	return nf.node.DirectTrigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the self public key is the same with the registered public key
@@ -434,7 +434,8 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 				Data:   updateVal.Data,
 			}
 		}
-		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
+		outKey := hex.EncodeToString([]byte(key))
+		outAcc := &vm.OutputAccountApi{
 			Address:        outputAddress,
 			Nonce:          acc.Nonce,
 			Balance:        acc.Balance,
@@ -442,10 +443,20 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			StorageUpdates: storageUpdates,
 			Code:           acc.Code,
 			CodeMetadata:   acc.CodeMetadata,
-			Data:           acc.Data,
-			GasLimit:       acc.GasLimit,
-			CallType:       acc.CallType,
 		}
+
+		outAcc.OutputTransfers = make([]vm.OutputTransferApi, len(acc.OutputTransfers))
+		for i, outTransfer := range acc.OutputTransfers {
+			outTransferApi := vm.OutputTransferApi{
+				Value:    outTransfer.Value,
+				GasLimit: outTransfer.GasLimit,
+				Data:     outTransfer.Data,
+				CallType: outTransfer.CallType,
+			}
+			outAcc.OutputTransfers[i] = outTransferApi
+		}
+
+		outputAccounts[outKey] = outAcc
 	}
 
 	logs := make([]*vm.LogEntryApi, 0, len(input.Logs))
@@ -464,6 +475,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			Data:       originalLog.Data,
 		}
 	}
+
 	return &vm.VMOutputApi{
 		ReturnData:      input.ReturnData,
 		ReturnCode:      input.ReturnCode.String(),

@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -151,8 +151,9 @@ type Node struct {
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
 
-	heartbeatHandler   *componentHandler.HeartbeatHandler
-	peerHonestyHandler consensus.PeerHonestyHandler
+	heartbeatHandler        HeartbeatHandler
+	peerHonestyHandler      consensus.PeerHonestyHandler
+	fallbackHeaderValidator consensus.FallbackHeaderValidator
 
 	watchdog          core.WatchdogTimer
 	historyRepository dblookupext.HistoryRepository
@@ -341,6 +342,7 @@ func (n *Node) StartConsensus() error {
 		AntifloodHandler:              n.inputAntifloodHandler,
 		PeerHonestyHandler:            n.peerHonestyHandler,
 		HeaderSigVerifier:             n.headerSigVerifier,
+		FallbackHeaderValidator:       n.fallbackHeaderValidator,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -816,6 +818,11 @@ func (n *Node) sendBulkTransactions(txs []*transaction.Transaction) {
 
 // ValidateTransaction will validate a transaction
 func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
+	err := n.checkSenderIsInShard(tx)
+	if err != nil {
+		return err
+	}
+
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
@@ -824,7 +831,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		core.MaxTxNonceDeltaAllowed,
 	)
 	if err != nil {
-		return nil
+		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
+			"error", err)
+		return err
 	}
 
 	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
@@ -857,13 +866,17 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	err = txValidator.CheckTxValidity(intTx)
-	if errors.Is(err, process.ErrAccountNotFound) {
-		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
-		return nil
+	return txValidator.CheckTxValidity(intTx)
+}
+
+func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
+	senderShardID := n.shardCoordinator.ComputeId(tx.SndAddr)
+	if senderShardID != n.shardCoordinator.SelfId() {
+		return fmt.Errorf("%w, tx sender shard ID: %d, node's shard ID %d",
+			ErrDifferentSenderShardId, senderShardID, n.shardCoordinator.SelfId())
 	}
 
-	return err
+	return nil
 }
 
 func (n *Node) sendBulkTransactionsFromShard(transactions [][]byte, senderShardId uint32) error {
@@ -1069,8 +1082,8 @@ func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[str
 }
 
 // DirectTrigger will start the hardfork trigger
-func (n *Node) DirectTrigger(epoch uint32) error {
-	return n.hardforkTrigger.Trigger(epoch)
+func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
+	return n.hardforkTrigger.Trigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the trigger's registered public key matches the self public key

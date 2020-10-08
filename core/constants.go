@@ -333,6 +333,21 @@ const MetricLastBlockTxCount = "erd_last_block_tx_count"
 // MetricAverageBlockTxCount holds the average count of transactions in a block
 const MetricAverageBlockTxCount = "erd_average_block_tx_count"
 
+// MetricTotalSupply holds the total supply value for the last epoch
+const MetricTotalSupply = "erd_total_supply"
+
+// MetricInflation holds the inflation value for the last epoch
+const MetricInflation = "erd_inflation"
+
+// MetricDevRewards holds the developers' rewards value for the last epoch
+const MetricDevRewards = "erd_dev_rewards"
+
+// MetricTotalFees holds the total fees value for the last epoch
+const MetricTotalFees = "erd_total_fees"
+
+// MetricEpochForEconomicsData holds the epoch for which economics data are computed
+const MetricEpochForEconomicsData = "erd_epoch_for_economics_data"
+
 // LastNonceKeyMetricsStorage holds the key used for storing the last nonce for stored metrics
 const LastNonceKeyMetricsStorage = "lastNonce"
 
@@ -439,6 +454,24 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// BuiltInFunctionESDTBurn is the key for the elrond standard digital token burn built-in function
+const BuiltInFunctionESDTBurn = "ESDTBurn"
+
+// BuiltInFunctionESDTFreeze is the key for the elrond standard digital token freeze built-in function
+const BuiltInFunctionESDTFreeze = "ESDTFreeze"
+
+// BuiltInFunctionESDTUnFreeze is the key for the elrond standard digital token unfreeze built-in function
+const BuiltInFunctionESDTUnFreeze = "ESDTUnFreeze"
+
+// BuiltInFunctionESDTWipe is the key for the elrond standard digital token wipe built-in function
+const BuiltInFunctionESDTWipe = "ESDTWipe"
+
+// BuiltInFunctionESDTPause is the key for the elrond standard digital token pause built-in function
+const BuiltInFunctionESDTPause = "ESDTPause"
+
+// BuiltInFunctionESDTUnPause is the key for the elrond standard digital token unpause built-in function
+const BuiltInFunctionESDTUnPause = "ESDTUnPause"
+
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 
@@ -511,3 +544,7 @@ const DefaultLogProfileIdentifier = "[default log profile]"
 // Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
 // considering that constant below is set to 3
 const MultiplyFactorForScCall = 3
+
+// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+// before a special action to be applied
+const MaxRoundsWithoutCommittedStartInEpochBlock = 50

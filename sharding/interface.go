@@ -115,6 +115,7 @@ type PeerAccountListAndRatingHandler interface {
 	ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32
 	//ComputeDecreaseValidator computes the new rating for the decreaseValidator
 	ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32
+	//IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 
@@ -169,6 +170,7 @@ type GenesisNodesSetupHandler interface {
 	GetMetaConsensusGroupSize() uint32
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	MinNumberOfNodesWithHysteresis() uint32
 	IsInterfaceNil() bool
 }
 

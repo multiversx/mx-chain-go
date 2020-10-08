@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -60,7 +61,7 @@ type Accumulator interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
@@ -73,5 +74,12 @@ type Throttler interface {
 	CanProcess() bool
 	StartProcessing()
 	EndProcessing()
+	IsInterfaceNil() bool
+}
+
+// HeartbeatHandler defines the behavior of a heartbeat handler
+type HeartbeatHandler interface {
+	Monitor() *process.Monitor
+	Sender() *process.Sender
 	IsInterfaceNil() bool
 }
