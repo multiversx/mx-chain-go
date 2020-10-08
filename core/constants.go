@@ -454,6 +454,24 @@ const BuiltInFunctionSaveKeyValue = "SaveKeyValue"
 // BuiltInFunctionESDTTransfer is the key for the elrond standard digital token transfer built-in function
 const BuiltInFunctionESDTTransfer = "ESDTTransfer"
 
+// BuiltInFunctionESDTBurn is the key for the elrond standard digital token burn built-in function
+const BuiltInFunctionESDTBurn = "ESDTBurn"
+
+// BuiltInFunctionESDTFreeze is the key for the elrond standard digital token freeze built-in function
+const BuiltInFunctionESDTFreeze = "ESDTFreeze"
+
+// BuiltInFunctionESDTUnFreeze is the key for the elrond standard digital token unfreeze built-in function
+const BuiltInFunctionESDTUnFreeze = "ESDTUnFreeze"
+
+// BuiltInFunctionESDTWipe is the key for the elrond standard digital token wipe built-in function
+const BuiltInFunctionESDTWipe = "ESDTWipe"
+
+// BuiltInFunctionESDTPause is the key for the elrond standard digital token pause built-in function
+const BuiltInFunctionESDTPause = "ESDTPause"
+
+// BuiltInFunctionESDTUnPause is the key for the elrond standard digital token unpause built-in function
+const BuiltInFunctionESDTUnPause = "ESDTUnPause"
+
 // RelayedTransaction is the key for the elrond meta/gassless/relayed transaction standard
 const RelayedTransaction = "relayedTx"
 

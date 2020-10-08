@@ -1034,6 +1034,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		GasMap:          gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
@@ -1061,6 +1062,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
+		0,
 	)
 
 	var err error
@@ -1070,6 +1072,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm

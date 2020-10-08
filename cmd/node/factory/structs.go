@@ -1452,6 +1452,7 @@ func newShardBlockProcessor(
 		GasMap:          gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
+		Accounts:        stateComponents.AccountsAdapter,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -1472,12 +1473,19 @@ func newShardBlockProcessor(
 		config.VirtualMachineConfig,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 		gasSchedule,
-		argsHook)
+		argsHook,
+		config.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}

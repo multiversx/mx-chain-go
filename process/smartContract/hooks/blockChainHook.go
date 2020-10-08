@@ -113,7 +113,7 @@ func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccou
 	defer stopMeasure(startMeasure("GetUserAccount"))
 
 	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if dstShardId != bh.shardCoordinator.SelfId() {
+	if !core.IsSystemAccountAddress(address) && dstShardId != bh.shardCoordinator.SelfId() {
 		return nil, nil
 	}
 
@@ -353,6 +353,10 @@ func (bh *BlockChainHookImpl) IsSmartContract(address []byte) bool {
 
 // IsPayable checks whether the provided address can receive ERD or not
 func (bh *BlockChainHookImpl) IsPayable(address []byte) (bool, error) {
+	if core.IsSystemAccountAddress(address) {
+		return false, nil
+	}
+
 	if !bh.IsSmartContract(address) {
 		return true, nil
 	}
