@@ -3,9 +3,7 @@ package indexer
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -60,12 +58,12 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
-) []*Transaction {
-	transactions, rewardsTxs := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
+) ([]*Transaction, map[string]struct{}) {
+	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 
-	transactions = tdp.setTransactionSearchOrder(transactions, selfShardID)
+	transactions = tdp.setTransactionSearchOrder(transactions)
 	for _, rec := range receipts {
 		tx, ok := transactions[string(rec.TxHash)]
 		if !ok {
@@ -130,7 +128,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 	tdp.txLogsProcessor.Clean()
 
-	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
+	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
@@ -206,7 +204,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 ) (
 	map[string]*Transaction,
 	[]*Transaction,
+	map[string]struct{},
 ) {
+	alteredAddresses := make(map[string]struct{})
 	transactions := make(map[string]*Transaction)
 	rewardsTxs := make([]*Transaction, 0)
 
@@ -226,6 +226,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -233,6 +234,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -240,6 +242,8 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
+				alteredAddresses[dbTx.Receiver] = struct{}{}
 				rewardsTxs = append(rewardsTxs, dbTx)
 				delete(txPool, hash)
 			}
@@ -248,34 +252,32 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		}
 	}
 
-	return transactions, rewardsTxs
+	return transactions, rewardsTxs, alteredAddresses
 }
 
-func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction, shardId uint32) map[string]*Transaction {
-	currentOrder := 0
-	shardIdentifier := tdp.createShardIdentifier(shardId)
-
+func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction) map[string]*Transaction {
+	currentOrder := uint32(0)
 	for _, tx := range transactions {
-		stringOrder := fmt.Sprintf("%d%d", shardIdentifier, currentOrder)
-		order, err := strconv.ParseUint(stringOrder, 10, 32)
-		if err != nil {
-			order = 0
-			log.Debug("processTransactions.setTransactionSearchOrder", "could not set uint32 search order", err.Error())
-		}
-		tx.SearchOrder = uint32(order)
+		tx.SearchOrder = currentOrder
 		currentOrder++
 	}
 
 	return transactions
 }
 
-func (tdp *txDatabaseProcessor) createShardIdentifier(shardId uint32) uint32 {
-	shardIdentifier := shardId+2
-	if shardId == core.MetachainShardId {
-		shardIdentifier = 1
+func addToAlteredAddresses(
+	tx *Transaction,
+	alteredAddresses map[string]struct{},
+	miniBlock *block.MiniBlock,
+	selfShardID uint32,
+	isRewardTx bool,
+) {
+	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
+		alteredAddresses[tx.Sender] = struct{}{}
 	}
-
-	return shardIdentifier
+	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
+		alteredAddresses[tx.Receiver] = struct{}{}
+	}
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {

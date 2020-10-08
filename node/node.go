@@ -554,6 +554,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -615,6 +616,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
