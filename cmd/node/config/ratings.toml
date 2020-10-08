@@ -47,7 +47,7 @@
     #for the current settings, a pk will reach to value 0 after maximum 2h (if it stopped misbehaving or stopped sending good messages)
     DecayCoefficient             = 0.9779
     DecayUpdateIntervalInSeconds = 10
-    MaxScore                     = 100
-    MinScore                     = -100
-    BadPeerThreshold             = -80
+    MaxScore                     = 100.0
+    MinScore                     = -100.0
+    BadPeerThreshold             = -80.0
     UnitValue                    = 1.0
