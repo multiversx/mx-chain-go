@@ -190,3 +190,12 @@ var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key
 
 // ErrInvalidBLSKeys signals that invalid bls keys has been provided
 var ErrInvalidBLSKeys = errors.New("invalid bls keys")
+
+// ErrNoTokenWithGivenName signals that token does not exists with given name
+var ErrNoTokenWithGivenName = errors.New("no token with given name")
+
+// ErrInvalidNumOfArguments signals that invalid number of arguments has been provided
+var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
+
+// ErrInvalidArgument signals that invalid argument has been provided
+var ErrInvalidArgument = errors.New("invalid argument")

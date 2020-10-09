@@ -8,16 +8,19 @@ option (gogoproto.stable_marshaler_all) = true;
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 message ESDTData {
-    bytes IssuerAddress = 1 [(gogoproto.jsontag) = "IssuerAddress"];
-    bytes TokenName     = 2 [(gogoproto.jsontag) = "TokenName"];
-    bool  Mintable      = 3 [(gogoproto.jsontag) = "Mintable"];
-    bool  Burnable      = 4 [(gogoproto.jsontag) = "Burnable"];
-    bool  CanPause      = 5 [(gogoproto.jsontag) = "CanPause"];
-    bool  Paused        = 6 [(gogoproto.jsontag) = "Paused"];
-    bool  CanFreeze     = 7 [(gogoproto.jsontag) = "CanFreeze"];
-    bool  CanWipe       = 8 [(gogoproto.jsontag) = "CanWipe"];
-    bytes MintedValue   = 9 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes BurntValue    = 10 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes OwnerAddress   = 1 [(gogoproto.jsontag) = "OwnerAddress"];
+    bytes TokenName      = 2 [(gogoproto.jsontag) = "TokenName"];
+    bool  Mintable       = 3 [(gogoproto.jsontag) = "Mintable"];
+    bool  Burnable       = 4 [(gogoproto.jsontag) = "Burnable"];
+    bool  CanPause       = 5 [(gogoproto.jsontag) = "CanPause"];
+    bool  Paused         = 6 [(gogoproto.jsontag) = "Paused"];
+    bool  CanFreeze      = 7 [(gogoproto.jsontag) = "CanFreeze"];
+    bool  CanWipe        = 8 [(gogoproto.jsontag) = "CanWipe"];
+    bool  Upgradable     = 10 [(gogoproto.jsontag) = "CanUpgrade"];
+    bool  CanChangeOwner = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
+    bool  IsPaused       = 12 [(gogoproto.jsontag) = "IsPaused"];
+    bytes MintedValue    = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes BurntValue     = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message ESDTConfig {

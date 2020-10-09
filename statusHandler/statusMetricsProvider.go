@@ -144,6 +144,19 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() string {
 	return stringBuilder.String()
 }
 
+// EconomicsMetrics returns the economics related metrics
+func (sm *statusMetrics) EconomicsMetrics() map[string]interface{} {
+	economicsMetrics := make(map[string]interface{})
+
+	economicsMetrics[core.MetricTotalSupply] = sm.loadStringMetric(core.MetricTotalSupply)
+	economicsMetrics[core.MetricTotalFees] = sm.loadStringMetric(core.MetricTotalFees)
+	economicsMetrics[core.MetricDevRewards] = sm.loadStringMetric(core.MetricDevRewards)
+	economicsMetrics[core.MetricInflation] = sm.loadStringMetric(core.MetricInflation)
+	economicsMetrics[core.MetricEpochForEconomicsData] = sm.loadUint64Metric(core.MetricEpochForEconomicsData)
+
+	return economicsMetrics
+}
+
 // ConfigMetrics will return metrics related to current configuration
 func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics := make(map[string]interface{})
