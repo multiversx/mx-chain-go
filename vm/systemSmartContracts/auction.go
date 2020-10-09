@@ -855,7 +855,9 @@ func (s *stakingAuctionSC) activateStakingFor(
 			s.eei.Finish([]byte{waiting})
 		}
 
-		numRegistered++
+		if stakedData.UnStakedNonce == 0 {
+			numRegistered++
+		}
 	}
 
 	registrationData.NumRegistered = uint32(numRegistered)
