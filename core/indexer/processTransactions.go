@@ -147,7 +147,6 @@ func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {
 		return gasUsed.Uint64()
 	}
 
-	// we have an invalid transaction and receipt contains the fee of transaction
 	gasUsed := big.NewInt(0)
 	gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
 
