@@ -41,13 +41,13 @@ type GovernanceSystemSCConfig struct {
 	EnabledEpoch     uint32
 }
 
-// DelegationManagerSystemSCConfig defines a set of constant to initialize the delegation manager system smart contract
+// DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract
 type DelegationManagerSystemSCConfig struct {
 	BaseIssuingCost string
 	EnabledEpoch    uint32
 }
 
-// DelegationSystemSCConfig defines a set of constant to initialize the delegation system smart contract
+// DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract
 type DelegationSystemSCConfig struct {
 	MinStakeAmount string
 	EnabledEpoch   uint32

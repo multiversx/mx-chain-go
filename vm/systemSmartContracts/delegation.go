@@ -41,7 +41,7 @@ type delegation struct {
 	minDelegationAmount    *big.Int
 }
 
-// ArgsNewDelegation -
+// ArgsNewDelegation defines the arguments to create the delegation smart contract
 type ArgsNewDelegation struct {
 	DelegationSCConfig     config.DelegationSystemSCConfig
 	Eei                    vm.SystemEI
@@ -92,8 +92,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	minStakeAmount, okValue := big.NewInt(0).SetString(args.DelegationSCConfig.MinStakeAmount, conversionBase)
-	if !okValue {
-		return nil, vm.ErrInvalidBaseIssuingCost
+	if !okValue || minStakeAmount.Cmp(zero) < 0 {
+		return nil, vm.ErrInvalidMinStakeValue
 	}
 	d.minDelegationAmount = minStakeAmount
 
@@ -148,7 +148,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 3 {
-		d.eei.AddReturnMessage("not enough arguments to init delegation contract")
+		d.eei.AddReturnMessage("invalid number of arguments to init delegation contract")
 		return vmcommon.UserError
 	}
 
@@ -237,7 +237,7 @@ func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vm
 		d.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.UserError
 	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -382,13 +382,13 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	numBlsKeys := uint64(len(args.Arguments) / 2)
-	err := d.eei.UseGas(numBlsKeys * d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err := d.eei.UseGas(numBlsKeys * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
 
-	blsKeys, err := d.verifiedBLSKeysAndSignature(args.RecipientAddr, args.Arguments)
+	blsKeys, err := d.verifyBLSKeysAndSignature(args.RecipientAddr, args.Arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -424,28 +424,22 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 func verifyIfBLSPubKeysExist(dStatus *DelegationContractStatus, arguments [][]byte) error {
 	for _, argKey := range arguments {
-		found := false
 		for _, nodeData := range dStatus.NotStakedKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
-				found = true
-				break
+				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
 			}
 		}
 		for _, nodeData := range dStatus.StakedKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
-				found = true
-				break
+				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
 			}
-		}
-		if found {
-			return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
 		}
 	}
 
 	return nil
 }
 
-func (d *delegation) verifiedBLSKeysAndSignature(txPubKey []byte, args [][]byte) ([][]byte, error) {
+func (d *delegation) verifyBLSKeysAndSignature(txPubKey []byte, args [][]byte) ([][]byte, error) {
 	blsKeys := make([][]byte, 0)
 
 	foundInvalid := false
@@ -475,10 +469,10 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	dStatus, err := d.getDelegationStatus()
@@ -529,7 +523,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + d.minDelegationAmount.String())
 		return vmcommon.UserError
 	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas

@@ -26,7 +26,7 @@ type delegationManager struct {
 	baseIssuingCost          *big.Int
 }
 
-// ArgsNewDelegationManager -
+// ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
 type ArgsNewDelegationManager struct {
 	DelegationMgrSCConfig  config.DelegationManagerSystemSCConfig
 	Eei                    vm.SystemEI
@@ -59,12 +59,12 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		return nil, vm.ErrNilEpochNotifier
 	}
 
-	baseIssueingCost, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.BaseIssuingCost, conversionBase)
-	if !okConvert || baseIssueingCost.Cmp(zero) < 0 {
+	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.BaseIssuingCost, conversionBase)
+	if !okConvert || baseIssuingCost.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	mgr := &delegationManager{
+	d := &delegationManager{
 		eei:                      args.Eei,
 		stakingSCAddr:            args.StakingSCAddress,
 		auctionSCAddr:            args.AuctionSCAddress,
@@ -73,12 +73,12 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		marshalizer:              args.Marshalizer,
 		delegationMgrEnabled:     atomic.Flag{},
 		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
-		baseIssuingCost:          baseIssueingCost,
+		baseIssuingCost:          baseIssuingCost,
 	}
 
-	args.EpochNotifier.RegisterNotifyHandler(mgr)
+	args.EpochNotifier.RegisterNotifyHandler(d)
 
-	return mgr, nil
+	return d, nil
 }
 
 // Execute  calls one of the functions from the delegation manager contract and runs the code according to the input

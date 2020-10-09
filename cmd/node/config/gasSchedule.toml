@@ -21,6 +21,7 @@
     DelegateVote        = 1000000
     RevokeVote          = 500000
     CloseProposal       = 1000000
+    DelegationOps       = 1000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
