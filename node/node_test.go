@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -76,7 +77,7 @@ func getMessenger() *mock.MessengerStub {
 }
 
 func getMarshalizer() marshal.Marshalizer {
-	return &mock.MarshalizerMock{}
+	return &mock.MarshalizerFake{}
 }
 
 func getHasher() hashing.Hasher {
@@ -608,10 +609,13 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
-func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
+func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *testing.T) {
 	t.Parallel()
 
 	expectedHash := []byte("expected hash")
+	crtShardID := uint32(1)
+	chainID := []byte("chain ID")
+	version := uint32(1)
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
@@ -630,6 +634,23 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
+			ComputeIdCalled: func(i []byte) uint32 {
+				return crtShardID + 1
+			},
+			SelfShardId: crtShardID,
+		}),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
+		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
+		node.WithTxFeeHandler(&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+		}),
+		node.WithChainID(chainID),
+		node.WithMinTransactionVersion(version),
 	)
 
 	nonce := uint64(0)
@@ -641,7 +662,72 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
+	assert.NotNil(t, tx)
+	assert.Equal(t, expectedHash, txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, tx.Nonce)
+	assert.Equal(t, value, tx.Value)
+	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+
+	err = n.ValidateTransaction(tx)
+	assert.True(t, errors.Is(err, node.ErrDifferentSenderShardId))
+}
+
+func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	crtShardID := uint32(1)
+	chainID := []byte("chain ID")
+	version := uint32(1)
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithTxSignMarshalizer(getMarshalizer()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
+			ComputeIdCalled: func(i []byte) uint32 {
+				return crtShardID
+			},
+			SelfShardId: crtShardID,
+		}),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
+		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
+		node.WithTxFeeHandler(&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+		}),
+		node.WithChainID(chainID),
+		node.WithMinTransactionVersion(version),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := "617eff4f"
+
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -1456,6 +1542,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithInputAntifloodHandler(&mock.P2PAntifloodHandlerStub{}),
 		node.WithHeaderIntegrityVerifier(&mock.HeaderIntegrityVerifierStub{}),
 		node.WithPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{}),
+		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
@@ -1897,10 +1984,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 	wasCalled := false
 	epoch := uint32(47839)
 	recoveredEpoch := uint32(0)
+	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
 	hardforkTrigger := &mock.HardforkTriggerStub{
-		TriggerCalled: func(e uint32) error {
+		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, e)
+			atomic.StoreUint32(&recoveredEpoch, epoch)
+			recoveredWithEarlyEndOfEpoch.Toggle(withEarlyEndOfEpoch)
 
 			return nil
 		},
@@ -1909,11 +1998,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 		node.WithHardforkTrigger(hardforkTrigger),
 	)
 
-	err := n.DirectTrigger(epoch)
+	err := n.DirectTrigger(epoch, true)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, epoch, recoveredEpoch)
+	assert.True(t, recoveredWithEarlyEndOfEpoch.IsSet())
 }
 
 func TestNode_IsSelfTrigger(t *testing.T) {

@@ -78,7 +78,7 @@ func TestTrigger_TriggerNotEnabledShouldErr(t *testing.T) {
 	arg.Enabled = false
 	trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger(0)
+	err := trig.Trigger(0, false)
 	assert.Equal(t, update.ErrTriggerNotEnabled, err)
 
 	_, wasTriggered := trig.RecordedTriggerMessage()
@@ -91,7 +91,7 @@ func TestTrigger_TriggerWrongEpochShouldErr(t *testing.T) {
 	arg := createMockArgHardforkTrigger()
 	trig, _ := trigger.NewTrigger(arg)
 
-	err := trig.Trigger(trigger.MinimumEpochForHarfork - 1)
+	err := trig.Trigger(trigger.MinimumEpochForHarfork-1, false)
 
 	assert.True(t, errors.Is(err, update.ErrInvalidEpoch))
 }
@@ -106,7 +106,7 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger(trigger.MinimumEpochForHarfork)
+	err := trig.Trigger(trigger.MinimumEpochForHarfork, false)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -116,6 +116,35 @@ func TestTrigger_TriggerEnabledShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, payload)
 	assert.True(t, wasTriggered)
+}
+
+func TestTrigger_TriggerWithEarlyEndOfEpochEnabledShouldWork(t *testing.T) {
+	t.Parallel()
+
+	forceEpochStartWasCalled := false
+	arg := createMockArgHardforkTrigger()
+	arg.EpochProvider = &mock.EpochHandlerStub{
+		ForceEpochStartCalled: func() {
+			forceEpochStartWasCalled = true
+		},
+	}
+	trig, _ := trigger.NewTrigger(arg)
+
+	payload, wasTriggered := trig.RecordedTriggerMessage()
+	assert.Nil(t, payload)
+	assert.False(t, wasTriggered)
+
+	err := trig.Trigger(trigger.MinimumEpochForHarfork, true)
+
+	// delay as to execute the async calls
+	time.Sleep(time.Second)
+
+	payload, wasTriggered = trig.RecordedTriggerMessage()
+
+	assert.Nil(t, err)
+	assert.Nil(t, payload)
+	assert.True(t, wasTriggered)
+	assert.True(t, forceEpochStartWasCalled)
 }
 
 func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
@@ -128,7 +157,7 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.False(t, wasTriggered)
 
-	err := trig.Trigger(trigger.MinimumEpochForHarfork)
+	err := trig.Trigger(trigger.MinimumEpochForHarfork, false)
 
 	// delay as to execute the async calls
 	time.Sleep(time.Second)
@@ -139,7 +168,7 @@ func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.True(t, wasTriggered)
 
-	err = trig.Trigger(trigger.MinimumEpochForHarfork)
+	err = trig.Trigger(trigger.MinimumEpochForHarfork, false)
 
 	assert.Equal(t, update.ErrTriggerAlreadyInAction, err)
 
