@@ -27,21 +27,22 @@ type Facade struct {
 	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
-	ValidateTransactionHandler              func(tx *transaction.Transaction) error
-	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
-	StatusMetricsHandler                    func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
-	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
-	NodeConfigCalled                        func() map[string]interface{}
-	GetQueryHandlerCalled                   func(name string) (debug.QueryHandler, error)
-	GetValueForKeyCalled                    func(address string, key string) (string, error)
-	GetPeerInfoCalled                       func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetThrottlerForEndpointCalled           func(endpoint string) (core.Throttler, bool)
-	GetUsernameCalled                       func(address string) (string, error)
-	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
-	GetNumCheckpointsFromAccountStateCalled func() uint32
-	GetNumCheckpointsFromPeerStateCalled    func() uint32
+	ValidateTransactionHandler                func(tx *transaction.Transaction) error
+	ValidateTransactionForTxSimulationHandler func(tx *transaction.Transaction) error
+	SendBulkTransactionsHandler               func(txs []*transaction.Transaction) (uint64, error)
+	ExecuteSCQueryHandler                     func(query *process.SCQuery) (*vm.VMOutputApi, error)
+	StatusMetricsHandler                      func() external.StatusMetricsHandler
+	ValidatorStatisticsHandler                func() (map[string]*state.ValidatorApiResponse, error)
+	ComputeTransactionGasLimitHandler         func(tx *transaction.Transaction) (uint64, error)
+	NodeConfigCalled                          func() map[string]interface{}
+	GetQueryHandlerCalled                     func(name string) (debug.QueryHandler, error)
+	GetValueForKeyCalled                      func(address string, key string) (string, error)
+	GetPeerInfoCalled                         func(pid string) ([]core.QueryP2PPeerInfo, error)
+	GetThrottlerForEndpointCalled             func(endpoint string) (core.Throttler, bool)
+	GetUsernameCalled                         func(address string) (string, error)
+	SimulateTransactionExecutionHandler       func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
+	GetNumCheckpointsFromAccountStateCalled   func() uint32
+	GetNumCheckpointsFromPeerStateCalled      func() uint32
 }
 
 // GetUsername -
@@ -143,6 +144,11 @@ func (f *Facade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, e
 //ValidateTransaction --
 func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
+}
+
+// ValidateTransactionForTxSimulation -
+func (f *Facade) ValidateTransactionForTxSimulation(tx *transaction.Transaction) error {
+	return f.ValidateTransactionForTxSimulationHandler(tx)
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
