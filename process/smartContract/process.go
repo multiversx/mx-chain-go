@@ -1285,6 +1285,7 @@ func (sc *scProcessor) createSmartContractResults(
 		if !sc.flagDeploy.IsSet() {
 			result := createBaseSCR(outAcc, tx, txHash)
 			result.Code = outAcc.Code
+			result.Value.Set(outAcc.BalanceDelta)
 			return []data.TransactionHandler{result}
 		}
 
