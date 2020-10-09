@@ -181,3 +181,12 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNoTokenWithGivenName signals that token does not exists with given name
+var ErrNoTokenWithGivenName = errors.New("no token with given name")
+
+// ErrInvalidNumOfArguments signals that invalid number of arguments has been provided
+var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
+
+// ErrInvalidArgument signals that invalid argument has been provided
+var ErrInvalidArgument = errors.New("invalid argument")

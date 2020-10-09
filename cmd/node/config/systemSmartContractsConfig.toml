@@ -3,7 +3,7 @@
     MinStakeValue = "100000000000000000000" #100 eGLD
     UnBondPeriod = 250
     MinStepValue = "100000000000000000000"
-    AuctionEnableEpoch = 100000000000
+    AuctionEnableEpoch = 100000
     StakeEnableEpoch = 2
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5

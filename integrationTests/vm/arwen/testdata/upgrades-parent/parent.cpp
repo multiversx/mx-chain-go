@@ -6,7 +6,8 @@ extern "C"
 {
     void int64finish(long long value);
     void finish(byte *data, int length);
-    int createContract(long long gas, byte *value, byte *code, int codeSize, byte *newAddress, int numInitArgs, byte *initArgLengths, byte *initArgs);
+    int createContract(long long gas, byte *value, byte *code, byte *codeMetadata, int codeSize, byte *newAddress, int numInitArgs, byte *initArgLengths, byte *initArgs);
+    void upgradeContract(byte *destination, long long gas, byte *value, byte *code, byte *codeMetadata, int codeSize, int numInitArgs, byte *initArgLengths, byte *initArgs);
     int getNumArguments();
     int getArgument(int argumentIndex, byte *argument);
     int getArgumentLength(int argumentIndex);
@@ -18,7 +19,7 @@ extern "C"
 
 void memcpy(void *dest, void *src, int n);
 
-char *childContractAddressKey = "child000000000000000000000000000";
+char const *childContractAddressKey = "child000000000000000000000000000";
 
 class Foo
 {
@@ -57,7 +58,8 @@ extern "C" void createChild()
     byte code[codeLength];
     getArgument(0, code);
     byte childAddress[32];
-    createContract(15000000, nullptr, code, codeLength, childAddress, 0, nullptr, nullptr);
+    byte codeMetadata[2] = {1, 2};
+    createContract(15000000, nullptr, code, codeMetadata, codeLength, childAddress, 0, nullptr, nullptr);
     storageStore((byte *)childContractAddressKey, 32, childAddress, 32);
 }
 
@@ -70,15 +72,8 @@ extern "C" void upgradeChild()
     byte childAddress[32];
     storageLoad((byte *)childContractAddressKey, 32, childAddress);
 
-    // "upgradeContract@code@0100"
-    int dataLength = 15 + 1 + codeLength + 1 + 4;
-    byte data[dataLength];
-    memcpy(data, (void *)"upgradeContract", 15);
-    memcpy(data + 15, (void *)"@", 1);
-    memcpy(data + 15 + 1, (void *)code, codeLength);
-    memcpy(data + 15 + 1 + codeLength, (void *)"@", 1);
-    memcpy(data + 15 + 1 + codeLength + 1, (void *)"0100", 4);
-    asyncCall(childAddress, nullptr, data, dataLength);
+    byte codeMetadata[2] = {1, 2};
+    upgradeContract(childAddress, 15000000, nullptr, code, codeMetadata, codeLength, 0, nullptr, nullptr);
 }
 
 void memcpy(void *dest, void *src, int n)

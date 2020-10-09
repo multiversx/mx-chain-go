@@ -29,6 +29,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.marshalizer = t.marshalizer
 	rt.hasher = t.hasher
 	rt.appStatusHandler = t.appStatusHandler
+	rt.nextEpochStartRound = t.nextEpochStartRound
 
 	return rt
 }
