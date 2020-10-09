@@ -377,6 +377,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		EpochNotifier:                  epochNotifier,
 		RelayedTxEnableEpoch:           generalConfig.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:      generalConfig.MetaProtectionEnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

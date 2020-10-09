@@ -24,6 +24,8 @@ import (
 var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
+const minMetaTxExtraGasCost = uint64(1_000_000)
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
@@ -36,11 +38,13 @@ type txProcessor struct {
 	signMarshalizer                marshal.Marshalizer
 	flagRelayedTx                  atomic.Flag
 	flagPenalizedTooMuchGas        atomic.Flag
+	flagMetaProtection             atomic.Flag
 	relayedTxEnableEpoch           uint32
 	penalizedTooMuchGasEnableEpoch uint32
+	metaProtectionEnableEpoch      uint32
 }
 
-// ArgsNewTxProcessor defines defines the arguments needed for new tx processor
+// ArgsNewTxProcessor defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
 	Accounts                       state.AccountsAdapter
 	Hasher                         hashing.Hasher
@@ -58,6 +62,7 @@ type ArgsNewTxProcessor struct {
 	ScrForwarder                   process.IntermediateTransactionHandler
 	RelayedTxEnableEpoch           uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	MetaProtectionEnableEpoch      uint32
 	EpochNotifier                  process.EpochNotifier
 }
 
@@ -130,6 +135,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		signMarshalizer:                args.SignMarshalizer,
 		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
+		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
@@ -356,6 +362,13 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	// it is not allowed to send transactions to metachain if those are not of type smart contract
 	if len(tx.GetData()) == 0 {
 		return process.ErrInvalidMetaTransaction
+	}
+
+	if txProc.flagMetaProtection.IsSet() {
+		// additional check
+		if tx.GasLimit > txProc.economicsFee.ComputeGasLimit(tx)+minMetaTxExtraGasCost {
+			return process.ErrInvalidMetaTransaction
+		}
 	}
 
 	return nil
@@ -822,6 +835,9 @@ func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
 
 	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
+
+	txProc.flagMetaProtection.Toggle(epoch >= txProc.metaProtectionEnableEpoch)
+	log.Debug("txProcessor: meta protection", "enabled", txProc.flagMetaProtection.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

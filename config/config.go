@@ -212,6 +212,7 @@ type GeneralSettingsConfig struct {
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
+	MetaProtectionEnableEpoch              uint32
 	GenesisString                          string
 }
 
