@@ -181,7 +181,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalInvalidValueShouldErr(t *tes
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
@@ -206,7 +206,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalAtGenesisShouldWork(t *testi
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 0
@@ -246,7 +246,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
@@ -294,7 +294,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1

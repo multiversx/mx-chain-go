@@ -43,7 +43,7 @@ type SystemEI interface {
 	GetStorageFromAddress(address []byte, key []byte) []byte
 	Finish(value []byte)
 	UseGas(gasToConsume uint64) error
-	BlockChainHook() vmcommon.BlockchainHook
+	BlockChainHook() BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 	IsValidator(blsKey []byte) bool
 	CanUnJail(blsKey []byte) bool
@@ -96,4 +96,18 @@ type EpochNotifier interface {
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
 	IsInterfaceNil() bool
+}
+
+// BlockchainHook is the interface for VM blockchain callbacks
+type BlockchainHook interface {
+	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
+	CurrentNonce() uint64
+	CurrentRound() uint64
+	CurrentEpoch() uint32
+	GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error)
+	GetShardOfAddress(address []byte) uint32
+	IsSmartContract(address []byte) bool
+	IsPayable(address []byte) (bool, error)
+	NumberOfShards() uint32
+	CurrentRandomSeed() []byte
 }

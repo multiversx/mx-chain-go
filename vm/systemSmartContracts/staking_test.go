@@ -528,7 +528,7 @@ func TestStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.T) {
 			return registrationDataMarshalized
 		}
 	}
-	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
+	eei.BlockChainHookCalled = func() vm.BlockchainHook {
 		return &mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
 			return 10000
 		}}
