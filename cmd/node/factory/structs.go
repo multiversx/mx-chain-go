@@ -174,6 +174,7 @@ type processComponentsFactoryArgs struct {
 	txSimulatorProcessorArgs  *txsimulator.ArgsTxSimulator
 	storageReolverImportPath  string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
+	fallbackHeaderValidator   process.FallbackHeaderValidator
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -221,6 +222,7 @@ func NewProcessComponentsFactoryArgs(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	storageReolverImportPath string,
 	chanGracefullyClose chan endProcess.ArgEndProcess,
+	fallbackHeaderValidator process.FallbackHeaderValidator,
 ) *processComponentsFactoryArgs {
 	return &processComponentsFactoryArgs{
 		coreComponents:            coreComponents,
@@ -267,18 +269,20 @@ func NewProcessComponentsFactoryArgs(
 		txSimulatorProcessorArgs:  txSimulatorProcessorArgs,
 		storageReolverImportPath:  storageReolverImportPath,
 		chanGracefullyClose:       chanGracefullyClose,
+		fallbackHeaderValidator:   fallbackHeaderValidator,
 	}
 }
 
 // ProcessComponentsFactory creates the process components
 func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, error) {
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       args.coreData.InternalMarshalizer,
-		Hasher:            args.coreData.Hasher,
-		NodesCoordinator:  args.nodesCoordinator,
-		MultiSigVerifier:  args.crypto.MultiSigner,
-		SingleSigVerifier: args.crypto.SingleSigner,
-		KeyGen:            args.crypto.BlockSignKeyGen,
+		Marshalizer:             args.coreData.InternalMarshalizer,
+		Hasher:                  args.coreData.Hasher,
+		NodesCoordinator:        args.nodesCoordinator,
+		MultiSigVerifier:        args.crypto.MultiSigner,
+		SingleSigVerifier:       args.crypto.SingleSigner,
+		KeyGen:                  args.crypto.BlockSignKeyGen,
+		FallbackHeaderValidator: args.fallbackHeaderValidator,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -2056,17 +2060,19 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
-		SystemVM:                     systemVM,
-		UserAccountsDB:               stateComponents.AccountsAdapter,
-		PeerAccountsDB:               stateComponents.PeerAccounts,
-		Marshalizer:                  core.InternalMarshalizer,
-		StartRating:                  ratingsData.StartRating(),
-		ValidatorInfoCreator:         validatorStatisticsProcessor,
-		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
-		StakingSCAddress:             vm.StakingSCAddress,
-		ChanceComputer:               nodesCoordinator,
-		EpochNotifier:                epochNotifier,
-		SwitchJailWaitingEnableEpoch: generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+		SystemVM:                               systemVM,
+		UserAccountsDB:                         stateComponents.AccountsAdapter,
+		PeerAccountsDB:                         stateComponents.PeerAccounts,
+		Marshalizer:                            core.InternalMarshalizer,
+		StartRating:                            ratingsData.StartRating(),
+		ValidatorInfoCreator:                   validatorStatisticsProcessor,
+		EndOfEpochCallerAddress:                vm.EndOfEpochAddress,
+		StakingSCAddress:                       vm.StakingSCAddress,
+		ChanceComputer:                         nodesCoordinator,
+		EpochNotifier:                          epochNotifier,
+		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
+		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -2107,6 +2113,11 @@ func createShardTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) error {
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.InternalMarshalizer,
@@ -2146,16 +2157,15 @@ func createShardTxSimulatorProcessor(
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
+	scProcArgs.AccountsDB = readOnlyAccountsDB
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
 	}
 	txProcArgs.ScProcessor = scProcessor
 
-	txProcArgs.Accounts, err = txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
-	if err != nil {
-		return err
-	}
+	txProcArgs.Accounts = readOnlyAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
@@ -2254,21 +2264,22 @@ func newValidatorStatisticsProcessor(
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                  processComponents.state.PeerAccounts,
-		PubkeyConv:                   processComponents.state.ValidatorPubkeyConverter,
-		NodesCoordinator:             processComponents.nodesCoordinator,
-		ShardCoordinator:             processComponents.shardCoordinator,
-		DataPool:                     peerDataPool,
-		StorageService:               storageService,
-		Marshalizer:                  processComponents.coreData.InternalMarshalizer,
-		Rater:                        processComponents.rater,
-		MaxComputableRounds:          processComponents.maxComputableRounds,
-		RewardsHandler:               processComponents.economicsData,
-		NodesSetup:                   processComponents.nodesConfig,
-		RatingEnableEpoch:            ratingEnabledEpoch,
-		GenesisNonce:                 processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
-		EpochNotifier:                processComponents.epochNotifier,
-		SwitchJailWaitingEnableEpoch: processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		PeerAdapter:                     processComponents.state.PeerAccounts,
+		PubkeyConv:                      processComponents.state.ValidatorPubkeyConverter,
+		NodesCoordinator:                processComponents.nodesCoordinator,
+		ShardCoordinator:                processComponents.shardCoordinator,
+		DataPool:                        peerDataPool,
+		StorageService:                  storageService,
+		Marshalizer:                     processComponents.coreData.InternalMarshalizer,
+		Rater:                           processComponents.rater,
+		MaxComputableRounds:             processComponents.maxComputableRounds,
+		RewardsHandler:                  processComponents.economicsData,
+		NodesSetup:                      processComponents.nodesConfig,
+		RatingEnableEpoch:               ratingEnabledEpoch,
+		GenesisNonce:                    processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                   processComponents.epochNotifier,
+		SwitchJailWaitingEnableEpoch:    processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: processComponents.mainConfig.GeneralSettings.BelowSignedThresholdEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)

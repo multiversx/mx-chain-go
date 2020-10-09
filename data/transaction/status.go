@@ -9,17 +9,20 @@ import (
 type TxStatus string
 
 const (
-	// TxStatusReceived = received but not yet executed
-	TxStatusReceived TxStatus = "received"
-	// TxStatusPartiallyExecuted = received and executed on source shard
-	TxStatusPartiallyExecuted TxStatus = "partially-executed"
-	// TxStatusExecuted = received and executed
-	TxStatusExecuted TxStatus = "executed"
-	// TxStatusNotExecuted = received and executed with error
-	TxStatusNotExecuted TxStatus = "not-executed"
+	// TxStatusPending = received and maybe executed on source shard, but not on destination shard
+	TxStatusPending TxStatus = "pending"
+	// TxStatusSuccessful = received and executed
+	TxStatusSuccessful TxStatus = "successful"
+	// TxStatusUnsuccessful = received and executed with error
+	TxStatusUnsuccessful TxStatus = "unsuccessful"
 	// TxStatusInvalid = considered invalid
 	TxStatusInvalid TxStatus = "invalid"
 )
+
+// String returns the string representation of the status
+func (tx TxStatus) String() string {
+	return string(tx)
+}
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
@@ -32,28 +35,16 @@ type StatusComputer struct {
 	SelfShard            uint32
 }
 
-// ComputeStatusWhenInPool computes the transaction status when transaction is in pool
-func (params *StatusComputer) ComputeStatusWhenInPool() TxStatus {
-	if params.isContractDeploy() {
-		return TxStatusReceived
-	}
-	if params.isDestinationMe() && params.isCrossShard() {
-		return TxStatusPartiallyExecuted
-	}
-
-	return TxStatusReceived
-}
-
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
 func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxStatus {
 	if params.isMiniblockInvalid() {
 		return TxStatusInvalid
 	}
 	if params.IsMiniblockFinalized || params.isDestinationMe() || params.isContractDeploy() {
-		return TxStatusExecuted
+		return TxStatusSuccessful
 	}
 
-	return TxStatusPartiallyExecuted
+	return TxStatusPending
 }
 
 // ComputeStatusWhenInStorageNotKnowingMiniblock computes the transaction status when transaction is in current epoch's storage
@@ -61,11 +52,11 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 // However, when "dblookupext" indexing is enabled, this function is not used.
 func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
 	if params.isDestinationMe() || params.isContractDeploy() {
-		return TxStatusExecuted
+		return TxStatusSuccessful
 	}
 
 	// At least partially executed (since in source's storage)
-	return TxStatusPartiallyExecuted
+	return TxStatusPending
 }
 
 func (params *StatusComputer) isMiniblockInvalid() bool {

@@ -24,12 +24,9 @@ type libp2pConnectionMonitorSimple struct {
 //about pausing and resuming the discovery process)
 func NewLibp2pConnectionMonitorSimple(
 	reconnecter p2p.Reconnecter,
-	thresholdMinConnectedPeers int,
+	thresholdMinConnectedPeers uint32,
 	sharder Sharder,
 ) (*libp2pConnectionMonitorSimple, error) {
-	if thresholdMinConnectedPeers < 0 {
-		return nil, p2p.ErrInvalidValue
-	}
 	if check.IfNil(reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
@@ -40,7 +37,7 @@ func NewLibp2pConnectionMonitorSimple(
 	cm := &libp2pConnectionMonitorSimple{
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}),
-		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
+		thresholdMinConnectedPeers: int(thresholdMinConnectedPeers),
 		sharder:                    sharder,
 	}
 

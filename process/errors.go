@@ -904,3 +904,6 @@ var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
 
 // ErrFailedExecutionAfterBuiltInFunc signals that tx execution after built in func call failed
 var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after built in func call failed")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")

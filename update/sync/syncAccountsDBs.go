@@ -135,6 +135,12 @@ func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error 
 func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
 
+	log.Debug("syncing accounts",
+		"type", accAdapterIdentifier,
+		"shard ID", shardId,
+		"root hash", rootHash,
+	)
+
 	success := st.tryRecreateTrie(shardId, accAdapterIdentifier, trieID, rootHash)
 	if success {
 		return nil

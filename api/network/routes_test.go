@@ -135,6 +135,44 @@ func TestNetworkStatus_FailsWithWrongFacadeTypeConversion(t *testing.T) {
 	assert.Equal(t, statusRsp.Error, errors.ErrInvalidAppContext.Error())
 }
 
+func TestEconomicsMetrics_NilContextShouldErr(t *testing.T) {
+	ws := startNodeServer(nil)
+	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+
+}
+
+func TestEconomicsMetrics_ShouldWork(t *testing.T) {
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := core.MetricTotalSupply
+	value := "12345"
+	statusMetricsProvider.SetStringValue(key, value)
+
+	facade := mock.Facade{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	ws := startNodeServer(&facade)
+	req, _ := http.NewRequest("GET", "/network/economics", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -183,6 +221,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 				[]config.RouteConfig{
 					{Name: "/config", Open: true},
 					{Name: "/status", Open: true},
+					{Name: "/economics", Open: true},
 				},
 			},
 		},

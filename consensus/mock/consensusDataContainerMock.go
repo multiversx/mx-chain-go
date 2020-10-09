@@ -14,25 +14,26 @@ import (
 
 // ConsensusCoreMock -
 type ConsensusCoreMock struct {
-	blockChain             data.ChainHandler
-	blockProcessor         process.BlockProcessor
-	headersSubscriber      consensus.HeadersPoolSubscriber
-	bootstrapper           process.Bootstrapper
-	broadcastMessenger     consensus.BroadcastMessenger
-	chronologyHandler      consensus.ChronologyHandler
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	blsPrivateKey          crypto.PrivateKey
-	blsSingleSigner        crypto.SingleSigner
-	multiSigner            crypto.MultiSigner
-	rounder                consensus.Rounder
-	shardCoordinator       sharding.Coordinator
-	syncTimer              ntp.SyncTimer
-	validatorGroupSelector sharding.NodesCoordinator
-	epochStartNotifier     epochStart.RegistrationHandler
-	antifloodHandler       consensus.P2PAntifloodHandler
-	peerHonestyHandler     consensus.PeerHonestyHandler
-	headerSigVerifier      consensus.HeaderSigVerifier
+	blockChain              data.ChainHandler
+	blockProcessor          process.BlockProcessor
+	headersSubscriber       consensus.HeadersPoolSubscriber
+	bootstrapper            process.Bootstrapper
+	broadcastMessenger      consensus.BroadcastMessenger
+	chronologyHandler       consensus.ChronologyHandler
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	blsPrivateKey           crypto.PrivateKey
+	blsSingleSigner         crypto.SingleSigner
+	multiSigner             crypto.MultiSigner
+	rounder                 consensus.Rounder
+	shardCoordinator        sharding.Coordinator
+	syncTimer               ntp.SyncTimer
+	validatorGroupSelector  sharding.NodesCoordinator
+	epochStartNotifier      epochStart.RegistrationHandler
+	antifloodHandler        consensus.P2PAntifloodHandler
+	peerHonestyHandler      consensus.PeerHonestyHandler
+	headerSigVerifier       consensus.HeaderSigVerifier
+	fallbackHeaderValidator consensus.FallbackHeaderValidator
 }
 
 // GetAntiFloodHandler -
@@ -198,6 +199,16 @@ func (ccm *ConsensusCoreMock) HeaderSigVerifier() consensus.HeaderSigVerifier {
 // SetHeaderSigVerifier -
 func (ccm *ConsensusCoreMock) SetHeaderSigVerifier(headerSigVerifier consensus.HeaderSigVerifier) {
 	ccm.headerSigVerifier = headerSigVerifier
+}
+
+// FallbackHeaderValidator -
+func (ccm *ConsensusCoreMock) FallbackHeaderValidator() consensus.FallbackHeaderValidator {
+	return ccm.fallbackHeaderValidator
+}
+
+// SetFallbackHeaderValidator -
+func (ccm *ConsensusCoreMock) SetFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) {
+	ccm.fallbackHeaderValidator = fallbackHeaderValidator
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

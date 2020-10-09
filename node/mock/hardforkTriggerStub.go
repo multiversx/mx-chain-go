@@ -4,7 +4,7 @@ import "github.com/ElrondNetwork/elrond-go/update"
 
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {
-	TriggerCalled                func(epoch uint32) error
+	TriggerCalled                func(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTriggerCalled          func() bool
 	TriggerReceivedCalled        func(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessageCalled func() ([]byte, bool)
@@ -14,9 +14,9 @@ type HardforkTriggerStub struct {
 }
 
 // Trigger -
-func (hts *HardforkTriggerStub) Trigger(epoch uint32) error {
+func (hts *HardforkTriggerStub) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	if hts.TriggerCalled != nil {
-		return hts.TriggerCalled(epoch)
+		return hts.TriggerCalled(epoch, withEarlyEndOfEpoch)
 	}
 
 	return nil
