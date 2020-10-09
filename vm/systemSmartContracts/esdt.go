@@ -158,8 +158,8 @@ func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	if len(args.Arguments[0]) < len(args.CallerAddr) {
-		e.eei.AddReturnMessage("token name length not in parameters")
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid owner address length")
 		return vmcommon.FunctionWrongSignature
 	}
 	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
@@ -463,10 +463,6 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 		e.eei.AddReturnMessage("cannot pause/un-pause")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
-		return vmcommon.UserError
-	}
 	if token.IsPaused && builtInFunc == core.BuiltInFunctionESDTPause {
 		e.eei.AddReturnMessage("cannot pause an already paused contract")
 		return vmcommon.UserError
@@ -515,7 +511,7 @@ func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData
 		return nil, vmcommon.UserError
 	}
 	if !bytes.Equal(token.OwnerAddress, args.CallerAddr) {
-		e.eei.AddReturnMessage("mint can be called by owner only")
+		e.eei.AddReturnMessage("can be called by owner only")
 		return nil, vmcommon.UserError
 	}
 
