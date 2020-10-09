@@ -310,3 +310,13 @@ func calculateRoundDuration(
 
 	return diffTimeStamp / diffRounds
 }
+
+func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
+	economics := epochStartMetaBlock.EpochStart.Economics
+
+	statusHandler.SetStringValue(core.MetricTotalSupply, economics.TotalSupply.String())
+	statusHandler.SetStringValue(core.MetricInflation, economics.TotalNewlyMinted.String())
+	statusHandler.SetStringValue(core.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
+	statusHandler.SetStringValue(core.MetricDevRewards, epochStartMetaBlock.DeveloperFees.String())
+	statusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+}

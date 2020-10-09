@@ -13,6 +13,7 @@ import (
 const (
 	getConfigPath = "/config"
 	getStatusPath = "/status"
+	economicsPath = "/economics"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -25,6 +26,7 @@ type FacadeHandler interface {
 func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
+	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -87,6 +89,24 @@ func GetNetworkStatus(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"status": networkMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// EconomicsMetrics is the endpoint that will return the economics data such as total supply
+func EconomicsMetrics(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	metrics := facade.StatusMetrics().EconomicsMetrics()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"metrics": metrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
