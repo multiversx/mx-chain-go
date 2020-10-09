@@ -2069,21 +2069,23 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
-	validatorFailure1 := uint32(98)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
-	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*(validatorSuccess1+validatorIgnored1)
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
-	expectedTempRating2 := tempRating2 - uint32(rater.IncreaseValidator)*validatorFailure2
+	expectedTempRating2 := tempRating2 - uint32(rater.IncreaseValidator)*(validatorSuccess2+validatorIgnored2)
 	assert.Equal(t, expectedTempRating2, vi[0][0].TempRating)
 }
 
@@ -2106,21 +2108,23 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
-	validatorFailure1 := uint32(98)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 	vi[0][0].List = string(core.WaitingList)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
-	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*(validatorSuccess1+validatorIgnored1)
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
 
 	assert.Equal(t, tempRating2, vi[0][0].TempRating)
@@ -2143,15 +2147,17 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure1 := uint32(98)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
@@ -2238,7 +2244,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).Set(peerAccount.GetAccumulatedFees()), vs.AccumulatedFees)
 }
 
-func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
+func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorIgnored uint32, validatorFailure uint32) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
 		ShardId:                    shardId,
@@ -2250,6 +2256,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 		LeaderSuccess:              0,
 		LeaderFailure:              0,
 		ValidatorSuccess:           validatorSuccess,
+		ValidatorIgnoredSignatures: validatorIgnored,
 		ValidatorFailure:           validatorFailure,
 		NumSelectedInSuccessBlocks: validatorSuccess + validatorFailure,
 		AccumulatedFees:            nil,

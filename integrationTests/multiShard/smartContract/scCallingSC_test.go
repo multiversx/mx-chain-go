@@ -503,11 +503,15 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		vmOutput.ReturnCode = vmcommon.Ok
 		vmOutput.GasRemaining = vmInput.GasProvided / 2
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
-		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
-			Address:  vmInput.RecipientAddr,
+		outTransfer := vmcommon.OutputTransfer{
+			Value:    big.NewInt(0),
+			GasLimit: 200000,
 			Data:     []byte("testfunc@01"),
 			CallType: vmcommon.AsynchronousCall,
-			GasLimit: 200000,
+		}
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address:         vmInput.RecipientAddr,
+			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
 
 		fmt.Println("OutputAccount recipient", hex.EncodeToString(vmInput.RecipientAddr))
@@ -872,8 +876,8 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
 
 	// check that the staking system smart contract has the value
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+	for _, n := range nodes {
+		if n.ShardCoordinator.SelfId() != core.MetachainShardId {
 			continue
 		}
 		scQuery := &process.SCQuery{
@@ -881,7 +885,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {

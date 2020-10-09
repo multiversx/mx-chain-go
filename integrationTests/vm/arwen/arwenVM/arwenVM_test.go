@@ -36,7 +36,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(100000)
+	gasLimit := uint64(1000)
 	transferOnCalls := big.NewInt(50)
 
 	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
@@ -241,69 +241,6 @@ func TestGasModel(t *testing.T) {
 	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
 	deployAndExecuteERC20WithBigInt(t, 2, gasSchedule)
-}
-
-func TestWASMNamespacing(t *testing.T) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-	transferOnCalls := big.NewInt(1)
-
-	// This SmartContract had its imports modified after compilation, replacing
-	// the namespace 'env' to 'ethereum'. If WASM namespacing is done correctly
-	// by Arwen, then this SC should have no problem to call imported functions
-	// (as if it were run by Ethereuem).
-	scCode := arwen.GetSCCode("../testdata/misc/fib_ewasmified.wasm")
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      []byte(arwen.CreateDeployTxData(scCode)),
-		Signature: nil,
-	}
-
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
-	defer testContext.Close()
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	aliceInitialBalance := uint64(3000)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
-
-	testingValue := uint64(15)
-
-	gasLimit = uint64(2000)
-
-	tx = &transaction.Transaction{
-		Nonce:     aliceNonce,
-		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
-		RcvAddr:   scAddress,
-		SndAddr:   alice,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      []byte("main"),
-		Signature: nil,
-	}
-
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 }
 
 func TestWASMMetering(t *testing.T) {

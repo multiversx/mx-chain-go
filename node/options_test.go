@@ -1354,6 +1354,30 @@ func TestWithPeerHonestyHandler_OkPeerHonestyHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestWithFallbackHeaderValidator_NilFallbackHeaderValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithFallbackHeaderValidator(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilFallbackHeaderValidator, err)
+}
+
+func TestWithFallbackHeaderValidator_OkFallbackHeaderValidatorShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
+	opt := WithFallbackHeaderValidator(fallbackHeaderValidator)
+	err := opt(node)
+
+	assert.Equal(t, fallbackHeaderValidator, node.fallbackHeaderValidator)
+	assert.Nil(t, err)
+}
+
 func TestWithWatchdogTimer_NilWatchdogShouldErr(t *testing.T) {
 	t.Parallel()
 

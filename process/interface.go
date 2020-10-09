@@ -145,6 +145,7 @@ type TransactionCoordinator interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
 	IsPayable(address []byte) (bool, error)
@@ -925,5 +926,23 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
+	IsInterfaceNil() bool
+}
+
+// ESDTPauseHandler provides IsPaused function for an ESDT token
+type ESDTPauseHandler interface {
+	IsPaused(token []byte) bool
+	IsInterfaceNil() bool
+}
+
+// PayableHandler provides IsPayable function which returns if an account is payable or not
+type PayableHandler interface {
+	IsPayable(address []byte) (bool, error)
+	IsInterfaceNil() bool
+}
+
+// FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
+type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }

@@ -2,6 +2,7 @@ package storageResolvers
 
 import (
 	"fmt"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -24,6 +25,7 @@ type ArgSliceResolver struct {
 	Marshalizer              marshal.Marshalizer
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
+	DelayBeforeGracefulClose time.Duration
 }
 
 type sliceResolver struct {
@@ -60,6 +62,7 @@ func NewSliceResolver(arg ArgSliceResolver) (*sliceResolver, error) {
 			responseTopicName:        arg.ResponseTopicName,
 			manualEpochStartNotifier: arg.ManualEpochStartNotifier,
 			chanGracefullyClose:      arg.ChanGracefullyClose,
+			delayBeforeGracefulClose: arg.DelayBeforeGracefulClose,
 		},
 		storage:     arg.Storage,
 		dataPacker:  arg.DataPacker,
