@@ -110,7 +110,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 				continue
 			}
 
-			transactions[hash].Status = transaction.TxStatusUnsuccessful.String()
+			transactions[hash].Status = transaction.TxStatusFail.String()
 		}
 	}
 
@@ -220,7 +220,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 
 		mbTxStatus := transaction.TxStatusPending.String()
 		if selfShardID == mb.ReceiverShardID {
-			mbTxStatus = transaction.TxStatusSuccessful.String()
+			mbTxStatus = transaction.TxStatusSuccess.String()
 		}
 
 		switch mb.Type {
