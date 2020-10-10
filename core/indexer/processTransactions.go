@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
@@ -99,7 +100,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if nrScResult < minimumNumberOfSmartContractResults {
 			if len(transactions[hash].SmartContractResults) > 0 {
 				scResultData := transactions[hash].SmartContractResults[0].Data
-				if bytes.Contains(scResultData, []byte("@ok")) {
+				if isScResultSuccessful(scResultData) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
@@ -127,6 +128,11 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
+}
+
+func isScResultSuccessful(scResultData []byte) bool {
+	okReturnData := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
+	return bytes.Contains(scResultData, okReturnData)
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
