@@ -157,6 +157,7 @@ type Node struct {
 
 	watchdog          core.WatchdogTimer
 	historyRepository dblookupext.HistoryRepository
+	isInImportNode    bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -554,6 +555,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		IsInImportMode:      n.isInImportNode,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -615,6 +617,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		IsInImportMode:      n.isInImportNode,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

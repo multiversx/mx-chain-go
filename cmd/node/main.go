@@ -1385,6 +1385,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		hardForkTrigger,
 		historyRepository,
 		fallbackHeaderValidator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -2159,6 +2160,7 @@ func createNode(
 	hardForkTrigger node.HardforkTrigger,
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
+	isInImportMode bool,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2281,6 +2283,7 @@ func createNode(
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
 		node.WithHistoryRepository(historyRepository),
+		node.WithImportMode(isInImportMode),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

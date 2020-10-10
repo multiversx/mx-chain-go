@@ -36,6 +36,7 @@ type ArgBaseBootstrapper struct {
 	EpochHandler        dataRetriever.EpochHandler
 	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
+	IsInImportMode      bool
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

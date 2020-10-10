@@ -734,3 +734,11 @@ func WithHistoryRepository(historyRepo dblookupext.HistoryRepository) Option {
 		return nil
 	}
 }
+
+// WithImportMode sets up the import mode for the node
+func WithImportMode(isInImportMode bool) Option {
+	return func(n *Node) error {
+		n.isInImportNode = isInImportMode
+		return nil
+	}
+}

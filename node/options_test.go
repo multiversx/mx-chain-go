@@ -1425,3 +1425,16 @@ func TestWithPeerSignatureHandler_OkPeerSignatureHandlerShouldWork(t *testing.T)
 	assert.Equal(t, peerSigHandler, node.peerSigHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithImportMode(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	isInImportMode := true
+	opt := WithImportMode(isInImportMode)
+	err := opt(node)
+
+	assert.Equal(t, isInImportMode, node.isInImportNode)
+	assert.Nil(t, err)
+}

@@ -56,6 +56,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		miniBlocksProvider:  arguments.MiniblocksProvider,
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
+		isInImportMode:      arguments.IsInImportMode,
 	}
 
 	boot := ShardBootstrap{
