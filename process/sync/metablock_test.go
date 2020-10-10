@@ -1425,3 +1425,32 @@ func TestMetaBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
 
 	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
+
+func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsInImportMode(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+
+	hdr := block.MetaBlock{Nonce: 0}
+	blkc := &mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr
+	}
+	args.ChainHandler = blkc
+
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() *process.ForkInfo {
+		return process.NewForkInfo()
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
+	}
+	args.ForkDetector = forkDetector
+	args.Rounder = initRounder()
+	args.IsInImportMode = true
+
+	bs, _ := sync.NewMetaBootstrap(args)
+	bs.ComputeNodeState()
+
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+}

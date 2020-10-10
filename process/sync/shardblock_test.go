@@ -1965,3 +1965,32 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 	assert.Equal(t, 1, bs.GetMapNonceSyncedWithErrorsLen())
 	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }
+
+func TestShardBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsInImportMode(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	hdr := block.Header{Nonce: 0}
+	blkc := &mock.BlockChainMock{}
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return &hdr
+	}
+	args.ChainHandler = blkc
+
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.CheckForkCalled = func() *process.ForkInfo {
+		return process.NewForkInfo()
+	}
+	forkDetector.ProbableHighestNonceCalled = func() uint64 {
+		return 0
+	}
+	args.ForkDetector = forkDetector
+	args.Rounder = initRounder()
+	args.IsInImportMode = true
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.ComputeNodeState()
+
+	assert.Equal(t, core.NsNotSynchronized, bs.GetNodeState())
+}
