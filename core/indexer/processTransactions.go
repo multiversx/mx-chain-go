@@ -230,7 +230,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
 				delete(txPool, hash)
