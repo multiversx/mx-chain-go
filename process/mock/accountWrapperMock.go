@@ -143,6 +143,11 @@ func (awm *AccountWrapMock) SetDataTrie(trie data.Trie) {
 	awm.trackableDataTrie.SetDataTrie(trie)
 }
 
+// SetDataTrieTracker -
+func (awm *AccountWrapMock) SetDataTrieTracker(trackableDataTrie state.DataTrieTracker) {
+	awm.trackableDataTrie = trackableDataTrie
+}
+
 // DataTrieTracker -
 func (awm *AccountWrapMock) DataTrieTracker() state.DataTrieTracker {
 	return awm.trackableDataTrie

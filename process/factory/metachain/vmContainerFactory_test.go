@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -19,7 +20,14 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
-				return &mock.AccountWrapMock{}, nil
+				awm := &mock.AccountWrapMock{}
+				awm.SetDataTrieTracker(&mock.DataTrieTrackerStub{
+					RetrieveValueCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+				})
+
+				return awm, nil
 			},
 		},
 		PubkeyConv:       mock.NewPubkeyConverterMock(32),
