@@ -4,20 +4,35 @@ import (
 	"errors"
 )
 
-// ErrCannotCreateIndex signals that we could not create an elasticsearch index
-var ErrCannotCreateIndex = errors.New("cannot create elasitc index")
+// ErrBackOff signals that an error was received from the server
+var ErrBackOff = errors.New("back off something is not working well")
 
-// ErrBodyTypeAssertion signals that we could not create an elasticsearch index
-var ErrBodyTypeAssertion = errors.New("elasticsearch - body type assertion failed")
+// ErrNoElasticUrlProvided -
+var ErrNoElasticUrlProvided = errors.New("no elastic url provided")
 
-// ErrNoHeader signals that we could not create an elasticsearch index
-var ErrNoHeader = errors.New("elasticsearch - no header")
-
-//ErrEmptyUserName signals that user name for elastic search is empty
-var ErrEmptyUserName = errors.New("user name is empty")
-
-//ErrEmptyPassword signals that password for elastic search is empty
-var ErrEmptyPassword = errors.New("password is empty")
+// ErrCouldNotCreatePolicy -
+var ErrCouldNotCreatePolicy = errors.New("could not create policy")
 
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
+
+// ErrNilDataDispatcher signals that an operation has been attempted to or with a nil data dispatcher implementation
+var ErrNilDataDispatcher = errors.New("nil data dispatcher")
+
+// ErrNilElasticProcessor signals that an operation has been attempted to or with a nil elastic processor implementation
+var ErrNilElasticProcessor = errors.New("nil elastic processor")
+
+// ErrNilDatabaseClient signals that an operation has been attempted to or with a nil database client implementation
+var ErrNilDatabaseClient = errors.New("nil database client")
+
+// ErrNilOptions signals that structure that contains indexer options is nil
+var ErrNilOptions = errors.New("nil options")
+
+// ErrNegativeCacheSize signals that a invalid cache size has been provided
+var ErrNegativeCacheSize = errors.New("negative cache size")
+
+// ErrNilAccountsDB signals that a nil accounts database has been provided
+var ErrNilAccountsDB = errors.New("nil accounts db")
+
+// ErrEmptyEnabledIndexes signals that an empty slice of enables indexes has been provided
+var ErrEmptyEnabledIndexes = errors.New("empty enabled indexes slice")

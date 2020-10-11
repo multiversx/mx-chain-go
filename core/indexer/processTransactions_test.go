@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -125,7 +124,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 	)
 
-	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 7, len(transactions))
 
 }
@@ -228,7 +227,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 	)
 
-	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
 	assert.Equal(t, transaction.TxStatusSuccessful.String(), transactions[0].Status)
@@ -254,17 +253,17 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 	)
 
-	transactions := txDbProc.setTransactionSearchOrder(txPool, 0)
-	assert.True(t, txPoolHasSearchOrder(transactions, 20))
-	assert.True(t, txPoolHasSearchOrder(transactions, 21))
+	transactions := txDbProc.setTransactionSearchOrder(txPool)
+	assert.True(t, txPoolHasSearchOrder(transactions, 0))
+	assert.True(t, txPoolHasSearchOrder(transactions, 1))
 
-	transactions = txDbProc.setTransactionSearchOrder(txPool, 1)
-	assert.True(t, txPoolHasSearchOrder(transactions, 30))
-	assert.True(t, txPoolHasSearchOrder(transactions, 31))
+	transactions = txDbProc.setTransactionSearchOrder(txPool)
+	assert.True(t, txPoolHasSearchOrder(transactions, 0))
+	assert.True(t, txPoolHasSearchOrder(transactions, 1))
 
-	transactions = txDbProc.setTransactionSearchOrder(txPool, core.MetachainShardId)
-	assert.True(t, txPoolHasSearchOrder(transactions, 10))
-	assert.True(t, txPoolHasSearchOrder(transactions, 11))
+	transactions = txDbProc.setTransactionSearchOrder(txPool)
+	assert.True(t, txPoolHasSearchOrder(transactions, 0))
+	assert.True(t, txPoolHasSearchOrder(transactions, 1))
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
