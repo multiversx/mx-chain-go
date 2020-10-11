@@ -78,7 +78,7 @@ func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (pr
 		return nil, err
 	}
 
-	newFunc, err = NewESDTBurnFunc(gasConfig.BuiltInCost.ESDTBurn, args.Marshalizer, pauseFunc)
+	newFunc, err = NewESDTBurnFunc(gasConfig.BuiltInCost.ESDTBurn, gasConfig.BuiltInCost.ESDTBurn, args.Marshalizer, pauseFunc)
 	if err != nil {
 		return nil, err
 	}

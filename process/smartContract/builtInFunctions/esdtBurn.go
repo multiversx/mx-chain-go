@@ -16,15 +16,17 @@ import (
 var _ process.BuiltinFunction = (*esdtBurn)(nil)
 
 type esdtBurn struct {
-	funcGasCost  uint64
-	marshalizer  marshal.Marshalizer
-	keyPrefix    []byte
-	pauseHandler process.ESDTPauseHandler
+	systemSCGasCost uint64
+	funcGasCost     uint64
+	marshalizer     marshal.Marshalizer
+	keyPrefix       []byte
+	pauseHandler    process.ESDTPauseHandler
 }
 
 // NewESDTBurnFunc returns the esdt burn built-in function component
 func NewESDTBurnFunc(
 	funcGasCost uint64,
+	systemSCGasCost uint64,
 	marshalizer marshal.Marshalizer,
 	pauseHandler process.ESDTPauseHandler,
 ) (*esdtBurn, error) {
@@ -36,10 +38,11 @@ func NewESDTBurnFunc(
 	}
 
 	e := &esdtBurn{
-		funcGasCost:  funcGasCost,
-		marshalizer:  marshalizer,
-		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
-		pauseHandler: pauseHandler,
+		funcGasCost:     funcGasCost,
+		systemSCGasCost: systemSCGasCost,
+		marshalizer:     marshalizer,
+		keyPrefix:       []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		pauseHandler:    pauseHandler,
 	}
 
 	return e, nil
@@ -73,7 +76,7 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	log.Trace("esdtBurn", "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
 
-	if vmInput.GasProvided < e.funcGasCost {
+	if vmInput.GasProvided < e.funcGasCost+e.systemSCGasCost {
 		return nil, process.ErrNotEnoughGas
 	}
 
@@ -83,11 +86,13 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
-	addOutPutTransferToVMOutput(
-		core.BuiltInFunctionESDTBurn,
-		vmInput.Arguments,
-		vmInput.RecipientAddr,
-		vmOutput)
+	if core.IsSmartContractAddress(vmInput.CallerAddr) {
+		addOutPutTransferToVMOutput(
+			core.BuiltInFunctionESDTBurn,
+			vmInput.Arguments,
+			vmInput.RecipientAddr,
+			vmOutput)
+	}
 
 	return vmOutput, nil
 }
