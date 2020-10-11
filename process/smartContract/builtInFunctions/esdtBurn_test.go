@@ -16,7 +16,7 @@ func TestESDTBurn_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
 	pauseHandler := &mock.PauseHandlerStub{}
-	esdt, _ := NewESDTBurnFunc(10, 10, &mock.MarshalizerMock{}, pauseHandler)
+	esdt, _ := NewESDTBurnFunc(10, &mock.MarshalizerMock{}, pauseHandler)
 	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
@@ -52,7 +52,7 @@ func TestESDTBurn_ProcessBuiltInFunctionErrors(t *testing.T) {
 	pauseHandler.IsPausedCalled = func(token []byte) bool {
 		return true
 	}
-	input.GasProvided = esdt.funcGasCost + esdt.systemSCGasCost
+	input.GasProvided = esdt.funcGasCost
 	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
 }
@@ -62,7 +62,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	pauseHandler := &mock.PauseHandlerStub{}
-	esdt, _ := NewESDTBurnFunc(10, 10, marshalizer, pauseHandler)
+	esdt, _ := NewESDTBurnFunc(10, marshalizer, pauseHandler)
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

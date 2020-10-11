@@ -319,11 +319,6 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.OutOfFunds
 	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
-	if err != nil {
-		e.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
-	}
 	burntValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if burntValue.Cmp(big.NewInt(0)) <= 0 {
 		e.eei.AddReturnMessage("negative or 0 value to burn")
