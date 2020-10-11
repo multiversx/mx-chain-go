@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -25,6 +26,7 @@ const ownerKey = "owner"
 const nodesConfigKey = "nodesConfig"
 const waitingListHeadKey = "waitingList"
 const waitingElementPrefix = "w_"
+const firstEpoch = uint32(0)
 
 type stakingSC struct {
 	eei                      vm.SystemEI
@@ -37,7 +39,8 @@ type stakingSC struct {
 	maximumPercentageToBleed float64
 	gasCost                  vm.GasCost
 	minNumNodes              uint64
-	maxNumNodes              uint64
+	mutMaxNumNodes           sync.RWMutex
+	maxNumNodes              map[uint32]uint64
 	marshalizer              marshal.Marshalizer
 	enableStakingEpoch       uint32
 	stakeValue               *big.Int
@@ -76,17 +79,14 @@ func NewStakingSmartContract(
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
-	if args.StakingSCConfig.MaxNumberOfNodesForStake < 0 {
-		return nil, vm.ErrNegativeWaitingNodesPercentage
+	if len(args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch) == 0 {
+		return nil, vm.ErrEmptyListOfMaxNumberOfNodesForStake
 	}
 	if args.StakingSCConfig.BleedPercentagePerRound < 0 {
 		return nil, vm.ErrNegativeBleedPercentagePerRound
 	}
 	if args.StakingSCConfig.MaximumPercentageToBleed < 0 {
 		return nil, vm.ErrNegativeMaximumPercentageToBleed
-	}
-	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
-		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
@@ -102,10 +102,14 @@ func NewStakingSmartContract(
 		maximumPercentageToBleed: args.StakingSCConfig.MaximumPercentageToBleed,
 		gasCost:                  args.GasCost,
 		minNumNodes:              args.MinNumNodes,
-		maxNumNodes:              args.StakingSCConfig.MaxNumberOfNodesForStake,
+		maxNumNodes:              make(map[uint32]uint64),
 		marshalizer:              args.Marshalizer,
 		endOfEpochAccessAddr:     args.EndOfEpochAccessAddr,
 		enableStakingEpoch:       args.StakingSCConfig.StakeEnableEpoch,
+	}
+	err := reg.parseMaxNumberOfNodesPerEpoch(args.MinNumNodes, args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch)
+	if err != nil {
+		return nil, err
 	}
 
 	conversionOk := true
@@ -117,6 +121,23 @@ func NewStakingSmartContract(
 	args.EpochNotifier.RegisterNotifyHandler(reg)
 
 	return reg, nil
+}
+
+func (r *stakingSC) parseMaxNumberOfNodesPerEpoch(minNumNodes uint64, maxNumberOfNodes []config.MaxNumberOfNodesForStakeByEpochs) error {
+	for _, maxNumNodesOnEpoch := range maxNumberOfNodes {
+		if minNumNodes > maxNumNodesOnEpoch.MaxNumberOfNodesForStake {
+			return fmt.Errorf("%w for epoch %d", vm.ErrInvalidMaxNumberOfNodes, maxNumNodesOnEpoch.StartEpoch)
+		}
+
+		r.maxNumNodes[maxNumNodesOnEpoch.StartEpoch] = maxNumNodesOnEpoch.MaxNumberOfNodesForStake
+	}
+
+	_, exists := r.maxNumNodes[firstEpoch]
+	if !exists {
+		return fmt.Errorf("%w %d", vm.ErrMissingMaxNumberOfNodesForStakeForEpoch, firstEpoch)
+	}
+
+	return nil
 }
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
@@ -172,10 +193,12 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (r *stakingSC) getConfig() *StakingNodesConfig {
+	r.mutMaxNumNodes.RLock()
 	stakeConfig := &StakingNodesConfig{
 		MinNumNodes: int64(r.minNumNodes),
-		MaxNumNodes: int64(r.maxNumNodes),
+		MaxNumNodes: int64(r.maxNumNodes[firstEpoch]),
 	}
+	r.mutMaxNumNodes.RUnlock()
 	configData := r.eei.GetStorage([]byte(nodesConfigKey))
 	if len(configData) == 0 {
 		return stakeConfig
@@ -186,10 +209,6 @@ func (r *stakingSC) getConfig() *StakingNodesConfig {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
 		)
-		return &StakingNodesConfig{
-			MinNumNodes: int64(r.minNumNodes),
-			MaxNumNodes: int64(r.maxNumNodes),
-		}
 	}
 
 	return stakeConfig
@@ -530,10 +549,12 @@ func (r *stakingSC) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	r.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
 	r.eei.SetStorage(args.CallerAddr, big.NewInt(0).Bytes())
 
+	r.mutMaxNumNodes.RLock()
 	stakeConfig := &StakingNodesConfig{
 		MinNumNodes: int64(r.minNumNodes),
-		MaxNumNodes: int64(r.maxNumNodes),
+		MaxNumNodes: int64(r.maxNumNodes[firstEpoch]),
 	}
+	r.mutMaxNumNodes.RUnlock()
 	r.setConfig(stakeConfig)
 
 	epoch := r.eei.BlockChainHook().CurrentEpoch()
@@ -1425,6 +1446,26 @@ func (r *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 func (r *stakingSC) EpochConfirmed(epoch uint32) {
 	r.flagStake.Toggle(epoch >= r.enableStakingEpoch)
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", r.flagStake.IsSet())
+
+	r.saveMaxNumOfStakedNodes(epoch)
+}
+
+func (r *stakingSC) saveMaxNumOfStakedNodes(epoch uint32) {
+	r.mutMaxNumNodes.RLock()
+	maxNumNodes, exists := r.maxNumNodes[epoch]
+	r.mutMaxNumNodes.RUnlock()
+
+	if !exists {
+		return
+	}
+
+	log.Debug("saveMaxNumOfStakedNodes saving new maxNumNodes",
+		"maxNumNodes", maxNumNodes,
+		"epoch", epoch,
+	)
+	cfg := r.getConfig()
+	cfg.MaxNumNodes = int64(maxNumNodes)
+	r.setConfig(cfg)
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

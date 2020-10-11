@@ -32,17 +32,22 @@ func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 		StakingSCAddress:   []byte("staking"),
 		NumOfNodesToSelect: 10,
 		StakingSCConfig: config.StakingSystemSCConfig{
-			GenesisNodePrice:                     "1000",
-			UnJailValue:                          "10",
-			MinStepValue:                         "10",
-			MinStakeValue:                        "1",
-			UnBondPeriod:                         1,
-			AuctionEnableEpoch:                   0,
-			StakeEnableEpoch:                     0,
-			NumRoundsWithoutBleed:                1,
-			MaximumPercentageToBleed:             1,
-			BleedPercentagePerRound:              1,
-			MaxNumberOfNodesForStake:             10,
+			GenesisNodePrice:         "1000",
+			UnJailValue:              "10",
+			MinStepValue:             "10",
+			MinStakeValue:            "1",
+			UnBondPeriod:             1,
+			AuctionEnableEpoch:       0,
+			StakeEnableEpoch:         0,
+			NumRoundsWithoutBleed:    1,
+			MaximumPercentageToBleed: 1,
+			BleedPercentagePerRound:  1,
+			MaxNumberOfNodesForStakeOnEpoch: []config.MaxNumberOfNodesForStakeByEpochs{
+				{
+					StartEpoch:               0,
+					MaxNumberOfNodesForStake: 10,
+				},
+			},
 			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
@@ -954,7 +959,12 @@ func TestStakingAuctionSC_StakeUnStake3XUnBond2xWaitingList(t *testing.T) {
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForAuction()
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
 

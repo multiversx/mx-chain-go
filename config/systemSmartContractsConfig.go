@@ -7,6 +7,12 @@ type SystemSmartContractsConfig struct {
 	StakingSystemSCConfig    StakingSystemSCConfig
 }
 
+// MaxNumberOfNodesForStakeByEpochs represents a
+type MaxNumberOfNodesForStakeByEpochs struct {
+	StartEpoch               uint32
+	MaxNumberOfNodesForStake uint64
+}
+
 // StakingSystemSCConfig will hold the staking system smart contract settings
 type StakingSystemSCConfig struct {
 	GenesisNodePrice                     string
@@ -19,7 +25,7 @@ type StakingSystemSCConfig struct {
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
-	MaxNumberOfNodesForStake             uint64
+	MaxNumberOfNodesForStakeOnEpoch      []MaxNumberOfNodesForStakeByEpochs
 	NodesToSelectInAuction               uint64
 	ActivateBLSPubKeyMessageVerification bool
 }

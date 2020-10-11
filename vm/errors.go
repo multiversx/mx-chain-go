@@ -155,8 +155,11 @@ var ErrInvalidUnJailCost = errors.New("invalid unjail cost")
 // ErrInvalidGenesisTotalSupply signals that provided genesis total supply is invalid
 var ErrInvalidGenesisTotalSupply = errors.New("invalid genesis total supply cost")
 
-// ErrNegativeWaitingNodesPercentage signals that negative waiting nodes percentage was provided
-var ErrNegativeWaitingNodesPercentage = errors.New("negative waiting nodes percentage")
+// ErrEmptyListOfMaxNumberOfNodesForStake signals that an empty list of max number of nodes for stake was provided
+var ErrEmptyListOfMaxNumberOfNodesForStake = errors.New("empty list of max number of nodes for stake")
+
+// ErrMissingMaxNumberOfNodesForStakeForEpoch signals that a missing max number of nodes for stake on a provided epoch occurred
+var ErrMissingMaxNumberOfNodesForStakeForEpoch = errors.New("missing max number of nodes for stake declaration on epoch")
 
 // ErrNegativeBleedPercentagePerRound signals that negative bleed percentage per round has been provided
 var ErrNegativeBleedPercentagePerRound = errors.New("negative bleed percentage per round")

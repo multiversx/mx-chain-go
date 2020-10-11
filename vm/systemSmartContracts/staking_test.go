@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math"
 	"math/big"
 	"strconv"
@@ -30,17 +31,22 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 		MinNumNodes:          1,
 		Marshalizer:          &mock.MarshalizerMock{},
 		StakingSCConfig: config.StakingSystemSCConfig{
-			GenesisNodePrice:                     "100",
-			MinStakeValue:                        "1",
-			UnJailValue:                          "1",
-			MinStepValue:                         "1",
-			UnBondPeriod:                         0,
-			AuctionEnableEpoch:                   0,
-			StakeEnableEpoch:                     0,
-			NumRoundsWithoutBleed:                0,
-			MaximumPercentageToBleed:             0,
-			BleedPercentagePerRound:              0,
-			MaxNumberOfNodesForStake:             10,
+			GenesisNodePrice:         "100",
+			MinStakeValue:            "1",
+			UnJailValue:              "1",
+			MinStepValue:             "1",
+			UnBondPeriod:             0,
+			AuctionEnableEpoch:       0,
+			StakeEnableEpoch:         0,
+			NumRoundsWithoutBleed:    0,
+			MaximumPercentageToBleed: 0,
+			BleedPercentagePerRound:  0,
+			MaxNumberOfNodesForStakeOnEpoch: []config.MaxNumberOfNodesForStakeByEpochs{
+				{
+					StartEpoch:               0,
+					MaxNumberOfNodesForStake: 10,
+				},
+			},
 			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 		},
@@ -94,6 +100,82 @@ func TestNewStakingSmartContract_NilJailAccessAddrEIShouldErr(t *testing.T) {
 
 	assert.Nil(t, stakingSmartContract)
 	assert.Equal(t, vm.ErrInvalidJailAccessAddress, err)
+}
+
+func TestNewStakingSmartContract_NilMaxNodesListShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = nil
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.Equal(t, vm.ErrEmptyListOfMaxNumberOfNodesForStake, err)
+}
+
+func TestNewStakingSmartContract_MaxNodesValueLessThanMinNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: args.MinNumNodes,
+		},
+		{
+			StartEpoch:               1,
+			MaxNumberOfNodesForStake: args.MinNumNodes - 1,
+		},
+	}
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.True(t, errors.Is(err, vm.ErrInvalidMaxNumberOfNodes))
+}
+
+func TestNewStakingSmartContract_MaxNodesValueMissingForFirstEpochShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               1,
+			MaxNumberOfNodesForStake: args.MinNumNodes,
+		},
+	}
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.True(t, errors.Is(err, vm.ErrMissingMaxNumberOfNodesForStakeForEpoch))
+}
+
+func TestNewStakingSmartContract_MaxNodesValueChecks(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               firstEpoch,
+			MaxNumberOfNodesForStake: args.MinNumNodes,
+		},
+		{
+			StartEpoch:               firstEpoch + 1,
+			MaxNumberOfNodesForStake: args.MinNumNodes + 1,
+		},
+		{
+			StartEpoch:               firstEpoch + 2,
+			MaxNumberOfNodesForStake: args.MinNumNodes + 2,
+		},
+	}
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	require.False(t, check.IfNil(stakingSmartContract))
+	require.Nil(t, err)
+
+	require.Equal(t, 3, len(stakingSmartContract.maxNumNodes))
+	assert.Equal(t, args.MinNumNodes, stakingSmartContract.maxNumNodes[firstEpoch])
+	assert.Equal(t, args.MinNumNodes+1, stakingSmartContract.maxNumNodes[firstEpoch+1])
+	assert.Equal(t, args.MinNumNodes+2, stakingSmartContract.maxNumNodes[firstEpoch+2])
 }
 
 func TestNewStakingSmartContract(t *testing.T) {
@@ -1134,7 +1216,12 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 2,
+		},
+	}
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1191,7 +1278,12 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 2,
+		},
+	}
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1316,7 +1408,12 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 2,
+		},
+	}
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1376,7 +1473,12 @@ func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1429,7 +1531,12 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -1473,7 +1580,12 @@ func TestStakingSc_updateConfigMinNodes(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 2,
+		},
+	}
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 	stakingConfig := &StakingNodesConfig{

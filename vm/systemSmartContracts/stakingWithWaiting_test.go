@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -34,7 +35,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	argsStaking.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -101,7 +107,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	argsStaking.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
@@ -184,7 +195,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	argsStaking.StakingSCConfig.MaxNumberOfNodesForStakeOnEpoch = []config.MaxNumberOfNodesForStakeByEpochs{
+		{
+			StartEpoch:               0,
+			MaxNumberOfNodesForStake: 1,
+		},
+	}
 	stakingSC, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
