@@ -24,8 +24,6 @@ import (
 var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
-const minMetaTxExtraGasCost = uint64(1_000_000)
-
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
@@ -366,7 +364,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 	if txProc.flagMetaProtection.IsSet() {
 		// additional check
-		if tx.GasLimit > txProc.economicsFee.ComputeGasLimit(tx)+minMetaTxExtraGasCost {
+		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
 			return process.ErrInvalidMetaTransaction
 		}
 	}

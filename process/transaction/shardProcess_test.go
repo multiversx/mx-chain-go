@@ -1031,7 +1031,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 
 	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(46)
+	acntSrc.Balance = big.NewInt(100000000)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &mock.SCProcessorMock{
@@ -1059,7 +1059,17 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, uint64(1), acntSrc.Nonce)
-	assert.Equal(t, uint64(45), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(99999999), acntSrc.Balance.Uint64())
+
+	tx.Data = []byte("something")
+	tx.Nonce = tx.Nonce + 1
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, err, process.ErrFailedTransaction)
+
+	tx.Nonce = tx.Nonce + 1
+	tx.GasLimit = 10_000_000
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
 }
 
 func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *testing.T) {

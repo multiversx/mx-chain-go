@@ -72,7 +72,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		"@" + hex.EncodeToString([]byte("mintable")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("burnable")) + "@" + hexEncodedTrue
 	txData += properties
-	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 10
@@ -90,7 +90,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	mintValue := big.NewInt(10000)
 	txData = "mint" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(mintValue.Bytes())
-	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
@@ -105,16 +105,16 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenName, finalSupply)
 
 	txData = core.BuiltInFunctionESDTBurn + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(mintValue.Bytes())
-	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	txData = "freeze" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(nodes[1].OwnAccount.Address)
-	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	txData = "wipe" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(nodes[2].OwnAccount.Address)
-	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	txData = "pause" + "@" + hex.EncodeToString([]byte(tokenName))
-	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
 
