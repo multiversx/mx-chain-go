@@ -25,7 +25,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
 	// Cross, at source
 	computer = &StatusComputer{
@@ -44,7 +44,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		DestinationShard:     13,
 		SelfShard:            12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
 	// Cross, destination me
 	computer = &StatusComputer{
@@ -53,7 +53,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
 	computer = &StatusComputer{
 		MiniblockType:    block.RewardsBlock,
@@ -61,7 +61,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 
 	// Contract deploy
 	computer = &StatusComputer{
@@ -71,7 +71,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageKnowingMiniblock(t *testing.T)
 		TransactionData:  []byte("deployingAContract"),
 		SelfShard:        13,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageKnowingMiniblock())
 }
 
 func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing.T) {
@@ -81,7 +81,7 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
 	// Cross, at source
 	computer = &StatusComputer{
@@ -97,14 +97,14 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
 	computer = &StatusComputer{
 		SourceShard:      core.MetachainShardId,
 		DestinationShard: 12,
 		SelfShard:        12,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 
 	// Contract deploy
 	computer = &StatusComputer{
@@ -114,5 +114,5 @@ func TestStatusComputer_ComputeStatusWhenInStorageNotKnowingMiniblock(t *testing
 		TransactionData:  []byte("deployingAContract"),
 		SelfShard:        13,
 	}
-	require.Equal(t, TxStatusSuccessful, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
+	require.Equal(t, TxStatusSuccess, computer.ComputeStatusWhenInStorageNotKnowingMiniblock())
 }
