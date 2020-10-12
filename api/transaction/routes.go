@@ -32,6 +32,7 @@ type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
@@ -184,7 +185,7 @@ func SimulateTransaction(c *gin.Context) {
 		return
 	}
 
-	err = facade.ValidateTransaction(tx)
+	err = facade.ValidateTransactionForSimulation(tx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
