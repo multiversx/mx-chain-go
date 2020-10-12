@@ -720,11 +720,11 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeStakeClaim(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	argsStaking.MinNumNodes = 0
-	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return stakingSC, nil
+		return stakingSc, nil
 	}})
 
 	args.StakingSCConfig = argsStaking.StakingSCConfig
@@ -2664,7 +2664,7 @@ func TestAuctionStakingSC_getBlsStatusShouldWork(t *testing.T) {
 
 	firstAddr := "addr 1"
 	secondAddr := "addr 2"
-	auctionData := AuctionData{
+	auctionData := AuctionDataV2{
 		BlsPubKeys: [][]byte{[]byte(firstAddr), []byte(secondAddr)},
 	}
 	serializedAuctionData, _ := args.Marshalizer.Marshal(auctionData)
@@ -2723,7 +2723,7 @@ func TestAuctionStakingSC_getBlsStatusShouldWorkEvenIfAnErrorOccursForOneOfTheBl
 
 	firstAddr := "addr 1"
 	secondAddr := "addr 2"
-	auctionData := AuctionData{
+	auctionData := AuctionDataV2{
 		BlsPubKeys: [][]byte{[]byte(firstAddr), []byte(secondAddr)},
 	}
 	serializedAuctionData, _ := args.Marshalizer.Marshal(auctionData)
