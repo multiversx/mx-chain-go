@@ -277,7 +277,7 @@ func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
 	vmInput.Arguments = [][]byte{[]byte("wrong_token_name")}
 
 	output := e.Execute(vmInput)
@@ -298,33 +298,12 @@ func TestEsdt_ExecuteBurnWrongCallValueShouldFail(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
 	vmInput.CallValue = big.NewInt(1)
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfFunds, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
-}
-
-func TestEsdt_ExecuteBurnNotEnoughGasShouldFail(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{})
-	args.Eei = eei
-	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
-
-	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
-
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.OutOfGas, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
 }
 
 func TestEsdt_ExecuteBurnWrongValueToBurnShouldFail(t *testing.T) {
@@ -340,7 +319,7 @@ func TestEsdt_ExecuteBurnWrongValueToBurnShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
 	vmInput.Arguments[1] = []byte{0}
 
 	output := e.Execute(vmInput)
@@ -361,7 +340,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -389,7 +368,7 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{tokenName, {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{tokenName, {100}})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -419,7 +398,7 @@ func TestEsdt_ExecuteBurn(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("burn", [][]byte{[]byte("esdtToken"), {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{[]byte("esdtToken"), {100}})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -975,36 +954,6 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
 }
 
-func TestEsdt_ExecuteToggleFreezeInvalidDestShouldFail(t *testing.T) {
-	t.Parallel()
-
-	owner := []byte("owner")
-	tokenName := []byte("esdtToken")
-	args := createMockArgumentsForESDT()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{})
-
-	tokensMap := map[string][]byte{}
-	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
-		OwnerAddress: owner,
-		CanFreeze:    true,
-	})
-	tokensMap[string(tokenName)] = marshalizedData
-	eei.storageUpdate[string(eei.scAddress)] = tokensMap
-	args.Eei = eei
-
-	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{tokenName, []byte("dest")})
-
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid arguments"))
-}
-
 func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1382,7 +1331,7 @@ func TestEsdt_ExecutePauseTooFewArgumentsShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 2"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
 }
 
 func TestEsdt_ExecutePauseWrongCallValueShouldFail(t *testing.T) {
@@ -1594,12 +1543,27 @@ func TestEsdt_ExecuteTogglePauseShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("pause", [][]byte{tokenName, owner})
+	vmInput := getDefaultVmInputForFunc("pause", [][]byte{tokenName})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	// TODO finish this test when eei.SendGlobalSettingToAll is implemented
+	vmOutput := eei.CreateVMOutput()
+
+	systemAddress := make([]byte, len(core.SystemAccountAddress))
+	copy(systemAddress, core.SystemAccountAddress)
+	systemAddress[len(core.SystemAccountAddress)-1] = 0
+
+	createdAcc, accCreated := vmOutput.OutputAccounts[string(systemAddress)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(createdAcc.OutputTransfers) == 1)
+	outputTransfer := createdAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	expectedInput := core.BuiltInFunctionESDTPause + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
 }
 
 func TestEsdt_ExecuteUnPauseOnAnUnPausedTokenShouldFail(t *testing.T) {
@@ -1692,10 +1656,25 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("unPause", [][]byte{tokenName, owner})
+	vmInput := getDefaultVmInputForFunc("unPause", [][]byte{tokenName})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	// TODO finish this test when eei.SendGlobalSettingToAll is implemented
+	vmOutput := eei.CreateVMOutput()
+
+	systemAddress := make([]byte, len(core.SystemAccountAddress))
+	copy(systemAddress, core.SystemAccountAddress)
+	systemAddress[len(core.SystemAccountAddress)-1] = 0
+
+	createdAcc, accCreated := vmOutput.OutputAccounts[string(systemAddress)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(createdAcc.OutputTransfers) == 1)
+	outputTransfer := createdAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	expectedInput := core.BuiltInFunctionESDTUnPause + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
 }
