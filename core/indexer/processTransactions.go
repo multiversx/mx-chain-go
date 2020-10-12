@@ -131,8 +131,9 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 }
 
 func isScResultSuccessful(scResultData []byte) bool {
-	okReturnData := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
-	return bytes.Contains(scResultData, okReturnData)
+	okReturnDataNewVersion := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
+	okReturnDataOldVersion := []byte("@" + vmcommon.Ok.String()) // backwards compatible
+	return bytes.Contains(scResultData, okReturnDataNewVersion) || bytes.Contains(scResultData, okReturnDataOldVersion)
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
