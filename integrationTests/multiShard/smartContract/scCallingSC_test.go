@@ -345,16 +345,15 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	txData := "ClaimDeveloperRewards"
-	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, 1)
 
-	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-	}
+	time.Sleep(time.Second)
+	integrationTests.UpdateRound(nodes, round)
+	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
 
 	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	fmt.Println("smart contract owner after claim", account.GetBalance())
