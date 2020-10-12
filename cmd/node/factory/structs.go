@@ -1502,6 +1502,7 @@ func newShardBlockProcessor(
 		GasMap:          gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
+		Accounts:        stateComponents.AccountsAdapter,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -1522,12 +1523,19 @@ func newShardBlockProcessor(
 		config.VirtualMachineConfig,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 		gasSchedule,
-		argsHook)
+		argsHook,
+		config.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -2155,6 +2163,11 @@ func createShardTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) error {
+	readOnlyAccountsDB, err := txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
+	if err != nil {
+		return err
+	}
+
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
 		core.InternalMarshalizer,
@@ -2194,16 +2207,15 @@ func createShardTxSimulatorProcessor(
 	scProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 	txProcArgs.TxFeeHandler = &processDisabled.FeeHandler{}
 
+	scProcArgs.AccountsDB = readOnlyAccountsDB
+
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
 		return err
 	}
 	txProcArgs.ScProcessor = scProcessor
 
-	txProcArgs.Accounts, err = txsimulator.NewReadOnlyAccountsDB(stateComponents.AccountsAdapter)
-	if err != nil {
-		return err
-	}
+	txProcArgs.Accounts = readOnlyAccountsDB
 
 	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewTxProcessor(txProcArgs)
 	if err != nil {
@@ -2302,21 +2314,22 @@ func newValidatorStatisticsProcessor(
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                  processComponents.state.PeerAccounts,
-		PubkeyConv:                   processComponents.state.ValidatorPubkeyConverter,
-		NodesCoordinator:             processComponents.nodesCoordinator,
-		ShardCoordinator:             processComponents.shardCoordinator,
-		DataPool:                     peerDataPool,
-		StorageService:               storageService,
-		Marshalizer:                  processComponents.coreData.InternalMarshalizer,
-		Rater:                        processComponents.rater,
-		MaxComputableRounds:          processComponents.maxComputableRounds,
-		RewardsHandler:               processComponents.economicsData,
-		NodesSetup:                   processComponents.nodesConfig,
-		RatingEnableEpoch:            ratingEnabledEpoch,
-		GenesisNonce:                 processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
-		EpochNotifier:                processComponents.epochNotifier,
-		SwitchJailWaitingEnableEpoch: processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		PeerAdapter:                     processComponents.state.PeerAccounts,
+		PubkeyConv:                      processComponents.state.ValidatorPubkeyConverter,
+		NodesCoordinator:                processComponents.nodesCoordinator,
+		ShardCoordinator:                processComponents.shardCoordinator,
+		DataPool:                        peerDataPool,
+		StorageService:                  storageService,
+		Marshalizer:                     processComponents.coreData.InternalMarshalizer,
+		Rater:                           processComponents.rater,
+		MaxComputableRounds:             processComponents.maxComputableRounds,
+		RewardsHandler:                  processComponents.economicsData,
+		NodesSetup:                      processComponents.nodesConfig,
+		RatingEnableEpoch:               ratingEnabledEpoch,
+		GenesisNonce:                    processComponents.data.Blkc.GetGenesisHeader().GetNonce(),
+		EpochNotifier:                   processComponents.epochNotifier,
+		SwitchJailWaitingEnableEpoch:    processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: processComponents.mainConfig.GeneralSettings.BelowSignedThresholdEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
