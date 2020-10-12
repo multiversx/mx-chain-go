@@ -52,6 +52,7 @@ type consensusComponents struct {
 	broadcastMessenger consensus.BroadcastMessenger
 	worker             ConsensusWorker
 	consensusTopic     string
+	consensusGroupSize int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -102,6 +103,13 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 	cc := &consensusComponents{}
+
+	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
+	if err != nil {
+		return nil, err
+	}
+
+	cc.consensusGroupSize = int(consensusGroupSize)
 
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
@@ -541,4 +549,15 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	}
 
 	return nil
+}
+
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		return nodesConfig.GetMetaConsensusGroupSize(), nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.GetShardConsensusGroupSize(), nil
+	}
+
+	return 0, sharding.ErrShardIdOutOfRange
 }

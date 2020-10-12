@@ -365,6 +365,7 @@ type ConsensusComponentsHolder interface {
 	Chronology() consensus.ChronologyHandler
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
+	ConsensusGroupSize() (int, error)
 	IsInterfaceNil() bool
 }
 

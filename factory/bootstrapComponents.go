@@ -171,13 +171,20 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		"numShards", bootstrapParameters.NumOfShards,
 	)
 
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(
+		bootstrapParameters.NumOfShards,
+		bootstrapParameters.SelfShardId)
+	if err != nil {
+		return nil, err
+	}
+
 	return &bootstrapComponents{
 		epochStartBootstraper: epochStartBootstraper,
 		bootstrapParamsHandler: &bootstrapParamsHolder{
 			bootstrapParams: bootstrapParameters,
 		},
 		nodeType:                nodeType,
-		shardCoordinator:        genesisShardCoordinator,
+		shardCoordinator:        shardCoordinator,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 	}, nil
 }

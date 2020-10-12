@@ -241,13 +241,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 
-		shardCoordinator, err := sharding.NewMultiShardCoordinator(
-			managedBootstrapComponents.EpochBootstrapParams().NumOfShards(),
-			managedBootstrapComponents.EpochBootstrapParams().SelfShardID())
-		if err != nil {
-			return err
-		}
-
 		currentEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
 		storerEpoch := currentEpoch
 		if !cfgs.generalConfig.StoragePruning.Enabled {
@@ -262,14 +255,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 				"epoch", managedBootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
 		}
 
-		var shardIdString = core.GetShardIDString(shardCoordinator.SelfId())
+		var shardIdString = core.GetShardIDString(managedBootstrapComponents.ShardCoordinator().SelfId())
 		logger.SetCorrelationShard(shardIdString)
 
 		log.Trace("creating state components")
 		triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 		stateArgs := mainFactory.StateComponentsFactoryArgs{
 			Config:              *cfgs.generalConfig,
-			ShardCoordinator:    shardCoordinator,
+			ShardCoordinator:    managedBootstrapComponents.ShardCoordinator(),
 			Core:                managedCoreComponents,
 			TriesContainer:      triesComponents,
 			TrieStorageManagers: trieStorageManagers,
@@ -295,7 +288,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		dataArgs := mainFactory.DataComponentsFactoryArgs{
 			Config:             *cfgs.generalConfig,
-			ShardCoordinator:   shardCoordinator,
+			ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
 			Core:               managedCoreComponents,
 			EpochStartNotifier: epochStartNotifier,
 			CurrentEpoch:       storerEpoch,
@@ -323,7 +316,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCoreComponents.StatusHandlerUtils(),
 			managedCryptoComponents.PublicKeyString(),
 			managedBootstrapComponents.NodeType(),
-			shardCoordinator,
+			managedBootstrapComponents.ShardCoordinator(),
 			managedCoreComponents.GenesisNodesSetup(),
 			version,
 			cfgs.economicsConfig,
@@ -364,7 +357,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 			managedCoreComponents.NodesShuffler(),
 			cfgs.generalConfig.EpochStartConfig,
-			shardCoordinator.SelfId(),
+			managedBootstrapComponents.ShardCoordinator().SelfId(),
 			chanStopNodeProcess,
 			managedBootstrapComponents.EpochBootstrapParams(),
 			currentEpoch,
@@ -382,7 +375,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 			"PkBlockSign", managedCryptoComponents.PublicKeyString(),
 			"ShardId", shardIdString,
-			"TotalShards", shardCoordinator.NumberOfShards(),
+			"TotalShards", managedBootstrapComponents.ShardCoordinator().NumberOfShards(),
 			"AppVersion", version,
 			"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
 		)
@@ -445,7 +438,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
-			SelfShardID: shardCoordinator.SelfId(),
+			SelfShardID: managedBootstrapComponents.ShardCoordinator().SelfId(),
 			Config:      cfgs.generalConfig.DbLookupExtensions,
 			Hasher:      managedCoreComponents.Hasher(),
 			Marshalizer: managedCoreComponents.InternalMarshalizer(),
@@ -466,7 +459,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			Config:             *cfgs.generalConfig,
 			ExternalConfig:     *cfgs.externalConfig,
 			ElasticOptions:     &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-			ShardCoordinator:   shardCoordinator,
+			ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
 			NodesCoordinator:   nodesCoordinator,
 			EpochStartNotifier: epochStartNotifier,
 			CoreComponents:     managedCoreComponents,
@@ -521,7 +514,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			SmartContractParser:       smartContractParser,
 			GasSchedule:               gasSchedule,
 			Rounder:                   managedCoreComponents.Rounder(),
-			ShardCoordinator:          shardCoordinator,
+			ShardCoordinator:          managedBootstrapComponents.ShardCoordinator(),
 			NodesCoordinator:          nodesCoordinator,
 			Data:                      managedDataComponents,
 			CoreData:                  managedCoreComponents,
@@ -577,7 +570,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		hardForkTrigger, err := node.CreateHardForkTrigger(
 			cfgs.generalConfig,
-			shardCoordinator,
+			managedBootstrapComponents.ShardCoordinator(),
 			nodesCoordinator,
 			managedCoreComponents,
 			managedStateComponents,
@@ -671,7 +664,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Trace("creating node structure")
 		currentNode, err := node.CreateNode(
 			cfgs.generalConfig,
-			cfgs.preferencesConfig,
 			managedBootstrapComponents,
 			managedCoreComponents,
 			managedCryptoComponents,
@@ -694,7 +686,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 
-		if shardCoordinator.SelfId() == core.MetachainShardId {
+		if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 			log.Trace("activating nodesCoordinator's validators indexing")
 			indexValidatorsListIfNeeded(
 				elasticIndexer,
@@ -715,7 +707,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCoreComponents.InternalMarshalizer(),
 			managedCoreComponents.Hasher(),
 			managedCoreComponents.Uint64ByteSliceConverter(),
-			shardCoordinator,
+			managedBootstrapComponents.ShardCoordinator(),
 			managedCoreComponents.StatusHandlerUtils().Metrics(),
 			gasSchedule,
 			managedCoreComponents.EconomicsData(),

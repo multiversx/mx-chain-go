@@ -200,6 +200,7 @@ func WithConsensusGroupSize(consensusGroupSize int) Option {
 		if consensusGroupSize < 1 {
 			return ErrNegativeOrZeroConsensusGroupSize
 		}
+		log.Info("consensus group", "size", consensusGroupSize)
 		n.consensusGroupSize = consensusGroupSize
 		return nil
 	}

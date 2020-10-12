@@ -109,17 +109,6 @@ func CreateHardForkTrigger(
 	return hardforkTrigger, nil
 }
 
-func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return nodesConfig.GetMetaConsensusGroupSize(), nil
-	}
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return nodesConfig.GetShardConsensusGroupSize(), nil
-	}
-
-	return 0, state.ErrUnknownShardId
-}
-
 // prepareOpenTopics will set to the anti flood handler the topics for which
 // the node can receive messages from others than validators
 func prepareOpenTopics(
@@ -138,7 +127,6 @@ func prepareOpenTopics(
 
 func CreateNode(
 	config *config.Config,
-	preferencesConfig *config.Preferences,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -158,11 +146,6 @@ func CreateNode(
 	historyRepository dblookupext.HistoryRepository,
 ) (*Node, error) {
 	var err error
-	var consensusGroupSize uint32
-	consensusGroupSize, err = getConsensusGroupSize(coreComponents.GenesisNodesSetup(), processComponents.ShardCoordinator())
-	if err != nil {
-		return nil, err
-	}
 
 	var txAccumulator core.Accumulator
 	txAccumulatorConfig := config.Antiflood.TxAccumulator
@@ -192,6 +175,10 @@ func CreateNode(
 
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
+	consensusGroupSize, err := consensusComponents.ConsensusGroupSize()
+	if err != nil {
+		return nil, err
+	}
 
 	var nd *Node
 	nd, err = NewNode(
@@ -207,7 +194,7 @@ func CreateNode(
 		WithConsensusComponents(consensusComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
 		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
-		WithConsensusGroupSize(int(consensusGroupSize)),
+		WithConsensusGroupSize(consensusGroupSize),
 		WithGenesisTime(genesisTime),
 		WithConsensusType(config.Consensus.Type),
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
