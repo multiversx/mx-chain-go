@@ -26,6 +26,7 @@ type MetaChainSystemSCsCost struct {
 	DelegateVote        uint64
 	RevokeVote          uint64
 	CloseProposal       uint64
+	DelegationOps       uint64
 }
 
 // BuiltInCost defines cost for built-in methods
@@ -35,6 +36,7 @@ type BuiltInCost struct {
 	SaveUserName          uint64
 	SaveKeyValue          uint64
 	ESDTTransfer          uint64
+	ESDTBurn              uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

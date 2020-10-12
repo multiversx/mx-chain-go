@@ -43,7 +43,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	_ = advertiser.Bootstrap()
 
 	genesisFile := "testdata/smartcontracts.json"
-	nodes := integrationTests.CreateNodesWithFullGenesis(
+	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
@@ -70,6 +70,8 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
+
+		_ = hardforkTriggerNode.Messenger.Close()
 	}()
 
 	round := uint64(0)
@@ -109,7 +111,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 	checkGenesisBlocksStateIsEqual(t, nodes)
 }
 
-func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
+func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -122,7 +124,7 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 	_ = advertiser.Bootstrap()
 
 	genesisFile := "testdata/smartcontracts.json"
-	nodes := integrationTests.CreateNodesWithFullGenesis(
+	nodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
@@ -148,6 +150,8 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 		for _, n := range nodes {
 			_ = n.Messenger.Close()
 		}
+
+		_ = hardforkTriggerNode.Messenger.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -230,6 +234,134 @@ func TestEHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing
 
 	hardForkImport(t, nodes, exportStorageConfigs)
 	checkGenesisBlocksStateIsEqual(t, nodes)
+}
+
+func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 1
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	genesisFile := "testdata/smartcontracts.json"
+	consensusNodes, hardforkTriggerNode := integrationTests.CreateNodesWithFullGenesis(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+		genesisFile,
+	)
+	allNodes := append(consensusNodes, hardforkTriggerNode)
+
+	roundsPerEpoch := uint64(100)
+	minRoundsPerEpoch := uint64(10)
+	for _, node := range allNodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+		node.EpochStartTrigger.SetMinRoundsBetweenEpochs(minRoundsPerEpoch)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(allNodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range allNodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(1000000000)
+	sendValue := big.NewInt(5)
+	integrationTests.MintAllNodes(consensusNodes, initialVal)
+	receiverAddress1 := []byte("12345678901234567890123456789012")
+	receiverAddress2 := []byte("12345678901234567890123456789011")
+
+	numPlayers := 10
+	players := make([]*integrationTests.TestWalletAccount, numPlayers)
+	for i := 0; i < numPlayers; i++ {
+		players[i] = integrationTests.CreateTestWalletAccount(consensusNodes[0].ShardCoordinator, 0)
+	}
+	integrationTests.MintAllPlayers(consensusNodes, players, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	time.Sleep(time.Second)
+	transferToken := big.NewInt(10)
+	ownerNode := consensusNodes[0]
+	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	integrationTests.CreateAndSendTransactionWithGasLimit(
+		consensusNodes[0],
+		big.NewInt(0),
+		integrationTests.MaxGasLimitPerBlock-1,
+		make([]byte, 32),
+		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		integrationTests.ChainID,
+		integrationTests.MinTransactionVersion,
+	)
+	time.Sleep(time.Second)
+	numRoundsBeforeHardfork := uint64(12)
+	roundsForEarlyStartOfEpoch := uint64(3)
+	for i := uint64(0); i < numRoundsBeforeHardfork+roundsForEarlyStartOfEpoch; i++ {
+		if i == numRoundsBeforeHardfork {
+			log.Info("triggering hardfork (with early end of epoch)")
+			err := hardforkTriggerNode.Node.DirectTrigger(1, true)
+			log.LogIfError(err)
+		}
+
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, consensusNodes, idxProposers, round, nonce)
+		integrationTests.AddSelfNotarizedHeaderByMetachain(consensusNodes)
+		for _, node := range consensusNodes {
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
+		}
+
+		for _, player := range players {
+			integrationTests.CreateAndSendTransactionWithGasLimit(
+				ownerNode,
+				big.NewInt(0),
+				1000000,
+				scAddress,
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(transferToken.Bytes())),
+				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
+			)
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	time.Sleep(time.Second)
+	currentEpoch := uint32(1)
+
+	defer func() {
+		for _, node := range consensusNodes {
+			_ = os.RemoveAll(node.ExportFolder)
+			_ = os.RemoveAll("./Static")
+		}
+	}()
+
+	exportStorageConfigs := hardForkExport(t, consensusNodes, currentEpoch)
+	for id, node := range consensusNodes {
+		node.ExportFolder = "./export" + fmt.Sprintf("%d", id)
+	}
+
+	hardForkImport(t, consensusNodes, exportStorageConfigs)
+	checkGenesisBlocksStateIsEqual(t, consensusNodes)
 }
 
 func hardForkExport(t *testing.T, nodes []*integrationTests.TestProcessorNode, epoch uint32) map[uint32][]config.StorageConfig {
@@ -459,6 +591,15 @@ func createHardForkExporter(
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
 			Rounder:                  &mock.RounderMock{},
 			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
+				Enabled:                    true,
+				EnablePrint:                true,
+				CacheSize:                  10000,
+				IntervalAutoPrintInSeconds: 20,
+				NumRequestsThreshold:       3,
+				NumResolveFailureThreshold: 3,
+				DebugLineExpiration:        3,
+			},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

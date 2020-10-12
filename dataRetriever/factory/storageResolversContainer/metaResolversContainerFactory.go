@@ -153,6 +153,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {
@@ -186,6 +187,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver() (data
 		HeadersNoncesStorage:     hdrNonceStore,
 		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	resolver, err := storageResolvers.NewHeaderResolver(arg)
 	if err != nil {
