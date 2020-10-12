@@ -549,5 +549,5 @@ const MultiplyFactorForScCall = 3
 // before a special action to be applied
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
-// MinMetaTxExtraGasCost is the constant defines for minimum gas value to be sent in meta transaction
+// MinMetaTxExtraGasCost is the constant defined for minimum gas value to be sent in meta transaction
 const MinMetaTxExtraGasCost = uint64(1_000_000)
