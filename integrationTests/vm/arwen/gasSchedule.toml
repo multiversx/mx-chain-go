@@ -15,6 +15,7 @@
     ChangeRewardAddress = 5000000
     ChangeValidatorKeys = 5000000
     UnJail              = 5000000
+    DelegationOps       = 1000000
 
 [BaseOperationCost]
     StorePerByte      = 50000

@@ -182,6 +182,15 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrInvalidAddress signals that invalid address has been provided
+var ErrInvalidAddress = errors.New("invalid address")
+
+// ErrDataNotFoundUnderKey signals that data was not found under requested key
+var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key")
+
+// ErrInvalidBLSKeys signals that invalid bls keys has been provided
+var ErrInvalidBLSKeys = errors.New("invalid bls keys")
+
 // ErrNoTokenWithGivenName signals that token does not exists with given name
 var ErrNoTokenWithGivenName = errors.New("no token with given name")
 
