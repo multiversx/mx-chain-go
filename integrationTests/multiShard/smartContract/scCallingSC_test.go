@@ -113,7 +113,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	// are nodes.
 	for _, node := range nodes {
 		txData := "doSomething"
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(50), secondSCAddress, txData, integrationTests.AdditionalGasLimit)
 	}
 	time.Sleep(time.Second)
 
@@ -193,7 +193,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for _, node := range nodes {
 		txData := "increment"
 		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 		}
 	}
 
@@ -224,7 +224,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	newOwnerAddress := []byte("12345678123456781234567812345678")
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
-	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -304,7 +304,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	for _, node := range nodes {
 		txData := "increment"
 		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 		}
 	}
 
@@ -345,7 +345,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	txData := "ClaimDeveloperRewards"
-	integrationTests.CreateAndSendTransaction(nodes[0], big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
@@ -579,6 +579,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 	integrationTests.CreateAndSendTransaction(
 		sender,
+		nodes,
 		big.NewInt(0),
 		scAddress,
 		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
@@ -799,7 +800,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// set stake per node
 	setStakePerNodeTxData := "setStakePerNode@" + core.ConvertToEvenHexBigInt(nodePrice)
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, setStakePerNodeTxData, integrationTests.AdditionalGasLimit)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -807,20 +808,20 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	addNodesTxData := fmt.Sprintf("addNodes@%s@%s",
 		hex.EncodeToString(stakerBLSKey),
 		hex.EncodeToString(stakerBLSSignature))
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, addNodesTxData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, addNodesTxData, integrationTests.AdditionalGasLimit)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// stake some coin!
 	// here the node account fills all the required stake
 	stakeTxData := "stake"
-	integrationTests.CreateAndSendTransaction(shardNode, totalStake, delegateSCAddress, stakeTxData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(shardNode, nodes, totalStake, delegateSCAddress, stakeTxData, integrationTests.AdditionalGasLimit)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// activate the delegation, this involves an async call to auction
 	stakeAllAvailableTxData := "stakeAllAvailable"
-	integrationTests.CreateAndSendTransaction(shardNode, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, integrationTests.AdditionalGasLimit)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
@@ -978,7 +979,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	// are nodes.
 	for _, node := range nodes {
 		txData := "doSomething@WRONG"
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(50), secondSCAddress, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(50), secondSCAddress, txData, integrationTests.AdditionalGasLimit)
 	}
 	time.Sleep(time.Second)
 
