@@ -367,7 +367,7 @@ func prepareSerializedDataForATransaction(
 ) (meta []byte, serializedData []byte) {
 	var err error
 	if isMBOfTxInDB {
-		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == txStatusInvalid {
+		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
 			return
 		}
 		// update transaction

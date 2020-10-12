@@ -51,10 +51,18 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - c.gasCost}
-	outputAcc := &vmcommon.OutputAccount{
-		Address:      vmInput.CallerAddr,
-		BalanceDelta: big.NewInt(0).Set(value),
+	outTransfer := vmcommon.OutputTransfer{
+		Value:    big.NewInt(0).Set(value),
+		GasLimit: 0,
+		Data:     nil,
+		CallType: vmcommon.AsynchronousCall,
 	}
+	outputAcc := &vmcommon.OutputAccount{
+		Address:         vmInput.CallerAddr,
+		BalanceDelta:    big.NewInt(0).Set(value),
+		OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
+	}
+
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 	vmOutput.OutputAccounts[string(outputAcc.Address)] = outputAcc
 
