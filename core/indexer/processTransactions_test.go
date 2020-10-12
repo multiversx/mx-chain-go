@@ -231,7 +231,7 @@ func TestRelayedTransactions(t *testing.T) {
 	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
-	assert.Equal(t, transaction.TxStatusSuccessful.String(), transactions[0].Status)
+	assert.Equal(t, transaction.TxStatusSuccess.String(), transactions[0].Status)
 }
 
 func TestSetTransactionSearchOrder(t *testing.T) {
