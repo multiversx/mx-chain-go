@@ -430,6 +430,10 @@ func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, gasPrice 
 		return err
 	}
 
+	if check.IfNil(userAcc) {
+		return nil
+	}
+
 	userAcc.AddToDeveloperReward(devRwd)
 	err = sc.accounts.SaveAccount(userAcc)
 	if err != nil {
