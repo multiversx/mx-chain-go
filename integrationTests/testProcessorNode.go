@@ -1291,16 +1291,19 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
-	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
-		TestHasher,
-		TestMarshalizer,
-		tpn.AccntState,
-		TestAddressPubkeyConverter,
-		tpn.ShardCoordinator,
-		tpn.ScProcessor,
-		txTypeHandler,
-		tpn.EconomicsData,
-	)
+	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           TestHasher,
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		PubkeyConv:       TestAddressPubkeyConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		ScProcessor:      tpn.ScProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     tpn.EconomicsData,
+		ESDTEnableEpoch:  0,
+		EpochNotifier:    tpn.EpochNotifier,
+	}
+	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,

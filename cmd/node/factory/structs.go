@@ -1597,6 +1597,7 @@ func newShardBlockProcessor(
 		ScrForwarder:                   scForwarder,
 		RelayedTxEnableEpoch:           config.GeneralSettings.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:      config.GeneralSettings.MetaProtectionEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
@@ -1864,21 +1865,34 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	transactionProcessor, err := transaction.NewMetaTxProcessor(
-		core.Hasher,
-		core.InternalMarshalizer,
-		stateComponents.AccountsAdapter,
-		stateComponents.AddressPubkeyConverter,
-		shardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		economicsData,
-	)
+	argsNewMetaTxProcessor := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     economicsData,
+		ESDTEnableEpoch:  generalSettingsConfig.MetaProtectionEnableEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessorArgs)
+	err = createMetaTxSimulatorProcessor(
+		argsNewScProcessor,
+		shardCoordinator,
+		data,
+		core,
+		stateComponents,
+		txTypeHandler,
+		txSimulatorProcessorArgs,
+		epochNotifier,
+		systemSCConfig,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2185,6 +2199,8 @@ func createMetaTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txTypeHandler process.TxTypeHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	epochNotifier process.EpochNotifier,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -2227,16 +2243,19 @@ func createMetaTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(
-		core.Hasher,
-		core.InternalMarshalizer,
-		accountsWrapper,
-		stateComponents.AddressPubkeyConverter,
-		shardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		&processDisabled.FeeHandler{},
-	)
+	argsNewMetaTx := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         accountsWrapper,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     &processDisabled.FeeHandler{},
+		ESDTEnableEpoch:  systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
 	if err != nil {
 		return err
 	}

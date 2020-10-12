@@ -107,7 +107,7 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.issue(args)
 	case "issueProtected":
 		return e.issueProtected(args)
-	case "burn":
+	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
 		return e.mint(args)
@@ -319,11 +319,6 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.OutOfFunds
 	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
-	if err != nil {
-		e.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
-	}
 	burntValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if burntValue.Cmp(big.NewInt(0)) <= 0 {
 		e.eei.AddReturnMessage("negative or 0 value to burn")
@@ -341,6 +336,12 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	token.BurntValue.Add(token.BurntValue, burntValue)
 
 	err = e.saveToken(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = e.eei.UseGas(args.GasProvided)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -407,10 +408,6 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 		e.eei.AddReturnMessage("cannot freeze")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
-		return vmcommon.UserError
-	}
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
@@ -451,7 +448,7 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
-	if len(args.Arguments) < 1 {
+	if len(args.Arguments) != 1 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}

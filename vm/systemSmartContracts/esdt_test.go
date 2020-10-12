@@ -203,6 +203,7 @@ func TestEsdt_ExecuteWrongFunctionCall(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+	args.ESDTSCConfig.OwnerAddress = "owner"
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -255,9 +256,7 @@ func TestEsdt_ExecuteIssueProtected(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments = [][]byte{[]byte("newOwner"), []byte("name"), []byte("1000")}
-
-	vmInput.Arguments[0] = []byte("addr")
+	vmInput.Arguments = [][]byte{[]byte("addr"), []byte("name"), []byte("1000")}
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)

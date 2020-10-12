@@ -17,19 +17,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createMetaTxProcessor() process.TransactionProcessor {
-	txProc, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
-
-	return txProc
+func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
+	args := txproc.ArgsNewMetaTxProcessor{
+		Hasher:           &mock.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		Accounts:         &mock.AccountsStub{},
+		PubkeyConv:       createMockPubkeyConverter(),
+		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
+		ScProcessor:      &mock.SCProcessorMock{},
+		TxTypeHandler:    &mock.TxTypeHandlerMock{},
+		EconomicsFee:     createFreeTxFeeHandler(),
+		ESDTEnableEpoch:  0,
+		EpochNotifier:    &mock.EpochNotifierStub{},
+	}
+	return args
 }
 
 //------- NewMetaTxProcessor
@@ -37,16 +38,9 @@ func createMetaTxProcessor() process.TransactionProcessor {
 func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.Accounts = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, txProc)
@@ -55,16 +49,9 @@ func TestNewMetaTxProcessor_NilAccountsShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		nil,
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.PubkeyConv = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, txProc)
@@ -73,16 +60,9 @@ func TestNewMetaTxProcessor_NilPubkeyConverterMockShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		nil,
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.ShardCoordinator = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, txProc)
@@ -91,16 +71,9 @@ func TestNewMetaTxProcessor_NilShardCoordinatorMockShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		nil,
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.ScProcessor = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
 	assert.Nil(t, txProc)
@@ -109,16 +82,9 @@ func TestNewMetaTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		nil,
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.TxTypeHandler = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
 	assert.Nil(t, txProc)
@@ -127,16 +93,9 @@ func TestNewMetaTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		nil,
-	)
+	args := createMockNewMetaTxArgs()
+	args.EconomicsFee = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	assert.Nil(t, txProc)
@@ -145,16 +104,8 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	txProc, err := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.AccountsStub{},
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, txProc)
@@ -165,9 +116,10 @@ func TestNewMetaTxProcessor_OkValsShouldWork(t *testing.T) {
 func TestMetaTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	t.Parallel()
 
-	execTx := createMetaTxProcessor()
+	args := createMockNewMetaTxArgs()
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err := execTx.ProcessTransaction(nil)
+	_, err := txProc.ProcessTransaction(nil)
 	assert.Equal(t, process.ErrNilTransaction, err)
 }
 
@@ -175,17 +127,9 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	t.Parallel()
 
 	adb := createAccountStub(nil, nil, nil, nil)
-
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
@@ -214,16 +158,9 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
@@ -252,21 +189,15 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	}
 
 	called := false
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&mock.SCProcessorMock{
-			ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error {
-				called = true
-				return nil
-			},
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = &mock.SCProcessorMock{
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error {
+			called = true
+			return nil
 		},
-		&mock.TxTypeHandlerMock{},
-		createFreeTxFeeHandler(),
-	)
+	}
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
@@ -308,20 +239,15 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 		return 0, nil
 	}
 
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		scProcessorMock,
-		&mock.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-				return process.SCInvoking
-			},
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCInvoking
 		},
-		createFreeTxFeeHandler(),
-	)
+	}
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
@@ -361,18 +287,15 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 		return 0, process.ErrNoVM
 	}
 
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		scProcessorMock,
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
 			return process.SCInvoking
-		}},
-		createFreeTxFeeHandler(),
-	)
+		},
+	}
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
@@ -434,16 +357,12 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
-	execTx, _ := txproc.NewMetaTxProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		adb,
-		createMockPubkeyConverter(),
-		shardCoordinator,
-		scProcessorMock,
-		computeType,
-		createFreeTxFeeHandler(),
-	)
+	args := createMockNewMetaTxArgs()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = computeType
+	args.ShardCoordinator = shardCoordinator
+	execTx, _ := txproc.NewMetaTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)

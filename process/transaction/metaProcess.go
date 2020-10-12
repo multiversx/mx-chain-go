@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -17,54 +18,69 @@ var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
-	txTypeHandler process.TxTypeHandler
+	txTypeHandler   process.TxTypeHandler
+	flagESDTEnabled atomic.Flag
+	esdtEnableEpoch uint32
+}
+
+// ArgsNewMetaTxProcessor defines the arguments needed for new meta tx processor
+type ArgsNewMetaTxProcessor struct {
+	Hasher           hashing.Hasher
+	Marshalizer      marshal.Marshalizer
+	Accounts         state.AccountsAdapter
+	PubkeyConv       core.PubkeyConverter
+	ShardCoordinator sharding.Coordinator
+	ScProcessor      process.SmartContractProcessor
+	TxTypeHandler    process.TxTypeHandler
+	EconomicsFee     process.FeeHandler
+	ESDTEnableEpoch  uint32
+	EpochNotifier    process.EpochNotifier
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
-func NewMetaTxProcessor(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	accounts state.AccountsAdapter,
-	pubkeyConv core.PubkeyConverter,
-	shardCoordinator sharding.Coordinator,
-	scProcessor process.SmartContractProcessor,
-	txTypeHandler process.TxTypeHandler,
-	economicsFee process.FeeHandler,
-) (*metaTxProcessor, error) {
+func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 
-	if check.IfNil(accounts) {
+	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(pubkeyConv) {
+	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(shardCoordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
-	if check.IfNil(scProcessor) {
+	if check.IfNil(args.ScProcessor) {
 		return nil, process.ErrNilSmartContractProcessor
 	}
-	if check.IfNil(txTypeHandler) {
+	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(economicsFee) {
+	if check.IfNil(args.EconomicsFee) {
 		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:         accounts,
-		shardCoordinator: shardCoordinator,
-		pubkeyConv:       pubkeyConv,
-		economicsFee:     economicsFee,
-		hasher:           hasher,
-		marshalizer:      marshalizer,
-		scProcessor:      scProcessor,
+		accounts:         args.Accounts,
+		shardCoordinator: args.ShardCoordinator,
+		pubkeyConv:       args.PubkeyConv,
+		economicsFee:     args.EconomicsFee,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		scProcessor:      args.ScProcessor,
 	}
 
-	return &metaTxProcessor{
+	txProc := &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,
-		txTypeHandler:   txTypeHandler,
-	}, nil
+		txTypeHandler:   args.TxTypeHandler,
+		esdtEnableEpoch: args.ESDTEnableEpoch,
+	}
+
+	args.EpochNotifier.RegisterNotifyHandler(txProc)
+
+	return txProc, nil
 }
 
 // ProcessTransaction modifies the account states in respect with the transaction data
@@ -101,6 +117,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
 	case process.SCInvoking:
+		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+	case process.BuiltInFunctionCall:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	}
 
@@ -139,6 +157,12 @@ func (txProc *metaTxProcessor) processSCInvoking(
 	}
 
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32) {
+	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
+	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagESDTEnabled.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

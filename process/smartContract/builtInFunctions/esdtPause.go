@@ -80,6 +80,12 @@ func (e *esdtPause) togglePause(token []byte) error {
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 	esdtMetaData.Paused = e.pause
 	systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
+
+	err = e.accounts.SaveAccount(systemSCAccount)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -98,13 +104,16 @@ func (e *esdtPause) getSystemAccount() (state.UserAccountHandler, error) {
 }
 
 // IsPaused returns true if the token is paused
-func (e *esdtPause) IsPaused(token []byte) bool {
+func (e *esdtPause) IsPaused(pauseKey []byte) bool {
 	systemSCAccount, err := e.getSystemAccount()
 	if err != nil {
 		return false
 	}
 
-	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(token)
+	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(pauseKey)
+	if len(val) != lengthOfESDTMetadata {
+		return false
+	}
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 
 	return esdtMetaData.Paused
