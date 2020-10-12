@@ -1286,6 +1286,10 @@ func (sc *scProcessor) createSmartContractResults(
 			result := createBaseSCR(outAcc, tx, txHash)
 			result.Code = outAcc.Code
 			result.Value.Set(outAcc.BalanceDelta)
+			if result.Value.Cmp(zero) > 0 {
+				result.OriginalSender = tx.GetSndAddr()
+			}
+
 			return []data.TransactionHandler{result}
 		}
 
