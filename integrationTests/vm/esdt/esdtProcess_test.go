@@ -72,7 +72,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		"@" + hex.EncodeToString([]byte("mintable")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("burnable")) + "@" + hexEncodedTrue
 	txData += properties
-	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 10
@@ -85,7 +85,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	valueToSend := big.NewInt(100)
 	for _, node := range nodes[1:] {
 		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(valueToSend.Bytes())
-		integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), node.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
 	}
 
 	mintValue := big.NewInt(10000)

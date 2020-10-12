@@ -192,7 +192,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
 	txData := "issue" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(initalSupply.Bytes())
-	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := int64(10)
@@ -209,7 +209,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	valueToTopUp := big.NewInt(100000000)
 	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
 	for _, player := range players {
-		integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), player.Address, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), player.Address, txData, integrationTests.AdditionalGasLimit)
 	}
 
 	time.Sleep(time.Second)
