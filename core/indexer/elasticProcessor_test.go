@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -34,6 +35,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
+			arguments.FeeConfig,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{
@@ -57,6 +59,10 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
 		AccountsDB: &mock.AccountsStub{},
+		FeeConfig: &config.FeeSettings{
+			MinGasLimit:    "10",
+			GasPerDataByte: "1",
+		},
 	}
 }
 
@@ -107,8 +113,6 @@ func newTestBlockBody() *dataBlock.Body {
 }
 
 func TestNewElasticProcessorWithKibana(t *testing.T) {
-	t.Parallel()
-
 	args := createMockElasticProcessorArgs()
 	args.Options = &Options{
 		UseKibana: true,
@@ -410,7 +414,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -448,7 +452,7 @@ func TestSaveRoundsInfo(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -479,7 +483,7 @@ func TestUpdateTransaction(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -591,7 +595,7 @@ func TestGetMultiple(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -619,7 +623,7 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
@@ -680,7 +684,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{

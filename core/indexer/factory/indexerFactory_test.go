@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -33,6 +34,7 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		Options:                  &indexer.Options{},
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
+		FeeConfig:                &config.FeeSettings{},
 	}
 }
 
@@ -122,6 +124,15 @@ func TestNewIndexerFactory(t *testing.T) {
 				return args
 			},
 			exError: core.ErrNilUrl,
+		},
+		{
+			name: "NilFeeConfig",
+			argsFunc: func() *ArgsIndexerFactory {
+				args := createMockIndexerFactoryArgs()
+				args.FeeConfig = nil
+				return args
+			},
+			exError: core.ErrNilFeeConfig,
 		},
 		{
 			name: "All arguments ok",

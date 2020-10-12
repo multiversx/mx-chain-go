@@ -3,6 +3,7 @@ package indexer
 import (
 	"bytes"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -34,4 +35,5 @@ type ArgElasticProcessor struct {
 	EnabledIndexes           map[string]struct{}
 	AccountsDB               state.AccountsAdapter
 	Denomination             int
+	FeeConfig                *config.FeeSettings
 }

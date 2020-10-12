@@ -24,6 +24,8 @@ type objectsMap = map[string]interface{}
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
+	minGasLimit              uint64
+	gasPerDataByte           uint64
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -98,6 +100,8 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
+	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
+
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
@@ -114,7 +118,7 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-		GasUsed:       tx.GasLimit,
+		GasUsed:       gasUsed,
 	}
 }
 

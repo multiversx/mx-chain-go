@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -17,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 )
 
 const (
@@ -37,13 +40,20 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
+	feeConfig *config.FeeSettings,
 ) *txDatabaseProcessor {
+	// this should never return error because is tested when economics file is created
+	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
+	gasPerDataByte, _ := strconv.ParseUint(feeConfig.GasPerDataByte, 10, 64)
+
 	return &txDatabaseProcessor{
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
+			minGasLimit:              minGasLimit,
+			gasPerDataByte:           gasPerDataByte,
 		},
 		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
 	}
@@ -66,12 +76,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
-		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
-		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
-		gasUsed.Sub(gasUsed, rec.Value)
-		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
-
-		tx.GasUsed = gasUsed.Uint64()
+		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
 	}
 
 	countScResults := make(map[string]int)
@@ -125,6 +130,23 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
+}
+
+func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {
+	if rec.Data != nil && string(rec.Data) == processTransaction.RefundGasMessage {
+		// in this gas receipt contains the refunded value
+		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
+		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
+		gasUsed.Sub(gasUsed, rec.Value)
+		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
+
+		return gasUsed.Uint64()
+	}
+
+	gasUsed := big.NewInt(0)
+	gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
+
+	return gasUsed.Uint64()
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {

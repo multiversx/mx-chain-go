@@ -353,7 +353,7 @@ func testCreateIndexer(t *testing.T) {
 
 	dispatcher, _ := NewDataDispatcher(100)
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
-		Addresses: []string{"https://search-elrond-test-okohrj6g5r575cvmkwfv6jraki.eu-west-1.es.amazonaws.com/"},
+		Addresses: []string{"http://localhost:9200"},
 		Username:  "",
 		Password:  "",
 	})

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -122,6 +124,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -137,6 +140,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	scAddr := []byte("addr")
@@ -225,6 +229,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -251,6 +256,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)
@@ -264,6 +270,58 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 	transactions = txDbProc.setTransactionSearchOrder(txPool)
 	assert.True(t, txPoolHasSearchOrder(transactions, 0))
 	assert.True(t, txPoolHasSearchOrder(transactions, 1))
+}
+
+func TestGetGasUsedFromReceipt_RefundedGas(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(1000)
+	gasLimit := uint64(10000)
+	recValue := big.NewInt(10000)
+	txHash := []byte("tx-hash")
+	rec := &receipt.Receipt{
+		Value:   recValue,
+		SndAddr: nil,
+		Data:    []byte(processTransaction.RefundGasMessage),
+		TxHash:  txHash,
+	}
+	tx := &Transaction{
+		Hash: hex.EncodeToString(txHash),
+
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	expectedGasUsed := uint64(9990)
+
+	gasUsed := getGasUsedFromReceipt(rec, tx)
+	assert.Equal(t, expectedGasUsed, gasUsed)
+}
+
+func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
+	t.Parallel()
+
+	gasPrice := uint64(1000)
+	gasLimit := uint64(10000)
+	recValue := big.NewInt(100000)
+	txHash := []byte("tx-hash")
+	rec := &receipt.Receipt{
+		Value:   recValue,
+		SndAddr: nil,
+		Data:    []byte("error"),
+		TxHash:  txHash,
+	}
+	tx := &Transaction{
+		Hash: hex.EncodeToString(txHash),
+
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+	}
+
+	expectedGasUsed := uint64(100)
+
+	gasUsed := getGasUsedFromReceipt(rec, tx)
+	assert.Equal(t, expectedGasUsed, gasUsed)
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
