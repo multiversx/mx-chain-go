@@ -89,6 +89,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		enableDelegationEpoch:  args.DelegationSCConfig.EnabledEpoch,
 		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
 		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:            args.SigVerifier,
 	}
 
 	minStakeAmount, okValue := big.NewInt(0).SetString(args.DelegationSCConfig.MinStakeAmount, conversionBase)
@@ -105,6 +106,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 // Execute  calls one of the functions from the delegation manager contract and runs the code according to the input
 func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if CheckIfNil(args) != nil {
+		d.eei.AddReturnMessage("nil contract call input")
 		return vmcommon.UserError
 	}
 
@@ -138,12 +140,13 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	}
 
+	d.eei.AddReturnMessage(args.Function + "is an unknown function")
 	return vmcommon.UserError
 }
 
 func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-	if len(ownerAddress) == 0 {
+	if len(ownerAddress) != 0 {
 		d.eei.AddReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
@@ -305,7 +308,7 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 
 	newServiceFee := newServiceFeeBigInt.Uint64()
 	if newServiceFee < d.minServiceFee || newServiceFee > d.maxServiceFee {
-		d.eei.AddReturnMessage("invalid new service fee")
+		d.eei.AddReturnMessage("new service fee out of bounds")
 		return vmcommon.UserError
 	}
 
@@ -344,7 +347,7 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 
 	newTotalDelegationCap, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
 	if !okConvert {
-		d.eei.AddReturnMessage("invalid new service fee")
+		d.eei.AddReturnMessage("invalid new total delegation cap")
 		return vmcommon.UserError
 	}
 
