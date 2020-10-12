@@ -101,7 +101,11 @@ func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
 	for {
 		select {
 		case <-lcms.chDoReconnect:
-			<-lcms.reconnecter.ReconnectToNetwork()
+			select {
+			case <-lcms.reconnecter.ReconnectToNetwork():
+			case <-ctx.Done():
+				return
+			}
 		case <-ctx.Done():
 			return
 		}
