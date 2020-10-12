@@ -34,7 +34,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
 			UnBondPeriod:                         0,
-			StakingV2Epoch:                       0,
+			StakingV2Epoch:                       10,
 			StakeEnableEpoch:                     0,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
@@ -42,6 +42,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			MaxNumberOfNodesForStake:             10,
 			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
+			MinUnstakeTokensValue:                "1",
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
 	}

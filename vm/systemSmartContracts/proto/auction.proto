@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message AuctionData {
+message AuctionDataV1 {
     uint64   RegisterNonce    = 1  [(gogoproto.jsontag) = "RegisterNonce"];
     uint32   Epoch            = 2  [(gogoproto.jsontag) = "Epoch"];
     bytes    RewardAddress    = 3  [(gogoproto.jsontag) = "RewardAddress"];
@@ -16,6 +16,24 @@ message AuctionData {
     bytes    MaxStakePerNode  = 6  [(gogoproto.jsontag) = "MaxStakePerNode", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     repeated bytes BlsPubKeys = 7  [(gogoproto.jsontag) = "BlsPubKeys"];
     uint32   NumRegistered    = 8  [(gogoproto.jsontag) = "NumRegistered"];
+}
+
+message UnstakedValue{
+    uint64   UnstakedNonce = 1 [(gogoproto.jsontag) = "UnstakedNonce"];
+    bytes    UnstakedValue = 2  [(gogoproto.jsontag) = "UnstakedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message AuctionDataV2 {
+    uint64   RegisterNonce              = 1  [(gogoproto.jsontag) = "RegisterNonce"];
+    uint32   Epoch                      = 2  [(gogoproto.jsontag) = "Epoch"];
+    bytes    RewardAddress              = 3  [(gogoproto.jsontag) = "RewardAddress"];
+    bytes    TotalStakeValue            = 4  [(gogoproto.jsontag) = "TotalStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    LockedStake                = 5  [(gogoproto.jsontag) = "LockedStake", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    MaxStakePerNode            = 6  [(gogoproto.jsontag) = "MaxStakePerNode", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    repeated bytes BlsPubKeys           = 7  [(gogoproto.jsontag) = "BlsPubKeys"];
+    uint32   NumRegistered              = 8  [(gogoproto.jsontag) = "NumRegistered"];
+    repeated UnstakedValue UnstakedInfo = 9  [(gogoproto.jsontag) = "UnstakedInfo"];
+    bytes    TotalUnstaked              = 10 [(gogoproto.jsontag) = "TotalUnstaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message AuctionConfig {

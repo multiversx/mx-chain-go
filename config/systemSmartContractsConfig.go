@@ -11,6 +11,7 @@ type SystemSmartContractsConfig struct {
 type StakingSystemSCConfig struct {
 	GenesisNodePrice                     string
 	MinStakeValue                        string
+	MinUnstakeTokensValue                string
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64

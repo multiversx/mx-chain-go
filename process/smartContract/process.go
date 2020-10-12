@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 	"strings"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -533,8 +533,8 @@ func (sc *scProcessor) processForRelayerWhenError(
 	txHash []byte,
 	returnMessage []byte,
 ) error {
-	relayedSCR, isRelayedTx := isRelayedTx(originalTx)
-	if !isRelayedTx {
+	relayedSCR, isTxRelayed := isRelayedTx(originalTx)
+	if !isTxRelayed {
 		return nil
 	}
 
@@ -598,8 +598,8 @@ func (sc *scProcessor) addBackTxValues(
 ) error {
 	valueForSnd := big.NewInt(0).Set(scrIfError.Value)
 
-	relayedSCR, isRelayedTx := isRelayedTx(originalTx)
-	if isRelayedTx {
+	relayedSCR, isTxRelayed := isRelayedTx(originalTx)
+	if isTxRelayed {
 		valueForSnd.Sub(valueForSnd, relayedSCR.RelayedValue)
 		if valueForSnd.Cmp(zero) < 0 {
 			return process.ErrNegativeValue
@@ -1092,7 +1092,6 @@ func (sc *scProcessor) processSCOutputAccounts(
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
-	zero := big.NewInt(0)
 	for _, outAcc := range outputAccounts {
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
