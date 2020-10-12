@@ -823,7 +823,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.txCommonValidation(tx)
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
 	if err != nil {
 		return err
 	}
@@ -831,9 +831,9 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	return txValidator.CheckTxValidity(intTx)
 }
 
-// ValidateTransactionForTxSimulation will validate a transaction for use in tx simulation process
-func (n *Node) ValidateTransactionForTxSimulation(tx *transaction.Transaction) error {
-	txValidator, intTx, err := n.txCommonValidation(tx)
+// ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
 	if err != nil {
 		return err
 	}
@@ -847,7 +847,7 @@ func (n *Node) ValidateTransactionForTxSimulation(tx *transaction.Transaction) e
 	return err
 }
 
-func (n *Node) txCommonValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
+func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,

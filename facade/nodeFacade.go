@@ -291,9 +291,9 @@ func (nf *nodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
 	return nf.node.ValidateTransaction(tx)
 }
 
-// ValidateTransactionForTxSimulation will validate a transaction for the simulation process
-func (nf *nodeFacade) ValidateTransactionForTxSimulation(tx *transaction.Transaction) error {
-	return nf.node.ValidateTransactionForTxSimulation(tx)
+// ValidateTransactionForSimulation will validate a transaction for the simulation process
+func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	return nf.node.ValidateTransactionForSimulation(tx)
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
