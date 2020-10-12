@@ -1874,7 +1874,7 @@ func newMetaBlockProcessor(
 		ScProcessor:      scProcessor,
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     economicsData,
-		ESDTEnableEpoch:  generalSettingsConfig.MetaProtectionEnableEpoch,
+		ESDTEnableEpoch:  systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
 		EpochNotifier:    epochNotifier,
 	}
 	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)

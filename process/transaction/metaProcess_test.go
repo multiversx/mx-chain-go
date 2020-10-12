@@ -129,7 +129,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	adb := createAccountStub(nil, nil, nil, nil)
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
@@ -137,7 +137,7 @@ func TestMetaTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testi
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	_, err := execTx.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.NotNil(t, err)
 }
 
@@ -160,9 +160,9 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 
 	args := createMockNewMetaTxArgs()
 	args.Accounts = adb
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = execTx.ProcessTransaction(&tx)
+	_, err = txProc.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -197,9 +197,9 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 			return nil
 		},
 	}
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = execTx.ProcessTransaction(&tx)
+	_, err = txProc.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.True(t, called)
 }
@@ -247,9 +247,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 			return process.SCInvoking
 		},
 	}
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = execTx.ProcessTransaction(&tx)
+	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -295,9 +295,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 			return process.SCInvoking
 		},
 	}
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = execTx.ProcessTransaction(&tx)
+	_, err = txProc.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -362,9 +362,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = computeType
 	args.ShardCoordinator = shardCoordinator
-	execTx, _ := txproc.NewMetaTxProcessor(args)
+	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = execTx.ProcessTransaction(&tx)
+	_, err = txProc.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.False(t, wasCalled)
 	assert.True(t, calledIfError)

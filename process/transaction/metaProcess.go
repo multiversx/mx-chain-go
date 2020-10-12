@@ -119,7 +119,9 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		if txProc.flagESDTEnabled.IsSet() {
+			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		}
 	}
 
 	snapshot := txProc.accounts.JournalLen()
@@ -162,7 +164,7 @@ func (txProc *metaTxProcessor) processSCInvoking(
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (txProc *metaTxProcessor) EpochConfirmed(epoch uint32) {
 	txProc.flagESDTEnabled.Toggle(epoch >= txProc.esdtEnableEpoch)
-	log.Debug("txProcessor: relayed transactions", "enabled", txProc.flagESDTEnabled.IsSet())
+	log.Debug("txProcessor: esdt", "enabled", txProc.flagESDTEnabled.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

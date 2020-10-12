@@ -344,7 +344,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err = e.eei.UseGas(args.GasProvided)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	return vmcommon.Ok
@@ -396,7 +396,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -420,7 +420,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 }
 
 func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
