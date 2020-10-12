@@ -159,6 +159,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 			}
 		}
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
+		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
 }
 

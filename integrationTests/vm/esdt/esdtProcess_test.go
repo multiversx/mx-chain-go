@@ -63,7 +63,12 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
 	txData := "issue" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue
+	txData += properties
 	integrationTests.CreateAndSendTransaction(tokenIssuer, issuePrice, vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
@@ -81,7 +86,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	finalSupply := big.NewInt(0).Set(initalSupply)
@@ -91,6 +96,49 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	}
 
 	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenName, finalSupply)
+
+	txData = "freeze" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(nodes[1].OwnAccount.Address)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+
+	txData = "wipe" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(nodes[2].OwnAccount.Address)
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+
+	txData = "pause" + "@" + hex.EncodeToString([]byte(tokenName))
+	integrationTests.CreateAndSendTransaction(tokenIssuer, big.NewInt(0), vm.ESDTSCAddress, txData, integrationTests.AdditionalGasLimit)
+	time.Sleep(time.Second)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtFrozenData := getESDTTokenData(t, nodes[1].OwnAccount.Address, nodes, tokenName)
+	esdtUserMetaData := builtInFunctions.ESDTUserMetadataFromBytes(esdtFrozenData.Properties)
+	assert.True(t, esdtUserMetaData.Frozen)
+
+	wipedAcc := getUserAccountWithAddress(t, nodes[2].OwnAccount.Address, nodes)
+	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
+	retrievedData, _ := wipedAcc.DataTrieTracker().RetrieveValue(tokenKey)
+	assert.Equal(t, 0, len(retrievedData))
+
+	systemSCAcc := getUserAccountWithAddress(t, core.SystemAccountAddress, nodes)
+	retrievedData, _ = systemSCAcc.DataTrieTracker().RetrieveValue(tokenKey)
+	esdtGlobalMetaData := builtInFunctions.ESDTGlobalMetadataFromBytes(retrievedData)
+	assert.True(t, esdtGlobalMetaData.Paused)
+}
+
+func getESDTTokenData(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	tokenName string,
+) *builtInFunctions.ESDigitalToken {
+	userAcc := getUserAccountWithAddress(t, address, nodes)
+	require.False(t, check.IfNil(userAcc))
+
+	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
+	esdtData, err := getESDTDataFromKey(userAcc, tokenKey)
+	assert.Nil(t, err)
+
+	return esdtData
 }
 
 func checkAddressHasESDTTokens(
@@ -100,13 +148,7 @@ func checkAddressHasESDTTokens(
 	tokenName string,
 	value *big.Int,
 ) {
-	userAcc := getUserAccountWithAddress(t, address, nodes)
-	require.False(t, check.IfNil(userAcc))
-
-	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
-	esdtData, err := getESDTDataFromKey(userAcc, tokenKey)
-	assert.Nil(t, err)
-
+	esdtData := getESDTTokenData(t, address, nodes, tokenName)
 	assert.Equal(t, esdtData.Value.Cmp(value), 0)
 }
 

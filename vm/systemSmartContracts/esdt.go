@@ -442,7 +442,7 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
-	if len(args.Arguments) < 1 {
+	if len(args.Arguments) != 1 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -452,10 +452,6 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	}
 	if !token.CanPause {
 		e.eei.AddReturnMessage("cannot pause/un-pause")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
 		return vmcommon.UserError
 	}
 	if token.IsPaused && builtInFunc == core.BuiltInFunctionESDTPause {
