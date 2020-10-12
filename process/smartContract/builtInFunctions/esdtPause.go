@@ -80,6 +80,12 @@ func (e *esdtPause) togglePause(token []byte) error {
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 	esdtMetaData.Paused = e.pause
 	systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
+
+	err = e.accounts.SaveAccount(systemSCAccount)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
