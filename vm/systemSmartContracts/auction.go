@@ -1236,7 +1236,7 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		s.eei.AddReturnMessage("key is not registered, unStakeTokens is not possible")
 		return vmcommon.UserError
 	}
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnstakeTokens)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
@@ -1254,7 +1254,7 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		return vmcommon.UserError
 	}
 	if unStakeValue.Cmp(maxValUnstake) > 0 {
-		s.eei.AddReturnMessage("can not unstake a larger value than the possible allowed value which is " + unStakeValue.String())
+		s.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + unStakeValue.String())
 		return vmcommon.UserError
 	}
 
@@ -1313,7 +1313,7 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.AddReturnMessage("key is not registered, unBondTokens is not possible")
 		return vmcommon.UserError
 	}
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnbondTokens)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBondTokens)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
