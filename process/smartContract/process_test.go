@@ -938,6 +938,9 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
+	arguments.Coordinator = &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+		return 5
+	}}
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -949,7 +952,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 		GasRemaining: 0,
 	}
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, nil, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -980,7 +983,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, acntSnd, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
@@ -1322,7 +1325,7 @@ func TestScProcessor_RefundGasToSenderNilAndZeroRefund(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.(state.UserAccountHandler).GetBalance().Uint64()
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(0)}
-	_ = sc.createSCRForSender(
+	_, _ = sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
 		txHash,
@@ -1351,7 +1354,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	tx.GasLimit = 10
 	txHash := []byte("txHash")
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx := sc.createSCRForSender(
+	sctx, _ := sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
 		txHash,
@@ -1361,7 +1364,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 	require.NotNil(t, sctx)
 
 	vmOutput = &vmcommon.VMOutput{GasRemaining: 0, GasRefund: big.NewInt(10)}
-	sctx = sc.createSCRForSender(
+	sctx, _ = sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
 		txHash,
@@ -1397,7 +1400,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 0, GasRefund: refundGas}
-	scr := sc.createSCRForSender(
+	scr, _ := sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
 		txHash,
@@ -1434,7 +1437,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 
 	refundGas := big.NewInt(10)
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 10, GasRefund: refundGas}
-	scr := sc.createSCRForSender(
+	scr, _ := sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
 		txHash,
@@ -1471,7 +1474,7 @@ func TestScProcessor_processVMOutput(t *testing.T) {
 
 	tx.Value = big.NewInt(0)
 	txHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, tx)
-	_, err = sc.processVMOutput(vmOutput, txHash, tx, acntSrc, vmcommon.DirectCall, 0)
+	_, err = sc.processVMOutput(vmOutput, txHash, tx, vmcommon.DirectCall, 0)
 	require.Nil(t, err)
 }
 
