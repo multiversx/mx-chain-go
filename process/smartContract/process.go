@@ -1373,7 +1373,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			Nonce:          relayedSCR.Nonce + 1,
 			Value:          big.NewInt(0).Set(refundErd),
 			RcvAddr:        relayedSCR.RelayerAddr,
-			SndAddr:        tx.GetSndAddr(),
+			SndAddr:        tx.GetRcvAddr(),
 			PrevTxHash:     relayedSCR.OriginalTxHash,
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
@@ -1381,7 +1381,6 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			ReturnMessage:  []byte("gas refund for relayer"),
 			OriginalSender: relayedSCR.OriginalSender,
 		}
-
 		gasRemaining = 0
 	}
 
@@ -1411,7 +1410,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
 	}
 
-	log.Debug("createSCRForSender ", "data", string(scTx.Data), "snd", scTx.SndAddr, "rcv", scTx.RcvAddr)
+	log.Trace("createSCRForSender ", "data", string(scTx.Data), "snd", scTx.SndAddr, "rcv", scTx.RcvAddr)
 	return scTx, refundGasToRelayer
 }
 
