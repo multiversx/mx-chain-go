@@ -3046,6 +3046,76 @@ func TestStakingAuctionSC_UnstakeTokensShouldWork(t *testing.T) {
 	assert.Equal(t, expected, recovered)
 }
 
+func TestStakingAuctionSC_UnstakeTokensHavingUnstakedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	nonce := startNonce
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			nonce++
+			return nonce
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: 1,
+					UnstakedValue: big.NewInt(5),
+				},
+			},
+			TotalUnstaked: big.NewInt(5),
+		},
+	)
+
+	unstakeTokens(t, sc, caller, [][]byte{big.NewInt(6).Bytes()}, zero, vmcommon.Ok)
+
+	expected := &AuctionDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1004),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedNonce: 1,
+				UnstakedValue: big.NewInt(5),
+			},
+			{
+				UnstakedNonce: startNonce + 1,
+				UnstakedValue: big.NewInt(6),
+			},
+		},
+		TotalUnstaked: big.NewInt(11),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
 func TestStakingAuctionSC_UnstakeAllTokensShouldWork(t *testing.T) {
 	t.Parallel()
 

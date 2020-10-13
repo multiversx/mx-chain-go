@@ -1245,7 +1245,7 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		registrationData.TotalUnstaked = big.NewInt(0)
 	}
 
-	maxValUnstake := s.computeMaxValueThatCanBeUnStaked(registrationData)
+	maxValUnstake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
 	unstakeValueIsOk := unStakeValue.Cmp(s.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(maxValUnstake) == 0
 	if !unstakeValueIsOk {
@@ -1254,7 +1254,7 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		return vmcommon.UserError
 	}
 	if unStakeValue.Cmp(maxValUnstake) > 0 {
-		s.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + unStakeValue.String())
+		s.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + maxValUnstake.String())
 		return vmcommon.UserError
 	}
 
@@ -1280,13 +1280,6 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 	}
 
 	return vmcommon.Ok
-}
-
-func (s *stakingAuctionSC) computeMaxValueThatCanBeUnStaked(registrationData *AuctionDataV2) *big.Int {
-	maxVal := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
-	maxVal.Sub(maxVal, registrationData.TotalUnstaked)
-
-	return maxVal
 }
 
 func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
