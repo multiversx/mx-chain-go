@@ -126,3 +126,47 @@ func TestMaxIntShouldReturnB(t *testing.T) {
 	b := 11
 	assert.Equal(t, b, core.MaxInt(a, b))
 }
+
+func TestMaxFloat64(t *testing.T) {
+	tests := []struct {
+		a      float64
+		b      float64
+		result float64
+	}{
+		{
+			a:      5.1,
+			b:      5.0,
+			result: 5.1,
+		},
+		{
+			a:      5.0,
+			b:      5.1,
+			result: 5.1,
+		},
+		{
+			a:      -5.1,
+			b:      -5.0,
+			result: -5.0,
+		},
+		{
+			a:      37.0,
+			b:      36.999999,
+			result: 37.0,
+		},
+		{
+			a:      -5.3,
+			b:      0,
+			result: 0,
+		},
+		{
+			a:      5.66,
+			b:      5.66,
+			result: 5.66,
+		},
+	}
+
+	for _, tt := range tests {
+		res := core.MaxFloat64(tt.a, tt.b)
+		assert.Equal(t, tt.result, res)
+	}
+}

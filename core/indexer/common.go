@@ -5,67 +5,27 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 )
+
+type objectsMap = map[string]interface{}
 
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-}
-
-func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
-	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", ErrNilPubkeyConverter)
-	}
-	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", ErrNilPubkeyConverter)
-	}
-	if arguments.Url == "" {
-		return core.ErrNilUrl
-	}
-	if arguments.UserName == "" {
-		return ErrEmptyUserName
-	}
-	if arguments.Password == "" {
-		return ErrEmptyPassword
-	}
-	if check.IfNil(arguments.Marshalizer) {
-		return core.ErrNilMarshalizer
-	}
-	if check.IfNil(arguments.Hasher) {
-		return core.ErrNilHasher
-	}
-	if check.IfNil(arguments.NodesCoordinator) {
-		return core.ErrNilNodesCoordinator
-	}
-	if arguments.EpochStartNotifier == nil {
-		return core.ErrNilEpochStartNotifier
-	}
-
-	return nil
-}
-
-func timestampMapping() io.Reader {
-	return strings.NewReader(
-		`{
-				"settings": {"index": {"sort.field": "timestamp", "sort.order": "desc"}},
-				"mappings": {"properties": {"timestamp": {"type": "date"}}}
-			}`,
-	)
+	minGasLimit              uint64
+	gasPerDataByte           uint64
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -140,6 +100,8 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
+	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
+
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
 		MBHash:        hex.EncodeToString(mbHash),
@@ -156,7 +118,7 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
-		GasUsed:       tx.GasLimit,
+		GasUsed:       gasUsed,
 	}
 }
 
@@ -300,7 +262,7 @@ func serializeTransactions(
 		serializedData = append(serializedData, "\n"...)
 
 		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > txsBulkSizeThreshold && buff.Len() != 0 {
+		if buffLenWithCurrentTx > bulkSizeThreshold && buff.Len() != 0 {
 			buffSlice = append(buffSlice, buff)
 			buff = bytes.Buffer{}
 		}
@@ -313,6 +275,84 @@ func serializeTransactions(
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountInfo(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAcc > bulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts, write serialized account", "error", err.Error())
+		}
+	}
+
+	// check if the last buffer contains data
+	if buff.Len() != 0 {
+		buffSlice = append(buffSlice, buff)
+	}
+
+	return buffSlice
+}
+
+func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []bytes.Buffer {
+	var err error
+
+	var buff bytes.Buffer
+	buffSlice := make([]bytes.Buffer, 0)
+	for address, acc := range accounts {
+		meta, serializedData := prepareSerializedAccountBalanceHistory(address, acc)
+		if len(meta) == 0 {
+			continue
+		}
+
+		// append a newline for each element
+		serializedData = append(serializedData, "\n"...)
+
+		buffLenWithCurrentAccountHistory := buff.Len() + len(meta) + len(serializedData)
+		if buffLenWithCurrentAccountHistory > bulkSizeThreshold && buff.Len() != 0 {
+			buffSlice = append(buffSlice, buff)
+			buff = bytes.Buffer{}
+		}
+
+		buff.Grow(len(meta) + len(serializedData))
+		_, err = buff.Write(meta)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write meta", "error", err.Error())
+		}
+		_, err = buff.Write(serializedData)
+		if err != nil {
+			log.Warn("elastic search: serialize bulk accounts history, write serialized account history", "error", err.Error())
 		}
 	}
 
@@ -347,6 +387,34 @@ func prepareSerializedDataForATransaction(
 			return
 		}
 	}
+	return
+}
+
+func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return
+	}
+
+	return
+}
+
+func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) (meta []byte, serializedData []byte) {
+	var err error
+	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err = json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account history entry, will skip indexing",
+			"address", address)
+		return
+	}
+
 	return
 }
 
@@ -395,26 +463,7 @@ func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
 	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
 }
 
-func computeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
-	if len(txs) == 0 {
-		return 0
-	}
-
-	txsSize := 0
-	for _, tx := range txs {
-		txBytes, err := marshalizer.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal transaction", "error", err)
-			continue
-		}
-
-		txsSize += len(txBytes)
-	}
-
-	return txsSize
-}
-
-func getDecodedResponseMultiGet(response object) map[string]bool {
+func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
 	founded := make(map[string]bool)
 	interfaceSlice, ok := response["docs"].([]interface{})
 	if !ok {
@@ -422,7 +471,7 @@ func getDecodedResponseMultiGet(response object) map[string]bool {
 	}
 
 	for _, element := range interfaceSlice {
-		obj := element.(object)
+		obj := element.(objectsMap)
 		_, ok = obj["error"]
 		if ok {
 			continue
@@ -431,4 +480,62 @@ func getDecodedResponseMultiGet(response object) map[string]bool {
 	}
 
 	return founded
+}
+
+// GetElasticTemplatesAndPolicies will return elastic templates and policies
+func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*bytes.Buffer) {
+	indexTemplates := make(map[string]*bytes.Buffer)
+	indexPolicies := make(map[string]*bytes.Buffer)
+
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
+	for _, index := range indexes {
+		indexTemplates[index] = getTemplateByIndex(index)
+	}
+
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy, accountsHistoryPolicy}
+	for _, indexPolicy := range indexesPolicies {
+		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
+	}
+
+	return indexTemplates, indexPolicies
+}
+
+func getTemplateByIndex(index string) *bytes.Buffer {
+	indexTemplate := &bytes.Buffer{}
+
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic template file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexTemplate.Grow(len(fileBytes))
+	_, err = indexTemplate.Write(fileBytes)
+	if err != nil {
+		log.Error("getTemplateByIndex: cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
+
+	return indexTemplate
+}
+
+func getPolicyByIndex(index string) *bytes.Buffer {
+	indexPolicy := &bytes.Buffer{}
+
+	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error("cannot read bytes from elastic policy file", "path", filePath, "err", err)
+		return &bytes.Buffer{}
+	}
+
+	indexPolicy.Grow(len(fileBytes))
+	_, err = indexPolicy.Write(fileBytes)
+	if err != nil {
+		log.Error("getPolicyByIndex: cannot write bytes to buffer", "err", err)
+		return &bytes.Buffer{}
+	}
+
+	return indexPolicy
 }

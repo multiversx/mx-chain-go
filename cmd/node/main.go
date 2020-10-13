@@ -31,6 +31,7 @@ import (
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -323,13 +324,6 @@ VERSION:
 		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
 		Value: math.MaxUint64,
 	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
-	}
 
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
@@ -444,7 +438,6 @@ func main() {
 		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
-		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
@@ -1195,8 +1188,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	elasticIndexer, err := createElasticIndexer(
-		ctx,
-		log,
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1204,7 +1195,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		stateComponents.AccountsAdapter,
+		economicsConfig.GlobalSettings.Denomination,
 		shardCoordinator.SelfId(),
+		&economicsConfig.FeeSettings,
 	)
 	if err != nil {
 		return err
@@ -1678,7 +1672,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
@@ -1984,8 +1978,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func createElasticIndexer(
-	ctx *cli.Context,
-	log logger.Logger,
 	elasticSearchConfig config.ElasticSearchConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -1993,30 +1985,38 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	accountsDB state.AccountsAdapter,
+	denomination int,
+	shardID uint32,
+	feeConfig *config.FeeSettings,
 ) (indexer.Indexer, error) {
 
-	if !elasticSearchConfig.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		return indexer.NewNilIndexer(), nil
-	}
-
-	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
-	arguments := indexer.ElasticIndexerArgs{
+	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		ShardID:                  shardID,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:         nodesCoordinator,
 		EpochStartNotifier:       startNotifier,
+		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		AccountsDB:               accountsDB,
+		Denomination:             denomination,
+		FeeConfig:                feeConfig,
+		Options: &indexer.Options{
+			UseKibana: elasticSearchConfig.UseKibana,
+		},
 	}
 
-	return indexer.NewElasticIndexer(arguments)
+	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
