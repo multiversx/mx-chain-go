@@ -45,18 +45,34 @@ type basePreProcess struct {
 	pubkeyConverter      core.PubkeyConverter
 }
 
-func (bpp *basePreProcess) removeDataFromPools(
+func (bpp *basePreProcess) removeBlockDataFromPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	isMiniBlockCorrect func(block.Type) bool,
 ) error {
 
+	err := bpp.removeTxsFromPools(body, txPool, isMiniBlockCorrect)
+	if err != nil {
+		return err
+	}
+
+	err = bpp.removeMiniBlocksFromPools(body, miniBlockPool, isMiniBlockCorrect)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bpp *basePreProcess) removeTxsFromPools(
+	body *block.Body,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+	isMiniBlockCorrect func(block.Type) bool,
+) error {
+
 	if check.IfNil(body) {
 		return process.ErrNilTxBlockBody
-	}
-	if check.IfNil(miniBlockPool) {
-		return process.ErrNilMiniBlockPool
 	}
 	if check.IfNil(txPool) {
 		return process.ErrNilTransactionPool
@@ -70,6 +86,29 @@ func (bpp *basePreProcess) removeDataFromPools(
 
 		strCache := process.ShardCacherIdentifier(currentMiniBlock.SenderShardID, currentMiniBlock.ReceiverShardID)
 		txPool.RemoveSetOfDataFromPool(currentMiniBlock.TxHashes, strCache)
+	}
+
+	return nil
+}
+
+func (bpp *basePreProcess) removeMiniBlocksFromPools(
+	body *block.Body,
+	miniBlockPool storage.Cacher,
+	isMiniBlockCorrect func(block.Type) bool,
+) error {
+
+	if check.IfNil(body) {
+		return process.ErrNilTxBlockBody
+	}
+	if check.IfNil(miniBlockPool) {
+		return process.ErrNilMiniBlockPool
+	}
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		currentMiniBlock := body.MiniBlocks[i]
+		if !isMiniBlockCorrect(currentMiniBlock.Type) {
+			continue
+		}
 
 		miniBlockHash, err := core.CalculateHash(bpp.marshalizer, bpp.hasher, currentMiniBlock)
 		if err != nil {

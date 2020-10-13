@@ -732,6 +732,20 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 	return nil
 }
 
+func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error {
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err := bp.txCoordinator.RemoveTxsFromPool(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
@@ -967,11 +981,11 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	startTime := time.Now()
 
-	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
+	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
 	if errNotCritical != nil {
-		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
+		log.Warn("saveBody.SaveTxsToStorage", "error", errNotCritical.Error())
 	}
-	log.Trace("saveBody.SaveBlockDataToStorage", "time", time.Since(startTime))
+	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
