@@ -620,7 +620,7 @@ func (sc *scProcessor) processSCRForSender(
 	}
 
 	if !check.IfNil(scrForRelayer) {
-		err := sc.addToBalanceIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
+		err = sc.addToBalanceIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
 		if err != nil {
 			return nil, nil, err
 		}
