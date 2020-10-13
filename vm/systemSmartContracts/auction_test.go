@@ -2899,6 +2899,87 @@ func TestStakingAuctionSC_UnstakeTokensWithCallValueShouldError(t *testing.T) {
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
 
+func TestStakingAuctionSC_UnstakeTokensOverMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	nonce := startNonce
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			nonce++
+			return nonce
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo:    nil,
+			TotalUnstaked:   nil,
+		},
+	)
+
+	unstakeTokens(t, sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.UserError)
+	vmOutput := eei.CreateVMOutput()
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake a larger value than the possible allowed value which is"))
+}
+
+func TestStakingAuctionSC_UnstakeTokensUnderMinimumAllowedShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	nonce := startNonce
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			nonce++
+			return nonce
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.StakingSCConfig.MinUnstakeTokensValue = "2"
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo:    nil,
+			TotalUnstaked:   nil,
+		},
+	)
+
+	unstakeTokens(t, sc, caller, [][]byte{big.NewInt(1).Bytes()}, zero, vmcommon.UserError)
+	vmOutput := eei.CreateVMOutput()
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake the provided value either because is under the minimum threshold"))
+}
+
 func TestStakingAuctionSC_UnstakeTokensShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2957,6 +3038,67 @@ func TestStakingAuctionSC_UnstakeTokensShouldWork(t *testing.T) {
 			},
 		},
 		TotalUnstaked: big.NewInt(3),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingAuctionSC_UnstakeAllTokensShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	nonce := startNonce
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			nonce++
+			return nonce
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo:    nil,
+			TotalUnstaked:   nil,
+		},
+	)
+
+	unstakeTokens(t, sc, caller, [][]byte{big.NewInt(10).Bytes()}, zero, vmcommon.Ok)
+
+	expected := &AuctionDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedNonce: startNonce + 1,
+				UnstakedValue: big.NewInt(10),
+			},
+		},
+		TotalUnstaked: big.NewInt(10),
 	}
 
 	recovered, err := sc.getOrCreateRegistrationData(caller)
@@ -3087,6 +3229,78 @@ func TestStakingAuctionSC_UnBondTokensShouldWork(t *testing.T) {
 			},
 		},
 		TotalUnstaked: big.NewInt(4),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+
+	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingAuctionSC_UnBondAllTokensShouldWork(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return startNonce + unbondPeriod + 1
+		},
+	}
+	args := createMockArgumentsForAuction()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriod = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1000),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: startNonce - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+				{
+					UnstakedNonce: startNonce - 1,
+					UnstakedValue: big.NewInt(2),
+				},
+				{
+					UnstakedNonce: startNonce,
+					UnstakedValue: big.NewInt(3),
+				},
+				{
+					UnstakedNonce: startNonce + 1,
+					UnstakedValue: big.NewInt(4),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
+
+	unbondTokens(t, sc, caller, nil, zero, vmcommon.Ok)
+
+	expected := &AuctionDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo:    make([]*UnstakedValue, 0),
+		TotalUnstaked:   big.NewInt(0),
 	}
 
 	recovered, err := sc.getOrCreateRegistrationData(caller)

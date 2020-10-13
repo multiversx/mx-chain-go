@@ -55,6 +55,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
 	gasMap["DelegationOps"] = value
+	gasMap["UnstakeTokens"] = value
+	gasMap["UnbondTokens"] = value
 
 	return gasMap
 }

@@ -1167,7 +1167,7 @@ func (s *stakingAuctionSC) deleteUnBondedKeys(registrationData *AuctionDataV2, u
 func (s *stakingAuctionSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.flagStakingV2.IsSet() {
 		//claim function will become unavailable after enabling staking v2
-		s.eei.AddReturnMessage("invalid method to call")
+		s.eei.AddReturnMessage("claim function is disabled")
 		return vmcommon.UserError
 	}
 
@@ -1236,7 +1236,7 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		s.eei.AddReturnMessage("key is not registered, unStakeTokens is not possible")
 		return vmcommon.UserError
 	}
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnstakeTokens)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
@@ -1247,18 +1247,20 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 
 	maxValUnstake := s.computeMaxValueThatCanBeUnStaked(registrationData)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	//unstakeValueIsOk will be true if unstake value is larger than the one provided in the config OR is exactly the
-	// value that was left to be unstaked
 	unstakeValueIsOk := unStakeValue.Cmp(s.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(maxValUnstake) == 0
 	if !unstakeValueIsOk {
 		s.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
 			"is not the value left to be unStaked")
 		return vmcommon.UserError
 	}
+	if unStakeValue.Cmp(maxValUnstake) > 0 {
+		s.eei.AddReturnMessage("can not unstake a larger value than the possible allowed value which is " + unStakeValue.String())
+		return vmcommon.UserError
+	}
 
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, unStakeValue)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
-		s.eei.AddReturnMessage("contract error on unStakeTokens function, total stake < 0")
+		s.eei.AddReturnMessage("contract error on unStakeTokens function, total stake < unstake value")
 		return vmcommon.UserError
 	}
 
@@ -1308,10 +1310,10 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
-		s.eei.AddReturnMessage("key is not registered, unStakeTokens is not possible")
+		s.eei.AddReturnMessage("key is not registered, unBondTokens is not possible")
 		return vmcommon.UserError
 	}
-	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Claim)
+	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnbondTokens)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
@@ -1327,7 +1329,7 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
-		s.eei.AddReturnMessage("contract error on unBondTokens function, total unstaked < 0")
+		s.eei.AddReturnMessage("contract error on unBondTokens function, total unstaked < total unbond")
 		return vmcommon.UserError
 	}
 
@@ -1347,17 +1349,18 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingAuctionSC) computeUnBondTokens(registrationData *AuctionDataV2) (*big.Int, int) {
-	var index int
 	var unstakedValue *UnstakedValue
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	totalUnBond := big.NewInt(0)
-	for index, unstakedValue = range registrationData.UnstakedInfo {
+	index := 0
+	for _, unstakedValue = range registrationData.UnstakedInfo {
 		canUnbond := currentNonce-unstakedValue.UnstakedNonce >= s.unBondPeriod
 		if !canUnbond {
 			break
 		}
 
 		totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
+		index++
 	}
 
 	return totalUnBond, index
@@ -1611,9 +1614,9 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 	}
 
 	for _, blsKey := range registrationData.BlsPubKeys {
-		vmOutput, err := s.executeOnStakingSC([]byte("getBLSKeyStatus@" + hex.EncodeToString(blsKey)))
-		if err != nil {
-			s.eei.AddReturnMessage("cannot get bls key status: bls key - " + hex.EncodeToString(blsKey) + " error - " + err.Error())
+		vmOutput, errExec := s.executeOnStakingSC([]byte("getBLSKeyStatus@" + hex.EncodeToString(blsKey)))
+		if errExec != nil {
+			s.eei.AddReturnMessage("cannot get bls key status: bls key - " + hex.EncodeToString(blsKey) + " error - " + errExec.Error())
 			continue
 		}
 

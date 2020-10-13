@@ -27,6 +27,8 @@ type MetaChainSystemSCsCost struct {
 	RevokeVote          uint64
 	CloseProposal       uint64
 	DelegationOps       uint64
+	UnstakeTokens       uint64
+	UnbondTokens        uint64
 }
 
 // BuiltInCost defines cost for built-in methods
