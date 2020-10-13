@@ -247,3 +247,6 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
+
+// ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
+var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")

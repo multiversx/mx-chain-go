@@ -2073,6 +2073,7 @@ func newMetaBlockProcessor(
 		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
 		GenesisNodesConfig:                     nodesSetup,
+		MaxNodesEnableConfig:                   generalSettingsConfig.MaxNodesChangeEnableEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

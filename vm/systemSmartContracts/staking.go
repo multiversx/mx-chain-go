@@ -166,6 +166,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getWaitingListRegisterNonceAndRewardAddress(args)
 	case "updateConfigMinNodes":
 		return r.updateConfigMinNodes(args)
+	case "updateConfigMaxNodes":
+		return r.updateConfigMaxNodes(args)
 	}
 
 	return vmcommon.UserError
@@ -1172,7 +1174,7 @@ func (r *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 
 func (r *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
-		r.eei.AddReturnMessage("updateConfig function not allowed to be called by address " + string(args.CallerAddr))
+		r.eei.AddReturnMessage("updateConfigMinNodes function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
 
@@ -1183,13 +1185,36 @@ func (r *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 	}
 
 	newMinNodes := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
-	// TODO: newMinNodes extra validation?
 	if newMinNodes <= 0 {
 		r.eei.AddReturnMessage("new minimum number of nodes zero or negative")
 		return vmcommon.UserError
 	}
 
 	stakeConfig.MinNumNodes = newMinNodes
+	r.setConfig(stakeConfig)
+
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) updateConfigMaxNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
+		r.eei.AddReturnMessage("updateConfigMaxNodes function not allowed to be called by address "+string(args.CallerAddr))
+		return vmcommon.UserError
+	}
+
+	stakeConfig := r.getConfig()
+	if len(args.Arguments) != 1 {
+		r.eei.AddReturnMessage("number of arguments must be 1")
+		return vmcommon.UserError
+	}
+
+	newMaxNodes := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
+	if newMaxNodes <= 0 {
+		r.eei.AddReturnMessage("new max number of nodes zero or negative")
+		return vmcommon.UserError
+	}
+
+	stakeConfig.MaxNumNodes = newMaxNodes
 	r.setConfig(stakeConfig)
 
 	return vmcommon.Ok

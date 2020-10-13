@@ -33,6 +33,10 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+   MaxNodesChangeEnableEpoch = [
+        { MaxNumNodes = 3200, EpochEnable = 2 },
+   ]
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 

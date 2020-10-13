@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -32,6 +33,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	EpochNotifier      process.EpochNotifier
@@ -50,8 +52,12 @@ type systemSCProcessor struct {
 	stakingSCAddress        []byte
 	switchEnableEpoch       uint32
 	hystNodesEnableEpoch    uint32
-	flagSwitchEnabled       atomic.Flag
-	flagHystNodesEnabled    atomic.Flag
+	maxNodesEnableConfig    []config.MaxNodesChangeConfig
+	maxNodes                uint32
+
+	flagSwitchEnabled         atomic.Flag
+	flagHystNodesEnabled      atomic.Flag
+	flagChangeMaxNodesEnabled atomic.Flag
 
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
@@ -125,6 +131,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
+		maxNodesEnableConfig:     args.MaxNodesEnableConfig,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -134,7 +141,14 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	if s.flagHystNodesEnabled.IsSet() {
-		err := s.updateSystemSCConfig()
+		err := s.updateSystemSCConfigMinNodes()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagChangeMaxNodesEnabled.IsSet() {
+		err := s.updateSystemSCConfigMaxNodes()
 		if err != nil {
 			return err
 		}
@@ -156,9 +170,17 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 }
 
 // updates the configuration of the system SC if the flags permit
-func (s *systemSCProcessor) updateSystemSCConfig() error {
+func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 	minNumberOfNodesWithHysteresis := s.genesisNodesConfig.MinNumberOfNodesWithHysteresis()
 	err := s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
+
+	return err
+}
+
+// updates the configuration of the system SC if the flags permit
+func (s *systemSCProcessor) updateSystemSCConfigMaxNodes() error {
+	maxNumberOfNodes := s.maxNodes
+	err := s.setMaxNumberOfNodes(maxNumberOfNodes)
 
 	return err
 }
@@ -460,6 +482,38 @@ func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
 	return nil
 }
 
+func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{big.NewInt(int64(maxNumNodes)).Bytes()},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "updateConfigMaxNodes",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("setMaxNumberOfNodes called with",
+		"maxNumNodes", maxNumNodes,
+		"returnMessage", vmOutput.ReturnMessage)
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrInvalidMaxNumberOfNodes
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -471,6 +525,16 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
+
+	s.flagChangeMaxNodesEnabled.Toggle(false)
+	for _, maxNodesConfig := range s.maxNodesEnableConfig {
+		if epoch == maxNodesConfig.EpochEnable {
+			s.flagHystNodesEnabled.Toggle(true)
+			s.maxNodes = maxNodesConfig.MaxNumNodes
+			break
+		}
+	}
+
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", s.flagHystNodesEnabled.IsSet())
