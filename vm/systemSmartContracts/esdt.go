@@ -449,7 +449,7 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
 	if len(args.Arguments) != 1 {
-		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 1")
 		return vmcommon.FunctionWrongSignature
 	}
 	token, returnCode := e.basicOwnershipChecks(args)
