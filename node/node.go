@@ -825,6 +825,31 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	if err != nil {
+		return err
+	}
+
+	return txValidator.CheckTxValidity(intTx)
+}
+
+// ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	if err != nil {
+		return err
+	}
+
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAccountNotFound) {
+		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
+		return nil
+	}
+
+	return err
+}
+
+func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
@@ -835,12 +860,12 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
 			"error", err)
-		return err
+		return nil, nil, err
 	}
 
 	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	argumentParser := smartContract.NewArgumentParser()
@@ -860,15 +885,15 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.minTransactionVersion,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = intTx.CheckValidity()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	return txValidator, intTx, nil
 }
 
 func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
