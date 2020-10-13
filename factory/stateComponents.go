@@ -1,11 +1,9 @@
 package factory
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -40,7 +38,6 @@ type stateComponents struct {
 	accountsAdapter     state.AccountsAdapter
 	triesContainer      state.TriesHolder
 	trieStorageManagers map[string]data.StorageManager
-	closeFunc           func()
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -98,75 +95,15 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	_, cancelFunc := context.WithCancel(context.Background())
-
 	return &stateComponents{
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
 		triesContainer:      scf.triesContainer,
 		trieStorageManagers: scf.trieStorageManagers,
-		closeFunc:           cancelFunc,
 	}, nil
-}
-
-func (scf *stateComponentsFactory) createTries() (state.TriesHolder, map[string]data.StorageManager, error) {
-	trieContainer := state.NewDataTriesHolder()
-	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		EvictionWaitingListCfg:   scf.config.EvictionWaitingList,
-		SnapshotDbCfg:            scf.config.TrieSnapshotDB,
-		Marshalizer:              scf.core.InternalMarshalizer(),
-		Hasher:                   scf.core.Hasher(),
-		PathManager:              scf.core.PathHandler(),
-		TrieStorageManagerConfig: scf.config.TrieStorageManagerConfig,
-	}
-	shardIDString := convertShardIDToString(scf.shardCoordinator.SelfId())
-
-	trieFactoryObj, err := trieFactory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieStorageManagers := make(map[string]data.StorageManager)
-	userStorageManager, userAccountTrie, err := trieFactoryObj.Create(
-		scf.config.AccountsTrieStorage,
-		shardIDString,
-		scf.config.StateTriesConfig.AccountsStatePruningEnabled,
-		scf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(trieFactory.UserAccountTrie), userAccountTrie)
-	trieStorageManagers[trieFactory.UserAccountTrie] = userStorageManager
-
-	peerStorageManager, peerAccountsTrie, err := trieFactoryObj.Create(
-		scf.config.PeerAccountsTrieStorage,
-		shardIDString,
-		scf.config.StateTriesConfig.PeerStatePruningEnabled,
-		scf.config.StateTriesConfig.MaxPeerTrieLevelInMemory,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	trieContainer.Put([]byte(trieFactory.PeerAccountTrie), peerAccountsTrie)
-	trieStorageManagers[trieFactory.PeerAccountTrie] = peerStorageManager
-
-	return trieContainer, trieStorageManagers, nil
-}
-
-func convertShardIDToString(shardID uint32) string {
-	if shardID == core.MetachainShardId {
-		return "metachain"
-	}
-
-	return fmt.Sprintf("%d", shardID)
 }
 
 // Close closes all underlying components that need closing
 func (pc *stateComponents) Close() error {
-	pc.closeFunc()
-
-	// TODO: close all components
-
 	return nil
 }

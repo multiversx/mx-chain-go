@@ -2,8 +2,6 @@ package factory
 
 import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -52,19 +50,9 @@ func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
 	return ccf.getSuite()
 }
 
-// GetFactory
-func (cc *managedCryptoComponents) GetFactory() *cryptoComponentsFactory {
-	return cc.cryptoComponentsFactory
-}
-
 // SetListenAddress -
 func (ncf *networkComponentsFactory) SetListenAddress(address string) {
 	ncf.listenAddress = address
-}
-
-// CreateTries -
-func (scf *stateComponentsFactory) CreateTries() (state.TriesHolder, map[string]data.StorageManager, error) {
-	return scf.createTries()
 }
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests

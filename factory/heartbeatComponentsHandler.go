@@ -139,3 +139,8 @@ func (mhc *managedHeartbeatComponents) Storer() HeartbeatStorer {
 func (mhc *managedHeartbeatComponents) IsInterfaceNil() bool {
 	return mhc == nil
 }
+
+// String returns the name of the component
+func (mbf *managedHeartbeatComponents) String() string {
+	return "managedHeartbeatComponents"
+}

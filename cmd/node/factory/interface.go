@@ -51,6 +51,8 @@ type StatusHandlersUtils interface {
 	Metrics() external.StatusMetricsHandler
 	UpdateStorerAndMetricsForPersistentHandler(store storage.Storer) error
 	LoadTpsBenchmarkFromStorage(store storage.Storer, marshalizer marshal.Marshalizer) *statistics.TpsPersistentData
+	SignalStartViews()
+	SignalLogRewrite()
 	IsInterfaceNil() bool
 }
 

@@ -532,3 +532,6 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
+
+// NotSetDestinationShardID represents the shardIdString when the destinationShardId is not set in the prefs
+const NotSetDestinationShardID = "disabled"

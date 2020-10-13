@@ -1,0 +1,18 @@
+[
+  {
+    "owner": "erd17326yupjy7cq7qv94n704ttxrh4lrhl7qt7mppdu9evwmj5mwt8s794sua",
+    "filename": "../../../cmd/node/config/genesisContracts/delegation.wasm",
+    "vm-type": "0500",
+    "init-parameters": "%auction_sc_address%@03E8@00@030D40@030D40",
+    "type": "delegation",
+    "version": "0.4.*"
+  },
+  {
+    "owner": "erd16grmckn46ry7fwyvass8e8pz88klazzpc0c5f0pnrv643td4797sgnvjkm",
+    "filename": "../../../cmd/node/config/genesisContracts/dns.wasm",
+    "vm-type": "0500",
+    "init-parameters": "056bc75e2d63100000",
+    "type": "dns",
+    "version": "0.2.*"
+  }
+]

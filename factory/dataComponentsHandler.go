@@ -165,3 +165,8 @@ func (mdc *managedDataComponents) Clone() interface{} {
 func (mdc *managedDataComponents) IsInterfaceNil() bool {
 	return mdc == nil
 }
+
+// String returns the name of the component
+func (mbf *managedDataComponents) String() string {
+	return "managedDataComponents"
+}

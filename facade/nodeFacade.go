@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"net/http"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -79,6 +80,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	server                 *http.Server
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -167,7 +169,7 @@ func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (nf *nodeFacade) StartBackgroundServices() {
-	go nf.startRest()
+	nf.startRest()
 }
 
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
@@ -209,12 +211,26 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
+		srv, err := api.CreateServer(nf, nf.apiRoutesConfig, limiters...)
+
 		if err != nil {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
+			log.Error("could not create webserver", "error", err.Error())
 		}
+
+		go func() {
+			err = srv.ListenAndServe()
+			if err != nil {
+				if err != http.ErrServerClosed {
+					log.Error("could not start webserver",
+						"error", err.Error(),
+					)
+				} else {
+					log.Debug("ListenAndServe - webserver closed")
+				}
+			}
+		}()
+
+		nf.server = srv
 	}
 }
 
@@ -389,8 +405,15 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlo
 }
 
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
+	log.Debug("shutting down webserver...")
+	err := nf.server.Shutdown(nf.ctx)
+	if err != nil {
+		log.Error("failed shutting down the webserver", "error", err.Error())
+	}
+
+	log.LogIfError(nf.apiResolver.Close())
+
 	nf.cancelFunc()
 
 	return nil

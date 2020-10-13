@@ -460,6 +460,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -600,6 +601,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -623,6 +625,7 @@ func (tpn *TestProcessorNode) InitializeProcessors() {
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
@@ -1018,7 +1021,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		builtInFuncs.Add(name, function)
+		_ = builtInFuncs.Add(name, function)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -2135,16 +2138,6 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListCacherStub{},
-	}
-}
-
-// GetDefaultHeartbeatComponents -
-func GetDefaultHeartbeatComponents() *mock.HeartbeatComponentsStub {
-	return &mock.HeartbeatComponentsStub{
-		HBMessenger: &mock.HeartbeatMessageHandlerStub{},
-		HBMonitor:   &mock.HeartbeatMonitorStub{},
-		HBSender:    &mock.HeartbeatSenderStub{},
-		HBStorer:    &mock.HeartbeatStorerStub{},
 	}
 }
 

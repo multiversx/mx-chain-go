@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -40,27 +41,6 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// NodesSetupHandler defines which actions should be done for handling initial nodes setup
-type NodesSetupHandler interface {
-	AllInitialNodes() []sharding.GenesisNodeInfoHandler
-	InitialNodesInfoForShard(shardId uint32) ([]sharding.GenesisNodeInfoHandler, []sharding.GenesisNodeInfoHandler, error)
-	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
-	GetStartTime() int64
-	InitialNodesPubKeys() map[uint32][]string
-	NumberOfShards() uint32
-	GetShardIDForPubKey(pubkey []byte) (uint32, error)
-	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
-	GetShardConsensusGroupSize() uint32
-	GetMetaConsensusGroupSize() uint32
-	GetRoundDuration() uint64
-	MinNumberOfMetaNodes() uint32
-	MinNumberOfShardNodes() uint32
-	MinNumberOfNodes() uint32
-	GetHysteresis() float32
-	GetAdaptivity() bool
-	IsInterfaceNil() bool
-}
-
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
@@ -74,6 +54,7 @@ type P2PAntifloodHandler interface {
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -116,7 +97,8 @@ type CoreComponentsHolder interface {
 	EconomicsData() process.EconomicsHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
-	GenesisNodesSetup() NodesSetupHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
+	NodesShuffler() sharding.NodesShuffler
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
@@ -171,6 +153,25 @@ type MiniBlockProvider interface {
 	IsInterfaceNil() bool
 }
 
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	LeaderPercentage() float64
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
+	MinInflationRate() float64
+	MaxInflationRate(year uint32) float64
+	DeveloperPercentage() float64
+	GenesisTotalSupply() *big.Int
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx process.TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+	GasPerDataByte() uint64
+	IsInterfaceNil() bool
+}
+
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
@@ -193,6 +194,7 @@ type DataComponentsHandler interface {
 type PeerHonestyHandler interface {
 	ChangeScore(pk string, topic string, units int)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // NetworkComponentsHolder holds the network components
@@ -294,6 +296,7 @@ type HeartbeatMonitor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // HeartbeatStorer provides storage functionality for the heartbeat component
@@ -362,6 +365,7 @@ type ConsensusComponentsHolder interface {
 	Chronology() consensus.ChronologyHandler
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
+	ConsensusGroupSize() (int, error)
 	IsInterfaceNil() bool
 }
 
@@ -384,12 +388,16 @@ type EpochStartBootstrapper interface {
 	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
 	EpochStartBootstrapper() EpochStartBootstrapper
 	EpochBootstrapParams() BootstrapParamsHandler
+	NodeType() core.NodeType
+	ShardCoordinator() sharding.Coordinator
+	HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler
 	IsInterfaceNil() bool
 }
 

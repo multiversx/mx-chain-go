@@ -41,17 +41,12 @@ type AntiFloodComponents struct {
 }
 
 // NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
-func NewP2PAntiFloodComponents(
-	config config.Config,
-	statusHandler core.AppStatusHandler,
-	currentPid core.PeerID,
-	ctx context.Context,
-) (*AntiFloodComponents, error) {
+func NewP2PAntiFloodComponents(ctx context.Context, config config.Config, statusHandler core.AppStatusHandler, currentPid core.PeerID) (*AntiFloodComponents, error) {
 	if check.IfNil(statusHandler) {
 		return nil, p2p.ErrNilStatusHandler
 	}
 	if config.Antiflood.Enabled {
-		return initP2PAntiFloodComponents(config, statusHandler, currentPid, ctx)
+		return initP2PAntiFloodComponents(ctx, config, statusHandler, currentPid)
 	}
 
 	return &AntiFloodComponents{
@@ -64,10 +59,10 @@ func NewP2PAntiFloodComponents(
 }
 
 func initP2PAntiFloodComponents(
+	ctx context.Context,
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
-	ctx context.Context,
 ) (*AntiFloodComponents, error) {
 	cache := timecache.NewTimeCache(defaultSpan)
 	p2pPeerBlackList, err := timecache.NewPeerTimeCache(cache)
@@ -78,6 +73,7 @@ func initP2PAntiFloodComponents(
 	publicKeysCache := timecache.NewTimeCache(defaultSpan)
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
+		ctx,
 		mainConfig.Antiflood.FastReacting,
 		mainConfig.Antiflood.Cache,
 		statusHandler,
@@ -90,6 +86,7 @@ func initP2PAntiFloodComponents(
 	}
 
 	slowReactingFloodPreventer, err := createFloodPreventer(
+		ctx,
 		mainConfig.Antiflood.SlowReacting,
 		mainConfig.Antiflood.Cache,
 		statusHandler,
@@ -102,6 +99,7 @@ func initP2PAntiFloodComponents(
 	}
 
 	outOfSpecsFloodPreventer, err := createFloodPreventer(
+		ctx,
 		mainConfig.Antiflood.OutOfSpecs,
 		mainConfig.Antiflood.Cache,
 		statusHandler,
@@ -132,8 +130,8 @@ func initP2PAntiFloodComponents(
 		return nil, err
 	}
 
-	startResettingTopicFloodPreventer(topicFloodPreventer, topicMaxMessages, ctx)
-	startSweepingTimeCaches(p2pPeerBlackList, publicKeysCache, ctx)
+	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, topicMaxMessages)
+	startSweepingTimeCaches(ctx, p2pPeerBlackList, publicKeysCache)
 
 	return &AntiFloodComponents{
 		AntiFloodHandler: p2pAntiflood,
@@ -155,9 +153,9 @@ func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMes
 }
 
 func startResettingTopicFloodPreventer(
+	ctx context.Context,
 	topicFloodPreventer process.TopicFloodPreventer,
 	topicMaxMessages []config.TopicMaxMessagesConfig,
-	ctx context.Context,
 	floodPreventers ...process.FloodPreventer,
 ) {
 	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
@@ -183,7 +181,7 @@ func startResettingTopicFloodPreventer(
 	}()
 }
 
-func startSweepingTimeCaches(p2pPeerBlackList process.PeerBlackListCacher, publicKeysCache process.TimeCacher, ctx context.Context) {
+func startSweepingTimeCaches(ctx context.Context, p2pPeerBlackList process.PeerBlackListCacher, publicKeysCache process.TimeCacher) {
 	go func() {
 		for {
 			select {
@@ -200,6 +198,7 @@ func startSweepingTimeCaches(p2pPeerBlackList process.PeerBlackListCacher, publi
 }
 
 func createFloodPreventer(
+	ctx context.Context,
 	floodPreventerConfig config.FloodPreventerConfig,
 	antifloodCacheConfig config.CacheConfig,
 	statusHandler core.AppStatusHandler,
@@ -273,7 +272,13 @@ func createFloodPreventer(
 		wait := time.Duration(floodPreventerConfig.IntervalInSeconds) * time.Second
 
 		for {
-			time.Sleep(wait)
+			select {
+			case <-ctx.Done():
+				log.Debug("startSweepingP2PPeerBlackList's go routine is stopping...")
+				return
+			case <-time.After(wait):
+			}
+
 			floodPreventer.Reset()
 		}
 	}()

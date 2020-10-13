@@ -15,15 +15,15 @@ import (
 const outputReservedPercent = float32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
-func NewP2POutputAntiFlood(mainConfig config.Config, ctx context.Context) (process.P2PAntifloodHandler, error) {
+func NewP2POutputAntiFlood(ctx context.Context, mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	if mainConfig.Antiflood.Enabled {
-		return initP2POutputAntiFlood(mainConfig, ctx)
+		return initP2POutputAntiFlood(ctx, mainConfig)
 	}
 
 	return &disabled.AntiFlood{}, nil
 }
 
-func initP2POutputAntiFlood(mainConfig config.Config, ctx context.Context) (process.P2PAntifloodHandler, error) {
+func initP2POutputAntiFlood(ctx context.Context, mainConfig config.Config) (process.P2PAntifloodHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(mainConfig.Antiflood.Cache)
 	antifloodCache, err := storageUnit.NewCache(cacheConfig)
 	if err != nil {
@@ -49,7 +49,7 @@ func initP2POutputAntiFlood(mainConfig config.Config, ctx context.Context) (proc
 	}
 
 	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
-	startResettingTopicFloodPreventer(topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), ctx, floodPreventer)
+	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
 
 	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistCacher{}, topicFloodPreventer, floodPreventer)
 }

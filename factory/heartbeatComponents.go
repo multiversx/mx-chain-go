@@ -267,7 +267,10 @@ func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Contex
 // Close closes the heartbeat components
 func (hc *heartbeatComponents) Close() error {
 	hc.cancelFunc()
-	// TODO: check if the subcomponents need to be closed
+
+	if !check.IfNil(hc.monitor) {
+		log.LogIfError(hc.monitor.Close())
+	}
 
 	return nil
 }

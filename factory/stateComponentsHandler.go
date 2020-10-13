@@ -178,3 +178,8 @@ func (m *managedStateComponents) SetTriesStorageManagers(managers map[string]dat
 func (m *managedStateComponents) IsInterfaceNil() bool {
 	return m == nil
 }
+
+// String returns the name of the component
+func (mbf *managedStateComponents) String() string {
+	return "managedStateComponents"
+}

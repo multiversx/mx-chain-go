@@ -12,7 +12,7 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap() error
+	Bootstrap(numSecondsToWait uint32) error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
@@ -46,13 +46,6 @@ type P2PAntifloodHandler interface {
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
 	ApplyConsensusSize(size int)
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
-	IsInterfaceNil() bool
-}
-
-// Accumulator defines the interface able to accumulate data and periodically evict them
-type Accumulator interface {
-	AddData(data interface{})
-	OutputChannel() <-chan []interface{}
 	IsInterfaceNil() bool
 }
 

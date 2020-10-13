@@ -4,12 +4,14 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test ManagedConsensusComponentsFactory --------------------
 func TestManagedConsensusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 	coreComponents := getDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(args)
@@ -23,7 +25,8 @@ func TestManagedConsensusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 }
 
 func TestManagedConsensusComponents_Create_ShouldWork(t *testing.T) {
-	args := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	args := getConsensusArgs(shardCoordinator)
 
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := factory.NewManagedConsensusComponents(consensusComponentsFactory)
@@ -43,7 +46,8 @@ func TestManagedConsensusComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedConsensusComponents_Close(t *testing.T) {
-	consensusArgs := getConsensusArgs()
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	consensusArgs := getConsensusArgs(shardCoordinator)
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)
 	managedConsensusComponents, _ := factory.NewManagedConsensusComponents(consensusComponentsFactory)
 	err := managedConsensusComponents.Create()

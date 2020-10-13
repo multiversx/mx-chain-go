@@ -41,7 +41,7 @@ func initNodesAndTest(
 	fmt.Println("Step 1. Setup nodes...")
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	concMap := &sync.Map{}
 

@@ -12,6 +12,7 @@ type DataComponentsMock struct {
 	Blkc              data.ChainHandler
 	DataPool          dataRetriever.PoolsHolder
 	MiniBlockProvider factory.MiniBlockProvider
+	EconomicsData     factory.EconomicsHandler
 }
 
 // StorageService -
@@ -41,6 +42,11 @@ func (dcm *DataComponentsMock) Datapool() dataRetriever.PoolsHolder {
 // MiniBlocksProvider -
 func (dcm *DataComponentsMock) MiniBlocksProvider() factory.MiniBlockProvider {
 	return dcm.MiniBlockProvider
+}
+
+// EconomicsHandler -
+func (dcm *DataComponentsMock) EconomicsHandler() factory.EconomicsHandler {
+	return dcm.EconomicsData
 }
 
 // SetBlockchain -

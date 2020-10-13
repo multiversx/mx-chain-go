@@ -6,9 +6,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +20,8 @@ import (
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
 
-	pcf, _ := factory.NewProcessComponentsFactory(getProcessComponentsArgs())
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	pcf, _ := factory.NewProcessComponentsFactory(getProcessComponentsArgs(shardCoordinator))
 	require.NotNil(t, pcf)
 
 	_, err := pcf.Create()
@@ -46,12 +51,16 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	shardC.SelfIDCalled = func() uint32 {
 		return core.MetachainShardId
 	}
-	shardC.ComputeIdCalled = func(_ []byte) uint32 {
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
+			return core.MetachainShardId
+		}
+
 		return 0
 	}
+	shardC.CurrentShard = core.MetachainShardId
 
-	dataArgs := getDataArgs(coreComponents)
-	dataArgs.ShardCoordinator = shardC
+	dataArgs := getDataArgs(coreComponents, shardC)
 	dataComponentsFactory, _ := factory.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := factory.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
@@ -59,46 +68,50 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	networkComponents := getNetworkComponents()
 	cryptoComponents := getCryptoComponents(coreComponents)
 
+	memDBMock := mock.NewMemDbMock()
+	storageManager, _ := trie.NewTrieStorageManagerWithoutPruning(memDBMock)
+
+	trieStorageManagers := make(map[string]data.StorageManager)
+	trieStorageManagers[trieFactory.UserAccountTrie] = storageManager
+	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManager
+
+	accounts, err := createAccountAdapter(
+		&mock.MarshalizerMock{},
+		&mock.HasherMock{},
+		factoryState.NewAccountCreator(),
+		trieStorageManagers[trieFactory.UserAccountTrie],
+	)
+	require.Nil(t, err)
+
 	stateComp := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
 			return &mock.AccountsStub{
-				LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
-					return state.NewPeerAccount([]byte("address"))
+				RootHashCalled: func() ([]byte, error) {
+					return make([]byte, 0), nil
 				},
 				CommitCalled: func() ([]byte, error) {
-					return nil, nil
+					return make([]byte, 0), nil
 				},
-				RootHashCalled: func() ([]byte, error) {
-					return []byte("roothash"), nil
+				SaveAccountCalled: func(account state.AccountHandler) error {
+					return nil
+				},
+				LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+					return state.NewEmptyPeerAccount(), nil
 				},
 			}
 		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
-			return &mock.AccountsStub{
-				LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
-					return state.NewUserAccount([]byte("address"))
-				},
-				CommitCalled: func() ([]byte, error) {
-					return nil, nil
-				},
-				RootHashCalled: func() ([]byte, error) {
-					return []byte("roothash"), nil
-				},
-			}
+			return accounts
 		},
 		TriesContainerCalled: func() state.TriesHolder {
 			return &mock.TriesHolderStub{}
 		},
 		TrieStorageManagersCalled: func() map[string]data.StorageManager {
-			mapToRet := map[string]data.StorageManager{
-				factory2.UserAccountTrie: &mock.StorageManagerStub{},
-				factory2.PeerAccountTrie: &mock.StorageManagerStub{},
-			}
-
-			return mapToRet
+			return trieStorageManagers
 		},
 	}
 	args := getProcessArgs(
+		shardC,
 		coreComponents,
 		dataComponents,
 		cryptoComponents,
@@ -111,7 +124,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	pcf, _ := factory.NewProcessComponentsFactory(args)
 	require.NotNil(t, pcf)
 
-	_, err := pcf.Create()
+	_, err = pcf.Create()
 	require.NoError(t, err)
 
 	bp, err := pcf.NewBlockProcessor(
@@ -128,4 +141,23 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+}
+
+func createAccountAdapter(
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	accountFactory state.AccountFactory,
+	trieStorage data.StorageManager,
+) (state.AccountsAdapter, error) {
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, 5)
+	if err != nil {
+		return nil, err
+	}
+
+	adb, err := state.NewAccountsDB(tr, hasher, marshalizer, accountFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return adb, nil
 }

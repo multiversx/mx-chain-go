@@ -97,6 +97,18 @@ func (mcf *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastM
 	return mcf.consensusComponents.broadcastMessenger
 }
 
+// ConsensusGroupSize returns the consensus group size
+func (mcf *managedConsensusComponents) ConsensusGroupSize() (int, error) {
+	mcf.mutConsensusComponents.RLock()
+	defer mcf.mutConsensusComponents.RUnlock()
+
+	if mcf.consensusComponents == nil {
+		return 0, errors.ErrNilConsensusComponentsHolder
+	}
+
+	return mcf.consensusComponents.consensusGroupSize, nil
+}
+
 // CheckSubcomponents verifies all subcomponents
 func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 	mcf.mutConsensusComponents.Lock()
@@ -121,4 +133,9 @@ func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 // IsInterfaceNil returns true if the underlying object is nil
 func (mcf *managedConsensusComponents) IsInterfaceNil() bool {
 	return mcf == nil
+}
+
+// String returns the name of the component
+func (mbf *managedConsensusComponents) String() string {
+	return "managedConsensusComponents"
 }

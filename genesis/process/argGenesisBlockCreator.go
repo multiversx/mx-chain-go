@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -47,7 +46,7 @@ type ArgsGenesisBlockCreator struct {
 	Accounts             state.AccountsAdapter
 	ValidatorAccounts    state.AccountsAdapter
 	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            *economics.EconomicsData //TODO refactor and use an interface
+	Economics            process.EconomicsHandler
 	ShardCoordinator     sharding.Coordinator
 	AccountsParser       genesis.AccountsParser
 	SmartContractParser  genesis.InitialSmartContractParser

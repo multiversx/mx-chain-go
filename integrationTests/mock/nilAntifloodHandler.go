@@ -58,6 +58,11 @@ func (nah *NilAntifloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ st
 	return nil
 }
 
+// Close does nothing
+func (af *NilAntifloodHandler) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nah *NilAntifloodHandler) IsInterfaceNil() bool {
 	return nah == nil

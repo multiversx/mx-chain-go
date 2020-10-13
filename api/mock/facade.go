@@ -208,6 +208,11 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	return 0
 }
 
+// Close -
+func (f *Facade) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (f *Facade) IsInterfaceNil() bool {
 	return f == nil

@@ -50,6 +50,7 @@ type Option func(*Node) error
 //  required services as requested
 type Node struct {
 	ctx                    context.Context
+	cancelFunc             context.CancelFunc
 	initialNodesPubkeys    map[uint32][]string
 	roundDuration          uint64
 	consensusGroupSize     int
@@ -71,7 +72,7 @@ type Node struct {
 
 	sizeCheckDelta uint32
 	txSentCounter  uint32
-	txAcumulator   Accumulator
+	txAcumulator   core.Accumulator
 
 	signatureSize int
 	publicKeySize int
@@ -93,6 +94,8 @@ type Node struct {
 	processComponents   mainFactory.ProcessComponentsHolder
 	stateComponents     mainFactory.StateComponentsHolder
 	statusComponents    mainFactory.StatusComponentsHolder
+
+	closableComponents []mainFactory.Closer
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -108,16 +111,19 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	node := &Node{
-		ctx:                      context.Background(),
+		ctx:                      ctx,
+		cancelFunc:               cancelFunc,
 		currentSendingGoRoutines: 0,
 		queryHandlers:            make(map[string]debug.QueryHandler),
 	}
-	for _, opt := range opts {
-		err := opt(node)
-		if err != nil {
-			return nil, errors.New("error applying option: " + err.Error())
-		}
+
+	node.closableComponents = make([]mainFactory.Closer, 0)
+
+	err := node.ApplyOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	return node, nil
@@ -266,29 +272,34 @@ func (n *Node) addTransactionsToSendPipe(txs []*transaction.Transaction) {
 	}
 }
 
-func (n *Node) sendFromTxAccumulator() {
+func (n *Node) sendFromTxAccumulator(ctx context.Context) {
 	outputChannel := n.txAcumulator.OutputChannel()
 
-	for objs := range outputChannel {
-		//this will read continuously until the chan is closed
+	for {
+		select {
+		case objs := <-outputChannel:
+			{
+				if len(objs) == 0 {
+					break
+				}
 
-		if len(objs) == 0 {
-			continue
-		}
+				txs := make([]*transaction.Transaction, 0, len(objs))
+				for _, obj := range objs {
+					tx, ok := obj.(*transaction.Transaction)
+					if !ok {
+						continue
+					}
 
-		txs := make([]*transaction.Transaction, 0, len(objs))
-		for _, obj := range objs {
-			tx, ok := obj.(*transaction.Transaction)
-			if !ok {
-				continue
+					txs = append(txs, tx)
+				}
+
+				atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
+
+				n.sendBulkTransactions(txs)
 			}
-
-			txs = append(txs, tx)
+		case <-ctx.Done():
+			return
 		}
-
-		atomic.AddUint32(&n.txSentCounter, uint32(len(txs)))
-
-		n.sendBulkTransactions(txs)
 	}
 }
 
@@ -296,14 +307,13 @@ func (n *Node) sendFromTxAccumulator() {
 // if this peak value is 0 (no transaction was sent through the REST API interface), the print will not be done
 // the peak counter resets after each print. There is also a total number of transactions sent to p2p
 // TODO make this function testable. Refactor if necessary.
-func (n *Node) printTxSentCounter() {
+func (n *Node) printTxSentCounter(ctx context.Context) {
 	maxTxCounter := uint32(0)
 	totalTxCounter := uint64(0)
 	counterSeconds := 0
 
-	for {
-		time.Sleep(time.Second)
-
+	select {
+	case <-time.After(time.Second):
 		txSent := atomic.SwapUint32(&n.txSentCounter, 0)
 		if txSent > maxTxCounter {
 			maxTxCounter = txSent
@@ -322,6 +332,8 @@ func (n *Node) printTxSentCounter() {
 			}
 			maxTxCounter = 0
 		}
+	case <-ctx.Done():
+		return
 	}
 }
 
@@ -738,6 +750,33 @@ func (n *Node) createPidInfo(p core.PeerID) core.QueryP2PPeerInfo {
 	}
 
 	return result
+}
+
+// Close closes all underlying components
+func (n *Node) Close() error {
+	n.cancelFunc()
+
+	for _, qh := range n.queryHandlers {
+		log.LogIfError(qh.Close())
+	}
+
+	var closeError error = nil
+	log.Debug("closing all managed components")
+	for i := len(n.closableComponents) - 1; i >= 0; i-- {
+		managedComponent := n.closableComponents[i]
+		log.Debug("closing", fmt.Sprintf("managedComponent %s", managedComponent))
+		err := managedComponent.Close()
+		if err != nil {
+			if closeError == nil {
+				closeError = ErrNodeCloseFailed
+			}
+			closeError = fmt.Errorf("%w, err: %s", closeError, err.Error())
+		}
+	}
+
+	time.Sleep(time.Second * 5)
+
+	return closeError
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

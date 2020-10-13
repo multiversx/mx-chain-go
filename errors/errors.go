@@ -119,7 +119,7 @@ var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
-// ErrNilConsensusComponentsHolder signals that a nil consenus components holder was provided
+// ErrNilConsensusComponentsHolder signals that a nil consensus components holder was provided
 var ErrNilConsensusComponentsHolder = errors.New("nil consensus components holder")
 
 // ErrNilConsensusWorker signals that a nil consensus worker was provided

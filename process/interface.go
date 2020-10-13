@@ -224,6 +224,7 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
@@ -263,6 +264,7 @@ type TransactionLogProcessorDatabase interface {
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*state.ValidatorApiResponse
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -539,12 +541,15 @@ type RewardsHandler interface {
 }
 
 type feeHandler interface {
+	GenesisTotalSupply() *big.Int
 	DeveloperPercentage() float64
+	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
+	MinGasLimit() uint64
 }
 
 // FeeHandler is able to perform some economics calculation on a provided transaction
@@ -749,6 +754,7 @@ type P2PAntifloodHandler interface {
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // PeerValidatorMapper can determine the peer info from a peer id
@@ -957,6 +963,7 @@ type CoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	StatusHandler() core.AppStatusHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	IsInterfaceNil() bool
 }
 

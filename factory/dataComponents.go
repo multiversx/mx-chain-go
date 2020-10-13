@@ -12,8 +12,6 @@ import (
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 )
@@ -21,7 +19,6 @@ import (
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
 	Config             config.Config
-	EconomicsData      *economics.EconomicsData
 	ShardCoordinator   sharding.Coordinator
 	Core               CoreComponentsHolder
 	EpochStartNotifier EpochStartNotifier
@@ -30,7 +27,6 @@ type DataComponentsFactoryArgs struct {
 
 type dataComponentsFactory struct {
 	config             config.Config
-	economicsData      *economics.EconomicsData
 	shardCoordinator   sharding.Coordinator
 	core               CoreComponentsHolder
 	epochStartNotifier EpochStartNotifier
@@ -42,14 +38,11 @@ type dataComponents struct {
 	blkc               data.ChainHandler
 	store              dataRetriever.StorageService
 	datapool           dataRetriever.PoolsHolder
-	miniBlocksProvider process.MiniBlockProvider
+	miniBlocksProvider MiniBlockProvider
 }
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
 func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFactory, error) {
-	if args.EconomicsData == nil {
-		return nil, errors.ErrNilEconomicsData
-	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
 	}
@@ -65,7 +58,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 
 	return &dataComponentsFactory{
 		config:             args.Config,
-		economicsData:      args.EconomicsData,
 		shardCoordinator:   args.ShardCoordinator,
 		core:               args.Core,
 		epochStartNotifier: args.EpochStartNotifier,
@@ -88,7 +80,7 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 
 	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
 		Config:           &dcf.config,
-		EconomicsData:    dcf.economicsData,
+		EconomicsData:    dcf.core.EconomicsData(),
 		ShardCoordinator: dcf.shardCoordinator,
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
@@ -153,9 +145,10 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 	return nil, errors.ErrDataStoreCreation
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (cc *dataComponents) Close() error {
 	if cc.store != nil {
+		log.Debug("closing all store units....")
 		return cc.store.CloseAll()
 	}
 

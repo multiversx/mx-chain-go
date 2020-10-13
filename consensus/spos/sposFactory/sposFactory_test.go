@@ -134,6 +134,8 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		hasher,
@@ -143,6 +145,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, err)
@@ -163,6 +166,8 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
+
 	bm, err := sposFactory.GetBroadcastMessenger(
 		marshalizer,
 		hasher,
@@ -172,6 +177,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, err)
@@ -183,6 +189,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
 		nil,
@@ -193,6 +200,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, bm)
@@ -208,6 +216,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &mock.InterceptorsContainerStub{}
+	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
 	bm, err := sposFactory.GetBroadcastMessenger(
 		nil,
@@ -218,6 +227,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		nil,
 		headersSubscriber,
 		interceptosContainer,
+		alarmSchedulerStub,
 	)
 
 	assert.Nil(t, bm)

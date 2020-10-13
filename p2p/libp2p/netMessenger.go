@@ -373,7 +373,12 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	go func() {
 		for {
 			cmw.CheckConnectionsBlocking()
-			time.Sleep(durationCheckConnections)
+			select {
+			case <-time.After(durationCheckConnections):
+			case <-netMes.ctx.Done():
+				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				return
+			}
 		}
 	}()
 
@@ -502,6 +507,22 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's peers on channel...")
+	errPoc := netMes.poc.Close()
+	if errPoc != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "peersOnChannel",
+			"error", errPoc)
+	}
+
+	log.Debug("closing network messenger's connection monitor...")
+	errConnMonitor := netMes.connMonitor.Close()
+	if errConnMonitor != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "connMonitor",
+			"error", errConnMonitor)
+	}
+
 	log.Debug("closing network messenger's components through the context...")
 	netMes.cancelFunc()
 
@@ -511,6 +532,15 @@ func (netMes *networkMessenger) Close() error {
 		err = errDebugger
 		log.Warn("networkMessenger.Close",
 			"component", "debugger",
+			"error", err)
+	}
+
+	log.Debug("closing network messenger's peerstore...")
+	errPeerStore := netMes.p2pHost.Peerstore().Close()
+	if errPeerStore != nil {
+		err = errPeerStore
+		log.Warn("networkMessenger.Close",
+			"component", "peerstore",
 			"error", err)
 	}
 
@@ -555,8 +585,13 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap() error {
-	return netMes.peerDiscoverer.Bootstrap()
+func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+	err := netMes.peerDiscoverer.Bootstrap()
+	if err == nil {
+		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
+		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+	}
+	return err
 }
 
 // IsConnected returns true if current node is connected to provided peer

@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/round"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -67,10 +68,11 @@ type coreComponents struct {
 	rounder                  consensus.Rounder
 	alarmScheduler           core.TimersScheduler
 	watchdog                 core.WatchdogTimer
-	nodesSetupHandler        NodesSetupHandler
+	nodesSetupHandler        sharding.GenesisNodesSetupHandler
 	economicsData            process.EconomicsHandler
 	ratingsData              process.RatingsInfoHandler
 	rater                    sharding.PeerAccountListAndRatingHandler
+	nodesShuffler            sharding.NodesShuffler
 	genesisTime              time.Time
 	chainID                  string
 	minTransactionVersion    uint32
@@ -217,6 +219,14 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	nodesShuffler := sharding.NewHashValidatorsShuffler(
+		genesisNodesConfig.MinNumberOfShardNodes(),
+		genesisNodesConfig.MinNumberOfMetaNodes(),
+		genesisNodesConfig.GetHysteresis(),
+		genesisNodesConfig.GetAdaptivity(),
+		true,
+	)
+
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -235,6 +245,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		economicsData:            economicsData,
 		ratingsData:              ratingsData,
 		rater:                    rater,
+		nodesShuffler:            nodesShuffler,
 		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
@@ -263,9 +274,17 @@ func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
 
 // Close closes all underlying components
 func (cc *coreComponents) Close() error {
-	if cc.statusHandlersUtils != nil {
+	if !check.IfNil(cc.statusHandlersUtils) {
 		cc.statusHandlersUtils.StatusHandler().Close()
 	}
-
+	if !check.IfNil(cc.alarmScheduler) {
+		cc.alarmScheduler.Close()
+	}
+	if !check.IfNil(cc.syncTimer) {
+		err := cc.syncTimer.Close()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

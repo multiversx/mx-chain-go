@@ -1,6 +1,7 @@
 package libp2p
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -20,6 +21,7 @@ type peersOnChannel struct {
 	ttlInterval       time.Duration
 	fetchPeersHandler func(topic string) []peer.ID
 	getTimeHandler    func() time.Time
+	cancelFunc        context.CancelFunc
 }
 
 // newPeersOnChannel returns a new peersOnChannel object
@@ -39,16 +41,19 @@ func newPeersOnChannel(
 		return nil, p2p.ErrInvalidDurationProvided
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	poc := &peersOnChannel{
 		peers:             make(map[string][]core.PeerID),
 		lastUpdated:       make(map[string]time.Time),
 		refreshInterval:   refreshInterval,
 		ttlInterval:       ttlInterval,
 		fetchPeersHandler: fetchPeersHandler,
+		cancelFunc:        cancelFunc,
 	}
 	poc.getTimeHandler = poc.clockTime
 
-	go poc.refreshPeersOnAllKnownTopics()
+	go poc.refreshPeersOnAllKnownTopics(ctx)
 
 	return poc, nil
 }
@@ -81,8 +86,15 @@ func (poc *peersOnChannel) updateConnectedPeersOnTopic(topic string, connectedPe
 
 // refreshPeersOnAllKnownTopics iterates each topic, fetching its last timestamp
 // it the timestamp + ttlInterval < time.Now, will trigger a fetch of connected peers on topic
-func (poc *peersOnChannel) refreshPeersOnAllKnownTopics() {
+func (poc *peersOnChannel) refreshPeersOnAllKnownTopics(ctx context.Context) {
 	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("refreshPeersOnAllKnownTopics's go routine is stopping...")
+			return
+		case <-time.After(poc.refreshInterval):
+		}
+
 		listTopicsToBeRefreshed := make([]string, 0)
 
 		//build required topic list
@@ -98,8 +110,6 @@ func (poc *peersOnChannel) refreshPeersOnAllKnownTopics() {
 		for _, topic := range listTopicsToBeRefreshed {
 			_ = poc.refreshPeersOnTopic(topic)
 		}
-
-		time.Sleep(poc.refreshInterval)
 	}
 }
 
@@ -113,4 +123,11 @@ func (poc *peersOnChannel) refreshPeersOnTopic(topic string) []core.PeerID {
 
 	poc.updateConnectedPeersOnTopic(topic, connectedPeers)
 	return connectedPeers
+}
+
+// Close closes all underlying components
+func (poc *peersOnChannel) Close() error {
+	poc.cancelFunc()
+
+	return nil
 }

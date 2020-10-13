@@ -150,6 +150,7 @@ func (d *debugger) printContinuously(ctx context.Context) {
 		select {
 		case <-time.After(d.intervalAutoPrint):
 		case <-ctx.Done():
+			log.Debug("printContinuously go routine is stopping...")
 			return
 		}
 

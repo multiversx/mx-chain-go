@@ -24,11 +24,8 @@ import (
 
 // StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
 type StatusHandlersFactoryArgs struct {
-	LogViewName                  string
+	UseTermUI                    bool
 	ServersConfigurationFileName string
-	Ctx                          *cli.Context
-	ChanStartViews               chan struct{}
-	ChanLogRewrite               chan struct{}
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
@@ -38,14 +35,14 @@ type statusHandlersInfo struct {
 	StatusMetrics            external.StatusMetricsHandler
 	PersistentHandler        *persister.PersistentStatusHandler
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	chanStartViews           chan struct{}
+	chanLogRewrite           chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
-	logViewName                  string
+	useTermUI                    bool
 	serversConfigurationFileName string
 	ctx                          *cli.Context
-	chanStartViews               chan struct{}
-	chanLogRewrite               chan struct{}
 }
 
 // NewStatusHandlersFactory will return the status handler factory
@@ -53,21 +50,12 @@ func NewStatusHandlersFactory(
 	args *StatusHandlersFactoryArgs,
 ) (*statusHandlerUtilsFactory, error) {
 	baseErrMessage := "error creating status handler factory"
-	if args.Ctx == nil {
-		return nil, fmt.Errorf("%s: nil context", baseErrMessage)
-	}
-	if args.ChanLogRewrite == nil {
-		return nil, fmt.Errorf("%s: nil log rewrite channel", baseErrMessage)
-	}
-	if args.ChanStartViews == nil {
-		return nil, fmt.Errorf("%s: nil views start channel", baseErrMessage)
+	if args == nil {
+		return nil, fmt.Errorf("%s: nil arguments", baseErrMessage)
 	}
 
 	return &statusHandlerUtilsFactory{
-		logViewName:    args.LogViewName,
-		ctx:            args.Ctx,
-		chanStartViews: args.ChanStartViews,
-		chanLogRewrite: args.ChanLogRewrite,
+		useTermUI: args.UseTermUI,
 	}, nil
 }
 
@@ -80,6 +68,8 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	var views []factoryViews.Viewer
 	var err error
 	var handler core.AppStatusHandler
+	chanStartViews := make(chan struct{}, 1)
+	chanLogRewrite := make(chan struct{}, 1)
 
 	baseErrMessage := "error creating status handler"
 	if check.IfNil(marshalizer) {
@@ -91,15 +81,14 @@ func (shuf *statusHandlerUtilsFactory) Create(
 
 	presenterStatusHandler := createStatusHandlerPresenter()
 
-	useTermui := !shuf.ctx.GlobalBool(shuf.logViewName)
-	if useTermui {
-		views, err = createViews(presenterStatusHandler, shuf.chanStartViews)
+	if shuf.useTermUI {
+		views, err = createViews(presenterStatusHandler, chanStartViews)
 		if err != nil {
 			return nil, err
 		}
 
 		go func() {
-			<-shuf.chanLogRewrite
+			<-chanLogRewrite
 			writer, ok := presenterStatusHandler.(io.Writer)
 			if !ok {
 				return
@@ -145,10 +134,13 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
+	statusHandlersInfoObject.chanStartViews = chanStartViews
+	statusHandlersInfoObject.chanLogRewrite = chanLogRewrite
 	statusHandlersInfoObject.StatusHdl = handler
-	statusHandlersInfoObject.UseTermUI = useTermui
+	statusHandlersInfoObject.UseTermUI = shuf.useTermUI
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
+
 	return statusHandlersInfoObject, nil
 }
 
@@ -226,6 +218,16 @@ func (shi *statusHandlersInfo) StatusHandler() core.AppStatusHandler {
 // Metrics returns the status metrics
 func (shi *statusHandlersInfo) Metrics() external.StatusMetricsHandler {
 	return shi.StatusMetrics
+}
+
+// SignalStartViews signals to status handler to start the views
+func (shi *statusHandlersInfo) SignalStartViews() {
+	shi.chanStartViews <- struct{}{}
+}
+
+// SignalLogRewrite signals to status handler the logs rewrite
+func (shi *statusHandlersInfo) SignalLogRewrite() {
+	shi.chanLogRewrite <- struct{}{}
 }
 
 // IsInterfaceNil returns true if the interface is nil

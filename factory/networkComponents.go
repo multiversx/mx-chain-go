@@ -22,22 +22,24 @@ import (
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
 type NetworkComponentsFactoryArgs struct {
-	P2pConfig     config.P2PConfig
-	MainConfig    config.Config
-	RatingsConfig config.RatingsConfig
-	StatusHandler core.AppStatusHandler
-	Marshalizer   marshal.Marshalizer
-	Syncer        p2p.SyncTimer
+	P2pConfig            config.P2PConfig
+	MainConfig           config.Config
+	RatingsConfig        config.RatingsConfig
+	StatusHandler        core.AppStatusHandler
+	Marshalizer          marshal.Marshalizer
+	Syncer               p2p.SyncTimer
+	BootstrapWaitSeconds uint32
 }
 
 type networkComponentsFactory struct {
-	p2pConfig     config.P2PConfig
-	mainConfig    config.Config
-	ratingsConfig config.RatingsConfig
-	statusHandler core.AppStatusHandler
-	listenAddress string
-	marshalizer   marshal.Marshalizer
-	syncer        p2p.SyncTimer
+	p2pConfig            config.P2PConfig
+	mainConfig           config.Config
+	ratingsConfig        config.RatingsConfig
+	statusHandler        core.AppStatusHandler
+	listenAddress        string
+	marshalizer          marshal.Marshalizer
+	syncer               p2p.SyncTimer
+	bootstrapWaitSeconds uint32
 }
 
 // networkComponents struct holds the network components
@@ -69,13 +71,14 @@ func NewNetworkComponentsFactory(
 	}
 
 	return &networkComponentsFactory{
-		p2pConfig:     args.P2pConfig,
-		ratingsConfig: args.RatingsConfig,
-		marshalizer:   args.Marshalizer,
-		mainConfig:    args.MainConfig,
-		statusHandler: args.StatusHandler,
-		listenAddress: libp2p.ListenAddrWithIp4AndTcp,
-		syncer:        args.Syncer,
+		p2pConfig:            args.P2pConfig,
+		ratingsConfig:        args.RatingsConfig,
+		marshalizer:          args.Marshalizer,
+		mainConfig:           args.MainConfig,
+		statusHandler:        args.StatusHandler,
+		listenAddress:        libp2p.ListenAddrWithIp4AndTcp,
+		syncer:               args.Syncer,
+		bootstrapWaitSeconds: args.BootstrapWaitSeconds,
 	}, nil
 }
 
@@ -94,16 +97,12 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(
-		ncf.mainConfig,
-		ncf.statusHandler,
-		netMessenger.ID(),
-		ctx,
-	)
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, netMessenger.ID())
 	if err != nil {
 		return nil, err
 	}
 
+	//TODO: move to NewP2PAntiFloodComponents.initP2PAntiFloodComponents
 	if ncf.mainConfig.Debug.Antiflood.Enabled {
 		var debugger process.AntifloodDebugger
 		debugger, err = antiflood.NewAntifloodDebugger(ncf.mainConfig.Debug.Antiflood)
@@ -122,7 +121,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
-	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ncf.mainConfig, ctx)
+	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
 	if errOutputAntiflood != nil {
 		return nil, errOutputAntiflood
 	}
@@ -137,6 +136,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		ncf.ratingsConfig,
 		antiFloodComponents.PubKeysCacher,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.Bootstrap(ncf.bootstrapWaitSeconds)
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +176,25 @@ func (ncf *networkComponentsFactory) createPeerHonestyHandler(
 // Close closes all underlying components that need closing
 func (nc *networkComponents) Close() error {
 	nc.closeFunc()
+
+	if !check.IfNil(nc.inputAntifloodHandler) {
+		log.LogIfError(nc.inputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.outputAntifloodHandler) {
+		log.LogIfError(nc.outputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.topicFloodPreventer) {
+		log.LogIfError(nc.outputAntifloodHandler.Close())
+	}
+	if !check.IfNil(nc.peerHonestyHandler) {
+		log.LogIfError(nc.peerHonestyHandler.Close())
+	}
+
+	if nc.netMessenger != nil {
+		log.Debug("calling close on the network messenger instance...")
+		err := nc.netMessenger.Close()
+		log.LogIfError(err)
+	}
 
 	return nil
 }

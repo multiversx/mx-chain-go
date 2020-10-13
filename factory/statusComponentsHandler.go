@@ -65,6 +65,9 @@ func (m *managedStatusComponents) Close() error {
 	defer m.mutStatusComponents.Unlock()
 
 	if m.statusComponents != nil {
+		if m.cancelFunc != nil {
+			m.cancelFunc()
+		}
 		err := m.statusComponents.Close()
 		if err != nil {
 			return err
@@ -325,17 +328,17 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}
 
-	err = registerCpuStatistics(appStatusPollingHandler, ctx)
+	err = registerCpuStatistics(ctx, appStatusPollingHandler)
 	if err != nil {
 		return err
 	}
 
-	err = registerMemStatistics(appStatusPollingHandler, ctx)
+	err = registerMemStatistics(ctx, appStatusPollingHandler)
 	if err != nil {
 		return err
 	}
 
-	err = registerNetStatistics(appStatusPollingHandler, m.statusComponentsFactory.epochStartNotifier, ctx)
+	err = registerNetStatistics(ctx, appStatusPollingHandler, m.statusComponentsFactory.epochStartNotifier)
 	if err != nil {
 		return err
 	}
@@ -345,7 +348,7 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 	return nil
 }
 
-func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, _ context.Context) error {
+func registerMemStatistics(_ context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		mem := machine.AcquireMemStatistics()
 
@@ -358,11 +361,7 @@ func registerMemStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	})
 }
 
-func registerNetStatistics(
-	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	notifier sharding.EpochStartEventNotifier,
-	ctx context.Context,
-) error {
+func registerNetStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling, notifier sharding.EpochStartEventNotifier) error {
 	netStats := &machine.NetStatistics{}
 	notifier.RegisterHandler(netStats.EpochStartEventHandler())
 	go func() {
@@ -390,7 +389,7 @@ func registerNetStatistics(
 	})
 }
 
-func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPolling, ctx context.Context) error {
+func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStatusPolling.AppStatusPolling) error {
 	cpuStats, err := machine.NewCpuStatistics()
 	if err != nil {
 		return err
@@ -410,4 +409,9 @@ func registerCpuStatistics(appStatusPollingHandler *appStatusPolling.AppStatusPo
 	return appStatusPollingHandler.RegisterPollingFunc(func(appStatusHandler core.AppStatusHandler) {
 		appStatusHandler.SetUInt64Value(core.MetricCpuLoadPercent, cpuStats.CpuPercentUsage())
 	})
+}
+
+// String returns the name of the component
+func (mbf *managedStatusComponents) String() string {
+	return "managedStatusComponents"
 }
