@@ -2936,7 +2936,7 @@ func TestStakingAuctionSC_UnstakeTokensOverMaxShouldErr(t *testing.T) {
 
 	unstakeTokens(t, sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
-	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake a larger value than the possible allowed value which is"))
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake a bigger value than the possible allowed value which is"))
 }
 
 func TestStakingAuctionSC_UnstakeTokensUnderMinimumAllowedShouldErr(t *testing.T) {
