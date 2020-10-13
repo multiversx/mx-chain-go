@@ -1376,7 +1376,6 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			SndAddr:        tx.GetSndAddr(),
 			PrevTxHash:     relayedSCR.OriginalTxHash,
 			OriginalTxHash: relayedSCR.OriginalTxHash,
-			GasLimit:       vmOutput.GasRemaining,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmcommon.DirectCall,
 			ReturnMessage:  []byte("gas refund for relayer"),
