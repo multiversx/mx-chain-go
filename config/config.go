@@ -305,6 +305,7 @@ type IncreaseFactorConfig struct {
 type VirtualMachineConfig struct {
 	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+	WarmInstanceEnabled bool
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)

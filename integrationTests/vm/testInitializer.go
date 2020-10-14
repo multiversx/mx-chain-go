@@ -288,6 +288,7 @@ func CreateVMAndBlockchainHook(
 		config.VirtualMachineConfig{
 			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			WarmInstanceEnabled: true,
 		},
 		maxGasLimitPerBlock,
 		actualGasSchedule,

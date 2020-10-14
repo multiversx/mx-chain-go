@@ -102,6 +102,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				GasSchedule:              vmf.gasSchedule,
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+				UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -122,6 +123,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			GasSchedule:              vmf.gasSchedule,
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+			UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 		},
 	)
 }

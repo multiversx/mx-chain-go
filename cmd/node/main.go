@@ -2312,7 +2312,7 @@ func startStatisticsMonitor(
 }
 
 func createApiResolver(
-	config *config.Config,
+	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
@@ -2369,8 +2369,13 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
+		apiConfig := config.VirtualMachineConfig{
+			OutOfProcessEnabled: false,
+			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			WarmInstanceEnabled: true,
+		}
 		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
+			apiConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook)
