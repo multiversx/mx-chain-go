@@ -174,6 +174,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unStakeTokens(args)
 	case "unBondTokens":
 		return s.unBondTokens(args)
+	case "updateStakingV2":
+		return s.updateStakingV2(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -816,6 +818,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 		registrationData,
 		auctionConfig.NodePrice,
 		registrationData.RewardAddress,
+		args.CallerAddr,
 	)
 
 	err = s.saveRegistrationData(args.CallerAddr, registrationData)
@@ -833,6 +836,7 @@ func (s *stakingAuctionSC) activateStakingFor(
 	registrationData *AuctionDataV2,
 	fixedStakeValue *big.Int,
 	rewardAddress []byte,
+	ownerAddress []byte,
 ) {
 	numRegistered := uint64(registrationData.NumRegistered)
 	for i := uint64(0); numRegistered < numQualified && i < uint64(len(blsKeys)); i++ {
@@ -865,6 +869,12 @@ func (s *stakingAuctionSC) activateStakingFor(
 			s.eei.Finish(currentBLSKey)
 			s.eei.Finish([]byte{waiting})
 		}
+		if s.flagStakingV2.IsSet() {
+			okSet := s.setOwnerOfBlsKey(currentBLSKey, ownerAddress)
+			if !okSet {
+				continue
+			}
+		}
 
 		if stakedData.UnStakedNonce == 0 {
 			numRegistered++
@@ -877,6 +887,25 @@ func (s *stakingAuctionSC) activateStakingFor(
 
 func (s *stakingAuctionSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error) {
 	return s.eei.ExecuteOnDestContext(s.stakingSCAddress, s.auctionSCAddress, big.NewInt(0), data)
+}
+
+func (s *stakingAuctionSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool {
+	vmOutput, err := s.executeOnStakingSC([]byte("setOwner@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(ownerAddress)))
+	if err != nil {
+		s.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
+		s.eei.Finish(blsKey)
+		s.eei.Finish([]byte{failed})
+		return false
+
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		s.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+		s.eei.Finish(blsKey)
+		s.eei.Finish([]byte{failed})
+		return false
+	}
+
+	return true
 }
 
 func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionDataV2, error) {
@@ -947,9 +976,9 @@ func (s *stakingAuctionSC) saveRegistrationDataV1(key []byte, auction *AuctionDa
 	return nil
 }
 
-func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2, error) {
+func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2P0, error) {
 	data := s.eei.GetStorageFromAddress(s.stakingSCAddress, key)
-	stakedData := &StakedDataV2{
+	stakedData := &StakedDataV2P0{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -1625,6 +1654,47 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 
 		s.eei.Finish(blsKey)
 		s.eei.Finish(vmOutput.ReturnData[0])
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) updateStakingV2(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagStakingV2.IsSet() {
+		//unStakeTokens function will become available after enabling staking v2
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, s.auctionSCAddress) {
+		s.eei.AddReturnMessage("this is a function that has to be called internally")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("should have provided only one argument: the owner address")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		s.eei.AddReturnMessage("wrong owner address")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+	registrationData, err := s.getOrCreateRegistrationData(args.Arguments[0])
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+	if len(registrationData.RewardAddress) == 0 {
+		s.eei.AddReturnMessage("key is not registered, updateStakingV2 is not possible")
+		return vmcommon.UserError
+	}
+	for _, blsKey := range registrationData.BlsPubKeys {
+		okSet := s.setOwnerOfBlsKey(blsKey, args.Arguments[0])
+		if !okSet {
+			return vmcommon.UserError
+		}
 	}
 
 	return vmcommon.Ok
