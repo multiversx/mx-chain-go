@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -476,7 +477,7 @@ func createTestAddresses(numAddresses uint64) [][]byte {
 
 func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	// Only a test to benchmark jurnalizing and getting data from trie
-	t.Skip()
+	//t.Skip()
 
 	numRun := 1000
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
@@ -790,5 +791,60 @@ func TestAndCatchTrieError(t *testing.T) {
 		transferNonce++
 		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
 		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
+	}
+}
+
+func TestDelegationProcessManyTimes(t *testing.T) {
+	numRun := 1000
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+
+	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
+
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	defer testContext.Close()
+
+	value := big.NewInt(10)
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+	serviceFeePer10000 := 3000
+	blocksBeforeUnBond := 60
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode)+
+			"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
+			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
+			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+	)
+
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+	ownerNonce++
+
+	for i := 0; i < numRun; i++ {
+		start := time.Now()
+
+		tx = &transaction.Transaction{
+			Nonce:    ownerNonce,
+			Value:    new(big.Int).Set(value),
+			SndAddr:  ownerAddressBytes,
+			RcvAddr:  scAddress,
+			Data:     []byte("stake"),
+			GasPrice: gasPrice,
+			GasLimit: gasLimit,
+		}
+		ownerNonce++
+
+		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process stake on delegation %s %d \n", elapsedTime.String(), returnCode)
 	}
 }
