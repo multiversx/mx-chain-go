@@ -1678,3 +1678,404 @@ func TestEsdt_ExecuteUnPauseShouldWork(t *testing.T) {
 	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
 	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
 }
+
+func TestEsdt_ExecuteTransferOwnershipWrongNumOfArgumentsShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "expected num of arguments 2"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipWrongCallValueShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+	vmInput.CallValue = big.NewInt(1)
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfFunds, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipNotEnoughGasShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+}
+
+func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		OwnerAddress: []byte("random address"),
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipNonTransferableTokenShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		OwnerAddress:   []byte("owner"),
+		CanChangeOwner: false,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot change owner of the token"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:      tokenName,
+		OwnerAddress:   []byte("owner"),
+		CanChangeOwner: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "destination address of invalid length"))
+}
+
+func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testing.T) {
+	t.Parallel()
+
+	newOwner := []byte("12345")
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:      []byte("esdtToken"),
+		OwnerAddress:   []byte("owner"),
+		CanChangeOwner: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), newOwner})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	esdtData := &ESDTData{}
+	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
+	assert.Equal(t, newOwner, esdtData.OwnerAddress)
+}
+
+func TestEsdt_ExecuteEsdtControlChangesWrongNumOfArgumentsShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesWrongCallValueShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput.CallValue = big.NewInt(1)
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfFunds, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesNotEnoughGasShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.OutOfGas, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough gas"))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		OwnerAddress: []byte("random address"),
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "can be called by owner only"))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		OwnerAddress: []byte("owner"),
+		Upgradable:   false,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "token is not upgradable"))
+}
+
+func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    []byte("esdtToken"),
+		OwnerAddress: []byte("owner"),
+		Upgradable:   true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte(burnable)})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
+
+	vmInput = getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"),
+		[]byte(burnable), []byte("true"),
+		[]byte(mintable), []byte("true"),
+		[]byte(canPause), []byte("true"),
+		[]byte(canFreeze), []byte("true"),
+		[]byte(canWipe), []byte("true"),
+		[]byte(upgradable), []byte("false"),
+		[]byte(canChangeOwner), []byte("true"),
+	})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	esdtData := &ESDTData{}
+	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage(tokenName))
+	assert.True(t, esdtData.Burnable)
+	assert.True(t, esdtData.Mintable)
+	assert.True(t, esdtData.CanPause)
+	assert.True(t, esdtData.CanFreeze)
+	assert.True(t, esdtData.CanWipe)
+	assert.False(t, esdtData.Upgradable)
+	assert.True(t, esdtData.CanChangeOwner)
+}
