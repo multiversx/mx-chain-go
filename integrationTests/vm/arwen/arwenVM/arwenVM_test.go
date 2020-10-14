@@ -828,8 +828,8 @@ func TestDelegationProcessManyTimes(t *testing.T) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
+	start := time.Now()
 	for i := 0; i < numRun; i++ {
-		start := time.Now()
 
 		tx = &transaction.Transaction{
 			Nonce:    ownerNonce,
@@ -842,9 +842,9 @@ func TestDelegationProcessManyTimes(t *testing.T) {
 		}
 		ownerNonce++
 
-		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-
-		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process stake on delegation %s %d \n", elapsedTime.String(), returnCode)
+		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 	}
+
+	elapsedTime := time.Since(start)
+	fmt.Printf("time elapsed to process stake on delegation %s \n", elapsedTime.String())
 }
