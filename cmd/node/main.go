@@ -1531,20 +1531,20 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
 
-		changeStorageConfigs(config)
+		alterStorageConfigsForDBImport(config)
 	}
 }
 
-func changeStorageConfigs(config *config.Config) {
-	changeStorageConfig(&config.MiniBlocksStorage)
-	changeStorageConfig(&config.BlockHeaderStorage)
-	changeStorageConfig(&config.MetaBlockStorage)
-	changeStorageConfig(&config.ShardHdrNonceHashStorage)
-	changeStorageConfig(&config.MetaHdrNonceHashStorage)
-	changeStorageConfig(&config.PeerAccountsTrieStorage)
+func alterStorageConfigsForDBImport(config *config.Config) {
+	changeStorageConfigForDBImport(&config.MiniBlocksStorage)
+	changeStorageConfigForDBImport(&config.BlockHeaderStorage)
+	changeStorageConfigForDBImport(&config.MetaBlockStorage)
+	changeStorageConfigForDBImport(&config.ShardHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.MetaHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.PeerAccountsTrieStorage)
 }
 
-func changeStorageConfig(storageConfig *config.StorageConfig) {
+func changeStorageConfigForDBImport(storageConfig *config.StorageConfig) {
 	alterCoefficient := uint32(10)
 
 	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
