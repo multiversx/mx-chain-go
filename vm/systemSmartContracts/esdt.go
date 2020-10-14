@@ -19,13 +19,13 @@ import (
 const minLengthForTokenName = 10
 const maxLengthForTokenName = 20
 const configKeyPrefix = "esdtConfig"
-const burnable = "burnable"
-const mintable = "mintable"
+const burnable = "canBurn"
+const mintable = "canMint"
 const canPause = "canPause"
 const canFreeze = "canFreeze"
 const canWipe = "canWipe"
 const canChangeOwner = "canChangeOwner"
-const upgradable = "uppgradable"
+const upgradable = "canUpgrade"
 
 const conversionBase = 10
 

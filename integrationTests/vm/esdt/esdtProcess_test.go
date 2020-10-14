@@ -69,8 +69,8 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
-		"@" + hex.EncodeToString([]byte("mintable")) + "@" + hexEncodedTrue +
-		"@" + hex.EncodeToString([]byte("burnable")) + "@" + hexEncodedTrue
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedTrue
 	txData += properties
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
