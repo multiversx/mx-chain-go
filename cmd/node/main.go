@@ -1517,7 +1517,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"p2p.ThresholdMinConnectedPeers", 0,
@@ -1530,7 +1530,25 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+
+		changeStorageConfigs(config)
 	}
+}
+
+func changeStorageConfigs(config *config.Config) {
+	changeStorageConfig(&config.MiniBlocksStorage)
+	changeStorageConfig(&config.BlockHeaderStorage)
+	changeStorageConfig(&config.MetaBlockStorage)
+	changeStorageConfig(&config.ShardHdrNonceHashStorage)
+	changeStorageConfig(&config.MetaHdrNonceHashStorage)
+	changeStorageConfig(&config.PeerAccountsTrieStorage)
+}
+
+func changeStorageConfig(storageConfig *config.StorageConfig) {
+	alterCoefficient := uint32(10)
+
+	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
+	storageConfig.DB.MaxBatchSize = storageConfig.DB.MaxBatchSize * int(alterCoefficient)
 }
 
 func closeAllComponents(
