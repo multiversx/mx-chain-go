@@ -465,7 +465,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 		BlsPubKeys:    [][]byte{[]byte("blsPubKey")},
 	}
 	auctionDataBytes, _ := json.Marshal(autionData)
-	nodeData := &StakedDataV2P0{
+	nodeData := &StakedDataV2_0{
 		Staked: true,
 	}
 	nodeDataBytes, _ := json.Marshal(nodeData)
@@ -552,7 +552,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	auctionDataBytes, _ = json.Marshal(auctionData)
 	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress2, auctionDataBytes)
 
-	nodeData := &StakedDataV2P0{
+	nodeData := &StakedDataV2_0{
 		Staked: true,
 	}
 	stakedDataBytes, _ := json.Marshal(nodeData)

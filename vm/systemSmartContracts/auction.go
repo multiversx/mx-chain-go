@@ -976,9 +976,9 @@ func (s *stakingAuctionSC) saveRegistrationDataV1(key []byte, auction *AuctionDa
 	return nil
 }
 
-func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2P0, error) {
+func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
 	data := s.eei.GetStorageFromAddress(s.stakingSCAddress, key)
-	stakedData := &StakedDataV2P0{
+	stakedData := &StakedDataV2_0{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,

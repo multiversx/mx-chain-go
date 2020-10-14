@@ -112,7 +112,7 @@ func createStakingScAcc(accountsDB state.AccountsAdapter) state.UserAccountHandl
 
 func createEligibleNodes(numNodes int, stakingSCAcc state.UserAccountHandler, marshalizer marshal.Marshalizer) {
 	for i := 0; i < numNodes; i++ {
-		stakedData := &systemSmartContracts.StakedDataV2P0{
+		stakedData := &systemSmartContracts.StakedDataV2_0{
 			Waiting:       false,
 			Staked:        true,
 			StakedNonce:   0,
@@ -128,7 +128,7 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 	validatorInfos := make([]*state.ValidatorInfo, 0)
 
 	for i := 0; i < numNodes; i++ {
-		stakedData := &systemSmartContracts.StakedDataV2P0{
+		stakedData := &systemSmartContracts.StakedDataV2_0{
 			Staked:        true,
 			RewardAddress: []byte(fmt.Sprintf("rewardAddress_j%d", i)),
 			StakeValue:    big.NewInt(100),
@@ -160,7 +160,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 	validatorInfos := make([]*state.ValidatorInfo, 0)
 
 	for i := 0; i < numNodes; i++ {
-		stakedData := &systemSmartContracts.StakedDataV2P0{
+		stakedData := &systemSmartContracts.StakedDataV2_0{
 			Waiting:       true,
 			RewardAddress: []byte(fmt.Sprintf("rewardAddress_w%d", i)),
 			StakeValue:    big.NewInt(100),
@@ -210,7 +210,7 @@ func prepareStakingContractWithData(
 ) {
 	stakingSCAcc := createStakingScAcc(accountsDB)
 
-	stakedData := &systemSmartContracts.StakedDataV2P0{
+	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Staked:        true,
 		RewardAddress: []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),
@@ -218,7 +218,7 @@ func prepareStakingContractWithData(
 	marshaledData, _ := marshalizer.Marshal(stakedData)
 	stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
 
-	stakedData = &systemSmartContracts.StakedDataV2P0{
+	stakedData = &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
 		RewardAddress: []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),

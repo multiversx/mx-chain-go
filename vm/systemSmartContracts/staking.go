@@ -406,8 +406,8 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2P0, error) {
-	registrationData := &StakedDataV2P0{
+func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, error) {
+	registrationData := &StakedDataV2_0{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
@@ -438,7 +438,7 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2P0, erro
 	return registrationData, nil
 }
 
-func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2P0) error {
+func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) error {
 	if !r.flagStake.IsSet() {
 		return r.saveAsStakingDataV1P0(key, stakedData)
 	}
@@ -458,8 +458,8 @@ func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2P0) erro
 	return nil
 }
 
-func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2P0) error {
-	stakedDataV1 := &StakedDataV1P0{
+func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2_0) error {
+	stakedDataV1 := &StakedDataV1_0{
 		RegisterNonce: stakedData.RegisterNonce,
 		StakedNonce:   stakedData.StakedNonce,
 		Staked:        stakedData.Staked,
@@ -486,8 +486,8 @@ func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2P0
 	return nil
 }
 
-func (r *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2P0) error {
-	stakedDataV1 := &StakedDataV1P1{
+func (r *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2_0) error {
+	stakedDataV1 := &StakedDataV1_1{
 		RegisterNonce: stakedData.RegisterNonce,
 		StakedNonce:   stakedData.StakedNonce,
 		Staked:        stakedData.Staked,
@@ -620,7 +620,7 @@ func (r *stakingSC) stake(args *vmcommon.ContractCallInput, onlyRegister bool) v
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2P0, addFirst bool) error {
+func (r *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
 	if registrationData.Staked {
 		return nil
 	}
@@ -1233,7 +1233,7 @@ func (r *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2P0, blsKey []byte) bool {
+func (r *stakingSC) isNodeJailedOrWithBadRating(registrationData *StakedDataV2_0, blsKey []byte) bool {
 	return registrationData.Jailed || r.eei.CanUnJail(blsKey) || r.eei.IsBadRating(blsKey)
 }
 
@@ -1335,7 +1335,7 @@ func (r *stakingSC) getRewardAddress(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedDataV2P0, vmcommon.ReturnCode) {
+func (r *stakingSC) getStakedDataIfExists(args *vmcommon.ContractCallInput) (*StakedDataV2_0, vmcommon.ReturnCode) {
 	err := r.eei.UseGas(r.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		r.eei.AddReturnMessage("insufficient gas")

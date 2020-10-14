@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message StakedDataV1p0 {
+message StakedDataV1_0 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
@@ -22,7 +22,7 @@ message StakedDataV1p0 {
 	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
 }
 
-message StakedDataV1p1 {
+message StakedDataV1_1 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
@@ -39,7 +39,7 @@ message StakedDataV1p1 {
 	bytes    SlashValue    = 14 [(gogoproto.jsontag) = "SlashValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
-message StakedDataV2p0 {
+message StakedDataV2_0 {
 	uint64   RegisterNonce = 1 [(gogoproto.jsontag) = "RegisterNonce"];
 	uint64   StakedNonce   = 2 [(gogoproto.jsontag) = "StakedNonce"];
 	bool     Staked        = 3 [(gogoproto.jsontag) = "Staked"];
