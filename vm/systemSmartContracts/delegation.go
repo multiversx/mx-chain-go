@@ -232,6 +232,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalActive:            big.NewInt(0).Set(args.CallValue),
 		TotalUnStaked:          big.NewInt(0),
+		TotalStaked:            big.NewInt(0),
 	}
 	globalFund.ActiveFunds[0] = fundKey
 	err = d.saveGlobalFundData(globalFund)
@@ -540,12 +541,31 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	numNodesToStake := big.NewInt(int64(len(args.Arguments)))
 	stakeValue := big.NewInt(0).Mul(d.nodePrice, numNodesToStake)
-	stakeArgs := make([][]byte, 0)
-	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", args.Arguments, stakeValue)
+	if globalFund.TotalActive.Cmp(stakeValue) < 0 {
+		d.eei.AddReturnMessage("not enough in total active to stake")
+		return vmcommon.UserError
+	}
+
+	globalFund.TotalActive.Sub(globalFund.TotalActive, stakeValue)
+	globalFund.TotalStaked.Add(globalFund.TotalStaked, stakeValue)
+
+	err = d.saveGlobalFundData(globalFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	stakeArgs := makeStakeArgs(dStatus.NotStakedKeys, args.Arguments)
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, stakeValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -987,6 +1007,11 @@ func (d *delegation) withDraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
+	if globalFund.TotalUnStaked.Cmp(totalUnBonded) < 0 {
+		d.eei.AddReturnMessage("cannot unBond - sadly contract error")
+		return vmcommon.UserError
+	}
+
 	globalFund.TotalUnStaked.Sub(globalFund.TotalUnStaked, totalUnBonded)
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
@@ -1245,6 +1270,16 @@ func moveNodeFromList(sndList []*NodesData, dstList []*NodesData, key []byte) {
 	dstList = append(dstList, toMoveNodeData)
 }
 
+func isSuccessReturnData(returnData []byte) bool {
+	if bytes.Equal(returnData, []byte{waiting}) {
+		return true
+	}
+	if bytes.Equal(returnData, []byte{ok}) {
+		return true
+	}
+	return false
+}
+
 func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte, [][]byte) {
 	if len(returnData) == 0 {
 		return blsKeys, nil
@@ -1252,7 +1287,9 @@ func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte
 
 	unSuccessKeys := make([][]byte, 0, len(returnData)/2)
 	for i := 0; i < len(returnData); i += 2 {
-		unSuccessKeys = append(unSuccessKeys, returnData[i])
+		if !isSuccessReturnData(returnData[i+1]) {
+			unSuccessKeys = append(unSuccessKeys, returnData[i])
+		}
 	}
 
 	if len(unSuccessKeys) == len(blsKeys) {
@@ -1278,6 +1315,11 @@ func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte
 }
 
 func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) error {
+	duplicates := checkForDuplicates(arguments)
+	if duplicates {
+		return vm.ErrBLSPublicKeyMismatch
+	}
+
 	for _, argKey := range arguments {
 		for _, nodeData := range listKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
@@ -1309,7 +1351,14 @@ func makeStakeArgs(nodesData []*NodesData, keysToStake [][]byte) [][]byte {
 	stakeArgs := make([][]byte, 0)
 	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
 
-	for _, nodeData := range nodesData {
-
+	for _, keyToStake := range keysToStake {
+		for _, nodeData := range nodesData {
+			if bytes.Equal(nodeData.BLSKey, keyToStake) {
+				stakeArgs = append(stakeArgs, nodeData.BLSKey)
+				stakeArgs = append(stakeArgs, nodeData.SignedMsg)
+			}
+		}
 	}
+
+	return stakeArgs
 }

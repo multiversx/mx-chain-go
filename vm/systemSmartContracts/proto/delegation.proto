@@ -62,6 +62,7 @@ message GlobalFundData {
   bytes TotalUnBondedFromNodes = 5 [(gogoproto.jsontag) = "TotalUnBondedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes TotalActive            = 6 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes TotalUnStaked          = 7 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalStaked            = 8 [(gogoproto.jsontag) = "TotalStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message NodesData {
