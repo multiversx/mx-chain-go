@@ -133,11 +133,11 @@ func CreateStatusHandlers(arguments *ArgStatusHandlers) (*statusHandlersInfo, er
 	if len(appStatusHandlers) > 0 {
 		handler, err = statusHandler.NewAppStatusFacadeWithHandlers(appStatusHandlers...)
 		if err != nil {
-			log.Warn("Cannot init AppStatusFacade", "error", err)
+			log.Warn("cannot init AppStatusFacade", "error", err)
 		}
 	} else {
 		handler = statusHandler.NewNilStatusHandler()
-		log.Info("No AppStatusHandler used. Started with NilStatusHandler")
+		log.Info("no AppStatusHandler used: started with NilStatusHandler")
 	}
 
 	statusHandlersInfoObject := new(statusHandlersInfo)
