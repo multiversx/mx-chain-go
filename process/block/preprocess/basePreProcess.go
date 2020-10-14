@@ -51,7 +51,6 @@ func (bpp *basePreProcess) removeBlockDataFromPools(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	isMiniBlockCorrect func(block.Type) bool,
 ) error {
-
 	err := bpp.removeTxsFromPools(body, txPool, isMiniBlockCorrect)
 	if err != nil {
 		return err
@@ -70,7 +69,6 @@ func (bpp *basePreProcess) removeTxsFromPools(
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	isMiniBlockCorrect func(block.Type) bool,
 ) error {
-
 	if check.IfNil(body) {
 		return process.ErrNilTxBlockBody
 	}
@@ -81,6 +79,8 @@ func (bpp *basePreProcess) removeTxsFromPools(
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		currentMiniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(currentMiniBlock.Type) {
+			log.Trace("removeTxsFromPools.isMiniBlockCorrect: false",
+				"miniblock type", currentMiniBlock.Type)
 			continue
 		}
 
@@ -96,7 +96,6 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	miniBlockPool storage.Cacher,
 	isMiniBlockCorrect func(block.Type) bool,
 ) error {
-
 	if check.IfNil(body) {
 		return process.ErrNilTxBlockBody
 	}
@@ -107,6 +106,8 @@ func (bpp *basePreProcess) removeMiniBlocksFromPools(
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		currentMiniBlock := body.MiniBlocks[i]
 		if !isMiniBlockCorrect(currentMiniBlock.Type) {
+			log.Trace("removeMiniBlocksFromPools.isMiniBlockCorrect: false",
+				"miniblock type", currentMiniBlock.Type)
 			continue
 		}
 

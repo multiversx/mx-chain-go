@@ -738,12 +738,7 @@ func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error 
 		return process.ErrWrongTypeAssertion
 	}
 
-	err := bp.txCoordinator.RemoveTxsFromPool(body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bp.txCoordinator.RemoveTxsFromPool(body)
 }
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
