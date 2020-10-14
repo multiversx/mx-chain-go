@@ -1190,6 +1190,11 @@ func (r *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 		return vmcommon.UserError
 	}
 
+	if newMinNodes > int64(r.maxNumNodes) {
+		r.eei.AddReturnMessage("new minimum number of nodes greater than maximum number of nodes")
+		return vmcommon.UserError
+	}
+
 	stakeConfig.MinNumNodes = newMinNodes
 	r.setConfig(stakeConfig)
 
@@ -1211,6 +1216,11 @@ func (r *stakingSC) updateConfigMaxNodes(args *vmcommon.ContractCallInput) vmcom
 	newMaxNodes := big.NewInt(0).SetBytes(args.Arguments[0]).Int64()
 	if newMaxNodes <= 0 {
 		r.eei.AddReturnMessage("new max number of nodes zero or negative")
+		return vmcommon.UserError
+	}
+
+	if newMaxNodes < int64(r.minNumNodes) {
+		r.eei.AddReturnMessage("new max number of nodes less than min number of nodes")
 		return vmcommon.UserError
 	}
 
