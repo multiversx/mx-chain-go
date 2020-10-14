@@ -110,7 +110,6 @@ func TestDNSandRelayedTxNormal(t *testing.T) {
 	userNames := sendRegisterUserNameAsRelayedTx(relayer, players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-
 	nrRoundsToPropagateMultiShard := 30
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
