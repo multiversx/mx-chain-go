@@ -71,12 +71,7 @@ func (s *SystemEIStub) SetGasProvided(_ uint64) {
 }
 
 // ExecuteOnDestContext -
-func (s *SystemEIStub) ExecuteOnDestContext(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-	input []byte,
-) (*vmcommon.VMOutput, error) {
+func (s *SystemEIStub) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	if s.ExecuteOnDestContextCalled != nil {
 		return s.ExecuteOnDestContextCalled(destination, sender, value, input)
 	}

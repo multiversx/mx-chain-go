@@ -37,6 +37,7 @@ message DelegationContractStatus {
   uint32 NumDelegators             = 3 [(gogoproto.jsontag) = "NumDelegators"];
   repeated NodesData StakedKeys    = 4 [(gogoproto.jsontag) = "StakedKeys"];
   repeated NodesData NotStakedKeys = 5 [(gogoproto.jsontag) = "NotStakedKeys"];
+  repeated NodesData UnStakedKeys  = 6 [(gogoproto.jsontag) = "UnStakedKeys"];
 }
 
 message Fund {

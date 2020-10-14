@@ -183,6 +183,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		NumDelegators: 0,
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
+		UnStakedKeys:  make([]*NodesData, 0),
 	}
 	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
@@ -403,7 +404,12 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = verifyIfBLSPubKeysExist(dStatus, blsKeys)
+	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, blsKeys)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, blsKeys)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -425,14 +431,9 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	return vmcommon.Ok
 }
 
-func verifyIfBLSPubKeysExist(dStatus *DelegationContractStatus, arguments [][]byte) error {
+func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) error {
 	for _, argKey := range arguments {
-		for _, nodeData := range dStatus.NotStakedKeys {
-			if bytes.Equal(argKey, nodeData.BLSKey) {
-				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
-			}
-		}
-		for _, nodeData := range dStatus.StakedKeys {
+		for _, nodeData := range listKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
 				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
 			}
@@ -513,11 +514,109 @@ func (d *delegation) stakeNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.Ok
 }
 
-func (d *delegation) unStakeNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) == 0 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	unStakeCall := "unStake"
+	for _, key := range args.Arguments {
+		unStakeCall += "@" + hex.EncodeToString(key)
+	}
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, []byte(unStakeCall), big.NewInt(0))
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
+	for _, successKey := range successKeys {
+		moveNodeFromList(dStatus.StakedKeys, dStatus.UnStakedKeys, successKey)
+	}
+
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (d *delegation) unBondNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func moveNodeFromList(sndList []*NodesData, dstList []*NodesData, key []byte) {
+	var toMoveNodeData *NodesData
+	for i, nodeData := range sndList {
+		if bytes.Equal(nodeData.BLSKey, key) {
+			copy(sndList[i:], sndList[i+1:])
+			toMoveNodeData = nodeData
+			break
+		}
+	}
+
+	dstList = append(dstList, toMoveNodeData)
+}
+
+func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte, [][]byte) {
+	if len(returnData) == 0 {
+		return blsKeys, nil
+	}
+
+	unSuccessKeys := make([][]byte, 0, len(returnData)/2)
+	for i := 0; i < len(returnData); i += 2 {
+		unSuccessKeys = append(unSuccessKeys, returnData[i])
+	}
+
+	if len(unSuccessKeys) == len(blsKeys) {
+		return nil, unSuccessKeys
+	}
+
+	successKeys := make([][]byte, 0, len(blsKeys)-len(unSuccessKeys))
+	for _, blsKey := range blsKeys {
+		found := false
+		for _, unSuccessKey := range unSuccessKeys {
+			if bytes.Equal(blsKey, unSuccessKey) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			successKeys = append(successKeys, blsKey)
+		}
+	}
+
+	return successKeys, unSuccessKeys
+}
+
+func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) unJailNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
@@ -613,8 +712,8 @@ func (d *delegation) withDraw(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnAuctionSC(address []byte, data []byte) (*vmcommon.VMOutput, error) {
-	return d.eei.ExecuteOnDestContext(d.auctionSCAddr, address, big.NewInt(0), data)
+func (d *delegation) executeOnAuctionSC(address []byte, data []byte, value *big.Int) (*vmcommon.VMOutput, error) {
+	return d.eei.ExecuteOnDestContext(d.auctionSCAddr, address, value, data)
 }
 
 func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
