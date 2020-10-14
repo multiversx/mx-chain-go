@@ -444,6 +444,11 @@ func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, er
 	return dstAccount.DataTrie().GetAllLeaves()
 }
 
+// NumberOfShards returns the number of shards
+func (bh *BlockChainHookImpl) NumberOfShards() uint32 {
+	return bh.shardCoordinator.NumberOfShards()
+}
+
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)

@@ -318,16 +318,19 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	txProcessor, err := processTransaction.NewMetaTxProcessor(
-		arg.Hasher,
-		arg.Marshalizer,
-		arg.Accounts,
-		arg.PubkeyConv,
-		arg.ShardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		genesisFeeHandler,
-	)
+	argsNewMetaTxProcessor := processTransaction.ArgsNewMetaTxProcessor{
+		Hasher:           arg.Hasher,
+		Marshalizer:      arg.Marshalizer,
+		Accounts:         arg.Accounts,
+		PubkeyConv:       arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		ESDTEnableEpoch:  arg.SystemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
 		return nil, process.ErrNilTxProcessor
 	}

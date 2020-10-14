@@ -33,6 +33,9 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+   # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+   MetaProtectionEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 

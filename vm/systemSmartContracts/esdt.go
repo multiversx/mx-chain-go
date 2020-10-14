@@ -19,13 +19,13 @@ import (
 const minLengthForTokenName = 10
 const maxLengthForTokenName = 20
 const configKeyPrefix = "esdtConfig"
-const burnable = "burnable"
-const mintable = "mintable"
+const burnable = "canBurn"
+const mintable = "canMint"
 const canPause = "canPause"
 const canFreeze = "canFreeze"
 const canWipe = "canWipe"
 const canChangeOwner = "canChangeOwner"
-const upgradable = "uppgradable"
+const upgradable = "canUpgrade"
 
 const conversionBase = 10
 
@@ -107,7 +107,7 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.issue(args)
 	case "issueProtected":
 		return e.issueProtected(args)
-	case "burn":
+	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
 		return e.mint(args)
@@ -158,8 +158,8 @@ func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	if len(args.Arguments[0]) < len(args.CallerAddr) {
-		e.eei.AddReturnMessage("token name length not in parameters")
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		e.eei.AddReturnMessage("invalid owner address length")
 		return vmcommon.FunctionWrongSignature
 	}
 	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
@@ -319,11 +319,6 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return vmcommon.OutOfFunds
 	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
-	if err != nil {
-		e.eei.AddReturnMessage("not enough gas")
-		return vmcommon.OutOfGas
-	}
 	burntValue := big.NewInt(0).SetBytes(args.Arguments[1])
 	if burntValue.Cmp(big.NewInt(0)) <= 0 {
 		e.eei.AddReturnMessage("negative or 0 value to burn")
@@ -344,6 +339,12 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
+	}
+
+	err = e.eei.UseGas(args.GasProvided)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
 	}
 
 	return vmcommon.Ok
@@ -395,7 +396,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -405,10 +406,6 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 	}
 	if !token.CanFreeze {
 		e.eei.AddReturnMessage("cannot freeze")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
 		return vmcommon.UserError
 	}
 
@@ -423,7 +420,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 }
 
 func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) != 2 {
 		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -451,8 +448,8 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string) vmcommon.ReturnCode {
-	if len(args.Arguments) < 1 {
-		e.eei.AddReturnMessage("invalid number of arguments, wanted 2")
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 1")
 		return vmcommon.FunctionWrongSignature
 	}
 	token, returnCode := e.basicOwnershipChecks(args)
@@ -461,10 +458,6 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	}
 	if !token.CanPause {
 		e.eei.AddReturnMessage("cannot pause/un-pause")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
 		return vmcommon.UserError
 	}
 	if token.IsPaused && builtInFunc == core.BuiltInFunctionESDTPause {
@@ -515,7 +508,7 @@ func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData
 		return nil, vmcommon.UserError
 	}
 	if !bytes.Equal(token.OwnerAddress, args.CallerAddr) {
-		e.eei.AddReturnMessage("mint can be called by owner only")
+		e.eei.AddReturnMessage("can be called by owner only")
 		return nil, vmcommon.UserError
 	}
 

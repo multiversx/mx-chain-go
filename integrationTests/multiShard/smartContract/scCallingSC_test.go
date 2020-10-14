@@ -346,8 +346,9 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	txData := "ClaimDeveloperRewards"
 	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	time.Sleep(time.Second)
 
-	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+	for i := 0; i < 2; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -356,6 +357,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
+	time.Sleep(time.Second)
 	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	fmt.Println("smart contract owner after claim", account.GetBalance())
 	require.True(t, account.GetBalance().Cmp(oldOwnerBalance) == 1)

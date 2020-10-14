@@ -21,7 +21,7 @@ type SystemEIStub struct {
 	FinishCalled                    func(value []byte)
 	AddCodeCalled                   func(addr []byte, code []byte)
 	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
-	BlockChainHookCalled            func() vmcommon.BlockchainHook
+	BlockChainHookCalled            func() vm.BlockchainHook
 	CryptoHookCalled                func() vmcommon.CryptoHook
 	UseGasCalled                    func(gas uint64) error
 	IsValidatorCalled               func(blsKey []byte) bool
@@ -90,7 +90,7 @@ func (s *SystemEIStub) SetSystemSCContainer(_ vm.SystemSCContainer) error {
 }
 
 // BlockChainHook -
-func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
+func (s *SystemEIStub) BlockChainHook() vm.BlockchainHook {
 	if s.BlockChainHookCalled != nil {
 		return s.BlockChainHookCalled()
 	}
