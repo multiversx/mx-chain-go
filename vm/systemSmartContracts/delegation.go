@@ -145,6 +145,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unStakeNodes(args)
 	case "unBondNodes":
 		return d.unBondNodes(args)
+	case "unJailNodes":
+		return d.unJailNodes(args)
 	case "delegate":
 		return d.delegate(args)
 	case "unDelegate":
@@ -518,7 +520,51 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	return vmcommon.Ok
 }
 
-func (d *delegation) stakeNodes(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkOwnerCallValueGas(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) == 0 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, args.Arguments)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	numNodesToStake := big.NewInt(int64(len(args.Arguments)))
+	stakeValue := big.NewInt(0).Mul(d.nodePrice, numNodesToStake)
+	stakeArgs := make([][]byte, 0)
+	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
+
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", args.Arguments, stakeValue)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
+	for _, successKey := range successKeys {
+		moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
+	}
+
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
@@ -543,10 +589,6 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	unStakeCall := "unStake"
-	for _, key := range args.Arguments {
-		unStakeCall += "@" + hex.EncodeToString(key)
-	}
 	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unStake", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1245,4 +1287,29 @@ func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) error {
 	}
 
 	return nil
+}
+
+func checkForDuplicates(args [][]byte) bool {
+	mapArgs := make(map[string]struct{})
+	for _, arg := range args {
+		_, found := mapArgs[string(arg)]
+		if found {
+			return true
+		}
+
+		mapArgs[string(arg)] = struct{}{}
+	}
+
+	return false
+}
+
+func makeStakeArgs(nodesData []*NodesData, keysToStake [][]byte) [][]byte {
+	numNodesToStake := big.NewInt(int64(len(keysToStake)))
+
+	stakeArgs := make([][]byte, 0)
+	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
+
+	for _, nodeData := range nodesData {
+
+	}
 }
