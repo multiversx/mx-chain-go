@@ -76,7 +76,8 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
-	if storageAdrMap, ok := host.storageUpdate[string(address)]; ok {
+	storageAdrMap, exists := host.storageUpdate[string(address)]
+	if exists {
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
 			return value
 		}
@@ -98,7 +99,8 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 // SetStorageForAddress saves the key value storage under the address
 func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
 	strAdr := string(address)
-	if _, ok := host.storageUpdate[strAdr]; !ok {
+	_, exists := host.storageUpdate[strAdr]
+	if !exists {
 		host.storageUpdate[strAdr] = make(map[string][]byte)
 	}
 
@@ -115,7 +117,8 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	strAdr := string(addr)
-	if outAcc, ok := host.outputAccounts[strAdr]; ok {
+	outAcc, exists := host.outputAccounts[strAdr]
+	if exists {
 		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
 		return actualBalance
 	}
@@ -145,8 +148,8 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 
-	senderAcc, ok := host.outputAccounts[string(sender)]
-	if !ok {
+	senderAcc, exists := host.outputAccounts[string(sender)]
+	if !exists {
 		senderAcc = &vmcommon.OutputAccount{
 			Address:      sender,
 			BalanceDelta: big.NewInt(0),
@@ -155,8 +158,8 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 		host.outputAccounts[string(senderAcc.Address)] = senderAcc
 	}
 
-	destAcc, ok := host.outputAccounts[string(destination)]
-	if !ok {
+	destAcc, exists := host.outputAccounts[string(destination)]
+	if !exists {
 		destAcc = &vmcommon.OutputAccount{
 			Address:      destination,
 			BalanceDelta: big.NewInt(0),
@@ -195,7 +198,8 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 	host.AddReturnMessage(currContext.returnMessage)
 
 	for key, storageUpdate := range currContext.storageUpdate {
-		if _, ok := host.storageUpdate[key]; !ok {
+		_, exists := host.storageUpdate[key]
+		if !exists {
 			host.storageUpdate[key] = storageUpdate
 			continue
 		}
@@ -343,7 +347,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	outAccs := make(map[string]*vmcommon.OutputAccount)
 	for addr, updates := range host.storageUpdate {
-		if _, ok := outAccs[addr]; !ok {
+		_, exists := outAccs[addr]
+		if !exists {
 			outAccs[addr] = &vmcommon.OutputAccount{
 				Address:        []byte(addr),
 				StorageUpdates: make(map[string]*vmcommon.StorageUpdate),
@@ -362,7 +367,8 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 	// add balances
 	for addr, outAcc := range host.outputAccounts {
-		if _, ok := outAccs[addr]; !ok {
+		_, exists := outAccs[addr]
+		if !exists {
 			outAccs[addr] = &vmcommon.OutputAccount{}
 		}
 
@@ -399,8 +405,8 @@ func (host *vmContext) SetSCAddress(addr []byte) {
 
 // AddCode adds the input code to the address
 func (host *vmContext) AddCode(address []byte, code []byte) {
-	newSCAcc, ok := host.outputAccounts[string(address)]
-	if !ok {
+	newSCAcc, exists := host.outputAccounts[string(address)]
+	if !exists {
 		host.outputAccounts[string(address)] = &vmcommon.OutputAccount{
 			Address:        address,
 			Nonce:          0,
@@ -415,8 +421,8 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
 func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
-	destAcc, ok := host.outputAccounts[string(scAddress)]
-	if !ok {
+	destAcc, exists := host.outputAccounts[string(scAddress)]
+	if !exists {
 		destAcc = &vmcommon.OutputAccount{
 			Address:      scAddress,
 			BalanceDelta: big.NewInt(0),
@@ -434,8 +440,8 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 
@@ -452,8 +458,8 @@ func (host *vmContext) CanUnJail(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 
@@ -467,8 +473,8 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 		return false
 	}
 
-	validatorAccount, ok := acc.(state.PeerAccountHandler)
-	if !ok {
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
 		return false
 	}
 

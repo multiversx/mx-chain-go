@@ -11,10 +11,11 @@ type SystemSmartContractsConfig struct {
 type StakingSystemSCConfig struct {
 	GenesisNodePrice                     string
 	MinStakeValue                        string
+	MinUnstakeTokensValue                string
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
-	AuctionEnableEpoch                   uint32
+	StakingV2Epoch                       uint32
 	StakeEnableEpoch                     uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64

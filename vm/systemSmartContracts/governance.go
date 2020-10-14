@@ -796,7 +796,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 		return 0, nil
 	}
 
-	auctionData := &AuctionData{}
+	auctionData := &AuctionDataV2{}
 	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
 	if err != nil {
 		return 0, err

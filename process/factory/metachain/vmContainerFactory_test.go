@@ -63,7 +63,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   0,
+				StakingV2Epoch:                       10,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -143,7 +143,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   1,
+				StakingV2Epoch:                       10,
 				StakeEnableEpoch:                     1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -151,6 +151,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxNumberOfNodesForStake:             100,
 				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
 			},
 		},
 		&mock.AccountsStub{},
@@ -220,6 +221,8 @@ func FillGasMapMetaChainSystemSCsCosts(value uint64) map[string]uint64 {
 	gasMap["RevokeVote"] = value
 	gasMap["CloseProposal"] = value
 	gasMap["DelegationOps"] = value
+	gasMap["UnStakeTokens"] = value
+	gasMap["UnBondTokens"] = value
 
 	return gasMap
 }
