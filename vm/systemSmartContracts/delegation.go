@@ -268,6 +268,11 @@ func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vm
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
+	duplicates := checkForDuplicates(args.Arguments)
+	if duplicates {
+		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -425,20 +430,11 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, blsKeys)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, blsKeys)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	err = verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, blsKeys)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	listToVerify := append(dStatus.StakedKeys, dStatus.NotStakedKeys...)
+	listToVerify = append(listToVerify, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -542,9 +538,10 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	listToCheck := append(dStatus.NotStakedKeys, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -583,7 +580,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
+		dStatus.NotStakedKeys, dStatus.StakedKeys = moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -609,15 +606,9 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	err = verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	exist := verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
+	if !exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -632,7 +623,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.StakedKeys, dStatus.UnStakedKeys, successKey)
+		dStatus.StakedKeys, dStatus.UnStakedKeys = moveNodeFromList(dStatus.StakedKeys, dStatus.UnStakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -673,9 +664,9 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	exist := verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
+	if !exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -690,7 +681,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.UnStakedKeys, dStatus.NotStakedKeys, successKey)
+		dStatus.UnStakedKeys, dStatus.NotStakedKeys = moveNodeFromList(dStatus.UnStakedKeys, dStatus.NotStakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -726,21 +717,21 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
-
 	dStatus, err := d.getDelegationStatus()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	duplicates := checkForDuplicates(args.Arguments)
+	if duplicates {
+		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
 		return vmcommon.UserError
 	}
-	err = verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+
+	listToCheck := append(dStatus.StakedKeys, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -836,18 +827,17 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 
 		dStatus.Delegators = append(dStatus.Delegators, args.CallerAddr)
+		err = d.saveDelegationStatus(dStatus)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	} else {
 		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
 		}
-	}
-
-	err = d.saveDelegationStatus(dStatus)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
 	}
 
 	err = d.saveGlobalFundData(globalFund)
@@ -1280,7 +1270,11 @@ func getTransferBackFromVMOutput(vmOutput *vmcommon.VMOutput) *big.Int {
 	return transferBack
 }
 
-func moveNodeFromList(sndList []*NodesData, dstList []*NodesData, key []byte) {
+func moveNodeFromList(
+	sndList []*NodesData,
+	dstList []*NodesData,
+	key []byte,
+) ([]*NodesData, []*NodesData) {
 	for i, nodeData := range sndList {
 		if bytes.Equal(nodeData.BLSKey, key) {
 			copy(sndList[i:], sndList[i+1:])
@@ -1291,6 +1285,7 @@ func moveNodeFromList(sndList []*NodesData, dstList []*NodesData, key []byte) {
 			break
 		}
 	}
+	return sndList, dstList
 }
 
 func isSuccessReturnData(returnData []byte) bool {
@@ -1304,13 +1299,14 @@ func isSuccessReturnData(returnData []byte) bool {
 }
 
 func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte, [][]byte) {
-	if len(returnData) == 0 {
+	if len(returnData) == 0 || len(blsKeys) == 0 {
 		return blsKeys, nil
 	}
 
+	lenBlsKey := len(blsKeys[0])
 	unSuccessKeys := make([][]byte, 0, len(returnData)/2)
 	for i := 0; i < len(returnData); i += 2 {
-		if !isSuccessReturnData(returnData[i+1]) {
+		if len(returnData[i]) == lenBlsKey && !isSuccessReturnData(returnData[i+1]) {
 			unSuccessKeys = append(unSuccessKeys, returnData[i])
 		}
 	}
@@ -1337,21 +1333,16 @@ func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte
 	return successKeys, unSuccessKeys
 }
 
-func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) error {
-	duplicates := checkForDuplicates(arguments)
-	if duplicates {
-		return vm.ErrDuplicatesFoundInArguments
-	}
-
+func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 	for _, argKey := range arguments {
 		for _, nodeData := range listKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
-				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
+				return true
 			}
 		}
 	}
 
-	return nil
+	return false
 }
 
 func checkForDuplicates(args [][]byte) bool {
@@ -1372,8 +1363,6 @@ func makeStakeArgs(nodesData []*NodesData, keysToStake [][]byte) [][]byte {
 	numNodesToStake := big.NewInt(int64(len(keysToStake)))
 
 	stakeArgs := [][]byte{numNodesToStake.Bytes()}
-	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
-
 	for _, keyToStake := range keysToStake {
 		for _, nodeData := range nodesData {
 			if bytes.Equal(nodeData.BLSKey, keyToStake) {
