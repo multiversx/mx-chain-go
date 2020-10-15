@@ -202,3 +202,6 @@ var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
 
 // ErrInvalidArgument signals that invalid argument has been provided
 var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrDuplicatesFoundInArguments signals that duplicates were found in arguments
+var ErrDuplicatesFoundInArguments = errors.New("duplicates found in arguments")
