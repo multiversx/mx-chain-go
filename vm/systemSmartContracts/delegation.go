@@ -98,7 +98,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 
 	var okValue bool
 	d.minDelegationAmount, okValue = big.NewInt(0).SetString(args.DelegationSCConfig.MinStakeAmount, conversionBase)
-	if !okValue || d.minDelegationAmount.Cmp(zero) < 0 {
+	if !okValue || d.minDelegationAmount.Cmp(zero) <= 0 {
 		return nil, vm.ErrInvalidMinStakeValue
 	}
 
@@ -151,8 +151,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
-	case "withDraw":
-		return d.withDraw(args)
+	case "withdraw":
+		return d.withdraw(args)
 	case "changeServiceFee":
 		return d.changeServiceFee(args)
 	case "modifyTotalDelegationCap":
@@ -199,12 +199,11 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 
 	dStatus := &DelegationContractStatus{
 		NumDelegators: 1,
-		Delegators:    make([][]byte, 0),
+		Delegators:    [][]byte{ownerAddress},
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
 		UnStakedKeys:  make([]*NodesData, 0),
 	}
-	dStatus.Delegators = append(dStatus.Delegators, ownerAddress)
 	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -268,6 +267,11 @@ func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vm
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
+	}
+	duplicates := checkForDuplicates(args.Arguments)
+	if duplicates {
+		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
@@ -343,13 +347,13 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	dGlobalFund, err := d.getGlobalFundData()
+	globalFund, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	err = d.updateRewardComputationData(newServiceFee, dGlobalFund.TotalActive)
+	err = d.updateRewardComputationData(newServiceFee, globalFund.TotalActive)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -375,13 +379,13 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
-	dGlobalFund, err := d.getGlobalFundData()
+	globalFund, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	if newTotalDelegationCap.Cmp(dGlobalFund.TotalActive) < 0 {
+	if newTotalDelegationCap.Cmp(globalFund.TotalActive) < 0 {
 		d.eei.AddReturnMessage("cannot make total delegation cap smaller than active")
 		return vmcommon.UserError
 	}
@@ -426,15 +430,11 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, blsKeys)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, blsKeys)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	listToVerify := append(dStatus.StakedKeys, dStatus.NotStakedKeys...)
+	listToVerify = append(listToVerify, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -501,6 +501,9 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		for i, nodeData := range dStatus.NotStakedKeys {
 			if bytes.Equal(blsKey, nodeData.BLSKey) {
 				copy(dStatus.NotStakedKeys[i:], dStatus.NotStakedKeys[i+1:])
+				lenKeys := len(dStatus.NotStakedKeys)
+				dStatus.NotStakedKeys[lenKeys-1] = nil
+				dStatus.NotStakedKeys = dStatus.NotStakedKeys[:lenKeys-1]
 				found = true
 				break
 			}
@@ -535,9 +538,10 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	err = verifyIfBLSPubKeysExist(dStatus.NotStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	listToCheck := append(dStatus.NotStakedKeys, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -576,7 +580,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
+		dStatus.NotStakedKeys, dStatus.StakedKeys = moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -602,10 +606,9 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	exist := verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
+	if !exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -620,7 +623,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.StakedKeys, dStatus.UnStakedKeys, successKey)
+		dStatus.StakedKeys, dStatus.UnStakedKeys = moveNodeFromList(dStatus.StakedKeys, dStatus.UnStakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -661,9 +664,9 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	err = verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	exist := verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
+	if !exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -678,7 +681,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
-		moveNodeFromList(dStatus.UnStakedKeys, dStatus.NotStakedKeys, successKey)
+		dStatus.UnStakedKeys, dStatus.NotStakedKeys = moveNodeFromList(dStatus.UnStakedKeys, dStatus.NotStakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -714,21 +717,21 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
-
 	dStatus, err := d.getDelegationStatus()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
-	err = verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+	duplicates := checkForDuplicates(args.Arguments)
+	if duplicates {
+		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
 		return vmcommon.UserError
 	}
-	err = verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
+
+	listToCheck := append(dStatus.StakedKeys, dStatus.UnStakedKeys...)
+	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
+	if exist {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
@@ -789,19 +792,19 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	dGlobalFund, err := d.getGlobalFundData()
+	globalFund, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	newTotalActive := big.NewInt(0).Add(dGlobalFund.TotalActive, args.CallValue)
+	newTotalActive := big.NewInt(0).Add(globalFund.TotalActive, args.CallValue)
 	if dConfig.WithDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
 		d.eei.AddReturnMessage("total delegation cap reached, no more space to accept")
 		return vmcommon.UserError
 	}
 
-	dGlobalFund.TotalActive.Set(newTotalActive)
+	globalFund.TotalActive.Set(newTotalActive)
 	_, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -824,6 +827,11 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 
 		dStatus.Delegators = append(dStatus.Delegators, args.CallerAddr)
+		err = d.saveDelegationStatus(dStatus)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	} else {
 		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
 		if err != nil {
@@ -832,13 +840,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
-	err = d.saveDelegationStatus(dStatus)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	err = d.saveGlobalFundData(dGlobalFund)
+	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -886,7 +888,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 	if isNew {
-		d.eei.AddReturnMessage("it is not a delegator")
+		d.eei.AddReturnMessage("caller is not a delegator")
 		return vmcommon.UserError
 	}
 
@@ -897,6 +899,10 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(valueToUnDelegate) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
+		return vmcommon.UserError
+	}
+	if activeFund.Value.Cmp(zero) > 0 && activeFund.Value.Cmp(d.minDelegationAmount) < 0 {
+		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
 
@@ -926,7 +932,10 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	if activeFund.Value.Cmp(zero) == 0 {
 		for i, fundKey := range globalFund.ActiveFunds {
 			if bytes.Equal(delegator.ActiveFund, fundKey) {
-				copy(globalFund.ActiveFunds[:i], globalFund.ActiveFunds[i+1:])
+				copy(globalFund.ActiveFunds[i:], globalFund.ActiveFunds[i+1:])
+				lenKeys := len(globalFund.ActiveFunds)
+				globalFund.ActiveFunds[lenKeys-1] = nil
+				globalFund.ActiveFunds = globalFund.ActiveFunds[:lenKeys-1]
 				break
 			}
 		}
@@ -948,7 +957,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (d *delegation) withDraw(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage("wrong number of arguments")
 		return vmcommon.FunctionWrongSignature
@@ -966,7 +975,7 @@ func (d *delegation) withDraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 	if isNew {
-		d.eei.AddReturnMessage("it is not a delegator")
+		d.eei.AddReturnMessage("caller is not a delegator")
 		return vmcommon.UserError
 	}
 
@@ -1002,17 +1011,21 @@ func (d *delegation) withDraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		for i, globalKey := range globalFund.UnStakedFunds {
 			if bytes.Equal(fundKey, globalKey) {
 				copy(globalFund.UnStakedFunds[i:], globalFund.UnStakedFunds[i+1:])
+				lenKeys := len(globalFund.UnStakedFunds)
+				globalFund.UnStakedFunds[lenKeys-1] = nil
+				globalFund.UnStakedFunds = globalFund.UnStakedFunds[:lenKeys-1]
 				break
 			}
 		}
 	}
 
 	if globalFund.TotalUnStaked.Cmp(totalUnBonded) < 0 {
-		d.eei.AddReturnMessage("cannot unBond - sadly contract error")
+		d.eei.AddReturnMessage("cannot unBond - contract error")
 		return vmcommon.UserError
 	}
 
 	globalFund.TotalUnStaked.Sub(globalFund.TotalUnStaked, totalUnBonded)
+	globalFund.TotalUnBondedFromNodes.Add(globalFund.TotalUnBondedFromNodes, totalUnBonded)
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1065,23 +1078,23 @@ func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
 }
 
 func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) error {
-	marshalledData, err := d.marshalizer.Marshal(dConfig)
+	marshaledData, err := d.marshalizer.Marshal(dConfig)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationConfigKey), marshalledData)
+	d.eei.SetStorage([]byte(delegationConfigKey), marshaledData)
 	return nil
 }
 
 func (d *delegation) getDelegationStatus() (*DelegationContractStatus, error) {
 	dStatus := &DelegationContractStatus{}
-	marshalledData := d.eei.GetStorage([]byte(delegationStatusKey))
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage([]byte(delegationStatusKey))
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
 	}
 
-	err := d.marshalizer.Unmarshal(dStatus, marshalledData)
+	err := d.marshalizer.Unmarshal(dStatus, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -1090,23 +1103,23 @@ func (d *delegation) getDelegationStatus() (*DelegationContractStatus, error) {
 }
 
 func (d *delegation) saveDelegationStatus(dStatus *DelegationContractStatus) error {
-	marshalledData, err := d.marshalizer.Marshal(dStatus)
+	marshaledData, err := d.marshalizer.Marshal(dStatus)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationStatusKey), marshalledData)
+	d.eei.SetStorage([]byte(delegationStatusKey), marshaledData)
 	return nil
 }
 
 func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
 	dData := &DelegatorData{}
-	marshalledData := d.eei.GetStorage(address)
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage(address)
+	if len(marshaledData) == 0 {
 		return false, dData, nil
 	}
 
-	err := d.marshalizer.Unmarshal(dData, marshalledData)
+	err := d.marshalizer.Unmarshal(dData, marshaledData)
 	if err != nil {
 		return false, nil, err
 	}
@@ -1115,23 +1128,23 @@ func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorD
 }
 
 func (d *delegation) saveDelegatorData(address []byte, dData *DelegatorData) error {
-	marshalledData, err := d.marshalizer.Marshal(dData)
+	marshaledData, err := d.marshalizer.Marshal(dData)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage(address, marshalledData)
+	d.eei.SetStorage(address, marshaledData)
 	return nil
 }
 
 func (d *delegation) getFund(key []byte) (*Fund, error) {
-	marshalledData := d.eei.GetStorage(key)
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage(key)
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getFund %s", vm.ErrDataNotFoundUnderKey, string(key))
 	}
 
 	dFund := &Fund{}
-	err := d.marshalizer.Unmarshal(dFund, marshalledData)
+	err := d.marshalizer.Unmarshal(dFund, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -1206,13 +1219,13 @@ func (d *delegation) addNewFundToGlobalData(fundKey []byte, fundType uint32) err
 }
 
 func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {
-	marshalledData := d.eei.GetStorage([]byte(globalFundKey))
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage([]byte(globalFundKey))
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
 	}
 
 	globalFundData := &GlobalFundData{}
-	err := d.marshalizer.Unmarshal(globalFundData, marshalledData)
+	err := d.marshalizer.Unmarshal(globalFundData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -1221,12 +1234,12 @@ func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {
 }
 
 func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
-	marshalledData, err := d.marshalizer.Marshal(globalFundData)
+	marshaledData, err := d.marshalizer.Marshal(globalFundData)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(globalFundKey), marshalledData)
+	d.eei.SetStorage([]byte(globalFundKey), marshaledData)
 	return nil
 }
 
@@ -1257,17 +1270,22 @@ func getTransferBackFromVMOutput(vmOutput *vmcommon.VMOutput) *big.Int {
 	return transferBack
 }
 
-func moveNodeFromList(sndList []*NodesData, dstList []*NodesData, key []byte) {
-	var toMoveNodeData *NodesData
+func moveNodeFromList(
+	sndList []*NodesData,
+	dstList []*NodesData,
+	key []byte,
+) ([]*NodesData, []*NodesData) {
 	for i, nodeData := range sndList {
 		if bytes.Equal(nodeData.BLSKey, key) {
 			copy(sndList[i:], sndList[i+1:])
-			toMoveNodeData = nodeData
+			lenList := len(sndList)
+			sndList[lenList-1] = nil
+			sndList = sndList[:lenList-1]
+			dstList = append(dstList, nodeData)
 			break
 		}
 	}
-
-	dstList = append(dstList, toMoveNodeData)
+	return sndList, dstList
 }
 
 func isSuccessReturnData(returnData []byte) bool {
@@ -1281,13 +1299,14 @@ func isSuccessReturnData(returnData []byte) bool {
 }
 
 func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte, [][]byte) {
-	if len(returnData) == 0 {
+	if len(returnData) == 0 || len(blsKeys) == 0 {
 		return blsKeys, nil
 	}
 
+	lenBlsKey := len(blsKeys[0])
 	unSuccessKeys := make([][]byte, 0, len(returnData)/2)
 	for i := 0; i < len(returnData); i += 2 {
-		if !isSuccessReturnData(returnData[i+1]) {
+		if len(returnData[i]) == lenBlsKey && !isSuccessReturnData(returnData[i+1]) {
 			unSuccessKeys = append(unSuccessKeys, returnData[i])
 		}
 	}
@@ -1314,21 +1333,16 @@ func getSuccessAndUnSuccessKeys(returnData [][]byte, blsKeys [][]byte) ([][]byte
 	return successKeys, unSuccessKeys
 }
 
-func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) error {
-	duplicates := checkForDuplicates(arguments)
-	if duplicates {
-		return vm.ErrBLSPublicKeyMismatch
-	}
-
+func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 	for _, argKey := range arguments {
 		for _, nodeData := range listKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
-				return fmt.Errorf("%w, key %s already exists", vm.ErrBLSPublicKeyMismatch, hex.EncodeToString(argKey))
+				return true
 			}
 		}
 	}
 
-	return nil
+	return false
 }
 
 func checkForDuplicates(args [][]byte) bool {
@@ -1348,14 +1362,13 @@ func checkForDuplicates(args [][]byte) bool {
 func makeStakeArgs(nodesData []*NodesData, keysToStake [][]byte) [][]byte {
 	numNodesToStake := big.NewInt(int64(len(keysToStake)))
 
-	stakeArgs := make([][]byte, 0)
-	stakeArgs = append(stakeArgs, numNodesToStake.Bytes())
-
+	stakeArgs := [][]byte{numNodesToStake.Bytes()}
 	for _, keyToStake := range keysToStake {
 		for _, nodeData := range nodesData {
 			if bytes.Equal(nodeData.BLSKey, keyToStake) {
 				stakeArgs = append(stakeArgs, nodeData.BLSKey)
 				stakeArgs = append(stakeArgs, nodeData.SignedMsg)
+				break
 			}
 		}
 	}
