@@ -28,6 +28,7 @@ type delegationManager struct {
 	delegationMgrEnabled     atomic.Flag
 	enableDelegationMgrEpoch uint32
 	baseIssuingCost          *big.Int
+	minCreationDeposit       *big.Int
 }
 
 // ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
@@ -68,6 +69,11 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
+	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
+	if !okConvert || baseIssuingCost.Cmp(zero) < 0 {
+		return nil, vm.ErrInvalidBaseIssuingCost
+	}
+
 	d := &delegationManager{
 		eei:                      args.Eei,
 		stakingSCAddr:            args.StakingSCAddress,
@@ -78,6 +84,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		delegationMgrEnabled:     atomic.Flag{},
 		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
 		baseIssuingCost:          baseIssuingCost,
+		minCreationDeposit:       minCreationDeposit,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
@@ -105,6 +112,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.getAllContractAddresses(args)
 	}
 
+	d.eei.AddReturnMessage("invalid function to call")
 	return vmcommon.UserError
 }
 
@@ -123,12 +131,12 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	managementData := &DelegationManagement{
-		NumberOfContract:     0,
-		LastAddress:          nil,
-		MinContractCreateFee: nil,
-		MinServiceFee:        0,
-		MaxServiceFee:        math.MaxUint64,
-		MinOperationValue:    nil,
+		NumberOfContract: 0,
+		LastAddress:      vm.FirstDelegationSCAddress,
+		MinServiceFee:    0,
+		MaxServiceFee:    math.MaxUint64,
+		BaseIssueingCost: d.baseIssuingCost,
+		MinDeposit:       d.minCreationDeposit,
 	}
 	err := d.saveDelegationManagementData(managementData)
 	if err != nil {
