@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	factory2 "github.com/ElrondNetwork/elrond-go/vm/factory"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -795,7 +796,7 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true, 1000, 10)
+	delegationProcessManyTimes(t, true, 1000, 2)
 }
 
 func TestDelegationProcessManyTimeCompile(t *testing.T) {
@@ -818,6 +819,9 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 	serviceFeePer10000 := 3000
 	blocksBeforeUnBond := 60
+
+	totalDelegationCap := big.NewInt(0).Mul(big.NewInt(int64(txPerBenchmark)), value)
+
 	tx := vm.CreateDeployTx(
 		ownerAddressBytes,
 		ownerNonce,
@@ -827,7 +831,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 		arwen.CreateDeployTxData(scCode)+
 			"@"+hex.EncodeToString(factory2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
 			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
-			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(ownerBalance.Bytes()),
+			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -835,14 +839,24 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
+	testAddresses := createTestAddresses(uint64(txPerBenchmark * 2))
+	for _, testAddress := range testAddresses {
+		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(10000000000000))
+	}
+	_, _ = testContext.Accounts.Commit()
+
 	for j := 0; j < numRun; j++ {
 		start := time.Now()
-		for i := 0; i < txPerBenchmark; i++ {
-
+		for i := 0; i < txPerBenchmark*2; i++ {
+			testAddress := testAddresses[i]
+			nonce := uint64(j)
+			if i < txPerBenchmark {
+				nonce *= 2
+			}
 			tx = &transaction.Transaction{
-				Nonce:    ownerNonce,
-				Value:    new(big.Int).Set(value),
-				SndAddr:  ownerAddressBytes,
+				Nonce:    nonce,
+				Value:    big.NewInt(0).Set(value),
+				SndAddr:  testAddress,
 				RcvAddr:  scAddress,
 				Data:     []byte("stake"),
 				GasPrice: gasPrice,
@@ -850,10 +864,36 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 			}
 			ownerNonce++
 
-			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
+			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCode != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCode.String())
+			}
 		}
 
 		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process %d stake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		fmt.Printf("time elapsed to process %d stake on delegation %s \n", 2*txPerBenchmark, elapsedTime.String())
+
+		start = time.Now()
+		for i := 0; i < txPerBenchmark; i++ {
+			testAddress := testAddresses[i]
+			tx = &transaction.Transaction{
+				Nonce:    uint64(j*2 + 1),
+				Value:    big.NewInt(0),
+				SndAddr:  testAddress,
+				RcvAddr:  scAddress,
+				Data:     []byte("unStake@" + hex.EncodeToString(value.Bytes())),
+				GasPrice: gasPrice,
+				GasLimit: gasLimit,
+			}
+			ownerNonce++
+
+			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCode != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCode.String())
+			}
+		}
+
+		elapsedTime = time.Since(start)
+		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
 	}
 }
