@@ -97,8 +97,6 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.init(args)
 	case "createNewDelegationContract":
 		return d.createNewDelegationContract(args)
-	case "deleteDelegationContract":
-		return d.deleteDelegationContract(args)
 	case "getAllContractAddresses":
 		return d.getAllContractAddresses(args)
 	}
@@ -110,15 +108,11 @@ func (d *delegationManager) getAllContractAddresses(_ *vmcommon.ContractCallInpu
 	return vmcommon.Ok
 }
 
-func (d *delegationManager) deleteDelegationContract(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
 func (d *delegationManager) createNewDelegationContract(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (d *delegationManager) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
