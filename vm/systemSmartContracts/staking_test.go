@@ -281,7 +281,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = []byte("auction")
-	arguments.Arguments = [][]byte{stakerPubKey.Bytes(), stakerAddress.Bytes()}
+	arguments.Arguments = [][]byte{stakerPubKey.Bytes(), stakerAddress.Bytes(), stakerAddress.Bytes()}
 	arguments.CallValue = big.NewInt(100)
 
 	retCode := stakingSmartContract.Execute(arguments)
@@ -1723,7 +1723,7 @@ func doStake(t *testing.T, sc *stakingSC, callerAddr, stakerAddr, stakerPubKey [
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = callerAddr
-	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr}
+	arguments.Arguments = [][]byte{stakerPubKey, stakerAddr, stakerAddr}
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)

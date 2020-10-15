@@ -496,7 +496,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 func TestStakingAuctionSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	t.Parallel()
 
-	stakerAddress := []byte("stakerAddress")
+	stakerAddress := []byte("staker1")
 	stakerPubKey := []byte("stakerBLSPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
@@ -519,7 +519,7 @@ func TestStakingAuctionSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 
-	rwdAddress := []byte("rewardAddress")
+	rwdAddress := []byte("reward1")
 	sc, _ := NewStakingAuctionSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
