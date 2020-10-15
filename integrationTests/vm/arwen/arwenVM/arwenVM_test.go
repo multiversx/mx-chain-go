@@ -795,15 +795,14 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true)
+	delegationProcessManyTimes(t, true, 1000, 10)
 }
 
 func TestDelegationProcessManyTimeCompile(t *testing.T) {
-	delegationProcessManyTimes(t, false)
+	delegationProcessManyTimes(t, false, 1000, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, warmInstance bool) {
-	numRun := 1000
+func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -836,9 +835,9 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
-	for j := 0; j < 10; j++ {
+	for j := 0; j < numRun; j++ {
 		start := time.Now()
-		for i := 0; i < numRun; i++ {
+		for i := 0; i < txPerBenchmark; i++ {
 
 			tx = &transaction.Transaction{
 				Nonce:    ownerNonce,
@@ -855,6 +854,6 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool) {
 		}
 
 		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process %d stake on delegation %s \n", numRun, elapsedTime.String())
+		fmt.Printf("time elapsed to process %d stake on delegation %s \n", txPerBenchmark, elapsedTime.String())
 	}
 }
