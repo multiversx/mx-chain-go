@@ -52,7 +52,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		arwen.CreateDeployTxData(scCode),
 	)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(senderNonce, senderAddressBytes, senderBalance, true)
 	defer testContext.Close()
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
@@ -83,7 +83,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance, true)
 	defer testContext.Close()
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
@@ -187,7 +187,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -269,7 +269,7 @@ func TestWASMNamespacing(t *testing.T) {
 		Signature: nil,
 	}
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -328,7 +328,7 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -401,7 +401,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -489,7 +489,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -688,7 +688,7 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, true)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -794,7 +794,15 @@ func TestAndCatchTrieError(t *testing.T) {
 	}
 }
 
-func TestDelegationProcessManyTimes(t *testing.T) {
+func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
+	delegationProcessManyTimes(t, true)
+}
+
+func TestDelegationProcessManyTimeCompile(t *testing.T) {
+	delegationProcessManyTimes(t, false)
+}
+
+func delegationProcessManyTimes(t *testing.T, warmInstance bool) {
 	numRun := 1000
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
@@ -804,7 +812,7 @@ func TestDelegationProcessManyTimes(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, warmInstance)
 	defer testContext.Close()
 
 	value := big.NewInt(10)
@@ -828,23 +836,25 @@ func TestDelegationProcessManyTimes(t *testing.T) {
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
 
-	start := time.Now()
-	for i := 0; i < numRun; i++ {
+	for j := 0; j < 10; j++ {
+		start := time.Now()
+		for i := 0; i < numRun; i++ {
 
-		tx = &transaction.Transaction{
-			Nonce:    ownerNonce,
-			Value:    new(big.Int).Set(value),
-			SndAddr:  ownerAddressBytes,
-			RcvAddr:  scAddress,
-			Data:     []byte("stake"),
-			GasPrice: gasPrice,
-			GasLimit: gasLimit,
+			tx = &transaction.Transaction{
+				Nonce:    ownerNonce,
+				Value:    new(big.Int).Set(value),
+				SndAddr:  ownerAddressBytes,
+				RcvAddr:  scAddress,
+				Data:     []byte("stake"),
+				GasPrice: gasPrice,
+				GasLimit: gasLimit,
+			}
+			ownerNonce++
+
+			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
 		}
-		ownerNonce++
 
-		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process %d stake on delegation %s \n", numRun, elapsedTime.String())
 	}
-
-	elapsedTime := time.Since(start)
-	fmt.Printf("time elapsed to process stake on delegation %s \n", elapsedTime.String())
 }
