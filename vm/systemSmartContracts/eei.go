@@ -232,6 +232,14 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 	return input, nil
 }
 
+// DeploySmartContract will deploy a smart contract according to the input
+// will call the init function and merge the vmoutputs
+// will add to the system smart contracts container the new address
+func (host *vmContext) DeploySmartContract() (*vmcommon.VMOutput, error) {
+	// TODO: implement this
+	return nil, nil
+}
+
 // ExecuteOnDestContext executes the input data in the destinations context
 func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	if check.IfNil(host.systemContracts) {

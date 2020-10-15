@@ -3,6 +3,7 @@ package systemSmartContracts
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -13,6 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+const delegationManagmentKey = "delegationManagement"
+const delegationContractsList = "delegationContracts"
 
 type delegationManager struct {
 	eei                      vm.SystemEI
@@ -113,7 +117,74 @@ func (d *delegationManager) createNewDelegationContract(_ *vmcommon.ContractCall
 }
 
 func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+
+	managementData := &DelegationManagement{
+		NumberOfContract:     0,
+		LastAddress:          nil,
+		MinContractCreateFee: nil,
+		MinServiceFee:        0,
+		MaxServiceFee:        math.MaxUint64,
+		MinOperationValue:    nil,
+	}
+	err := d.saveDelegationManagementData(managementData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
+}
+
+func (d *delegationManager) getDelegationManagementData() (*DelegationManagement, error) {
+	marshalledData := d.eei.GetStorage([]byte(delegationManagmentKey))
+	if len(marshalledData) == 0 {
+		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	}
+
+	managementData := &DelegationManagement{}
+	err := d.marshalizer.Unmarshal(managementData, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+	return managementData, nil
+}
+
+func (d *delegationManager) saveDelegationManagementData(managementData *DelegationManagement) error {
+	marshalledData, err := d.marshalizer.Marshal(managementData)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage([]byte(delegationManagmentKey), marshalledData)
+	return nil
+}
+
+func (d *delegationManager) getDelegationContractList() (*DelegationContractList, error) {
+	marshalledData := d.eei.GetStorage([]byte(delegationContractsList))
+	if len(marshalledData) == 0 {
+		return nil, fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
+	}
+
+	contractList := &DelegationContractList{}
+	err := d.marshalizer.Unmarshal(contractList, marshalledData)
+	if err != nil {
+		return nil, err
+	}
+	return contractList, nil
+}
+
+func (d *delegationManager) saveDelegationContractList(list *DelegationContractList) error {
+	marshalledData, err := d.marshalizer.Marshal(list)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage([]byte(delegationContractsList), marshalledData)
+	return nil
 }
 
 // EpochConfirmed  is called whenever a new epoch is confirmed
