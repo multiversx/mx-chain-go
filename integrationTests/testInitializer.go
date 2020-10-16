@@ -1379,39 +1379,8 @@ func CreateSendersWithInitialBalances(
 }
 
 // CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
-// node's tx sign private key and send it on the transaction topic
-func CreateAndSendTransaction(
-	node *TestProcessorNode,
-	txValue *big.Int,
-	rcvAddress []byte,
-	txData string,
-	additionalGasLimit uint64,
-) {
-	tx := &transaction.Transaction{
-		Nonce:    node.OwnAccount.Nonce,
-		Value:    new(big.Int).Set(txValue),
-		SndAddr:  node.OwnAccount.Address,
-		RcvAddr:  rcvAddress,
-		Data:     []byte(txData),
-		GasPrice: MinTxGasPrice,
-		GasLimit: MinTxGasLimit + uint64(len(txData)) + additionalGasLimit,
-		ChainID:  ChainID,
-		Version:  MinTransactionVersion,
-	}
-
-	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
-	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
-
-	_, err := node.SendTransaction(tx)
-	if err != nil {
-		log.Error("could not create transaction", "address", node.OwnAccount.Address, "error", err)
-	}
-	node.OwnAccount.Nonce++
-}
-
-// CreateAndSendTransactionOnTheCorrectShard will generate a transaction with provided parameters, sign it with the provided
 // node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
-func CreateAndSendTransactionOnTheCorrectShard(
+func CreateAndSendTransaction(
 	node *TestProcessorNode,
 	nodes []*TestProcessorNode,
 	txValue *big.Int,
