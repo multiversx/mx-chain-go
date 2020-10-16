@@ -174,8 +174,11 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		)
 		boot.setRequestedHeaderNonce(nil)
 		boot.mutRcvHdrNonce.Unlock()
+		//TODO: remove this
+		log.Debug("before send on channel")
 		boot.chRcvHdrNonce <- true
-
+		//TODO: remove this
+		log.Debug("received requested header by nonce from network")
 		return
 	}
 
