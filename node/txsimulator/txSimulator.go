@@ -60,11 +60,11 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transac
 	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		failReason = err.Error()
-		txStatus = transaction.TxStatusUnsuccessful
+		txStatus = transaction.TxStatusFail
 	}
 
 	if retCode == vmcommon.Ok {
-		txStatus = transaction.TxStatusSuccessful
+		txStatus = transaction.TxStatusSuccess
 	}
 
 	results := &transaction.SimulationResults{

@@ -11,10 +11,10 @@ type TxStatus string
 const (
 	// TxStatusPending = received and maybe executed on source shard, but not on destination shard
 	TxStatusPending TxStatus = "pending"
-	// TxStatusSuccessful = received and executed
-	TxStatusSuccessful TxStatus = "successful"
-	// TxStatusUnsuccessful = received and executed with error
-	TxStatusUnsuccessful TxStatus = "unsuccessful"
+	// TxStatusSuccess = received and executed
+	TxStatusSuccess TxStatus = "success"
+	// TxStatusFail = received and executed with error
+	TxStatusFail TxStatus = "fail"
 	// TxStatusInvalid = considered invalid
 	TxStatusInvalid TxStatus = "invalid"
 )
@@ -41,7 +41,7 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 		return TxStatusInvalid
 	}
 	if params.IsMiniblockFinalized || params.isDestinationMe() || params.isContractDeploy() {
-		return TxStatusSuccessful
+		return TxStatusSuccess
 	}
 
 	return TxStatusPending
@@ -52,7 +52,7 @@ func (params *StatusComputer) ComputeStatusWhenInStorageKnowingMiniblock() TxSta
 // However, when "dblookupext" indexing is enabled, this function is not used.
 func (params *StatusComputer) ComputeStatusWhenInStorageNotKnowingMiniblock() TxStatus {
 	if params.isDestinationMe() || params.isContractDeploy() {
-		return TxStatusSuccessful
+		return TxStatusSuccess
 	}
 
 	// At least partially executed (since in source's storage)
