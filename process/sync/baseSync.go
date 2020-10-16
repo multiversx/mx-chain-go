@@ -1006,7 +1006,20 @@ func (boot *baseBootstrap) Close() error {
 		boot.cancelFunc()
 	}
 
+	boot.cleanChannels()
+
 	return nil
+}
+
+func (boot *baseBootstrap) cleanChannels() {
+	nrReads := core.EmptyChannel(boot.chRcvHdrNonce)
+	log.Debug("close baseSync: emptied channel", "chRcvHdrNonce nrReads", nrReads)
+
+	nrReads = core.EmptyChannel(boot.chRcvHdrHash)
+	log.Debug("close baseSync: emptied channel", "chRcvHdrHash nrReads", nrReads)
+
+	nrReads = core.EmptyChannel(boot.chRcvMiniBlocks)
+	log.Debug("close baseSync: emptied channel", "chRcvMiniBlocks nrReads", nrReads)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
