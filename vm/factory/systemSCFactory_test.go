@@ -107,7 +107,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 4, container.Len())
+	assert.Equal(t, 6, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
