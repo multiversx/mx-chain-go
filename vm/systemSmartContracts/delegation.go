@@ -432,8 +432,8 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	listToVerify := append(dStatus.StakedKeys, dStatus.NotStakedKeys...)
 	listToVerify = append(listToVerify, dStatus.UnStakedKeys...)
-	exist := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
-	if exist {
+	foundOne := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
+	if foundOne {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -539,8 +539,8 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 	listToCheck := append(dStatus.NotStakedKeys, dStatus.UnStakedKeys...)
-	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
-	if exist {
+	foundAll := verifyAllBLSKeysExist(listToCheck, args.Arguments)
+	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -568,7 +568,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	stakeArgs := makeStakeArgs(dStatus.NotStakedKeys, args.Arguments)
+	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
 	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, stakeValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -581,6 +581,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
 		dStatus.NotStakedKeys, dStatus.StakedKeys = moveNodeFromList(dStatus.NotStakedKeys, dStatus.StakedKeys, successKey)
+		dStatus.UnStakedKeys, dStatus.StakedKeys = moveNodeFromList(dStatus.UnStakedKeys, dStatus.StakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(dStatus)
@@ -606,8 +607,8 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	exist := verifyIfBLSPubKeysExist(dStatus.StakedKeys, args.Arguments)
-	if !exist {
+	foundAlll := verifyAllBLSKeysExist(dStatus.StakedKeys, args.Arguments)
+	if !foundAlll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -664,8 +665,8 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	exist := verifyIfBLSPubKeysExist(dStatus.UnStakedKeys, args.Arguments)
-	if !exist {
+	foundAll := verifyAllBLSKeysExist(dStatus.UnStakedKeys, args.Arguments)
+	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -729,8 +730,8 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	listToCheck := append(dStatus.StakedKeys, dStatus.UnStakedKeys...)
-	exist := verifyIfBLSPubKeysExist(listToCheck, args.Arguments)
-	if exist {
+	foundAll := verifyAllBLSKeysExist(listToCheck, args.Arguments)
+	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -1343,6 +1344,23 @@ func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 	}
 
 	return false
+}
+
+func verifyAllBLSKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
+	for _, argKey := range arguments {
+		found := false
+		for _, nodeData := range listKeys {
+			if bytes.Equal(argKey, nodeData.BLSKey) {
+				found = true
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	return true
 }
 
 func checkForDuplicates(args [][]byte) bool {
