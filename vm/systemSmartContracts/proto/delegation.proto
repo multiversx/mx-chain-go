@@ -29,14 +29,15 @@ message DelegationConfig {
   bool   WithDelegationCap    = 6 [(gogoproto.jsontag) = "WithDelegationCap"];
   bool   ChangeableServiceFee = 7 [(gogoproto.jsontag) = "ChangeableServiceFee"];
   uint64 CreatedNonce         = 8 [(gogoproto.jsontag) = "CreatedNonce"];
+  uint64 UnBondPeriod         = 9 [(gogoproto.jsontag) = "UnBondPeriod"];
 }
 
 message DelegationContractStatus {
-  bytes  TotalActive               = 1 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  TotalUnStaked             = 2 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  uint32 NumDelegators             = 3 [(gogoproto.jsontag) = "NumDelegators"];
-  repeated NodesData StakedKeys    = 4 [(gogoproto.jsontag) = "StakedKeys"];
-  repeated NodesData NotStakedKeys = 5 [(gogoproto.jsontag) = "NotStakedKeys"];
+  uint32 NumDelegators             = 1 [(gogoproto.jsontag) = "NumDelegators"];
+  repeated bytes     Delegators    = 2 [(gogoproto.jsontag) = "Delegators"];
+  repeated NodesData StakedKeys    = 3 [(gogoproto.jsontag) = "StakedKeys"];
+  repeated NodesData NotStakedKeys = 4 [(gogoproto.jsontag) = "NotStakedKeys"];
+  repeated NodesData UnStakedKeys  = 5 [(gogoproto.jsontag) = "UnStakedKeys"];
 }
 
 message Fund {
@@ -59,6 +60,9 @@ message GlobalFundData {
 
   bytes TotalUnStakedFromNodes = 4 [(gogoproto.jsontag) = "TotalUnStakedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
   bytes TotalUnBondedFromNodes = 5 [(gogoproto.jsontag) = "TotalUnBondedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalActive            = 6 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalUnStaked          = 7 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalStaked            = 8 [(gogoproto.jsontag) = "TotalStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message NodesData {

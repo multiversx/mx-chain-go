@@ -221,11 +221,9 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  sender,
-			Arguments:   arguments,
-			CallValue:   value,
-			GasPrice:    0,
-			GasProvided: 0,
+			CallerAddr: sender,
+			Arguments:  arguments,
+			CallValue:  value,
 		},
 		RecipientAddr: destination,
 		Function:      function,
@@ -235,17 +233,17 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 }
 
 // ExecuteOnDestContext executes the input data in the destinations context
-func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.VMOutput, error) {
+func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 	if check.IfNil(host.systemContracts) {
 		return nil, vm.ErrUnknownSystemSmartContract
 	}
 
-	input, err := host.createContractCallInput(destination, sender, value, data)
+	callInput, err := host.createContractCallInput(destination, sender, value, input)
 	if err != nil {
 		return nil, err
 	}
 
-	err = host.Transfer(input.RecipientAddr, input.CallerAddr, input.CallValue, nil, 0)
+	err = host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -257,21 +255,21 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	}()
 
 	host.softCleanCache()
-	host.SetSCAddress(input.RecipientAddr)
+	host.SetSCAddress(callInput.RecipientAddr)
 
-	contract, err := host.systemContracts.Get(input.RecipientAddr)
+	contract, err := host.systemContracts.Get(callInput.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	if input.Function == core.SCDeployInitFunctionName {
+	if callInput.Function == core.SCDeployInitFunctionName {
 		return &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: "cannot call smart contract init function",
 		}, nil
 	}
 
-	returnCode := contract.Execute(input)
+	returnCode := contract.Execute(callInput)
 
 	vmOutput := &vmcommon.VMOutput{}
 	if returnCode == vmcommon.Ok {
