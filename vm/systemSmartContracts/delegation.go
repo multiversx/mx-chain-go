@@ -607,8 +607,8 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	foundAlll := verifyAllBLSKeysExist(dStatus.StakedKeys, args.Arguments)
-	if !foundAlll {
+	foundAll := verifyAllBLSKeysExist(dStatus.StakedKeys, args.Arguments)
+	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
@@ -1352,6 +1352,7 @@ func verifyAllBLSKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 		for _, nodeData := range listKeys {
 			if bytes.Equal(argKey, nodeData.BLSKey) {
 				found = true
+				break
 			}
 		}
 
