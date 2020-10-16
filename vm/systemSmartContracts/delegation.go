@@ -38,6 +38,7 @@ type delegation struct {
 	enableDelegationEpoch  uint32
 	minServiceFee          uint64
 	maxServiceFee          uint64
+	unBondPeriod           uint64
 	minDelegationAmount    *big.Int
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
@@ -94,6 +95,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
 		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
 		sigVerifier:            args.SigVerifier,
+		unBondPeriod:           args.StakingSCConfig.UnBondPeriod,
 	}
 
 	var okValue bool
@@ -126,9 +128,12 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage("nil contract call input")
 		return vmcommon.UserError
 	}
-
 	if !d.delegationEnabled.IsSet() {
 		d.eei.AddReturnMessage("delegation manager contract is not enabled")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(args.RecipientAddr, vm.FirstDelegationSCAddress) {
+		d.eei.AddReturnMessage("first delegation sc address cannot be called")
 		return vmcommon.UserError
 	}
 
@@ -169,23 +174,23 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		d.eei.AddReturnMessage("smart contract was already initialized")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) != 4 {
+	if len(args.Arguments) != 2 {
 		d.eei.AddReturnMessage("invalid number of arguments to init delegation contract")
 		return vmcommon.UserError
 	}
 
-	ownerAddress = args.Arguments[0]
-	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+	ownerAddress = args.CallerAddr
+	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
 	dConfig := &DelegationConfig{
 		OwnerAddress:         ownerAddress,
-		ServiceFee:           big.NewInt(0).SetBytes(args.Arguments[2]).Uint64(),
-		MaxDelegationCap:     big.NewInt(0).SetBytes(args.Arguments[1]),
+		ServiceFee:           big.NewInt(0).SetBytes(args.Arguments[1]).Uint64(),
+		MaxDelegationCap:     big.NewInt(0).SetBytes(args.Arguments[0]),
 		InitialOwnerFunds:    big.NewInt(0).Set(args.CallValue),
 		AutomaticActivation:  false,
 		WithDelegationCap:    true,
 		ChangeableServiceFee: true,
 		CreatedNonce:         d.eei.BlockChainHook().CurrentNonce(),
-		UnBondPeriod:         big.NewInt(0).SetBytes(args.Arguments[3]).Uint64(),
+		UnBondPeriod:         d.unBondPeriod,
 	}
 
 	if dConfig.MaxDelegationCap.Cmp(zero) == 0 {

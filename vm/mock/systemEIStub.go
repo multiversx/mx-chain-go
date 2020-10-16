@@ -26,6 +26,7 @@ type SystemEIStub struct {
 	UseGasCalled                    func(gas uint64) error
 	IsValidatorCalled               func(blsKey []byte) bool
 	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
+	DeploySystemSCCalled            func(baseContract []byte, newAddress []byte, caller []byte, value *big.Int, args [][]byte) (vmcommon.ReturnCode, error)
 	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                 func(blsKey []byte) bool
@@ -82,6 +83,20 @@ func (s *SystemEIStub) ExecuteOnDestContext(
 	}
 
 	return &vmcommon.VMOutput{}, nil
+}
+
+// DeploySystemSC -
+func (s *SystemEIStub) DeploySystemSC(
+	baseContract []byte,
+	newAddress []byte,
+	ownerAddress []byte,
+	value *big.Int,
+	input [][]byte,
+) (vmcommon.ReturnCode, error) {
+	if s.DeploySystemSCCalled != nil {
+		return s.DeploySystemSCCalled(baseContract, newAddress, ownerAddress, value, input)
+	}
+	return vmcommon.Ok, nil
 }
 
 // SetSystemSCContainer -

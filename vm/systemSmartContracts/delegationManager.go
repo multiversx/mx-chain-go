@@ -2,6 +2,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -42,8 +43,6 @@ type ArgsNewDelegationManager struct {
 	Marshalizer            marshal.Marshalizer
 	EpochNotifier          vm.EpochNotifier
 }
-
-//TODO: what happens if a leaf is bigger than 1Mbs
 
 // NewDelegationManagerSystemSC creates a new delegation manager system SC
 func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationManager, error) {
@@ -112,8 +111,8 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.createNewDelegationContract(args)
 	case "getAllContractAddresses":
 		return d.getAllContractAddresses(args)
-	case "changeBaseIssueingCost":
-		return d.changeBaseIssueingCost(args)
+	case "changeBaseIssuingCost":
+		return d.changeBaseIssuingCost(args)
 	case "changeMinDeposit":
 		return d.changeMinDeposit(args)
 	}
@@ -181,11 +180,23 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
+	depositValue := big.NewInt(0).Sub(args.CallValue, delegationManagement.BaseIssueingCost)
 	newAddress := createNewAddress(delegationManagement.LastAddress)
+
+	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, args.CallerAddr, depositValue, args.Arguments)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
 	delegationManagement.NumberOfContract += 1
 	delegationManagement.LastAddress = newAddress
 	delegationList.Addresses = append(delegationList.Addresses, newAddress)
 
+	d.eei.SetStorage(args.CallerAddr, newAddress)
 	err = d.saveDelegationManagementData(delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -200,21 +211,104 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 
 	return vmcommon.Ok
 }
+func (d *delegationManager) checkConfigChangeInput(args *vmcommon.ContractCallInput) error {
+	if args.CallValue.Cmp(zero) != 0 {
+		return vm.ErrCallValueMustBeZero
+	}
+	if len(args.Arguments) != 1 {
+		return vm.ErrInvalidNumOfArguments
+	}
+	if !bytes.Equal(args.CallerAddr, d.delegationMgrSCAddress) {
+		return vm.ErrInvalidCaller
+	}
+	return nil
+}
 
-func (d *delegationManager) changeBaseIssueingCost(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) changeBaseIssuingCost(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := d.checkConfigChangeInput(args)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	delegationManagment, err := d.getDelegationManagementData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	baseIssuingCost := big.NewInt(0).SetBytes(args.Arguments[0])
+	if baseIssuingCost.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("invalid base issuing cost")
+		return vmcommon.UserError
+	}
+	delegationManagment.BaseIssueingCost = baseIssuingCost
+	err = d.saveDelegationManagementData(delegationManagment)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.UserError
 }
 
-func (d *delegationManager) changeMinDeposit(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) changeMinDeposit(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := d.checkConfigChangeInput(args)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	delegationManagment, err := d.getDelegationManagementData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	minDeposit := big.NewInt(0).SetBytes(args.Arguments[0])
+	if minDeposit.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("invalid base issuing cost")
+		return vmcommon.UserError
+	}
+	delegationManagment.MinDeposit = minDeposit
+	err = d.saveDelegationManagementData(delegationManagment)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.UserError
 }
 
-func (d *delegationManager) getAllContractAddresses(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, d.delegationMgrSCAddress) {
+		d.eei.AddReturnMessage(vm.ErrInvalidCaller.Error())
+		return vmcommon.UserError
+	}
+
+	contractList, err := d.getDelegationContractList()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	for _, address := range contractList.Addresses {
+		d.eei.Finish(address)
+	}
+
 	return vmcommon.UserError
 }
 
 func createNewAddress(lastAddress []byte) []byte {
 	newAddress := make([]byte, 0, len(lastAddress))
+	copy(newAddress, lastAddress)
+
+	for i := len(newAddress) - 1; i > 0; i++ {
+		if newAddress[i] < 255 {
+			newAddress[i]++
+			break
+		}
+	}
 
 	return newAddress
 }
