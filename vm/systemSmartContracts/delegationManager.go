@@ -43,6 +43,8 @@ type ArgsNewDelegationManager struct {
 	EpochNotifier          vm.EpochNotifier
 }
 
+//TODO: what happens if a leaf is bigger than 1Mbs
+
 // NewDelegationManagerSystemSC creates a new delegation manager system SC
 func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationManager, error) {
 	if check.IfNil(args.Eei) {
@@ -110,18 +112,14 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.createNewDelegationContract(args)
 	case "getAllContractAddresses":
 		return d.getAllContractAddresses(args)
+	case "changeBaseIssueingCost":
+		return d.changeBaseIssueingCost(args)
+	case "changeMinDeposit":
+		return d.changeMinDeposit(args)
 	}
 
 	d.eei.AddReturnMessage("invalid function to call")
 	return vmcommon.UserError
-}
-
-func (d *delegationManager) getAllContractAddresses(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
-}
-
-func (d *delegationManager) createNewDelegationContract(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.Ok
 }
 
 func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -144,7 +142,85 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	delegationList := &DelegationContractList{Addresses: make([][]byte, 0)}
+	err = d.saveDelegationContractList(delegationList)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
+}
+
+func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationMgrOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if d.callerAlreadyDeployed(args.CallerAddr) {
+		d.eei.AddReturnMessage("caller already deployed a delegation sc")
+		return vmcommon.UserError
+	}
+
+	delegationManagement, err := d.getDelegationManagementData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	minValue := big.NewInt(0).Add(delegationManagement.MinDeposit, delegationManagement.BaseIssueingCost)
+	if args.CallValue.Cmp(minValue) < 0 {
+		d.eei.AddReturnMessage("not enough call value")
+		return vmcommon.UserError
+	}
+
+	delegationList, err := d.getDelegationContractList()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	newAddress := createNewAddress(delegationManagement.LastAddress)
+	delegationManagement.NumberOfContract += 1
+	delegationManagement.LastAddress = newAddress
+	delegationList.Addresses = append(delegationList.Addresses, newAddress)
+
+	err = d.saveDelegationManagementData(delegationManagement)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegationContractList(delegationList)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) changeBaseIssueingCost(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.UserError
+}
+
+func (d *delegationManager) changeMinDeposit(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.UserError
+}
+
+func (d *delegationManager) getAllContractAddresses(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	return vmcommon.UserError
+}
+
+func createNewAddress(lastAddress []byte) []byte {
+	newAddress := make([]byte, 0, len(lastAddress))
+
+	return newAddress
+}
+
+func (d *delegationManager) callerAlreadyDeployed(address []byte) bool {
+	return len(d.eei.GetStorage(address)) > 0
 }
 
 func (d *delegationManager) getDelegationManagementData() (*DelegationManagement, error) {
