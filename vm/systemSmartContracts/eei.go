@@ -284,6 +284,11 @@ func (host *vmContext) DeploySystemSC(
 	host.SetSCAddress(oldSCAddress)
 	host.addContractDeployToOutput(newAddress, ownerAddress, baseContract)
 
+	err = host.systemContracts.Replace(newAddress, contract)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
 	return returnCode, nil
 }
 

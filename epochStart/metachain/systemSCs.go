@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -32,27 +33,29 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	DelegationEnableEpoch                  uint32
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	EpochNotifier      process.EpochNotifier
 }
 
 type systemSCProcessor struct {
-	systemVM                vmcommon.VMExecutionHandler
-	userAccountsDB          state.AccountsAdapter
-	marshalizer             marshal.Marshalizer
-	peerAccountsDB          state.AccountsAdapter
-	chanceComputer          sharding.ChanceComputer
-	startRating             uint32
-	validatorInfoCreator    epochStart.ValidatorInfoCreator
-	genesisNodesConfig      sharding.GenesisNodesSetupHandler
-	endOfEpochCallerAddress []byte
-	stakingSCAddress        []byte
-	switchEnableEpoch       uint32
-	hystNodesEnableEpoch    uint32
-	flagSwitchEnabled       atomic.Flag
-	flagHystNodesEnabled    atomic.Flag
-
+	systemVM                 vmcommon.VMExecutionHandler
+	userAccountsDB           state.AccountsAdapter
+	marshalizer              marshal.Marshalizer
+	peerAccountsDB           state.AccountsAdapter
+	chanceComputer           sharding.ChanceComputer
+	startRating              uint32
+	validatorInfoCreator     epochStart.ValidatorInfoCreator
+	genesisNodesConfig       sharding.GenesisNodesSetupHandler
+	endOfEpochCallerAddress  []byte
+	stakingSCAddress         []byte
+	switchEnableEpoch        uint32
+	hystNodesEnableEpoch     uint32
+	delegationEnableEpoch    uint32
+	flagSwitchEnabled        atomic.Flag
+	flagHystNodesEnabled     atomic.Flag
+	flagDelegationEnabled    atomic.Flag
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
 }
@@ -125,6 +128,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:    args.DelegationEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -135,6 +139,13 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	if s.flagHystNodesEnabled.IsSet() {
 		err := s.updateSystemSCConfig()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagDelegationEnabled.IsSet() {
+		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
@@ -353,8 +364,8 @@ func switchJailedWithNewValidatorInMap(
 	}
 }
 
-func (s *systemSCProcessor) getExistingAccount(address []byte) (state.UserAccountHandler, error) {
-	acnt, err := s.userAccountsDB.GetExistingAccount(address)
+func (s *systemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	acnt, err := s.userAccountsDB.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +385,7 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		acc, err := s.getExistingAccount(outAcc.Address)
+		acc, err := s.getUserAccount(outAcc.Address)
 		if err != nil {
 			return err
 		}
@@ -460,6 +471,53 @@ func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
 	return nil
 }
 
+func (s *systemSCProcessor) initDelegationSystemSC() error {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.DelegationManagerSCAddress,
+			Arguments:  [][]byte{},
+			CallValue:  big.NewInt(0),
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrCouldNotInitDelegationSystemSC
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc, err := s.getUserAccount(vm.DelegationManagerSCAddress)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
+	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
+	delegationMgrAcc.SetCode(vmInput.ContractCodeMetadata)
+
+	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -468,10 +526,14 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
-	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", s.flagHystNodesEnabled.IsSet())
+
+	// only toggle on exact epoch as init should be called only once
+	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
+	log.Debug("systemProcessor: delegation", "enabled", s.flagHystNodesEnabled.IsSet())
 }

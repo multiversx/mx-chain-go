@@ -4,7 +4,6 @@ package systemSmartContracts
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -30,11 +29,14 @@ type delegationManager struct {
 	enableDelegationMgrEpoch uint32
 	baseIssuingCost          *big.Int
 	minCreationDeposit       *big.Int
+	minFee                   uint64
+	maxFee                   uint64
 }
 
 // ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
 type ArgsNewDelegationManager struct {
 	DelegationMgrSCConfig  config.DelegationManagerSystemSCConfig
+	DelegationSCConfig     config.DelegationSystemSCConfig
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
@@ -86,6 +88,8 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		enableDelegationMgrEpoch: args.DelegationMgrSCConfig.EnabledEpoch,
 		baseIssuingCost:          baseIssuingCost,
 		minCreationDeposit:       minCreationDeposit,
+		minFee:                   args.DelegationSCConfig.MinServiceFee,
+		maxFee:                   args.DelegationSCConfig.MaxServiceFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(d)
@@ -130,8 +134,8 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 	managementData := &DelegationManagement{
 		NumberOfContract: 0,
 		LastAddress:      vm.FirstDelegationSCAddress,
-		MinServiceFee:    0,
-		MaxServiceFee:    math.MaxUint64,
+		MinServiceFee:    d.minFee,
+		MaxServiceFee:    d.maxFee,
 		BaseIssueingCost: d.baseIssuingCost,
 		MinDeposit:       d.minCreationDeposit,
 	}
@@ -208,6 +212,8 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	d.eei.Finish(newAddress)
 
 	return vmcommon.Ok
 }

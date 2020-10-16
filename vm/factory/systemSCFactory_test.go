@@ -51,6 +51,17 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "10",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  10000,
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "10",
+				MinCreationDeposit: "10",
+				EnabledEpoch:       0,
+			},
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
 	}

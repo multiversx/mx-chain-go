@@ -2,9 +2,11 @@ package config
 
 // SystemSmartContractsConfig defines the system smart contract configs
 type SystemSmartContractsConfig struct {
-	ESDTSystemSCConfig       ESDTSystemSCConfig
-	GovernanceSystemSCConfig GovernanceSystemSCConfig
-	StakingSystemSCConfig    StakingSystemSCConfig
+	ESDTSystemSCConfig              ESDTSystemSCConfig
+	GovernanceSystemSCConfig        GovernanceSystemSCConfig
+	StakingSystemSCConfig           StakingSystemSCConfig
+	DelegationManagerSystemSCConfig DelegationManagerSystemSCConfig
+	DelegationSystemSCConfig        DelegationSystemSCConfig
 }
 
 // StakingSystemSCConfig will hold the staking system smart contract settings
