@@ -28,7 +28,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type StakedDataV1 struct {
+type StakedDataV1_0 struct {
 	RegisterNonce uint64        `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
 	StakedNonce   uint64        `protobuf:"varint,2,opt,name=StakedNonce,proto3" json:"StakedNonce"`
 	Staked        bool          `protobuf:"varint,3,opt,name=Staked,proto3" json:"Staked"`
@@ -43,15 +43,15 @@ type StakedDataV1 struct {
 	Waiting       bool          `protobuf:"varint,12,opt,name=Waiting,proto3" json:"Waiting"`
 }
 
-func (m *StakedDataV1) Reset()      { *m = StakedDataV1{} }
-func (*StakedDataV1) ProtoMessage() {}
-func (*StakedDataV1) Descriptor() ([]byte, []int) {
+func (m *StakedDataV1_0) Reset()      { *m = StakedDataV1_0{} }
+func (*StakedDataV1_0) ProtoMessage() {}
+func (*StakedDataV1_0) Descriptor() ([]byte, []int) {
 	return fileDescriptor_289e7c8aea278311, []int{0}
 }
-func (m *StakedDataV1) XXX_Unmarshal(b []byte) error {
+func (m *StakedDataV1_0) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *StakedDataV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *StakedDataV1_0) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
 	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
@@ -59,103 +59,103 @@ func (m *StakedDataV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 	}
 	return b[:n], nil
 }
-func (m *StakedDataV1) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StakedDataV1.Merge(m, src)
+func (m *StakedDataV1_0) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StakedDataV1_0.Merge(m, src)
 }
-func (m *StakedDataV1) XXX_Size() int {
+func (m *StakedDataV1_0) XXX_Size() int {
 	return m.Size()
 }
-func (m *StakedDataV1) XXX_DiscardUnknown() {
-	xxx_messageInfo_StakedDataV1.DiscardUnknown(m)
+func (m *StakedDataV1_0) XXX_DiscardUnknown() {
+	xxx_messageInfo_StakedDataV1_0.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StakedDataV1 proto.InternalMessageInfo
+var xxx_messageInfo_StakedDataV1_0 proto.InternalMessageInfo
 
-func (m *StakedDataV1) GetRegisterNonce() uint64 {
+func (m *StakedDataV1_0) GetRegisterNonce() uint64 {
 	if m != nil {
 		return m.RegisterNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetStakedNonce() uint64 {
+func (m *StakedDataV1_0) GetStakedNonce() uint64 {
 	if m != nil {
 		return m.StakedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetStaked() bool {
+func (m *StakedDataV1_0) GetStaked() bool {
 	if m != nil {
 		return m.Staked
 	}
 	return false
 }
 
-func (m *StakedDataV1) GetUnStakedNonce() uint64 {
+func (m *StakedDataV1_0) GetUnStakedNonce() uint64 {
 	if m != nil {
 		return m.UnStakedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetUnStakedEpoch() uint32 {
+func (m *StakedDataV1_0) GetUnStakedEpoch() uint32 {
 	if m != nil {
 		return m.UnStakedEpoch
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetRewardAddress() []byte {
+func (m *StakedDataV1_0) GetRewardAddress() []byte {
 	if m != nil {
 		return m.RewardAddress
 	}
 	return nil
 }
 
-func (m *StakedDataV1) GetStakeValue() *math_big.Int {
+func (m *StakedDataV1_0) GetStakeValue() *math_big.Int {
 	if m != nil {
 		return m.StakeValue
 	}
 	return nil
 }
 
-func (m *StakedDataV1) GetJailedRound() uint64 {
+func (m *StakedDataV1_0) GetJailedRound() uint64 {
 	if m != nil {
 		return m.JailedRound
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetJailedNonce() uint64 {
+func (m *StakedDataV1_0) GetJailedNonce() uint64 {
 	if m != nil {
 		return m.JailedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetUnJailedNonce() uint64 {
+func (m *StakedDataV1_0) GetUnJailedNonce() uint64 {
 	if m != nil {
 		return m.UnJailedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV1) GetJailed() bool {
+func (m *StakedDataV1_0) GetJailed() bool {
 	if m != nil {
 		return m.Jailed
 	}
 	return false
 }
 
-func (m *StakedDataV1) GetWaiting() bool {
+func (m *StakedDataV1_0) GetWaiting() bool {
 	if m != nil {
 		return m.Waiting
 	}
 	return false
 }
 
-type StakedDataV2 struct {
+type StakedDataV1_1 struct {
 	RegisterNonce uint64        `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
 	StakedNonce   uint64        `protobuf:"varint,2,opt,name=StakedNonce,proto3" json:"StakedNonce"`
 	Staked        bool          `protobuf:"varint,3,opt,name=Staked,proto3" json:"Staked"`
@@ -172,15 +172,15 @@ type StakedDataV2 struct {
 	SlashValue    *math_big.Int `protobuf:"bytes,14,opt,name=SlashValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"SlashValue"`
 }
 
-func (m *StakedDataV2) Reset()      { *m = StakedDataV2{} }
-func (*StakedDataV2) ProtoMessage() {}
-func (*StakedDataV2) Descriptor() ([]byte, []int) {
+func (m *StakedDataV1_1) Reset()      { *m = StakedDataV1_1{} }
+func (*StakedDataV1_1) ProtoMessage() {}
+func (*StakedDataV1_1) Descriptor() ([]byte, []int) {
 	return fileDescriptor_289e7c8aea278311, []int{1}
 }
-func (m *StakedDataV2) XXX_Unmarshal(b []byte) error {
+func (m *StakedDataV1_1) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *StakedDataV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *StakedDataV1_1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
 	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
@@ -188,112 +188,263 @@ func (m *StakedDataV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error)
 	}
 	return b[:n], nil
 }
-func (m *StakedDataV2) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StakedDataV2.Merge(m, src)
+func (m *StakedDataV1_1) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StakedDataV1_1.Merge(m, src)
 }
-func (m *StakedDataV2) XXX_Size() int {
+func (m *StakedDataV1_1) XXX_Size() int {
 	return m.Size()
 }
-func (m *StakedDataV2) XXX_DiscardUnknown() {
-	xxx_messageInfo_StakedDataV2.DiscardUnknown(m)
+func (m *StakedDataV1_1) XXX_DiscardUnknown() {
+	xxx_messageInfo_StakedDataV1_1.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_StakedDataV2 proto.InternalMessageInfo
+var xxx_messageInfo_StakedDataV1_1 proto.InternalMessageInfo
 
-func (m *StakedDataV2) GetRegisterNonce() uint64 {
+func (m *StakedDataV1_1) GetRegisterNonce() uint64 {
 	if m != nil {
 		return m.RegisterNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetStakedNonce() uint64 {
+func (m *StakedDataV1_1) GetStakedNonce() uint64 {
 	if m != nil {
 		return m.StakedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetStaked() bool {
+func (m *StakedDataV1_1) GetStaked() bool {
 	if m != nil {
 		return m.Staked
 	}
 	return false
 }
 
-func (m *StakedDataV2) GetUnStakedNonce() uint64 {
+func (m *StakedDataV1_1) GetUnStakedNonce() uint64 {
 	if m != nil {
 		return m.UnStakedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetUnStakedEpoch() uint32 {
+func (m *StakedDataV1_1) GetUnStakedEpoch() uint32 {
 	if m != nil {
 		return m.UnStakedEpoch
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetRewardAddress() []byte {
+func (m *StakedDataV1_1) GetRewardAddress() []byte {
 	if m != nil {
 		return m.RewardAddress
 	}
 	return nil
 }
 
-func (m *StakedDataV2) GetStakeValue() *math_big.Int {
+func (m *StakedDataV1_1) GetStakeValue() *math_big.Int {
 	if m != nil {
 		return m.StakeValue
 	}
 	return nil
 }
 
-func (m *StakedDataV2) GetJailedRound() uint64 {
+func (m *StakedDataV1_1) GetJailedRound() uint64 {
 	if m != nil {
 		return m.JailedRound
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetJailedNonce() uint64 {
+func (m *StakedDataV1_1) GetJailedNonce() uint64 {
 	if m != nil {
 		return m.JailedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetUnJailedNonce() uint64 {
+func (m *StakedDataV1_1) GetUnJailedNonce() uint64 {
 	if m != nil {
 		return m.UnJailedNonce
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetJailed() bool {
+func (m *StakedDataV1_1) GetJailed() bool {
 	if m != nil {
 		return m.Jailed
 	}
 	return false
 }
 
-func (m *StakedDataV2) GetWaiting() bool {
+func (m *StakedDataV1_1) GetWaiting() bool {
 	if m != nil {
 		return m.Waiting
 	}
 	return false
 }
 
-func (m *StakedDataV2) GetNumJailed() uint32 {
+func (m *StakedDataV1_1) GetNumJailed() uint32 {
 	if m != nil {
 		return m.NumJailed
 	}
 	return 0
 }
 
-func (m *StakedDataV2) GetSlashValue() *math_big.Int {
+func (m *StakedDataV1_1) GetSlashValue() *math_big.Int {
 	if m != nil {
 		return m.SlashValue
+	}
+	return nil
+}
+
+type StakedDataV2_0 struct {
+	RegisterNonce uint64        `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
+	StakedNonce   uint64        `protobuf:"varint,2,opt,name=StakedNonce,proto3" json:"StakedNonce"`
+	Staked        bool          `protobuf:"varint,3,opt,name=Staked,proto3" json:"Staked"`
+	UnStakedNonce uint64        `protobuf:"varint,4,opt,name=UnStakedNonce,proto3" json:"UnStakedNonce"`
+	UnStakedEpoch uint32        `protobuf:"varint,5,opt,name=UnStakedEpoch,proto3" json:"UnStakedEpoch"`
+	RewardAddress []byte        `protobuf:"bytes,6,opt,name=RewardAddress,proto3" json:"RewardAddress"`
+	StakeValue    *math_big.Int `protobuf:"bytes,7,opt,name=StakeValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"StakeValue"`
+	JailedRound   uint64        `protobuf:"varint,8,opt,name=JailedRound,proto3" json:"JailedRound"`
+	JailedNonce   uint64        `protobuf:"varint,9,opt,name=JailedNonce,proto3" json:"JailedNonce"`
+	UnJailedNonce uint64        `protobuf:"varint,10,opt,name=UnJailedNonce,proto3" json:"UnJailedNonce"`
+	Jailed        bool          `protobuf:"varint,11,opt,name=Jailed,proto3" json:"Jailed"`
+	Waiting       bool          `protobuf:"varint,12,opt,name=Waiting,proto3" json:"Waiting"`
+	NumJailed     uint32        `protobuf:"varint,13,opt,name=NumJailed,proto3" json:"NumJailed"`
+	SlashValue    *math_big.Int `protobuf:"bytes,14,opt,name=SlashValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"SlashValue"`
+	OwnerAddress  []byte        `protobuf:"bytes,15,opt,name=OwnerAddress,proto3" json:"OwnerAddress"`
+}
+
+func (m *StakedDataV2_0) Reset()      { *m = StakedDataV2_0{} }
+func (*StakedDataV2_0) ProtoMessage() {}
+func (*StakedDataV2_0) Descriptor() ([]byte, []int) {
+	return fileDescriptor_289e7c8aea278311, []int{2}
+}
+func (m *StakedDataV2_0) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *StakedDataV2_0) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *StakedDataV2_0) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StakedDataV2_0.Merge(m, src)
+}
+func (m *StakedDataV2_0) XXX_Size() int {
+	return m.Size()
+}
+func (m *StakedDataV2_0) XXX_DiscardUnknown() {
+	xxx_messageInfo_StakedDataV2_0.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_StakedDataV2_0 proto.InternalMessageInfo
+
+func (m *StakedDataV2_0) GetRegisterNonce() uint64 {
+	if m != nil {
+		return m.RegisterNonce
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetStakedNonce() uint64 {
+	if m != nil {
+		return m.StakedNonce
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetStaked() bool {
+	if m != nil {
+		return m.Staked
+	}
+	return false
+}
+
+func (m *StakedDataV2_0) GetUnStakedNonce() uint64 {
+	if m != nil {
+		return m.UnStakedNonce
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetUnStakedEpoch() uint32 {
+	if m != nil {
+		return m.UnStakedEpoch
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetRewardAddress() []byte {
+	if m != nil {
+		return m.RewardAddress
+	}
+	return nil
+}
+
+func (m *StakedDataV2_0) GetStakeValue() *math_big.Int {
+	if m != nil {
+		return m.StakeValue
+	}
+	return nil
+}
+
+func (m *StakedDataV2_0) GetJailedRound() uint64 {
+	if m != nil {
+		return m.JailedRound
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetJailedNonce() uint64 {
+	if m != nil {
+		return m.JailedNonce
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetUnJailedNonce() uint64 {
+	if m != nil {
+		return m.UnJailedNonce
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetJailed() bool {
+	if m != nil {
+		return m.Jailed
+	}
+	return false
+}
+
+func (m *StakedDataV2_0) GetWaiting() bool {
+	if m != nil {
+		return m.Waiting
+	}
+	return false
+}
+
+func (m *StakedDataV2_0) GetNumJailed() uint32 {
+	if m != nil {
+		return m.NumJailed
+	}
+	return 0
+}
+
+func (m *StakedDataV2_0) GetSlashValue() *math_big.Int {
+	if m != nil {
+		return m.SlashValue
+	}
+	return nil
+}
+
+func (m *StakedDataV2_0) GetOwnerAddress() []byte {
+	if m != nil {
+		return m.OwnerAddress
 	}
 	return nil
 }
@@ -308,7 +459,7 @@ type StakingNodesConfig struct {
 func (m *StakingNodesConfig) Reset()      { *m = StakingNodesConfig{} }
 func (*StakingNodesConfig) ProtoMessage() {}
 func (*StakingNodesConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_289e7c8aea278311, []int{2}
+	return fileDescriptor_289e7c8aea278311, []int{3}
 }
 func (m *StakingNodesConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -370,7 +521,7 @@ type ElementInList struct {
 func (m *ElementInList) Reset()      { *m = ElementInList{} }
 func (*ElementInList) ProtoMessage() {}
 func (*ElementInList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_289e7c8aea278311, []int{3}
+	return fileDescriptor_289e7c8aea278311, []int{4}
 }
 func (m *ElementInList) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -426,7 +577,7 @@ type WaitingList struct {
 func (m *WaitingList) Reset()      { *m = WaitingList{} }
 func (*WaitingList) ProtoMessage() {}
 func (*WaitingList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_289e7c8aea278311, []int{4}
+	return fileDescriptor_289e7c8aea278311, []int{5}
 }
 func (m *WaitingList) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -480,8 +631,9 @@ func (m *WaitingList) GetLastJailedKey() []byte {
 }
 
 func init() {
-	proto.RegisterType((*StakedDataV1)(nil), "proto.StakedDataV1")
-	proto.RegisterType((*StakedDataV2)(nil), "proto.StakedDataV2")
+	proto.RegisterType((*StakedDataV1_0)(nil), "proto.StakedDataV1_0")
+	proto.RegisterType((*StakedDataV1_1)(nil), "proto.StakedDataV1_1")
+	proto.RegisterType((*StakedDataV2_0)(nil), "proto.StakedDataV2_0")
 	proto.RegisterType((*StakingNodesConfig)(nil), "proto.StakingNodesConfig")
 	proto.RegisterType((*ElementInList)(nil), "proto.ElementInList")
 	proto.RegisterType((*WaitingList)(nil), "proto.WaitingList")
@@ -490,63 +642,65 @@ func init() {
 func init() { proto.RegisterFile("staking.proto", fileDescriptor_289e7c8aea278311) }
 
 var fileDescriptor_289e7c8aea278311 = []byte{
-	// 722 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x56, 0xbd, 0x6e, 0xdb, 0x3c,
-	0x14, 0x35, 0x6d, 0xc7, 0x49, 0x68, 0xfb, 0xfb, 0x11, 0xbe, 0x41, 0xf8, 0x06, 0xc9, 0x30, 0x50,
-	0xc0, 0x40, 0x11, 0x1b, 0x69, 0x0b, 0x74, 0xe8, 0x14, 0xa7, 0x29, 0x90, 0xd6, 0x35, 0x02, 0x1a,
-	0x4d, 0x81, 0x6e, 0xb4, 0xc5, 0xc8, 0x44, 0x2c, 0x32, 0x90, 0xa8, 0x26, 0xd9, 0xfa, 0x08, 0x7d,
-	0x83, 0xae, 0x41, 0x5f, 0xa1, 0x2f, 0x50, 0x74, 0xca, 0x98, 0x49, 0x4d, 0x94, 0xa5, 0xd0, 0x94,
-	0x47, 0x28, 0x48, 0xca, 0x16, 0xd5, 0xb9, 0x43, 0x87, 0x4c, 0xbc, 0xe7, 0x90, 0xe7, 0xf2, 0xfa,
-	0xde, 0x43, 0xdb, 0xb0, 0x1d, 0x09, 0x7c, 0x4c, 0x99, 0xdf, 0x3f, 0x09, 0xb9, 0xe0, 0xd6, 0x9a,
-	0x5a, 0xfe, 0xdf, 0xf2, 0xa9, 0x98, 0xc7, 0xd3, 0xfe, 0x8c, 0x07, 0x03, 0x9f, 0xfb, 0x7c, 0xa0,
-	0xe8, 0x69, 0x7c, 0xa4, 0x90, 0x02, 0x2a, 0xd2, 0xaa, 0xee, 0xc5, 0x1a, 0x6c, 0x4d, 0x04, 0x3e,
-	0x26, 0xde, 0x73, 0x2c, 0xf0, 0xe1, 0xb6, 0xf5, 0x14, 0xb6, 0x11, 0xf1, 0x69, 0x24, 0x48, 0x38,
-	0xe6, 0x6c, 0x46, 0x6c, 0xd0, 0x01, 0xbd, 0xfa, 0xf0, 0xdf, 0x2c, 0x71, 0xcb, 0x1b, 0xa8, 0x0c,
-	0xad, 0x6d, 0xd8, 0xd4, 0x89, 0xb4, 0xac, 0xaa, 0x64, 0x7f, 0x67, 0x89, 0x6b, 0xd2, 0xc8, 0x04,
-	0x56, 0x17, 0x36, 0x34, 0xb4, 0x6b, 0x1d, 0xd0, 0xdb, 0x18, 0xc2, 0x2c, 0x71, 0x73, 0x06, 0xe5,
-	0xab, 0xac, 0xe7, 0x0d, 0x33, 0x13, 0xd7, 0x8b, 0x7a, 0x4a, 0x1b, 0xa8, 0x0c, 0x4d, 0xe1, 0xde,
-	0x09, 0x9f, 0xcd, 0xed, 0xb5, 0x0e, 0xe8, 0xb5, 0xcb, 0x42, 0xb5, 0x81, 0xca, 0x50, 0x77, 0xe0,
-	0x14, 0x87, 0xde, 0x8e, 0xe7, 0x85, 0x24, 0x8a, 0xec, 0x46, 0x07, 0xf4, 0x5a, 0xcb, 0x0e, 0x18,
-	0x1b, 0xa8, 0x0c, 0xad, 0x08, 0x42, 0x95, 0xe7, 0x10, 0x2f, 0x62, 0x62, 0xaf, 0x2b, 0xd5, 0x24,
-	0x4b, 0x5c, 0x83, 0xfd, 0xfc, 0xdd, 0xdd, 0x09, 0xb0, 0x98, 0x0f, 0xa6, 0xd4, 0xef, 0xef, 0x33,
-	0xf1, 0xcc, 0x98, 0xd6, 0xde, 0x22, 0xe4, 0xcc, 0x1b, 0x13, 0x71, 0xca, 0xc3, 0xe3, 0x01, 0x51,
-	0x68, 0xcb, 0xe7, 0x03, 0x0f, 0x0b, 0xdc, 0x1f, 0x52, 0x7f, 0x9f, 0x89, 0x5d, 0x2c, 0xfb, 0x8d,
-	0x8c, 0x84, 0xb2, 0xed, 0x2f, 0x31, 0x5d, 0x10, 0x0f, 0xf1, 0x98, 0x79, 0xf6, 0x46, 0xd1, 0x76,
-	0x83, 0x46, 0x26, 0x28, 0x24, 0xba, 0xa1, 0x9b, 0xbf, 0x4a, 0xf2, 0x49, 0x19, 0x40, 0x37, 0xd3,
-	0x14, 0x41, 0x73, 0x0a, 0xa6, 0xac, 0x0c, 0xe5, 0x88, 0x35, 0xb4, 0x9b, 0xc5, 0x88, 0xf3, 0x62,
-	0xf2, 0xd5, 0x7a, 0x00, 0xd7, 0xdf, 0x62, 0x2a, 0x28, 0xf3, 0xed, 0x96, 0x3a, 0xd4, 0xcc, 0x12,
-	0x77, 0x49, 0xa1, 0x65, 0xd0, 0xfd, 0xd6, 0x28, 0x59, 0xf5, 0xd1, 0xbd, 0x55, 0xef, 0xad, 0xfa,
-	0x67, 0x5a, 0xd5, 0x7a, 0x08, 0x37, 0xc7, 0x71, 0x90, 0x67, 0x6b, 0xab, 0x61, 0xb6, 0xb3, 0xc4,
-	0x2d, 0x48, 0x54, 0x84, 0x6a, 0x16, 0x0b, 0x1c, 0xcd, 0xf5, 0x2c, 0xfe, 0x32, 0x66, 0xb1, 0x62,
-	0x7f, 0xd7, 0x2c, 0x56, 0x09, 0xbb, 0xd7, 0x00, 0x5a, 0x13, 0xfd, 0xfb, 0x31, 0xe6, 0x1e, 0x89,
-	0x76, 0x39, 0x3b, 0xa2, 0xbe, 0xec, 0xf7, 0x6b, 0xca, 0xc6, 0x71, 0xa0, 0x48, 0xf5, 0xa0, 0x6a,
-	0xba, 0xdf, 0x06, 0x8d, 0x4c, 0xa0, 0x24, 0xf8, 0x6c, 0x25, 0xa9, 0x1a, 0x92, 0x82, 0x46, 0x26,
-	0x30, 0xdf, 0x9f, 0x94, 0xd4, 0x0a, 0x89, 0x41, 0x23, 0x13, 0x98, 0x46, 0x90, 0x92, 0x7a, 0x21,
-	0x31, 0x68, 0x64, 0x82, 0xee, 0x27, 0x00, 0xdb, 0x7b, 0x0b, 0x12, 0x10, 0x26, 0xf6, 0xd9, 0x88,
-	0x46, 0xc2, 0x7a, 0x02, 0x5b, 0xc3, 0xd1, 0xe4, 0x20, 0x9e, 0x2e, 0xe8, 0xec, 0x15, 0x39, 0x57,
-	0x1f, 0xaf, 0x35, 0xfc, 0x27, 0x4b, 0xdc, 0x12, 0x8f, 0x4a, 0x48, 0x5e, 0x7d, 0x10, 0x92, 0xf7,
-	0x94, 0xc7, 0x91, 0x14, 0x55, 0x95, 0x48, 0x5d, 0x6d, 0xd0, 0xc8, 0x04, 0xd2, 0x26, 0x63, 0x72,
-	0x26, 0xe4, 0xf1, 0x9a, 0x3a, 0xae, 0x6c, 0x92, 0x53, 0x68, 0x19, 0x74, 0xbf, 0x00, 0xd8, 0xcc,
-	0x2d, 0xa3, 0xea, 0xeb, 0xc1, 0x8d, 0x17, 0x34, 0x8c, 0x44, 0x51, 0x5b, 0x2b, 0x4b, 0xdc, 0x15,
-	0x87, 0x56, 0x91, 0xbc, 0x60, 0x84, 0xf5, 0xc1, 0x6a, 0x71, 0x41, 0x4e, 0xa1, 0x65, 0x20, 0x2d,
-	0x3d, 0x22, 0xcc, 0x17, 0x73, 0x55, 0x46, 0x5b, 0x5b, 0x5a, 0x33, 0x28, 0x5f, 0xe5, 0x7b, 0x91,
-	0xc7, 0x75, 0xe7, 0x64, 0xc2, 0x7a, 0xf1, 0x1d, 0x52, 0xda, 0x40, 0x65, 0x38, 0x1c, 0x5f, 0xde,
-	0x38, 0x95, 0xab, 0x1b, 0xa7, 0x72, 0x77, 0xe3, 0x80, 0x0f, 0xa9, 0x03, 0x2e, 0x52, 0x07, 0x7c,
-	0x4d, 0x1d, 0x70, 0x99, 0x3a, 0xe0, 0x2a, 0x75, 0xc0, 0x75, 0xea, 0x80, 0x1f, 0xa9, 0x53, 0xb9,
-	0x4b, 0x1d, 0xf0, 0xf1, 0xd6, 0xa9, 0x5c, 0xde, 0x3a, 0x95, 0xab, 0x5b, 0xa7, 0xf2, 0xee, 0xbf,
-	0xe8, 0x3c, 0x12, 0x24, 0x98, 0x04, 0x38, 0x14, 0xbb, 0x9c, 0x89, 0x10, 0xcf, 0x44, 0x34, 0x6d,
-	0xa8, 0x7f, 0x24, 0x8f, 0x7f, 0x06, 0x00, 0x00, 0xff, 0xff, 0x1f, 0x47, 0x66, 0x7d, 0xd8, 0x08,
-	0x00, 0x00,
+	// 761 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x57, 0x31, 0x6f, 0xd3, 0x4c,
+	0x18, 0xce, 0x25, 0x69, 0xda, 0x5e, 0x92, 0xf6, 0xfb, 0x2c, 0x06, 0x8b, 0xc1, 0x8e, 0x22, 0x21,
+	0x45, 0x42, 0x4d, 0x28, 0x20, 0x31, 0x30, 0x35, 0xa5, 0x48, 0x85, 0x10, 0xaa, 0x8b, 0x28, 0x12,
+	0x0b, 0xba, 0xc4, 0x57, 0xc7, 0x6a, 0x72, 0x57, 0xd9, 0x67, 0xda, 0x6e, 0x88, 0x5f, 0xc0, 0x3f,
+	0x60, 0x45, 0xfd, 0x0b, 0xfc, 0x01, 0x06, 0x86, 0x8e, 0x9d, 0x4c, 0xeb, 0x2e, 0xc8, 0x53, 0x7f,
+	0x02, 0xba, 0x3b, 0x27, 0x3e, 0x77, 0x44, 0x0c, 0x0c, 0x99, 0xee, 0x9e, 0xe7, 0xee, 0x79, 0xef,
+	0xed, 0xfb, 0xbc, 0xaf, 0xd5, 0xc0, 0x7a, 0xc0, 0xf1, 0xa1, 0x47, 0xdd, 0xf6, 0x91, 0xcf, 0x38,
+	0x33, 0x96, 0xe4, 0x72, 0x77, 0xc3, 0xf5, 0xf8, 0x38, 0x1c, 0xb6, 0x47, 0x6c, 0xda, 0x71, 0x99,
+	0xcb, 0x3a, 0x92, 0x1e, 0x86, 0x07, 0x12, 0x49, 0x20, 0x77, 0x4a, 0xd5, 0x3c, 0x5b, 0x82, 0x6b,
+	0x03, 0x8e, 0x0f, 0x89, 0xf3, 0x0c, 0x73, 0xbc, 0xbf, 0xf9, 0xfe, 0x81, 0xf1, 0x04, 0xd6, 0x11,
+	0x71, 0xbd, 0x80, 0x13, 0xbf, 0xcf, 0xe8, 0x88, 0x98, 0xa0, 0x01, 0x5a, 0xe5, 0xee, 0xff, 0x49,
+	0x64, 0xe7, 0x0f, 0x50, 0x1e, 0x1a, 0x9b, 0xb0, 0xaa, 0x42, 0x29, 0x59, 0x51, 0xca, 0xd6, 0x93,
+	0xc8, 0xd6, 0x69, 0xa4, 0x03, 0xa3, 0x09, 0x2b, 0x0a, 0x9a, 0xa5, 0x06, 0x68, 0xad, 0x74, 0x61,
+	0x12, 0xd9, 0x29, 0x83, 0xd2, 0x55, 0xe4, 0xf3, 0x86, 0xea, 0x81, 0xcb, 0x59, 0x3e, 0xb9, 0x03,
+	0x94, 0x87, 0xba, 0x70, 0xe7, 0x88, 0x8d, 0xc6, 0xe6, 0x52, 0x03, 0xb4, 0xea, 0x79, 0xa1, 0x3c,
+	0x40, 0x79, 0xa8, 0x2a, 0x70, 0x8c, 0x7d, 0x67, 0xcb, 0x71, 0x7c, 0x12, 0x04, 0x66, 0xa5, 0x01,
+	0x5a, 0xb5, 0x59, 0x05, 0xb4, 0x03, 0x94, 0x87, 0x46, 0x00, 0xa1, 0x8c, 0xb3, 0x8f, 0x27, 0x21,
+	0x31, 0x97, 0xa5, 0x6a, 0x90, 0x44, 0xb6, 0xc6, 0x9e, 0xfd, 0xb4, 0xb7, 0xa6, 0x98, 0x8f, 0x3b,
+	0x43, 0xcf, 0x6d, 0xef, 0x52, 0xfe, 0x54, 0xf3, 0x6b, 0x67, 0xe2, 0x33, 0xea, 0xf4, 0x09, 0x3f,
+	0x66, 0xfe, 0x61, 0x87, 0x48, 0xb4, 0xe1, 0xb2, 0x8e, 0x83, 0x39, 0x6e, 0x77, 0x3d, 0x77, 0x97,
+	0xf2, 0x6d, 0x2c, 0xea, 0x8d, 0xb4, 0x80, 0xa2, 0xec, 0x2f, 0xb0, 0x37, 0x21, 0x0e, 0x62, 0x21,
+	0x75, 0xcc, 0x95, 0xac, 0xec, 0x1a, 0x8d, 0x74, 0x90, 0x49, 0x54, 0x41, 0x57, 0x6f, 0x4b, 0x52,
+	0xa7, 0x34, 0xa0, 0x8a, 0xa9, 0x8b, 0xa0, 0xee, 0x82, 0x2e, 0xcb, 0x43, 0x61, 0xb1, 0x82, 0x66,
+	0x35, 0xb3, 0x38, 0x4d, 0x26, 0x5d, 0x8d, 0x7b, 0x70, 0xf9, 0x2d, 0xf6, 0xb8, 0x47, 0x5d, 0xb3,
+	0x26, 0x2f, 0x55, 0x93, 0xc8, 0x9e, 0x51, 0x68, 0xb6, 0x69, 0xfe, 0xa8, 0xdc, 0x6a, 0xd6, 0xcd,
+	0x45, 0xb3, 0x2e, 0x9a, 0xf5, 0xdf, 0x6c, 0x56, 0xe3, 0x3e, 0x5c, 0xed, 0x87, 0xd3, 0x34, 0x5a,
+	0x5d, 0x9a, 0x59, 0x4f, 0x22, 0x3b, 0x23, 0x51, 0xb6, 0x95, 0x5e, 0x4c, 0x70, 0x30, 0x56, 0x5e,
+	0xac, 0x69, 0x5e, 0xcc, 0xd9, 0xbf, 0xe5, 0xc5, 0x3c, 0x60, 0xf3, 0xd3, 0x72, 0x6e, 0x9c, 0x1e,
+	0x2e, 0xbe, 0xfd, 0x8b, 0x71, 0x5a, 0x8c, 0xd3, 0x9f, 0x8e, 0x93, 0xf1, 0x18, 0xd6, 0x5e, 0x1f,
+	0x53, 0xe2, 0xcf, 0x1a, 0x67, 0x5d, 0x3e, 0xfb, 0x5f, 0x12, 0xd9, 0x39, 0x1e, 0xe5, 0x50, 0xf3,
+	0x12, 0x40, 0x63, 0xa0, 0xfe, 0x91, 0xeb, 0x33, 0x87, 0x04, 0xdb, 0x8c, 0x1e, 0x78, 0xae, 0x70,
+	0xe9, 0x95, 0x47, 0xfb, 0xe1, 0x54, 0x92, 0x72, 0x0c, 0x4b, 0xca, 0x25, 0x8d, 0x46, 0x3a, 0x90,
+	0x12, 0x7c, 0x32, 0x97, 0x14, 0x35, 0x49, 0x46, 0x23, 0x1d, 0xe8, 0x53, 0x2b, 0x24, 0xa5, 0x4c,
+	0xa2, 0xd1, 0x48, 0x07, 0x7a, 0xfb, 0x08, 0x49, 0x39, 0x93, 0x68, 0x34, 0xd2, 0x41, 0xf3, 0x0b,
+	0x80, 0xf5, 0x9d, 0x09, 0x99, 0x12, 0xca, 0x77, 0x69, 0xcf, 0x0b, 0xb8, 0x28, 0x55, 0xb7, 0x37,
+	0xd8, 0x0b, 0x87, 0x13, 0x6f, 0xf4, 0x92, 0x9c, 0xca, 0x3f, 0x2f, 0x2d, 0x95, 0xce, 0xa3, 0x1c,
+	0x12, 0x4f, 0xef, 0xf9, 0xe4, 0x83, 0xc7, 0xc2, 0x40, 0x88, 0x8a, 0x52, 0x24, 0x9f, 0xd6, 0x68,
+	0xa4, 0x03, 0xd1, 0x5c, 0x7d, 0x72, 0xc2, 0xc5, 0xf5, 0x92, 0xbc, 0x2e, 0x9b, 0x2b, 0xa5, 0xd0,
+	0x6c, 0xd3, 0xfc, 0x06, 0x60, 0x35, 0x6d, 0x34, 0x99, 0x5f, 0x0b, 0xae, 0x3c, 0xf7, 0xfc, 0x80,
+	0x67, 0xb9, 0xd5, 0x92, 0xc8, 0x9e, 0x73, 0x68, 0xbe, 0x13, 0x0f, 0xf4, 0xb0, 0xba, 0x58, 0xcc,
+	0x1e, 0x48, 0x29, 0x34, 0xdb, 0x88, 0x41, 0xe8, 0x11, 0xea, 0xf2, 0xb1, 0x4c, 0xa3, 0xae, 0x06,
+	0x41, 0x31, 0x28, 0x5d, 0xc5, 0x94, 0x89, 0xeb, 0xaa, 0x72, 0x22, 0x60, 0x39, 0xfb, 0xf2, 0xe4,
+	0x0e, 0x50, 0x1e, 0x76, 0xfb, 0xe7, 0x57, 0x56, 0xe1, 0xe2, 0xca, 0x2a, 0xdc, 0x5c, 0x59, 0xe0,
+	0x63, 0x6c, 0x81, 0xaf, 0xb1, 0x05, 0xbe, 0xc7, 0x16, 0x38, 0x8f, 0x2d, 0x70, 0x11, 0x5b, 0xe0,
+	0x32, 0xb6, 0xc0, 0xaf, 0xd8, 0x2a, 0xdc, 0xc4, 0x16, 0xf8, 0x7c, 0x6d, 0x15, 0xce, 0xaf, 0xad,
+	0xc2, 0xc5, 0xb5, 0x55, 0x78, 0x77, 0x27, 0x38, 0x0d, 0x38, 0x99, 0x0e, 0xa6, 0xd8, 0xe7, 0xdb,
+	0x8c, 0x72, 0x1f, 0x8f, 0x78, 0x30, 0xac, 0xc8, 0x9f, 0x06, 0x8f, 0x7e, 0x07, 0x00, 0x00, 0xff,
+	0xff, 0x9c, 0xc2, 0xf8, 0xd3, 0x61, 0x0c, 0x00, 0x00,
 }
 
-func (this *StakedDataV1) Equal(that interface{}) bool {
+func (this *StakedDataV1_0) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*StakedDataV1)
+	that1, ok := that.(*StakedDataV1_0)
 	if !ok {
-		that2, ok := that.(StakedDataV1)
+		that2, ok := that.(StakedDataV1_0)
 		if ok {
 			that1 = &that2
 		} else {
@@ -599,14 +753,14 @@ func (this *StakedDataV1) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *StakedDataV2) Equal(that interface{}) bool {
+func (this *StakedDataV1_1) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*StakedDataV2)
+	that1, ok := that.(*StakedDataV1_1)
 	if !ok {
-		that2, ok := that.(StakedDataV2)
+		that2, ok := that.(StakedDataV1_1)
 		if ok {
 			that1 = &that2
 		} else {
@@ -665,6 +819,78 @@ func (this *StakedDataV2) Equal(that interface{}) bool {
 		if !__caster.Equal(this.SlashValue, that1.SlashValue) {
 			return false
 		}
+	}
+	return true
+}
+func (this *StakedDataV2_0) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*StakedDataV2_0)
+	if !ok {
+		that2, ok := that.(StakedDataV2_0)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.RegisterNonce != that1.RegisterNonce {
+		return false
+	}
+	if this.StakedNonce != that1.StakedNonce {
+		return false
+	}
+	if this.Staked != that1.Staked {
+		return false
+	}
+	if this.UnStakedNonce != that1.UnStakedNonce {
+		return false
+	}
+	if this.UnStakedEpoch != that1.UnStakedEpoch {
+		return false
+	}
+	if !bytes.Equal(this.RewardAddress, that1.RewardAddress) {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.StakeValue, that1.StakeValue) {
+			return false
+		}
+	}
+	if this.JailedRound != that1.JailedRound {
+		return false
+	}
+	if this.JailedNonce != that1.JailedNonce {
+		return false
+	}
+	if this.UnJailedNonce != that1.UnJailedNonce {
+		return false
+	}
+	if this.Jailed != that1.Jailed {
+		return false
+	}
+	if this.Waiting != that1.Waiting {
+		return false
+	}
+	if this.NumJailed != that1.NumJailed {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.SlashValue, that1.SlashValue) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.OwnerAddress, that1.OwnerAddress) {
+		return false
 	}
 	return true
 }
@@ -764,12 +990,12 @@ func (this *WaitingList) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *StakedDataV1) GoString() string {
+func (this *StakedDataV1_0) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 16)
-	s = append(s, "&systemSmartContracts.StakedDataV1{")
+	s = append(s, "&systemSmartContracts.StakedDataV1_0{")
 	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
 	s = append(s, "StakedNonce: "+fmt.Sprintf("%#v", this.StakedNonce)+",\n")
 	s = append(s, "Staked: "+fmt.Sprintf("%#v", this.Staked)+",\n")
@@ -785,12 +1011,12 @@ func (this *StakedDataV1) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *StakedDataV2) GoString() string {
+func (this *StakedDataV1_1) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 18)
-	s = append(s, "&systemSmartContracts.StakedDataV2{")
+	s = append(s, "&systemSmartContracts.StakedDataV1_1{")
 	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
 	s = append(s, "StakedNonce: "+fmt.Sprintf("%#v", this.StakedNonce)+",\n")
 	s = append(s, "Staked: "+fmt.Sprintf("%#v", this.Staked)+",\n")
@@ -805,6 +1031,30 @@ func (this *StakedDataV2) GoString() string {
 	s = append(s, "Waiting: "+fmt.Sprintf("%#v", this.Waiting)+",\n")
 	s = append(s, "NumJailed: "+fmt.Sprintf("%#v", this.NumJailed)+",\n")
 	s = append(s, "SlashValue: "+fmt.Sprintf("%#v", this.SlashValue)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *StakedDataV2_0) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 19)
+	s = append(s, "&systemSmartContracts.StakedDataV2_0{")
+	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
+	s = append(s, "StakedNonce: "+fmt.Sprintf("%#v", this.StakedNonce)+",\n")
+	s = append(s, "Staked: "+fmt.Sprintf("%#v", this.Staked)+",\n")
+	s = append(s, "UnStakedNonce: "+fmt.Sprintf("%#v", this.UnStakedNonce)+",\n")
+	s = append(s, "UnStakedEpoch: "+fmt.Sprintf("%#v", this.UnStakedEpoch)+",\n")
+	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
+	s = append(s, "StakeValue: "+fmt.Sprintf("%#v", this.StakeValue)+",\n")
+	s = append(s, "JailedRound: "+fmt.Sprintf("%#v", this.JailedRound)+",\n")
+	s = append(s, "JailedNonce: "+fmt.Sprintf("%#v", this.JailedNonce)+",\n")
+	s = append(s, "UnJailedNonce: "+fmt.Sprintf("%#v", this.UnJailedNonce)+",\n")
+	s = append(s, "Jailed: "+fmt.Sprintf("%#v", this.Jailed)+",\n")
+	s = append(s, "Waiting: "+fmt.Sprintf("%#v", this.Waiting)+",\n")
+	s = append(s, "NumJailed: "+fmt.Sprintf("%#v", this.NumJailed)+",\n")
+	s = append(s, "SlashValue: "+fmt.Sprintf("%#v", this.SlashValue)+",\n")
+	s = append(s, "OwnerAddress: "+fmt.Sprintf("%#v", this.OwnerAddress)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -854,7 +1104,7 @@ func valueToGoStringStaking(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *StakedDataV1) Marshal() (dAtA []byte, err error) {
+func (m *StakedDataV1_0) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -864,12 +1114,12 @@ func (m *StakedDataV1) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *StakedDataV1) MarshalTo(dAtA []byte) (int, error) {
+func (m *StakedDataV1_0) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *StakedDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *StakedDataV1_0) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -960,7 +1210,7 @@ func (m *StakedDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *StakedDataV2) Marshal() (dAtA []byte, err error) {
+func (m *StakedDataV1_1) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -970,16 +1220,145 @@ func (m *StakedDataV2) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *StakedDataV2) MarshalTo(dAtA []byte) (int, error) {
+func (m *StakedDataV1_1) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *StakedDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *StakedDataV1_1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.SlashValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.SlashValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintStaking(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x72
+	if m.NumJailed != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.NumJailed))
+		i--
+		dAtA[i] = 0x68
+	}
+	if m.Waiting {
+		i--
+		if m.Waiting {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x60
+	}
+	if m.Jailed {
+		i--
+		if m.Jailed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if m.UnJailedNonce != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.UnJailedNonce))
+		i--
+		dAtA[i] = 0x50
+	}
+	if m.JailedNonce != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.JailedNonce))
+		i--
+		dAtA[i] = 0x48
+	}
+	if m.JailedRound != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.JailedRound))
+		i--
+		dAtA[i] = 0x40
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.StakeValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.StakeValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintStaking(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x3a
+	if len(m.RewardAddress) > 0 {
+		i -= len(m.RewardAddress)
+		copy(dAtA[i:], m.RewardAddress)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.RewardAddress)))
+		i--
+		dAtA[i] = 0x32
+	}
+	if m.UnStakedEpoch != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.UnStakedEpoch))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.UnStakedNonce != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.UnStakedNonce))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.Staked {
+		i--
+		if m.Staked {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.StakedNonce != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.StakedNonce))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.RegisterNonce != 0 {
+		i = encodeVarintStaking(dAtA, i, uint64(m.RegisterNonce))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *StakedDataV2_0) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *StakedDataV2_0) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *StakedDataV2_0) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.OwnerAddress) > 0 {
+		i -= len(m.OwnerAddress)
+		copy(dAtA[i:], m.OwnerAddress)
+		i = encodeVarintStaking(dAtA, i, uint64(len(m.OwnerAddress)))
+		i--
+		dAtA[i] = 0x7a
+	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		size := __caster.Size(m.SlashValue)
@@ -1229,7 +1608,7 @@ func encodeVarintStaking(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *StakedDataV1) Size() (n int) {
+func (m *StakedDataV1_0) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1277,7 +1656,7 @@ func (m *StakedDataV1) Size() (n int) {
 	return n
 }
 
-func (m *StakedDataV2) Size() (n int) {
+func (m *StakedDataV1_1) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1328,6 +1707,66 @@ func (m *StakedDataV2) Size() (n int) {
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
 		l = __caster.Size(m.SlashValue)
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	return n
+}
+
+func (m *StakedDataV2_0) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RegisterNonce != 0 {
+		n += 1 + sovStaking(uint64(m.RegisterNonce))
+	}
+	if m.StakedNonce != 0 {
+		n += 1 + sovStaking(uint64(m.StakedNonce))
+	}
+	if m.Staked {
+		n += 2
+	}
+	if m.UnStakedNonce != 0 {
+		n += 1 + sovStaking(uint64(m.UnStakedNonce))
+	}
+	if m.UnStakedEpoch != 0 {
+		n += 1 + sovStaking(uint64(m.UnStakedEpoch))
+	}
+	l = len(m.RewardAddress)
+	if l > 0 {
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.StakeValue)
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	if m.JailedRound != 0 {
+		n += 1 + sovStaking(uint64(m.JailedRound))
+	}
+	if m.JailedNonce != 0 {
+		n += 1 + sovStaking(uint64(m.JailedNonce))
+	}
+	if m.UnJailedNonce != 0 {
+		n += 1 + sovStaking(uint64(m.UnJailedNonce))
+	}
+	if m.Jailed {
+		n += 2
+	}
+	if m.Waiting {
+		n += 2
+	}
+	if m.NumJailed != 0 {
+		n += 1 + sovStaking(uint64(m.NumJailed))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.SlashValue)
+		n += 1 + l + sovStaking(uint64(l))
+	}
+	l = len(m.OwnerAddress)
+	if l > 0 {
 		n += 1 + l + sovStaking(uint64(l))
 	}
 	return n
@@ -1405,11 +1844,11 @@ func sovStaking(x uint64) (n int) {
 func sozStaking(x uint64) (n int) {
 	return sovStaking(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *StakedDataV1) String() string {
+func (this *StakedDataV1_0) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&StakedDataV1{`,
+	s := strings.Join([]string{`&StakedDataV1_0{`,
 		`RegisterNonce:` + fmt.Sprintf("%v", this.RegisterNonce) + `,`,
 		`StakedNonce:` + fmt.Sprintf("%v", this.StakedNonce) + `,`,
 		`Staked:` + fmt.Sprintf("%v", this.Staked) + `,`,
@@ -1426,11 +1865,11 @@ func (this *StakedDataV1) String() string {
 	}, "")
 	return s
 }
-func (this *StakedDataV2) String() string {
+func (this *StakedDataV1_1) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&StakedDataV2{`,
+	s := strings.Join([]string{`&StakedDataV1_1{`,
 		`RegisterNonce:` + fmt.Sprintf("%v", this.RegisterNonce) + `,`,
 		`StakedNonce:` + fmt.Sprintf("%v", this.StakedNonce) + `,`,
 		`Staked:` + fmt.Sprintf("%v", this.Staked) + `,`,
@@ -1445,6 +1884,30 @@ func (this *StakedDataV2) String() string {
 		`Waiting:` + fmt.Sprintf("%v", this.Waiting) + `,`,
 		`NumJailed:` + fmt.Sprintf("%v", this.NumJailed) + `,`,
 		`SlashValue:` + fmt.Sprintf("%v", this.SlashValue) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *StakedDataV2_0) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&StakedDataV2_0{`,
+		`RegisterNonce:` + fmt.Sprintf("%v", this.RegisterNonce) + `,`,
+		`StakedNonce:` + fmt.Sprintf("%v", this.StakedNonce) + `,`,
+		`Staked:` + fmt.Sprintf("%v", this.Staked) + `,`,
+		`UnStakedNonce:` + fmt.Sprintf("%v", this.UnStakedNonce) + `,`,
+		`UnStakedEpoch:` + fmt.Sprintf("%v", this.UnStakedEpoch) + `,`,
+		`RewardAddress:` + fmt.Sprintf("%v", this.RewardAddress) + `,`,
+		`StakeValue:` + fmt.Sprintf("%v", this.StakeValue) + `,`,
+		`JailedRound:` + fmt.Sprintf("%v", this.JailedRound) + `,`,
+		`JailedNonce:` + fmt.Sprintf("%v", this.JailedNonce) + `,`,
+		`UnJailedNonce:` + fmt.Sprintf("%v", this.UnJailedNonce) + `,`,
+		`Jailed:` + fmt.Sprintf("%v", this.Jailed) + `,`,
+		`Waiting:` + fmt.Sprintf("%v", this.Waiting) + `,`,
+		`NumJailed:` + fmt.Sprintf("%v", this.NumJailed) + `,`,
+		`SlashValue:` + fmt.Sprintf("%v", this.SlashValue) + `,`,
+		`OwnerAddress:` + fmt.Sprintf("%v", this.OwnerAddress) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1495,7 +1958,7 @@ func valueToStringStaking(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *StakedDataV1) Unmarshal(dAtA []byte) error {
+func (m *StakedDataV1_0) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1518,10 +1981,10 @@ func (m *StakedDataV1) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: StakedDataV1: wiretype end group for non-group")
+			return fmt.Errorf("proto: StakedDataV1_0: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StakedDataV1: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: StakedDataV1_0: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1813,7 +2276,7 @@ func (m *StakedDataV1) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *StakedDataV2) Unmarshal(dAtA []byte) error {
+func (m *StakedDataV1_1) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1836,10 +2299,10 @@ func (m *StakedDataV2) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: StakedDataV2: wiretype end group for non-group")
+			return fmt.Errorf("proto: StakedDataV1_1: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StakedDataV2: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: StakedDataV1_1: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2162,6 +2625,415 @@ func (m *StakedDataV2) Unmarshal(dAtA []byte) error {
 				} else {
 					m.SlashValue = tmp
 				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipStaking(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *StakedDataV2_0) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowStaking
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: StakedDataV2_0: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: StakedDataV2_0: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegisterNonce", wireType)
+			}
+			m.RegisterNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RegisterNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StakedNonce", wireType)
+			}
+			m.StakedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StakedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Staked", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Staked = bool(v != 0)
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedNonce", wireType)
+			}
+			m.UnStakedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UnStakedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnStakedEpoch", wireType)
+			}
+			m.UnStakedEpoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UnStakedEpoch |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardAddress = append(m.RewardAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.RewardAddress == nil {
+				m.RewardAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StakeValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.StakeValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JailedRound", wireType)
+			}
+			m.JailedRound = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.JailedRound |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field JailedNonce", wireType)
+			}
+			m.JailedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.JailedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnJailedNonce", wireType)
+			}
+			m.UnJailedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UnJailedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 11:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Jailed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Jailed = bool(v != 0)
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Waiting", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Waiting = bool(v != 0)
+		case 13:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumJailed", wireType)
+			}
+			m.NumJailed = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumJailed |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 14:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SlashValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.SlashValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OwnerAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowStaking
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthStaking
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStaking
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OwnerAddress = append(m.OwnerAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.OwnerAddress == nil {
+				m.OwnerAddress = []byte{}
 			}
 			iNdEx = postIndex
 		default:
