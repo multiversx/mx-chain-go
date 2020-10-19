@@ -623,6 +623,8 @@ func (wrk *Worker) Close() error {
 		wrk.cancelFunc()
 	}
 
+	wrk.cleanChannels()
+
 	return nil
 }
 
@@ -639,4 +641,24 @@ func (wrk *Worker) getPublicKeyBitmapSize() int {
 	}
 
 	return bitmapSize
+}
+
+func (wrk *Worker) cleanChannels() {
+	nrReads := core.EmptyChannel(wrk.consensusStateChangedChannel)
+	log.Debug("close worker: emptied channel", "consensusStateChangedChannel nrReads", nrReads)
+
+	nrReads = emptyChannel(wrk.executeMessageChannel)
+	log.Debug("close worker: emptied channel", "executeMessageChannel nrReads", nrReads)
+}
+
+func emptyChannel(ch chan *consensus.Message) int {
+	readsCnt := 0
+	for {
+		select {
+		case <-ch:
+			readsCnt++
+		default:
+			return readsCnt
+		}
+	}
 }

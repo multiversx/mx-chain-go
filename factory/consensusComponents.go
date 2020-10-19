@@ -272,7 +272,6 @@ func (cc *consensusComponents) Close() error {
 	if err != nil {
 		return err
 	}
-
 	err = cc.bootstrapper.Close()
 	if err != nil {
 		return err

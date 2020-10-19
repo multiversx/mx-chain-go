@@ -38,7 +38,7 @@ export NODE_NICENESS=10
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
-export NODE_WATCHER=0
+export NODE_WATCHER=1
 
 # Delays after running executables.
 export SEEDNODE_DELAY=5
@@ -58,12 +58,12 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
 export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=0
+export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called

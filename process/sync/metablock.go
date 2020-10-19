@@ -156,6 +156,9 @@ func (boot *MetaBootstrap) SyncBlock() error {
 
 // Close closes the synchronization loop
 func (boot *MetaBootstrap) Close() error {
+	if !check.IfNil(boot.baseBootstrap) {
+		log.LogIfError(boot.baseBootstrap.Close())
+	}
 	boot.cancelFunc()
 	return nil
 }
