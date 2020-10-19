@@ -204,6 +204,7 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartContract, error) {
 	argsDelegationManager := systemSmartContracts.ArgsNewDelegationManager{
 		DelegationMgrSCConfig:  scf.systemSCConfig.DelegationManagerSystemSCConfig,
+		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
 		Eei:                    scf.systemEI,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,

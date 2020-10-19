@@ -15,7 +15,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-const delegationManagmentKey = "delegationManagement"
+const delegationManagementKey = "delegationManagement"
 const delegationContractsList = "delegationContracts"
 
 type delegationManager struct {
@@ -324,7 +324,7 @@ func (d *delegationManager) callerAlreadyDeployed(address []byte) bool {
 }
 
 func (d *delegationManager) getDelegationManagementData() (*DelegationManagement, error) {
-	marshalledData := d.eei.GetStorage([]byte(delegationManagmentKey))
+	marshalledData := d.eei.GetStorage([]byte(delegationManagementKey))
 	if len(marshalledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
 	}
@@ -343,7 +343,7 @@ func (d *delegationManager) saveDelegationManagementData(managementData *Delegat
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationManagmentKey), marshalledData)
+	d.eei.SetStorage([]byte(delegationManagementKey), marshalledData)
 	return nil
 }
 

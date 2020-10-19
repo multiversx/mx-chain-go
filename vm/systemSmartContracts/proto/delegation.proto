@@ -10,10 +10,10 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 message DelegationManagement {
   uint32 NumberOfContract     = 1 [(gogoproto.jsontag) = "NumberOfContracts"];
   bytes  LastAddress          = 2 [(gogoproto.jsontag) = "LastAddress"];
-  uint64 MinServiceFee        = 4 [(gogoproto.jsontag) = "MinServiceFee"];
-  uint64 MaxServiceFee        = 5 [(gogoproto.jsontag) = "MaxServiceFee"];
-  bytes  BaseIssueingCost     = 6 [(gogoproto.jsontag) = "BaseIssueingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  MinDeposit           = 7 [(gogoproto.jsontag) = "MinDeposit", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint64 MinServiceFee        = 3 [(gogoproto.jsontag) = "MinServiceFee"];
+  uint64 MaxServiceFee        = 4 [(gogoproto.jsontag) = "MaxServiceFee"];
+  bytes  BaseIssueingCost     = 5 [(gogoproto.jsontag) = "BaseIssueingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  MinDeposit           = 6 [(gogoproto.jsontag) = "MinDeposit", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message DelegationContractList {
