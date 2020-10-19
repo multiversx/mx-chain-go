@@ -589,13 +589,13 @@ func (e *esdt) saveToken(token *ESDTData) error {
 }
 
 func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenName)
-	if len(marshalledData) == 0 {
+	marshaledData := e.eei.GetStorage(tokenName)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrNoTokenWithGivenName
 	}
 
 	token := &ESDTData{}
-	err := e.marshalizer.Unmarshal(token, marshalledData)
+	err := e.marshalizer.Unmarshal(token, marshaledData)
 	return token, err
 }
 

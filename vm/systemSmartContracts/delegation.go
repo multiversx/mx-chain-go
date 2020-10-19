@@ -1070,12 +1070,12 @@ func (d *delegation) executeOnAuctionSC(address []byte, function string, args []
 
 func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
 	dConfig := &DelegationConfig{}
-	marshalledData := d.eei.GetStorage([]byte(delegationConfigKey))
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage([]byte(delegationConfigKey))
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
 	}
 
-	err := d.marshalizer.Unmarshal(dConfig, marshalledData)
+	err := d.marshalizer.Unmarshal(dConfig, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -1173,12 +1173,12 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 		return nil
 	}
 
-	marshalledData, err := d.marshalizer.Marshal(dFund)
+	marshaledData, err := d.marshalizer.Marshal(dFund)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage(key, marshalledData)
+	d.eei.SetStorage(key, marshaledData)
 	return nil
 }
 

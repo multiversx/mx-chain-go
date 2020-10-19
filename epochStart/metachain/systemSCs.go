@@ -53,7 +53,7 @@ type systemSCProcessor struct {
 	switchEnableEpoch        uint32
 	hystNodesEnableEpoch     uint32
 	delegationEnableEpoch    uint32
-	flagSwitchEnabled        atomic.Flag
+	flagSwitchJailedWaiting  atomic.Flag
 	flagHystNodesEnabled     atomic.Flag
 	flagDelegationEnabled    atomic.Flag
 	mapNumSwitchedPerShard   map[uint32]uint32
@@ -151,7 +151,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
-	if s.flagSwitchEnabled.IsSet() {
+	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
@@ -525,8 +525,8 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
-	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
-	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
+	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
+	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)

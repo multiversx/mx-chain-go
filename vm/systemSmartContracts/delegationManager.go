@@ -132,7 +132,7 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	managementData := &DelegationManagement{
-		NumberOfContract: 0,
+		NumOfContracts:   0,
 		LastAddress:      vm.FirstDelegationSCAddress,
 		MinServiceFee:    d.minFee,
 		MaxServiceFee:    d.maxFee,
@@ -196,7 +196,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return returnCode
 	}
 
-	delegationManagement.NumberOfContract += 1
+	delegationManagement.NumOfContracts += 1
 	delegationManagement.LastAddress = newAddress
 	delegationList.Addresses = append(delegationList.Addresses, newAddress)
 
@@ -324,13 +324,13 @@ func (d *delegationManager) callerAlreadyDeployed(address []byte) bool {
 }
 
 func (d *delegationManager) getDelegationManagementData() (*DelegationManagement, error) {
-	marshalledData := d.eei.GetStorage([]byte(delegationManagementKey))
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage([]byte(delegationManagementKey))
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
 	}
 
 	managementData := &DelegationManagement{}
-	err := d.marshalizer.Unmarshal(managementData, marshalledData)
+	err := d.marshalizer.Unmarshal(managementData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -338,23 +338,23 @@ func (d *delegationManager) getDelegationManagementData() (*DelegationManagement
 }
 
 func (d *delegationManager) saveDelegationManagementData(managementData *DelegationManagement) error {
-	marshalledData, err := d.marshalizer.Marshal(managementData)
+	marshaledData, err := d.marshalizer.Marshal(managementData)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationManagementKey), marshalledData)
+	d.eei.SetStorage([]byte(delegationManagementKey), marshaledData)
 	return nil
 }
 
 func (d *delegationManager) getDelegationContractList() (*DelegationContractList, error) {
-	marshalledData := d.eei.GetStorage([]byte(delegationContractsList))
-	if len(marshalledData) == 0 {
+	marshaledData := d.eei.GetStorage([]byte(delegationContractsList))
+	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
 	}
 
 	contractList := &DelegationContractList{}
-	err := d.marshalizer.Unmarshal(contractList, marshalledData)
+	err := d.marshalizer.Unmarshal(contractList, marshaledData)
 	if err != nil {
 		return nil, err
 	}
@@ -362,12 +362,12 @@ func (d *delegationManager) getDelegationContractList() (*DelegationContractList
 }
 
 func (d *delegationManager) saveDelegationContractList(list *DelegationContractList) error {
-	marshalledData, err := d.marshalizer.Marshal(list)
+	marshaledData, err := d.marshalizer.Marshal(list)
 	if err != nil {
 		return err
 	}
 
-	d.eei.SetStorage([]byte(delegationContractsList), marshalledData)
+	d.eei.SetStorage([]byte(delegationContractsList), marshaledData)
 	return nil
 }
 
