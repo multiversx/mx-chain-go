@@ -305,6 +305,7 @@ func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallI
 	return vmcommon.UserError
 }
 
+// TODO: use all the address space
 func createNewAddress(lastAddress []byte) []byte {
 	newAddress := make([]byte, 0, len(lastAddress))
 	copy(newAddress, lastAddress)
