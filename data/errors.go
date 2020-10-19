@@ -36,3 +36,6 @@ var ErrNilThrottler = errors.New("nil throttler")
 
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
+
+// ErrLeafSizeTooBig signals that the value size of the leaf is too big
+var ErrLeafSizeTooBig = errors.New("leaf size too big")

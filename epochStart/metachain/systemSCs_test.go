@@ -120,7 +120,7 @@ func createEligibleNodes(numNodes int, stakingSCAcc state.UserAccountHandler, ma
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
 	}
 }
 
@@ -134,7 +134,7 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("jailed__%d", i)), marshaledData)
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("jailed__%d", i)), marshaledData)
 
 		_ = userAccounts.SaveAccount(stakingSCAcc)
 
@@ -166,7 +166,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 			StakeValue:    big.NewInt(100),
 		}
 		marshaledData, _ := marshalizer.Marshal(stakedData)
-		stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte(fmt.Sprintf("waiting_%d", i)), marshaledData)
 
 		waitingKeyInList := []byte("w_" + fmt.Sprintf("waiting_%d", i))
 		waitingListHead := &systemSmartContracts.WaitingList{
@@ -175,7 +175,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 			Length:   uint32(numNodes),
 		}
 		marshaledData, _ = marshalizer.Marshal(waitingListHead)
-		stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
 
 		waitingListElement := &systemSmartContracts.ElementInList{
 			BLSPublicKey: []byte(fmt.Sprintf("waiting_%d", i)),
@@ -183,7 +183,7 @@ func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, use
 			NextKey:      []byte("w_" + fmt.Sprintf("waiting_%d", i+1)),
 		}
 		marshaledData, _ = marshalizer.Marshal(waitingListElement)
-		stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+		_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
 
 		vInfo := &state.ValidatorInfo{
 			PublicKey:       []byte(fmt.Sprintf("waiting_%d", i)),
@@ -216,7 +216,7 @@ func prepareStakingContractWithData(
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
-	stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(stakedKey, marshaledData)
 
 	stakedData = &systemSmartContracts.StakedDataV2{
 		Waiting:       true,
@@ -224,7 +224,7 @@ func prepareStakingContractWithData(
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ = marshalizer.Marshal(stakedData)
-	stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKey, marshaledData)
 
 	waitingKeyInList := []byte("w_" + string(waitingKey))
 	waitingListHead := &systemSmartContracts.WaitingList{
@@ -233,7 +233,7 @@ func prepareStakingContractWithData(
 		Length:   1,
 	}
 	marshaledData, _ = marshalizer.Marshal(waitingListHead)
-	stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue([]byte("waitingList"), marshaledData)
 
 	waitingListElement := &systemSmartContracts.ElementInList{
 		BLSPublicKey: waitingKey,
@@ -241,7 +241,7 @@ func prepareStakingContractWithData(
 		NextKey:      make([]byte, 0),
 	}
 	marshaledData, _ = marshalizer.Marshal(waitingListElement)
-	stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
+	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 }
