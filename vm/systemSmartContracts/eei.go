@@ -146,7 +146,13 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
 
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
-func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
+func (host *vmContext) Transfer(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
 
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
@@ -213,12 +219,27 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 	host.scAddress = currContext.scAddress
 }
 
-func (host *vmContext) createContractCallInput(destination []byte, sender []byte, value *big.Int, data []byte) (*vmcommon.ContractCallInput, error) {
+func (host *vmContext) createContractCallInput(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	data []byte,
+) (*vmcommon.ContractCallInput, error) {
 	function, arguments, err := host.inputParser.ParseData(string(data))
 	if err != nil {
 		return nil, err
 	}
 
+	return createDirectCallInput(destination, sender, value, function, arguments), nil
+}
+
+func createDirectCallInput(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	function string,
+	arguments [][]byte,
+) *vmcommon.ContractCallInput {
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: sender,
@@ -228,8 +249,74 @@ func (host *vmContext) createContractCallInput(destination []byte, sender []byte
 		RecipientAddr: destination,
 		Function:      function,
 	}
+	return input
+}
 
-	return input, nil
+// DeploySystemSC will deploy a smart contract according to the input
+// will call the init function and merge the vmOutputs
+// will add to the system smart contracts container the new address
+func (host *vmContext) DeploySystemSC(
+	baseContract []byte,
+	newAddress []byte,
+	ownerAddress []byte,
+	value *big.Int,
+	input [][]byte,
+) (vmcommon.ReturnCode, error) {
+
+	if check.IfNil(host.systemContracts) {
+		return vmcommon.ExecutionFailed, vm.ErrUnknownSystemSmartContract
+	}
+
+	callInput := createDirectCallInput(newAddress, ownerAddress, value, core.SCDeployInitFunctionName, input)
+	err := host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
+	contract, err := host.systemContracts.Get(baseContract)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
+	oldSCAddress := host.scAddress
+	host.SetSCAddress(callInput.RecipientAddr)
+	returnCode := contract.Execute(callInput)
+	host.SetSCAddress(oldSCAddress)
+	host.addContractDeployToOutput(newAddress, ownerAddress, baseContract)
+
+	err = host.systemContracts.Replace(newAddress, contract)
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
+
+	return returnCode, nil
+}
+
+func (host *vmContext) addContractDeployToOutput(
+	contractAddress []byte,
+	ownerAddress []byte,
+	code []byte,
+) {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	outAcc, exists := host.outputAccounts[string(contractAddress)]
+	if !exists {
+		outAcc = &vmcommon.OutputAccount{
+			Address:      contractAddress,
+			BalanceDelta: big.NewInt(0),
+			Balance:      big.NewInt(0),
+		}
+		host.outputAccounts[string(outAcc.Address)] = outAcc
+	}
+
+	outAcc.CodeMetadata = codeMetaData.ToBytes()
+	outAcc.Code = code
+	outAcc.CodeDeployerAddress = ownerAddress
+	host.outputAccounts[string(outAcc.Address)] = outAcc
 }
 
 // ExecuteOnDestContext executes the input data in the destinations context

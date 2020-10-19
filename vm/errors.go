@@ -205,3 +205,9 @@ var ErrInvalidArgument = errors.New("invalid argument")
 
 // ErrDuplicatesFoundInArguments signals that duplicates were found in arguments
 var ErrDuplicatesFoundInArguments = errors.New("duplicates found in arguments")
+
+// ErrInvalidCaller signals that the functions was called by a not authorized user
+var ErrInvalidCaller = errors.New("the function was called by a not authorized user")
+
+// ErrCallValueMustBeZero signals that call value must be zero
+var ErrCallValueMustBeZero = errors.New("call value must be zero")

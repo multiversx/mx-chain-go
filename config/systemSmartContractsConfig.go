@@ -2,9 +2,11 @@ package config
 
 // SystemSmartContractsConfig defines the system smart contract configs
 type SystemSmartContractsConfig struct {
-	ESDTSystemSCConfig       ESDTSystemSCConfig
-	GovernanceSystemSCConfig GovernanceSystemSCConfig
-	StakingSystemSCConfig    StakingSystemSCConfig
+	ESDTSystemSCConfig              ESDTSystemSCConfig
+	GovernanceSystemSCConfig        GovernanceSystemSCConfig
+	StakingSystemSCConfig           StakingSystemSCConfig
+	DelegationManagerSystemSCConfig DelegationManagerSystemSCConfig
+	DelegationSystemSCConfig        DelegationSystemSCConfig
 }
 
 // StakingSystemSCConfig will hold the staking system smart contract settings
@@ -44,8 +46,9 @@ type GovernanceSystemSCConfig struct {
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract
 type DelegationManagerSystemSCConfig struct {
-	BaseIssuingCost string
-	EnabledEpoch    uint32
+	BaseIssuingCost    string
+	MinCreationDeposit string
+	EnabledEpoch       uint32
 }
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract

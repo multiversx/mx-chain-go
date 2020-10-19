@@ -184,6 +184,39 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 	return governance, err
 }
 
+func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, error) {
+	argsDelegation := systemSmartContracts.ArgsNewDelegation{
+		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
+		StakingSCConfig:        scf.systemSCConfig.StakingSystemSCConfig,
+		Eei:                    scf.systemEI,
+		SigVerifier:            scf.sigVerifier,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		StakingSCAddress:       vm.StakingSCAddress,
+		AuctionSCAddress:       vm.AuctionSCAddress,
+		GasCost:                scf.gasCost,
+		Marshalizer:            scf.marshalizer,
+		EpochNotifier:          scf.epochNotifier,
+	}
+	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
+	return delegation, err
+}
+
+func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartContract, error) {
+	argsDelegationManager := systemSmartContracts.ArgsNewDelegationManager{
+		DelegationMgrSCConfig:  scf.systemSCConfig.DelegationManagerSystemSCConfig,
+		DelegationSCConfig:     scf.systemSCConfig.DelegationSystemSCConfig,
+		Eei:                    scf.systemEI,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		StakingSCAddress:       vm.StakingSCAddress,
+		AuctionSCAddress:       vm.AuctionSCAddress,
+		GasCost:                scf.gasCost,
+		Marshalizer:            scf.marshalizer,
+		EpochNotifier:          scf.epochNotifier,
+	}
+	delegationManager, err := systemSmartContracts.NewDelegationManagerSystemSC(argsDelegationManager)
+	return delegationManager, err
+}
+
 // Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	scContainer := NewSystemSCContainer()
@@ -224,6 +257,26 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 	}
 
 	err = scContainer.Add(vm.GovernanceSCAddress, governance)
+	if err != nil {
+		return nil, err
+	}
+
+	delegationManager, err := scf.createDelegationManagerContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(vm.DelegationManagerSCAddress, delegationManager)
+	if err != nil {
+		return nil, err
+	}
+
+	delegation, err := scf.createDelegationContract()
+	if err != nil {
+		return nil, err
+	}
+
+	err = scContainer.Add(vm.FirstDelegationSCAddress, delegation)
 	if err != nil {
 		return nil, err
 	}
