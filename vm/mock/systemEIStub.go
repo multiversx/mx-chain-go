@@ -10,29 +10,30 @@ import (
 
 // SystemEIStub -
 type SystemEIStub struct {
-	TransferCalled                  func(destination []byte, sender []byte, value *big.Int, input []byte) error
-	GetBalanceCalled                func(addr []byte) *big.Int
-	SetStorageCalled                func(key []byte, value []byte)
-	AddReturnMessageCalled          func(msg string)
-	GetStorageCalled                func(key []byte) []byte
-	SelfDestructCalled              func(beneficiary []byte)
-	CreateVMOutputCalled            func() *vmcommon.VMOutput
-	CleanCacheCalled                func()
-	FinishCalled                    func(value []byte)
-	AddCodeCalled                   func(addr []byte, code []byte)
-	AddTxValueToSmartContractCalled func(value *big.Int, scAddress []byte)
-	BlockChainHookCalled            func() vmcommon.BlockchainHook
-	CryptoHookCalled                func() vmcommon.CryptoHook
-	UseGasCalled                    func(gas uint64) error
-	IsValidatorCalled               func(blsKey []byte) bool
-	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
-	DeploySystemSCCalled            func(baseContract []byte, newAddress []byte, caller []byte, value *big.Int, args [][]byte) (vmcommon.ReturnCode, error)
-	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
-	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
-	CanUnJailCalled                 func(blsKey []byte) bool
-	IsBadRatingCalled               func(blsKey []byte) bool
-	SendGlobalSettingToAllCalled    func(sender []byte, input []byte)
-	ReturnMessage                   string
+	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	GetBalanceCalled                    func(addr []byte) *big.Int
+	SetStorageCalled                    func(key []byte, value []byte)
+	AddReturnMessageCalled              func(msg string)
+	GetStorageCalled                    func(key []byte) []byte
+	SelfDestructCalled                  func(beneficiary []byte)
+	CreateVMOutputCalled                func() *vmcommon.VMOutput
+	CleanCacheCalled                    func()
+	FinishCalled                        func(value []byte)
+	AddCodeCalled                       func(addr []byte, code []byte)
+	AddTxValueToSmartContractCalled     func(value *big.Int, scAddress []byte)
+	BlockChainHookCalled                func() vmcommon.BlockchainHook
+	CryptoHookCalled                    func() vmcommon.CryptoHook
+	UseGasCalled                        func(gas uint64) error
+	IsValidatorCalled                   func(blsKey []byte) bool
+	StatusFromValidatorStatisticsCalled func(blsKey []byte) string
+	ExecuteOnDestContextCalled          func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
+	DeploySystemSCCalled                func(baseContract []byte, newAddress []byte, caller []byte, value *big.Int, args [][]byte) (vmcommon.ReturnCode, error)
+	GetStorageFromAddressCalled         func(address []byte, key []byte) []byte
+	SetStorageForAddressCalled          func(address []byte, key []byte, value []byte)
+	CanUnJailCalled                     func(blsKey []byte) bool
+	IsBadRatingCalled                   func(blsKey []byte) bool
+	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
+	ReturnMessage                       string
 }
 
 // CanUnJail -
@@ -57,6 +58,14 @@ func (s *SystemEIStub) IsValidator(blsKey []byte) bool {
 		return s.IsValidatorCalled(blsKey)
 	}
 	return false
+}
+
+// StatusFromValidatorStatistics -
+func (s *SystemEIStub) StatusFromValidatorStatistics(blsKey []byte) string {
+	if s.StatusFromValidatorStatisticsCalled != nil {
+		return s.StatusFromValidatorStatisticsCalled(blsKey)
+	}
+	return ""
 }
 
 // UseGas -

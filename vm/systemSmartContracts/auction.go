@@ -162,9 +162,6 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.setConfig(args)
 	case "changeRewardAddress":
 		return s.changeRewardAddress(args)
-	// TODO: activate this after validation
-	//case "changeValidatorKeys":
-	//	return s.changeValidatorKeys(args)
 	case "unJail":
 		return s.unJail(args)
 	case "getTotalStaked":
@@ -177,6 +174,10 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unBondTokens(args)
 	case "updateStakingV2":
 		return s.updateStakingV2(args)
+	case "unBondTokensWithNodes":
+		return s.unBondTokensWithNodes(args)
+	case "unStakeTokensWithNodes":
+		return s.unStakeTokensWithNodes(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -878,17 +879,6 @@ func (s *stakingAuctionSC) unStake(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	s.unStakeNodesFromStakingSC(blsKeys, registrationData)
-	err = s.saveRegistrationData(args.CallerAddr, registrationData)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (s *stakingAuctionSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationData *AuctionDataV2) {
 	for _, blsKey := range blsKeys {
 		vmOutput, errExec := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if errExec != nil {
@@ -905,6 +895,22 @@ func (s *stakingAuctionSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrat
 			continue
 		}
 	}
+
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) unStakeNodeOneNodeFromStakingSC(blsKey []byte, rewardAddress []byte) vmcommon.ReturnCode {
+	vmOutput, errExec := s.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(rewardAddress)))
+	if errExec != nil {
+		return vmcommon.UserError
+	}
+	return vmOutput.ReturnCode
 }
 
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1075,6 +1081,10 @@ func (s *stakingAuctionSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcom
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("invalid num of arguments")
+		return vmcommon.UserError
+	}
 
 	maxValUnstake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
@@ -1127,11 +1137,6 @@ func (s *stakingAuctionSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCal
 		s.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.UserError
 	}
-
-	if len(args.Arguments) != 0 {
-		s.eei.AddReturnMessage("should have not specified any arguments")
-		return nil, vmcommon.UserError
-	}
 	if args.CallValue.Cmp(zero) != 0 {
 		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return nil, vmcommon.UserError
@@ -1157,16 +1162,24 @@ func (s *stakingAuctionSC) unStakeTokensWithNodes(args *vmcommon.ContractCallInp
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
-	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStakeTokens + s.gasCost.MetaChainSystemSCsCost.UnStake)
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("invalid num of arguments")
+		return vmcommon.UserError
+	}
 
 	maxValUnstake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-
 	valToUnStakeNodes := big.NewInt(0).Sub(unStakeValue, maxValUnstake)
+
+	if unStakeValue.Cmp(zero) <= 0 {
+		s.eei.AddReturnMessage("cannot unStake negative value")
+		return vmcommon.UserError
+	}
 
 	if unStakeValue.Cmp(maxValUnstake) <= 0 {
 		returnCode = s.unStakeValue(registrationData, unStakeValue)
@@ -1176,7 +1189,8 @@ func (s *stakingAuctionSC) unStakeTokensWithNodes(args *vmcommon.ContractCallInp
 	}
 
 	if valToUnStakeNodes.Cmp(zero) > 0 {
-		valueNotUnStaked, err := s.unStakeNodesWithPreferences(registrationData, valToUnStakeNodes)
+		var valueNotUnStaked *big.Int
+		valueNotUnStaked, err = s.unStakeNodesWithPreferences(registrationData, valToUnStakeNodes)
 		if err != nil {
 			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
 			return vmcommon.UserError
@@ -1194,22 +1208,106 @@ func (s *stakingAuctionSC) unStakeTokensWithNodes(args *vmcommon.ContractCallInp
 	return vmcommon.Ok
 }
 
+func (s *stakingAuctionSC) isInAdditionalQueue(blsKey []byte) (bool, error) {
+	stakedData, err := s.getStakedData(blsKey)
+	if err != nil {
+		return false, err
+	}
+	return stakedData.Waiting, nil
+}
+
+func (s *stakingAuctionSC) isWithStatusWaiting(blsKey []byte) (bool, error) {
+	return s.eei.StatusFromValidatorStatistics(blsKey) == string(core.WaitingList), nil
+}
+
+func (s *stakingAuctionSC) isWithStatusEligible(blsKey []byte) (bool, error) {
+	return s.eei.StatusFromValidatorStatistics(blsKey) == string(core.EligibleList), nil
+}
+
+func (s *stakingAuctionSC) isWithStatusInactive(blsKey []byte) bool {
+	return s.eei.StatusFromValidatorStatistics(blsKey) == string(core.InactiveList)
+}
+
+func (s *stakingAuctionSC) unStakeNodesWithStatus(
+	registrationData *AuctionDataV2,
+	listUnStakedKeys [][]byte,
+	numNodesToUnStake int,
+	checkStatus func(blsKey []byte) (bool, error),
+) ([][]byte, error) {
+	if len(listUnStakedKeys) >= numNodesToUnStake {
+		return listUnStakedKeys, nil
+	}
+
+	for _, blsKey := range registrationData.BlsPubKeys {
+		found := false
+		for _, unStakedKey := range listUnStakedKeys {
+			if bytes.Equal(blsKey, unStakedKey) {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+
+		okStatus, err := checkStatus(blsKey)
+		if err != nil {
+			return nil, err
+		}
+		if !okStatus {
+			continue
+		}
+
+		err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnStake)
+		if err != nil {
+			return nil, err
+		}
+
+		returnCode := s.unStakeNodeOneNodeFromStakingSC(blsKey, registrationData.RewardAddress)
+		if returnCode != vmcommon.Ok {
+			continue
+		}
+		listUnStakedKeys = append(listUnStakedKeys, blsKey)
+
+		if len(listUnStakedKeys) >= numNodesToUnStake {
+			return listUnStakedKeys, nil
+		}
+	}
+
+	return listUnStakedKeys, nil
+}
+
 func (s *stakingAuctionSC) unStakeNodesWithPreferences(registrationData *AuctionDataV2, valToUnStakeNodes *big.Int) (*big.Int, error) {
 	divValue, modValue := big.NewInt(0).DivMod(valToUnStakeNodes, s.baseConfig.NodePrice, big.NewInt(0))
-	numNodesToUnStake := divValue.Uint64()
+	numNodesToUnStake := int(divValue.Uint64())
 	if modValue.Cmp(zero) > 0 {
 		numNodesToUnStake += 1
 	}
 
-	unStakedNodes := uint64(0)
-	for _, blsKey := range registrationData.BlsPubKeys {
+	listUnStakedKeys := make([][]byte, 0)
 
-		if unStakedNodes >= numNodesToUnStake {
-			return big.NewInt(0), nil
-		}
+	// unstake from additional queue first
+	var err error
+	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isInAdditionalQueue)
+	if err != nil {
+		return nil, err
+	}
+	// unstake nodes which are with status waiting
+	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isWithStatusWaiting)
+	if err != nil {
+		return nil, err
+	}
+	// unstake those which are with status eligible
+	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isWithStatusEligible)
+	if err != nil {
+		return nil, err
 	}
 
-	numNotUnStaked := big.NewInt(0).SetUint64(numNodesToUnStake - unStakedNodes)
+	for _, unStakedKey := range listUnStakedKeys {
+		s.eei.Finish(unStakedKey)
+	}
+
+	numNotUnStaked := big.NewInt(0).SetUint64(uint64(numNodesToUnStake - len(listUnStakedKeys)))
 	notUnStakedVal := big.NewInt(0).Mul(numNotUnStaked, s.baseConfig.NodePrice)
 	return notUnStakedVal, nil
 }
@@ -1224,6 +1322,10 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("should have not specified any arguments")
+		return vmcommon.UserError
+	}
 
 	totalUnBond, index := s.computeUnBondTokens(registrationData)
 	if totalUnBond.Cmp(zero) == 0 {
@@ -1232,13 +1334,105 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
-
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
 		s.eei.AddReturnMessage("contract error on unBondTokens function, total unstaked < total unbond")
 		return vmcommon.UserError
 	}
 
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
+	if err != nil {
+		s.eei.AddReturnMessage("transfer error on unBond function")
+		return vmcommon.UserError
+	}
+
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) unBondNecessaryNodes(registrationData *AuctionDataV2, valueToUnBond *big.Int) (*big.Int, error) {
+	totalUnBond := big.NewInt(0)
+	for _, blsKey := range registrationData.BlsPubKeys {
+		if !s.isWithStatusInactive(blsKey) {
+			continue
+		}
+
+		nodeData, errGet := s.getStakedData(blsKey)
+		if errGet != nil {
+			return nil, errGet
+		}
+		if len(nodeData.RewardAddress) == 0 {
+			continue
+		}
+		// returns what value is still under the selected bls key
+		vmOutput, errExec := s.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
+		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
+			continue
+		}
+
+		registrationData.NumRegistered -= 1
+		totalUnBond.Add(totalUnBond, s.baseConfig.NodePrice)
+		totalUnBond.Sub(totalUnBond, nodeData.SlashValue)
+
+		s.eei.Finish(blsKey)
+
+		if totalUnBond.Cmp(valueToUnBond) >= 0 {
+			return totalUnBond, nil
+		}
+	}
+
+	return totalUnBond, nil
+}
+
+func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, returnCode := s.basicCheckForUnStakeUnBond(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBondTokens)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("invalid num of arguments")
+		return vmcommon.UserError
+	}
+
+	unBondValue := big.NewInt(0).SetBytes(args.Arguments[0])
+	if unBondValue.Cmp(zero) <= 0 {
+		s.eei.AddReturnMessage("cannot unStake negative value")
+		return vmcommon.UserError
+	}
+
+	totalUnBond, index := s.computeUnBondTokens(registrationData)
+	if totalUnBond.Cmp(zero) > 0 {
+		registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
+		registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
+		if registrationData.TotalUnstaked.Cmp(zero) < 0 {
+			s.eei.AddReturnMessage("contract error on unBondTokens function, total unstaked < total unbond")
+			return vmcommon.UserError
+		}
+	}
+
+	totalUnBondedFromNodes := big.NewInt(0)
+	if totalUnBond.Cmp(unBondValue) < 0 {
+		remainingToUnBond := big.NewInt(0).Sub(unBondValue, totalUnBond)
+		totalUnBondedFromNodes, err = s.unBondNecessaryNodes(registrationData, remainingToUnBond)
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	totalUnBond.Add(totalUnBond, totalUnBondedFromNodes)
+
+	s.eei.Finish(totalUnBond.Bytes())
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		s.eei.AddReturnMessage("transfer error on unBond function")
