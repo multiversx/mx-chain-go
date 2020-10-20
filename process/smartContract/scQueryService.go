@@ -20,6 +20,7 @@ type SCQueryService struct {
 	vmContainer  process.VirtualMachinesContainer
 	economicsFee process.FeeHandler
 	mutRunSc     sync.Mutex
+	numQueries   int
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -56,6 +57,9 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	service.numQueries++
+
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		return nil, err
@@ -65,6 +69,16 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
+	}
+
+	// Retriable:
+	if vmOutput.ReturnMessage == "allocation error" {
+		log.Debug("Will retry (once) executeScCall() due to allocation error")
+
+		vmOutput, err = vm.RunSmartContractCall(vmInput)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = service.checkVMOutput(vmOutput)
@@ -96,7 +110,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 
 func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s", vmOutput.ReturnCode, vmOutput.ReturnCode))
+		return errors.New(fmt.Sprintf("error running vm func: code: %d, %s, %s", vmOutput.ReturnCode, vmOutput.ReturnCode, vmOutput.ReturnMessage))
 	}
 
 	return nil
