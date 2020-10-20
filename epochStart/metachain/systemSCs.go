@@ -131,8 +131,13 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
-		maxNodesEnableConfig:     args.MaxNodesEnableConfig,
 	}
+
+	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
+	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
+	sort.Slice(s.maxNodesEnableConfig, func(i, j int) bool {
+		return s.maxNodesEnableConfig[i].EpochEnable < s.maxNodesEnableConfig[j].EpochEnable
+	})
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
 	return s, nil
@@ -526,16 +531,20 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 
-	s.flagChangeMaxNodesEnabled.Toggle(false)
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
-		if epoch == maxNodesConfig.EpochEnable {
-			s.flagHystNodesEnabled.Toggle(true)
+		if epoch >= maxNodesConfig.EpochEnable {
+			// to cover also rollbacks, we always set the maxNodes and set the Enabled flag
+			s.flagChangeMaxNodesEnabled.Toggle(true)
 			s.maxNodes = maxNodesConfig.MaxNumNodes
-			break
 		}
 	}
 
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", s.flagHystNodesEnabled.IsSet())
+	log.Debug("systemProcessor:change of maximum number of nodes and/or shuffling percentage",
+		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
+		"epoch", epoch,
+		"maxNodes", s.maxNodes,
+	)
 }

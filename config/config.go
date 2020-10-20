@@ -202,8 +202,9 @@ type ValidatorStatisticsConfig struct {
 
 // ChangeMaxNodesConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
 type MaxNodesChangeConfig struct {
-	MaxNumNodes uint32
-	EpochEnable uint32
+	EpochEnable            uint32
+	MaxNumNodes            uint32
+	NodesToShufflePerShard uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
