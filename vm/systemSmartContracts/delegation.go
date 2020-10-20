@@ -203,7 +203,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	dStatus := &DelegationContractStatus{
-		NumDelegators: 1,
 		Delegators:    [][]byte{ownerAddress},
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
@@ -285,7 +284,7 @@ func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vm
 func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallInput) (*DelegationConfig, vmcommon.ReturnCode) {
 	returnCode := d.checkOwnerCallValueGas(args)
 	if returnCode != vmcommon.Ok {
-		return nil, vmcommon.UserError
+		return nil, returnCode
 	}
 
 	if len(args.Arguments) != 1 {
@@ -330,7 +329,7 @@ func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vm
 func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.UserError
+		return returnCode
 	}
 
 	newServiceFeeBigInt, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
@@ -375,7 +374,7 @@ func (d *delegation) updateRewardComputationData(_ uint64, _ *big.Int) error {
 func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.UserError
+		return returnCode
 	}
 
 	newTotalDelegationCap, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
@@ -788,11 +787,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.OutOfGas
 	}
 
-	dStatus, err := d.getDelegationStatus()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
 	dConfig, err := d.getDelegationContractConfig()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -817,6 +811,12 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	err = d.saveGlobalFundData(globalFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	if len(dData.ActiveFund) == 0 {
 		var fundKey []byte
 		fundKey, err = d.createAndSaveNextFund(args.CallerAddr, args.CallValue, active)
@@ -832,7 +832,14 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		dStatus.Delegators = append(dStatus.Delegators, args.CallerAddr)
+		dStatus, err := d.getDelegationStatus()
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		d.addDelegatorIfNew(dStatus, args.CallerAddr)
+
 		err = d.saveDelegationStatus(dStatus)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -844,12 +851,6 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
 		}
-	}
-
-	err = d.saveGlobalFundData(globalFund)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
 	}
 
 	err = d.saveDelegatorData(args.CallerAddr, dData)
@@ -870,6 +871,20 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 	fund.Value.Add(fund.Value, value)
 	err = d.saveFund(key, fund)
 	return err
+}
+
+func (d *delegation) addDelegatorIfNew(dStatus *DelegationContractStatus, address []byte) {
+	found := false
+	for i := range dStatus.Delegators {
+		if bytes.Equal(address, dStatus.Delegators[i]) {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		dStatus.Delegators = append(dStatus.Delegators, address)
+	}
 }
 
 func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1000,7 +1015,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	totalUnBonded := big.NewInt(0)
 	currentNonce := d.eei.BlockChainHook().CurrentNonce()
 	var fund *Fund
-	for _, fundKey := range delegator.UnStakedFunds {
+	for fundIndex, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -1023,6 +1038,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 				break
 			}
 		}
+		delegator.UnStakedFunds = append(delegator.UnStakedFunds[:fundIndex], delegator.UnStakedFunds[fundIndex+1:]...)
 	}
 
 	if globalFund.TotalUnStaked.Cmp(totalUnBonded) < 0 {
@@ -1122,7 +1138,7 @@ func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorD
 	dData := &DelegatorData{}
 	marshaledData := d.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
-		return false, dData, nil
+		return true, dData, nil
 	}
 
 	err := d.marshalizer.Unmarshal(dData, marshaledData)
@@ -1130,7 +1146,7 @@ func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorD
 		return false, nil, err
 	}
 
-	return true, dData, nil
+	return false, dData, nil
 }
 
 func (d *delegation) saveDelegatorData(address []byte, dData *DelegatorData) error {
