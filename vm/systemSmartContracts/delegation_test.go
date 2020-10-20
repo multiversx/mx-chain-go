@@ -296,7 +296,7 @@ func TestDelegationSystemSC_ExecuteInitWrongNumOfArgs(t *testing.T) {
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
-	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{[]byte("owner"), []byte("maxDelegationCap")})
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{[]byte("maxDelegationCap")})
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -311,7 +311,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	serviceFee := []byte{10}
 	createdNonce := uint64(150)
 	callValue := big.NewInt(130)
-	unBondPeriod := []byte{20}
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
@@ -322,9 +321,10 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriod = 20
 
 	d, _ := NewDelegationSystemSC(args)
-	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{ownerAddr, maxDelegationCap, serviceFee, unBondPeriod})
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallValue = callValue
 
 	output := d.Execute(vmInput)
