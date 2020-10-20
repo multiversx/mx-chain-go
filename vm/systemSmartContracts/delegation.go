@@ -1014,6 +1014,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 	totalUnBonded := big.NewInt(0)
 	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
 	for fundIndex, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
@@ -1023,6 +1024,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 
 		if currentNonce-fund.Nonce < dConfig.UnBondPeriod {
+			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex])
 			continue
 		}
 
@@ -1038,8 +1040,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 				break
 			}
 		}
-		delegator.UnStakedFunds = append(delegator.UnStakedFunds[:fundIndex], delegator.UnStakedFunds[fundIndex+1:]...)
 	}
+	delegator.UnStakedFunds = tempUnStakedFunds
 
 	if globalFund.TotalUnStaked.Cmp(totalUnBonded) < 0 {
 		d.eei.AddReturnMessage("cannot unBond - contract error")
