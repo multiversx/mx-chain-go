@@ -19,6 +19,11 @@ const delegationConfigKey = "delegationConfigKey"
 const delegationStatusKey = "delegationStatusKey"
 const lastFundKey = "lastFundKey"
 const globalFundKey = "globalFundKey"
+const serviceFeeKey = "serviceFee"
+const totalActiveKey = "totalActive"
+const rewardKeyPrefix = "reward"
+
+const percentageDenominator = uint64(100000)
 
 const (
 	active       = uint32(0)
@@ -83,6 +88,12 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
+	}
+	if args.DelegationSCConfig.MinServiceFee > args.DelegationSCConfig.MaxServiceFee {
+		return nil, vm.ErrInvalidDelegationSCConfig
+	}
+	if args.DelegationSCConfig.MaxServiceFee > percentageDenominator {
+		return nil, vm.ErrInvalidDelegationSCConfig
 	}
 
 	d := &delegation{
@@ -234,6 +245,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		UnStakedFunds:     make([][]byte, 0),
 		WithdrawOnlyFunds: make([][]byte, 0),
 		RewardsCheckpoint: d.eei.BlockChainHook().CurrentEpoch(),
+		UnClaimedRewards:  big.NewInt(0),
 	}
 
 	globalFund := &GlobalFundData{
@@ -809,7 +821,8 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	if isNew {
-		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch()
+		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch() + 1
+		delegator.UnClaimedRewards = big.NewInt(0)
 	}
 
 	if len(delegator.ActiveFund) == 0 {
@@ -1017,6 +1030,12 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1040,14 +1059,92 @@ func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
+	totalActiveData := d.eei.GetStorage([]byte(totalActiveKey))
+	serviceFeeData := d.eei.GetStorage([]byte(serviceFeeKey))
+	rewardsData := &RewardComputationData{
+		RewardsToDistribute: args.CallValue,
+		TotalActive:         big.NewInt(0).SetBytes(totalActiveData),
+		ServiceFee:          big.NewInt(0).SetBytes(serviceFeeData).Uint64(),
+	}
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	err := d.saveRewardData(currentEpoch, rewardsData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.UserError
 }
 
-func (d *delegation) getRewardData(epoch uint32) (*RewardComputationData, error) {
-	return nil, nil
+func (d *delegation) getRewardData(epoch uint32) (bool, *RewardComputationData, error) {
+	marshaledData := d.eei.GetStorage(rewardKeyForEpoch(epoch))
+	if len(marshaledData) == 0 {
+		return false, nil, nil
+	}
+	rewardsData := &RewardComputationData{}
+	err := d.marshalizer.Unmarshal(rewardsData, marshaledData)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, rewardsData, nil
 }
 
-func (d *delegation) saveRewardData(epoch uint32) error {
+func rewardKeyForEpoch(epoch uint32) []byte {
+	epochInBytes := big.NewInt(int64(epoch)).Bytes()
+	return append([]byte(rewardKeyPrefix), epochInBytes...)
+}
+
+func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputationData) error {
+	marshaledData, err := d.marshalizer.Marshal(rewardsData)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage(rewardKeyForEpoch(epoch), marshaledData)
+	return nil
+}
+
+func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	activeFund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		return err
+	}
+
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	isOwner := bytes.Equal(callerAddress, ownerAddress)
+
+	totalRewards := big.NewInt(0)
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
+		found, rewardData, err := d.getRewardData(i)
+		if err != nil {
+			return err
+		}
+		if !found {
+			continue
+		}
+
+		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
+		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
+
+		// delegator reward is: rewardForDelegator * user stake / total delegation cap
+		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
+		remaining := big.NewInt(0)
+		rewardForDelegator.DivMod(rewardForDelegator, rewardData.TotalActive, remaining)
+
+		if isOwner {
+			totalRewards.Add(totalRewards, rewardsForOwner)
+			totalRewards.Add(totalRewards, remaining)
+		}
+
+		totalRewards.Add(totalRewards, rewardForDelegator)
+	}
+
+	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
+	delegator.RewardsCheckpoint = currentEpoch + 1
+
 	return nil
 }
 
@@ -1069,6 +1166,24 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 	if isNew {
 		d.eei.AddReturnMessage("caller is not a delegator")
+		return vmcommon.UserError
+	}
+
+	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -1272,6 +1387,7 @@ func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) err
 	}
 
 	d.eei.SetStorage([]byte(delegationConfigKey), marshaledData)
+	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(dConfig.ServiceFee).Bytes())
 	return nil
 }
 
@@ -1428,6 +1544,7 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	}
 
 	d.eei.SetStorage([]byte(globalFundKey), marshaledData)
+	d.eei.SetStorage([]byte(totalActiveKey), globalFundData.TotalActive.Bytes())
 	return nil
 }
 

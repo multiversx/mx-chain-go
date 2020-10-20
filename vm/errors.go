@@ -211,3 +211,6 @@ var ErrInvalidCaller = errors.New("the function was called by a not authorized u
 
 // ErrCallValueMustBeZero signals that call value must be zero
 var ErrCallValueMustBeZero = errors.New("call value must be zero")
+
+// ErrInvalidDelegationSCConfig signals that invalid delegation sc config has been provided
+var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
