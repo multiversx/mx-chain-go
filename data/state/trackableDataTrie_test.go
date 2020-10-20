@@ -190,7 +190,6 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 
 	newTrie := &mock.TrieStub{}
 	mdaw.SetDataTrie(newTrie)
-
 	assert.Equal(t, newTrie, mdaw.DataTrie())
 }
 
@@ -202,5 +201,5 @@ func TestTrackableDataTrie_SaveKeyValueTooBig(t *testing.T) {
 	tdaw := state.NewTrackableDataTrie(identifier, trie)
 
 	err := tdaw.SaveKeyValue([]byte("key"), make([]byte, core.MaxLeafSize+1))
-	assert.Error(t, err, data.ErrLeafSizeTooBig)
+	assert.Equal(t, err, data.ErrLeafSizeTooBig)
 }
