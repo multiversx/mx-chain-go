@@ -1117,9 +1117,9 @@ func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
-		found, rewardData, err := d.getRewardData(i)
-		if err != nil {
-			return err
+		found, rewardData, errGet := d.getRewardData(i)
+		if errGet != nil {
+			return errGet
 		}
 		if !found {
 			continue
