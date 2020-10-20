@@ -167,6 +167,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
+	case "claimRewards":
+		return d.claimRewards(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + "is an unknown function")
@@ -231,6 +233,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		ActiveFund:        fundKey,
 		UnStakedFunds:     make([][]byte, 0),
 		WithdrawOnlyFunds: make([][]byte, 0),
+		RewardsCheckpoint: d.eei.BlockChainHook().CurrentEpoch(),
 	}
 
 	globalFund := &GlobalFundData{
@@ -799,13 +802,17 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	globalFund.TotalActive.Set(newTotalActive)
-	_, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	if len(dData.ActiveFund) == 0 {
+	if isNew {
+		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch()
+	}
+
+	if len(delegator.ActiveFund) == 0 {
 		var fundKey []byte
 		fundKey, err = d.createAndSaveNextFund(args.CallerAddr, args.CallValue, active)
 		if err != nil {
@@ -813,7 +820,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		dData.ActiveFund = fundKey
+		delegator.ActiveFund = fundKey
 		err = d.addNewFundToGlobalData(fundKey, active)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -827,7 +834,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 	} else {
-		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
+		err = d.addValueToFund(delegator.ActiveFund, args.CallValue)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -850,7 +857,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	err = d.saveDelegatorData(args.CallerAddr, dData)
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1019,7 +1026,52 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (d *delegation) updateRewards(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, d.endOfEpochAddr) {
+		d.eei.AddReturnMessage("only end of epoch address can call this function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("must call without arguments")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("cannot call with negative value")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.UserError
+}
+
+func (d *delegation) getRewardData(epoch uint32) (*RewardComputationData, error) {
+	return nil, nil
+}
+
+func (d *delegation) saveRewardData(epoch uint32) error {
+	return nil
+}
+
+func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("wrong number of arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("caller is not a delegator")
+		return vmcommon.UserError
+	}
+
 	return vmcommon.UserError
 }
 
