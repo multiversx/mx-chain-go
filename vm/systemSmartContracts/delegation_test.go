@@ -965,7 +965,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		StakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
 	auctionMap := map[string][]byte{}
@@ -1107,7 +1107,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		UnStakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
 	auctionMap := map[string][]byte{}

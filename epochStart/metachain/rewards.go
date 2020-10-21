@@ -143,14 +143,15 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	rc.clean()
 
-	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
+	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = core.MetachainShardId
 		miniBlocks[i].ReceiverShardID = i
 		miniBlocks[i].Type = block.RewardsBlock
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
+	miniBlocks[rc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
 
 	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
@@ -177,7 +178,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 
-	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
+	for shId := uint32(0); shId <= rc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
 			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
 		})
@@ -223,14 +224,14 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 		}
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
-		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
-		if shardId == core.MetachainShardId {
-			protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.Value)
+		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
+		if mbId == core.MetachainShardId {
+			mbId = rc.shardCoordinator.NumberOfShards()
 			continue
 		}
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
-		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
+		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}
 
 	return nil

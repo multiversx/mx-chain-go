@@ -238,3 +238,9 @@ var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
+
+// ErrNilProtocolSustainabilityReward signals that nil protocol sustainability reward was provided
+var ErrNilProtocolSustainabilityReward = errors.New("nil protocol sustainability reward")
+
+// ErrNilLocalTxCache signals that nil local tx cache has been provided
+var ErrNilLocalTxCache = errors.New("nil local tx cache")

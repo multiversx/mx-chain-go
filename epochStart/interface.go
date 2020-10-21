@@ -138,3 +138,9 @@ type ImportStartHandler interface {
 	IsAfterExportBeforeImport() bool
 	IsInterfaceNil() bool
 }
+
+// TransactionCacher defines the methods for the local cacher, info for current round
+type TransactionCacher interface {
+	GetTx(txHash []byte) (data.TransactionHandler, error)
+	IsInterfaceNil() bool
+}
