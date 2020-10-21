@@ -35,6 +35,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
@@ -42,23 +43,24 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 }
 
 type systemSCProcessor struct {
-	systemVM                vmcommon.VMExecutionHandler
-	userAccountsDB          state.AccountsAdapter
-	marshalizer             marshal.Marshalizer
-	peerAccountsDB          state.AccountsAdapter
-	chanceComputer          sharding.ChanceComputer
-	startRating             uint32
-	validatorInfoCreator    epochStart.ValidatorInfoCreator
-	genesisNodesConfig      sharding.GenesisNodesSetupHandler
-	endOfEpochCallerAddress []byte
-	stakingSCAddress        []byte
-	switchEnableEpoch       uint32
-	hystNodesEnableEpoch    uint32
-	stakingV2EnableEpoch    uint32
-	flagSwitchEnabled       atomic.Flag
-	flagHystNodesEnabled    atomic.Flag
-	flagStakingV2Enabled    atomic.Flag
-
+	systemVM                 vmcommon.VMExecutionHandler
+	userAccountsDB           state.AccountsAdapter
+	marshalizer              marshal.Marshalizer
+	peerAccountsDB           state.AccountsAdapter
+	chanceComputer           sharding.ChanceComputer
+	startRating              uint32
+	validatorInfoCreator     epochStart.ValidatorInfoCreator
+	genesisNodesConfig       sharding.GenesisNodesSetupHandler
+	endOfEpochCallerAddress  []byte
+	stakingSCAddress         []byte
+	switchEnableEpoch        uint32
+	hystNodesEnableEpoch     uint32
+	delegationEnableEpoch    uint32
+	stakingV2EnableEpoch     uint32
+	flagSwitchJailedWaiting  atomic.Flag
+	flagHystNodesEnabled     atomic.Flag
+	flagDelegationEnabled    atomic.Flag
+	flagStakingV2Enabled     atomic.Flag
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
 }
@@ -131,6 +133,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:    args.DelegationEnableEpoch,
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
 	}
 
@@ -147,7 +150,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
-	if s.flagSwitchEnabled.IsSet() {
+	if s.flagDelegationEnabled.IsSet() {
+		err := s.initDelegationSystemSC()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
@@ -367,8 +377,8 @@ func switchJailedWithNewValidatorInMap(
 	}
 }
 
-func (s *systemSCProcessor) getExistingAccount(address []byte) (state.UserAccountHandler, error) {
-	acnt, err := s.userAccountsDB.GetExistingAccount(address)
+func (s *systemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	acnt, err := s.userAccountsDB.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +398,7 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		acc, err := s.getExistingAccount(outAcc.Address)
+		acc, err := s.getUserAccount(outAcc.Address)
 		if err != nil {
 			return err
 		}
@@ -536,6 +546,53 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	return nil
 }
 
+func (s *systemSCProcessor) initDelegationSystemSC() error {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.DelegationManagerSCAddress,
+			Arguments:  [][]byte{},
+			CallValue:  big.NewInt(0),
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrCouldNotInitDelegationSystemSC
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc, err := s.getUserAccount(vm.DelegationManagerSCAddress)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
+	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
+	delegationMgrAcc.SetCode(vmInput.ContractCodeMetadata)
+
+	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -543,15 +600,18 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
-	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
+	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
-	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
-
-	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
-		"enabled", epoch >= s.hystNodesEnableEpoch)
-	log.Debug("systemProcessor: stakingV2",
-		"enabled", epoch >= s.stakingV2EnableEpoch)
+		"enabled", s.flagHystNodesEnabled.IsSet())
+
+	// only toggle on exact epoch as init should be called only once
+	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
+	log.Debug("systemProcessor: delegation", "enabled", s.flagHystNodesEnabled.IsSet())
+
+	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
+	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 }

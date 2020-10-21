@@ -2839,50 +2839,6 @@ func TestAuctionStakingSC_ChangeRewardAddress(t *testing.T) {
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.Ok)
 }
 
-func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
-	t.Skip("function is disabled for now as it is not fully tested")
-	t.Parallel()
-
-	receiverAddr := []byte("receiverAddress")
-	stakerAddress := []byte("stakerA")
-	stakerPubKey := []byte("stakerP")
-	minStakeValue := big.NewInt(1000)
-	unboundPeriod := uint64(10)
-	nodesToRunBytes := big.NewInt(1).Bytes()
-	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForAuction()
-	args.Eei = createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
-
-	sc, _ := NewStakingAuctionSmartContract(args)
-
-	// changeValidatorKeys should err not enough arguments
-	newKey := []byte("newKey")
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, nil, vmcommon.UserError)
-	// changeValidatorKeys should error because address is not belongs to any validator
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
-	//do stake
-	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
-	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
-	// changeValidatorKeys should error not enough arguments
-	nodesToRunBytes = big.NewInt(2).Bytes()
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
-	// changeValidatorKeys should error verify sig will return error
-	nodesToRunBytes = big.NewInt(1).Bytes()
-	args.SigVerifier = &mock.MessageSignVerifierMock{
-		VerifyCalled: func(message []byte, signedMessage []byte, pubKey []byte) error {
-			return errors.New("new")
-		},
-	}
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.UserError)
-	// changeValidatorKeys should error wrong old key
-	args.SigVerifier = &mock.MessageSignVerifierMock{}
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, []byte("wrong"), newKey, []byte("signed"), vmcommon.UserError)
-
-	// changeValidatorKeys should work
-	newKey = []byte("newKey1")
-	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.Ok)
-}
-
 func TestStakingAuctionSC_UnstakeTokensNotEnabledShouldError(t *testing.T) {
 	t.Parallel()
 
@@ -2913,6 +2869,10 @@ func TestStakingAuctionSC_UnstakeTokensInvalidArgumentsShouldError(t *testing.T)
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
 
+	registrationData := &AuctionDataV2{RewardAddress: caller}
+	marshaledData, _ := args.Marshalizer.Marshal(registrationData)
+	eei.SetStorage(caller, marshaledData)
+	unstakeTokens(t, sc, caller, nil, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, nil, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "should have specified one argument containing the unstake value", vmOutput.ReturnMessage)
@@ -2922,6 +2882,8 @@ func TestStakingAuctionSC_UnstakeTokensInvalidArgumentsShouldError(t *testing.T)
 	caller = []byte("caller")
 	sc, _ = NewStakingAuctionSmartContract(args)
 
+	eei.SetStorage(caller, marshaledData)
+	unstakeTokens(t, sc, caller, [][]byte{[]byte("a"), []byte("b")}, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{[]byte("a"), []byte("b")}, zero, vmcommon.UserError)
 	vmOutput = eei.CreateVMOutput()
 	assert.Equal(t, "should have specified one argument containing the unstake value", vmOutput.ReturnMessage)
@@ -3253,6 +3215,10 @@ func TestStakingAuctionSC_UnbondTokensOneArgumentShouldError(t *testing.T) {
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
 
+	registrationData := &AuctionDataV2{RewardAddress: caller}
+	marshaledData, _ := args.Marshalizer.Marshal(registrationData)
+	eei.SetStorage(caller, marshaledData)
+	unbondTokens(t, sc, caller, [][]byte{[]byte("argument")}, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{[]byte("argument")}, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "should have not specified any arguments", vmOutput.ReturnMessage)
@@ -3718,20 +3684,6 @@ func stake(t *testing.T, asc *stakingAuctionSC, stakeValue *big.Int, receiverAdd
 
 	retCode := asc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
-}
-
-func changeValidatorKeys(t *testing.T, asc *stakingAuctionSC, numNodes, stakedAddr, oldKey, newKey, signedMessage []byte, expectedCode vmcommon.ReturnCode) {
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "changeValidatorKeys"
-	arguments.CallerAddr = stakedAddr
-	if signedMessage == nil {
-		arguments.Arguments = nil
-	} else {
-		arguments.Arguments = [][]byte{numNodes, oldKey, newKey, signedMessage}
-	}
-
-	retCode := asc.Execute(arguments)
-	assert.Equal(t, expectedCode, retCode)
 }
 
 func changeRewardAddress(t *testing.T, asc *stakingAuctionSC, callerAddr, newRewardAddr []byte, expectedCode vmcommon.ReturnCode) {

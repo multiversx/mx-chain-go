@@ -236,6 +236,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 
+// ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
+var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
+
 // ErrExecutingSystemScCode signals that an error occurred while executing system SC code
 var ErrExecutingSystemScCode = errors.New("error executing system SC code")
 

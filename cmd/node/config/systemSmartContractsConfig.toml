@@ -26,3 +26,14 @@
 	MinPassThreshold = 300
 	MinVetoThreshold = 50
     EnabledEpoch = 2
+
+[DelegationManagerSystemSCConfig]
+    BaseIssuingCost = "5000000000000000000" #5 eGLD
+    MinCreationDeposit = "2500000000000000000000" #2.5K eGLD
+    EnabledEpoch = 2
+
+[DelegationSystemSCConfig]
+    MinStakeAmount = "10000000000000000000" #10 eGLD
+    EnabledEpoch   = 2
+    MinServiceFee  = 0
+    MaxServiceFee  = 10000
