@@ -9,7 +9,7 @@
 
    # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
    # available in local disk
-   StartInEpochEnabled = true
+   StartInEpochEnabled = false
 
    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
    SCDeployEnableEpoch = 1000000
