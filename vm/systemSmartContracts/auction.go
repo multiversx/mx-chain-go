@@ -978,6 +978,27 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 	if totalUnBond.Cmp(zero) < 0 {
 		totalUnBond.Set(zero)
 	}
+
+	returnCode := s.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedKeys, args.CallerAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
+	if err != nil {
+		s.eei.AddReturnMessage("transfer error on unBond function")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) updateRegistrationDataAfterUnBond(
+	registrationData *AuctionDataV2,
+	totalUnBond *big.Int,
+	unBondedKeys [][]byte,
+	callerAddr []byte,
+) vmcommon.ReturnCode {
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
 		s.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
 		return vmcommon.UserError
@@ -990,17 +1011,11 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
-	if err != nil {
-		s.eei.AddReturnMessage("transfer error on unBond function")
-		return vmcommon.UserError
-	}
-
 	if registrationData.LockedStake.Cmp(zero) == 0 && registrationData.TotalStakeValue.Cmp(zero) == 0 {
-		s.eei.SetStorage(args.CallerAddr, nil)
+		s.eei.SetStorage(callerAddr, nil)
 	} else {
 		s.deleteUnBondedKeys(registrationData, unBondedKeys)
-		errSave := s.saveRegistrationData(args.CallerAddr, registrationData)
+		errSave := s.saveRegistrationData(callerAddr, registrationData)
 		if errSave != nil {
 			s.eei.AddReturnMessage("cannot save registration data: error " + errSave.Error())
 			return vmcommon.UserError
@@ -1133,7 +1148,6 @@ func (s *stakingAuctionSC) unStakeValue(registrationData *AuctionDataV2, unStake
 
 func (s *stakingAuctionSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInput) (*AuctionDataV2, vmcommon.ReturnCode) {
 	if !s.flagEnableTopUp.IsSet() {
-		//unStakeTokens function will become available after enabling staking v2
 		s.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.UserError
 	}
@@ -1147,7 +1161,7 @@ func (s *stakingAuctionSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCal
 		return nil, vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
-		s.eei.AddReturnMessage("key is not registered, action is not possible")
+		s.eei.AddReturnMessage("key is not registered, auction operation is not possible")
 		return nil, vmcommon.UserError
 	}
 	if registrationData.TotalUnstaked == nil {
@@ -1171,20 +1185,19 @@ func (s *stakingAuctionSC) unStakeTokensWithNodes(args *vmcommon.ContractCallInp
 		s.eei.AddReturnMessage("should have specified one argument containing the unstake value")
 		return vmcommon.UserError
 	}
-
-	maxValUnStake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	valToUnStakeNodes := big.NewInt(0).Sub(unStakeValue, maxValUnStake)
-
 	if unStakeValue.Cmp(zero) <= 0 {
 		s.eei.AddReturnMessage("cannot unStake negative value")
 		return vmcommon.UserError
 	}
 
+	maxValUnStake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
+	valToUnStakeNodes := big.NewInt(0).Sub(unStakeValue, maxValUnStake)
+
 	valToUnStakeFromTopUp := big.NewInt(0)
 	if maxValUnStake.Cmp(zero) >= 0 {
 		valToUnStakeFromTopUp.Set(maxValUnStake)
-		if maxValUnStake.Cmp(unStakeValue) <= 0 {
+		if maxValUnStake.Cmp(unStakeValue) > 0 {
 			valToUnStakeFromTopUp.Set(unStakeValue)
 		}
 		returnCode = s.unStakeValue(registrationData, valToUnStakeFromTopUp)
@@ -1197,7 +1210,7 @@ func (s *stakingAuctionSC) unStakeTokensWithNodes(args *vmcommon.ContractCallInp
 	if valToUnStakeNodes.Cmp(zero) > 0 {
 		totalUnStakedFromNodes, err = s.unStakeNodesWithPreferences(registrationData, valToUnStakeNodes)
 		if err != nil {
-			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+			s.eei.AddReturnMessage("cannot unStake with preference error " + err.Error())
 			return vmcommon.UserError
 		}
 	}
@@ -1233,6 +1246,15 @@ func (s *stakingAuctionSC) isWithStatusInactive(blsKey []byte) bool {
 	return s.eei.StatusFromValidatorStatistics(blsKey) == string(core.InactiveList)
 }
 
+func searchInList(key []byte, list [][]byte) bool {
+	for _, element := range list {
+		if bytes.Equal(key, element) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *stakingAuctionSC) unStakeNodesWithStatus(
 	registrationData *AuctionDataV2,
 	listUnStakedKeys [][]byte,
@@ -1244,14 +1266,7 @@ func (s *stakingAuctionSC) unStakeNodesWithStatus(
 	}
 
 	for _, blsKey := range registrationData.BlsPubKeys {
-		found := false
-		for _, unStakedKey := range listUnStakedKeys {
-			if bytes.Equal(blsKey, unStakedKey) {
-				found = true
-				break
-			}
-		}
-		if found {
+		if searchInList(blsKey, listUnStakedKeys) {
 			continue
 		}
 
@@ -1272,10 +1287,10 @@ func (s *stakingAuctionSC) unStakeNodesWithStatus(
 		if returnCode != vmcommon.Ok {
 			continue
 		}
-		listUnStakedKeys = append(listUnStakedKeys, blsKey)
 
+		listUnStakedKeys = append(listUnStakedKeys, blsKey)
 		if len(listUnStakedKeys) >= numNodesToUnStake {
-			return listUnStakedKeys, nil
+			break
 		}
 	}
 
@@ -1291,18 +1306,17 @@ func (s *stakingAuctionSC) unStakeNodesWithPreferences(registrationData *Auction
 
 	listUnStakedKeys := make([][]byte, 0)
 
-	// unstake from additional queue first
 	var err error
 	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isInAdditionalQueue)
 	if err != nil {
 		return nil, err
 	}
-	// unstake nodes which are with status waiting
+
 	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isWithStatusWaiting)
 	if err != nil {
 		return nil, err
 	}
-	// unstake those which are with status eligible
+
 	listUnStakedKeys, err = s.unStakeNodesWithStatus(registrationData, listUnStakedKeys, numNodesToUnStake, s.isWithStatusEligible)
 	if err != nil {
 		return nil, err
@@ -1360,8 +1374,12 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) unBondNecessaryNodes(registrationData *AuctionDataV2, valueToUnBond *big.Int) (*big.Int, error) {
+func (s *stakingAuctionSC) unBondNecessaryNodes(
+	registrationData *AuctionDataV2,
+	valueToUnBond *big.Int,
+) (*big.Int, [][]byte, error) {
 	totalUnBond := big.NewInt(0)
+	unBondedNodes := make([][]byte, 0)
 	for _, blsKey := range registrationData.BlsPubKeys {
 		if !s.isWithStatusInactive(blsKey) {
 			continue
@@ -1369,7 +1387,7 @@ func (s *stakingAuctionSC) unBondNecessaryNodes(registrationData *AuctionDataV2,
 
 		nodeData, errGet := s.getStakedData(blsKey)
 		if errGet != nil {
-			return nil, errGet
+			return nil, nil, errGet
 		}
 		if len(nodeData.RewardAddress) == 0 {
 			continue
@@ -1385,13 +1403,13 @@ func (s *stakingAuctionSC) unBondNecessaryNodes(registrationData *AuctionDataV2,
 		totalUnBond.Sub(totalUnBond, nodeData.SlashValue)
 
 		s.eei.Finish(blsKey)
-
+		unBondedNodes = append(unBondedNodes, blsKey)
 		if totalUnBond.Cmp(valueToUnBond) >= 0 {
-			return totalUnBond, nil
+			break
 		}
 	}
 
-	return totalUnBond, nil
+	return totalUnBond, unBondedNodes, nil
 }
 
 func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1411,7 +1429,7 @@ func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInpu
 
 	unBondValue := big.NewInt(0).SetBytes(args.Arguments[0])
 	if unBondValue.Cmp(zero) <= 0 {
-		s.eei.AddReturnMessage("cannot unStake negative value")
+		s.eei.AddReturnMessage("cannot unBond negative value")
 		return vmcommon.UserError
 	}
 
@@ -1425,10 +1443,11 @@ func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInpu
 		}
 	}
 
+	unBondedNodes := make([][]byte, 0)
 	totalUnBondedFromNodes := big.NewInt(0)
 	if totalUnBond.Cmp(unBondValue) < 0 {
 		remainingToUnBond := big.NewInt(0).Sub(unBondValue, totalUnBond)
-		totalUnBondedFromNodes, err = s.unBondNecessaryNodes(registrationData, remainingToUnBond)
+		totalUnBondedFromNodes, unBondedNodes, err = s.unBondNecessaryNodes(registrationData, remainingToUnBond)
 		if err != nil {
 			s.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -1444,10 +1463,9 @@ func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
-	err = s.saveRegistrationData(args.CallerAddr, registrationData)
-	if err != nil {
-		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
-		return vmcommon.UserError
+	returnCode = s.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedNodes, args.CallerAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
 	return vmcommon.Ok
