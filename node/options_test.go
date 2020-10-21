@@ -1425,3 +1425,40 @@ func TestWithPeerSignatureHandler_OkPeerSignatureHandlerShouldWork(t *testing.T)
 	assert.Equal(t, peerSigHandler, node.peerSigHandler)
 	assert.Nil(t, err)
 }
+
+func TestWithPeerSignatureHandler_EnableSignTxWithHashEpochShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	epochEnable := uint32(10)
+	opt := WithEnableSignTxWithHashEpoch(epochEnable)
+	err := opt(node)
+
+	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
+	assert.Nil(t, err)
+}
+
+func TestWithPeerSignatureHandler_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxSignHasher(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHasher, err)
+}
+
+func TestWithPeerSignatureHandler_OkTxSignHasherShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hasher := &mock.HasherMock{}
+	opt := WithTxSignHasher(hasher)
+	err := opt(node)
+
+	assert.Equal(t, hasher, node.txSignHasher)
+	assert.Nil(t, err)
+}

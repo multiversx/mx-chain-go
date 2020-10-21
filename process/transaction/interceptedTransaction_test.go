@@ -446,6 +446,31 @@ func TestNewInterceptedTransaction_InvalidVersionShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
+func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		mock.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubkeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&mock.FeeHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		1,
+		false,
+		nil,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -836,6 +861,118 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 
 	err := txi.CheckValidity()
 
+	assert.Nil(t, err)
+}
+
+func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion + 1,
+		Options:   16777216,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = 6
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddress) {
+			return senderShard
+		}
+		if bytes.Equal(address, recvAddress) {
+			return recvShard
+		}
+
+		return shardCoordinator.CurrentShard
+	}
+
+	txi, _ := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		chainID,
+		minTxVersion,
+		false,
+		mock.HasherMock{},
+	)
+
+	err := txi.CheckValidity()
+	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
+}
+
+func TestInterceptedTransaction_CheckValiditySignedWithHashShoudWork(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion + 1,
+		Options:   16777216,
+	}
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	shardCoordinator.CurrentShard = 6
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, senderAddress) {
+			return senderShard
+		}
+		if bytes.Equal(address, recvAddress) {
+			return recvShard
+		}
+
+		return shardCoordinator.CurrentShard
+	}
+
+	txi, _ := transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		mock.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&mock.PubkeyConverterStub{},
+		shardCoordinator,
+		createFreeTxFeeHandler(),
+		&mock.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		chainID,
+		minTxVersion,
+		true,
+		mock.HasherMock{},
+	)
+
+	err := txi.CheckValidity()
 	assert.Nil(t, err)
 }
 

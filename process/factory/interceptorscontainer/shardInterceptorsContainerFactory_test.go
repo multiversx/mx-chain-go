@@ -203,6 +203,17 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldEr
 	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.TxSignHasher = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
