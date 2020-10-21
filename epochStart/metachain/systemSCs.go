@@ -2,6 +2,8 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -32,6 +35,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	StakingV2EnableEpoch                   uint32
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	EpochNotifier      process.EpochNotifier
@@ -50,8 +54,10 @@ type systemSCProcessor struct {
 	stakingSCAddress        []byte
 	switchEnableEpoch       uint32
 	hystNodesEnableEpoch    uint32
+	stakingV2EnableEpoch    uint32
 	flagSwitchEnabled       atomic.Flag
 	flagHystNodesEnabled    atomic.Flag
+	flagStakingV2Enabled    atomic.Flag
 
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
@@ -125,6 +131,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
+		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -147,6 +154,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 
 		err = s.swapJailedWithWaiting(validatorInfos)
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagStakingV2Enabled.IsSet() {
+		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
 		}
@@ -460,6 +474,68 @@ func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
 	return nil
 }
 
+func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
+	sw := core.NewStopWatch()
+	sw.Start("systemSCProcessor")
+	defer func() {
+		sw.Stop("systemSCProcessor")
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
+	}()
+
+	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.AuctionSCAddress)
+	if err != nil {
+		return fmt.Errorf("%w when loading auction account", err)
+	}
+
+	userAuctionAccount, ok := auctionAccount.(state.UserAccountHandler)
+	if !ok {
+		return fmt.Errorf("%w when loading auction account", epochStart.ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(userAuctionAccount.DataTrie()) {
+		return epochStart.ErrNilDataTrie
+	}
+
+	chLeaves := userAuctionAccount.DataTrie().GetAllLeavesOnChannel()
+	for leaf := range chLeaves {
+		auctionData := &systemSmartContracts.AuctionDataV2{
+			RewardAddress:   nil,
+			RegisterNonce:   0,
+			Epoch:           0,
+			BlsPubKeys:      nil,
+			TotalStakeValue: big.NewInt(0),
+			LockedStake:     big.NewInt(0),
+			MaxStakePerNode: big.NewInt(0),
+			TotalUnstaked:   big.NewInt(0),
+			UnstakedInfo:    make([]*systemSmartContracts.UnstakedValue, 0),
+		}
+		err = s.marshalizer.Unmarshal(auctionData, leaf.Value())
+		dataIsNotValid := err != nil || len(auctionData.BlsPubKeys) == 0
+		if dataIsNotValid {
+			continue
+		}
+
+		vmInput := &vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: vm.AuctionSCAddress,
+				CallValue:  big.NewInt(0),
+				Arguments:  [][]byte{leaf.Value()},
+			},
+			RecipientAddr: vm.AuctionSCAddress,
+			Function:      "updateStakingV2",
+		}
+		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+		if errRun != nil {
+			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(leaf.Value()))
+		}
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(leaf.Value()))
+		}
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -471,7 +547,11 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
+	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
+
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
-		"enabled", s.flagHystNodesEnabled.IsSet())
+		"enabled", epoch >= s.hystNodesEnableEpoch)
+	log.Debug("systemProcessor: stakingV2",
+		"enabled", epoch >= s.stakingV2EnableEpoch)
 }

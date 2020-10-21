@@ -1626,6 +1626,106 @@ func TestStakingSC_SetOwnerShouldWork(t *testing.T) {
 	assert.Equal(t, owner, registrationData.OwnerAddress)
 }
 
+func TestStakingSC_GetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 100
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getOwner"
+	arguments.CallerAddr = []byte("owner")
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.UserError)
+	assert.Equal(t, "invalid method to call", eei.returnMessage)
+}
+
+func TestStakingSC_GetOwnerWrongCallerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getOwner"
+	arguments.CallerAddr = []byte("owner")
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.UserError)
+	assert.True(t, strings.Contains(eei.returnMessage, "this is only a view function"))
+}
+
+func TestStakingSC_GetOwnerWrongArgumentsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getOwner"
+	arguments.CallerAddr = args.StakingAccessAddr
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.UserError)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments: expected min"))
+}
+
+func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	blsKey := []byte("blsKey")
+	owner := []byte("owner")
+
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "setOwner"
+	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.Arguments = [][]byte{blsKey, owner}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	arguments = CreateVmContractCallInput()
+	arguments.Function = "getOwner"
+	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.Arguments = [][]byte{blsKey}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	vmOutput := eei.CreateVMOutput()
+	assert.Equal(t, []byte(hex.EncodeToString(owner)), vmOutput.ReturnData[0])
+}
+
 func doGetRewardAddress(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedAddress string) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "getRewardAddress"

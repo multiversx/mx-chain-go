@@ -138,3 +138,10 @@ type ImportStartHandler interface {
 	IsAfterExportBeforeImport() bool
 	IsInterfaceNil() bool
 }
+
+// RewardsStakingProvider is able to provide staking data for the correct rewards computation
+type RewardsStakingProvider interface {
+	ComputeRewardsForBlsKey(blsKey []byte) error
+	Clean()
+	IsInterfaceNil() bool
+}

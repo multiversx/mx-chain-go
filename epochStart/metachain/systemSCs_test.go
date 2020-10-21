@@ -1,13 +1,16 @@
 package metachain
 
 import (
+	"bytes"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -28,6 +31,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,6 +105,95 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	for i := numWaiting; i < numJailed; i++ {
 		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
 	}
+}
+
+func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createFullArgumentsForSystemSCProcessing()
+	args.StakingV2EnableEpoch = 1
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
+
+	owner1 := append([]byte("owner1"), bytes.Repeat([]byte{1}, 26)...)
+	owner2 := append([]byte("owner2"), bytes.Repeat([]byte{1}, 26)...)
+
+	blsKeys := [][]byte{
+		[]byte("bls key 1"),
+		[]byte("bls key 2"),
+		[]byte("bls key 3"),
+		[]byte("bls key 4"),
+	}
+
+	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys[0], blsKeys[1])
+	doStake(t, s.systemVM, s.userAccountsDB, owner2, big.NewInt(1000), blsKeys[2], blsKeys[3])
+
+	args.EpochNotifier.CheckEpoch(1000000)
+
+	for _, blsKey := range blsKeys {
+		checkOwnerOfBlsKey(t, s.systemVM, blsKey, []byte(""))
+	}
+
+	err := s.updateOwnersForBlsKeys()
+	assert.Nil(t, err)
+
+	checkOwnerOfBlsKey(t, s.systemVM, blsKeys[0], owner1)
+	checkOwnerOfBlsKey(t, s.systemVM, blsKeys[1], owner1)
+	checkOwnerOfBlsKey(t, s.systemVM, blsKeys[2], owner2)
+	checkOwnerOfBlsKey(t, s.systemVM, blsKeys[3], owner2)
+}
+
+func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsKey []byte, expectedOwner []byte) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.AuctionSCAddress,
+			Arguments:  [][]byte{blsKey},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "getOwner",
+	}
+
+	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, 1, len(vmOutput.ReturnData))
+
+	assert.Equal(t, expectedOwner, vmOutput.ReturnData[0])
+}
+
+func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, nodePrice *big.Int, blsKeys ...[]byte) {
+	numBlsKeys := len(blsKeys)
+	args := [][]byte{{0, byte(numBlsKeys)}}
+	for _, blsKey := range blsKeys {
+		args = append(args, blsKey)
+		args = append(args, []byte("sig"))
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   args,
+			CallValue:   big.NewInt(0).Mul(big.NewInt(int64(numBlsKeys)), nodePrice),
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.AuctionSCAddress,
+		Function:      "stake",
+	}
+
+	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	saveOutputAccounts(t, accountsDB, vmOutput)
 }
 
 func createStakingScAcc(accountsDB state.AccountsAdapter) state.UserAccountHandler {
@@ -263,6 +356,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewPeerAccountCreator(), trieFactoryManager)
+	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:         marshalizer,
@@ -276,7 +370,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		RewardsHandler:      &mock.RewardsHandlerStub{},
 		NodesSetup:          &mock.NodesSetupStub{},
 		MaxComputableRounds: 1,
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		EpochNotifier:       epochNotifier,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -336,7 +430,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		},
 		peerAccountsDB,
 		&mock.ChanceComputerStub{},
-		&mock.EpochNotifierStub{},
+		epochNotifier,
 	)
 
 	vmContainer, _ := metaVmFactory.Create()
@@ -351,8 +445,9 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 		StakingSCAddress:        vm.StakingSCAddress,
 		ChanceComputer:          &mock.ChanceComputerStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
+		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
+		StakingV2EnableEpoch:    1000000,
 	}
 	return args
 }

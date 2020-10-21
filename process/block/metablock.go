@@ -356,12 +356,12 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
 	if err != nil {
 		return err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -736,16 +736,16 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo)
 	if err != nil {
 		return nil, err
 	}
 	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
-
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
-	if err != nil {
-		return nil, err
-	}
 
 	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
@@ -1512,7 +1512,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	for shardID, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
 			if !mp.isGenesisShardBlockAndFirstMeta(shardHdr.GetNonce()) {
-				err := mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
+				err = mp.headerValidator.IsHeaderConstructionValid(shardHdr, lastCrossNotarizedHeader[shardID])
 				if err != nil {
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
 				}
@@ -1527,11 +1527,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	for _, shardData := range metaHdr.ShardInfo {
-		hdrInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
 		if !ok {
 			return nil, fmt.Errorf("%w : checkShardHeadersValidity -> hash not found %s ", process.ErrHeaderShardDataMismatch, shardData.HeaderHash)
 		}
-		actualHdr := hdrInfo.hdr
+		actualHdr := headerInfo.hdr
 		shardHdr, ok := actualHdr.(*block.Header)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion

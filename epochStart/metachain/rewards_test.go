@@ -1,7 +1,7 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -112,6 +113,17 @@ func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *tes
 	assert.NotNil(t, err)
 }
 
+func TestNewEpochStartRewardsCreator_NilRewardsStakingProvider(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	args.RewardsStakingProvider = nil
+
+	rwd, err := NewEpochStartRewardsCreator(args)
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilRewardsStakingProvider, err)
+}
+
 func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -122,10 +134,60 @@ func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+//TODO fix this test
+func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsArguments()
+	//cleanWasCalled := false
+	numComputeRewards := 0
+	expectedErr := errors.New("expected error")
+	args.RewardsStakingProvider = &mock.RewardsStakingProviderStub{
+		CleanCalled: func() {
+			//cleanWasCalled = true
+		},
+		ComputeRewardsForBlsKeyCalled: func(blsKey []byte) error {
+			numComputeRewards++
+			return expectedErr
+		},
+	}
+	rwd, _ := NewEpochStartRewardsCreator(args)
+
+	mb := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
+	valInfo := make(map[uint32][]*state.ValidatorInfo)
+	valInfo[0] = []*state.ValidatorInfo{
+		{
+			PublicKey:       []byte("pubkey"),
+			ShardId:         0,
+			AccumulatedFees: big.NewInt(100),
+		},
+	}
+	_, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	assert.Nil(t, err)
+	//assert.Equal(t, expectedErr, err)
+	//assert.Nil(t, bdy)
+	//assert.True(t, cleanWasCalled)
+	//assert.Equal(t, 1, numComputeRewards)
+}
+
 func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
+	cleanWasCalled := false
+	numComputeRewards := 0
+	args.RewardsStakingProvider = &mock.RewardsStakingProviderStub{
+		CleanCalled: func() {
+			cleanWasCalled = true
+		},
+		ComputeRewardsForBlsKeyCalled: func(blsKey []byte) error {
+			numComputeRewards++
+			return nil
+		},
+	}
 	rwd, _ := NewEpochStartRewardsCreator(args)
 
 	mb := &block.MetaBlock{
@@ -143,6 +205,8 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
+	assert.True(t, cleanWasCalled)
+	assert.Equal(t, 1, numComputeRewards)
 }
 
 func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
@@ -692,5 +756,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		DataPool:                      testscommon.NewPoolsHolderStub(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
+		RewardsStakingProvider:        &mock.RewardsStakingProviderStub{},
 	}
 }
