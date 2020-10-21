@@ -2872,7 +2872,6 @@ func TestStakingAuctionSC_UnstakeTokensInvalidArgumentsShouldError(t *testing.T)
 	registrationData := &AuctionDataV2{RewardAddress: caller}
 	marshaledData, _ := args.Marshalizer.Marshal(registrationData)
 	eei.SetStorage(caller, marshaledData)
-	unstakeTokens(t, sc, caller, nil, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, nil, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "should have specified one argument containing the unstake value", vmOutput.ReturnMessage)
@@ -2883,7 +2882,6 @@ func TestStakingAuctionSC_UnstakeTokensInvalidArgumentsShouldError(t *testing.T)
 	sc, _ = NewStakingAuctionSmartContract(args)
 
 	eei.SetStorage(caller, marshaledData)
-	unstakeTokens(t, sc, caller, [][]byte{[]byte("a"), []byte("b")}, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{[]byte("a"), []byte("b")}, zero, vmcommon.UserError)
 	vmOutput = eei.CreateVMOutput()
 	assert.Equal(t, "should have specified one argument containing the unstake value", vmOutput.ReturnMessage)
@@ -3218,7 +3216,6 @@ func TestStakingAuctionSC_UnbondTokensOneArgumentShouldError(t *testing.T) {
 	registrationData := &AuctionDataV2{RewardAddress: caller}
 	marshaledData, _ := args.Marshalizer.Marshal(registrationData)
 	eei.SetStorage(caller, marshaledData)
-	unbondTokens(t, sc, caller, [][]byte{[]byte("argument")}, zero, vmcommon.UserError)
 	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{[]byte("argument")}, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "should have not specified any arguments", vmOutput.ReturnMessage)
