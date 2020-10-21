@@ -38,7 +38,7 @@ func NewStorageServiceFactory(
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier storage.EpochStartNotifier,
 	currentEpoch uint32,
-	createTrieCheckPointsDBs bool,
+	createTrieEpochRootHashStorer bool,
 ) (*StorageServiceFactory, error) {
 	if config == nil {
 		return nil, storage.ErrNilConfig
@@ -65,7 +65,7 @@ func NewStorageServiceFactory(
 		pathManager:                   pathManager,
 		epochStartNotifier:            epochStartNotifier,
 		currentEpoch:                  currentEpoch,
-		createTrieEpochRootHashStorer: createTrieCheckPointsDBs,
+		createTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 	}, nil
 }
 
