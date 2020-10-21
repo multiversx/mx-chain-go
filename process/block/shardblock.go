@@ -1040,6 +1040,12 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			accounts.SnapshotState(rootHash)
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 		}
+		go func() {
+			err := sp.commitTrieEpochRootHashIfNeeded(metaHdr)
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", header.Epoch, "error", err)
+			}
+		}()
 	}
 }
 

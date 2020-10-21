@@ -2,8 +2,10 @@ package block
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
@@ -25,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1238,4 +1241,67 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	for i := 0; i < len(headers); i++ {
 		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
+}
+
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock) error {
+	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
+	if check.IfNil(trieEpochRootHashStorageUnit) {
+		return nil
+	}
+	_, isStorerDisabled := trieEpochRootHashStorageUnit.(*storageUnit.NilStorer)
+	if isStorerDisabled {
+		return nil
+	}
+
+	userAccountsDb := bp.accountsDB[state.UserAccountsState]
+	if userAccountsDb == nil {
+		return nil
+	}
+
+	currentRootHash, err := userAccountsDb.RootHash()
+	if err != nil {
+		return err
+	}
+	var epochBytes []byte
+	binary.BigEndian.PutUint32(epochBytes, metaBlock.Epoch)
+
+	err = trieEpochRootHashStorageUnit.Put(epochBytes, currentRootHash)
+	if err != nil {
+		return err
+	}
+
+	allLeaves, err := userAccountsDb.GetAllLeaves(currentRootHash)
+	if err != nil {
+		return err
+	}
+
+	balanceSum := big.NewInt(0)
+	for addressKey, userAccountsBytes := range allLeaves {
+		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, bp.marshalizer)
+		if errUnmarshal != nil {
+			log.Debug("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+		balanceSum.Add(balanceSum, userAccount.GetBalance())
+	}
+
+	log.Debug("sum of addresses in shard at epoch start",
+		"shard", bp.shardCoordinator.SelfId(),
+		"epoch", metaBlock.Epoch,
+		"sum", balanceSum.String())
+
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
 }

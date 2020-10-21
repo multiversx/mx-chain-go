@@ -384,6 +384,11 @@ VERSION:
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+	// importDbSaveEpochRootHash defines a flag for optional import DB trie exporting
+	importDbSaveEpochRootHash = cli.BoolFlag{
+		Name:  "import-db-save-epoch-root-hash",
+		Usage: "This flag, if set, will export the trie snapshots at every new epoch",
+	}
 )
 
 // appVersion should be populated at build time using ldflags
@@ -453,6 +458,7 @@ func main() {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		importDbSaveEpochRootHash,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -545,6 +551,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	isInImportMode := len(importDbDirectoryValue) > 0
 	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
+	importDbSaveTrieEpochRootHash := ctx.GlobalBool(importDbSaveEpochRootHash.Name) && isInImportMode
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, generalConfig, p2pConfig)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
@@ -1035,13 +1042,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
-		Config:             *generalConfig,
-		EconomicsData:      economicsData,
-		ShardCoordinator:   shardCoordinator,
-		Core:               coreComponents,
-		PathManager:        pathManager,
-		EpochStartNotifier: epochStartNotifier,
-		CurrentEpoch:       storerEpoch,
+		Config:                        *generalConfig,
+		EconomicsData:                 economicsData,
+		ShardCoordinator:              shardCoordinator,
+		Core:                          coreComponents,
+		PathManager:                   pathManager,
+		EpochStartNotifier:            epochStartNotifier,
+		CurrentEpoch:                  storerEpoch,
+		CreateTrieEpochRootHashStorer: importDbSaveTrieEpochRootHash,
 	}
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
 	if err != nil {

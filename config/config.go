@@ -107,6 +107,7 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
 	ReceiptsStorage            StorageConfig
+	TrieEpochRootHashStorage   StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
