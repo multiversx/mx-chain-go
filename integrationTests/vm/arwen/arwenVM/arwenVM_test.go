@@ -796,7 +796,7 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true, 1000, 2)
+	delegationProcessManyTimes(t, true, 1000, 1000)
 }
 
 func TestDelegationProcessManyTimeCompile(t *testing.T) {
@@ -862,7 +862,6 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 				GasPrice: gasPrice,
 				GasLimit: gasLimit,
 			}
-			ownerNonce++
 
 			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
 			if returnCode != vmcommon.Ok {
@@ -885,12 +884,27 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 				GasPrice: gasPrice,
 				GasLimit: gasLimit,
 			}
-			ownerNonce++
 
 			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
 			if returnCode != vmcommon.Ok {
 				fmt.Printf("return code %s \n", returnCode.String())
 			}
+		}
+
+		tx = &transaction.Transaction{
+			Nonce:    ownerNonce,
+			Value:    big.NewInt(0),
+			SndAddr:  ownerAddressBytes,
+			RcvAddr:  scAddress,
+			Data:     []byte("getFullWaitingList"),
+			GasPrice: gasPrice,
+			GasLimit: gasLimit,
+		}
+
+		ownerNonce++
+		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+		if returnCode != vmcommon.Ok {
+			fmt.Printf("return code %s \n", returnCode.String())
 		}
 
 		elapsedTime = time.Since(start)
