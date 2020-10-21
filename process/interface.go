@@ -754,6 +754,7 @@ type EpochStartRewardsCreator interface {
 	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
 	GetProtocolSustainabilityRewards() *big.Int
+	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
 	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
@@ -775,6 +776,10 @@ type EpochStartValidatorInfoCreator interface {
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
 	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessDelegationRewards(
+		miniBlocks block.MiniBlockSlice,
+		rewardTxs epochStart.TransactionCacher,
+	) error
 	IsInterfaceNil() bool
 }
 

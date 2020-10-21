@@ -2004,6 +2004,7 @@ func newMetaBlockProcessor(
 		DataPool:                      data.Datapool,
 		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           nodesCoordinator,
+		UserAccountsDB:                stateComponents.AccountsAdapter,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

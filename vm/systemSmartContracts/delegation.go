@@ -198,6 +198,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	ownerAddress = args.CallerAddr
+	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
 	dConfig := &DelegationConfig{
 		OwnerAddress:         ownerAddress,

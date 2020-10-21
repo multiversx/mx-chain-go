@@ -1,6 +1,9 @@
 package metachain
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 	"testing"
@@ -682,6 +685,10 @@ func getDefaultEpochStart() block.EpochStart {
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
+	hasher := sha256.Sha256{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	return ArgsNewRewardsCreator{
 		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
 		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
@@ -692,5 +699,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		DataPool:                      testscommon.NewPoolsHolderStub(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
+		UserAccountsDB:                userAccountsDB,
 	}
 }
