@@ -214,3 +214,6 @@ var ErrCallValueMustBeZero = errors.New("call value must be zero")
 
 // ErrInvalidDelegationSCConfig signals that invalid delegation sc config has been provided
 var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
+
+// ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
+var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")

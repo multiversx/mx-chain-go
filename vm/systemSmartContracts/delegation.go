@@ -274,13 +274,13 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	return vmcommon.Ok
 }
 
-func (d *delegation) isOwner(args *vmcommon.ContractCallInput) bool {
+func (d *delegation) isOwner(address []byte) bool {
 	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-	return bytes.Equal(args.CallerAddr, ownerAddress)
+	return bytes.Equal(address, ownerAddress)
 }
 
 func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.isOwner(args) {
+	if !d.isOwner(args.CallerAddr) {
 		d.eei.AddReturnMessage("only owner can change delegation config")
 		return vmcommon.UserError
 	}
@@ -935,6 +935,34 @@ func (d *delegation) resolveUnStakedUnBondResponse(
 	return actualUserVal, remainingVal, nil
 }
 
+func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, valueToUnDelegate *big.Int) error {
+	if !d.isOwner(address) {
+		return nil
+	}
+
+	remainingFunds := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
+	delegationConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		return err
+	}
+
+	if remainingFunds.Cmp(delegationConfig.InitialOwnerFunds) >= 0 {
+		return nil
+	}
+
+	delegationStatus, err := d.getDelegationStatus()
+	if err != nil {
+		return err
+	}
+
+	numActiveKeys := len(delegationStatus.StakedKeys) + len(delegationStatus.UnStakedKeys)
+	if numActiveKeys > 0 {
+		return vm.ErrOwnerCannotUnDelegate
+	}
+
+	return nil
+}
+
 func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
@@ -972,6 +1000,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(zero) > 0 && activeFund.Value.Cmp(d.minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
+		return vmcommon.UserError
+	}
+	err = d.checkOwnerCanUnDelegate(args.CallerAddr, activeFund, valueToUnDelegate)
+	if err != nil {
+		d.eei.AddReturnMessage("owner cannot unDelegate the specified sum")
 		return vmcommon.UserError
 	}
 
@@ -1111,8 +1144,7 @@ func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *
 		return err
 	}
 
-	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-	isOwner := bytes.Equal(callerAddress, ownerAddress)
+	isOwner := d.isOwner(callerAddress)
 
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
