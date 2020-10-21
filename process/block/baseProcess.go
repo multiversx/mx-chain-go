@@ -1262,7 +1262,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	if err != nil {
 		return err
 	}
-	var epochBytes []byte
+	epochBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(epochBytes, metaBlock.Epoch)
 
 	err = trieEpochRootHashStorageUnit.Put(epochBytes, currentRootHash)
