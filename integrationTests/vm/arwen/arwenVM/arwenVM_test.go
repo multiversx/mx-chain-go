@@ -909,5 +909,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 
 		elapsedTime = time.Since(start)
 		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		_, _ = testContext.Accounts.Commit()
+
 	}
 }
