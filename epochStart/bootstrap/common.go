@@ -97,6 +97,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.HeaderIntegrityVerifier) {
 		return epochStart.ErrNilHeaderIntegrityVerifier
 	}
+	if check.IfNil(args.TxSignHasher) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
+	}
 
 	return nil
 }

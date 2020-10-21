@@ -135,6 +135,7 @@ type Config struct {
 	Marshalizer                 MarshalizerConfig
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
+	TxSignHasher                TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig
@@ -212,6 +213,7 @@ type GeneralSettingsConfig struct {
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
+	SignedTransactionWithTxHashEnableEpoch uint32
 	GenesisString                          string
 }
 

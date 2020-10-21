@@ -100,6 +100,8 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		&mock.ArgumentParserMock{},
 		chainID,
 		minTxVersion,
+		false,
+		mock.HasherMock{},
 	)
 }
 
@@ -137,6 +139,8 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		smartContract.NewArgumentParser(),
 		tx.ChainID,
 		tx.Version,
+		false,
+		mock.HasherMock{},
 	)
 }
 
@@ -159,6 +163,8 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -182,6 +188,8 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -205,6 +213,8 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -228,6 +238,8 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -251,6 +263,8 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -274,6 +288,8 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -297,6 +313,8 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -320,6 +338,8 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -343,6 +363,8 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -366,6 +388,8 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -389,6 +413,8 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		nil,
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -412,6 +438,8 @@ func TestNewInterceptedTransaction_InvalidVersionShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		0,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -441,6 +469,8 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		&mock.ArgumentParserMock{},
 		[]byte("chainID"),
 		1,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -886,6 +916,8 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		&mock.ArgumentParserMock{},
 		chainID,
 		minTxVersion,
+		false,
+		mock.HasherMock{},
 	)
 
 	assert.Nil(t, err)
@@ -1019,6 +1051,8 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		&mock.ArgumentParserMock{},
 		chainID,
 		minTxVersion,
+		false,
+		mock.HasherMock{},
 	)
 	require.Nil(t, err)
 

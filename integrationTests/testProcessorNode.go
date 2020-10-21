@@ -869,6 +869,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
+			TxSignHasher:            TestHasher,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -931,6 +932,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
+			TxSignHasher:            TestHasher,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1596,6 +1598,8 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithHistoryRepository(tpn.HistoryRepository),
 		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
 		node.WithWhiteListHandler(tpn.WhiteListHandler),
+		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
+		node.WithTxSignHasher(TestHasher),
 	)
 	log.LogIfError(err)
 
@@ -1629,6 +1633,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
 		tx.Version,
+		tx.Options,
 	)
 	if err != nil {
 		return "", err

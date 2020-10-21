@@ -14,18 +14,21 @@ import (
 var _ process.InterceptedDataFactory = (*interceptedTxDataFactory)(nil)
 
 type interceptedTxDataFactory struct {
-	protoMarshalizer       marshal.Marshalizer
-	signMarshalizer        marshal.Marshalizer
-	hasher                 hashing.Hasher
-	keyGen                 crypto.KeyGenerator
-	singleSigner           crypto.SingleSigner
-	pubkeyConverter        core.PubkeyConverter
-	shardCoordinator       sharding.Coordinator
-	feeHandler             process.FeeHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
-	argsParser             process.ArgumentsParser
-	chainID                []byte
-	minTransactionVersion  uint32
+	protoMarshalizer          marshal.Marshalizer
+	signMarshalizer           marshal.Marshalizer
+	hasher                    hashing.Hasher
+	keyGen                    crypto.KeyGenerator
+	singleSigner              crypto.SingleSigner
+	pubkeyConverter           core.PubkeyConverter
+	shardCoordinator          sharding.Coordinator
+	feeHandler                process.FeeHandler
+	whiteListerVerifiedTxs    process.WhiteListHandler
+	argsParser                process.ArgumentsParser
+	chainID                   []byte
+	minTransactionVersion     uint32
+	enableSignTxWithHashEpoch uint32
+	epochStartTrigger         process.EpochStartTriggerHandler
+	txSignHasher              hashing.Hasher
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -69,25 +72,38 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument.MinTransactionVersion == 0 {
 		return nil, process.ErrInvalidTransactionVersion
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(argument.TxSignHasher) {
+		return nil, process.ErrNilHasher
+	}
 
-	return &interceptedTxDataFactory{
-		protoMarshalizer:       argument.ProtoMarshalizer,
-		signMarshalizer:        argument.TxSignMarshalizer,
-		hasher:                 argument.Hasher,
-		keyGen:                 argument.KeyGen,
-		singleSigner:           argument.Signer,
-		pubkeyConverter:        argument.AddressPubkeyConv,
-		shardCoordinator:       argument.ShardCoordinator,
-		feeHandler:             argument.FeeHandler,
-		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
-		argsParser:             argument.ArgsParser,
-		chainID:                argument.ChainID,
-		minTransactionVersion:  argument.MinTransactionVersion,
-	}, nil
+	interceptedTxDataFactory := &interceptedTxDataFactory{
+		protoMarshalizer:          argument.ProtoMarshalizer,
+		signMarshalizer:           argument.TxSignMarshalizer,
+		hasher:                    argument.Hasher,
+		keyGen:                    argument.KeyGen,
+		singleSigner:              argument.Signer,
+		pubkeyConverter:           argument.AddressPubkeyConv,
+		shardCoordinator:          argument.ShardCoordinator,
+		feeHandler:                argument.FeeHandler,
+		whiteListerVerifiedTxs:    argument.WhiteListerVerifiedTxs,
+		argsParser:                argument.ArgsParser,
+		chainID:                   argument.ChainID,
+		minTransactionVersion:     argument.MinTransactionVersion,
+		epochStartTrigger:         argument.EpochStartTrigger,
+		enableSignTxWithHashEpoch: argument.EnableSignTxWithHashEpoch,
+		txSignHasher:              argument.TxSignHasher,
+	}
+
+	return interceptedTxDataFactory, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
+	enableSignTxWithHash := itdf.epochStartTrigger.Epoch() >= itdf.enableSignTxWithHashEpoch
+
 	return transaction.NewInterceptedTransaction(
 		buff,
 		itdf.protoMarshalizer,
@@ -102,6 +118,8 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.argsParser,
 		itdf.chainID,
 		itdf.minTransactionVersion,
+		enableSignTxWithHash,
+		itdf.txSignHasher,
 	)
 }
 

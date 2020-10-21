@@ -26,5 +26,6 @@ message Transaction {
 	bytes    Data        = 9  [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    ChainID     = 10 [(gogoproto.jsontag) = "chainID"];
 	uint32   Version     = 11 [(gogoproto.jsontag) = "version"];
-	bytes    Signature   = 12 [(gogoproto.jsontag) = "signature,omitempty"];
+	uint32   Options     = 12 [(gogoproto.jsontag) = "options,omitempty"];
+	bytes    Signature   = 13 [(gogoproto.jsontag) = "signature,omitempty"];
 }

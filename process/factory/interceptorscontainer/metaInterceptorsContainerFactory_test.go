@@ -506,5 +506,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
 		MinTransactionVersion:   1,
+		TxSignHasher:            mock.HasherMock{},
 	}
 }

@@ -556,5 +556,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		ArgumentsParser:         &mock.ArgumentParserMock{},
 		ChainID:                 []byte("chainID"),
 		MinTransactionVersion:   1,
+		TxSignHasher:            mock.HasherMock{},
 	}
 }
