@@ -434,6 +434,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		}
 
 		t.epochFinalityAttestingRound = metaHdr.GetRound()
+		t.requestedFinalityAttestingBlock.Unset()
 		return
 	}
 
