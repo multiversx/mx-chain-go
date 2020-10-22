@@ -507,11 +507,6 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 		return err
 	}
 
-	err = s.userAccountsDB.SaveAccount(userAuctionAccount)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
