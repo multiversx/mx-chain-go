@@ -198,7 +198,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	}
 
 	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 		}

@@ -378,8 +378,8 @@ func (d *delegationManager) EpochConfirmed(epoch uint32) {
 	log.Debug("delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
 }
 
-// IsContractEnabled returns true if contract can be used
-func (d *delegationManager) IsContractEnabled() bool {
+// CanUseContract returns true if contract can be used
+func (d *delegationManager) CanUseContract() bool {
 	return d.delegationMgrEnabled.IsSet()
 }
 
