@@ -422,4 +422,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	userAcc, _ := acc.(state.UserAccountHandler)
 	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
+	assert.NotNil(t, userAcc.GetCode())
+	assert.NotNil(t, userAcc.GetCodeMetadata())
 }
