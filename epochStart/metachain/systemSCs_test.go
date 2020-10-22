@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -167,7 +168,7 @@ func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsK
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 
-	assert.Equal(t, expectedOwner, vmOutput.ReturnData[0])
+	assert.Equal(t, []byte(hex.EncodeToString(expectedOwner)), vmOutput.ReturnData[0])
 }
 
 func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, nodePrice *big.Int, blsKeys ...[]byte) {

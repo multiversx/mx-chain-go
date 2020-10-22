@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -3641,6 +3642,31 @@ func TestStakingAuctionSC_GetTopUpShouldWork(t *testing.T) {
 	callFunctionAndCheckResult(t, "getTopUp", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, totalStake.Sub(totalStake, lockedStake).String(), string(vmOutput.ReturnData[0]))
+}
+
+func TestMarshalingBetweenAuctionV1AndAuctionV2(t *testing.T) {
+	t.Parallel()
+
+	auctionV1 := &AuctionDataV1{
+		RegisterNonce:   1,
+		Epoch:           2,
+		RewardAddress:   []byte("reward address"),
+		TotalStakeValue: big.NewInt(3),
+		LockedStake:     big.NewInt(4),
+		MaxStakePerNode: big.NewInt(5),
+		BlsPubKeys:      [][]byte{[]byte("bls1"), []byte("bls2")},
+		NumRegistered:   6,
+	}
+
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+
+	buff, err := marshalizer.Marshal(auctionV1)
+	require.Nil(t, err)
+
+	auctionV2 := &AuctionDataV2{}
+
+	err = marshalizer.Unmarshal(auctionV2, buff)
+	require.Nil(t, err)
 }
 
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {

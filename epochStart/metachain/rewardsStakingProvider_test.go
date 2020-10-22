@@ -1,29 +1,18 @@
 package metachain
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"math/big"
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -208,7 +197,7 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyCachedResponseShouldWork(
 func TestRewardsStakingProvider_ComputeRewardsForBlsKeyWithRealSystemVmShouldWork(t *testing.T) {
 	t.Parallel()
 
-	owner := []byte("owner")
+	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
 	topUpVal := big.NewInt(828743)
 	blsKey := []byte("bls key")
 
@@ -249,84 +238,15 @@ func createRewardsStakingProviderWithMockArgs(t *testing.T, owner []byte, topUpV
 	return rsp
 }
 
-func createRealSystemVmAndAccountsDB() (vmcommon.VMExecutionHandler, state.AccountsAdapter) {
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
-	userAccountsDB := createAccountsDB(hasher, marshalizer, stateFactory.NewAccountCreator(), trieFactoryManager)
-	peerAccountsDB := createAccountsDB(hasher, marshalizer, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
-
-	blockChain := blockchain.NewMetaChain()
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         userAccountsDB,
-		PubkeyConv:       &mock.PubkeyConverterMock{},
-		StorageService:   &mock.ChainStorerStub{},
-		BlockChain:       blockChain,
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-	}
-
-	gasSchedule := make(map[string]map[string]uint64)
-	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
-
-	nodesSetup := &mock.NodesSetupStub{}
-	metaVmFactory, _ := metachain.NewVMContainerFactory(
-		argsHook,
-		createEconomicsData(),
-		signVerifer,
-		gasSchedule,
-		nodesSetup,
-		hasher,
-		marshalizer,
-		&config.SystemSmartContractsConfig{
-			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "1000",
-				OwnerAddress:    "aaaaaa",
-			},
-			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
-			},
-			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "1000",
-				UnJailValue:                          "10",
-				MinStepValue:                         "10",
-				MinStakeValue:                        "1",
-				UnBondPeriod:                         1,
-				StakingV2Epoch:                       0,
-				StakeEnableEpoch:                     0,
-				NumRoundsWithoutBleed:                1,
-				MaximumPercentageToBleed:             1,
-				BleedPercentagePerRound:              1,
-				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
-				ActivateBLSPubKeyMessageVerification: false,
-				MinUnstakeTokensValue:                "1",
-			},
-		},
-		peerAccountsDB,
-		&mock.ChanceComputerStub{},
-		&mock.EpochNotifierStub{},
-	)
-
-	vmContainer, _ := metaVmFactory.Create()
-	systemVm, _ := vmContainer.Get(factory.SystemVirtualMachine)
-
-	return systemVm, userAccountsDB
-}
-
 func createRewardsStakingProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *rewardsStakingProvider {
-	systemVm, accountsDB := createRealSystemVmAndAccountsDB()
+	args := createFullArgumentsForSystemSCProcessing()
+	args.EpochNotifier.CheckEpoch(1000000)
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
 
-	doStake(t, systemVm, accountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
+	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	rsp, _ := NewRewardsStakingProvider(systemVm)
+	rsp, _ := NewRewardsStakingProvider(s.systemVM)
 
 	return rsp
 }

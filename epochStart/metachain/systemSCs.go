@@ -492,54 +492,90 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
 	}()
 
+	userAuctionAccount, err := s.getAuctionSystemAccount()
+	if err != nil {
+		return err
+	}
+
+	auctionAccounts, err := s.getValidAuctionUserAccountsKeys(userAuctionAccount)
+	if err != nil {
+		return err
+	}
+
+	err = s.callUpdateStakingV2(auctionAccounts)
+	if err != nil {
+		return err
+	}
+
+	err = s.userAccountsDB.SaveAccount(userAuctionAccount)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler, error) {
 	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.AuctionSCAddress)
 	if err != nil {
-		return fmt.Errorf("%w when loading auction account", err)
+		return nil, fmt.Errorf("%w when loading auction account", err)
 	}
 
 	userAuctionAccount, ok := auctionAccount.(state.UserAccountHandler)
 	if !ok {
-		return fmt.Errorf("%w when loading auction account", epochStart.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when loading auction account", epochStart.ErrWrongTypeAssertion)
 	}
 
 	if check.IfNil(userAuctionAccount.DataTrie()) {
-		return epochStart.ErrNilDataTrie
+		return nil, epochStart.ErrNilDataTrie
 	}
 
+	return userAuctionAccount, nil
+}
+
+func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount state.UserAccountHandler) ([][]byte, error) {
+	auctionAccounts := make([][]byte, 0)
 	chLeaves := userAuctionAccount.DataTrie().GetAllLeavesOnChannel()
 	for leaf := range chLeaves {
-		auctionData := &systemSmartContracts.AuctionDataV2{
-			RewardAddress:   nil,
-			RegisterNonce:   0,
-			Epoch:           0,
-			BlsPubKeys:      nil,
-			TotalStakeValue: big.NewInt(0),
-			LockedStake:     big.NewInt(0),
-			MaxStakePerNode: big.NewInt(0),
-			TotalUnstaked:   big.NewInt(0),
-			UnstakedInfo:    make([]*systemSmartContracts.UnstakedValue, 0),
+		auctionData := &systemSmartContracts.AuctionDataV2{}
+		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.AuctionSCAddress...))
+		if errTrim != nil {
+			return nil, fmt.Errorf("%w for auction key %s", errTrim, hex.EncodeToString(leaf.Key()))
 		}
-		err = s.marshalizer.Unmarshal(auctionData, leaf.Value())
+
+		err := s.marshalizer.Unmarshal(auctionData, value)
 		dataIsNotValid := err != nil || len(auctionData.BlsPubKeys) == 0
 		if dataIsNotValid {
 			continue
 		}
+		auctionAccounts = append(auctionAccounts, leaf.Key())
+	}
 
+	return auctionAccounts, nil
+}
+
+func (s *systemSCProcessor) callUpdateStakingV2(auctionAccounts [][]byte) error {
+	for _, auctionAccountKey := range auctionAccounts {
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallerAddr: vm.AuctionSCAddress,
 				CallValue:  big.NewInt(0),
-				Arguments:  [][]byte{leaf.Value()},
+				Arguments:  [][]byte{auctionAccountKey},
 			},
 			RecipientAddr: vm.AuctionSCAddress,
 			Function:      "updateStakingV2",
 		}
 		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
 		if errRun != nil {
-			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(leaf.Value()))
+			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(auctionAccountKey))
 		}
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(leaf.Value()))
+			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(auctionAccountKey))
+		}
+
+		err := s.processSCOutputAccounts(vmOutput)
+		if err != nil {
+			return err
 		}
 	}
 
