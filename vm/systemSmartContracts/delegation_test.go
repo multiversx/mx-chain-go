@@ -20,8 +20,16 @@ import (
 
 func createMockArgumentsForDelegation() ArgsNewDelegation {
 	return ArgsNewDelegation{
-		DelegationSCConfig:     config.DelegationSystemSCConfig{MinStakeAmount: "10", MinServiceFee: 10, MaxServiceFee: 200},
-		StakingSCConfig:        config.StakingSystemSCConfig{MinStakeValue: "10", UnJailValue: "15", GenesisNodePrice: "100"},
+		DelegationSCConfig: config.DelegationSystemSCConfig{
+			MinStakeAmount: "10",
+			MinServiceFee:  10,
+			MaxServiceFee:  200,
+		},
+		StakingSCConfig: config.StakingSystemSCConfig{
+			MinStakeValue:    "10",
+			UnJailValue:      "15",
+			GenesisNodePrice: "100",
+		},
 		Eei:                    &mock.SystemEIStub{},
 		SigVerifier:            &mock.MessageSignVerifierMock{},
 		DelegationMgrSCAddress: []byte("delegMgrScAddr"),
@@ -364,9 +372,9 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStaked)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalStaked)
 
-	ok, delegator, err := d.getOrCreateDelegatorData(ownerAddr)
+	delegatorDataPresent, delegator, err := d.getOrCreateDelegatorData(ownerAddr)
 	assert.Nil(t, err)
-	assert.False(t, ok)
+	assert.False(t, delegatorDataPresent)
 	assert.Equal(t, 0, len(delegator.UnStakedFunds))
 	assert.Equal(t, 0, len(delegator.WithdrawOnlyFunds))
 	assert.Equal(t, []byte{}, delegator.ActiveFund)
@@ -1937,4 +1945,52 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 	dConfig, _ := d.getDelegationContractConfig()
 	assert.Equal(t, big.NewInt(1500), dConfig.MaxDelegationCap)
 	assert.Equal(t, true, dConfig.WithDelegationCap)
+}
+
+func TestDelegation_getSuccessAndUnSuccessKeysAllUnSuccess(t *testing.T) {
+	t.Parallel()
+
+	blsKey1 := []byte("bls1")
+	blsKey2 := []byte("bls2")
+	returnData := [][]byte{blsKey1, {failed}, blsKey2, {failed}}
+	blsKeys := [][]byte{blsKey1, blsKey2}
+
+	okKeys, failedKeys := getSuccessAndUnSuccessKeys(returnData, blsKeys)
+	assert.Nil(t, okKeys)
+	assert.Equal(t, 2, len(failedKeys))
+	assert.Equal(t, blsKey1, failedKeys[0])
+	assert.Equal(t, blsKey2, failedKeys[1])
+}
+
+func TestDelegation_getSuccessAndUnSuccessKeysAllSuccess(t *testing.T) {
+	t.Parallel()
+
+	blsKey1 := []byte("bls1")
+	blsKey2 := []byte("bls2")
+	returnData := [][]byte{blsKey1, {ok}, blsKey2, {ok}}
+	blsKeys := [][]byte{blsKey1, blsKey2}
+
+	okKeys, failedKeys := getSuccessAndUnSuccessKeys(returnData, blsKeys)
+	assert.Equal(t, 0, len(failedKeys))
+	assert.Equal(t, 2, len(okKeys))
+	assert.Equal(t, blsKey1, okKeys[0])
+	assert.Equal(t, blsKey2, okKeys[1])
+}
+
+func TestDelegation_getSuccessAndUnSuccessKeys(t *testing.T) {
+	t.Parallel()
+
+	blsKey1 := []byte("bls1")
+	blsKey2 := []byte("bls2")
+	blsKey3 := []byte("bls3")
+	returnData := [][]byte{blsKey1, {ok}, blsKey2, {failed}, blsKey3, {waiting}}
+	blsKeys := [][]byte{blsKey1, blsKey2, blsKey3}
+
+	okKeys, failedKeys := getSuccessAndUnSuccessKeys(returnData, blsKeys)
+	assert.Equal(t, 2, len(okKeys))
+	assert.Equal(t, blsKey1, okKeys[0])
+	assert.Equal(t, blsKey3, okKeys[1])
+
+	assert.Equal(t, 1, len(failedKeys))
+	assert.Equal(t, blsKey2, failedKeys[0])
 }

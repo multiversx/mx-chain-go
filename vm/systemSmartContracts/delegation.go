@@ -874,15 +874,9 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 }
 
 func (d *delegation) addDelegatorIfNew(dStatus *DelegationContractStatus, address []byte) {
-	found := false
-	for i := range dStatus.Delegators {
-		if bytes.Equal(address, dStatus.Delegators[i]) {
-			found = true
-			break
-		}
-	}
+	isNew, _, _ := d.getOrCreateDelegatorData(address)
 
-	if !found {
+	if isNew {
 		dStatus.Delegators = append(dStatus.Delegators, address)
 	}
 }
