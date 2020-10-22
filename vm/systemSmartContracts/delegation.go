@@ -793,7 +793,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	globalFund.TotalActive.Set(newTotalActive)
-	_, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	isNew, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -827,7 +827,9 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		d.addDelegatorIfNew(dStatus, args.CallerAddr)
+		if isNew {
+			dStatus.Delegators = append(dStatus.Delegators, args.CallerAddr)
+		}
 
 		err = d.saveDelegationStatus(dStatus)
 		if err != nil {
@@ -870,14 +872,6 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 	fund.Value.Add(fund.Value, value)
 	err = d.saveFund(key, fund)
 	return err
-}
-
-func (d *delegation) addDelegatorIfNew(dStatus *DelegationContractStatus, address []byte) {
-	isNew, _, _ := d.getOrCreateDelegatorData(address)
-
-	if isNew {
-		dStatus.Delegators = append(dStatus.Delegators, address)
-	}
 }
 
 func (d *delegation) resolveUnStakedUnBondResponse(
