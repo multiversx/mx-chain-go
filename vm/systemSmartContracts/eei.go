@@ -544,6 +544,21 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 	return isValidator
 }
 
+// StatusFromValidatorStatistics returns the list in which the validator is present
+func (host *vmContext) StatusFromValidatorStatistics(blsKey []byte) string {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return string(core.InactiveList)
+	}
+
+	validatorAccount, castOk := acc.(state.PeerAccountHandler)
+	if !castOk {
+		return string(core.InactiveList)
+	}
+
+	return validatorAccount.GetList()
+}
+
 // CanUnJail returns true if the validator is jailed in the validator statistics
 func (host *vmContext) CanUnJail(blsKey []byte) bool {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
