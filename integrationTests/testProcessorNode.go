@@ -1506,6 +1506,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ChanceComputer:          tpn.NodesCoordinator,
 			EpochNotifier:           &mock.EpochNotifierStub{},
 			GenesisNodesConfig:      tpn.NodesSetup,
+			StakingV2EnableEpoch:    1000000,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 
