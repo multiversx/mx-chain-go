@@ -466,6 +466,17 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
+
+		if host.blockChainHook.CurrentNonce() > 0 {
+			if len(outAcc.CodeDeployerAddress) > 0 {
+				outAccs[addr].CodeDeployerAddress = outAcc.CodeDeployerAddress
+			}
+
+			if len(outAcc.CodeMetadata) > 0 {
+				outAccs[addr].CodeMetadata = outAcc.CodeMetadata
+			}
+		}
+
 		outAccs[addr].OutputTransfers = outAcc.OutputTransfers
 	}
 
