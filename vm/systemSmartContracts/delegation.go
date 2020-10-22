@@ -829,12 +829,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 
 		delegator.ActiveFund = fundKey
-		err = d.addNewFundToGlobalData(fundKey, active)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
+		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
 			err = d.addNewDelegatorToList(args.CallerAddr)
 			if err != nil {
@@ -1015,6 +1010,11 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("owner cannot unDelegate the specified sum")
 		return vmcommon.UserError
 	}
+	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	globalFund, err := d.getGlobalFundData()
 	if err != nil {
@@ -1066,12 +1066,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	err = d.saveGlobalFundData(globalFund)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1539,27 +1533,15 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 	return nextKey, fund
 }
 
-func (d *delegation) addNewFundToGlobalData(fundKey []byte, fundType uint32) error {
-	globalFundData, err := d.getGlobalFundData()
-	if err != nil {
-		return err
-	}
-
+func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey []byte, fundType uint32) {
 	switch fundType {
 	case active:
-		globalFundData.ActiveFunds = append(globalFundData.ActiveFunds, fundKey)
+		globalFund.ActiveFunds = append(globalFund.ActiveFunds, fundKey)
 	case unStaked:
-		globalFundData.UnStakedFunds = append(globalFundData.UnStakedFunds, fundKey)
+		globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, fundKey)
 	case withdrawOnly:
-		globalFundData.WithdrawOnlyFunds = append(globalFundData.WithdrawOnlyFunds, fundKey)
+		globalFund.WithdrawOnlyFunds = append(globalFund.WithdrawOnlyFunds, fundKey)
 	}
-
-	err = d.saveGlobalFundData(globalFundData)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {

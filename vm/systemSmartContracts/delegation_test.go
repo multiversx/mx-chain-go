@@ -1540,8 +1540,9 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:    fundKey,
-		UnStakedFunds: [][]byte{},
+		ActiveFund:       fundKey,
+		UnStakedFunds:    [][]byte{},
+		UnClaimedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -1597,8 +1598,9 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:    fundKey,
-		UnStakedFunds: [][]byte{},
+		ActiveFund:       fundKey,
+		UnStakedFunds:    [][]byte{},
+		UnClaimedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -1741,6 +1743,7 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		UnStakedFunds:          [][]byte{fundKey1, fundKey2},
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalUnStaked:          big.NewInt(140),
+		TotalActive:            big.NewInt(0),
 	})
 
 	output := d.Execute(vmInput)
@@ -1851,7 +1854,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("changeServiceFee", [][]byte{[]byte("70")})
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
-	_ = d.saveGlobalFundData(&GlobalFundData{})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
