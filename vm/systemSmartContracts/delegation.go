@@ -820,22 +820,14 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		var dStatus *DelegationContractStatus
-		dStatus, err = d.getDelegationStatus()
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
 		if isNew {
-			dStatus.Delegators = append(dStatus.Delegators, args.CallerAddr)
+			err = d.addNewDelegatorToList(args.CallerAddr)
+			if err != nil {
+				d.eei.AddReturnMessage(err.Error())
+				return vmcommon.UserError
+			}
 		}
 
-		err = d.saveDelegationStatus(dStatus)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
 	} else {
 		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
 		if err != nil {
@@ -861,6 +853,17 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) addNewDelegatorToList(address []byte) error {
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		return err
+	}
+
+	dStatus.Delegators = append(dStatus.Delegators, address)
+
+	return d.saveDelegationStatus(dStatus)
 }
 
 func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
