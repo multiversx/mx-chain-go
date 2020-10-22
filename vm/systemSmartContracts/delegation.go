@@ -213,7 +213,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		NotStakedKeys: make([]*NodesData, 0),
 		UnStakedKeys:  make([]*NodesData, 0),
 	}
-	err = d.saveDelegationStatus(status)
+	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -820,7 +820,8 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		dStatus, err := d.getDelegationStatus()
+		var dStatus *DelegationContractStatus
+		dStatus, err = d.getDelegationStatus()
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -1167,9 +1168,6 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			break
 		}
 		d.deleteFund(fundKey, globalFund)
-		if totalUnBonded.Cmp(actualUserUnBond) == 0 {
-			break
-		}
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 

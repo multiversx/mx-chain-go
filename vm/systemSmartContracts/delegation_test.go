@@ -59,6 +59,25 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 		}
 
 		if bytes.Equal(key, []byte("auctionScAddr")) {
+			auctionSc.flagEnableTopUp.Set()
+			_ = auctionSc.saveRegistrationData([]byte("addr"), &AuctionDataV2{
+				RewardAddress:   []byte("rewardAddr"),
+				TotalStakeValue: big.NewInt(1000),
+				LockedStake:     big.NewInt(500),
+				BlsPubKeys:      [][]byte{[]byte("blsKey1"), []byte("blsKey2")},
+				TotalUnstaked:   big.NewInt(150),
+				UnstakedInfo: []*UnstakedValue{
+					{
+						UnstakedNonce: 10,
+						UnstakedValue: big.NewInt(60),
+					},
+					{
+						UnstakedNonce: 50,
+						UnstakedValue: big.NewInt(80),
+					},
+				},
+			})
+			auctionSc.unBondPeriod = 50
 			return auctionSc, nil
 		}
 
@@ -1385,6 +1404,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
+	addAuctionAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
 	vmInput.CallValue = big.NewInt(15)
@@ -1514,6 +1534,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
+	addAuctionAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{80}})
 	d, _ := NewDelegationSystemSC(args)
@@ -1526,9 +1547,10 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
-		TotalActive:   big.NewInt(100),
-		TotalUnStaked: big.NewInt(0),
+		UnStakedFunds:          [][]byte{},
+		TotalActive:            big.NewInt(100),
+		TotalUnStaked:          big.NewInt(0),
+		TotalUnStakedFromNodes: big.NewInt(0),
 	})
 	d.eei.SetStorage([]byte(lastFundKey), []byte{1})
 
@@ -1569,6 +1591,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
+	addAuctionAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{100}})
 	d, _ := NewDelegationSystemSC(args)
@@ -1581,10 +1604,11 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds: [][]byte{},
-		TotalActive:   big.NewInt(100),
-		TotalUnStaked: big.NewInt(0),
-		ActiveFunds:   [][]byte{fundKey},
+		UnStakedFunds:          [][]byte{},
+		TotalActive:            big.NewInt(100),
+		TotalUnStaked:          big.NewInt(0),
+		TotalUnStakedFromNodes: big.NewInt(0),
+		ActiveFunds:            [][]byte{fundKey},
 	})
 	d.eei.SetStorage([]byte(lastFundKey), []byte{1})
 
@@ -1690,6 +1714,7 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
+	addAuctionAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("withdraw", [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
@@ -1725,7 +1750,6 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	assert.Equal(t, 1, len(gFundData.UnStakedFunds))
 	assert.Equal(t, fundKey2, gFundData.UnStakedFunds[0])
 	assert.Equal(t, big.NewInt(80), gFundData.TotalUnStaked)
-	assert.Equal(t, big.NewInt(60), gFundData.TotalUnBondedFromNodes)
 
 	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, 1, len(dData.UnStakedFunds))
@@ -1801,16 +1825,10 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "new service fee out of bounds"))
 
-	vmInput.Arguments = [][]byte{[]byte("110")}
+	vmInput.Arguments = [][]byte{[]byte("210")}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "new service fee out of bounds"))
-
-	vmInput.Arguments = [][]byte{[]byte("70")}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
