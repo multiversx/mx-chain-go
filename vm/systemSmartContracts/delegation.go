@@ -1148,6 +1148,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 
 	isOwner := d.isOwner(callerAddress)
 
+	totalRemaining := big.NewInt(0)
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
@@ -1167,6 +1168,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
 		remaining := big.NewInt(0)
 		rewardForDelegator.DivMod(rewardForDelegator, rewardData.TotalActive, remaining)
+		totalRemaining.Add(totalRemaining, remaining)
 
 		if isOwner {
 			totalRewards.Add(totalRewards, rewardsForOwner)
@@ -1178,6 +1180,20 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 
 	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
 	delegator.RewardsCheckpoint = currentEpoch + 1
+
+	if !isOwner {
+		ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+		_, ownerAsDelegator, errGet := d.getOrCreateDelegatorData(ownerAddress)
+		if errGet != nil {
+			return errGet
+		}
+
+		ownerAsDelegator.UnClaimedRewards.Add(ownerAsDelegator.UnClaimedRewards, totalRemaining)
+		err = d.saveDelegatorData(ownerAddress, ownerAsDelegator)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1451,7 +1467,9 @@ func (d *delegation) saveDelegationStatus(status *DelegationContractStatus) erro
 }
 
 func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
-	dData := &DelegatorData{}
+	dData := &DelegatorData{
+		UnClaimedRewards: big.NewInt(0),
+	}
 	marshaledData := d.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
 		return true, dData, nil
