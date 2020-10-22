@@ -113,6 +113,9 @@ var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
 // ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
 var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
 
+// ErrInvalidMinCreationDeposit signals that invalid min creation deposit has been provided
+var ErrInvalidMinCreationDeposit = errors.New("invalid min creation deposit")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
