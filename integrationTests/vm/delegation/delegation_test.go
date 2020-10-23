@@ -82,10 +82,12 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
+
 	for _, node := range nodes {
 		txData := "changeRewardAddress" + "@" + hex.EncodeToString(rewardAddress)
 		integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
-		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(10000))
+		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(1000000))
 	}
 	time.Sleep(time.Second)
 
@@ -103,7 +105,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	round, nonce = processBlocks(t, round, nonce, 10, nodesMap)
+	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)
 
 	for i := 0; i < len(balancesAfterClaimRewards); i++ {
