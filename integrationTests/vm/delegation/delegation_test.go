@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -24,9 +23,9 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 1
-	nodesPerShard := 1
-	numMetachainNodes := 1
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
@@ -82,8 +81,6 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
 
