@@ -14,6 +14,9 @@ var ErrNilPresenterInterface = errors.New("nil presenter interface")
 // ErrNilGrid will be returned when a nil grid is returned
 var ErrNilGrid = errors.New("nil grid")
 
+// ErrInvalidRefreshTimeInMilliseconds signals that an invalid time in milliseconds was provided
+var ErrInvalidRefreshTimeInMilliseconds = errors.New("invalid refresh time in milliseconds")
+
 // ErrNilAppStatusHandler signals that a nil status handler has been provided
 var ErrNilAppStatusHandler = errors.New("appStatusHandler is nil")
 
