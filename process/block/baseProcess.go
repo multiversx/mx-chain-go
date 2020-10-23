@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -1255,15 +1254,15 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	userAccountsDb := bp.accountsDB[state.UserAccountsState]
 	if userAccountsDb == nil {
-		return nil
+		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
 	}
 
 	currentRootHash, err := userAccountsDb.RootHash()
 	if err != nil {
 		return err
 	}
-	epochBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(epochBytes, metaBlock.Epoch)
+
+	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
 
 	err = trieEpochRootHashStorageUnit.Put(epochBytes, currentRootHash)
 	if err != nil {
@@ -1279,7 +1278,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	for addressKey, userAccountsBytes := range allLeaves {
 		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, bp.marshalizer)
 		if errUnmarshal != nil {
-			log.Debug("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
 			continue
 		}
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
