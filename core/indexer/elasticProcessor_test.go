@@ -36,6 +36,8 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
 			arguments.FeeConfig,
+			arguments.ShardCoordinator,
+			arguments.IsInImportDBMode,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{
@@ -55,6 +57,8 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		Marshalizer:              &mock.MarshalizerMock{},
 		DBClient:                 &mock.DatabaseWriterStub{},
 		Options:                  &Options{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		IsInImportDBMode:         false,
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
@@ -106,8 +110,21 @@ func newTestTxPool() map[string]data.TransactionHandler {
 func newTestBlockBody() *dataBlock.Body {
 	return &dataBlock.Body{
 		MiniBlocks: []*dataBlock.MiniBlock{
-			{TxHashes: [][]byte{[]byte("tx1"), []byte("tx2")}, ReceiverShardID: 2, SenderShardID: 2},
-			{TxHashes: [][]byte{[]byte("tx3")}, ReceiverShardID: 4, SenderShardID: 1},
+			{
+				TxHashes: [][]byte{
+					[]byte("tx1"),
+					[]byte("tx2"),
+				},
+				ReceiverShardID: 2,
+				SenderShardID:   2,
+			},
+			{
+				TxHashes: [][]byte{
+					[]byte("tx3"),
+				},
+				ReceiverShardID: 4,
+				SenderShardID:   1,
+			},
 		},
 	}
 }
@@ -119,9 +136,9 @@ func TestNewElasticProcessorWithKibana(t *testing.T) {
 	}
 	args.DBClient = &mock.DatabaseWriterStub{}
 
-	elasticProcessor, err := NewElasticProcessor(args)
+	elasticProc, err := NewElasticProcessor(args)
 	require.NoError(t, err)
-	require.NotNil(t, elasticProcessor)
+	require.NotNil(t, elasticProc)
 }
 
 func TestElasticProcessor_RemoveHeader(t *testing.T) {
@@ -135,10 +152,10 @@ func TestElasticProcessor_RemoveHeader(t *testing.T) {
 		},
 	}
 
-	elasticProcessor, err := NewElasticProcessor(args)
+	elasticProc, err := NewElasticProcessor(args)
 	require.NoError(t, err)
 
-	err = elasticProcessor.RemoveHeader(&dataBlock.Header{})
+	err = elasticProc.RemoveHeader(&dataBlock.Header{})
 	require.Nil(t, err)
 	require.True(t, called)
 }
@@ -146,10 +163,21 @@ func TestElasticProcessor_RemoveHeader(t *testing.T) {
 func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
 	called := false
 
-	mb1 := &dataBlock.MiniBlock{Type: dataBlock.PeerBlock}
-	mb2 := &dataBlock.MiniBlock{ReceiverShardID: 0, SenderShardID: 1} // should be removed
-	mb3 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 1} // should be removed
-	mb4 := &dataBlock.MiniBlock{ReceiverShardID: 1, SenderShardID: 0} // should NOT be removed
+	mb1 := &dataBlock.MiniBlock{
+		Type: dataBlock.PeerBlock,
+	}
+	mb2 := &dataBlock.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+	} // should be removed
+	mb3 := &dataBlock.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   1,
+	} // should be removed
+	mb4 := &dataBlock.MiniBlock{
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	} // should NOT be removed
 
 	args := createMockElasticProcessorArgs()
 
@@ -165,13 +193,24 @@ func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
 		},
 	}
 
-	elasticProcessor, err := NewElasticProcessor(args)
+	elasticProc, err := NewElasticProcessor(args)
 	require.NoError(t, err)
 
 	header := &dataBlock.Header{
 		ShardID: 1,
 		MiniBlockHeaders: []dataBlock.MiniBlockHeader{
-			{Hash: []byte("hash1")}, {Hash: []byte("hash2")}, {Hash: []byte("hash3")}, {Hash: []byte("hash4")},
+			{
+				Hash: []byte("hash1"),
+			},
+			{
+				Hash: []byte("hash2"),
+			},
+			{
+				Hash: []byte("hash3"),
+			},
+			{
+				Hash: []byte("hash4"),
+			},
 		},
 	}
 	body := &dataBlock.Body{
@@ -179,7 +218,7 @@ func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
 			mb1, mb2, mb3, mb4,
 		},
 	}
-	err = elasticProcessor.RemoveMiniblocks(header, body)
+	err = elasticProc.RemoveMiniblocks(header, body)
 	require.Nil(t, err)
 	require.True(t, called)
 }
@@ -201,10 +240,14 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 }
 
 func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
-	header := &dataBlock.Header{Nonce: 1}
+	header := &dataBlock.Header{
+		Nonce: 1,
+	}
 	signerIndexes := []uint64{0, 1}
 
-	miniBlock := &dataBlock.MiniBlock{Type: dataBlock.TxBlock}
+	miniBlock := &dataBlock.MiniBlock{
+		Type: dataBlock.TxBlock,
+	}
 	blockBody := &dataBlock.Body{
 		MiniBlocks: []*dataBlock.MiniBlock{
 			miniBlock,
@@ -267,11 +310,17 @@ func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
 		},
 	}
 
-	elasticProcessor, _ := NewElasticProcessor(arguments)
+	elasticProc, _ := NewElasticProcessor(arguments)
 
-	err := elasticProcessor.SaveValidatorsRating(docID, []workItems.ValidatorRatingInfo{
-		{PublicKey: "blablabla", Rating: 100},
-	})
+	err := elasticProc.SaveValidatorsRating(
+		docID,
+		[]workItems.ValidatorRatingInfo{
+			{
+				PublicKey: "blablabla",
+				Rating:    100,
+			},
+		},
+	)
 	require.Equal(t, localErr, err)
 }
 
@@ -288,13 +337,13 @@ func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
 		},
 	}
 
-	elasticProcessor, _ := NewElasticProcessor(arguments)
+	elasticProc, _ := NewElasticProcessor(arguments)
 
 	header := &dataBlock.Header{}
 	body := &dataBlock.Body{MiniBlocks: dataBlock.MiniBlockSlice{
 		{SenderShardID: 0, ReceiverShardID: 1},
 	}}
-	mbsInDB, err := elasticProcessor.SaveMiniblocks(header, body)
+	mbsInDB, err := elasticProc.SaveMiniblocks(header, body)
 	require.Equal(t, localErr, err)
 	require.Equal(t, 0, len(mbsInDB))
 }
