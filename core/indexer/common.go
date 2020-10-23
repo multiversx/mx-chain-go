@@ -362,28 +362,42 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
-	selfShardID uint32,
-	isMBOfTxInDB bool,
+	_ uint32,
+	_ bool,
 ) (meta []byte, serializedData []byte) {
-	var err error
-	if isMBOfTxInDB {
-		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
-			return
-		}
-		// update transaction
-		meta, serializedData = prepareTxUpdate(tx)
-	} else {
-		// insert transaction in database
-		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
-		serializedData, err = json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			return
-		}
+	marshalledTx, err := json.Marshal(tx)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize transaction, will skip indexing",
+			"tx hash", tx.Hash)
+		return
 	}
+
+	meta = []byte(fmt.Sprintf(`{"update":{"_id":"%s"}}%s`, tx.Hash, "\n"))
+	serializedData =
+		[]byte(fmt.Sprintf(`{"script":{"source":"ctx._source.status = params.status","lang": "painless","params":{"status": "%s"}},"upsert":%s}`, tx.Status, string(marshalledTx)))
 	return
+
+	/*
+		if isMBOfTxInDB {
+			if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
+				return
+			}
+			// update transaction
+			meta, serializedData = prepareTxUpdate(tx)
+		} else {
+			// insert transaction in database
+			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
+			serializedData, err = json.Marshal(tx)
+			if err != nil {
+				log.Debug("indexer: marshal",
+					"error", "could not serialize transaction, will skip indexing",
+					"tx hash", tx.Hash)
+				return
+			}
+		}
+		return
+	*/
 }
 
 func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
