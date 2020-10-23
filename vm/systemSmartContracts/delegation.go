@@ -1272,7 +1272,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	return vmcommon.UserError
+	return vmcommon.Ok
 }
 
 func (d *delegation) unStakeOrBondFromAuctionSC(
