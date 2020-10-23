@@ -2,7 +2,6 @@ package systemVM
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	vm2 "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,7 +148,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
+		idx, err := vm2.GetNodeIndex(nodes, nds[0])
 		require.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
@@ -272,7 +272,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
+		idx, err := vm2.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
@@ -340,16 +340,6 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 		rwdAccount := getAccountFromAddrBytes(node.AccntState, rewardAccount.Address)
 		assert.True(t, rwdAccount.GetBalance().Cmp(big.NewInt(0)) > 0)
 	}
-}
-
-func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
-	for i := range nodeList {
-		if node == nodeList[i] {
-			return i, nil
-		}
-	}
-
-	return 0, errors.New("no such node in list")
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {

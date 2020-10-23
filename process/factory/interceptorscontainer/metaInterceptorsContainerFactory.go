@@ -300,12 +300,11 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 
 	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
+	keys := make([]string, noOfShards+1)
+	interceptorSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-
 		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err

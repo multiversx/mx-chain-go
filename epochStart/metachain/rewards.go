@@ -181,6 +181,10 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
 	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 
 	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
@@ -198,7 +202,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	}
 
 	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 		}
@@ -247,6 +251,9 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 			}
 		}
 
+		if rwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+			log.Error("negative rewards")
+		}
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}
@@ -433,6 +440,10 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+		if miniBlock.SenderShardID != rc.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == rc.shardCoordinator.SelfId() {
 			continue
 		}
 
