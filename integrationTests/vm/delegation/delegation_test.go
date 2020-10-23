@@ -24,8 +24,8 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numOfShards := 2
-	nodesPerShard := 2
+	numOfShards := 1
+	nodesPerShard := 1
 	numMetachainNodes := 1
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
@@ -83,6 +83,8 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	round, nonce = processBlocks(t, round, nonce, 1, nodesMap)
 
 	for _, node := range nodes {
@@ -105,8 +107,6 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 		integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(0), rewardAddress, txData, 10)
 	}
 	time.Sleep(time.Second)
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)

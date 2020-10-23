@@ -300,12 +300,11 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 
 	noOfShards := shardC.NumberOfShards()
 
-	keys := make([]string, noOfShards)
-	interceptorSlice := make([]process.Interceptor, noOfShards)
+	keys := make([]string, noOfShards+1)
+	interceptorSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-
 		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err
@@ -314,6 +313,15 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		keys[int(idx)] = identifierScr
 		interceptorSlice[int(idx)] = interceptor
 	}
+
+	identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
+	if err != nil {
+		return err
+	}
+
+	keys[noOfShards] = identifierScr
+	interceptorSlice[noOfShards] = interceptor
 
 	return micf.container.AddMultiple(keys, interceptorSlice)
 }
