@@ -820,6 +820,12 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	if isNew {
 		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch() + 1
 		delegator.UnClaimedRewards = big.NewInt(0)
+	} else {
+		err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
 	if len(delegator.ActiveFund) == 0 {
@@ -1183,7 +1189,6 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 
 	isOwner := d.isOwner(callerAddress)
 
-	totalRemaining := big.NewInt(0)
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
@@ -1199,36 +1204,18 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
 
-		// delegator reward is: rewardForDelegator * user stake / total delegation cap
+		// delegator reward is: rewardForDelegator * user stake / total active
 		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
-		remaining := big.NewInt(0)
-		rewardForDelegator.DivMod(rewardForDelegator, rewardData.TotalActive, remaining)
-		totalRemaining.Add(totalRemaining, remaining)
+		rewardForDelegator.Div(rewardForDelegator, rewardData.TotalActive)
 
 		if isOwner {
 			totalRewards.Add(totalRewards, rewardsForOwner)
-			totalRewards.Add(totalRewards, remaining)
 		}
-
 		totalRewards.Add(totalRewards, rewardForDelegator)
 	}
 
 	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
 	delegator.RewardsCheckpoint = currentEpoch + 1
-
-	if !isOwner {
-		ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-		_, ownerAsDelegator, errGet := d.getOrCreateDelegatorData(ownerAddress)
-		if errGet != nil {
-			return errGet
-		}
-
-		ownerAsDelegator.UnClaimedRewards.Add(ownerAsDelegator.UnClaimedRewards, totalRemaining)
-		err = d.saveDelegatorData(ownerAddress, ownerAsDelegator)
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }

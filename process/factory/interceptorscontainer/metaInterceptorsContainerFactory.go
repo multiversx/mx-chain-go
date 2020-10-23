@@ -314,15 +314,6 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
-	if err != nil {
-		return err
-	}
-
-	keys[noOfShards] = identifierScr
-	interceptorSlice[noOfShards] = interceptor
-
 	return micf.container.AddMultiple(keys, interceptorSlice)
 }
 

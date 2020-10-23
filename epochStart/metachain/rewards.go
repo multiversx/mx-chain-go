@@ -442,6 +442,10 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
+		if miniBlock.SenderShardID != rc.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == rc.shardCoordinator.SelfId() {
+			continue
+		}
 
 		broadcastTopic := createBroadcastTopic(rc.shardCoordinator, miniBlock.ReceiverShardID)
 		if _, ok := mrsTxs[broadcastTopic]; !ok {
