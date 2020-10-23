@@ -3,6 +3,7 @@ package indexer
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -69,14 +70,9 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 		return nil
 	}
 
-	respBodyBytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
 	log.Warn("elasticClient.parseResponse",
-		"error returned by elastic API", res.StatusCode,
-		"body", string(respBodyBytes))
+		"code returned by elastic API", res.StatusCode,
+		"errors map", fmt.Sprintf("%v", responseBody["error"]))
 
 	return ErrBackOff
 }

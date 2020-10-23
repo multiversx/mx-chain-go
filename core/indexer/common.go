@@ -366,27 +366,66 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
-	selfShardID uint32,
-	isMBOfTxInDB bool,
+	_ uint32,
+	_ bool,
 ) (meta []byte, serializedData []byte) {
-	var err error
-	if isMBOfTxInDB {
-		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
-			return
-		}
-		// update transaction
-		meta, serializedData = prepareTxUpdate(tx)
-	} else {
-		// insert transaction in database
-		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
-		serializedData, err = json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			return
-		}
+	marshalledTx, err := json.Marshal(tx)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize transaction, will skip indexing",
+			"tx hash", tx.Hash)
+		return
 	}
+	marshalizedLog, err := json.Marshal(tx.Log)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize transaction log, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+	scResults, err := json.Marshal(tx.SmartContractResults)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize smart contract results, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	marshalizedTimestamp, err := json.Marshal(tx.Timestamp)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize timestamp, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil
+	}
+
+	if tx.GasUsed == tx.GasLimit {
+		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
+		serializedData =
+			[]byte(fmt.Sprintf(`{"script":{"source":"`+
+				`ctx._source.status = params.status;`+
+				`ctx._source.log = params.log;`+
+				`ctx._source.scResults = params.scResults;`+
+				`ctx._source.timestamp = params.timestamp}`+
+				`","lang": "painless","params":`+
+				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
+				tx.Status, string(marshalizedLog), string(scResults), string(marshalizedTimestamp), string(marshalledTx)))
+	} else {
+		// update gasUsed because was changed (is a smart contract operation)
+		serializedData =
+			[]byte(fmt.Sprintf(`{"script":{"source":"`+
+				`ctx._source.status = params.status;`+
+				`ctx._source.log = params.log;`+
+				`ctx._source.scResults = params.scResults;`+
+				`ctx._source.timestamp = params.timestamp`+
+				`ctx._source.gasUsed = params.gasUsed}`+
+				`","lang": "painless","params":`+
+				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
+				tx.Status, string(marshalizedLog), string(scResults), string(marshalizedTimestamp), tx.GasUsed, string(marshalledTx)))
+	}
+
+	log.Debug("index tx request", "request", string(serializedData))
+	meta = []byte(fmt.Sprintf(`{"update":{"_id":"%s"}}%s`, tx.Hash, "\n"))
 	return
 }
 
