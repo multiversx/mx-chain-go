@@ -180,6 +180,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.updateRewards(args)
 	case "claimRewards":
 		return d.claimRewards(args)
+	case "getRewardData":
+		return d.getRewardData(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + "is an unknown function")
@@ -1108,10 +1110,43 @@ func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	return vmcommon.UserError
+	return vmcommon.Ok
 }
 
-func (d *delegation) getRewardData(epoch uint32) (bool, *RewardComputationData, error) {
+func (d *delegation) getRewardData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("must call with 1 arguments")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("cannot call with negative value")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	epoch := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
+	found, rewardData, err := d.getRewardComputationData(uint32(epoch))
+	if !found {
+		d.eei.AddReturnMessage("reward not found")
+		return vmcommon.UserError
+	}
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(rewardData.RewardsToDistribute.Bytes())
+	d.eei.Finish(rewardData.TotalActive.Bytes())
+	d.eei.Finish(big.NewInt(0).SetUint64(rewardData.ServiceFee).Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getRewardComputationData(epoch uint32) (bool, *RewardComputationData, error) {
 	marshaledData := d.eei.GetStorage(rewardKeyForEpoch(epoch))
 	if len(marshaledData) == 0 {
 		return false, nil, nil
@@ -1152,7 +1187,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
-		found, rewardData, errGet := d.getRewardData(i)
+		found, rewardData, errGet := d.getRewardComputationData(i)
 		if errGet != nil {
 			return errGet
 		}
