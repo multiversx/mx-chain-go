@@ -90,10 +90,10 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		return nil, vm.ErrNilMessageSignVerifier
 	}
 	if args.DelegationSCConfig.MinServiceFee > args.DelegationSCConfig.MaxServiceFee {
-		return nil, vm.ErrInvalidDelegationSCConfig
+		return nil, fmt.Errorf("%w minServiceFee bigger than maxServiceFee", vm.ErrInvalidDelegationSCConfig)
 	}
 	if args.DelegationSCConfig.MaxServiceFee > percentageDenominator {
-		return nil, vm.ErrInvalidDelegationSCConfig
+		return nil, fmt.Errorf("%w maxServiceFee bigger than %d", vm.ErrInvalidDelegationSCConfig, percentageDenominator)
 	}
 
 	d := &delegation{
@@ -943,12 +943,12 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 		return nil
 	}
 
-	remainingFunds := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
 	delegationConfig, err := d.getDelegationContractConfig()
 	if err != nil {
 		return err
 	}
 
+	remainingFunds := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
 	if remainingFunds.Cmp(delegationConfig.InitialOwnerFunds) >= 0 {
 		return nil
 	}
@@ -1010,7 +1010,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("owner cannot unDelegate the specified sum")
 		return vmcommon.UserError
 	}
-	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1140,7 +1140,7 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 	return nil
 }
 
-func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
 	activeFund, err := d.getFund(delegator.ActiveFund)
 	if err != nil {
 		return err
@@ -1148,6 +1148,7 @@ func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *
 
 	isOwner := d.isOwner(callerAddress)
 
+	totalRemaining := big.NewInt(0)
 	totalRewards := big.NewInt(0)
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
@@ -1167,6 +1168,7 @@ func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *
 		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
 		remaining := big.NewInt(0)
 		rewardForDelegator.DivMod(rewardForDelegator, rewardData.TotalActive, remaining)
+		totalRemaining.Add(totalRemaining, remaining)
 
 		if isOwner {
 			totalRewards.Add(totalRewards, rewardsForOwner)
@@ -1178,6 +1180,20 @@ func (d *delegation) calculateAndUpdateRewards(callerAddress []byte, delegator *
 
 	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
 	delegator.RewardsCheckpoint = currentEpoch + 1
+
+	if !isOwner {
+		ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+		_, ownerAsDelegator, errGet := d.getOrCreateDelegatorData(ownerAddress)
+		if errGet != nil {
+			return errGet
+		}
+
+		ownerAsDelegator.UnClaimedRewards.Add(ownerAsDelegator.UnClaimedRewards, totalRemaining)
+		err = d.saveDelegatorData(ownerAddress, ownerAsDelegator)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1203,7 +1219,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = d.calculateAndUpdateRewards(args.CallerAddr, delegator)
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1451,7 +1467,9 @@ func (d *delegation) saveDelegationStatus(status *DelegationContractStatus) erro
 }
 
 func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
-	dData := &DelegatorData{}
+	dData := &DelegatorData{
+		UnClaimedRewards: big.NewInt(0),
+	}
 	marshaledData := d.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
 		return true, dData, nil
