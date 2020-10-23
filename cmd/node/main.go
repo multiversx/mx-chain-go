@@ -1204,7 +1204,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
-		shardCoordinator.SelfId(),
+		shardCoordinator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -1995,7 +1996,8 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	shardCoordinator storage.ShardCoordinator,
+	isInImportDB bool,
 ) (indexer.Indexer, error) {
 
 	if !elasticSearchConfig.Enabled {
@@ -2015,7 +2017,8 @@ func createElasticIndexer(
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		ShardCoordinator:         shardCoordinator,
+		IsInImportDBMode:         isInImportDB,
 	}
 
 	return indexer.NewElasticIndexer(arguments)

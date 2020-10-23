@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -28,14 +29,18 @@ type ElasticSearchDatabaseArgs struct {
 	Hasher                   hashing.Hasher
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
+	IsInImportDBMode         bool
+	ShardCoordinator         sharding.Coordinator
 }
 
 // elasticSearchDatabase object it contains business logic built over databaseWriterHandler glue code wrapper
 type elasticSearchDatabase struct {
 	*txDatabaseProcessor
-	dbClient    databaseClientHandler
-	marshalizer marshal.Marshalizer
-	hasher      hashing.Hasher
+	dbClient         databaseClientHandler
+	marshalizer      marshal.Marshalizer
+	hasher           hashing.Hasher
+	isInImportDBMode bool
+	shardCoordinator sharding.Coordinator
 }
 
 // NewElasticSearchDatabase is method that will create a new elastic search dbClient
@@ -60,6 +65,8 @@ func NewElasticSearchDatabase(arguments ElasticSearchDatabaseArgs) (*elasticSear
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
+		arguments.ShardCoordinator,
+		arguments.IsInImportDBMode,
 	)
 
 	err = esdb.createIndexes()
@@ -464,4 +471,3 @@ func (esd *elasticSearchDatabase) computeBlockSearchOrder(header data.HeaderHand
 
 	return uint32(order)
 }
-
