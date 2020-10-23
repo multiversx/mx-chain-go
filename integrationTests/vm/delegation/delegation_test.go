@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -25,7 +26,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	numOfShards := 2
 	nodesPerShard := 2
-	numMetachainNodes := 2
+	numMetachainNodes := 1
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
@@ -104,6 +105,8 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 		integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(0), rewardAddress, txData, 10)
 	}
 	time.Sleep(time.Second)
+
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)

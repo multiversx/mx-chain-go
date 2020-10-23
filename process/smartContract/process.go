@@ -1616,8 +1616,6 @@ func (sc *scProcessor) processSimpleSCR(
 		return nil
 	}
 
-	log.Error("processSimpleSCR", "value", scResult.Value.String(), "data", scResult.Data)
-
 	isPayable, err := sc.IsPayable(scResult.RcvAddr)
 	if err != nil {
 		return err

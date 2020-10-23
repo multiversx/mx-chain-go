@@ -188,6 +188,9 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return nil, errHash
 	}
 
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards")
+	}
 	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 
@@ -247,6 +250,9 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 			}
 		}
 
+		if rwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+			log.Error("negative rewards")
+		}
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}
