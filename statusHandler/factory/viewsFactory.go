@@ -1,23 +1,26 @@
 package factory
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic"
 )
 
 type viewsFactory struct {
-	presenter view.Presenter
+	presenter                 view.Presenter
+	refreshTimeInMilliseconds int
 }
 
 // NewViewsFactory is responsible for creating a new viewers factory object
-func NewViewsFactory(presenter view.Presenter) (*viewsFactory, error) {
-	if presenter == nil || presenter.IsInterfaceNil() {
+func NewViewsFactory(presenter view.Presenter, refreshTimeInMilliseconds int) (*viewsFactory, error) {
+	if check.IfNil(presenter) {
 		return nil, statusHandler.ErrNilPresenterInterface
 	}
 
 	return &viewsFactory{
-		presenter,
+		presenter:                 presenter,
+		refreshTimeInMilliseconds: refreshTimeInMilliseconds,
 	}, nil
 }
 
@@ -35,7 +38,7 @@ func (wf *viewsFactory) Create() ([]Viewer, error) {
 }
 
 func (wf *viewsFactory) createTermuiConsole() (*termuic.TermuiConsole, error) {
-	termuiConsole, err := termuic.NewTermuiConsole(wf.presenter)
+	termuiConsole, err := termuic.NewTermuiConsole(wf.presenter, wf.refreshTimeInMilliseconds)
 	if err != nil {
 		return nil, err
 	}
