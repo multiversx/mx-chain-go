@@ -1514,6 +1514,7 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
@@ -1521,6 +1522,7 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
+		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2

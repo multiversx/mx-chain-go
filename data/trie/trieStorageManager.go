@@ -36,7 +36,7 @@ type trieStorageManager struct {
 	snapshotReq        chan *snapshotsQueueEntry
 	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
-	maxSnapshots       uint8
+	maxSnapshots       uint32
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -440,7 +440,7 @@ func (tsm *trieStorageManager) getSnapshotDb(newDb bool) data.DBWriteCacher {
 		return nil
 	}
 
-	if uint8(len(tsm.snapshots)) > tsm.maxSnapshots {
+	if uint32(len(tsm.snapshots)) > tsm.maxSnapshots {
 		tsm.removeSnapshot()
 	}
 
