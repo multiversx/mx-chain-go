@@ -2,8 +2,10 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math/big"
 	"sort"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -347,7 +349,18 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		}
 
 		if !bytes.Equal(createdMBHash, miniBlockHdr.Hash) {
-			// TODO: add display debug prints of miniblocks contents
+			generatedTxHashes := make([]string, 0, len(createdMiniBlock.TxHashes))
+			for _, hash := range createdMiniBlock.TxHashes {
+				generatedTxHashes = append(generatedTxHashes, hex.EncodeToString(hash))
+			}
+
+			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks, generated reward tx hashes:\n" +
+				strings.Join(generatedTxHashes, "\n"))
+			log.Debug("rewardsCreator.VerifyRewardsMiniBlocks",
+				"received mb hash", miniBlockHdr.Hash,
+				"computed mb hash", createdMBHash,
+			)
+
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
 		}
 	}

@@ -95,7 +95,7 @@ func (vsp *ValidatorStatisticsProcessorStub) RootHash() ([]byte, error) {
 }
 
 // GetPeerAccount -
-func (vsp *ValidatorStatisticsProcessorStub) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)
 	}

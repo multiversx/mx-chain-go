@@ -37,13 +37,15 @@ type baseBlockTrack struct {
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
 
-	blockProcessor                blockProcessorHandler
-	crossNotarizer                blockNotarizerHandler
-	selfNotarizer                 blockNotarizerHandler
-	crossNotarizedHeadersNotifier blockNotifierHandler
-	selfNotarizedHeadersNotifier  blockNotifierHandler
-	blockBalancer                 blockBalancerHandler
-	whitelistHandler              process.WhiteListHandler
+	blockProcessor                        blockProcessorHandler
+	crossNotarizer                        blockNotarizerHandler
+	selfNotarizer                         blockNotarizerHandler
+	crossNotarizedHeadersNotifier         blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedHeadersNotifier          blockNotifierHandler
+	finalMetachainHeadersNotifier         blockNotifierHandler
+	blockBalancer                         blockBalancerHandler
+	whitelistHandler                      process.WhiteListHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -73,7 +75,17 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	selfNotarizedFromCrossHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
 	selfNotarizedHeadersNotifier, err := NewBlockNotifier()
+	if err != nil {
+		return nil, err
+	}
+
+	finalMetachainHeadersNotifier, err := NewBlockNotifier()
 	if err != nil {
 		return nil, err
 	}
@@ -84,20 +96,22 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 	}
 
 	bbt := &baseBlockTrack{
-		hasher:                        arguments.Hasher,
-		headerValidator:               arguments.HeaderValidator,
-		marshalizer:                   arguments.Marshalizer,
-		rounder:                       arguments.Rounder,
-		shardCoordinator:              arguments.ShardCoordinator,
-		headersPool:                   arguments.PoolsHolder.Headers(),
-		store:                         arguments.Store,
-		crossNotarizer:                crossNotarizer,
-		selfNotarizer:                 selfNotarizer,
-		crossNotarizedHeadersNotifier: crossNotarizedHeadersNotifier,
-		selfNotarizedHeadersNotifier:  selfNotarizedHeadersNotifier,
-		blockBalancer:                 blockBalancerInstance,
-		maxNumHeadersToKeepPerShard:   maxNumHeadersToKeepPerShard,
-		whitelistHandler:              arguments.WhitelistHandler,
+		hasher:                                arguments.Hasher,
+		headerValidator:                       arguments.HeaderValidator,
+		marshalizer:                           arguments.Marshalizer,
+		rounder:                               arguments.Rounder,
+		shardCoordinator:                      arguments.ShardCoordinator,
+		headersPool:                           arguments.PoolsHolder.Headers(),
+		store:                                 arguments.Store,
+		crossNotarizer:                        crossNotarizer,
+		selfNotarizer:                         selfNotarizer,
+		crossNotarizedHeadersNotifier:         crossNotarizedHeadersNotifier,
+		selfNotarizedFromCrossHeadersNotifier: selfNotarizedFromCrossHeadersNotifier,
+		selfNotarizedHeadersNotifier:          selfNotarizedHeadersNotifier,
+		finalMetachainHeadersNotifier:         finalMetachainHeadersNotifier,
+		blockBalancer:                         blockBalancerInstance,
+		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
+		whitelistHandler:                      arguments.WhitelistHandler,
 	}
 
 	return bbt, nil
@@ -132,9 +146,12 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
-	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
+	if !bbt.addHeader(shardHeader, shardHeaderHash) {
+		log.Trace("received shard header was not added", "nonce", headerHandler.GetNonce())
+		return
+	}
 
-	bbt.addHeader(shardHeader, shardHeaderHash)
+	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 	bbt.blockProcessor.ProcessReceivedHeader(shardHeader)
 }
 
@@ -158,9 +175,12 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+	if !bbt.addHeader(metaBlock, metaBlockHash) {
+		log.Trace("received meta block was not added", "nonce", headerHandler.GetNonce())
+		return
+	}
 
-	bbt.addHeader(metaBlock, metaBlockHash)
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 	bbt.blockProcessor.ProcessReceivedHeader(metaBlock)
 }
 
@@ -193,9 +213,9 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	return !isHeaderOutOfRange
 }
 
-func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
+func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) bool {
 	if check.IfNil(header) {
-		return
+		return false
 	}
 
 	shardID := header.GetShardID()
@@ -211,12 +231,14 @@ func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) {
 	for _, hdrInfo := range headersForShard[nonce] {
 		if bytes.Equal(hdrInfo.Hash, hash) {
 			bbt.mutHeaders.Unlock()
-			return
+			return false
 		}
 	}
 
 	headersForShard[nonce] = append(headersForShard[nonce], &HeaderInfo{Hash: hash, Header: header})
 	bbt.mutHeaders.Unlock()
+
+	return true
 }
 
 // AddCrossNotarizedHeader adds cross notarized header to the tracker lists
@@ -239,7 +261,7 @@ func (bbt *baseBlockTrack) AddSelfNotarizedHeader(
 
 // AddTrackedHeader adds tracked headers to the tracker lists
 func (bbt *baseBlockTrack) AddTrackedHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
+	bbt.receivedHeader(header, hash)
 }
 
 // CleanupHeadersBehindNonce removes from local pools old headers for a given shard
@@ -540,6 +562,19 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	return headers, headersHashes
 }
 
+// AddHeaderFromPool adds into tracker pool header with the given shard and nonce if it exists in headers pool
+func (bbt *baseBlockTrack) AddHeaderFromPool(shardID uint32, nonce uint64) {
+	headers, hashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err != nil {
+		log.Trace("baseBlockTrack.AddHeaderFromPool", "error", err.Error())
+		return
+	}
+
+	for i := 0; i < len(headers); i++ {
+		bbt.AddTrackedHeader(headers[i], hashes[i])
+	}
+}
+
 // GetTrackedHeadersWithNonce returns tracked headers for a given shard and nonce
 func (bbt *baseBlockTrack) GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
 	bbt.mutHeaders.RLock()
@@ -624,11 +659,26 @@ func (bbt *baseBlockTrack) RegisterCrossNotarizedHeadersHandler(
 	bbt.crossNotarizedHeadersNotifier.RegisterHandler(handler)
 }
 
+// RegisterSelfNotarizedFromCrossHeadersHandler registers a new handler to be called when self notarized header,
+// extracted from cross headers, is changed
+func (bbt *baseBlockTrack) RegisterSelfNotarizedFromCrossHeadersHandler(
+	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
+) {
+	bbt.selfNotarizedFromCrossHeadersNotifier.RegisterHandler(handler)
+}
+
 // RegisterSelfNotarizedHeadersHandler registers a new handler to be called when self notarized header is changed
 func (bbt *baseBlockTrack) RegisterSelfNotarizedHeadersHandler(
 	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
 ) {
 	bbt.selfNotarizedHeadersNotifier.RegisterHandler(handler)
+}
+
+// RegisterFinalMetachainHeadersHandler registers a new handler to be called when a metachain header is final
+func (bbt *baseBlockTrack) RegisterFinalMetachainHeadersHandler(
+	handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
+) {
+	bbt.finalMetachainHeadersNotifier.RegisterHandler(handler)
 }
 
 // RemoveLastNotarizedHeaders removes last notarized headers from tracker list

@@ -4,6 +4,7 @@ package dblookupext
 
 import (
 	"fmt"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -14,9 +15,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
 var log = logger.GetOrCreate("core/dblookupext")
+
+const sizeOfDeduplicationCache = 1000
 
 // HistoryRepositoryArguments is a structure that stores all components that are needed to a history processor
 type HistoryRepositoryArguments struct {
@@ -36,11 +40,21 @@ type historyRepository struct {
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
 
-	// This map temporarily holds notifications of "notarized at source", for destination shard
-	notarizedAtSourceNotifications *container.MutexMap
+	// These maps temporarily hold notifications of "notarized at source or destination", to deal with unwanted concurrency effects
+	// The unwanted concurrency effects could be accentuated by the fast db-replay-validate mechanism.
+	pendingNotarizedAtSourceNotifications      *container.MutexMap
+	pendingNotarizedAtDestinationNotifications *container.MutexMap
+	pendingNotarizedAtBothNotifications        *container.MutexMap
+
+	// This cache will hold hashes of already inserted miniblock metadata records, so that we avoid repeated "put()" operations,
+	// that could mistakenly override the "patch()" operations performed when consuming notarization notifications.
+	deduplicationCacheForInsertMiniblockMetadata storage.Cacher
+
+	recordBlockMutex                 sync.Mutex
+	consumePendingNotificationsMutex sync.Mutex
 }
 
-type notarizedAtSourceNotification struct {
+type notarizedNotification struct {
 	metaNonce uint64
 	metaHash  []byte
 }
@@ -64,20 +78,30 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
+	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
 
 	return &historyRepository{
-		selfShardID:                    arguments.SelfShardID,
-		miniblocksMetadataStorer:       arguments.MiniblocksMetadataStorer,
-		marshalizer:                    arguments.Marshalizer,
-		hasher:                         arguments.Hasher,
-		epochByHashIndex:               hashToEpochIndex,
-		miniblockHashByTxHashIndex:     arguments.MiniblockHashByTxHashStorer,
-		notarizedAtSourceNotifications: container.NewMutexMap(),
+		selfShardID:                           arguments.SelfShardID,
+		miniblocksMetadataStorer:              arguments.MiniblocksMetadataStorer,
+		marshalizer:                           arguments.Marshalizer,
+		hasher:                                arguments.Hasher,
+		epochByHashIndex:                      hashToEpochIndex,
+		miniblockHashByTxHashIndex:            arguments.MiniblockHashByTxHashStorer,
+		pendingNotarizedAtSourceNotifications: container.NewMutexMap(),
+		pendingNotarizedAtDestinationNotifications:   container.NewMutexMap(),
+		pendingNotarizedAtBothNotifications:          container.NewMutexMap(),
+		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
 	}, nil
 }
 
 // RecordBlock records a block
+// This function is not called on a goroutine, but synchronously instead, right after committing a block
 func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	hr.recordBlockMutex.Lock()
+	defer hr.recordBlockMutex.Unlock()
+
+	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
+
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return errCannotCastToBlockBody
@@ -110,6 +134,10 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		return err
 	}
 
+	if hr.hasRecentlyInsertedMiniblockMetadata(miniblockHash, epoch) {
+		return nil
+	}
+
 	err = hr.epochByHashIndex.saveEpochByHash(miniblockHash, epoch)
 	if err != nil {
 		return newErrCannotSaveEpochByHash("miniblock", miniblockHash, err)
@@ -126,36 +154,17 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		DestinationShardID: miniblock.GetReceiverShardID(),
 	}
 
-	// If we are on metachain and the miniblock is towards us, then we can also apply hyperblock coordinates at commit & record time,
-	// since there will be no notification via blockTracker.Register(*)NotarizedHeadersHandler anyway.
-	selfIsMeta := hr.selfShardID == core.MetachainShardId
-	receiverIsMeta := miniblock.GetReceiverShardID() == core.MetachainShardId
-	if selfIsMeta && receiverIsMeta {
-		miniblockMetadata.NotarizedAtSourceInMetaNonce = blockHeader.GetNonce()
-		miniblockMetadata.NotarizedAtSourceInMetaHash = blockHeaderHash
-		miniblockMetadata.NotarizedAtDestinationInMetaNonce = blockHeader.GetNonce()
-		miniblockMetadata.NotarizedAtDestinationInMetaHash = blockHeaderHash
-	}
-
-	// Here we need to use queued notifications
-	notification, ok := hr.notarizedAtSourceNotifications.Get(string(miniblockHash))
-	if ok {
-		notificationTyped := notification.(*notarizedAtSourceNotification)
-		miniblockMetadata.NotarizedAtSourceInMetaNonce = notificationTyped.metaNonce
-		miniblockMetadata.NotarizedAtSourceInMetaHash = notificationTyped.metaHash
-
-		hr.notarizedAtSourceNotifications.Remove(string(miniblockHash))
-	}
-
 	err = hr.putMiniblockMetadata(miniblockHash, miniblockMetadata)
 	if err != nil {
 		return err
 	}
 
+	hr.markMiniblockMetadataAsRecentlyInserted(miniblockHash, epoch)
+
 	for _, txHash := range miniblock.TxHashes {
 		err := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
 		if err != nil {
-			log.Warn("miniblockHashByTxHashIndex.putMiniblockByTx()", "txHash", txHash, "err", err)
+			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", err)
 			continue
 		}
 	}
@@ -165,6 +174,24 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 
 func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([]byte, error) {
 	return core.CalculateHash(hr.marshalizer, hr.hasher, miniblock)
+}
+
+func (hr *historyRepository) hasRecentlyInsertedMiniblockMetadata(miniblockHash []byte, epoch uint32) bool {
+	key := hr.buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash, epoch)
+	return hr.deduplicationCacheForInsertMiniblockMetadata.Has(key)
+}
+
+// When building the key for the deduplication cache, we must take into account the epoch as well, in order to handle this case:
+// - miniblock M added in a fork at the end of epoch E,
+// - miniblock M re-added, on the canonical chain this time, in the next epoch E + 1.
+// This way we do not mistakenly ignore to update the "epochByHashIndex".
+func (hr *historyRepository) buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash []byte, epoch uint32) []byte {
+	return []byte(fmt.Sprintf("%d_%x", epoch, miniblockHash))
+}
+
+func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHash []byte, epoch uint32) {
+	key := hr.buildKeyOfDeduplicationCacheForInsertMiniblockMetadata(miniblockHash, epoch)
+	_ = hr.deduplicationCacheForInsertMiniblockMetadata.Put(key, nil, 0)
 }
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
@@ -218,134 +245,160 @@ func (hr *historyRepository) GetEpochByHash(hash []byte) (uint32, error) {
 	return hr.epochByHashIndex.getEpochByHash(hash)
 }
 
-// RegisterToBlockTracker registers the history repository to blockTracker events
-func (hr *historyRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
-	if check.IfNil(blockTracker) {
-		log.Error("RegisterToBlockTracker(): blockTracker is nil")
-		return
-	}
-
-	blockTracker.RegisterCrossNotarizedHeadersHandler(hr.onNotarizedBlocks)
-	blockTracker.RegisterSelfNotarizedHeadersHandler(hr.onNotarizedBlocks)
-}
-
-func (hr *historyRepository) onNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
-	log.Trace("onNotarizedBlocks()", "shardID", shardID, "len(headers)", len(headers))
-
-	if shardID != core.MetachainShardId {
-		return
-	}
-
+// OnNotarizedBlocks notifies the history repository about notarized blocks
+func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 	for i, headerHandler := range headers {
 		headerHash := headersHashes[i]
 
+		log.Debug("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
+
 		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
 		if isMetaBlock {
-			for _, shardData := range metaBlock.ShardInfo {
-				hr.onNotarizedInMetaBlock(metaBlock.GetNonce(), headerHash, &shardData)
+			for _, miniBlock := range metaBlock.MiniBlockHeaders {
+				hr.onNotarizedMiniblock(headerHandler.GetNonce(), headerHash, headerHandler.GetShardID(), miniBlock)
 			}
-			continue
-		}
 
-		header, isHeader := headerHandler.(*block.Header)
-		if isHeader {
-			hr.onNotarizedInRegularBlockOfMeta(header.GetNonce(), headerHash, header)
-			continue
+			for _, shardData := range metaBlock.ShardInfo {
+				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardData)
+			}
+		} else {
+			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 		}
-
-		log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
 	}
+
+	hr.consumePendingNotificationsWithLock()
 }
 
 func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
+	if metaBlockNonce < 1 {
+		return
+	}
+
 	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
 		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
-	}
-}
-
-func (hr *historyRepository) onNotarizedInRegularBlockOfMeta(blockOfMetaNonce uint64, blockOfMetaHash []byte, blockHeader *block.Header) {
-	for _, miniblockHeader := range blockHeader.GetMiniBlockHeaders() {
-		hr.onNotarizedMiniblock(blockOfMetaNonce, blockOfMetaHash, blockHeader.GetShardID(), miniblockHeader)
 	}
 }
 
 func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
 	miniblockHash := miniblockHeader.Hash
 	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	notarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
 	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
+	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
+	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
+	isNotarizedAtBoth := isIntra || isToMeta
 
-	iDontCare := miniblockHeader.SenderShardID != hr.selfShardID && miniblockHeader.ReceiverShardID != hr.selfShardID
+	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
+	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
+	isPeerMiniblock := miniblockHeader.Type == block.PeerBlock
+	iDontCare := (notFromMe && notToMe) || isPeerMiniblock
 	if iDontCare {
 		return
 	}
 
-	metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
-	if err != nil {
-		if notarizedAtSource {
-			// At destination, we receive the notification about "notarizedAtSource" before committing the block (at destination):
-			// a) @source: source block is committed
-			// b) @metachain: source block is notarized
-			// c) @source & @destination: notified about b) 	<< we are here, under this condition
-			// d) @destination: destination block is committed
-			// e) @metachain: destination block is notarized
-			// f) @source & @destination: notified about e)
+	log.Debug("onNotarizedMiniblock()",
+		"metaBlockNonce", metaBlockNonce,
+		"metaBlockHash", metaBlockHash,
+		"shardOfContainingBlock", shardOfContainingBlock,
+		"miniblock", miniblockHash,
+		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
+	)
 
-			// Therefore, we should hold on to the notification at b) and use it at d)
-			hr.notarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedAtSourceNotification{
-				metaNonce: metaBlockNonce,
-				metaHash:  metaBlockHash,
-			})
-		} else {
-			log.Debug("onNotarizedMiniblock() unexpected: cannot get miniblock metadata",
-				"miniblock", miniblockHash,
-				"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
-				"meta nonce", metaBlockNonce,
-				"err", err)
-		}
-
-		return
-	}
-
-	if isIntra || isToMeta {
-		metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
-		metadata.NotarizedAtSourceInMetaHash = metaBlockHash
-		metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
-		metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
-
-		log.Trace("onNotarizedMiniblock() intra shard or towards meta",
-			"miniblock", miniblockHash,
-			"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
-			"meta nonce", metaBlockNonce,
-		)
+	if isNotarizedAtBoth {
+		hr.pendingNotarizedAtBothNotifications.Set(string(miniblockHash), &notarizedNotification{
+			metaNonce: metaBlockNonce,
+			metaHash:  metaBlockHash,
+		})
+	} else if isNotarizedAtSource {
+		hr.pendingNotarizedAtSourceNotifications.Set(string(miniblockHash), &notarizedNotification{
+			metaNonce: metaBlockNonce,
+			metaHash:  metaBlockHash,
+		})
+	} else if isNotarizedAtDestination {
+		hr.pendingNotarizedAtDestinationNotifications.Set(string(miniblockHash), &notarizedNotification{
+			metaNonce: metaBlockNonce,
+			metaHash:  metaBlockHash,
+		})
 	} else {
-		// Is cross-shard miniblock
-		if notarizedAtSource {
-			metadata.NotarizedAtSourceInMetaNonce = metaBlockNonce
-			metadata.NotarizedAtSourceInMetaHash = metaBlockHash
+		log.Error("onNotarizedMiniblock(): unexpected condition, notification not understood")
+	}
+}
 
-			log.Trace("onNotarizedMiniblock() cross at source",
-				"miniblock", miniblockHash,
-				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
-				"meta nonce", metaBlockNonce,
-			)
-		} else {
-			// Cross-shard, notarized at destination
-			metadata.NotarizedAtDestinationInMetaNonce = metaBlockNonce
-			metadata.NotarizedAtDestinationInMetaHash = metaBlockHash
+// Notifications are consumed within a critical section so that we don't have competing put() operations for the same miniblock metadata,
+// which could have resulted in mistakenly overriding the "notarization (hyperblock) coordinates".
+func (hr *historyRepository) consumePendingNotificationsWithLock() {
+	hr.consumePendingNotificationsMutex.Lock()
+	defer hr.consumePendingNotificationsMutex.Unlock()
 
-			log.Trace("onNotarizedMiniblock() cross at destination",
-				"miniblock", miniblockHash,
-				"direction", fmt.Sprintf("[%d -> %d]", metadata.SourceShardID, metadata.DestinationShardID),
-				"meta nonce", metaBlockNonce,
-			)
-		}
+	if hr.pendingNotarizedAtSourceNotifications.Len() == 0 &&
+		hr.pendingNotarizedAtDestinationNotifications.Len() == 0 &&
+		hr.pendingNotarizedAtBothNotifications.Len() == 0 {
+		return
 	}
 
-	err = hr.putMiniblockMetadata(miniblockHash, metadata)
-	if err != nil {
-		log.Warn("onNotarizedMiniblock(): cannot update miniblock metadata", "miniblockHash", miniblockHash, "err", err)
-		return
+	log.Debug("consumePendingNotificationsWithLock() begin",
+		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
+		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
+		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),
+	)
+
+	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtSourceNotifications, func(metadata *MiniblockMetadata, notification *notarizedNotification) {
+		metadata.NotarizedAtSourceInMetaNonce = notification.metaNonce
+		metadata.NotarizedAtSourceInMetaHash = notification.metaHash
+	})
+
+	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtDestinationNotifications, func(metadata *MiniblockMetadata, notification *notarizedNotification) {
+		metadata.NotarizedAtDestinationInMetaNonce = notification.metaNonce
+		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
+	})
+
+	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtBothNotifications, func(metadata *MiniblockMetadata, notification *notarizedNotification) {
+		metadata.NotarizedAtSourceInMetaNonce = notification.metaNonce
+		metadata.NotarizedAtSourceInMetaHash = notification.metaHash
+		metadata.NotarizedAtDestinationInMetaNonce = notification.metaNonce
+		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
+	})
+
+	log.Debug("consumePendingNotificationsWithLock() end",
+		"len(source)", hr.pendingNotarizedAtSourceNotifications.Len(),
+		"len(destination)", hr.pendingNotarizedAtDestinationNotifications.Len(),
+		"len(both)", hr.pendingNotarizedAtBothNotifications.Len(),
+	)
+}
+
+func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *container.MutexMap, patchMetadataFunc func(*MiniblockMetadata, *notarizedNotification)) {
+	for _, key := range pendingMap.Keys() {
+		notification, ok := pendingMap.Get(key)
+		if !ok {
+			continue
+		}
+
+		keyTyped, ok := key.(string)
+		if !ok {
+			log.Error("consumePendingNotificationsNoLock(): bad key", "key", key)
+			continue
+		}
+
+		notificationTyped, ok := notification.(*notarizedNotification)
+		if !ok {
+			log.Error("consumePendingNotificationsNoLock(): bad value", "value", fmt.Sprintf("%T", notification))
+			continue
+		}
+
+		miniblockHash := []byte(keyTyped)
+		metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+		if err != nil {
+			// Maybe not yet committed / saved in storer
+			continue
+		}
+
+		patchMetadataFunc(metadata, notificationTyped)
+		err = hr.putMiniblockMetadata(miniblockHash, metadata)
+		if err != nil {
+			log.Error("consumePendingNotificationsNoLock(): cannot put miniblock metadata", "miniblockHash", miniblockHash, "err", err)
+			continue
+		}
+
+		pendingMap.Remove(key)
 	}
 }
 

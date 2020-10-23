@@ -25,6 +25,7 @@ type SposWorkerMock struct {
 	DisplayStatisticsCalled                func()
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
+	ResetConsensusMessagesCalled           func()
 }
 
 // AddReceivedMessageCall -
@@ -96,6 +97,13 @@ func (sposWorkerMock *SposWorkerMock) Close() error {
 
 // StartWorking -
 func (sposWorkerMock *SposWorkerMock) StartWorking() {
+}
+
+// ResetConsensusMessages -
+func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
+	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
+		sposWorkerMock.ResetConsensusMessagesCalled()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

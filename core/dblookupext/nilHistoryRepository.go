@@ -12,13 +12,13 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 	return new(nilHistoryRepository), nil
 }
 
-// RegisterToBlockTracker does nothing
-func (nhr *nilHistoryRepository) RegisterToBlockTracker(blockTracker BlockTracker) {
-}
-
 // RecordBlock returns a not implemented error
 func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler) error {
 	return nil
+}
+
+// OnNotarizedBlocks does nothing
+func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 }
 
 // GetTransaction returns a not implemented error

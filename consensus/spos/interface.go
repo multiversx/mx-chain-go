@@ -28,7 +28,7 @@ type ConsensusCoreHandler interface {
 	Chronology() consensus.ChronologyHandler
 	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
 	GetAntiFloodHandler() consensus.P2PAntifloodHandler
-	// hasher gets the hasher stored in the ConsensusCore
+	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
 	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
@@ -50,6 +50,10 @@ type ConsensusCoreHandler interface {
 	SingleSigner() crypto.SingleSigner
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
+	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
+	HeaderSigVerifier() consensus.HeaderSigVerifier
+	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
+	FallbackHeaderValidator() consensus.FallbackHeaderValidator
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -118,6 +122,8 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	//ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

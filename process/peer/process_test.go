@@ -45,8 +45,8 @@ func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
-	economicsData, _ := economics.NewEconomicsData(
-		&config.EconomicsConfig{
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
 				MinimumInflation:   0,
@@ -71,7 +71,10 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
-	)
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer: &mock.MarshalizerMock{},
@@ -89,6 +92,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		RewardsHandler:      economicsData,
 		MaxComputableRounds: 1000,
 		NodesSetup:          &mock.NodesSetupStub{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 	return arguments
 }
@@ -622,9 +626,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -661,11 +665,11 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesIgnoredSignatures
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validatorIgnored := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	validator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -749,9 +753,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -789,9 +793,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -834,9 +838,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_S
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -876,9 +880,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_IncreasesConsensusPrevious
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v1.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
 	leader := pa1.(*mock.PeerAccountHandlerMock)
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	validator := pa2.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -922,9 +926,9 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 	_, err := validatorStatistics.UpdatePeerState(header, cache)
 	assert.Nil(t, err)
 
-	pa1, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa1, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa1.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -979,9 +983,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	err := validatorStatistics.UpdateShardDataPeerState(metaHeader, cache)
 	assert.Nil(t, err)
 
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	leader := pa3.(*mock.PeerAccountHandlerMock)
-	pa4, _ := validatorStatistics.GetPeerAccount(v4.PubKey())
+	pa4, _ := validatorStatistics.LoadPeerAccount(v4.PubKey())
 	validator := pa4.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -1043,9 +1047,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -1104,9 +1108,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensu
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	leader := pa3.(*mock.PeerAccountHandlerMock)
-	pa4, _ := validatorStatistics.GetPeerAccount(v4.PubKey())
+	pa4, _ := validatorStatistics.LoadPeerAccount(v4.PubKey())
 	validator := pa4.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), leader.IncreaseLeaderSuccessRateValue)
@@ -1168,9 +1172,9 @@ func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_DecreasesMissedSh
 	err = validatorStatistics.UpdateMissedBlocksCounters()
 	assert.Nil(t, err)
 
-	pa2, _ := validatorStatistics.GetPeerAccount(v2.PubKey())
+	pa2, _ := validatorStatistics.LoadPeerAccount(v2.PubKey())
 	missedLeader := pa2.(*mock.PeerAccountHandlerMock)
-	pa3, _ := validatorStatistics.GetPeerAccount(v3.PubKey())
+	pa3, _ := validatorStatistics.LoadPeerAccount(v3.PubKey())
 	missedValidator := pa3.(*mock.PeerAccountHandlerMock)
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
@@ -2065,21 +2069,23 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithSmallValidatorFa
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
-	validatorFailure1 := uint32(98)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
-	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*(validatorSuccess1+validatorIgnored1)
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
-	expectedTempRating2 := tempRating2 - uint32(rater.IncreaseValidator)*validatorFailure2
+	expectedTempRating2 := tempRating2 - uint32(rater.IncreaseValidator)*(validatorSuccess2+validatorIgnored2)
 	assert.Equal(t, expectedTempRating2, vi[0][0].TempRating)
 }
 
@@ -2102,21 +2108,23 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochComputesJustEligible
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
-	validatorFailure1 := uint32(98)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 	vi[0][0].List = string(core.WaitingList)
 
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
 	assert.Nil(t, err)
-	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*validatorFailure1
+	expectedTempRating1 := tempRating1 - uint32(rater.MetaIncreaseValidator)*(validatorSuccess1+validatorIgnored1)
 	assert.Equal(t, expectedTempRating1, vi[core.MetachainShardId][0].TempRating)
 
 	assert.Equal(t, tempRating2, vi[0][0].TempRating)
@@ -2139,15 +2147,17 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 	tempRating2 := uint32(8000)
 
 	validatorSuccess1 := uint32(2)
+	validatorIgnored1 := uint32(90)
+	validatorFailure1 := uint32(8)
 	validatorSuccess2 := uint32(1)
-	validatorFailure1 := uint32(98)
-	validatorFailure2 := uint32(99)
+	validatorIgnored2 := uint32(90)
+	validatorFailure2 := uint32(9)
 
 	vi := make(map[uint32][]*state.ValidatorInfo)
 	vi[core.MetachainShardId] = make([]*state.ValidatorInfo, 1)
-	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorFailure1)
+	vi[core.MetachainShardId][0] = createMockValidatorInfo(core.MetachainShardId, tempRating1, validatorSuccess1, validatorIgnored1, validatorFailure1)
 	vi[0] = make([]*state.ValidatorInfo, 1)
-	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorFailure2)
+	vi[0][0] = createMockValidatorInfo(0, tempRating2, validatorSuccess2, validatorIgnored2, validatorFailure2)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 	err := validatorStatistics.ProcessRatingsEndOfEpoch(vi, 1)
@@ -2234,80 +2244,7 @@ func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).Set(peerAccount.GetAccumulatedFees()), vs.AccumulatedFees)
 }
 
-func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
-	eligibleList := string(core.EligibleList)
-	eligiblePeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return eligibleList
-		},
-	}
-	computedEligibleList := peer.GetActualList(eligiblePeer)
-	assert.Equal(t, eligibleList, computedEligibleList)
-
-	waitingList := string(core.WaitingList)
-	waitingPeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return waitingList
-		},
-	}
-	computedWaiting := peer.GetActualList(waitingPeer)
-	assert.Equal(t, waitingList, computedWaiting)
-
-	leavingList := string(core.LeavingList)
-	leavingPeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return leavingList
-		},
-	}
-	computedLeavingList := peer.GetActualList(leavingPeer)
-	assert.Equal(t, leavingList, computedLeavingList)
-
-	newList := string(core.NewList)
-	newPeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return newList
-		},
-	}
-	computedNewList := peer.GetActualList(newPeer)
-	assert.Equal(t, newList, computedNewList)
-
-	inactiveList := string(core.InactiveList)
-	inactivePeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return inactiveList
-		},
-		GetUnStakedEpochCalled: func() uint32 {
-			return 2
-		},
-	}
-	computedInactiveList := peer.GetActualList(inactivePeer)
-	assert.Equal(t, inactiveList, computedInactiveList)
-
-	inactivePeer2 := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return inactiveList
-		},
-		GetUnStakedEpochCalled: func() uint32 {
-			return 0
-		},
-	}
-	computedInactiveList = peer.GetActualList(inactivePeer2)
-	assert.Equal(t, inactiveList, computedInactiveList)
-
-	jailedList := string(core.JailedList)
-	jailedPeer := &mock.PeerAccountHandlerMock{
-		GetListCalled: func() string {
-			return inactiveList
-		},
-		GetUnStakedEpochCalled: func() uint32 {
-			return core.DefaultUnstakedEpoch
-		},
-	}
-	computedJailedList := peer.GetActualList(jailedPeer)
-	assert.Equal(t, jailedList, computedJailedList)
-}
-
-func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorFailure uint32) *state.ValidatorInfo {
+func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess uint32, validatorIgnored uint32, validatorFailure uint32) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
 		PublicKey:                  nil,
 		ShardId:                    shardId,
@@ -2319,6 +2256,7 @@ func createMockValidatorInfo(shardId uint32, tempRating uint32, validatorSuccess
 		LeaderSuccess:              0,
 		LeaderFailure:              0,
 		ValidatorSuccess:           validatorSuccess,
+		ValidatorIgnoredSignatures: validatorIgnored,
 		ValidatorFailure:           validatorFailure,
 		NumSelectedInSuccessBlocks: validatorSuccess + validatorFailure,
 		AccumulatedFees:            nil,
@@ -2455,4 +2393,77 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 		},
 	}
 	return arguments
+}
+
+func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
+	eligibleList := string(core.EligibleList)
+	eligiblePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return eligibleList
+		},
+	}
+	computedEligibleList := peer.GetActualList(eligiblePeer)
+	assert.Equal(t, eligibleList, computedEligibleList)
+
+	waitingList := string(core.WaitingList)
+	waitingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return waitingList
+		},
+	}
+	computedWaiting := peer.GetActualList(waitingPeer)
+	assert.Equal(t, waitingList, computedWaiting)
+
+	leavingList := string(core.LeavingList)
+	leavingPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return leavingList
+		},
+	}
+	computedLeavingList := peer.GetActualList(leavingPeer)
+	assert.Equal(t, leavingList, computedLeavingList)
+
+	newList := string(core.NewList)
+	newPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return newList
+		},
+	}
+	computedNewList := peer.GetActualList(newPeer)
+	assert.Equal(t, newList, computedNewList)
+
+	inactiveList := string(core.InactiveList)
+	inactivePeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 2
+		},
+	}
+	computedInactiveList := peer.GetActualList(inactivePeer)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	inactivePeer2 := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return 0
+		},
+	}
+	computedInactiveList = peer.GetActualList(inactivePeer2)
+	assert.Equal(t, inactiveList, computedInactiveList)
+
+	jailedList := string(core.JailedList)
+	jailedPeer := &mock.PeerAccountHandlerMock{
+		GetListCalled: func() string {
+			return inactiveList
+		},
+		GetUnStakedEpochCalled: func() uint32 {
+			return core.DefaultUnstakedEpoch
+		},
+	}
+	computedJailedList := peer.GetActualList(jailedPeer)
+	assert.Equal(t, jailedList, computedJailedList)
 }

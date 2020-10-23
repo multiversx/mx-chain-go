@@ -66,6 +66,7 @@ type HeaderHandler interface {
 
 	IsStartOfEpochBlock() bool
 	GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDst(destId uint32) []*MiniBlockInfo
 	GetMiniBlockHeadersHashes() [][]byte
 
 	IsInterfaceNil() bool
@@ -258,4 +259,11 @@ type SnapshotDbHandler interface {
 	IncreaseNumReferences()
 	MarkForRemoval()
 	SetPath(string)
+}
+
+// MiniBlockInfo holds information about a cross miniblock referenced in a received block
+type MiniBlockInfo struct {
+	Hash          []byte
+	SenderShardID uint32
+	Round         uint64
 }

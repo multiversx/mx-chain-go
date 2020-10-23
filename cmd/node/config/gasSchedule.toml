@@ -4,6 +4,7 @@
     SaveUserName          = 5000000
     SaveKeyValue          = 250000
     ESDTTransfer          = 250000
+    ESDTBurn              = 250000
 
 [MetaChainSystemSCsCost]
     Stake               = 5000000
@@ -62,7 +63,7 @@
     ExecuteOnDestContext = 160000
     DelegateExecution    = 160000
     AsyncCallStep        = 200000
-    AsyncCallbackGasLock = 2000000
+    AsyncCallbackGasLock = 20000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
     GetReturnData        = 100
@@ -146,8 +147,12 @@
     BigIntGetExternalBalance    = 500
 
 [CryptoAPICost]
-    SHA256    = 600
-    Keccak256 = 600
+    SHA256          = 600
+    Keccak256       = 600
+    Ripemd160       = 600
+    VerifyBLS       = 1000
+    VerifyEd25519   = 1000
+    VerifySecp256k1 = 1000
 
 [WASMOpcodeCost]
     Unreachable = 1
@@ -597,3 +602,5 @@
     I64x2Load32x2U = 400
     I8x16RoundingAverageU = 200
     I16x8RoundingAverageU = 200
+    LocalAllocate = 2
+    LocalsUnmetered = 100

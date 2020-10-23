@@ -96,6 +96,10 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		return false
 	}
 
+	if !sr.isBlockHeaderFinalInfoValid(cnsDta) {
+		return false
+	}
+
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", cnsDta.PubKeysBitmap,
 		"AggregateSignature", cnsDta.AggregateSignature,
@@ -108,6 +112,31 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	)
 
 	return sr.doEndRoundJobByParticipant(cnsDta)
+}
+
+func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
+	if check.IfNil(sr.Header) {
+		return false
+	}
+
+	header := sr.Header.Clone()
+	header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
+	header.SetSignature(cnsDta.AggregateSignature)
+	header.SetLeaderSignature(cnsDta.LeaderSignature)
+
+	err := sr.HeaderSigVerifier().VerifyLeaderSignature(header)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.VerifyLeaderSignature", "error", err.Error())
+		return false
+	}
+
+	err = sr.HeaderSigVerifier().VerifySignature(header)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.VerifySignature", "error", err.Error())
+		return false
+	}
+
+	return true
 }
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {

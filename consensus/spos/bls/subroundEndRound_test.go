@@ -565,7 +565,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrNilSignature(t *testin
 
 	sr := *initSubroundEndRound(&mock.AppStatusHandlerStub{})
 
-	err := sr.CheckSignaturesValidity([]byte(string(2)))
+	err := sr.CheckSignaturesValidity([]byte{2})
 	assert.Equal(t, spos.ErrNilSignature, err)
 }
 
@@ -583,7 +583,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrIndexOutOfBounds(t *te
 	}
 	container.SetMultiSigner(multiSignerMock)
 
-	err := sr.CheckSignaturesValidity([]byte(string(1)))
+	err := sr.CheckSignaturesValidity([]byte{1})
 	assert.Equal(t, crypto.ErrIndexOutOfBounds, err)
 }
 
@@ -600,7 +600,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldErrInvalidSignatureShare(
 
 	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
-	err2 := sr.CheckSignaturesValidity([]byte(string(1)))
+	err2 := sr.CheckSignaturesValidity([]byte{1})
 	assert.Equal(t, err, err2)
 }
 
@@ -611,7 +611,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldReturnNil(t *testing.T) {
 
 	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
-	err := sr.CheckSignaturesValidity([]byte(string(1)))
+	err := sr.CheckSignaturesValidity([]byte{1})
 	assert.Equal(t, nil, err)
 }
 
@@ -825,6 +825,31 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 	assert.True(t, res)
 }
 
+func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinalInfoIsNotValid(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	headerSigVerifier := &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+	}
+
+	container.SetHeaderSigVerifier(headerSigVerifier)
+	sr := *initSubroundEndRoundWithContainer(container)
+	cnsData := consensus.Message{
+		BlockHeaderHash: []byte("X"),
+		PubKey:          []byte("A"),
+	}
+	sr.Header = &block.Header{}
+	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+	assert.False(t, res)
+}
+
 func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
@@ -853,4 +878,70 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	res := sr.IsOutOfTime()
 	assert.True(t, res)
+}
+
+func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerifyLeaderSignatureFails(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	headerSigVerifier := &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			return nil
+		},
+	}
+
+	container.SetHeaderSigVerifier(headerSigVerifier)
+	sr := *initSubroundEndRoundWithContainer(container)
+	cnsDta := &consensus.Message{}
+	sr.Header = &block.Header{}
+	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
+	assert.False(t, isValid)
+}
+
+func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerifySignatureFails(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	headerSigVerifier := &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return nil
+		},
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+	}
+
+	container.SetHeaderSigVerifier(headerSigVerifier)
+	sr := *initSubroundEndRoundWithContainer(container)
+	cnsDta := &consensus.Message{}
+	sr.Header = &block.Header{}
+	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
+	assert.False(t, isValid)
+}
+
+func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	headerSigVerifier := &mock.HeaderSigVerifierStub{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return nil
+		},
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			return nil
+		},
+	}
+
+	container.SetHeaderSigVerifier(headerSigVerifier)
+	sr := *initSubroundEndRoundWithContainer(container)
+	cnsDta := &consensus.Message{}
+	sr.Header = &block.Header{}
+	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
+	assert.True(t, isValid)
 }

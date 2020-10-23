@@ -20,6 +20,7 @@ type NodesSetupStub struct {
 	InitialNodesPubKeysCalled                 func() map[uint32][]string
 	MinNumberOfMetaNodesCalled                func() uint32
 	MinNumberOfShardNodesCalled               func() uint32
+	MinNumberOfNodesWithHysteresisCalled      func() uint32
 }
 
 // MinNumberOfNodes -
@@ -153,6 +154,14 @@ func (n *NodesSetupStub) MinNumberOfShardNodes() uint32 {
 	}
 
 	return 1
+}
+
+// MinNumberOfNodesWithHysteresis -
+func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
+	}
+	return n.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -

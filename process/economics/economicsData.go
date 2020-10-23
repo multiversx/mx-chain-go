@@ -5,13 +5,18 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var _ process.RewardsHandler = (*EconomicsData)(nil)
 var _ process.FeeHandler = (*EconomicsData)(nil)
+
+var log = logger.GetOrCreate("process/economics")
 
 // EconomicsData will store information about economics
 type EconomicsData struct {
@@ -29,16 +34,25 @@ type EconomicsData struct {
 	minInflation                     float64
 	yearSettings                     map[uint32]*config.YearSetting
 	mutYearSettings                  sync.RWMutex
+	flagPenalizedTooMuchGas          atomic.Flag
+	penalizedTooMuchGasEnableEpoch   uint32
+}
+
+// ArgsNewEconomicsData defines the arguments needed for new economics data
+type ArgsNewEconomicsData struct {
+	Economics                      *config.EconomicsConfig
+	PenalizedTooMuchGasEnableEpoch uint32
+	EpochNotifier                  process.EpochNotifier
 }
 
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error) {
-	data, err := convertValues(economics)
+func NewEconomicsData(args ArgsNewEconomicsData) (*EconomicsData, error) {
+	data, err := convertValues(args.Economics)
 	if err != nil {
 		return nil, err
 	}
 
-	err = checkValues(economics)
+	err = checkValues(args.Economics)
 	if err != nil {
 		return nil, err
 	}
@@ -46,29 +60,35 @@ func NewEconomicsData(economics *config.EconomicsConfig) (*EconomicsData, error)
 	if data.maxGasLimitPerBlock < data.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	ed := &EconomicsData{
-		leaderPercentage:                 economics.RewardsSettings.LeaderPercentage,
-		protocolSustainabilityPercentage: economics.RewardsSettings.ProtocolSustainabilityPercentage,
-		protocolSustainabilityAddress:    economics.RewardsSettings.ProtocolSustainabilityAddress,
+		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
+		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
+		protocolSustainabilityAddress:    args.Economics.RewardsSettings.ProtocolSustainabilityAddress,
 		maxGasLimitPerBlock:              data.maxGasLimitPerBlock,
 		maxGasLimitPerMetaBlock:          data.maxGasLimitPerMetaBlock,
 		minGasPrice:                      data.minGasPrice,
 		minGasLimit:                      data.minGasLimit,
 		gasPerDataByte:                   data.gasPerDataByte,
 		dataLimitForBaseCalc:             data.dataLimitForBaseCalc,
-		developerPercentage:              economics.RewardsSettings.DeveloperPercentage,
-		minInflation:                     economics.GlobalSettings.MinimumInflation,
+		developerPercentage:              args.Economics.RewardsSettings.DeveloperPercentage,
+		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               data.genesisTotalSupply,
+		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
-	for _, yearSetting := range economics.GlobalSettings.YearSettings {
+	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
 		ed.yearSettings[yearSetting.Year] = &config.YearSetting{
 			Year:             yearSetting.Year,
 			MaximumInflation: yearSetting.MaximumInflation,
 		}
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(ed)
 
 	return ed, nil
 }
@@ -198,10 +218,16 @@ func (ed *EconomicsData) GasPerDataByte() uint64 {
 
 // ComputeMoveBalanceFee computes the provided transaction's fee
 func (ed *EconomicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
-	gasPrice := big.NewInt(0).SetUint64(tx.GetGasPrice())
-	gasLimit := big.NewInt(0).SetUint64(ed.ComputeGasLimit(tx))
+	return core.SafeMul(tx.GetGasPrice(), ed.ComputeGasLimit(tx))
+}
 
-	return gasPrice.Mul(gasPrice, gasLimit)
+// ComputeTxFee computes the provided transaction's fee using enable from epoch approach
+func (ed *EconomicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ed.flagPenalizedTooMuchGas.IsSet() {
+		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
+
+	return ed.ComputeMoveBalanceFee(tx)
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct
@@ -262,6 +288,12 @@ func (ed *EconomicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 	gasLimit += dataLen * ed.gasPerDataByte
 
 	return gasLimit
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (ed *EconomicsData) EpochConfirmed(epoch uint32) {
+	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
+	log.Debug("EconomicsData: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

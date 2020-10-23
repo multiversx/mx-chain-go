@@ -617,3 +617,66 @@ func sendHbMessageFromPubKey(pubKey string, mon *process.Monitor) error {
 	err := mon.ProcessReceivedMessage(&mock.P2PMessageStub{DataField: buffToSend}, fromConnectedPeerId)
 	return err
 }
+
+func TestMonitor_AddAndGetDoubleSignerPeersShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+	arg.MaxDurationPeerUnresponsive = time.Millisecond * 100
+	mon, _ := process.NewMonitor(arg)
+
+	assert.Equal(t, uint64(0), mon.GetNumInstancesOfPublicKey(string("pk0")))
+
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk1"), Pid: []byte("pid1")})
+	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey(string("pk1")))
+
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk2"), Pid: []byte("pid2.1")})
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk2"), Pid: []byte("pid2.2")})
+	assert.Equal(t, uint64(2), mon.GetNumInstancesOfPublicKey(string("pk2")))
+
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.1")})
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.2")})
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.3")})
+	assert.Equal(t, uint64(3), mon.GetNumInstancesOfPublicKey(string("pk3")))
+
+	time.Sleep(time.Millisecond * 100)
+
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk3"), Pid: []byte("pid3.4")})
+	assert.Equal(t, uint64(1), mon.GetNumInstancesOfPublicKey(string("pk3")))
+}
+
+func TestMonitor_CleanupShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgHeartbeatMonitor()
+
+	currentTime := time.Now()
+	timer := &mock.TimerMock{
+		NowCalled: func() time.Time {
+			return currentTime.Add(time.Second * time.Duration(arg.HideInactiveValidatorIntervalInSec+1))
+		},
+	}
+
+	arg.Timer = timer
+	mon, _ := process.NewMonitor(arg)
+
+	assert.Equal(t, 1, mon.GetNumHearbeatMessages())
+	assert.Equal(t, 0, mon.GetNumDoubleSignerPeers())
+
+	hbmi, _ := process.NewHeartbeatMessageInfo(time.Second, "1", currentTime, timer)
+	mon.AddHeartbeatMessage("pk1", hbmi)
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk1"), Pid: []byte("pid1")})
+	assert.Equal(t, 2, mon.GetNumHearbeatMessages())
+	assert.Equal(t, 1, mon.GetNumDoubleSignerPeers())
+
+	hbmi, _ = process.NewHeartbeatMessageInfo(time.Second, "2", currentTime, timer)
+	mon.AddHeartbeatMessage("pk2", hbmi)
+	mon.AddDoubleSignerPeers(&data.Heartbeat{Pubkey: []byte("pk2"), Pid: []byte("pid1")})
+	assert.Equal(t, 3, mon.GetNumHearbeatMessages())
+	assert.Equal(t, 2, mon.GetNumDoubleSignerPeers())
+
+	mon.Cleanup()
+
+	assert.Equal(t, 0, mon.GetNumHearbeatMessages())
+	assert.Equal(t, 0, mon.GetNumDoubleSignerPeers())
+}

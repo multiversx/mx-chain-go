@@ -232,6 +232,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Core.InternalMarshalizer(),
+		Accounts:             arg.Accounts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -253,12 +254,18 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		math.MaxUint64,
 		arg.GasMap,
 		argsHook,
+		arg.GeneralConfig.SCDeployEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	vmContainer, err := vmFactoryImpl.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +434,12 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		return nil, err
 	}
 
-	queryService, err := smartContract.NewSCQueryService(vmContainer, arg.Economics)
+	queryService, err := smartContract.NewSCQueryService(
+		vmContainer,
+		arg.Economics,
+		vmFactoryImpl.BlockChainHookImpl(),
+		arg.Blkc,
+	)
 	if err != nil {
 		return nil, err
 	}

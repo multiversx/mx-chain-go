@@ -21,6 +21,7 @@ type NodesSetupStub struct {
 	GetShardIDForPubKeyCalled                 func(pubkey []byte) (uint32, error)
 	InitialEligibleNodesPubKeysForShardCalled func(shardId uint32) ([]string, error)
 	InitialNodesPubKeysCalled                 func() map[uint32][]string
+	MinNumberOfNodesWithHysteresisCalled func() uint32
 }
 
 // MinNumberOfShardNodes -
@@ -171,6 +172,14 @@ func (n *NodesSetupStub) InitialNodesPubKeys() map[uint32][]string {
 	}
 
 	return map[uint32][]string{0: {"val1", "val2"}}
+}
+
+// MinNumberOfNodesWithHysteresis
+func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
+	}
+	return n.MinNumberOfNodes()
 }
 
 // IsInterfaceNil -

@@ -13,7 +13,7 @@ import (
 func createEligibleList(size int) []string {
 	eligibleList := make([]string, 0)
 	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string(i+65))
+		eligibleList = append(eligibleList, string([]byte{byte(i + 65)}))
 	}
 	return eligibleList
 }
@@ -36,11 +36,14 @@ func initConsensusState() *spos.ConsensusState {
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
 
-	PBFTThreshold := consensusGroupSize*2/3 + 1
+	pBFTThreshold := consensusGroupSize*2/3 + 1
+	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
 
 	rthr := spos.NewRoundThreshold()
 	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, PBFTThreshold)
+	rthr.SetThreshold(2, pBFTThreshold)
+	rthr.SetFallbackThreshold(1, 1)
+	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()

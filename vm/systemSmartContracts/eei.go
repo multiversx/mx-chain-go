@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -16,6 +17,7 @@ type vmContext struct {
 	validatorAccountsDB state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
+	chanceComputer      sharding.ChanceComputer
 	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
@@ -32,6 +34,7 @@ func NewVMContext(
 	cryptoHook vmcommon.CryptoHook,
 	inputParser vm.ArgumentsParser,
 	validatorAccountsDB state.AccountsAdapter,
+	chanceComputer sharding.ChanceComputer,
 ) (*vmContext, error) {
 	if check.IfNilReflect(blockChainHook) {
 		return nil, vm.ErrNilBlockchainHook
@@ -45,12 +48,16 @@ func NewVMContext(
 	if check.IfNil(validatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(chanceComputer) {
+		return nil, vm.ErrNilChanceComputer
+	}
 
 	vmc := &vmContext{
 		blockChainHook:      blockChainHook,
 		cryptoHook:          cryptoHook,
 		inputParser:         inputParser,
 		validatorAccountsDB: validatorAccountsDB,
+		chanceComputer:      chanceComputer,
 	}
 	vmc.CleanCache()
 
@@ -129,6 +136,11 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 	return account.GetBalance()
 }
 
+// SendGlobalSettingToAll handles sending the information to all the shards
+func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
+	//TODO: implement this
+}
+
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
@@ -155,8 +167,14 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 
 	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
 	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-	destAcc.Data = append(destAcc.Data, input...)
-	destAcc.GasLimit += gasLimit
+
+	outputTransfer := vmcommon.OutputTransfer{
+		Value:    big.NewInt(0).Set(value),
+		GasLimit: gasLimit,
+		Data:     input,
+		CallType: vmcommon.DirectCall,
+	}
+	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
 	return nil
 }
@@ -357,11 +375,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		if outAcc.Nonce > 0 {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
-		if len(outAcc.Data) > 0 {
-			outAccs[addr].Data = outAcc.Data
-		}
-
-		outAccs[addr].GasLimit = outAcc.GasLimit
+		outAccs[addr].OutputTransfers = outAcc.OutputTransfers
 	}
 
 	vmOutput.OutputAccounts = outAccs
@@ -427,8 +441,39 @@ func (host *vmContext) IsValidator(blsKey []byte) bool {
 
 	// TODO: rename GetList from validator account
 	isValidator := validatorAccount.GetList() == string(core.EligibleList) ||
-		validatorAccount.GetList() == string(core.WaitingList)
+		validatorAccount.GetList() == string(core.WaitingList) || validatorAccount.GetList() == string(core.LeavingList)
 	return isValidator
+}
+
+// CanUnJail returns true if the validator is jailed in the validator statistics
+func (host *vmContext) CanUnJail(blsKey []byte) bool {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	return validatorAccount.GetList() == string(core.JailedList)
+}
+
+// IsBadRating returns true if the validators temp rating is under jailed limit
+func (host *vmContext) IsBadRating(blsKey []byte) bool {
+	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	minChance := host.chanceComputer.GetChance(0)
+	return host.chanceComputer.GetChance(validatorAccount.GetTempRating()) < minChance
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

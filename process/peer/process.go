@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -37,37 +38,43 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer         marshal.Marshalizer
-	NodesCoordinator    sharding.NodesCoordinator
-	ShardCoordinator    sharding.Coordinator
-	DataPool            DataPool
-	StorageService      dataRetriever.StorageService
-	PubkeyConv          core.PubkeyConverter
-	PeerAdapter         state.AccountsAdapter
-	Rater               sharding.PeerAccountListAndRatingHandler
-	RewardsHandler      process.RewardsHandler
-	MaxComputableRounds uint64
-	NodesSetup          sharding.GenesisNodesSetupHandler
-	GenesisNonce        uint64
-	RatingEnableEpoch   uint32
+	Marshalizer                     marshal.Marshalizer
+	NodesCoordinator                sharding.NodesCoordinator
+	ShardCoordinator                sharding.Coordinator
+	DataPool                        DataPool
+	StorageService                  dataRetriever.StorageService
+	PubkeyConv                      core.PubkeyConverter
+	PeerAdapter                     state.AccountsAdapter
+	Rater                           sharding.PeerAccountListAndRatingHandler
+	RewardsHandler                  process.RewardsHandler
+	MaxComputableRounds             uint64
+	NodesSetup                      sharding.GenesisNodesSetupHandler
+	GenesisNonce                    uint64
+	RatingEnableEpoch               uint32
+	SwitchJailWaitingEnableEpoch    uint32
+	BelowSignedThresholdEnableEpoch uint32
+	EpochNotifier                   process.EpochNotifier
 }
 
 type validatorStatistics struct {
-	marshalizer            marshal.Marshalizer
-	dataPool               DataPool
-	storageService         dataRetriever.StorageService
-	nodesCoordinator       sharding.NodesCoordinator
-	shardCoordinator       sharding.Coordinator
-	pubkeyConv             core.PubkeyConverter
-	peerAdapter            state.AccountsAdapter
-	rater                  sharding.PeerAccountListAndRatingHandler
-	rewardsHandler         process.RewardsHandler
-	maxComputableRounds    uint64
-	missedBlocksCounters   validatorRoundCounters
-	mutValidatorStatistics sync.RWMutex
-	genesisNonce           uint64
-	ratingEnableEpoch      uint32
-	lastFinalizedRootHash  []byte
+	marshalizer                     marshal.Marshalizer
+	dataPool                        DataPool
+	storageService                  dataRetriever.StorageService
+	nodesCoordinator                sharding.NodesCoordinator
+	shardCoordinator                sharding.Coordinator
+	pubkeyConv                      core.PubkeyConverter
+	peerAdapter                     state.AccountsAdapter
+	rater                           sharding.PeerAccountListAndRatingHandler
+	rewardsHandler                  process.RewardsHandler
+	maxComputableRounds             uint64
+	missedBlocksCounters            validatorRoundCounters
+	mutValidatorStatistics          sync.RWMutex
+	genesisNonce                    uint64
+	ratingEnableEpoch               uint32
+	lastFinalizedRootHash           []byte
+	jailedEnableEpoch               uint32
+	belowSignedThresholdEnableEpoch uint32
+	flagJailedEnabled               atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -106,22 +113,29 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.NodesSetup) {
 		return nil, process.ErrNilNodesSetup
 	}
+	if check.IfNil(arguments.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	vs := &validatorStatistics{
-		peerAdapter:          arguments.PeerAdapter,
-		pubkeyConv:           arguments.PubkeyConv,
-		nodesCoordinator:     arguments.NodesCoordinator,
-		shardCoordinator:     arguments.ShardCoordinator,
-		dataPool:             arguments.DataPool,
-		storageService:       arguments.StorageService,
-		marshalizer:          arguments.Marshalizer,
-		missedBlocksCounters: make(validatorRoundCounters),
-		rater:                arguments.Rater,
-		rewardsHandler:       arguments.RewardsHandler,
-		maxComputableRounds:  arguments.MaxComputableRounds,
-		genesisNonce:         arguments.GenesisNonce,
-		ratingEnableEpoch:    arguments.RatingEnableEpoch,
+		peerAdapter:                     arguments.PeerAdapter,
+		pubkeyConv:                      arguments.PubkeyConv,
+		nodesCoordinator:                arguments.NodesCoordinator,
+		shardCoordinator:                arguments.ShardCoordinator,
+		dataPool:                        arguments.DataPool,
+		storageService:                  arguments.StorageService,
+		marshalizer:                     arguments.Marshalizer,
+		missedBlocksCounters:            make(validatorRoundCounters),
+		rater:                           arguments.Rater,
+		rewardsHandler:                  arguments.RewardsHandler,
+		maxComputableRounds:             arguments.MaxComputableRounds,
+		genesisNonce:                    arguments.GenesisNonce,
+		ratingEnableEpoch:               arguments.RatingEnableEpoch,
+		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
+		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
 	}
+
+	arguments.EpochNotifier.RegisterNotifyHandler(vs)
 
 	err := vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
@@ -194,13 +208,21 @@ func (vs *validatorStatistics) saveUpdatesForList(
 	peerType core.PeerType,
 ) error {
 	for index, pubKey := range pks {
-		peerAcc, err := vs.GetPeerAccount(pubKey)
+		peerAcc, err := vs.loadPeerAccount(pubKey)
 		if err != nil {
 			log.Debug("error getting peer account", "error", err, "key", pubKey)
 			return err
 		}
 
-		peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		if isNodeJailed {
+			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
+		} else if isNodeLeaving {
+			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
+		} else {
+			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+		}
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
@@ -438,10 +460,17 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	startRatingChance := vs.rater.GetChance(vs.rater.GetStartRating())
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
+	list := ""
+	if vs.flagJailedEnabled.IsSet() {
+		list = peerAccount.GetList()
+	} else {
+		list = getActualList(peerAccount)
+	}
+
 	return &state.ValidatorInfo{
 		PublicKey:                       peerAccount.GetBLSPublicKey(),
 		ShardId:                         peerAccount.GetShardId(),
-		List:                            getActualList(peerAccount),
+		List:                            list,
 		Index:                           peerAccount.GetIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),
@@ -460,6 +489,26 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		NumSelectedInSuccessBlocks:      peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:                 big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}
+}
+
+// IsLowRating returns true if temp rating is under 0 chance value
+func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
+	acc, err := vs.peerAdapter.GetExistingAccount(blsKey)
+	if err != nil {
+		return false
+	}
+
+	validatorAccount, ok := acc.(state.PeerAccountHandler)
+	if !ok {
+		return false
+	}
+
+	minChance := vs.rater.GetChance(0)
+	if vs.rater.GetChance(validatorAccount.GetTempRating()) >= minChance {
+		return false
+	}
+
+	return true
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
@@ -540,17 +589,23 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 	shardId uint32,
 	epoch uint32,
 ) error {
-
 	if epoch < vs.ratingEnableEpoch {
 		return nil
 	}
 
-	validatorAppereances := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
-	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorAppereances)
+	validatorOccurrences := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
+	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorOccurrences)
 
 	if computedThreshold <= signedThreshold {
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, validator.ValidatorFailure)
-		pa, err := vs.GetPeerAccount(validator.PublicKey)
+		increasedRatingTimes := uint32(0)
+		if epoch < vs.belowSignedThresholdEnableEpoch {
+			increasedRatingTimes = validator.ValidatorFailure
+		} else {
+			increasedRatingTimes = validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+		}
+
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, increasedRatingTimes)
+		pa, err := vs.loadPeerAccount(validator.PublicKey)
 		if err != nil {
 			return err
 		}
@@ -599,6 +654,7 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 				return process.ErrWrongTypeAssertion
 			}
 			peerAccount.ResetAtNewEpoch()
+			vs.setToJailedIfNeeded(peerAccount, validator)
 
 			err = vs.peerAdapter.SaveAccount(peerAccount)
 			if err != nil {
@@ -608,6 +664,24 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 	}
 
 	return nil
+}
+
+func (vs *validatorStatistics) setToJailedIfNeeded(
+	peerAccount state.PeerAccountHandler,
+	validator *state.ValidatorInfo,
+) {
+	if !vs.flagJailedEnabled.IsSet() {
+		return
+	}
+
+	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
+		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+		return
+	}
+
+	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
+		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
+	}
 }
 
 func (vs *validatorStatistics) checkForMissedBlocks(
@@ -659,11 +733,11 @@ func (vs *validatorStatistics) computeDecrease(
 			return err
 		}
 
-		swInner.Start("GetPeerAccount")
-		leaderPeerAcc, err := vs.GetPeerAccount(consensusGroup[0].PubKey())
+		swInner.Start("loadPeerAccount")
+		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
 		leaderPK := core.GetTrimmedPk(vs.pubkeyConv.Encode(consensusGroup[0].PubKey()))
 		log.Trace("Decreasing for leader", "leader", leaderPK, "round", i)
-		swInner.Stop("GetPeerAccount")
+		swInner.Stop("loadPeerAccount")
 		if err != nil {
 			return err
 		}
@@ -715,7 +789,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 	defer vs.mutValidatorStatistics.Unlock()
 
 	for j := 1; j < len(consensusGroup); j++ {
-		validatorPeerAccount, verr := vs.GetPeerAccount(consensusGroup[j].PubKey())
+		validatorPeerAccount, verr := vs.loadPeerAccount(consensusGroup[j].PubKey())
 		if verr != nil {
 			return verr
 		}
@@ -824,7 +898,7 @@ func (vs *validatorStatistics) initializeNode(
 	peerType core.PeerType,
 	index uint32,
 ) error {
-	peerAccount, err := vs.GetPeerAccount(node.PubKeyBytes())
+	peerAccount, err := vs.loadPeerAccount(node.PubKeyBytes())
 	if err != nil {
 		return err
 	}
@@ -873,7 +947,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	}
 	lenValidators := len(validatorList)
 	for i := 0; i < lenValidators; i++ {
-		peerAcc, err := vs.GetPeerAccount(validatorList[i].PubKey())
+		peerAcc, err := vs.loadPeerAccount(validatorList[i].PubKey())
 		if err != nil {
 			return err
 		}
@@ -911,8 +985,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	return nil
 }
 
-// GetPeerAccount will return a PeerAccountHandler for a given address
-func (vs *validatorStatistics) GetPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+func (vs *validatorStatistics) loadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	account, err := vs.peerAdapter.LoadAccount(address)
 	if err != nil {
 		return nil, err
@@ -947,7 +1020,7 @@ func (vs *validatorStatistics) updateMissedBlocksCounters() error {
 	}()
 
 	for pubKey, roundCounters := range vs.missedBlocksCounters {
-		peerAccount, err := vs.GetPeerAccount([]byte(pubKey))
+		peerAccount, err := vs.loadPeerAccount([]byte(pubKey))
 		if err != nil {
 			return err
 		}
@@ -992,7 +1065,7 @@ func (vs *validatorStatistics) IsInterfaceNil() bool {
 }
 
 func (vs *validatorStatistics) getTempRating(s string) uint32 {
-	peer, err := vs.GetPeerAccount([]byte(s))
+	peer, err := vs.loadPeerAccount([]byte(s))
 
 	if err != nil {
 		log.Debug("Error getting peer account", "error", err)
@@ -1003,7 +1076,7 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {
-	peerAcc, err := vs.GetPeerAccount([]byte(validatorKey))
+	peerAcc, err := vs.loadPeerAccount([]byte(validatorKey))
 
 	if err != nil {
 		log.Trace("display peer acc", "error", err)
@@ -1054,7 +1127,7 @@ func (vs *validatorStatistics) decreaseAll(
 	ratingDifference := uint32(0)
 
 	for i, validator := range shardValidators {
-		validatorPeerAccount, err := vs.GetPeerAccount(validator)
+		validatorPeerAccount, err := vs.loadPeerAccount(validator)
 		if err != nil {
 			return err
 		}
@@ -1092,7 +1165,7 @@ func (vs *validatorStatistics) decreaseAll(
 func (vs *validatorStatistics) Process(svi data.ShardValidatorInfoHandler) error {
 	log.Trace("ValidatorInfoData", "pk", svi.GetPublicKey(), "tempRating", svi.GetTempRating())
 
-	pa, err := vs.GetPeerAccount(svi.GetPublicKey())
+	pa, err := vs.loadPeerAccount(svi.GetPublicKey())
 	if err != nil {
 		return err
 	}
@@ -1117,4 +1190,10 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 	vs.mutValidatorStatistics.RLock()
 	defer vs.mutValidatorStatistics.RUnlock()
 	return vs.lastFinalizedRootHash
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
+	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
+	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 }

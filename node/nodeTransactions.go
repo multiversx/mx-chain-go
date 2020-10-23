@@ -47,13 +47,7 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 		return nil, err
 	}
 
-	tx.Status = (&transaction.StatusComputer{
-		SourceShard:      n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetSndAddr()),
-		DestinationShard: n.processComponents.ShardCoordinator().ComputeId(tx.Tx.GetRcvAddr()),
-		Receiver:         tx.Tx.GetRcvAddr(),
-		TransactionData:  tx.Data,
-		SelfShard:        n.processComponents.ShardCoordinator().SelfId(),
-	}).ComputeStatusWhenInPool()
+	tx.Status = transaction.TxStatusPending
 
 	return tx, nil
 }

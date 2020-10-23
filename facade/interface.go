@@ -31,6 +31,7 @@ type NodeHandler interface {
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
@@ -50,7 +51,7 @@ type NodeHandler interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
-	DirectTrigger(epoch uint32) error
+	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -80,7 +81,7 @@ type ApiResolver interface {
 
 // HardforkTrigger defines the structure used to trigger hardforks
 type HardforkTrigger interface {
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
@@ -102,7 +103,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		nonce++
 
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
 		time.Sleep(time.Second)
@@ -229,7 +230,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&generalConfig,
 		shardC,
 		&mock.PathManagerStub{},
-		&mock.EpochStartNotifierStub{},
+		notifier.NewEpochStartSubscriptionHandler(),
 		0)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()

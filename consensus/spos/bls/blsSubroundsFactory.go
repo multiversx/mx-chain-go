@@ -144,6 +144,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.Extend,
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
+		fct.worker.ResetConsensusMessages,
 	)
 	if err != nil {
 		return err
@@ -267,9 +268,12 @@ func (fct *factory) generateEndRoundSubround() error {
 }
 
 func (fct *factory) initConsensusThreshold() {
-	pbftThreshold := fct.consensusState.ConsensusGroupSize()*2/3 + 1
+	pBFTThreshold := core.GetPBFTThreshold(fct.consensusState.ConsensusGroupSize())
+	pBFTFallbackThreshold := core.GetPBFTFallbackThreshold(fct.consensusState.ConsensusGroupSize())
 	fct.consensusState.SetThreshold(SrBlock, 1)
-	fct.consensusState.SetThreshold(SrSignature, pbftThreshold)
+	fct.consensusState.SetThreshold(SrSignature, pBFTThreshold)
+	fct.consensusState.SetFallbackThreshold(SrBlock, 1)
+	fct.consensusState.SetFallbackThreshold(SrSignature, pBFTFallbackThreshold)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

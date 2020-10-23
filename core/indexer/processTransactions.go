@@ -19,13 +19,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const (
-	txStatusSuccess     = "Success"
-	txStatusPending     = "Pending"
-	txStatusInvalid     = "Invalid"
-	txStatusNotExecuted = "Not Executed"
 	// A smart contract action (deploy, call, ...) should have minimum 2 smart contract results
 	// exception to this rule are smart contract calls to ESDT contract
 	minimumNumberOfSmartContractResults = 2
@@ -103,7 +100,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		if nrScResult < minimumNumberOfSmartContractResults {
 			if len(transactions[hash].SmartContractResults) > 0 {
 				scResultData := transactions[hash].SmartContractResults[0].Data
-				if bytes.Contains(scResultData, []byte("@ok")) {
+				if isScResultSuccessful(scResultData) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
@@ -113,7 +110,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 				continue
 			}
 
-			transactions[hash].Status = txStatusNotExecuted
+			transactions[hash].Status = transaction.TxStatusFail.String()
 		}
 	}
 
@@ -131,6 +128,12 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...)
+}
+
+func isScResultSuccessful(scResultData []byte) bool {
+	okReturnDataNewVersion := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
+	okReturnDataOldVersion := []byte("@" + vmcommon.Ok.String()) // backwards compatible
+	return bytes.Contains(scResultData, okReturnDataNewVersion) || bytes.Contains(scResultData, okReturnDataOldVersion)
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
@@ -216,9 +219,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			continue
 		}
 
-		mbTxStatus := txStatusPending
+		mbTxStatus := transaction.TxStatusPending.String()
 		if selfShardID == mb.ReceiverShardID {
-			mbTxStatus = txStatusSuccess
+			mbTxStatus = transaction.TxStatusSuccess.String()
 		}
 
 		switch mb.Type {
@@ -232,7 +235,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.InvalidBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, txStatusInvalid)
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
@@ -270,7 +273,7 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 }
 
 func (tdp *txDatabaseProcessor) createShardIdentifier(shardId uint32) uint32 {
-	shardIdentifier := shardId+2
+	shardIdentifier := shardId + 2
 	if shardId == core.MetachainShardId {
 		shardIdentifier = 1
 	}

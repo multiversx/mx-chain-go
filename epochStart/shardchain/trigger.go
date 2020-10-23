@@ -352,12 +352,8 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 	return t.epochFinalityAttestingRound
 }
 
-// ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(_ uint64) error {
-	t.mutTrigger.Lock()
-	defer t.mutTrigger.Unlock()
-
-	return nil
+// ForceEpochStart does nothing in this implementation
+func (t *trigger) ForceEpochStart() {
 }
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
@@ -457,13 +453,13 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		waitTime := core.ExtraDelayForRequestBlockInfo
+		wait := core.ExtraDelayForRequestBlockInfo
 		roundDifferences := t.rounder.Index() - int64(headerHandler.GetRound())
 		if roundDifferences > 1 {
-			waitTime = 0
+			wait = 0
 		}
 
-		time.Sleep(waitTime)
+		time.Sleep(wait)
 	}
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr

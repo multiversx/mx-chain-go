@@ -35,6 +35,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		GovernanceSCAddress: []byte("governanceSC"),
 		StakingSCAddress:    []byte("stakingSC"),
 		AuctionSCAddress:    nil,
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 }
 
@@ -253,7 +254,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 			}
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			if strings.Contains(string(key), string(proposalPrefix)) {
+			if strings.Contains(string(key), proposalPrefix) {
 				genProposal := &GeneralProposal{}
 				_ = json.Unmarshal(value, genProposal)
 				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
@@ -301,7 +302,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 			}
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
-			if strings.Contains(string(key), string(proposalPrefix)) {
+			if strings.Contains(string(key), proposalPrefix) {
 				genProposal := &GeneralProposal{}
 				_ = json.Unmarshal(value, genProposal)
 				require.Equal(t, gitHubCommit, genProposal.GitHubCommit)
@@ -317,7 +318,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 			require.Equal(t, whiteListProp.WhiteListAddress, callerAddr)
 		},
 	}
-	args.GovernanceConfig.Disabled = true
+	args.GovernanceConfig.EnabledEpoch = 1
 	gsc, _ := NewGovernanceContract(args)
 	gsc.ownerAddress = callerAddr
 
@@ -464,7 +465,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 		BlsPubKeys:    [][]byte{[]byte("blsPubKey")},
 	}
 	auctionDataBytes, _ := json.Marshal(autionData)
-	nodeData := &StakedData{Staked: true}
+	nodeData := &StakedDataV2{Staked: true}
 	nodeDataBytes, _ := json.Marshal(nodeData)
 
 	args.Eei = &mock.SystemEIStub{
@@ -521,7 +522,12 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 		},
 	}
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		atArgParser,
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	args := createMockGovernanceArgs()
 
@@ -544,7 +550,7 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	auctionDataBytes, _ = json.Marshal(auctionData)
 	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress2, auctionDataBytes)
 
-	nodeData := &StakedData{Staked: true}
+	nodeData := &StakedDataV2{Staked: true}
 	stakedDataBytes, _ := json.Marshal(nodeData)
 	eei.SetStorageForAddress(args.StakingSCAddress, blsKey1, stakedDataBytes)
 	eei.SetStorageForAddress(args.StakingSCAddress, blsKey2, stakedDataBytes)

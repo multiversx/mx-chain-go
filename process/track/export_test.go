@@ -71,8 +71,8 @@ func (bbt *baseBlockTrack) ShouldAddHeaderForSelfShard(headerHandler data.Header
 	return bbt.shouldAddHeaderForShard(headerHandler, bbt.selfNotarizer, core.MetachainShardId)
 }
 
-func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) {
-	bbt.addHeader(header, hash)
+func (bbt *baseBlockTrack) AddHeader(header data.HeaderHandler, hash []byte) bool {
+	return bbt.addHeader(header, hash)
 }
 
 func (bbt *baseBlockTrack) AppendTrackedHeader(headerHandler data.HeaderHandler) {
@@ -205,6 +205,14 @@ func (bp *blockProcessor) GetHighestRoundInReceivedHeaders(latestValidHeader dat
 
 func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce uint64, latestValidHeader data.HeaderHandler, highestRoundInReceivedHeaders uint64) {
 	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders)
+}
+
+func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {
+	bp.requestHeaders(shardID, fromNonce)
+}
+
+func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {
+	return bp.shouldProcessReceivedHeader(headerHandler)
 }
 
 // miniBlockTrack

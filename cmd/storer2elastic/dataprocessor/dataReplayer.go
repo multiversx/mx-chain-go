@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -56,7 +55,6 @@ type metaBlocksPersistersHolder struct {
 
 // DataReplayerArgs holds the arguments needed for creating a new dataReplayer
 type DataReplayerArgs struct {
-	ElasticIndexer           indexer.Indexer
 	DatabaseReader           DatabaseReaderHandler
 	GeneralConfig            config.Config
 	ShardCoordinator         sharding.Coordinator
@@ -107,6 +105,10 @@ func NewDataReplayer(args DataReplayerArgs) (*dataReplayer, error) {
 
 // Range will range over the data in storage until the handler returns false or the time is out
 func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.RoundPersistedData) bool) error {
+	if handler == nil {
+		return ErrNilHandlerFunc
+	}
+
 	errChan := make(chan error, 0)
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
@@ -337,17 +339,13 @@ func (dr *dataReplayer) processShardInfo(
 	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
 	if err != nil {
 		// if new epoch, shard headers can be found in the previous epoch's storage
-		// TODO: for this case return and use all the persisters from the previous epoch in order to find txs
-		shardHeader, err = dr.getFromShardStorer(dbsInfos, shardInfo, epoch-1)
-		if err != nil {
-			return nil, err
-		}
+		return dr.getAndProcessFromShardStorer(dbsInfos, shardInfo, epoch-1)
 	}
 
 	return dr.processHeader(shardPersisters, shardHeader)
 }
 
-func (dr *dataReplayer) getFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo *block.ShardData, epoch uint32) (*block.Header, error) {
+func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.DatabaseInfo, shardInfo *block.ShardData, epoch uint32) (*storer2ElasticData.HeaderData, error) {
 	shardDBInfo, err := getShardDatabaseForEpoch(dbsInfos, epoch, shardInfo.ShardID)
 	if err != nil {
 		return nil, err
@@ -357,12 +355,16 @@ func (dr *dataReplayer) getFromShardStorer(dbsInfos []*databasereader.DatabaseIn
 	if err != nil {
 		return nil, err
 	}
-
 	defer func() {
 		dr.closePersisters(shardPersisters)
 	}()
 
-	return dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
+	shardHdr, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return dr.processHeader(shardPersisters, shardHdr)
 }
 
 func (dr *dataReplayer) getShardHeader(

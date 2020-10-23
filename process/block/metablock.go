@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -26,7 +25,6 @@ var _ process.BlockProcessor = (*metaProcessor)(nil)
 // metaProcessor implements metaProcessor interface and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	scDataGetter                 external.SCQueryService
 	scToProtocol                 process.SmartContractToProtocolHandler
 	epochStartDataCreator        process.EpochStartDataCreator
 	epochEconomics               process.EndOfEpochEconomics
@@ -52,9 +50,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return nil, process.ErrNilHeadersDataPool
-	}
-	if check.IfNil(arguments.SCDataGetter) {
-		return nil, process.ErrNilSCDataGetter
 	}
 	if check.IfNil(arguments.SCToProtocol) {
 		return nil, process.ErrNilSCToProtocol
@@ -116,7 +111,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
-		scDataGetter:                 arguments.SCDataGetter,
 		scToProtocol:                 arguments.SCToProtocol,
 		pendingMiniBlocksHandler:     arguments.PendingMiniBlocksHandler,
 		epochStartDataCreator:        arguments.EpochStartDataCreator,
@@ -400,6 +394,8 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
+
+	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
 
 	return nil
 }
@@ -709,6 +705,9 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 	}
 
 	metaHdr.EpochStart.Economics = *economicsData
+
+	saveEpochStartEconomicsMetrics(mp.appStatusHandler, metaHdr)
+
 	return nil
 }
 
@@ -956,7 +955,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	}
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
+	go mp.requestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
 
 	return miniBlocks, txsAdded, hdrsAdded, nil
 }
@@ -977,7 +976,8 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
 			toNonce := fromNonce + uint64(mp.shardBlockFinality)
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
-				go mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+				mp.addHeaderIntoTrackerPool(nonce, shardID)
+				mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 			}
 		}
 	}
@@ -1079,6 +1079,8 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
+	go mp.historyRepo.OnNotarizedBlocks(mp.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
+
 	log.Debug("highest final meta block",
 		"nonce", mp.forkDetector.GetHighestFinalBlockNonce(),
 	)
@@ -1145,11 +1147,6 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	mp.displayPoolsInfo()
-
-	errNotCritical = mp.removeBlockDataFromPools(headerHandler, bodyHandler)
-	if errNotCritical != nil {
-		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
-	}
 
 	mp.cleanupPools(headerHandler)
 

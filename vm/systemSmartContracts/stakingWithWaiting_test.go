@@ -23,7 +23,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	args := createMockArgumentsForAuction()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		atArgParser,
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -65,12 +70,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	marshaledData := eei.GetStorage(stakerPubKey)
-	stakedData := &StakedData{}
+	stakedData := &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
 	marshaledData = eei.GetStorage(blsKey2)
-	stakedData = &StakedData{}
+	stakedData = &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
@@ -85,7 +90,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	args := createMockArgumentsForAuction()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		atArgParser,
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -119,6 +129,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	arguments.Function = "unStake"
+	arguments.Arguments = [][]byte{blsKey2}
+	arguments.CallValue = big.NewInt(0)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
 	arguments.Function = "unBond"
 	arguments.Arguments = [][]byte{blsKey2}
 	arguments.CallValue = big.NewInt(0)
@@ -132,7 +148,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	marshaledData := eei.GetStorage(stakerPubKey)
-	stakedData := &StakedData{}
+	stakedData := &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
@@ -157,7 +173,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	args := createMockArgumentsForAuction()
 
 	atArgParser := parsers.NewCallArgsParser()
-	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{})
+	eei, _ := NewVMContext(
+		blockChainHook,
+		hooks.NewVMCryptoHook(),
+		atArgParser,
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
@@ -198,12 +219,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData := eei.GetStorageFromAddress(args.StakingSCAddress, stakerPubKey)
-	stakedData := &StakedData{}
+	stakedData := &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
-	stakedData = &StakedData{}
+	stakedData = &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
@@ -215,7 +236,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey3)
-	stakedData = &StakedData{}
+	stakedData = &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.True(t, stakedData.Waiting)
@@ -227,7 +248,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
-	stakedData = &StakedData{}
+	stakedData = &StakedDataV2{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.False(t, stakedData.Waiting)

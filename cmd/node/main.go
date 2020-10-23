@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -482,7 +483,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 		epochNotifier := forking.NewGenericEpochNotifier()
 
-		log.Trace("creating process components")
+		fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
+		dataComponents.Datapool.Headers(),
+		coreComponents.InternalMarshalizer,
+		dataComponents.Store,
+	)
+	if err != nil {
+		return err
+	}log.Trace("creating process components")
 
 		importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, core.DefaultDBPath), appVersion)
 		if err != nil {
@@ -548,6 +556,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 			ChanGracefullyClose:       chanStopNodeProcess,
 			EconomicsData:             managedCoreComponents.EconomicsData(),
+		fallbackHeaderValidator,
 		}
 		processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 		if err != nil {
@@ -681,6 +690,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			chanStopNodeProcess,
 			hardForkTrigger,
 			historyRepository,
+			fallbackHeaderValidator,
 		)
 		if err != nil {
 			return err
@@ -714,6 +724,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCryptoComponents.MessageSignVerifier(),
 			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.systemSCConfig,
+			rater,
+			epochNotifier,
 		)
 		if err != nil {
 			return err
@@ -947,17 +959,22 @@ func createManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-func applyCompatibleConfigs(log logger.Logger, config *config.Config, ctx *cli.Context) {
-	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	if len(importDbDirectoryValue) > 0 {
+func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
+	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Info("import DB directory is set, altering config values!",
+		log.Warn("the node is in import mode! Will auto-set some config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"import DB path", importDbDirectoryValue,
+			"p2p.ThresholdMinConnectedPeers", 0,
+			"no sig check", importDbNoSigCheckFlag,
+			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		p2pConfig.Node.ThresholdMinConnectedPeers = 0
+		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
+		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
+		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
 	}
 }
 

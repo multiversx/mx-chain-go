@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -126,7 +125,7 @@ func SetupTestContext(t *testing.T) *TestContext {
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
 	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.ArwenVirtualMachine)
-	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee)
+	context.QueryService, _ = smartContract.NewSCQueryService(context.VMContainer, context.EconomicsFee, context.BlockchainHook, &mock.BlockChainMock{})
 
 	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
 	require.Nil(t, err)
@@ -161,6 +160,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GasMap:          context.GasSchedule,
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
+		Accounts:        context.Accounts,
 	}
 
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
@@ -184,13 +184,14 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args)
+	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args, 0)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()
 	require.Nil(context.T, err)
 
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, context.BlockchainHook)
 }
 
 func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
@@ -269,22 +270,22 @@ func (context *TestContext) initAccounts() {
 	context.Owner = testParticipant{}
 	context.Owner.Address, _ = hex.DecodeString("d4105de8e44aee9d4be670401cec546e5df381028e805012386a05acf76518d9")
 	context.Owner.Nonce = uint64(1)
-	context.Owner.BalanceSnapshot = big.NewInt(math.MaxInt64)
+	context.Owner.BalanceSnapshot = NewBalance(1000).Value
 
 	context.Alice = testParticipant{}
 	context.Alice.Address, _ = hex.DecodeString("0f36a982b79d3c1fda9b82a646a2b423cb3e7223cffbae73a4e3d2c1ea62ee5e")
 	context.Alice.Nonce = uint64(1)
-	context.Alice.BalanceSnapshot = big.NewInt(math.MaxInt64)
+	context.Alice.BalanceSnapshot = NewBalance(1000).Value
 
 	context.Bob = testParticipant{}
 	context.Bob.Address, _ = hex.DecodeString("afb051dc3a1dfb029866730243c2cbc51d8b8ef15951e4da3929f9c8391f307a")
 	context.Bob.Nonce = uint64(1)
-	context.Bob.BalanceSnapshot = big.NewInt(math.MaxInt64)
+	context.Bob.BalanceSnapshot = NewBalance(1000).Value
 
 	context.Carol = testParticipant{}
 	context.Carol.Address, _ = hex.DecodeString("5bdf4c81489bea69ba29cd3eea2670c1bb6cb5d922fa8cb6e17bca71dfdd49f0")
 	context.Carol.Nonce = uint64(1)
-	context.Carol.BalanceSnapshot = big.NewInt(math.MaxInt64)
+	context.Carol.BalanceSnapshot = NewBalance(1000).Value
 
 	context.createAccount(&context.Owner)
 	context.createAccount(&context.Alice)
@@ -388,7 +389,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }
@@ -442,7 +443,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }
@@ -468,6 +469,7 @@ func (context *TestContext) ExecuteSC(sender *testParticipant, txData string) er
 	return context.ExecuteSCWithValue(sender, txData, big.NewInt(0))
 }
 
+// ExecuteSCWithValue -
 func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData string, value *big.Int) error {
 	tx := &transaction.Transaction{
 		Nonce:    sender.Nonce,
@@ -507,7 +509,7 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	context.UpdateLastSCResults()
+	_ = context.UpdateLastSCResults()
 
 	return nil
 }
@@ -592,7 +594,7 @@ type Balance struct {
 	Value *big.Int
 }
 
-// NewBalance
+// NewBalance -
 func NewBalance(n int) Balance {
 	result := big.NewInt(0)
 	_, _ = result.SetString("1000000000000000000", 10)
@@ -600,7 +602,7 @@ func NewBalance(n int) Balance {
 	return Balance{Value: result}
 }
 
-// NewBalanceBig
+// NewBalanceBig -
 func NewBalanceBig(bi *big.Int) Balance {
 	return Balance{Value: bi}
 }
