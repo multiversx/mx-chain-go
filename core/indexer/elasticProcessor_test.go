@@ -36,7 +36,6 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
 			arguments.FeeConfig,
-			arguments.ShardCoordinator,
 			arguments.IsInImportDBMode,
 		),
 		elasticClient: elasticsearchWriter,
@@ -57,7 +56,6 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		Marshalizer:              &mock.MarshalizerMock{},
 		DBClient:                 &mock.DatabaseWriterStub{},
 		Options:                  &Options{},
-		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		IsInImportDBMode:         false,
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},

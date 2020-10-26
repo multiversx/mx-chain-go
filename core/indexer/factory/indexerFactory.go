@@ -20,6 +20,7 @@ import (
 type ArgsIndexerFactory struct {
 	Enabled                  bool
 	IndexerCacheSize         int
+	ShardID                  uint32
 	Url                      string
 	UserName                 string
 	Password                 string
@@ -36,7 +37,6 @@ type ArgsIndexerFactory struct {
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
 	FeeConfig                *config.FeeSettings
-	ShardCoordinator         sharding.Coordinator
 	IsInImportDBMode         bool
 }
 
@@ -68,7 +68,7 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 		Options:            args.Options,
 		NodesCoordinator:   args.NodesCoordinator,
 		EpochStartNotifier: args.EpochStartNotifier,
-		ShardID:            args.ShardCoordinator.SelfId(),
+		ShardID:            args.ShardID,
 		ElasticProcessor:   elasticProcessor,
 		DataDispatcher:     dispatcher,
 	}
@@ -111,7 +111,6 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
 		FeeConfig:                args.FeeConfig,
-		ShardCoordinator:         args.ShardCoordinator,
 		IsInImportDBMode:         args.IsInImportDBMode,
 	}
 
