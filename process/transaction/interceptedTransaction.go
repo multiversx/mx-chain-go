@@ -8,7 +8,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -36,7 +35,7 @@ type InterceptedTransaction struct {
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
 	argsParser             process.ArgumentsParser
-	txOptionChecker        *versioning.TxVersionChecker
+	txVersionChecker       process.TxVersionCheckerHandler
 	chainID                []byte
 	minTransactionVersion  uint32
 	rcvShard               uint32
@@ -59,9 +58,9 @@ func NewInterceptedTransaction(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	argsParser process.ArgumentsParser,
 	chainID []byte,
-	minTxVersion uint32,
 	enableSignedTxWithHash bool,
 	txSignHasher hashing.Hasher,
+	txVersionChecker process.TxVersionCheckerHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -100,11 +99,11 @@ func NewInterceptedTransaction(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if minTxVersion == 0 {
-		return nil, process.ErrInvalidTransactionVersion
-	}
 	if check.IfNil(txSignHasher) {
 		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(txVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
 	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
@@ -125,9 +124,8 @@ func NewInterceptedTransaction(
 		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		argsParser:             argsParser,
 		chainID:                chainID,
-		minTransactionVersion:  minTxVersion,
 		enableSignedTxWithHash: enableSignedTxWithHash,
-		txOptionChecker:        versioning.NewTxVersionChecker(minTxVersion, tx),
+		txVersionChecker:       txVersionChecker,
 		txSignHasher:           txSignHasher,
 	}
 
@@ -242,7 +240,7 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 
 // integrity checks for not nil fields and negative value
 func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error {
-	err := inTx.txOptionChecker.CheckTxVersion()
+	err := inTx.txVersionChecker.CheckTxVersion(tx)
 	if err != nil {
 		return err
 	}
@@ -286,7 +284,7 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 		return err
 	}
 
-	if !inTx.txOptionChecker.IsSignedWithHash() {
+	if !inTx.txVersionChecker.IsSignedWithHash(tx) {
 		return inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, tx.Signature)
 	}
 

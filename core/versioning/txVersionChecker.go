@@ -6,40 +6,44 @@ import (
 )
 
 const (
-	maskSignedWithHash = uint32(16777216)
+	// MaskSignedWithHash this mask used to verify if first bit from first byte from field options from transaction is set
+	MaskSignedWithHash = uint32(16777216)
+
+	initialVersionOfTransaction = uint32(1)
 )
 
 // TxVersionChecker represents transaction option decoder
-type TxVersionChecker struct {
-	txOptions    uint32
+type txVersionChecker struct {
 	minTxVersion uint32
-	txVersion    uint32
 }
 
 // NewTxVersionChecker will create a new instance of TxOptionsChecker
-func NewTxVersionChecker(minTxVersion uint32, tx *transaction.Transaction) *TxVersionChecker {
-	return &TxVersionChecker{
-		txVersion:    tx.Version,
-		txOptions:    tx.Options,
+func NewTxVersionChecker(minTxVersion uint32) *txVersionChecker {
+	return &txVersionChecker{
 		minTxVersion: minTxVersion,
 	}
 }
 
-// IsSignedWithHash will return true is transaction is signed with hash
-func (toc *TxVersionChecker) IsSignedWithHash() bool {
-	if toc.txVersion > toc.minTxVersion {
-		// transaction is signed with hash if first byte from first octet from options is set with 1
-		return toc.txOptions&maskSignedWithHash > 0
+// IsSignedWithHash will return true if transaction is signed with hash
+func (toc *txVersionChecker) IsSignedWithHash(tx *transaction.Transaction) bool {
+	if tx.Version > initialVersionOfTransaction {
+		// transaction is signed with hash if first bit from first byte from options is set with 1
+		return tx.Options&MaskSignedWithHash > 0
 	}
 
 	return false
 }
 
 // CheckTxVersion will check transaction version
-func (toc *TxVersionChecker) CheckTxVersion() error {
-	if (toc.txVersion == 1 && toc.txOptions != 0) || toc.txVersion < toc.minTxVersion {
+func (toc *txVersionChecker) CheckTxVersion(tx *transaction.Transaction) error {
+	if (tx.Version == initialVersionOfTransaction && tx.Options != 0) || tx.Version < toc.minTxVersion {
 		return core.ErrInvalidTransactionVersion
 	}
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (toc *txVersionChecker) IsInterfaceNil() bool {
+	return toc == nil
 }

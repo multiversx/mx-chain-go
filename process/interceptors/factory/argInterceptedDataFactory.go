@@ -34,4 +34,5 @@ type ArgInterceptedDataFactory struct {
 	MinTransactionVersion     uint32
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }

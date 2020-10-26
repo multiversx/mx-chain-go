@@ -79,6 +79,7 @@ type ArgsExporter struct {
 	MinTxVersion              uint32
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }
 
 type exportHandlerFactory struct {
@@ -125,6 +126,7 @@ type exportHandlerFactory struct {
 	minTxVersion              uint32
 	enableSignTxWithHashEpoch uint32
 	txSignHasher              hashing.Hasher
+	epochNotifier             process.EpochNotifier
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -222,6 +224,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.TxSignHasher) {
 		return nil, update.ErrNilHasher
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, update.ErrNilEpochNotifier
+	}
 
 	e := &exportHandlerFactory{
 		txSignMarshalizer:         args.TxSignMarshalizer,
@@ -265,6 +270,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		minTxVersion:              args.MinTxVersion,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		txSignHasher:              args.TxSignHasher,
+		epochNotifier:             args.EpochNotifier,
 	}
 
 	return e, nil
@@ -525,6 +531,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		MinTxVersion:              e.minTxVersion,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
 		TxSignHasher:              e.txSignHasher,
+		EpochNotifier:             e.epochNotifier,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"testing"
 	"time"
 
@@ -139,6 +140,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 		TxSignHasher:               &mock.HasherMock{},
+		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 }
 
@@ -150,6 +152,28 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(epochStartProvider))
+}
+
+func TestNewEpochStartBootstrap_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartBootstrapArgs()
+	args.TxSignHasher = nil
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, epochStartProvider)
+	assert.True(t, errors.Is(err, epochStart.ErrNilHasher))
+}
+
+func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartBootstrapArgs()
+	args.EpochNotifier = nil
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, epochStartProvider)
+	assert.True(t, errors.Is(err, epochStart.ErrNilEpochNotifier))
 }
 
 func TestIsStartInEpochZero(t *testing.T) {

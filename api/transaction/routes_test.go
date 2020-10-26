@@ -595,7 +595,7 @@ func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32, _ uint32) (*tr.Transaction, []byte, error) {
 			return nil, nil, expectedErr
 		},
 		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
@@ -646,7 +646,7 @@ func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32, _ uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
 		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
@@ -688,7 +688,7 @@ func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
 		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
 			return nil, expectedErr
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32, _ uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
 		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
@@ -737,7 +737,7 @@ func TestSimulateTransaction(t *testing.T) {
 				Hash:       "hash",
 			}, nil
 		},
-		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*tr.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32, _ uint32) (*tr.Transaction, []byte, error) {
 			return &tr.Transaction{}, []byte("hash"), nil
 		},
 		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {

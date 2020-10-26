@@ -490,7 +490,8 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		epochStartTrigger,
 		args.whiteListHandler,
 		args.whiteListerVerifiedTxs,
-		args.mainConfig.GeneralSettings.SignedTransactionWithTxHashEnableEpoch,
+		args.mainConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		args.epochNotifier,
 	)
 	if err != nil {
 		return nil, err
@@ -790,7 +791,8 @@ func newInterceptorContainerFactory(
 	epochStartTrigger process.EpochStartTriggerHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-	signedTransactionWithTxHashEnableEpoch uint32,
+	transactionSignedWithTxHashEnableEpoch uint32,
+	epochNotifier process.EpochNotifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardInterceptorContainerFactory(
@@ -809,7 +811,8 @@ func newInterceptorContainerFactory(
 			epochStartTrigger,
 			whiteListHandler,
 			whiteListerVerifiedTxs,
-			signedTransactionWithTxHashEnableEpoch,
+			transactionSignedWithTxHashEnableEpoch,
+			epochNotifier,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -829,7 +832,8 @@ func newInterceptorContainerFactory(
 			epochStartTrigger,
 			whiteListHandler,
 			whiteListerVerifiedTxs,
-			signedTransactionWithTxHashEnableEpoch,
+			transactionSignedWithTxHashEnableEpoch,
+			epochNotifier,
 		)
 	}
 
@@ -1052,6 +1056,7 @@ func newShardInterceptorContainerFactory(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	signedTransactionWithTxHashEnableEpoch uint32,
+	epochNotifier process.EpochNotifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
@@ -1086,6 +1091,7 @@ func newShardInterceptorContainerFactory(
 		MinTransactionVersion:     dataCore.MinTransactionVersion,
 		EnableSignTxWithHashEpoch: signedTransactionWithTxHashEnableEpoch,
 		TxSignHasher:              dataCore.TxSignHasher,
+		EpochNotifier:             epochNotifier,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1112,6 +1118,7 @@ func newMetaInterceptorContainerFactory(
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	signedTransactionWithTxHashEnableEpoch uint32,
+	epochNotifier process.EpochNotifier,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
@@ -1146,6 +1153,7 @@ func newMetaInterceptorContainerFactory(
 		MinTransactionVersion:     dataCore.MinTransactionVersion,
 		EnableSignTxWithHashEpoch: signedTransactionWithTxHashEnableEpoch,
 		TxSignHasher:              dataCore.TxSignHasher,
+		EpochNotifier:             epochNotifier,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

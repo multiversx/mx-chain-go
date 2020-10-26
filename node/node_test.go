@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
@@ -721,6 +722,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 			},
 		}),
 		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -793,6 +795,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		}),
 		node.WithEnableSignTxWithHashEpoch(2),
 		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -805,15 +808,9 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	signature := "617eff4f"
 
 	options := uint32(2 | 16777216)
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
-	assert.NotNil(t, tx)
-	assert.Equal(t, expectedHash, txHash)
-	assert.Nil(t, err)
-	assert.Equal(t, nonce, tx.Nonce)
-	assert.Equal(t, value, tx.Value)
-	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
 
-	err = n.ValidateTransaction(tx)
+	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
@@ -874,6 +871,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		}),
 		node.WithEnableSignTxWithHashEpoch(2),
 		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -886,15 +884,9 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	signature := "617eff4f"
 
 	options := uint32(1 | 16777216)
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
-	assert.NotNil(t, tx)
-	assert.Equal(t, expectedHash, txHash)
-	assert.Nil(t, err)
-	assert.Equal(t, nonce, tx.Nonce)
-	assert.Equal(t, value, tx.Value)
-	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
 
-	err = n.ValidateTransaction(tx)
+	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 }
 

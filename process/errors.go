@@ -904,3 +904,6 @@ var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 
 // ErrTransactionSignedWithHashIsNotEnabled signals that a transaction signed with hash is not enabled
 var ErrTransactionSignedWithHashIsNotEnabled = errors.New("transaction signed with hash is not enabled")
+
+// ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
+var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")

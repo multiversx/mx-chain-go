@@ -753,3 +753,14 @@ func WithTxSignHasher(txSignHasher hashing.Hasher) Option {
 		return nil
 	}
 }
+
+// WithTxVersionChecker sets up a transaction version checker for the node
+func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(txVersionChecker) {
+			return ErrNilTransactionVersionChecker
+		}
+		n.txVersionChecker = txVersionChecker
+		return nil
+	}
+}

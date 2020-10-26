@@ -136,6 +136,17 @@ func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.EpochNotifier = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -568,5 +579,6 @@ func getArgumentsShard() interceptorscontainer.ShardInterceptorsContainerFactory
 		ChainID:                 []byte("chainID"),
 		MinTransactionVersion:   1,
 		TxSignHasher:            mock.HasherMock{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

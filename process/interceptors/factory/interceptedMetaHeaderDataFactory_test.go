@@ -73,6 +73,7 @@ func createMockArgument() *ArgInterceptedDataFactory {
 		ChainID:                 []byte("chainID"),
 		MinTransactionVersion:   1,
 		TxSignHasher:            mock.HasherMock{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }
 

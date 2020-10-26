@@ -33,9 +33,9 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
-    # SignedTransactionWithTxHashEnableEpoch represent the epoch when will be accepted also the transaction that are
+    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
     # signed with the hash of transaction
-    SignedTransactionWithTxHashEnableEpoch = 2
+    TransactionSignedWithTxHashEnableEpoch = 2
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"

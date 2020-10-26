@@ -84,6 +84,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	MinTxVersion              uint32
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -153,6 +154,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.TxSignHasher) {
 		return nil, process.ErrNilHasher
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		Hasher:                    args.Hasher,
@@ -177,6 +181,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		MinTransactionVersion:     args.MinTxVersion,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

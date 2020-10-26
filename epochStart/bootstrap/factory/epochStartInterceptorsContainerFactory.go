@@ -47,6 +47,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -98,6 +99,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		MinTransactionVersion:     args.MinTransactionVersion,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

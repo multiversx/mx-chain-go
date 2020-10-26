@@ -100,6 +100,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.TxSignHasher) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEpochNotifier)
+	}
 
 	return nil
 }

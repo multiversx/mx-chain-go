@@ -600,7 +600,8 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			TxSignHasher: integrationTests.TestHasher,
+			TxSignHasher:  integrationTests.TestHasher,
+			EpochNotifier: &mock.EpochNotifierStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

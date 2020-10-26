@@ -44,6 +44,7 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	MinTransactionVersion     uint32
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -79,4 +80,5 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	SizeCheckDelta            uint32
 	EnableSignTxWithHashEpoch uint32
 	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }

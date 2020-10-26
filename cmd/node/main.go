@@ -33,6 +33,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -989,6 +990,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		StatusHandler:              coreComponents.StatusHandler,
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 		TxSignHasher:               coreComponents.TxSignHasher,
+		EpochNotifier:              epochNotifier,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -1341,6 +1343,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		importStartHandler,
 		genesisNodesConfig,
 		workingDir,
+		epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -2045,10 +2048,11 @@ func createHardForkTrigger(
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	epochNotifier factory.EpochStartNotifier,
+	epochStartNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
 	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
+	epochNotifier process.EpochNotifier,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -2104,8 +2108,9 @@ func createHardForkTrigger(
 		GenesisNodesSetupHandler:  nodesSetup,
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		MinTxVersion:              coreData.MinTransactionVersion,
-		EnableSignTxWithHashEpoch: config.GeneralSettings.SignedTransactionWithTxHashEnableEpoch,
+		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 		TxSignHasher:              coreData.TxSignHasher,
+		EpochNotifier:             epochNotifier,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2122,7 +2127,7 @@ func createHardForkTrigger(
 		EpochProvider:             process.EpochStartTrigger,
 		ExportFactoryHandler:      hardForkExportFactory,
 		ChanStopNodeProcess:       chanStopNodeProcess,
-		EpochConfirmedNotifier:    epochNotifier,
+		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
 	}
@@ -2220,6 +2225,8 @@ func createNode(
 		return nil, err
 	}
 
+	txVersionCheckerHandler := versioning.NewTxVersionChecker(coreData.MinTransactionVersion)
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -2285,8 +2292,9 @@ func createNode(
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
 		node.WithHistoryRepository(historyRepository),
-		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.SignedTransactionWithTxHashEnableEpoch),
+		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch),
 		node.WithTxSignHasher(coreData.TxSignHasher),
+		node.WithTxVersionChecker(txVersionCheckerHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

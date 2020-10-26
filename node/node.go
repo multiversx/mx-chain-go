@@ -160,6 +160,7 @@ type Node struct {
 
 	enableSignTxWithHashEpoch uint32
 	txSignHasher              hashing.Hasher
+	txVersionChecker          process.TxVersionCheckerHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -886,9 +887,9 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.whiteListerVerifiedTxs,
 		argumentParser,
 		n.chainID,
-		n.minTransactionVersion,
 		enableSignWithTxHash,
 		n.txSignHasher,
+		n.txVersionChecker,
 	)
 	if err != nil {
 		return nil, nil, err

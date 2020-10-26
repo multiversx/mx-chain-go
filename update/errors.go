@@ -14,9 +14,6 @@ var ErrInvalidFolderName = errors.New("invalid folder name")
 // ErrNilStorage signals that storage is nil
 var ErrNilStorage = errors.New("nil storage")
 
-// ErrNilDataTrieContainer signals that data trie container is nil
-var ErrNilDataTrieContainer = errors.New("nil data trie container")
-
 // ErrNotSynced signals that syncing has not been finished yet
 var ErrNotSynced = errors.New("not synced")
 
@@ -238,3 +235,6 @@ var ErrEmptyExportFolderPath = errors.New("empty export folder path")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")

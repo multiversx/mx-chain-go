@@ -152,6 +152,17 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument()
+	arg.EpochNotifier = nil
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 

@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -870,6 +871,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
 			TxSignHasher:            TestHasher,
+			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -933,6 +935,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
 			TxSignHasher:            TestHasher,
+			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1600,6 +1603,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithWhiteListHandler(tpn.WhiteListHandler),
 		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
 		node.WithTxSignHasher(TestHasher),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(tpn.MinTransactionVersion)),
 	)
 	log.LogIfError(err)
 

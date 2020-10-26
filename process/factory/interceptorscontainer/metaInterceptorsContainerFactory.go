@@ -85,6 +85,9 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.TxSignHasher) {
 		return nil, process.ErrNilHasher
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		ProtoMarshalizer:          args.ProtoMarshalizer,
@@ -109,6 +112,7 @@ func NewMetaInterceptorsContainerFactory(
 		MinTransactionVersion:     args.MinTransactionVersion,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	container := containers.NewInterceptorsContainer()

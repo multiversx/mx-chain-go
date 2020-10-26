@@ -107,6 +107,7 @@ type epochStartBootstrap struct {
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	enableSignTxWithHashEpoch  uint32
 	txSignHasher               hashing.Hasher
+	epochNotifier              process.EpochNotifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -177,6 +178,7 @@ type ArgsEpochStartBootstrap struct {
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
 	TxSignHasher               hashing.Hasher
+	EpochNotifier              process.EpochNotifier
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -219,7 +221,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
 		txSignHasher:               args.TxSignHasher,
-		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.SignedTransactionWithTxHashEnableEpoch,
+		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		epochNotifier:              args.EpochNotifier,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -510,6 +513,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
 		TxSignHasher:              e.txSignHasher,
+		EpochNotifier:             e.epochNotifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
