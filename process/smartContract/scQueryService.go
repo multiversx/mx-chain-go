@@ -23,6 +23,7 @@ type SCQueryService struct {
 	mutRunSc       sync.Mutex
 	blockChainHook process.BlockChainHookHandler
 	blockChain     data.ChainHandler
+	numQueries     int
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -69,6 +70,9 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	service.numQueries++
+
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
@@ -81,6 +85,16 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
+	}
+
+	// Retriable:
+	if vmOutput.ReturnMessage == "allocation error" {
+		log.Debug("Will retry (once) executeScCall() due to allocation error")
+
+		vmOutput, err = vm.RunSmartContractCall(vmInput)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = service.checkVMOutput(vmOutput)
