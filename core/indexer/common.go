@@ -366,9 +366,11 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
-	_ uint32,
+	selfShardID uint32,
 	_ bool,
 ) (meta []byte, serializedData []byte) {
+	meta = []byte(fmt.Sprintf(`{"update":{"_id":"%s", "_type": "_doc"}}%s`, tx.Hash, "\n"))
+
 	marshalledTx, err := json.Marshal(tx)
 	if err != nil {
 		log.Debug("indexer: marshal",
@@ -376,6 +378,15 @@ func prepareSerializedDataForATransaction(
 			"tx hash", tx.Hash)
 		return
 	}
+	if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
+		serializedData =
+			[]byte(fmt.Sprintf(`{"script":{"source":""},"upsert":%s}`,
+				string(marshalledTx)))
+		log.Warn("log meta - insert", "data", string(meta))
+		log.Warn("log srld data - insert", "data", string(serializedData))
+		return
+	}
+
 	marshalizedLog, err := json.Marshal(tx.Log)
 	if err != nil {
 		log.Debug("indexer: marshal",
@@ -406,7 +417,7 @@ func prepareSerializedDataForATransaction(
 				`ctx._source.status = params.status;`+
 				`ctx._source.log = params.log;`+
 				`ctx._source.scResults = params.scResults;`+
-				`ctx._source.timestamp = params.timestamp}`+
+				`ctx._source.timestamp = params.timestamp;`+
 				`","lang": "painless","params":`+
 				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
 				tx.Status, string(marshalizedLog), string(scResults), string(marshalizedTimestamp), string(marshalledTx)))
@@ -417,15 +428,17 @@ func prepareSerializedDataForATransaction(
 				`ctx._source.status = params.status;`+
 				`ctx._source.log = params.log;`+
 				`ctx._source.scResults = params.scResults;`+
-				`ctx._source.timestamp = params.timestamp`+
-				`ctx._source.gasUsed = params.gasUsed}`+
+				`ctx._source.timestamp = params.timestamp;`+
+				`ctx._source.gasUsed = params.gasUsed;`+
 				`","lang": "painless","params":`+
 				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
 				tx.Status, string(marshalizedLog), string(scResults), string(marshalizedTimestamp), tx.GasUsed, string(marshalledTx)))
 	}
 
-	log.Debug("index tx request", "request", string(serializedData))
-	meta = []byte(fmt.Sprintf(`{"update":{"_id":"%s"}}%s`, tx.Hash, "\n"))
+	log.Warn("log meta - update", "data", string(meta))
+	log.Warn("log srld data - update", "data", string(serializedData))
+	//log.Debug("index tx request", "request", string(serializedData))
+
 	return
 }
 
@@ -455,47 +468,6 @@ func prepareSerializedAccountBalanceHistory(address string, account *AccountBala
 	}
 
 	return
-}
-
-func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
-	var meta, serializedData []byte
-
-	meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, tx.Hash, "_doc", "\n"))
-
-	marshalizedLog, err := json.Marshal(tx.Log)
-	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize transaction log, will skip indexing",
-			"tx hash", tx.Hash)
-		return nil, nil
-	}
-	scResults, err := json.Marshal(tx.SmartContractResults)
-	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize smart contract results, will skip indexing",
-			"tx hash", tx.Hash)
-		return nil, nil
-	}
-
-	marshalizedTimestamp, err := json.Marshal(tx.Timestamp)
-	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize timestamp, will skip indexing",
-			"tx hash", tx.Hash)
-		return nil, nil
-	}
-
-	if tx.GasUsed == tx.GasLimit {
-		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
-		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s } }`,
-			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp)))
-	} else {
-		// update gasUsed because was changed (is a smart contract operation)
-		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : %s } }`,
-			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), fmt.Sprintf("%d", tx.GasUsed)))
-	}
-
-	return meta, serializedData
 }
 
 func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
