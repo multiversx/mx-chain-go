@@ -277,7 +277,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
-				alteredAddresses[dbTx.Receiver] = struct{}{}
 				if tdp.shouldIndex(rtx) {
 					rewardsTxs = append(rewardsTxs, dbTx)
 				}
