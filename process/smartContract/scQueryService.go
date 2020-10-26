@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 
@@ -121,7 +122,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.CallerAddr,
 		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
-		GasProvided: service.economicsFee.MaxGasLimitPerBlock(0),
+		GasProvided: math.MaxUint64,
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}

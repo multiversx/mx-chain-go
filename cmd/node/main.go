@@ -2440,9 +2440,9 @@ func createApiResolver(
 		}
 	} else {
 		apiConfig := config.VirtualMachineConfig{
-			OutOfProcessEnabled: false,
-			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
-			WarmInstanceEnabled: true,
+			OutOfProcessEnabled: generalConfig.VirtualMachine.Querying.OutOfProcessEnabled,
+			OutOfProcessConfig:  generalConfig.VirtualMachine.Querying.OutOfProcessConfig,
+			WarmInstanceEnabled: generalConfig.VirtualMachine.Querying.WarmInstanceEnabled,
 		}
 		vmFactory, err = shard.NewVMContainerFactory(
 			apiConfig,
