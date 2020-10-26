@@ -24,7 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	vm2 "github.com/ElrondNetwork/elrond-go/vm"
+	vmConstants "github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
@@ -416,7 +416,7 @@ func createTestAddresses(numAddresses uint64) [][]byte {
 
 func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	// Only a test to benchmark jurnalizing and getting data from trie
-	//t.Skip()
+	t.Skip()
 
 	numRun := 1000
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
@@ -767,7 +767,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 		gasPrice,
 		gasLimit,
 		arwen.CreateDeployTxData(scCode)+
-			"@"+hex.EncodeToString(vm2.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
+			"@"+hex.EncodeToString(vmConstants.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
 			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
 			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
