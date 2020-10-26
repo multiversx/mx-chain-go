@@ -544,3 +544,41 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
 	dManagementData, _ := dm.getDelegationManagementData()
 	assert.Equal(t, big.NewInt(25), dManagementData.MinDeposit)
 }
+
+func TestCreateNewAddress_NextAddressShouldWork(t *testing.T) {
+	t.Parallel()
+
+	type testStruct struct {
+		lastAddress         []byte
+		expectedNextAddress []byte
+	}
+
+	tests := []*testStruct{
+		{
+			lastAddress:         []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 255, 255, 255},
+			expectedNextAddress: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 255, 255, 255},
+		},
+		{
+			lastAddress:         []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 254, 255, 255, 255},
+			expectedNextAddress: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255},
+		},
+		{
+			lastAddress:         []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255},
+			expectedNextAddress: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 255, 255, 255},
+		},
+		{
+			lastAddress:         []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255},
+			expectedNextAddress: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 255, 255, 255},
+		},
+		{
+			lastAddress:         []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 23, 255, 255, 255, 255, 255, 255, 255, 255},
+			expectedNextAddress: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 24, 0, 0, 0, 0, 0, 255, 255, 255},
+		},
+	}
+
+	for _, test := range tests {
+		nextAddress := createNewAddress(test.lastAddress)
+		assert.Equal(t, test.expectedNextAddress, nextAddress,
+			fmt.Sprintf("expected: %v, got %d", test.expectedNextAddress, nextAddress))
+	}
+}
