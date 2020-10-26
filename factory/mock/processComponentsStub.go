@@ -33,6 +33,7 @@ type ProcessComponentsMock struct {
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
 	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
+	FallbackHdrValidator     process.FallbackHeaderValidator
 }
 
 // Create -
@@ -153,6 +154,11 @@ func (pcm *ProcessComponentsMock) HeaderConstructionValidator() process.HeaderCo
 // PeerShardMapper -
 func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingCollector {
 	return pcm.PeerMapper
+}
+
+// FallbackHeaderValidator -
+func (pcm *ProcessComponentsMock) FallbackHeaderValidator() process.FallbackHeaderValidator {
+	return pcm.FallbackHdrValidator
 }
 
 // TransactionSimulatorProcessor -

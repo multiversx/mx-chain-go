@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"math/big"
 	"os"
 	"os/signal"
@@ -21,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
-	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -29,7 +29,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -92,6 +91,8 @@ type configs struct {
 	configurationRatingsFileName     string
 	configurationPreferencesFileName string
 	p2pConfigurationFileName         string
+	isInImportMode                   bool
+	importDbNoSigCheckFlag           bool
 }
 
 func main() {
@@ -226,7 +227,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		}
 
 		log.Trace("creating crypto components")
-		managedCryptoComponents, err := createManagedCryptoComponents(ctx, cfgs, managedCoreComponents)
+		managedCryptoComponents, err := createManagedCryptoComponents(ctx, cfgs, managedCoreComponents, cfgs.importDbNoSigCheckFlag)
 		if err != nil {
 			return err
 		}
@@ -481,16 +482,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		if err != nil {
 			return err
 		}
-		epochNotifier := forking.NewGenericEpochNotifier()
 
-		fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
-		dataComponents.Datapool.Headers(),
-		coreComponents.InternalMarshalizer,
-		dataComponents.Store,
-	)
-	if err != nil {
-		return err
-	}log.Trace("creating process components")
+		log.Trace("creating process components")
 
 		importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(workingDir, core.DefaultDBPath), appVersion)
 		if err != nil {
@@ -552,11 +545,10 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			Indexer:                   managedStatusComponents.ElasticIndexer(),
 			TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 			HistoryRepo:               historyRepository,
-			EpochNotifier:             epochNotifier,
+			EpochNotifier:             managedCoreComponents.EpochNotifier(),
 			HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 			ChanGracefullyClose:       chanStopNodeProcess,
 			EconomicsData:             managedCoreComponents.EconomicsData(),
-		fallbackHeaderValidator,
 		}
 		processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 		if err != nil {
@@ -573,7 +565,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 
-		historyRepository.RegisterToBlockTracker(managedProcessComponents.BlockTracker())
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
 
@@ -690,7 +681,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			chanStopNodeProcess,
 			hardForkTrigger,
 			historyRepository,
-			fallbackHeaderValidator,
 		)
 		if err != nil {
 			return err
@@ -724,8 +714,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedCryptoComponents.MessageSignVerifier(),
 			managedCoreComponents.GenesisNodesSetup(),
 			cfgs.systemSCConfig,
-			rater,
-			epochNotifier,
+			managedCoreComponents.Rater(),
+			managedCoreComponents.EpochNotifier(),
 		)
 		if err != nil {
 			return err
@@ -930,6 +920,7 @@ func createManagedCryptoComponents(
 	ctx *cli.Context,
 	cfgs *configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
+	importDbNoSigCheckFlag bool,
 ) (mainFactory.CryptoComponentsHandler, error) {
 	validatorKeyPemFileName := ctx.GlobalString(validatorKeyPemFile.Name)
 	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
@@ -939,6 +930,8 @@ func createManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
+		UseDisabledSigVerifier:               importDbNoSigCheckFlag,
+		IsInImportMode:                       cfgs.isInImportMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
@@ -1192,7 +1185,17 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	}
 	log.Debug("config", "file", configurationFileName)
 
-	applyCompatibleConfigs(log, generalConfig, ctx)
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", p2pConfigurationFileName)
+
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	isInImportMode := len(importDbDirectoryValue) > 0
+	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
+	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, generalConfig, p2pConfig)
 
 	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
 	apiRoutesConfig, err := core.LoadApiConfig(configurationApiFileName)
@@ -1236,13 +1239,6 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 	}
 	log.Debug("config", "file", externalConfigurationFileName)
 
-	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("config", "file", p2pConfigurationFileName)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -1270,5 +1266,7 @@ func readConfigs(log logger.Logger, ctx *cli.Context) (*configs, error) {
 		configurationRatingsFileName:     configurationRatingsFileName,
 		configurationPreferencesFileName: configurationPreferencesFileName,
 		p2pConfigurationFileName:         p2pConfigurationFileName,
+		isInImportMode:                   isInImportMode,
+		importDbNoSigCheckFlag:           importDbNoSigCheckFlag,
 	}, nil
 }

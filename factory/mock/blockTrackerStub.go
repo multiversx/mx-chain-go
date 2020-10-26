@@ -7,31 +7,33 @@ import (
 
 // BlockTrackerStub -
 type BlockTrackerStub struct {
-	AddTrackedHeaderCalled                            func(header data.HeaderHandler, hash []byte)
-	AddCrossNotarizedHeaderCalled                     func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
-	AddSelfNotarizedHeaderCalled                      func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
-	CheckBlockAgainstRounderCalled                    func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstFinalCalled                      func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                  func(interceptedData process.InterceptedData) bool
-	CleanupHeadersBehindNonceCalled                   func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
-	ComputeLongestChainCalled                         func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	ComputeLongestMetaChainFromLastNotarizedCalled    func() ([]data.HeaderHandler, [][]byte, error)
-	ComputeLongestShardsChainsFromLastNotarizedCalled func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
-	DisplayTrackedHeadersCalled                       func()
-	GetCrossNotarizedHeaderCalled                     func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetLastCrossNotarizedHeaderCalled                 func(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetLastCrossNotarizedHeadersForAllShardsCalled    func() (map[uint32]data.HeaderHandler, error)
-	GetLastSelfNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
-	GetSelfNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
-	GetTrackedHeadersCalled                           func(shardID uint32) ([]data.HeaderHandler, [][]byte)
-	GetTrackedHeadersForAllShardsCalled               func() map[uint32][]data.HeaderHandler
-	GetTrackedHeadersWithNonceCalled                  func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
-	IsShardStuckCalled                                func(shardId uint32) bool
-	RegisterCrossNotarizedHeadersHandlerCalled        func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
-	RegisterSelfNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
-	RemoveLastNotarizedHeadersCalled                  func()
-	RestoreToGenesisCalled                            func()
-	ShouldAddHeaderCalled                             func(headerHandler data.HeaderHandler) bool
+	AddTrackedHeaderCalled                             func(header data.HeaderHandler, hash []byte)
+	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
+	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
+	CheckBlockAgainstRounderCalled                     func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
+	ComputeLongestShardsChainsFromLastNotarizedCalled  func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
+	DisplayTrackedHeadersCalled                        func()
+	GetCrossNotarizedHeaderCalled                      func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	GetLastCrossNotarizedHeaderCalled                  func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetLastCrossNotarizedHeadersForAllShardsCalled     func() (map[uint32]data.HeaderHandler, error)
+	GetLastSelfNotarizedHeaderCalled                   func(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetSelfNotarizedHeaderCalled                       func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error)
+	GetTrackedHeadersCalled                            func(shardID uint32) ([]data.HeaderHandler, [][]byte)
+	GetTrackedHeadersForAllShardsCalled                func() map[uint32][]data.HeaderHandler
+	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
+	IsShardStuckCalled                                 func(shardId uint32) bool
+	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedHeadersHandlerCalled          func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RemoveLastNotarizedHeadersCalled                   func()
+	RestoreToGenesisCalled                             func()
+	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 }
 
 // AddTrackedHeader -
@@ -214,10 +216,24 @@ func (bts *BlockTrackerStub) RegisterCrossNotarizedHeadersHandler(handler func(s
 	}
 }
 
+// RegisterSelfNotarizedFromCrossHeadersHandlerCalled -
+func (bts *BlockTrackerStub) RegisterSelfNotarizedFromCrossHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
+	if bts.RegisterSelfNotarizedFromCrossHeadersHandlerCalled != nil {
+		bts.RegisterSelfNotarizedFromCrossHeadersHandlerCalled(handler)
+	}
+}
+
 // RegisterSelfNotarizedHeadersHandler -
 func (bts *BlockTrackerStub) RegisterSelfNotarizedHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterSelfNotarizedHeadersHandlerCalled != nil {
 		bts.RegisterSelfNotarizedHeadersHandlerCalled(handler)
+	}
+}
+
+// RegisterFinalMetachainHeadersHandler -
+func (bts *BlockTrackerStub)  RegisterFinalMetachainHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)){
+	if bts.RegisterFinalMetachainHeadersHandlerCalled != nil {
+		bts.RegisterFinalMetachainHeadersHandlerCalled(handler)
 	}
 }
 

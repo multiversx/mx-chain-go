@@ -33,6 +33,7 @@ type ProcessComponentsStub struct {
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
 	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
+	FallbackHdrValidator     process.FallbackHeaderValidator
 }
 
 // Create -
@@ -153,6 +154,11 @@ func (pcs *ProcessComponentsStub) HeaderConstructionValidator() process.HeaderCo
 // PeerShardMapper -
 func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingCollector {
 	return pcs.PeerMapper
+}
+
+// FallbackHeaderValidator -
+func (pcm *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHeaderValidator {
+	return pcm.FallbackHdrValidator
 }
 
 // TransactionSimulatorProcessor -

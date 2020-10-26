@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -42,6 +43,7 @@ type CoreComponentsMock struct {
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
 	Shuffler                    sharding.NodesShuffler
+	EpochChangeNotifier         factory.EpochNotifier
 	StartTime                   time.Time
 }
 
@@ -177,6 +179,11 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 // NodesShuffler -
 func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 	return ccm.Shuffler
+}
+
+// EpochNotifier -
+func (ccm *CoreComponentsMock) EpochNotifier() factory.EpochNotifier {
+	return ccm.EpochChangeNotifier
 }
 
 // IsInterfaceNil -

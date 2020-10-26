@@ -210,7 +210,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		return nil, err
 	}
 
-	go hcf.startSendingHeartbeats(ctx, hbc.sender)
+	go hcf.startSendingHeartbeats(ctx, hbc.sender, hbc.monitor)
 
 	return hbc, nil
 }
@@ -234,7 +234,7 @@ func (hcf *heartbeatComponentsFactory) IsInterfaceNil() bool {
 	return hcf == nil
 }
 
-func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Context, sender HeartbeatSender) {
+func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Context, sender HeartbeatSender, monitor HeartbeatMonitor) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 	cfg := hcf.config.Heartbeat
 
@@ -255,18 +255,21 @@ func (hcf *heartbeatComponentsFactory) startSendingHeartbeats(ctx context.Contex
 		case <-hcf.hardforkTrigger.NotifyTriggerReceived():
 			//this will force an immediate broadcast of the trigger
 			//message on the network
+			log.Debug("hardfork message prepared for heartbeat sending")
 		}
 
 		err := sender.SendHeartbeat()
 		if err != nil {
 			log.Debug("SendHeartbeat", "error", err.Error())
 		}
+		monitor.Cleanup()
 	}
 }
 
 // Close closes the heartbeat components
 func (hc *heartbeatComponents) Close() error {
 	hc.cancelFunc()
+	log.Debug("calling close on heartbeat system")
 
 	if !check.IfNil(hc.monitor) {
 		log.LogIfError(hc.monitor.Close())

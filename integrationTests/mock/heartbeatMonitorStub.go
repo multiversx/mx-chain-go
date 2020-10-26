@@ -10,6 +10,7 @@ import (
 type HeartbeatMonitorStub struct {
 	ProcessReceivedMessageCalled func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeatsCalled          func() []heartbeatData.PubKeyHeartbeat
+	CleanupCalled                func()
 }
 
 // ProcessReceivedMessage -
@@ -27,6 +28,10 @@ func (hbms *HeartbeatMonitorStub) GetHeartbeats() []heartbeatData.PubKeyHeartbea
 		return hbms.GetHeartbeatsCalled()
 	}
 	return nil
+}
+
+// Cleanup -
+func (hbms *HeartbeatMonitorStub) Cleanup(){
 }
 
 // Close -

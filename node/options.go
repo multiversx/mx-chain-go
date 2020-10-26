@@ -350,17 +350,6 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 	}
 }
 
-// WithFallbackHeaderValidator sets up a fallback header validator for the Node
-func WithFallbackHeaderValidator(fallbackHeaderValidator consensus.FallbackHeaderValidator) Option {
-	return func(n *Node) error {
-		if check.IfNil(fallbackHeaderValidator) {
-			return ErrNilFallbackHeaderValidator
-		}
-		n.fallbackHeaderValidator = fallbackHeaderValidator
-		return nil
-	}
-}
-
 // WithHistoryRepository sets up a history repository for the node
 func WithHistoryRepository(historyRepo dblookupext.HistoryRepository) Option {
 	return func(n *Node) error {

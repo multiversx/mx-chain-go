@@ -79,9 +79,8 @@ type Node struct {
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers syncGo.RWMutex
-	queryHandlers    map[string]debug.QueryHandler
-	fallbackHeaderValidator consensus.FallbackHeaderValidator
+	mutQueryHandlers  syncGo.RWMutex
+	queryHandlers     map[string]debug.QueryHandler
 	historyRepository dblookupext.HistoryRepository
 
 	bootstrapComponents mainFactory.BootstrapComponentsHolder
@@ -448,10 +447,11 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 }
 
 func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {
-	senderShardID := n.shardCoordinator.ComputeId(tx.SndAddr)
-	if senderShardID != n.shardCoordinator.SelfId() {
+	shardCoordinator := n.bootstrapComponents.ShardCoordinator()
+	senderShardID := shardCoordinator.ComputeId(tx.SndAddr)
+	if senderShardID != shardCoordinator.SelfId() {
 		return fmt.Errorf("%w, tx sender shard ID: %d, node's shard ID %d",
-			ErrDifferentSenderShardId, senderShardID, n.shardCoordinator.SelfId())
+			ErrDifferentSenderShardId, senderShardID, shardCoordinator.SelfId())
 	}
 
 	return nil

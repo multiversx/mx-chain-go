@@ -173,6 +173,9 @@ var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier provided")
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")
 

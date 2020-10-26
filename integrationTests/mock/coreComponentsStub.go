@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -38,6 +39,7 @@ type CoreComponentsStub struct {
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
 	Shuffler                    sharding.NodesShuffler
+	EpochChangeNotifier         factory.EpochNotifier
 	StartTime                   time.Time
 }
 
@@ -115,6 +117,11 @@ func (ccs *CoreComponentsStub) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 // NodesShuffler -
 func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
 	return ccs.Shuffler
+}
+
+// EpochNotifier -
+func (ccm *CoreComponentsStub) EpochNotifier() factory.EpochNotifier {
+	return ccm.EpochChangeNotifier
 }
 
 // GenesisTime -

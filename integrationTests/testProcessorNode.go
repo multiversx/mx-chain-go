@@ -2196,6 +2196,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 	}
 }
 

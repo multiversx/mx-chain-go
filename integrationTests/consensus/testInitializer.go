@@ -445,7 +445,6 @@ func createConsensusOnlyNode(
 		node.WithRequestedItemsHandler(&mock.RequestedItemsHandlerStub{}),
 		node.WithSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
-		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
 	)
 

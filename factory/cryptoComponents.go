@@ -42,6 +42,7 @@ type CryptoComponentsFactoryArgs struct {
 	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            KeyLoaderHandler
 	UseDisabledSigVerifier               bool
+	IsInImportMode                       bool
 }
 
 type cryptoComponentsFactory struct {
@@ -52,6 +53,7 @@ type cryptoComponentsFactory struct {
 	coreComponentsHolder                 CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            KeyLoaderHandler
+	isInImportMode                       bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -95,10 +97,10 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		coreComponentsHolder:                 args.CoreComponentsHolder,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
+		isInImportMode:                       args.IsInImportMode,
 	}
 	if args.UseDisabledSigVerifier {
 		ccf.consensusType = disabledSigChecking
-		ccf.keyGen = signing.NewKeyGenerator(disabledCrypto.NewDisabledSuite())
 		log.Warn("using disabled key generator")
 	}
 
@@ -226,7 +228,7 @@ func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {
 		return mcl.NewSuiteBLS12(), nil
 	case disabledSigChecking:
 		log.Warn("using disabled multi signer")
-		return &disabledMultiSig.DisabledMultiSig{}, nil
+		return disabledCrypto.NewDisabledSuite(), nil
 	default:
 		return nil, errors.ErrInvalidConsensusConfig
 	}
@@ -236,6 +238,14 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
+	if ccf.isInImportMode {
+		return ccf.generateCryptoParams(keygen)
+	}
+
+	return ccf.readCryptoParams(keygen)
+}
+
+func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
 	cryptoParams := &cryptoParams{}
 	sk, readPk, err := ccf.getSkPk()
 	if err != nil {
@@ -249,7 +259,6 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 
 	cryptoParams.publicKey = cryptoParams.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
-
 		cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
 		if err != nil {
 			return nil, err
@@ -258,6 +267,23 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		if !bytes.Equal(cryptoParams.publicKeyBytes, readPk) {
 			return nil, errors.ErrPublicKeyMismatch
 		}
+	}
+
+	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
+	cryptoParams.publicKeyString = validatorKeyConverter.Encode(cryptoParams.publicKeyBytes)
+
+	return cryptoParams, nil
+}
+
+func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
+	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
+	cryptoParams := &cryptoParams{}
+	cryptoParams.privateKey, cryptoParams.publicKey = keygen.GeneratePair()
+
+	var err error
+	cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()

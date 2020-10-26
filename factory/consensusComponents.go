@@ -223,6 +223,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EpochStartRegistrationHandler: ccf.processComponents.EpochStartNotifier(),
 		AntifloodHandler:              ccf.networkComponents.InputAntiFloodHandler(),
 		PeerHonestyHandler:            ccf.networkComponents.PeerHonestyHandler(),
+		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
+		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

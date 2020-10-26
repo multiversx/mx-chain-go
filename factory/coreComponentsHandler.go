@@ -132,6 +132,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.nodesSetupHandler) {
 		return errors.ErrNilNodesConfig
 	}
+	if check.IfNil(mcc.epochNotifier) {
+		return errors.ErrNilEpochNotifier
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -418,6 +421,18 @@ func (mcc *managedCoreComponents) NodesShuffler() sharding.NodesShuffler {
 	}
 
 	return mcc.coreComponents.nodesShuffler
+}
+
+// EpochNotifier returns the epoch notifier
+func (mcc *managedCoreComponents) EpochNotifier() EpochNotifier {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochNotifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

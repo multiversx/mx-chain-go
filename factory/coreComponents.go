@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -76,6 +77,7 @@ type coreComponents struct {
 	genesisTime              time.Time
 	chainID                  string
 	minTransactionVersion    uint32
+	epochNotifier            EpochNotifier
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -189,8 +191,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+
 	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(&ccf.economicsConfig)
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics:                      &ccf.economicsConfig,
+		PenalizedTooMuchGasEnableEpoch: ccf.config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		EpochNotifier:                  epochNotifier,
+	}
+	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
 		return nil, err
 	}
@@ -249,6 +258,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
+		epochNotifier:            epochNotifier,
 	}, nil
 }
 

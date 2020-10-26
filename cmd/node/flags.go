@@ -274,6 +274,11 @@ var (
 			"and re-process everything",
 		Value: "",
 	}
+	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
+	importDbNoSigCheck = cli.BoolFlag{
+		Name:  "import-db-no-sig-check",
+		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -316,5 +321,6 @@ func getFlags() []cli.Flag {
 		numActivePersisters,
 		startInEpoch,
 		importDbDirectory,
+		importDbNoSigCheck,
 	}
 }

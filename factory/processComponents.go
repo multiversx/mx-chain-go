@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/fallback"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
@@ -85,10 +86,11 @@ type processComponents struct {
 	txLogsProcessor             process.TransactionLogProcessorDatabase
 	headerConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper       process.NetworkShardingCollector
-	txSimulatorProcessor  TransactionSimulatorProcessor
-	miniBlocksPoolCleaner process.PoolsCleaner
-	txsPoolCleaner        process.PoolsCleaner
+	peerShardMapper         process.NetworkShardingCollector
+	txSimulatorProcessor    TransactionSimulatorProcessor
+	miniBlocksPoolCleaner   process.PoolsCleaner
+	txsPoolCleaner          process.PoolsCleaner
+	fallbackHeaderValidator process.FallbackHeaderValidator
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -230,13 +232,23 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 // Create will create and return a struct containing process components
 func (pcf *processComponentsFactory) Create() (*processComponents, error) {
+	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
+		pcf.data.Datapool().Headers(),
+		pcf.coreData.InternalMarshalizer(),
+		pcf.data.StorageService(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:       pcf.coreData.InternalMarshalizer(),
-		Hasher:            pcf.coreData.Hasher(),
-		NodesCoordinator:  pcf.nodesCoordinator,
-		MultiSigVerifier:  pcf.crypto.MultiSigner(),
-		SingleSigVerifier: pcf.crypto.BlockSigner(),
-		KeyGen:            pcf.crypto.BlockSignKeyGen(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		NodesCoordinator:        pcf.nodesCoordinator,
+		MultiSigVerifier:        pcf.crypto.MultiSigner(),
+		SingleSigVerifier:       pcf.crypto.BlockSigner(),
+		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
+		FallbackHeaderValidator: fallbackHeaderValidator,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -506,6 +518,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txSimulatorProcessor:        txSimulator,
 		miniBlocksPoolCleaner:       mbsPoolsCleaner,
 		txsPoolCleaner:              txsPoolsCleaner,
+		fallbackHeaderValidator:     fallbackHeaderValidator,
 	}, nil
 }
 
@@ -524,19 +537,22 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		ratingEnabledEpoch = hardForkConfig.StartEpoch + hardForkConfig.ValidatorGracePeriodInEpochs
 	}
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         pcf.state.PeerAccounts(),
-		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
-		NodesCoordinator:    pcf.nodesCoordinator,
-		ShardCoordinator:    pcf.shardCoordinator,
-		DataPool:            peerDataPool,
-		StorageService:      storageService,
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Rater:               pcf.rater,
-		MaxComputableRounds: pcf.maxComputableRounds,
-		RewardsHandler:      pcf.economicsData,
-		NodesSetup:          pcf.coreData.GenesisNodesSetup(),
-		RatingEnableEpoch:   ratingEnabledEpoch,
-		GenesisNonce:        pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
+		PeerAdapter:                     pcf.state.PeerAccounts(),
+		PubkeyConv:                      pcf.coreData.ValidatorPubKeyConverter(),
+		NodesCoordinator:                pcf.nodesCoordinator,
+		ShardCoordinator:                pcf.shardCoordinator,
+		DataPool:                        peerDataPool,
+		StorageService:                  storageService,
+		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
+		Rater:                           pcf.rater,
+		MaxComputableRounds:             pcf.maxComputableRounds,
+		RewardsHandler:                  pcf.economicsData,
+		NodesSetup:                      pcf.coreData.GenesisNodesSetup(),
+		RatingEnableEpoch:               ratingEnabledEpoch,
+		GenesisNonce:                    pcf.data.Blockchain().GetGenesisHeader().GetNonce(),
+		EpochNotifier:                   pcf.coreData.EpochNotifier(),
+		SwitchJailWaitingEnableEpoch:    pcf.config.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		BelowSignedThresholdEnableEpoch: pcf.config.GeneralSettings.BelowSignedThresholdEnableEpoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
@@ -732,7 +748,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 
 	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
 
-	// In "dblookupext" index, record both the metachain and the shard blocks
+	// In "dblookupext" index, record both the metachain and the shardID blocks
 	var shardID uint32
 	for shardID, genesisBlockHeader = range genesisBlocks {
 		if pcf.shardCoordinator.SelfId() != shardID {
@@ -744,7 +760,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 			return err
 		}
 
-		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shard", shardID, "hash", genesisBlockHash)
+		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
 		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
 		if err != nil {
 			return err

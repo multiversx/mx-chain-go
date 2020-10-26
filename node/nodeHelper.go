@@ -81,6 +81,7 @@ func CreateHardForkTrigger(
 		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
 		ValidityAttester:         process.BlockTracker(),
 		Rounder:                  process.Rounder(),
+		InterceptorDebugConfig:   config.Debug.InterceptorResolver,
 	}
 	hardForkExportFactory, err := factory3.NewExportHandlerFactory(argsExporter)
 	if err != nil {
