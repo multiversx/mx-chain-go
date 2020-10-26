@@ -20,23 +20,23 @@ type ownerStats struct {
 	topUpValue  *big.Int
 }
 
-type rewardsStakingProvider struct {
+type stakingDataProvider struct {
 	mutCache sync.Mutex
 	cache    map[string]*ownerStats
 	systemVM vmcommon.VMExecutionHandler
 }
 
-// NewRewardsStakingProvider will create a new instance of a staking data provider able to aid in the final rewards
+// NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
 // computation as this will retrieve the staking data from the system VM
-func NewRewardsStakingProvider(
+func NewStakingDataProvider(
 	systemVM vmcommon.VMExecutionHandler,
-) (*rewardsStakingProvider, error) {
+) (*stakingDataProvider, error) {
 	//TODO make vmcommon.VMExecutionHandler implement NilInterfaceChecker
 	if check.IfNilReflect(systemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
 
-	rsp := &rewardsStakingProvider{
+	rsp := &stakingDataProvider{
 		systemVM: systemVM,
 	}
 	rsp.Clean()
@@ -45,25 +45,26 @@ func NewRewardsStakingProvider(
 }
 
 // Clean will reset the inner state of the called instance
-func (rsp *rewardsStakingProvider) Clean() {
-	rsp.mutCache.Lock()
-	rsp.cache = make(map[string]*ownerStats)
-	rsp.mutCache.Unlock()
+func (sdr *stakingDataProvider) Clean() {
+	sdr.mutCache.Lock()
+	sdr.cache = make(map[string]*ownerStats)
+	sdr.mutCache.Unlock()
 }
 
-// ComputeRewardsForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID)
+// GetStakingDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
+// staking data can be recovered from the staking system smart contracts.
 // The function will error if something went wrong. It does change the inner state of the called instance.
-func (rsp *rewardsStakingProvider) ComputeRewardsForBlsKey(blsKey []byte) error {
-	owner, err := rsp.getBlsKeyOwnerAsHex(blsKey)
+func (sdr *stakingDataProvider) GetStakingDataForBlsKey(blsKey []byte) error {
+	owner, err := sdr.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return err
 	}
 
-	rsp.mutCache.Lock()
-	defer rsp.mutCache.Unlock()
+	sdr.mutCache.Lock()
+	defer sdr.mutCache.Unlock()
 
-	ownerData, err := rsp.getOwnerData(owner)
+	ownerData, err := sdr.getOwnerData(owner)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner data", "key", hex.EncodeToString(blsKey), "error", err)
 		return err
@@ -73,7 +74,7 @@ func (rsp *rewardsStakingProvider) ComputeRewardsForBlsKey(blsKey []byte) error 
 	return nil
 }
 
-func (rsp *rewardsStakingProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
+func (sdr *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.AuctionSCAddress,
@@ -84,7 +85,7 @@ func (rsp *rewardsStakingProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, e
 		Function:      "getOwner",
 	}
 
-	vmOutput, err := rsp.systemVM.RunSmartContractCall(vmInput)
+	vmOutput, err := sdr.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
 		return "", err
 	}
@@ -92,24 +93,24 @@ func (rsp *rewardsStakingProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, e
 		return "", fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
 	}
 	data := vmOutput.ReturnData
-	if len(data) < 1 {
-		return "", fmt.Errorf("%w, error: missing owner address", epochStart.ErrExecutingSystemScCode)
+	if len(data) != 1 {
+		return "", fmt.Errorf("%w, getOwner function should have returned exactly one value: the owner address", epochStart.ErrExecutingSystemScCode)
 	}
 
 	return string(data[0]), nil
 }
 
-func (rsp *rewardsStakingProvider) getOwnerData(owner string) (*ownerStats, error) {
-	ownerData, exists := rsp.cache[owner]
+func (sdr *stakingDataProvider) getOwnerData(validatorAddress string) (*ownerStats, error) {
+	ownerData, exists := sdr.cache[validatorAddress]
 	if exists {
 		return ownerData, nil
 	}
 
-	return rsp.loadOwnerData(owner)
+	return sdr.loadOwnerData(validatorAddress)
 }
 
-func (rsp *rewardsStakingProvider) loadOwnerData(owner string) (*ownerStats, error) {
-	topUpValue, err := rsp.loadTopUpValue(owner)
+func (sdr *stakingDataProvider) loadOwnerData(validatorAddress string) (*ownerStats, error) {
+	topUpValue, err := sdr.getTopUpValue(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -118,20 +119,20 @@ func (rsp *rewardsStakingProvider) loadOwnerData(owner string) (*ownerStats, err
 		numEligible: 0,
 		topUpValue:  topUpValue,
 	}
-	rsp.cache[owner] = ownerData
+	sdr.cache[validatorAddress] = ownerData
 
 	return ownerData, nil
 }
 
-func (rsp *rewardsStakingProvider) loadTopUpValue(owner string) (*big.Int, error) {
-	ownerBytes, err := hex.DecodeString(owner)
+func (sdr *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int, error) {
+	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  ownerBytes,
+			CallerAddr:  validatorAddressBytes,
 			CallValue:   big.NewInt(0),
 			GasProvided: math.MaxUint64,
 		},
@@ -139,7 +140,7 @@ func (rsp *rewardsStakingProvider) loadTopUpValue(owner string) (*big.Int, error
 		Function:      "getTopUp",
 	}
 
-	vmOutput, err := rsp.systemVM.RunSmartContractCall(vmInput)
+	vmOutput, err := sdr.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
 	}
@@ -147,8 +148,8 @@ func (rsp *rewardsStakingProvider) loadTopUpValue(owner string) (*big.Int, error
 		return nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
 	}
 	topUpBytes := vmOutput.ReturnData
-	if len(topUpBytes) < 1 {
-		return nil, fmt.Errorf("%w, error: missing top up value data bytes", epochStart.ErrExecutingSystemScCode)
+	if len(topUpBytes) != 1 {
+		return nil, fmt.Errorf("%w, getTopUp function should have returned exactly one value: the top up value", epochStart.ErrExecutingSystemScCode)
 	}
 
 	topUpValue, ok := big.NewInt(0).SetString(string(topUpBytes[0]), conversionBase)
@@ -160,6 +161,6 @@ func (rsp *rewardsStakingProvider) loadTopUpValue(owner string) (*big.Int, error
 }
 
 // IsInterfaceNil return true if underlying object is nil
-func (rsp *rewardsStakingProvider) IsInterfaceNil() bool {
-	return rsp == nil
+func (sdr *stakingDataProvider) IsInterfaceNil() bool {
+	return sdr == nil
 }

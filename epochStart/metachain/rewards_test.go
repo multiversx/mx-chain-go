@@ -116,15 +116,15 @@ func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *tes
 	assert.NotNil(t, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilRewardsStakingProvider(t *testing.T) {
+func TestNewEpochStartRewardsCreator_NilStakingDataProvider(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	args.RewardsStakingProvider = nil
+	args.StakingDataProvider = nil
 
 	rwd, err := NewEpochStartRewardsCreator(args)
 	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilRewardsStakingProvider, err)
+	assert.Equal(t, epochStart.ErrNilStakingDataProvider, err)
 }
 
 func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
@@ -145,11 +145,11 @@ func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing
 	//cleanWasCalled := false
 	numComputeRewards := 0
 	expectedErr := errors.New("expected error")
-	args.RewardsStakingProvider = &mock.RewardsStakingProviderStub{
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		CleanCalled: func() {
 			//cleanWasCalled = true
 		},
-		ComputeRewardsForBlsKeyCalled: func(blsKey []byte) error {
+		GetStakingDataForBlsKeyCalled: func(blsKey []byte) error {
 			numComputeRewards++
 			return expectedErr
 		},
@@ -182,11 +182,11 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	args := getRewardsArguments()
 	cleanWasCalled := false
 	numComputeRewards := 0
-	args.RewardsStakingProvider = &mock.RewardsStakingProviderStub{
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		CleanCalled: func() {
 			cleanWasCalled = true
 		},
-		ComputeRewardsForBlsKeyCalled: func(blsKey []byte) error {
+		GetStakingDataForBlsKeyCalled: func(blsKey []byte) error {
 			numComputeRewards++
 			return nil
 		},
@@ -778,6 +778,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
 		UserAccountsDB:                userAccountsDB,
-		RewardsStakingProvider:        &mock.RewardsStakingProviderStub{},
+		StakingDataProvider:           &mock.StakingDataProviderStub{},
 	}
 }

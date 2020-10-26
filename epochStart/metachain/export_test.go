@@ -1,16 +1,16 @@
 package metachain
 
 // SetInCache -
-func (rsp *rewardsStakingProvider) SetInCache(key []byte, ownerData *ownerStats) {
-	rsp.mutCache.Lock()
-	rsp.cache[string(key)] = ownerData
-	rsp.mutCache.Unlock()
+func (sdr *stakingDataProvider) SetInCache(key []byte, ownerData *ownerStats) {
+	sdr.mutCache.Lock()
+	sdr.cache[string(key)] = ownerData
+	sdr.mutCache.Unlock()
 }
 
 // GetFromCache -
-func (rsp *rewardsStakingProvider) GetFromCache(key []byte) *ownerStats {
-	rsp.mutCache.Lock()
-	defer rsp.mutCache.Unlock()
+func (sdr *stakingDataProvider) GetFromCache(key []byte) *ownerStats {
+	sdr.mutCache.Lock()
+	defer sdr.mutCache.Unlock()
 
-	return rsp.cache[string(key)]
+	return sdr.cache[string(key)]
 }

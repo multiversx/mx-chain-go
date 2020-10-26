@@ -42,7 +42,7 @@ type ArgsNewRewardsCreator struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	DelegationSystemSCEnableEpoch uint32
 	UserAccountsDB                state.AccountsAdapter
-	RewardsStakingProvider        epochStart.RewardsStakingProvider
+	StakingDataProvider           epochStart.StakingDataProvider
 }
 
 type rewardsCreator struct {
@@ -61,10 +61,10 @@ type rewardsCreator struct {
 	accumulatedRewards             *big.Int
 	protocolSustainability         *big.Int
 
-	flagDelegationSystemSCEnabled  atomic.Flag
-	delegationSystemSCEnableEpoch  uint32
-	userAccountsDB                 state.AccountsAdapter
-	rewardsStakingProvider         epochStart.RewardsStakingProvider
+	flagDelegationSystemSCEnabled atomic.Flag
+	delegationSystemSCEnableEpoch uint32
+	userAccountsDB                state.AccountsAdapter
+	stakingDataProvider           epochStart.StakingDataProvider
 }
 
 type rewardInfoData struct {
@@ -105,8 +105,8 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.UserAccountsDB) {
 		return nil, epochStart.ErrNilAccountsDB
 	}
-	if check.IfNil(args.RewardsStakingProvider) {
-		return nil, epochStart.ErrNilRewardsStakingProvider
+	if check.IfNil(args.StakingDataProvider) {
+		return nil, epochStart.ErrNilStakingDataProvider
 	}
 
 	address, err := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
@@ -139,7 +139,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		protocolSustainability:        big.NewInt(0),
 		delegationSystemSCEnableEpoch: args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                args.UserAccountsDB,
-		rewardsStakingProvider:        args.RewardsStakingProvider,
+		stakingDataProvider:           args.StakingDataProvider,
 	}
 
 	return rc, nil
@@ -151,7 +151,7 @@ func (rc *rewardsCreator) clean() {
 	rc.currTxs.Clean()
 	rc.accumulatedRewards = big.NewInt(0)
 	rc.protocolSustainability = big.NewInt(0)
-	rc.rewardsStakingProvider.Clean()
+	rc.stakingDataProvider.Clean()
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
@@ -162,7 +162,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
-	err := rc.prepareRewardsFromStakingSC(validatorsInfo)
+	err := rc.prepareRewards(validatorsInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +613,7 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 
 //TODO evaluate if this function will remain here or be moved inside a new rewardsCreator implementation
 // in case it should remain here, we need a softfork protection for this call
-func (rc *rewardsCreator) prepareRewardsFromStakingSC(validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rc *rewardsCreator) prepareRewards(validatorsInfo map[uint32][]*state.ValidatorInfo) error {
 	sw := core.NewStopWatch()
 	sw.Start("prepareRewardsFromStakingSC")
 	defer func() {
@@ -623,8 +623,9 @@ func (rc *rewardsCreator) prepareRewardsFromStakingSC(validatorsInfo map[uint32]
 
 	for _, validatorInfoSlice := range validatorsInfo {
 		for _, validatorInfo := range validatorInfoSlice {
-			err := rc.rewardsStakingProvider.ComputeRewardsForBlsKey(validatorInfo.PublicKey)
+			err := rc.stakingDataProvider.GetStakingDataForBlsKey(validatorInfo.PublicKey)
 			if err != nil {
+				//TODO uncomment this return when this function will be used
 				//return err
 			}
 		}

@@ -40,7 +40,7 @@ func (k *keyValStorage) ValueWithoutSuffix(suffix []byte) ([]byte, error) {
 	lenSuffix := len(suffix)
 	position := bytes.Index(k.value, suffix)
 	if position != lenValue-lenSuffix || position < 0 {
-		return nil, core.ErrSuffixNotPresentOrOnIncorrectPosition
+		return nil, core.ErrSuffixNotPresentOrInIncorrectPosition
 	}
 
 	newData := make([]byte, lenValue-lenSuffix)

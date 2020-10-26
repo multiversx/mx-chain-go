@@ -18,30 +18,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewRewardsStakingProvider_NilSystemVMShouldErr(t *testing.T) {
+func TestNewStakingDataProvider_NilSystemVMShouldErr(t *testing.T) {
 	t.Parallel()
 
-	rsp, err := NewRewardsStakingProvider(nil)
+	sdr, err := NewStakingDataProvider(nil)
 
-	assert.True(t, check.IfNil(rsp))
+	assert.True(t, check.IfNil(sdr))
 	assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
 }
 
-func TestNewRewardsStakingProvider_ShouldWork(t *testing.T) {
+func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	rsp, err := NewRewardsStakingProvider(&mock.VMExecutionHandlerStub{})
+	sdr, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{})
 
-	assert.False(t, check.IfNil(rsp))
+	assert.False(t, check.IfNil(sdr))
 	assert.Nil(t, err)
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	numCall := 0
 	expectedErr := errors.New("expected error")
-	rsp, _ := NewRewardsStakingProvider(&mock.VMExecutionHandlerStub{
+	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
@@ -62,27 +62,27 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyGetBlsKeyOwnerErrorsShoul
 		},
 	})
 
-	err := rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "missing owner address"))
+	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the owner address"))
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyLoadOwnerDataErrorsShouldErr(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyLoadOwnerDataErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	numCall := 0
 	owner := []byte("owner")
 	expectedErr := errors.New("expected error")
-	rsp, _ := NewRewardsStakingProvider(&mock.VMExecutionHandlerStub{
+	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -115,30 +115,30 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyLoadOwnerDataErrorsShould
 		},
 	})
 
-	err := rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "missing top up value data bytes"))
+	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the top up value"))
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
-	rsp, _ := NewRewardsStakingProvider(&mock.VMExecutionHandlerStub{
+	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -150,41 +150,41 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyReturnedOwnerIsNotHexShou
 		},
 	})
 
-	err := rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyFromSCShouldWork(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyFromSCShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
 	topUpVal := big.NewInt(828743)
 	numRunContractCalls := 0
 
-	rsp := createRewardsStakingProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
+	sdr := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
-	ownerData := rsp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdr.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyCachedResponseShouldWork(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyCachedResponseShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
 	topUpVal := big.NewInt(828743)
 	numRunContractCalls := 0
 
-	rsp := createRewardsStakingProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
+	rsp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := rsp.ComputeRewardsForBlsKey([]byte("bls key"))
+	err := rsp.GetStakingDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 
-	err = rsp.ComputeRewardsForBlsKey([]byte("bls key2"))
+	err = rsp.GetStakingDataForBlsKey([]byte("bls key2"))
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
@@ -194,15 +194,15 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyCachedResponseShouldWork(
 	assert.Equal(t, 2, ownerData.numEligible)
 }
 
-func TestRewardsStakingProvider_ComputeRewardsForBlsKeyWithRealSystemVmShouldWork(t *testing.T) {
+func TestStakingDataProvider_GetStakingDataForBlsKeyWithRealSystemVmShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
 	topUpVal := big.NewInt(828743)
 	blsKey := []byte("bls key")
 
-	rsp := createRewardsStakingProviderWithRealArgs(t, owner, blsKey, topUpVal)
-	err := rsp.ComputeRewardsForBlsKey(blsKey)
+	rsp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
+	err := rsp.GetStakingDataForBlsKey(blsKey)
 	assert.Nil(t, err)
 	ownerData := rsp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
@@ -210,8 +210,8 @@ func TestRewardsStakingProvider_ComputeRewardsForBlsKeyWithRealSystemVmShouldWor
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
-func createRewardsStakingProviderWithMockArgs(t *testing.T, owner []byte, topUpVal *big.Int, numRunContractCalls *int) *rewardsStakingProvider {
-	rsp, _ := NewRewardsStakingProvider(&mock.VMExecutionHandlerStub{
+func createStakingDataProviderWithMockArgs(t *testing.T, owner []byte, topUpVal *big.Int, numRunContractCalls *int) *stakingDataProvider {
+	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			*numRunContractCalls++
 			switch input.Function {
@@ -235,10 +235,10 @@ func createRewardsStakingProviderWithMockArgs(t *testing.T, owner []byte, topUpV
 		},
 	})
 
-	return rsp
+	return sdr
 }
 
-func createRewardsStakingProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *rewardsStakingProvider {
+func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing()
 	args.EpochNotifier.CheckEpoch(1000000)
 	s, _ := NewSystemSCProcessor(args)
@@ -246,9 +246,9 @@ func createRewardsStakingProviderWithRealArgs(t *testing.T, owner []byte, blsKey
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	rsp, _ := NewRewardsStakingProvider(s.systemVM)
+	sdr, _ := NewStakingDataProvider(s.systemVM)
 
-	return rsp
+	return sdr
 }
 
 func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput *vmcommon.VMOutput) {

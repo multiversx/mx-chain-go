@@ -29,7 +29,7 @@ const waitingElementPrefix = "w_"
 type stakingSC struct {
 	eei                      vm.SystemEI
 	unBondPeriod             uint64
-	stakeAccessAddr          []byte
+	stakeAccessAddr          []byte //TODO add a viewAddress field and use it on all system SC view functions
 	jailAccessAddr           []byte
 	endOfEpochAccessAddr     []byte
 	numRoundsWithoutBleed    uint64

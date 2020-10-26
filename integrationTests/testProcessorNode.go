@@ -1464,7 +1464,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
-		rewardsStakingProvider, errRsp := metachain.NewRewardsStakingProvider(systemVM)
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM)
 		if errRsp != nil {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
@@ -1482,7 +1482,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 			NodesConfigProvider:           tpn.NodesCoordinator,
 			UserAccountsDB:                tpn.AccntState,
-			RewardsStakingProvider:        rewardsStakingProvider,
+			StakingDataProvider:           stakingDataProvider,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 

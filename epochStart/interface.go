@@ -145,9 +145,9 @@ type TransactionCacher interface {
 	IsInterfaceNil() bool
 }
 
-// RewardsStakingProvider is able to provide staking data for the correct rewards computation
-type RewardsStakingProvider interface {
-	ComputeRewardsForBlsKey(blsKey []byte) error
+// StakingDataProvider is able to provide staking data from the system smart contracts
+type StakingDataProvider interface {
+	GetStakingDataForBlsKey(blsKey []byte) error
 	Clean()
 	IsInterfaceNil() bool
 }

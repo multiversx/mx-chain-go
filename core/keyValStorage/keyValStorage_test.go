@@ -25,11 +25,11 @@ func TestKeyValStorage_ValueWithoutSuffix(t *testing.T) {
 
 	keyVal := keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
 	trimmedData, err := keyVal.ValueWithoutSuffix([]byte("val2"))
-	assert.Equal(t, core.ErrSuffixNotPresentOrOnIncorrectPosition, err)
+	assert.Equal(t, core.ErrSuffixNotPresentOrInIncorrectPosition, err)
 	assert.Nil(t, trimmedData)
 
 	trimmedData, err = keyVal.ValueWithoutSuffix([]byte("va"))
-	assert.Equal(t, core.ErrSuffixNotPresentOrOnIncorrectPosition, err)
+	assert.Equal(t, core.ErrSuffixNotPresentOrInIncorrectPosition, err)
 	assert.Nil(t, trimmedData)
 
 	trimmedData, err = keyVal.ValueWithoutSuffix([]byte("l"))

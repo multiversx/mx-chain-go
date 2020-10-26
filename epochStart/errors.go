@@ -254,8 +254,8 @@ var ErrNilValue = errors.New("nil value")
 // ErrNilSystemVmInstance signals that a nil system VM instance was provided
 var ErrNilSystemVmInstance = errors.New("nil system VM instance")
 
-// ErrNilRewardsStakingProvider signals that a nil rewards staking provider was used
-var ErrNilRewardsStakingProvider = errors.New("nil rewards staking provider")
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")

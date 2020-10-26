@@ -1996,7 +1996,7 @@ func newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
-	rewardsStakingProvider, err := metachainEpochStart.NewRewardsStakingProvider(systemVM)
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM)
 	if err != nil {
 		return nil, err
 	}
@@ -2014,7 +2014,7 @@ func newMetaBlockProcessor(
 		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           nodesCoordinator,
 		UserAccountsDB:                stateComponents.AccountsAdapter,
-		RewardsStakingProvider:        rewardsStakingProvider,
+		StakingDataProvider:           stakingDataProvider,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

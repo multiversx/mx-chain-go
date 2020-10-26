@@ -1656,7 +1656,7 @@ func (s *stakingAuctionSC) getTopUp(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
-		s.eei.AddReturnMessage("contract error on unStakeTokens function, total stake < locked stake value")
+		s.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")
 		return vmcommon.UserError
 	}
 
