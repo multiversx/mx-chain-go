@@ -88,9 +88,8 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, err
 	}
 
-	// Retriable:
-	if vmOutput.ReturnMessage == "allocation error" {
-		log.Debug("Will retry (once) executeScCall() due to allocation error")
+	if service.hasRetriableExecutionError(vmOutput) {
+		log.Error("Retriable execution error detected. Will retry (once) executeScCall()", "returnCode", vmOutput.ReturnCode, "returnMessage", vmOutput.ReturnMessage)
 
 		vmOutput, err = vm.RunSmartContractCall(vmInput)
 		if err != nil {
@@ -134,6 +133,10 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 	}
 
 	return vmContractCallInput
+}
+
+func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
+	return vmOutput.ReturnMessage == "allocation error"
 }
 
 func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
