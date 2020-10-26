@@ -159,10 +159,3 @@ func TestPrepareBufferMiniblocks(t *testing.T) {
 
 	require.Equal(t, expectedBuff, buff)
 }
-
-func TestPrepareSerializedData(t *testing.T) {
-	txx := Transaction{Receiver: "erd12121", Sender: "erd13333", Nonce: 5}
-	bf, bd := prepareSerializedDataForATransaction(&txx, 0, true)
-	fmt.Println(string(bf))
-	fmt.Println(string(bd))
-}
