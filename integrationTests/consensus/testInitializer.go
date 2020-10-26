@@ -386,6 +386,14 @@ func createConsensusOnlyNode(
 	coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{}
 	coreComponents.WDTimer = &mock.WatchdogMock{}
 	coreComponents.StartTime = time.Unix(startTime, 0)
+	coreComponents.NodesConfig = &testscommon.NodesSetupStub{
+		GetShardConsensusGroupSizeCalled: func() uint32 {
+			return consensusSize
+		},
+		GetMetaConsensusGroupSizeCalled: func() uint32 {
+			return consensusSize
+		},
+	}
 
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey
