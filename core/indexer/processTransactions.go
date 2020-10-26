@@ -257,9 +257,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.TxBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
+				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				if tdp.shouldIndex(tx) {
-					dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
-					addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 					transactions[hash] = dbTx
 				}
 				delete(txPool, hash)
@@ -275,10 +275,10 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
+				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
+				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
+				alteredAddresses[dbTx.Receiver] = struct{}{}
 				if tdp.shouldIndex(rtx) {
-					dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
-					addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
-					alteredAddresses[dbTx.Receiver] = struct{}{}
 					rewardsTxs = append(rewardsTxs, dbTx)
 				}
 				delete(txPool, hash)
