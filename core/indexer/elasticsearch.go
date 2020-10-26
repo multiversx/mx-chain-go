@@ -26,7 +26,6 @@ type Options struct {
 
 //ElasticIndexerArgs is struct that is used to store all components that are needed to create a indexer
 type ElasticIndexerArgs struct {
-	ShardId                  uint32
 	Url                      string
 	UserName                 string
 	Password                 string
@@ -37,6 +36,8 @@ type ElasticIndexerArgs struct {
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
 	Options                  *Options
+	ShardCoordinator         sharding.Coordinator
+	IsInImportDBMode         bool
 }
 
 type elasticIndexer struct {
@@ -63,6 +64,8 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 		Password:                 arguments.Password,
 		Marshalizer:              arguments.Marshalizer,
 		Hasher:                   arguments.Hasher,
+		IsInImportDBMode:         arguments.IsInImportDBMode,
+		ShardCoordinator:         arguments.ShardCoordinator,
 	}
 	client, err := NewElasticSearchDatabase(databaseArguments)
 	if err != nil {
@@ -77,7 +80,7 @@ func NewElasticIndexer(arguments ElasticIndexerArgs) (Indexer, error) {
 		isNilIndexer: false,
 	}
 
-	if arguments.ShardId == core.MetachainShardId {
+	if arguments.ShardCoordinator.SelfId() == core.MetachainShardId {
 		arguments.EpochStartNotifier.RegisterHandler(indexer.epochStartEventHandler())
 	}
 
