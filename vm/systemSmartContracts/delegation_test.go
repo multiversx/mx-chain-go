@@ -373,7 +373,8 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 1, len(dStatus.Delegators))
 
-	ownerFund, err := d.getFund(big.NewInt(0).Bytes())
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	ownerFund, err := d.getFund(fundKey)
 	assert.Nil(t, err)
 	assert.Equal(t, callValue, ownerFund.Value)
 	assert.Equal(t, ownerAddr, ownerFund.Address)
@@ -396,7 +397,7 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.False(t, delegatorDataPresent)
 	assert.Equal(t, 0, len(delegator.UnStakedFunds))
 	assert.Equal(t, 0, len(delegator.WithdrawOnlyFunds))
-	assert.Equal(t, []byte{}, delegator.ActiveFund)
+	assert.Equal(t, fundKey, delegator.ActiveFund)
 }
 
 func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
@@ -991,7 +992,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		StakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
 	auctionMap := map[string][]byte{}
@@ -1133,7 +1134,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		UnStakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
 	auctionMap := map[string][]byte{}
@@ -1431,21 +1432,22 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	dFund, _ := d.getFund([]byte{})
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	dFund, _ := d.getFund(fundKey)
 	assert.Equal(t, big.NewInt(15), dFund.Value)
 	assert.Equal(t, delegator1, dFund.Address)
 	assert.Equal(t, active, dFund.Type)
 
 	dGlobalFund, _ := d.getGlobalFundData()
 	assert.Equal(t, big.NewInt(15), dGlobalFund.TotalActive)
-	assert.Equal(t, []byte{}, dGlobalFund.ActiveFunds[0])
+	assert.Equal(t, fundKey, dGlobalFund.ActiveFunds[0])
 
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 1, len(dStatus.Delegators))
 	assert.Equal(t, delegator1, dStatus.Delegators[0])
 
 	_, dData, _ := d.getOrCreateDelegatorData(delegator1)
-	assert.Equal(t, []byte{}, dData.ActiveFund)
+	assert.Equal(t, fundKey, dData.ActiveFund)
 }
 
 func TestDelegationSystemSC_ExecuteUnDelegateUserErrors(t *testing.T) {
@@ -1478,7 +1480,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrors(t *testing.T) {
 func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	fundKey := []byte{1}
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -1523,8 +1525,8 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	t.Parallel()
 
-	fundKey := []byte{1}
-	nextFundKey := []byte{2}
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -1540,8 +1542,9 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:    fundKey,
-		UnStakedFunds: [][]byte{},
+		ActiveFund:       fundKey,
+		UnStakedFunds:    [][]byte{},
+		UnClaimedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -1552,7 +1555,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		TotalUnStaked:          big.NewInt(0),
 		TotalUnStakedFromNodes: big.NewInt(0),
 	})
-	d.eei.SetStorage([]byte(lastFundKey), []byte{1})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -1580,8 +1583,8 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	t.Parallel()
 
-	fundKey := []byte{1}
-	nextFundKey := []byte{2}
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -1597,8 +1600,9 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
-		ActiveFund:    fundKey,
-		UnStakedFunds: [][]byte{},
+		ActiveFund:       fundKey,
+		UnStakedFunds:    [][]byte{},
+		UnClaimedRewards: big.NewInt(0),
 	})
 	_ = d.saveFund(fundKey, &Fund{
 		Value: big.NewInt(100),
@@ -1610,7 +1614,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		TotalUnStakedFromNodes: big.NewInt(0),
 		ActiveFunds:            [][]byte{fundKey},
 	})
-	d.eei.SetStorage([]byte(lastFundKey), []byte{1})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -1741,6 +1745,7 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		UnStakedFunds:          [][]byte{fundKey1, fundKey2},
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalUnStaked:          big.NewInt(140),
+		TotalActive:            big.NewInt(0),
 	})
 
 	output := d.Execute(vmInput)
@@ -1851,7 +1856,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("changeServiceFee", [][]byte{[]byte("70")})
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
-	_ = d.saveGlobalFundData(&GlobalFundData{})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)

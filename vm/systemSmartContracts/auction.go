@@ -1673,6 +1673,11 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 	log.Debug("stakingAuctionSC: top up mechanism", "enabled", s.flagEnableTopUp.IsSet())
 }
 
+// CanUseContract returns true if contract can be used
+func (s *stakingAuctionSC) CanUseContract() bool {
+	return true
+}
+
 func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(args.CallerAddr, s.auctionSCAddress) {
 		s.eei.AddReturnMessage("this is only a view function")

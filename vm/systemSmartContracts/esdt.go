@@ -605,6 +605,11 @@ func (e *esdt) EpochConfirmed(epoch uint32) {
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }
 
+// CanUseContract returns true if contract can be used
+func (e *esdt) CanUseContract() bool {
+	return true
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (e *esdt) IsInterfaceNil() bool {
 	return e == nil

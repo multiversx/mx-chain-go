@@ -10,6 +10,11 @@ type SystemSCStub struct {
 	ValueOfCalled func(key interface{}) interface{}
 }
 
+// CanUseContract -
+func (s *SystemSCStub) CanUseContract() bool {
+	return true
+}
+
 // Execute -
 func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.ExecuteCalled != nil {

@@ -493,6 +493,9 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
 
+// DelegationSystemSCKey is the key under which there is data in case of system delegation smart contracts
+const DelegationSystemSCKey = "delegation"
+
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 

@@ -17,6 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/ElrondNetwork/elrond-go/data/state/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
@@ -709,7 +713,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(10150)
+	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(20250)
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -719,11 +723,25 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 			NumSelectedInSuccessBlocks: 1,
 			LeaderSuccess:              1,
 		},
+		{
+			RewardAddress:              vm.FirstDelegationSCAddress,
+			ShardId:                    0,
+			AccumulatedFees:            big.NewInt(100),
+			NumSelectedInSuccessBlocks: 1,
+			LeaderSuccess:              1,
+		},
 	}
+
+	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
+	userAcc, _ := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
+	_ = args.UserAccountsDB.SaveAccount(userAcc)
+
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo)
 	assert.Nil(t, err)
-	assert.Equal(t, len(miniBlocks), 1)
+	assert.Equal(t, len(miniBlocks), 2)
 	assert.Equal(t, len(miniBlocks[0].TxHashes), 1)
+	assert.Equal(t, len(miniBlocks[1].TxHashes), 1)
 
 	expectedProtocolSustainabilityValue := big.NewInt(0).Add(metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, metaBlk.EpochStart.Economics.RewardsPerBlock)
 	expectedProtocolSustainabilityValue.Add(expectedProtocolSustainabilityValue, big.NewInt(100))
@@ -746,6 +764,10 @@ func getDefaultEpochStart() block.EpochStart {
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
+	hasher := sha256.Sha256{}
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
+	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	return ArgsNewRewardsCreator{
 		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
 		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
@@ -756,6 +778,7 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		DataPool:                      testscommon.NewPoolsHolderStub(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
+		UserAccountsDB:                userAccountsDB,
 		RewardsStakingProvider:        &mock.RewardsStakingProviderStub{},
 	}
 }

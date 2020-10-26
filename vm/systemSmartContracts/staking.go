@@ -1380,6 +1380,11 @@ func (r *stakingSC) EpochConfirmed(epoch uint32) {
 	log.Debug("stakingSC: set owner", "enabled", r.flagSetOwner.IsSet())
 }
 
+// CanUseContract returns true if contract can be used
+func (r *stakingSC) CanUseContract() bool {
+	return true
+}
+
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
 	return r == nil

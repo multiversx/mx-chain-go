@@ -50,6 +50,9 @@ message DelegatorData {
   bytes          ActiveFund        = 1 [(gogoproto.jsontag) = "ActiveFund"];
   repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
   repeated bytes WithdrawOnlyFunds = 3 [(gogoproto.jsontag) = "WithdrawOnlyFunds"];
+  uint32         RewardsCheckpoint = 4 [(gogoproto.jsontag) = "RewardsCheckpoint"];
+  bytes          UnClaimedRewards  = 5 [(gogoproto.jsontag) = "UnClaimedRewards", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+
 }
 
 message GlobalFundData {
@@ -70,9 +73,7 @@ message NodesData {
 }
 
 message RewardComputationData {
-  bytes RewardsToDistribute = 1 [(gogoproto.jsontag) = "RewardsToDistribute", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes TotalActive         = 2 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  uint64 ServiceFee         = 3 [(gogoproto.jsontag) = "ServiceFee"];
-  uint32 StartEpoch         = 4 [(gogoproto.jsontag) = "StartEpoch"];
-  uint32 EndEpoch           = 5 [(gogoproto.jsontag) = "EndEpoch"];
+  bytes  RewardsToDistribute = 1 [(gogoproto.jsontag) = "RewardsToDistribute", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  TotalActive         = 2 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint64 ServiceFee          = 3 [(gogoproto.jsontag) = "ServiceFee"];
 }

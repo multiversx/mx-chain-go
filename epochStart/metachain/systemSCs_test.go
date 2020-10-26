@@ -13,10 +13,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -40,7 +45,7 @@ import (
 func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	t.Parallel()
 
-	args := createFullArgumentsForSystemSCProcessing()
+	args, _ := createFullArgumentsForSystemSCProcessing()
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -76,7 +81,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
-	args := createFullArgumentsForSystemSCProcessing()
+	args, _ := createFullArgumentsForSystemSCProcessing()
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -351,7 +356,7 @@ func createAccountsDB(
 	return adb
 }
 
-func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcessing {
+func createFullArgumentsForSystemSCProcessing() (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.Sha256{}
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
@@ -461,7 +466,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		GenesisNodesConfig:      nodesSetup,
 		StakingV2EnableEpoch:    1000000,
 	}
-	return args
+	return args, metaVmFactory.SystemSmartContractContainer()
 }
 
 func createEconomicsData() *economics2.EconomicsData {
@@ -500,4 +505,139 @@ func createEconomicsData() *economics2.EconomicsData {
 	}
 	economicsData, _ := economics2.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing()
+	s, _ := NewSystemSCProcessor(args)
+
+	s.flagDelegationEnabled.Set()
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	err := s.ProcessSystemSmartContract(validatorInfos)
+	assert.Nil(t, err)
+
+	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
+	assert.Nil(t, err)
+
+	userAcc, _ := acc.(state.UserAccountHandler)
+	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
+	assert.NotNil(t, userAcc.GetCode())
+	assert.NotNil(t, userAcc.GetCodeMetadata())
+}
+
+func TestSystemSCProcessor_ProcessDelegationRewardsNothingToExecute(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing()
+	s, _ := NewSystemSCProcessor(args)
+
+	localCache, _ := dataPool.NewCurrentBlockPool()
+	miniBlocks := []*block.MiniBlock{
+		{
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("txHash")},
+		},
+	}
+
+	err := s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Nil(t, err)
+}
+
+func TestSystemSCProcessor_ProcessDelegationRewardsErrors(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing()
+	s, _ := NewSystemSCProcessor(args)
+
+	localCache, _ := dataPool.NewCurrentBlockPool()
+	miniBlocks := []*block.MiniBlock{
+		{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			TxHashes:        [][]byte{[]byte("txHash")},
+			Type:            block.RewardsBlock,
+		},
+	}
+
+	err := s.ProcessDelegationRewards(nil, localCache)
+	assert.Nil(t, err)
+
+	err = s.ProcessDelegationRewards(miniBlocks, nil)
+	assert.Equal(t, err, epochStart.ErrNilLocalTxCache)
+
+	err = s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Equal(t, err, dataRetriever.ErrTxNotFoundInBlockPool)
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: make([]byte, len(vm.StakingSCAddress)),
+		Epoch:   0,
+	}
+	localCache.AddTx([]byte("txHash"), rwdTx)
+	copy(rwdTx.RcvAddr, vm.StakingSCAddress)
+	err = s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Equal(t, err, epochStart.ErrSystemDelegationCall)
+
+	rwdTx.RcvAddr[25] = 255
+	err = s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Equal(t, err, vm.ErrUnknownSystemSmartContract)
+
+	rwdTx.RcvAddr = vm.FirstDelegationSCAddress
+	err = s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Equal(t, err, epochStart.ErrSystemDelegationCall)
+}
+
+func TestSystemSCProcessor_ProcessDelegationRewards(t *testing.T) {
+	t.Parallel()
+
+	args, scContainer := createFullArgumentsForSystemSCProcessing()
+	s, _ := NewSystemSCProcessor(args)
+
+	localCache, _ := dataPool.NewCurrentBlockPool()
+	miniBlocks := []*block.MiniBlock{
+		{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.MetachainShardId,
+			TxHashes:        [][]byte{[]byte("txHash")},
+			Type:            block.RewardsBlock,
+		},
+	}
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: make([]byte, len(vm.FirstDelegationSCAddress)),
+		Epoch:   0,
+	}
+	copy(rwdTx.RcvAddr, vm.FirstDelegationSCAddress)
+	rwdTx.RcvAddr[28] = 2
+	localCache.AddTx([]byte("txHash"), rwdTx)
+
+	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
+	_ = scContainer.Add(rwdTx.RcvAddr, contract)
+
+	err := s.ProcessDelegationRewards(miniBlocks, localCache)
+	assert.Nil(t, err)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.EndOfEpochAddress,
+			Arguments:   [][]byte{big.NewInt(int64(rwdTx.Epoch)).Bytes()},
+			CallValue:   big.NewInt(0),
+			GasProvided: 1000000,
+		},
+		RecipientAddr: rwdTx.RcvAddr,
+		Function:      "getRewardData",
+	}
+
+	vmOutput, err := args.SystemVM.RunSmartContractCall(vmInput)
+	assert.Nil(t, err)
+	assert.NotNil(t, vmOutput)
+
+	assert.Equal(t, len(vmOutput.ReturnData), 3)
+	assert.True(t, bytes.Equal(vmOutput.ReturnData[0], rwdTx.Value.Bytes()))
 }

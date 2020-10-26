@@ -1481,6 +1481,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			DataPool:                      tpn.DataPool,
 			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 			NodesConfigProvider:           tpn.NodesCoordinator,
+			UserAccountsDB:                tpn.AccntState,
 			RewardsStakingProvider:        rewardsStakingProvider,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)

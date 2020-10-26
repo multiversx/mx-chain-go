@@ -2013,6 +2013,7 @@ func newMetaBlockProcessor(
 		DataPool:                      data.Datapool,
 		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           nodesCoordinator,
+		UserAccountsDB:                stateComponents.AccountsAdapter,
 		RewardsStakingProvider:        rewardsStakingProvider,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
