@@ -1536,6 +1536,8 @@ func (d *delegation) createAndSaveNextFund(address []byte, value *big.Int, fundT
 	if err != nil {
 		return nil, err
 	}
+
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 	return fundKey, nil
 }
 
@@ -1555,7 +1557,7 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 }
 
 func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
-	nextKey := big.NewInt(0).Bytes()
+	nextKey := big.NewInt(1).Bytes()
 	lastKey := d.eei.GetStorage([]byte(lastFundKey))
 	if len(lastKey) > 0 {
 		lastIndex := big.NewInt(0).SetBytes(lastKey)
