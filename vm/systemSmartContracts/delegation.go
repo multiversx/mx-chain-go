@@ -22,6 +22,7 @@ const globalFundKey = "globalFundKey"
 const serviceFeeKey = "serviceFee"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
+const fundKeyPrefix = "fund"
 
 const percentageDenominator = uint64(100000)
 
@@ -1559,8 +1560,8 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
 	nextKey := big.NewInt(1).Bytes()
 	lastKey := d.eei.GetStorage([]byte(lastFundKey))
-	if len(lastKey) > 0 {
-		lastIndex := big.NewInt(0).SetBytes(lastKey)
+	if len(lastKey) > len(fundKeyPrefix) {
+		lastIndex := big.NewInt(0).SetBytes(lastKey[len(fundKeyPrefix):])
 		lastIndex.Add(lastIndex, big.NewInt(1))
 		nextKey = lastIndex.Bytes()
 	}
@@ -1572,6 +1573,7 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 		Type:    fundType,
 	}
 
+	nextKey = append([]byte(fundKeyPrefix), nextKey...)
 	return nextKey, fund
 }
 
