@@ -145,7 +145,7 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	delegationList := &DelegationContractList{Addresses: make([][]byte, 0)}
+	delegationList := &DelegationContractList{Addresses: [][]byte{vm.FirstDelegationSCAddress}}
 	err = d.saveDelegationContractList(delegationList)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -312,10 +312,10 @@ func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallI
 
 // TODO: use all the address space
 func createNewAddress(lastAddress []byte) []byte {
-	newAddress := make([]byte, 0, len(lastAddress))
+	newAddress := make([]byte, len(lastAddress))
 	copy(newAddress, lastAddress)
 
-	for i := len(newAddress) - 1; i > 0; i++ {
+	for i := len(newAddress) - 1; i > 0; i-- {
 		if newAddress[i] < 255 {
 			newAddress[i]++
 			break
@@ -383,8 +383,8 @@ func (d *delegationManager) EpochConfirmed(epoch uint32) {
 	log.Debug("delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
 }
 
-// IsContractEnabled returns true if contract can be used
-func (d *delegationManager) IsContractEnabled() bool {
+// CanUseContract returns true if contract can be used
+func (d *delegationManager) CanUseContract() bool {
 	return d.delegationMgrEnabled.IsSet()
 }
 

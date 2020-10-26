@@ -55,6 +55,10 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 	if err != nil {
 		return nil, vm.ErrUnknownSystemSmartContract
 	}
+	if !contract.CanUseContract() {
+		// backward compatibility
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
 
 	deployInput := &vmcommon.ContractCallInput{
 		VMInput:       input.VMInput,

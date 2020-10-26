@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
 // EpochRewardsCreatorStub -
@@ -18,6 +19,7 @@ type EpochRewardsCreatorStub struct {
 	RemoveBlockDataFromPoolsCalled func(metaBlock *block.MetaBlock, body *block.Body)
 	GetRewardsTxsCalled            func(body *block.Body) map[string]data.TransactionHandler
 	GetProtocolSustainCalled       func() *big.Int
+	GetLocalTxCacheCalled          func() epochStart.TransactionCacher
 }
 
 // GetProtocolSustainabilityRewards -
@@ -26,6 +28,14 @@ func (e *EpochRewardsCreatorStub) GetProtocolSustainabilityRewards() *big.Int {
 		return e.GetProtocolSustainCalled()
 	}
 	return big.NewInt(0)
+}
+
+// GetLocalTxCache -
+func (e *EpochRewardsCreatorStub) GetLocalTxCache() epochStart.TransactionCacher {
+	if e.GetLocalTxCacheCalled != nil {
+		return e.GetLocalTxCacheCalled()
+	}
+	return &TxForCurrentBlockStub{}
 }
 
 // CreateRewardsMiniBlocks -

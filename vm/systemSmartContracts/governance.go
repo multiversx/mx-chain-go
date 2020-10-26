@@ -910,6 +910,11 @@ func (g *governanceContract) EpochConfirmed(epoch uint32) {
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
+// CanUseContract returns true if contract is enabled
+func (g *governanceContract) CanUseContract() bool {
+	return true
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (g *governanceContract) IsInterfaceNil() bool {
 	return g == nil

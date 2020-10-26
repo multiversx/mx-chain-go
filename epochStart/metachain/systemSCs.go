@@ -8,6 +8,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -161,6 +163,76 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+		if miniBlock.ReceiverShardID != core.MetachainShardId {
+			continue
+		}
+		return miniBlock
+	}
+	return nil
+}
+
+// ProcessDelegationRewards will process the rewards which are directed towards the delegation system smart contracts
+func (s *systemSCProcessor) ProcessDelegationRewards(
+	miniBlocks block.MiniBlockSlice,
+	txCache epochStart.TransactionCacher,
+) error {
+	if txCache == nil {
+		return epochStart.ErrNilLocalTxCache
+	}
+
+	rwdMb := getRewardsMiniBlockForMeta(miniBlocks)
+	if rwdMb == nil {
+		return nil
+	}
+
+	for _, txHash := range rwdMb.TxHashes {
+		rwdTx, err := txCache.GetTx(txHash)
+		if err != nil {
+			return err
+		}
+
+		err = s.executeRewardTx(rwdTx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  nil,
+			CallValue:  rwdTx.GetValue(),
+		},
+		RecipientAddr: rwdTx.GetRcvAddr(),
+		Function:      "updateRewards",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrSystemDelegationCall
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -393,6 +465,13 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+		}
+
+		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
+			err = acc.AddToBalance(outAcc.BalanceDelta)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = s.userAccountsDB.SaveAccount(acc)

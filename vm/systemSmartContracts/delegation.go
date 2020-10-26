@@ -19,6 +19,12 @@ const delegationConfigKey = "delegationConfigKey"
 const delegationStatusKey = "delegationStatusKey"
 const lastFundKey = "lastFundKey"
 const globalFundKey = "globalFundKey"
+const serviceFeeKey = "serviceFee"
+const totalActiveKey = "totalActive"
+const rewardKeyPrefix = "reward"
+const fundKeyPrefix = "fund"
+
+const percentageDenominator = uint64(100000)
 
 const (
 	active       = uint32(0)
@@ -83,6 +89,12 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 	if check.IfNil(args.SigVerifier) {
 		return nil, vm.ErrNilMessageSignVerifier
+	}
+	if args.DelegationSCConfig.MinServiceFee > args.DelegationSCConfig.MaxServiceFee {
+		return nil, fmt.Errorf("%w minServiceFee bigger than maxServiceFee", vm.ErrInvalidDelegationSCConfig)
+	}
+	if args.DelegationSCConfig.MaxServiceFee > percentageDenominator {
+		return nil, fmt.Errorf("%w maxServiceFee bigger than %d", vm.ErrInvalidDelegationSCConfig, percentageDenominator)
 	}
 
 	d := &delegation{
@@ -167,6 +179,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
+	case "claimRewards":
+		return d.claimRewards(args)
+	case "getRewardData":
+		return d.getRewardData(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + "is an unknown function")
@@ -185,6 +201,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	ownerAddress = args.CallerAddr
+	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
 	dConfig := &DelegationConfig{
 		OwnerAddress:         ownerAddress,
@@ -230,6 +247,8 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		ActiveFund:        fundKey,
 		UnStakedFunds:     make([][]byte, 0),
 		WithdrawOnlyFunds: make([][]byte, 0),
+		RewardsCheckpoint: d.eei.BlockChainHook().CurrentEpoch(),
+		UnClaimedRewards:  big.NewInt(0),
 	}
 
 	globalFund := &GlobalFundData{
@@ -258,13 +277,13 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	return vmcommon.Ok
 }
 
-func (d *delegation) isOwner(args *vmcommon.ContractCallInput) bool {
+func (d *delegation) isOwner(address []byte) bool {
 	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
-	return bytes.Equal(args.CallerAddr, ownerAddress)
+	return bytes.Equal(address, ownerAddress)
 }
 
 func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.isOwner(args) {
+	if !d.isOwner(args.CallerAddr) {
 		d.eei.AddReturnMessage("only owner can change delegation config")
 		return vmcommon.UserError
 	}
@@ -793,19 +812,24 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	globalFund.TotalActive.Set(newTotalActive)
-	isNew, dData, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	err = d.saveGlobalFundData(globalFund)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	if isNew {
+		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch() + 1
+		delegator.UnClaimedRewards = big.NewInt(0)
+	} else {
+		err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
-	if len(dData.ActiveFund) == 0 {
+	if len(delegator.ActiveFund) == 0 {
 		var fundKey []byte
 		fundKey, err = d.createAndSaveNextFund(args.CallerAddr, args.CallValue, active)
 		if err != nil {
@@ -813,13 +837,8 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			return vmcommon.UserError
 		}
 
-		dData.ActiveFund = fundKey
-		err = d.addNewFundToGlobalData(fundKey, active)
-		if err != nil {
-			d.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-
+		delegator.ActiveFund = fundKey
+		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
 			err = d.addNewDelegatorToList(args.CallerAddr)
 			if err != nil {
@@ -829,7 +848,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 
 	} else {
-		err = d.addValueToFund(dData.ActiveFund, args.CallValue)
+		err = d.addValueToFund(delegator.ActiveFund, args.CallValue)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -846,7 +865,13 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmOutput.ReturnCode
 	}
 
-	err = d.saveDelegatorData(args.CallerAddr, dData)
+	err = d.saveGlobalFundData(globalFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -922,6 +947,34 @@ func (d *delegation) resolveUnStakedUnBondResponse(
 	return actualUserVal, remainingVal, nil
 }
 
+func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, valueToUnDelegate *big.Int) error {
+	if !d.isOwner(address) {
+		return nil
+	}
+
+	delegationConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		return err
+	}
+
+	remainingFunds := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
+	if remainingFunds.Cmp(delegationConfig.InitialOwnerFunds) >= 0 {
+		return nil
+	}
+
+	delegationStatus, err := d.getDelegationStatus()
+	if err != nil {
+		return err
+	}
+
+	numActiveKeys := len(delegationStatus.StakedKeys) + len(delegationStatus.UnStakedKeys)
+	if numActiveKeys > 0 {
+		return vm.ErrOwnerCannotUnDelegate
+	}
+
+	return nil
+}
+
 func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
@@ -959,6 +1012,16 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	if activeFund.Value.Cmp(zero) > 0 && activeFund.Value.Cmp(d.minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
+		return vmcommon.UserError
+	}
+	err = d.checkOwnerCanUnDelegate(args.CallerAddr, activeFund, valueToUnDelegate)
+	if err != nil {
+		d.eei.AddReturnMessage("owner cannot unDelegate the specified sum")
+		return vmcommon.UserError
+	}
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -1026,8 +1089,178 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func (d *delegation) updateRewards(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	return vmcommon.UserError
+func (d *delegation) updateRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, d.endOfEpochAddr) {
+		d.eei.AddReturnMessage("only end of epoch address can call this function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("must call without arguments")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("cannot call with negative value")
+		return vmcommon.UserError
+	}
+
+	totalActiveData := d.eei.GetStorage([]byte(totalActiveKey))
+	serviceFeeData := d.eei.GetStorage([]byte(serviceFeeKey))
+	rewardsData := &RewardComputationData{
+		RewardsToDistribute: args.CallValue,
+		TotalActive:         big.NewInt(0).SetBytes(totalActiveData),
+		ServiceFee:          big.NewInt(0).SetBytes(serviceFeeData).Uint64(),
+	}
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	err := d.saveRewardData(currentEpoch, rewardsData)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getRewardData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("must call with 1 arguments")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("cannot call with negative value")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	epoch := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
+	found, rewardData, err := d.getRewardComputationData(uint32(epoch))
+	if !found {
+		d.eei.AddReturnMessage("reward not found")
+		return vmcommon.UserError
+	}
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(rewardData.RewardsToDistribute.Bytes())
+	d.eei.Finish(rewardData.TotalActive.Bytes())
+	d.eei.Finish(big.NewInt(0).SetUint64(rewardData.ServiceFee).Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getRewardComputationData(epoch uint32) (bool, *RewardComputationData, error) {
+	marshaledData := d.eei.GetStorage(rewardKeyForEpoch(epoch))
+	if len(marshaledData) == 0 {
+		return false, nil, nil
+	}
+	rewardsData := &RewardComputationData{}
+	err := d.marshalizer.Unmarshal(rewardsData, marshaledData)
+	if err != nil {
+		return false, nil, err
+	}
+
+	return true, rewardsData, nil
+}
+
+func rewardKeyForEpoch(epoch uint32) []byte {
+	epochInBytes := big.NewInt(int64(epoch)).Bytes()
+	return append([]byte(rewardKeyPrefix), epochInBytes...)
+}
+
+func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputationData) error {
+	marshaledData, err := d.marshalizer.Marshal(rewardsData)
+	if err != nil {
+		return err
+	}
+
+	d.eei.SetStorage(rewardKeyForEpoch(epoch), marshaledData)
+	return nil
+}
+
+func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	activeFund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		return err
+	}
+
+	isOwner := d.isOwner(callerAddress)
+
+	totalRewards := big.NewInt(0)
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	for i := delegator.RewardsCheckpoint; i <= currentEpoch; i++ {
+		found, rewardData, errGet := d.getRewardComputationData(i)
+		if errGet != nil {
+			return errGet
+		}
+		if !found {
+			continue
+		}
+
+		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
+		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
+
+		// delegator reward is: rewardForDelegator * user stake / total active
+		rewardForDelegator.Mul(rewardForDelegator, activeFund.Value)
+		rewardForDelegator.Div(rewardForDelegator, rewardData.TotalActive)
+
+		if isOwner {
+			totalRewards.Add(totalRewards, rewardsForOwner)
+		}
+		totalRewards.Add(totalRewards, rewardForDelegator)
+	}
+
+	delegator.UnClaimedRewards.Add(delegator.UnClaimedRewards, totalRewards)
+	delegator.RewardsCheckpoint = currentEpoch + 1
+
+	return nil
+}
+
+func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("wrong number of arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("caller is not a delegator")
+		return vmcommon.UserError
+	}
+
+	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 func (d *delegation) unStakeOrBondFromAuctionSC(
@@ -1227,6 +1460,7 @@ func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) err
 	}
 
 	d.eei.SetStorage([]byte(delegationConfigKey), marshaledData)
+	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(dConfig.ServiceFee).Bytes())
 	return nil
 }
 
@@ -1256,7 +1490,9 @@ func (d *delegation) saveDelegationStatus(status *DelegationContractStatus) erro
 }
 
 func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorData, error) {
-	dData := &DelegatorData{}
+	dData := &DelegatorData{
+		UnClaimedRewards: big.NewInt(0),
+	}
 	marshaledData := d.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
 		return true, dData, nil
@@ -1301,6 +1537,8 @@ func (d *delegation) createAndSaveNextFund(address []byte, value *big.Int, fundT
 	if err != nil {
 		return nil, err
 	}
+
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 	return fundKey, nil
 }
 
@@ -1320,10 +1558,10 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 }
 
 func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
-	nextKey := big.NewInt(0).Bytes()
+	nextKey := big.NewInt(1).Bytes()
 	lastKey := d.eei.GetStorage([]byte(lastFundKey))
-	if len(lastKey) > 0 {
-		lastIndex := big.NewInt(0).SetBytes(lastKey)
+	if len(lastKey) > len(fundKeyPrefix) {
+		lastIndex := big.NewInt(0).SetBytes(lastKey[len(fundKeyPrefix):])
 		lastIndex.Add(lastIndex, big.NewInt(1))
 		nextKey = lastIndex.Bytes()
 	}
@@ -1335,30 +1573,19 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 		Type:    fundType,
 	}
 
+	nextKey = append([]byte(fundKeyPrefix), nextKey...)
 	return nextKey, fund
 }
 
-func (d *delegation) addNewFundToGlobalData(fundKey []byte, fundType uint32) error {
-	globalFundData, err := d.getGlobalFundData()
-	if err != nil {
-		return err
-	}
-
+func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey []byte, fundType uint32) {
 	switch fundType {
 	case active:
-		globalFundData.ActiveFunds = append(globalFundData.ActiveFunds, fundKey)
+		globalFund.ActiveFunds = append(globalFund.ActiveFunds, fundKey)
 	case unStaked:
-		globalFundData.UnStakedFunds = append(globalFundData.UnStakedFunds, fundKey)
+		globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, fundKey)
 	case withdrawOnly:
-		globalFundData.WithdrawOnlyFunds = append(globalFundData.WithdrawOnlyFunds, fundKey)
+		globalFund.WithdrawOnlyFunds = append(globalFund.WithdrawOnlyFunds, fundKey)
 	}
-
-	err = d.saveGlobalFundData(globalFundData)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (d *delegation) getGlobalFundData() (*GlobalFundData, error) {
@@ -1383,6 +1610,7 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	}
 
 	d.eei.SetStorage([]byte(globalFundKey), marshaledData)
+	d.eei.SetStorage([]byte(totalActiveKey), globalFundData.TotalActive.Bytes())
 	return nil
 }
 
@@ -1392,8 +1620,8 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 	log.Debug("delegationManager", "enabled", d.delegationEnabled.IsSet())
 }
 
-// IsContractEnabled returns true if contract can be used
-func (d *delegation) IsContractEnabled() bool {
+// CanUseContract returns true if contract can be used
+func (d *delegation) CanUseContract() bool {
 	return d.delegationEnabled.IsSet()
 }
 

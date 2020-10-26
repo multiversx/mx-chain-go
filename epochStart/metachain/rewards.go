@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -39,6 +40,8 @@ type ArgsNewRewardsCreator struct {
 	DataPool                      dataRetriever.PoolsHolder
 	ProtocolSustainabilityAddress string
 	NodesConfigProvider           epochStart.NodesConfigProvider
+	DelegationSystemSCEnableEpoch uint32
+	UserAccountsDB                state.AccountsAdapter
 }
 
 type rewardsCreator struct {
@@ -56,6 +59,10 @@ type rewardsCreator struct {
 	mapRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards             *big.Int
 	protocolSustainability         *big.Int
+
+	flagDelegationSystemSCEnabled atomic.Flag
+	delegationSystemSCEnableEpoch uint32
+	userAccountsDB                state.AccountsAdapter
 }
 
 type rewardInfoData struct {
@@ -93,6 +100,9 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, epochStart.ErrNilNodesConfigProvider
 	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, epochStart.ErrNilAccountsDB
+	}
 
 	address, err := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
 	if err != nil {
@@ -122,6 +132,8 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		nodesConfigProvider:           args.NodesConfigProvider,
 		accumulatedRewards:            big.NewInt(0),
 		protocolSustainability:        big.NewInt(0),
+		delegationSystemSCEnableEpoch: args.DelegationSystemSCEnableEpoch,
+		userAccountsDB:                args.UserAccountsDB,
 	}
 
 	return rc, nil
@@ -142,15 +154,17 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	}
 
 	rc.clean()
+	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 
-	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
+	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
 		miniBlocks[i].SenderShardID = core.MetachainShardId
 		miniBlocks[i].ReceiverShardID = i
 		miniBlocks[i].Type = block.RewardsBlock
 		miniBlocks[i].TxHashes = make([][]byte, 0)
 	}
+	miniBlocks[rc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
 
 	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
@@ -167,6 +181,10 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
 	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 
 	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
@@ -177,14 +195,14 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 
-	for shId := uint32(0); shId < rc.shardCoordinator.NumberOfShards(); shId++ {
+	for shId := uint32(0); shId <= rc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
 			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
 		})
 	}
 
 	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 		}
@@ -223,17 +241,44 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 		}
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
-		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
-		if shardId == core.MetachainShardId {
-			protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.Value)
-			continue
+		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
+		if mbId == core.MetachainShardId {
+			mbId = rc.shardCoordinator.NumberOfShards()
+
+			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
+				protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.GetValue())
+				continue
+			}
 		}
 
+		if rwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
+			continue
+		}
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
-		miniBlocks[shardId].TxHashes = append(miniBlocks[shardId].TxHashes, rwdTxHash)
+		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}
 
 	return nil
+}
+
+func (rc *rewardsCreator) isSystemDelegationSC(address []byte) bool {
+	acc, errExist := rc.userAccountsDB.GetExistingAccount(address)
+	if errExist != nil {
+		return false
+	}
+
+	userAcc, ok := acc.(state.UserAccountHandler)
+	if !ok {
+		return false
+	}
+
+	val, err := userAcc.DataTrieTracker().RetrieveValue([]byte(core.DelegationSystemSCKey))
+	if err != nil {
+		return false
+	}
+
+	return len(val) > 0
 }
 
 func (rc *rewardsCreator) createProtocolSustainabilityRewardTransaction(
@@ -320,6 +365,11 @@ func (rc *rewardsCreator) GetProtocolSustainabilityRewards() *big.Int {
 	return rc.protocolSustainability
 }
 
+// GetLocalTxCache returns the local tx cache which holds all the rewards
+func (rc *rewardsCreator) GetLocalTxCache() epochStart.TransactionCacher {
+	return rc.currTxs
+}
+
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
 	if check.IfNil(metaBlock) {
@@ -391,6 +441,10 @@ func (rc *rewardsCreator) CreateMarshalizedData(body *block.Body) map[string][][
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+		if miniBlock.SenderShardID != rc.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == rc.shardCoordinator.SelfId() {
 			continue
 		}
 

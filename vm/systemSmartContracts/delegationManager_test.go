@@ -246,7 +246,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	assert.Equal(t, dm.minCreationDeposit, dManagementData.MinDeposit)
 
 	dContractList, _ := dm.getDelegationContractList()
-	assert.Equal(t, 0, len(dContractList.Addresses))
+	assert.Equal(t, 1, len(dContractList.Addresses))
 }
 
 func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(t *testing.T) {
