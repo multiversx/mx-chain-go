@@ -36,4 +36,6 @@ type ArgElasticProcessor struct {
 	AccountsDB               state.AccountsAdapter
 	Denomination             int
 	FeeConfig                *config.FeeSettings
+	ShardCoordinator         sharding.Coordinator
+	IsInImportDBMode         bool
 }

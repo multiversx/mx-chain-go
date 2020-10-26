@@ -19,7 +19,6 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 	return &ArgsIndexerFactory{
 		Enabled:                  true,
 		IndexerCacheSize:         100,
-		ShardID:                  0,
 		Url:                      ts.URL,
 		UserName:                 "",
 		Password:                 "",
@@ -35,6 +34,8 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
 		FeeConfig:                &config.FeeSettings{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		IsInImportDBMode:         false,
 	}
 }
 

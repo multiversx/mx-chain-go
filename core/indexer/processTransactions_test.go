@@ -125,6 +125,8 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		nil,
+		false,
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -141,6 +143,8 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		nil,
+		false,
 	)
 
 	scAddr := []byte("addr")
@@ -230,6 +234,8 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		nil,
+		false,
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -257,6 +263,8 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		nil,
+		false,
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)

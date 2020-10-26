@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -31,9 +32,11 @@ const (
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor process.TransactionLogProcessorDatabase
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
+	txLogsProcessor  process.TransactionLogProcessorDatabase
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	isInImportMode   bool
+	shardCoordinator sharding.Coordinator
 }
 
 func newTxDatabaseProcessor(
@@ -42,6 +45,8 @@ func newTxDatabaseProcessor(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	feeConfig *config.FeeSettings,
+	shardCoordinator sharding.Coordinator,
+	isInImportMode bool,
 ) *txDatabaseProcessor {
 	// this should never return error because is tested when economics file is created
 	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
@@ -56,7 +61,9 @@ func newTxDatabaseProcessor(
 			minGasLimit:              minGasLimit,
 			gasPerDataByte:           gasPerDataByte,
 		},
-		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
+		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
+		shardCoordinator: shardCoordinator,
+		isInImportMode:   isInImportMode,
 	}
 }
 
@@ -93,8 +100,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 		// append child smart contract results
 		scrs := findAllChildScrResults(scHash, scResults)
-		for scHash, sc := range scrs {
-			tx = tdp.addScResultInfoInTx(scHash, sc, tx)
+		for childScHash, sc := range scrs {
+			tx = tdp.addScResultInfoInTx(childScHash, sc, tx)
 			countScResults[string(scResult.OriginalTxHash)]++
 		}
 	}
@@ -252,7 +259,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
-				transactions[hash] = dbTx
+				if tdp.shouldIndex(tx) {
+					transactions[hash] = dbTx
+				}
 				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
@@ -268,8 +277,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
-				alteredAddresses[dbTx.Receiver] = struct{}{}
-				rewardsTxs = append(rewardsTxs, dbTx)
+				if tdp.shouldIndex(rtx) {
+					rewardsTxs = append(rewardsTxs, dbTx)
+				}
 				delete(txPool, hash)
 			}
 		default:
@@ -278,6 +288,15 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	}
 
 	return transactions, rewardsTxs, alteredAddresses
+}
+
+func (tdp *txDatabaseProcessor) shouldIndex(txHandler data.TransactionHandler) bool {
+	if !tdp.isInImportMode {
+		return true
+	}
+
+	destShardId := tdp.shardCoordinator.ComputeId(txHandler.GetRcvAddr())
+	return destShardId == tdp.shardCoordinator.SelfId()
 }
 
 func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction) map[string]*Transaction {
