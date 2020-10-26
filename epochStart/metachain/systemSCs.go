@@ -716,11 +716,11 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
-		"enabled", s.flagHystNodesEnabled.IsSet())
+		"enabled", epoch >= s.hystNodesEnableEpoch)
 
 	// only toggle on exact epoch as init should be called only once
 	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
-	log.Debug("systemProcessor: delegation", "enabled", s.flagHystNodesEnabled.IsSet())
+	log.Debug("systemProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
 	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
 	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)

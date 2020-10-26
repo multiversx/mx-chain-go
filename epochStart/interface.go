@@ -147,7 +147,7 @@ type TransactionCacher interface {
 
 // StakingDataProvider is able to provide staking data from the system smart contracts
 type StakingDataProvider interface {
-	GetStakingDataForBlsKey(blsKey []byte) error
+	PrepareDataForBlsKey(blsKey []byte) error
 	Clean()
 	IsInterfaceNil() bool
 }

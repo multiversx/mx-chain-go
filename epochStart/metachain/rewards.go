@@ -162,7 +162,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
-	err := rc.prepareRewards(validatorsInfo)
+	err := rc.prepareStakingData(validatorsInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +613,7 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 
 //TODO evaluate if this function will remain here or be moved inside a new rewardsCreator implementation
 // in case it should remain here, we need a softfork protection for this call
-func (rc *rewardsCreator) prepareRewards(validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rc *rewardsCreator) prepareStakingData(validatorsInfo map[uint32][]*state.ValidatorInfo) error {
 	sw := core.NewStopWatch()
 	sw.Start("prepareRewardsFromStakingSC")
 	defer func() {
@@ -623,7 +623,7 @@ func (rc *rewardsCreator) prepareRewards(validatorsInfo map[uint32][]*state.Vali
 
 	for _, validatorInfoSlice := range validatorsInfo {
 		for _, validatorInfo := range validatorInfoSlice {
-			err := rc.stakingDataProvider.GetStakingDataForBlsKey(validatorInfo.PublicKey)
+			err := rc.stakingDataProvider.PrepareDataForBlsKey(validatorInfo.PublicKey)
 			if err != nil {
 				//TODO uncomment this return when this function will be used
 				//return err

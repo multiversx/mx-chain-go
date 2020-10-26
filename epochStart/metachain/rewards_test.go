@@ -149,7 +149,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing
 		CleanCalled: func() {
 			//cleanWasCalled = true
 		},
-		GetStakingDataForBlsKeyCalled: func(blsKey []byte) error {
+		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
 			numComputeRewards++
 			return expectedErr
 		},
@@ -186,7 +186,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 		CleanCalled: func() {
 			cleanWasCalled = true
 		},
-		GetStakingDataForBlsKeyCalled: func(blsKey []byte) error {
+		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
 			numComputeRewards++
 			return nil
 		},

@@ -1,16 +1,16 @@
 package metachain
 
 // SetInCache -
-func (sdr *stakingDataProvider) SetInCache(key []byte, ownerData *ownerStats) {
-	sdr.mutCache.Lock()
-	sdr.cache[string(key)] = ownerData
-	sdr.mutCache.Unlock()
+func (sdp *stakingDataProvider) SetInCache(key []byte, ownerData *ownerStats) {
+	sdp.mutCache.Lock()
+	sdp.cache[string(key)] = ownerData
+	sdp.mutCache.Unlock()
 }
 
 // GetFromCache -
-func (sdr *stakingDataProvider) GetFromCache(key []byte) *ownerStats {
-	sdr.mutCache.Lock()
-	defer sdr.mutCache.Unlock()
+func (sdp *stakingDataProvider) GetFromCache(key []byte) *ownerStats {
+	sdp.mutCache.Lock()
+	defer sdp.mutCache.Unlock()
 
-	return sdr.cache[string(key)]
+	return sdp.cache[string(key)]
 }

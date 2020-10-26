@@ -2,14 +2,14 @@ package mock
 
 // StakingDataProviderStub -
 type StakingDataProviderStub struct {
-	CleanCalled                   func()
-	GetStakingDataForBlsKeyCalled func(blsKey []byte) error
+	CleanCalled                func()
+	PrepareDataForBlsKeyCalled func(blsKey []byte) error
 }
 
-// GetStakingDataForBlsKey -
-func (sdps *StakingDataProviderStub) GetStakingDataForBlsKey(blsKey []byte) error {
-	if sdps.GetStakingDataForBlsKeyCalled != nil {
-		return sdps.GetStakingDataForBlsKeyCalled(blsKey)
+// PrepareDataForBlsKey -
+func (sdps *StakingDataProviderStub) PrepareDataForBlsKey(blsKey []byte) error {
+	if sdps.PrepareDataForBlsKeyCalled != nil {
+		return sdps.PrepareDataForBlsKeyCalled(blsKey)
 	}
 
 	return nil

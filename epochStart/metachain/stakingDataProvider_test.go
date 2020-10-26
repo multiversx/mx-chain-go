@@ -21,27 +21,27 @@ import (
 func TestNewStakingDataProvider_NilSystemVMShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sdr, err := NewStakingDataProvider(nil)
+	sdp, err := NewStakingDataProvider(nil)
 
-	assert.True(t, check.IfNil(sdr))
+	assert.True(t, check.IfNil(sdp))
 	assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
 }
 
 func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	sdr, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{})
+	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{})
 
-	assert.False(t, check.IfNil(sdr))
+	assert.False(t, check.IfNil(sdp))
 	assert.Nil(t, err)
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
+func TestStakingDataProvider_GPrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	numCall := 0
 	expectedErr := errors.New("expected error")
-	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
@@ -62,27 +62,27 @@ func TestStakingDataProvider_GetStakingDataForBlsKeyGetBlsKeyOwnerErrorsShouldEr
 		},
 	})
 
-	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the owner address"))
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyLoadOwnerDataErrorsShouldErr(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	numCall := 0
 	owner := []byte("owner")
 	expectedErr := errors.New("expected error")
-	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -115,30 +115,30 @@ func TestStakingDataProvider_GetStakingDataForBlsKeyLoadOwnerDataErrorsShouldErr
 		},
 	})
 
-	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the top up value"))
 
-	err = sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
-	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -150,68 +150,68 @@ func TestStakingDataProvider_GetStakingDataForBlsKeyReturnedOwnerIsNotHexShouldE
 		},
 	})
 
-	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyFromSCShouldWork(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
 	topUpVal := big.NewInt(828743)
 	numRunContractCalls := 0
 
-	sdr := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := sdr.GetStakingDataForBlsKey([]byte("bls key"))
+	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
-	ownerData := sdr.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyCachedResponseShouldWork(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
 	topUpVal := big.NewInt(828743)
 	numRunContractCalls := 0
 
-	rsp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
+	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := rsp.GetStakingDataForBlsKey([]byte("bls key"))
+	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 
-	err = rsp.GetStakingDataForBlsKey([]byte("bls key2"))
+	err = sdp.PrepareDataForBlsKey([]byte("bls key2"))
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
-	ownerData := rsp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 2, ownerData.numEligible)
 }
 
-func TestStakingDataProvider_GetStakingDataForBlsKeyWithRealSystemVmShouldWork(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := append([]byte("owner"), bytes.Repeat([]byte{1}, 27)...)
 	topUpVal := big.NewInt(828743)
 	blsKey := []byte("bls key")
 
-	rsp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
-	err := rsp.GetStakingDataForBlsKey(blsKey)
+	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
+	err := sdp.PrepareDataForBlsKey(blsKey)
 	assert.Nil(t, err)
-	ownerData := rsp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
 func createStakingDataProviderWithMockArgs(t *testing.T, owner []byte, topUpVal *big.Int, numRunContractCalls *int) *stakingDataProvider {
-	sdr, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			*numRunContractCalls++
 			switch input.Function {
@@ -235,7 +235,7 @@ func createStakingDataProviderWithMockArgs(t *testing.T, owner []byte, topUpVal 
 		},
 	})
 
-	return sdr
+	return sdp
 }
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
@@ -246,9 +246,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	sdr, _ := NewStakingDataProvider(s.systemVM)
+	sdp, _ := NewStakingDataProvider(s.systemVM)
 
-	return sdr
+	return sdp
 }
 
 func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput *vmcommon.VMOutput) {

@@ -36,35 +36,35 @@ func NewStakingDataProvider(
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
 
-	rsp := &stakingDataProvider{
+	sdp := &stakingDataProvider{
 		systemVM: systemVM,
 	}
-	rsp.Clean()
+	sdp.Clean()
 
-	return rsp, nil
+	return sdp, nil
 }
 
 // Clean will reset the inner state of the called instance
-func (sdr *stakingDataProvider) Clean() {
-	sdr.mutCache.Lock()
-	sdr.cache = make(map[string]*ownerStats)
-	sdr.mutCache.Unlock()
+func (sdp *stakingDataProvider) Clean() {
+	sdp.mutCache.Lock()
+	sdp.cache = make(map[string]*ownerStats)
+	sdp.mutCache.Unlock()
 }
 
-// GetStakingDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
+// PrepareDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
 // staking data can be recovered from the staking system smart contracts.
 // The function will error if something went wrong. It does change the inner state of the called instance.
-func (sdr *stakingDataProvider) GetStakingDataForBlsKey(blsKey []byte) error {
-	owner, err := sdr.getBlsKeyOwnerAsHex(blsKey)
+func (sdp *stakingDataProvider) PrepareDataForBlsKey(blsKey []byte) error {
+	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return err
 	}
 
-	sdr.mutCache.Lock()
-	defer sdr.mutCache.Unlock()
+	sdp.mutCache.Lock()
+	defer sdp.mutCache.Unlock()
 
-	ownerData, err := sdr.getOwnerData(owner)
+	ownerData, err := sdp.getValidatorData(owner)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner data", "key", hex.EncodeToString(blsKey), "error", err)
 		return err
@@ -74,7 +74,7 @@ func (sdr *stakingDataProvider) GetStakingDataForBlsKey(blsKey []byte) error {
 	return nil
 }
 
-func (sdr *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
+func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.AuctionSCAddress,
@@ -85,7 +85,7 @@ func (sdr *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, erro
 		Function:      "getOwner",
 	}
 
-	vmOutput, err := sdr.systemVM.RunSmartContractCall(vmInput)
+	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
 		return "", err
 	}
@@ -100,17 +100,17 @@ func (sdr *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, erro
 	return string(data[0]), nil
 }
 
-func (sdr *stakingDataProvider) getOwnerData(validatorAddress string) (*ownerStats, error) {
-	ownerData, exists := sdr.cache[validatorAddress]
+func (sdp *stakingDataProvider) getValidatorData(validatorAddress string) (*ownerStats, error) {
+	ownerData, exists := sdp.cache[validatorAddress]
 	if exists {
 		return ownerData, nil
 	}
 
-	return sdr.loadOwnerData(validatorAddress)
+	return sdp.getValidatorDataFromStakingSC(validatorAddress)
 }
 
-func (sdr *stakingDataProvider) loadOwnerData(validatorAddress string) (*ownerStats, error) {
-	topUpValue, err := sdr.getTopUpValue(validatorAddress)
+func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress string) (*ownerStats, error) {
+	topUpValue, err := sdp.getTopUpValue(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -119,12 +119,12 @@ func (sdr *stakingDataProvider) loadOwnerData(validatorAddress string) (*ownerSt
 		numEligible: 0,
 		topUpValue:  topUpValue,
 	}
-	sdr.cache[validatorAddress] = ownerData
+	sdp.cache[validatorAddress] = ownerData
 
 	return ownerData, nil
 }
 
-func (sdr *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int, error) {
+func (sdp *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int, error) {
 	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
 	if err != nil {
 		return nil, err
@@ -140,7 +140,7 @@ func (sdr *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int
 		Function:      "getTopUp",
 	}
 
-	vmOutput, err := sdr.systemVM.RunSmartContractCall(vmInput)
+	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +161,6 @@ func (sdr *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int
 }
 
 // IsInterfaceNil return true if underlying object is nil
-func (sdr *stakingDataProvider) IsInterfaceNil() bool {
-	return sdr == nil
+func (sdp *stakingDataProvider) IsInterfaceNil() bool {
+	return sdp == nil
 }
