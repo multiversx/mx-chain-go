@@ -477,7 +477,7 @@
    Type = "blake2b"
 
 [TxSignHasher]
-    Type = "sha256"
+    Type = "legacyKeccak256"
 
 # The main marshalizer, used in internodes communication
 # Type identifies the marshalizer
