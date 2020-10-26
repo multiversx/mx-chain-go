@@ -252,7 +252,8 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 		}
 
 		if rwdTx.Value.Cmp(big.NewInt(0)) < 0 {
-			log.Error("negative rewards")
+			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
+			continue
 		}
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)

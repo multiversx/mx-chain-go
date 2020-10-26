@@ -467,7 +467,7 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
-		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) > 0 {
+		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
 			err = acc.AddToBalance(outAcc.BalanceDelta)
 			if err != nil {
 				return err
