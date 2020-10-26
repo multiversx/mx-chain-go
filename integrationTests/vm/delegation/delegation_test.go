@@ -11,7 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	vm2 "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -49,7 +49,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := vm2.GetNodeIndex(nodes, nds[0])
+		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)

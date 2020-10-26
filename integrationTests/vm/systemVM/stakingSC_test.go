@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	vm2 "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -148,7 +148,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := vm2.GetNodeIndex(nodes, nds[0])
+		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		require.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
@@ -272,7 +272,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := vm2.GetNodeIndex(nodes, nds[0])
+		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
