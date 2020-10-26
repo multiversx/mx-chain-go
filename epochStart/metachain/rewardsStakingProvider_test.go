@@ -239,7 +239,7 @@ func createRewardsStakingProviderWithMockArgs(t *testing.T, owner []byte, topUpV
 }
 
 func createRewardsStakingProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *rewardsStakingProvider {
-	args := createFullArgumentsForSystemSCProcessing()
+	args, _ := createFullArgumentsForSystemSCProcessing()
 	args.EpochNotifier.CheckEpoch(1000000)
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)

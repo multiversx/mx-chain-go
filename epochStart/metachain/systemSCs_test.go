@@ -116,7 +116,7 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := createFullArgumentsForSystemSCProcessing()
+	args, _ := createFullArgumentsForSystemSCProcessing()
 	args.StakingV2EnableEpoch = 1
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
