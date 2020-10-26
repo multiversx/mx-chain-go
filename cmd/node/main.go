@@ -2439,13 +2439,8 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
-		apiConfig := config.VirtualMachineConfig{
-			OutOfProcessEnabled: generalConfig.VirtualMachine.Querying.OutOfProcessEnabled,
-			OutOfProcessConfig:  generalConfig.VirtualMachine.Querying.OutOfProcessConfig,
-			WarmInstanceEnabled: generalConfig.VirtualMachine.Querying.WarmInstanceEnabled,
-		}
 		vmFactory, err = shard.NewVMContainerFactory(
-			apiConfig,
+			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook,
