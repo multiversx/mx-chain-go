@@ -65,8 +65,8 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 	)
 
 	if arguments.IsInImportDBMode {
-		log.Warn("the node is in import mode! Elastic search will not send cross shard transactions and rewards " +
-			"where destination shard is not the current node's shard")
+		log.Warn("the node is in import mode! Cross shard transactions and rewards where destination shard is " +
+			"not the current node's shard won't be indexed in Elastic Search")
 	}
 
 	if arguments.Options.UseKibana {
