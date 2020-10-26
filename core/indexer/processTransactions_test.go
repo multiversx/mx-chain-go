@@ -125,7 +125,6 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		nil,
 		false,
 	)
 
@@ -143,7 +142,6 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		nil,
 		false,
 	)
 
@@ -234,7 +232,6 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		nil,
 		false,
 	)
 
@@ -263,7 +260,6 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		nil,
 		false,
 	)
 

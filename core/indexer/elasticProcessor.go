@@ -60,7 +60,6 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
 		arguments.FeeConfig,
-		arguments.ShardCoordinator,
 		arguments.IsInImportDBMode,
 	)
 
@@ -105,9 +104,6 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	}
 	if arguments.Options == nil {
 		return ErrNilOptions
-	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return ErrNilShardCoordinator
 	}
 
 	return nil
