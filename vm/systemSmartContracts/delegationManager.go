@@ -18,6 +18,8 @@ import (
 const delegationManagementKey = "delegationManagement"
 const delegationContractsList = "delegationContracts"
 
+var nextAddressAdd = big.NewInt(1 << 24)
+
 type delegationManager struct {
 	eei                      vm.SystemEI
 	delegationMgrSCAddress   []byte
@@ -310,18 +312,16 @@ func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallI
 	return vmcommon.Ok
 }
 
-// TODO: use all the address space
 func createNewAddress(lastAddress []byte) []byte {
-	newAddress := make([]byte, len(lastAddress))
-	copy(newAddress, lastAddress)
-
-	for i := len(newAddress) - 1; i > 0; i-- {
-		if newAddress[i] < 255 {
-			newAddress[i]++
-			break
-		}
+	i := 0
+	for ; i < len(lastAddress) && lastAddress[i] == 0; i++ {
 	}
+	prefixZeros := make([]byte, i)
 
+	lastAddressAsBigInt := big.NewInt(0).SetBytes(lastAddress)
+	lastAddressAsBigInt.Add(lastAddressAsBigInt, nextAddressAdd)
+
+	newAddress := append(prefixZeros, lastAddressAsBigInt.Bytes()...)
 	return newAddress
 }
 
