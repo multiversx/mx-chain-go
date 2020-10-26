@@ -43,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/hashing/legacyKeccak256"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -89,6 +90,9 @@ import (
 
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
+
+// TestTxSignHasher represents a sha3 legacy keccak 256 hasher
+var TestTxSignHasher = legacyKeccak256.LegacyKeccak256{}
 
 // TestMarshalizer represents the main marshalizer
 var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
@@ -153,7 +157,7 @@ const roundDuration = 5 * time.Second
 var ChainID = []byte("integration tests chain ID")
 
 // MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
-var MinTransactionVersion = uint32(999)
+var MinTransactionVersion = uint32(1)
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
@@ -934,7 +938,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
-			TxSignHasher:            TestHasher,
+			TxSignHasher:            TestTxSignHasher,
 			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
@@ -1602,7 +1606,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
 		node.WithWhiteListHandler(tpn.WhiteListHandler),
 		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
-		node.WithTxSignHasher(TestHasher),
+		node.WithTxSignHasher(TestTxSignHasher),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(tpn.MinTransactionVersion)),
 	)
 	log.LogIfError(err)
