@@ -156,7 +156,7 @@ const roundDuration = 5 * time.Second
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
 
-// MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
+// MinTransactionVersion is the minimum transaction version used in integration tests, processing nodes
 var MinTransactionVersion = uint32(1)
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes

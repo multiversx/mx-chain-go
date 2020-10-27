@@ -116,8 +116,6 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	enableSignTxWithHash := itdf.epochStartTrigger.Epoch() >= itdf.enableSignedTxWithHashEpoch
-
 	return transaction.NewInterceptedTransaction(
 		buff,
 		itdf.protoMarshalizer,
@@ -131,7 +129,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.whiteListerVerifiedTxs,
 		itdf.argsParser,
 		itdf.chainID,
-		enableSignTxWithHash,
+		itdf.flagEnableSignedTxWithHash.IsSet(),
 		itdf.txSignHasher,
 		itdf.txVersionChecker,
 	)

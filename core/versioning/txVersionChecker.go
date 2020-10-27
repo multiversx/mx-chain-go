@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	// MaskSignedWithHash this mask used to verify if first bit from first byte from field options from transaction is set
-	MaskSignedWithHash = uint32(16777216)
+	// MaskSignedWithHash this mask used to verify if first bit from last byte from field options from transaction is set
+	MaskSignedWithHash = uint32(1)
 
 	initialVersionOfTransaction = uint32(1)
 )
@@ -27,7 +27,7 @@ func NewTxVersionChecker(minTxVersion uint32) *txVersionChecker {
 // IsSignedWithHash will return true if transaction is signed with hash
 func (toc *txVersionChecker) IsSignedWithHash(tx *transaction.Transaction) bool {
 	if tx.Version > initialVersionOfTransaction {
-		// transaction is signed with hash if first bit from first byte from options is set with 1
+		// transaction is signed with hash if first bit from last byte from options is set with 1
 		return tx.Options&MaskSignedWithHash > 0
 	}
 

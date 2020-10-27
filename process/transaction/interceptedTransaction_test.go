@@ -856,7 +856,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		Signature: sigOk,
 		ChainID:   chainID,
 		Version:   minTxVersion + 1,
-		Options:   16777216,
+		Options:   versioning.MaskSignedWithHash,
 	}
 
 	marshalizer := &mock.MarshalizerMock{}
