@@ -155,7 +155,7 @@ type Config struct {
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
-	VirtualMachineConfig    VirtualMachineConfig
+	VirtualMachine          VirtualMachineServicesConfig
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
@@ -315,10 +315,17 @@ type IncreaseFactorConfig struct {
 	Factor    float32
 }
 
-// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+// VirtualMachineServicesConfig holds configuration for the Virtual Machine(s): both querying and execution services.
+type VirtualMachineServicesConfig struct {
+	Execution VirtualMachineConfig
+	Querying  VirtualMachineConfig
+}
+
+// VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
 	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+	WarmInstanceEnabled bool
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)

@@ -1207,7 +1207,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
-		shardCoordinator.SelfId(),
+		shardCoordinator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -1999,7 +2000,8 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	shardCoordinator storage.ShardCoordinator,
+	isInImportDB bool,
 ) (indexer.Indexer, error) {
 
 	if !elasticSearchConfig.Enabled {
@@ -2019,7 +2021,8 @@ func createElasticIndexer(
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		ShardCoordinator:         shardCoordinator,
+		IsInImportDBMode:         isInImportDB,
 	}
 
 	return indexer.NewElasticIndexer(arguments)
@@ -2391,7 +2394,7 @@ func startStatisticsMonitor(
 }
 
 func createApiResolver(
-	config *config.Config,
+	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
@@ -2454,11 +2457,11 @@ func createApiResolver(
 		}
 	} else {
 		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
+			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook,
-			config.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		)
 		if err != nil {
 			return nil, err

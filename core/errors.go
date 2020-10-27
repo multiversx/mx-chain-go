@@ -80,5 +80,8 @@ var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is inv
 // ErrFileLoggingProcessIsClosed signals that the file logging process is closed
 var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
 
+// ErrNilShardCoordinator signals that a nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
 // ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
