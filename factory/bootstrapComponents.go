@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -13,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
@@ -114,7 +114,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		core.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
-	latestStorageDataProvider, err := factory.CreateLatestStorageDataProvider(
+	latestStorageDataProvider, err := CreateLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
@@ -125,7 +125,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	unitOpener, err := factory.CreateUnitOpener(
+	unitOpener, err := CreateUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		bcf.config,
@@ -230,4 +230,44 @@ func (bph *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifie
 // IsInterfaceNil returns true if the underlying object is nil
 func (bph *bootstrapParamsHolder) IsInterfaceNil() bool {
 	return bph == nil
+}
+
+// CreateLatestStorageDataProvider will create a latest storage data provider handler
+func CreateLatestStorageDataProvider(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	generalConfig config.Config,
+	parentDir string,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.LatestStorageDataProviderHandler, error) {
+	directoryReader := storageFactory.NewDirectoryReader()
+
+	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+		GeneralConfig:         generalConfig,
+		BootstrapDataProvider: bootstrapDataProvider,
+		DirectoryReader:       directoryReader,
+		ParentDir:             parentDir,
+		DefaultEpochString:    defaultEpochString,
+		DefaultShardString:    defaultShardString,
+	}
+	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+}
+
+// CreateUnitOpener will create a new unit opener handler
+func CreateUnitOpener(
+	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
+	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
+	generalConfig config.Config,
+	defaultEpochString string,
+	defaultShardString string,
+) (storage.UnitOpenerHandler, error) {
+	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
+		GeneralConfig:             generalConfig,
+		BootstrapDataProvider:     bootstrapDataProvider,
+		LatestStorageDataProvider: latestDataFromStorageProvider,
+		DefaultEpochString:        defaultEpochString,
+		DefaultShardString:        defaultShardString,
+	}
+
+	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)
 }

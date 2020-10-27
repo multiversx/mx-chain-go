@@ -1565,6 +1565,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.NodesCoord = tpn.NodesCoordinator
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.InterceptorsContainer
+	processComponents.HistoryRepo = tpn.HistoryRepository
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
@@ -1592,7 +1593,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithHistoryRepository(tpn.HistoryRepository),
 	)
 	log.LogIfError(err)
 

@@ -118,6 +118,18 @@ func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 	return nil
 }
 
+// HardforkTrigger returns the hardfork trigger
+func (mcf *managedConsensusComponents) HardforkTrigger() HardforkTrigger {
+	mcf.mutConsensusComponents.RLock()
+	defer mcf.mutConsensusComponents.RUnlock()
+
+	if mcf.consensusComponents == nil {
+		return nil
+	}
+
+	return mcf.consensusComponents.hardforkTrigger
+}
+
 // IsInterfaceNil returns true if the underlying object is nil
 func (mcf *managedConsensusComponents) IsInterfaceNil() bool {
 	return mcf == nil

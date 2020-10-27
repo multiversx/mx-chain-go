@@ -17,6 +17,7 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
@@ -74,8 +75,10 @@ type coreComponents struct {
 	rater                    sharding.PeerAccountListAndRatingHandler
 	nodesShuffler            sharding.NodesShuffler
 	genesisTime              time.Time
+	epochStartNotifier       EpochStartNotifierWithConfirm
 	chainID                  string
 	minTransactionVersion    uint32
+	chanStopNodeProcess      chan endProcess.ArgEndProcess
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -227,6 +230,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		true,
 	)
 
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
+
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -246,9 +251,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ratingsData:              ratingsData,
 		rater:                    rater,
 		nodesShuffler:            nodesShuffler,
+		epochStartNotifier:       epochStartNotifier,
 		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
+		chanStopNodeProcess:      ccf.chanStopNodeProcess,
 	}, nil
 }
 

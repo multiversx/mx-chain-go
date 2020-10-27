@@ -15,7 +15,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -31,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	procTx "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // SendTransactionsPipe is the pipe used for sending new transactions
@@ -49,16 +47,14 @@ type Option func(*Node) error
 // Node is a structure that passes the configuration parameters and initializes
 //  required services as requested
 type Node struct {
-	ctx                    context.Context
-	cancelFunc             context.CancelFunc
-	initialNodesPubkeys    map[uint32][]string
-	roundDuration          uint64
-	consensusGroupSize     int
-	genesisTime            time.Time
-	peerDenialEvaluator    p2p.PeerDenialEvaluator
-	hardforkTrigger        HardforkTrigger
-	whiteListRequest       process.WhiteListHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
+	ctx                 context.Context
+	cancelFunc          context.CancelFunc
+	initialNodesPubkeys map[uint32][]string
+	roundDuration       uint64
+	consensusGroupSize  int
+	genesisTime         time.Time
+	peerDenialEvaluator p2p.PeerDenialEvaluator
+	hardforkTrigger     HardforkTrigger
 
 	networkShardingCollector NetworkShardingCollector
 
@@ -81,8 +77,6 @@ type Node struct {
 
 	mutQueryHandlers syncGo.RWMutex
 	queryHandlers    map[string]debug.QueryHandler
-
-	historyRepository dblookupext.HistoryRepository
 
 	bootstrapComponents mainFactory.BootstrapComponentsHolder
 	consensusComponents mainFactory.ConsensusComponentsHolder
@@ -152,17 +146,6 @@ func (n *Node) CreateShardedStores() error {
 
 	if headersDataStore == nil {
 		return errors.New("nil header sharded data store")
-	}
-
-	return nil
-}
-
-func (n *Node) addCloserInstances(closers ...update.Closer) error {
-	for _, c := range closers {
-		err := n.hardforkTrigger.AddCloser(c)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -374,7 +357,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.stateComponents.AccountsAdapter(),
 		n.processComponents.ShardCoordinator(),
-		n.whiteListRequest,
+		n.processComponents.WhiteListHandler(),
 		n.coreComponents.AddressPubKeyConverter(),
 		core.MaxTxNonceDeltaAllowed,
 	)
@@ -398,7 +381,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.coreComponents.AddressPubKeyConverter(),
 		n.processComponents.ShardCoordinator(),
 		n.coreComponents.EconomicsData(),
-		n.whiteListerVerifiedTxs,
+		n.processComponents.WhiteListerVerifiedTxs(),
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
 		n.coreComponents.MinTransactionVersion(),

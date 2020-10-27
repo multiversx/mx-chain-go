@@ -21,6 +21,7 @@ type Indexer interface {
 	SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32)
 	SaveValidatorsRating(indexID string, infoRating []ValidatorRatingInfo)
 	IsInterfaceNil() bool
+	//TODO: is this really needed?
 	IsNilIndexer() bool
 }
 

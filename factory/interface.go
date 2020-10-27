@@ -7,11 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -39,6 +41,12 @@ type EpochStartNotifier interface {
 	NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
 	NotifyEpochChangeConfirmed(epoch uint32)
 	IsInterfaceNil() bool
+}
+
+// EpochStartNotifierWithConfirm defines which actions should be done for handling new epoch's events and confirmation
+type EpochStartNotifierWithConfirm interface {
+	EpochStartNotifier
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
 }
 
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
@@ -99,6 +107,8 @@ type CoreComponentsHolder interface {
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() sharding.NodesShuffler
+	EpochStartNotifier() EpochStartNotifierWithConfirm
+	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
@@ -243,7 +253,12 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
-	//TransactionSimulatorProcessor() TransactionSimulatorProcessor
+	TransactionSimulatorProcessor() TransactionSimulatorProcessor
+	WhiteListHandler() process.WhiteListHandler
+	WhiteListerVerifiedTxs() process.WhiteListHandler
+	HistoryRepository() dblookupext.HistoryRepository
+	ImportStartHandler() update.ImportStartHandler
+	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	IsInterfaceNil() bool
 }
 
@@ -365,6 +380,7 @@ type ConsensusComponentsHolder interface {
 	Chronology() consensus.ChronologyHandler
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
+	HardforkTrigger() HardforkTrigger
 	IsInterfaceNil() bool
 }
 
@@ -404,4 +420,11 @@ type BootstrapComponentsHolder interface {
 type BootstrapComponentsHandler interface {
 	ComponentHandler
 	BootstrapComponentsHolder
+}
+
+// ShuffleOutCloser defines the action for end of processing
+type ShuffleOutCloser interface {
+	EndOfProcessingHandler(event endProcess.ArgEndProcess) error
+	IsInterfaceNil() bool
+	Close() error
 }

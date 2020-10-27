@@ -6,12 +6,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
@@ -295,32 +293,6 @@ func WithHardforkTrigger(hardforkTrigger HardforkTrigger) Option {
 	}
 }
 
-// WithWhiteListHandler sets up a white list handler option
-func WithWhiteListHandler(whiteListHandler process.WhiteListHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(whiteListHandler) {
-			return ErrNilWhiteListHandler
-		}
-
-		n.whiteListRequest = whiteListHandler
-
-		return nil
-	}
-}
-
-// WithWhiteListHandlerVerified sets up a white list handler option
-func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Option {
-	return func(n *Node) error {
-		if check.IfNil(whiteListHandler) {
-			return ErrNilWhiteListHandler
-		}
-
-		n.whiteListerVerifiedTxs = whiteListHandler
-
-		return nil
-	}
-}
-
 // WithSignatureSize sets up a signatureSize option for the Node
 func WithSignatureSize(signatureSize int) Option {
 	return func(n *Node) error {
@@ -345,17 +317,6 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 		}
 		n.chanStopNodeProcess = channel
 
-		return nil
-	}
-}
-
-// WithHistoryRepository sets up a history repository for the node
-func WithHistoryRepository(historyRepo dblookupext.HistoryRepository) Option {
-	return func(n *Node) error {
-		if check.IfNil(historyRepo) {
-			return ErrNilHistoryRepository
-		}
-		n.historyRepository = historyRepo
 		return nil
 	}
 }

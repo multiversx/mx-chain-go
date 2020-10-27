@@ -324,7 +324,7 @@ func CreateCoordinators(
 	prefsConfig *config.Preferences,
 	ratingsConfig *config.RatingsConfig,
 	nodesSetup sharding.GenesisNodesSetupHandler,
-	epochStartNotifier nodeFactory.EpochStartNotifier,
+	epochStartNotifier factory.EpochStartNotifier,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -359,8 +359,10 @@ func CreateCoordinators(
 		true,
 	)
 
-	nodesCoordinator, nodesShufflerOut, _ := factory.CreateNodesCoordinator(
-		log,
+	nodesShufflerOut, _ := factory.CreateNodesShuffleOut(nodesSetup, generalConfig.EpochStartConfig, chanStopNodeProcess)
+
+	nodesCoordinator, _ := factory.CreateNodesCoordinator(
+		nodesShufflerOut,
 		nodesSetup,
 		prefsConfig.Preferences,
 		epochStartNotifier,
@@ -370,9 +372,7 @@ func CreateCoordinators(
 		rater,
 		dataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
 		nodesShuffler,
-		generalConfig.EpochStartConfig,
 		genesisShardCoordinator.SelfId(),
-		chanStopNodeProcess,
 		bootstrapComponents.EpochBootstrapParams(),
 		bootstrapComponents.EpochBootstrapParams().Epoch(),
 	)

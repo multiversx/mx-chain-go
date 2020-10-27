@@ -2,11 +2,13 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ProcessComponentsMock -
@@ -33,6 +35,27 @@ type ProcessComponentsMock struct {
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
 	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
+	HistoryRepo              dblookupext.HistoryRepository
+}
+
+func (pcm *ProcessComponentsMock) WhiteListHandler() process.WhiteListHandler {
+	panic("implement me")
+}
+
+func (pcm *ProcessComponentsMock) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	panic("implement me")
+}
+
+func (pcm *ProcessComponentsMock) HistoryRepository() dblookupext.HistoryRepository {
+	return pcm.HistoryRepo
+}
+
+func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler {
+	panic("implement me")
+}
+
+func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	panic("implement me")
 }
 
 // Create -

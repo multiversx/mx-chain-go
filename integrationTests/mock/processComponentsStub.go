@@ -2,11 +2,13 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // ProcessComponentsStub -
@@ -33,6 +35,27 @@ type ProcessComponentsStub struct {
 	HeaderConstructValidator process.HeaderConstructionValidator
 	PeerMapper               process.NetworkShardingCollector
 	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
+	HistoryRepo              dblookupext.HistoryRepository
+}
+
+func (pcs *ProcessComponentsStub) WhiteListHandler() process.WhiteListHandler {
+	panic("implement me")
+}
+
+func (pcs *ProcessComponentsStub) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	panic("implement me")
+}
+
+func (pcs *ProcessComponentsStub) HistoryRepository() dblookupext.HistoryRepository {
+	return pcs.HistoryRepo
+}
+
+func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler {
+	panic("implement me")
+}
+
+func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	panic("implement me")
 }
 
 // Create -

@@ -51,6 +51,7 @@ type consensusComponents struct {
 	bootstrapper       process.Bootstrapper
 	broadcastMessenger consensus.BroadcastMessenger
 	worker             ConsensusWorker
+	hardforkTrigger    HardforkTrigger
 	consensusTopic     string
 }
 
@@ -102,7 +103,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 	cc := &consensusComponents{}
-
+	cc.hardforkTrigger = ccf.hardforkTrigger
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
 		check.IfNil(blockchain.GetGenesisHeader())

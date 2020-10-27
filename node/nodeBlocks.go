@@ -34,7 +34,7 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 				Store:                    n.dataComponents.StorageService(),
 				Marshalizer:              n.coreComponents.InternalMarshalizer(),
 				Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
-				HistoryRepo:              n.historyRepository,
+				HistoryRepo:              n.processComponents.HistoryRepository(),
 				UnmarshalTx:              n.unmarshalTransaction,
 			},
 		)
@@ -46,7 +46,7 @@ func (n *Node) createAPIBlockProcessor() blockAPI.APIBlockHandler {
 			Store:                    n.dataComponents.StorageService(),
 			Marshalizer:              n.coreComponents.InternalMarshalizer(),
 			Uint64ByteSliceConverter: n.coreComponents.Uint64ByteSliceConverter(),
-			HistoryRepo:              n.historyRepository,
+			HistoryRepo:              n.processComponents.HistoryRepository(),
 			UnmarshalTx:              n.unmarshalTransaction,
 		},
 	)

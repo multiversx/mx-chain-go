@@ -6,7 +6,9 @@ import (
 	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
@@ -17,28 +19,30 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	VmMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	WDTimer                     core.WatchdogTimer
-	Alarm                       core.TimersScheduler
-	NtpTimer                    ntp.SyncTimer
-	RoundHandler                consensus.Rounder
-	EconomicsHandler            process.EconomicsHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	Shuffler                    sharding.NodesShuffler
-	StartTime                   time.Time
+	IntMarsh                      marshal.Marshalizer
+	TxMarsh                       marshal.Marshalizer
+	VmMarsh                       marshal.Marshalizer
+	Hash                          hashing.Hasher
+	UInt64ByteSliceConv           typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                core.PubkeyConverter
+	ValPubKeyConv                 core.PubkeyConverter
+	PathHdl                       storage.PathManagerHandler
+	ChainIdCalled                 func() string
+	MinTransactionVersionCalled   func() uint32
+	StatusHdlUtils                nodeFactory.StatusHandlersUtils
+	AppStatusHdl                  core.AppStatusHandler
+	WDTimer                       core.WatchdogTimer
+	Alarm                         core.TimersScheduler
+	NtpTimer                      ntp.SyncTimer
+	RoundHandler                  consensus.Rounder
+	EconomicsHandler              process.EconomicsHandler
+	RatingsConfig                 process.RatingsInfoHandler
+	RatingHandler                 sharding.PeerAccountListAndRatingHandler
+	NodesConfig                   sharding.GenesisNodesSetupHandler
+	Shuffler                      sharding.NodesShuffler
+	StartTime                     time.Time
+	ChanStopProcess               chan endProcess.ArgEndProcess
+	EpochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 }
 
 // Create -
@@ -177,6 +181,16 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// ChanStopNodeProcess -
+func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
+	return ccm.ChanStopProcess
+}
+
+// EpochStartNotifier -
+func (ccm *CoreComponentsMock) EpochStartNotifier() factory.EpochStartNotifierWithConfirm {
+	return ccm.EpochStartNotifierWithConfirm
 }
 
 // IsInterfaceNil -

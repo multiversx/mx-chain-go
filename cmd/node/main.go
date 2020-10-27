@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/urfave/cli"
 )
 
 const (
-	defaultLogsPath = "logs"
-	maxTimeToClose  = 10 * time.Second
 	maxMachineIDLen = 10
 )
 
@@ -46,22 +44,6 @@ VERSION:
 //            go build -i -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = core.UnVersionedAppString
 
-type configs struct {
-	generalConfig                    *config.Config
-	apiRoutesConfig                  *config.ApiRoutesConfig
-	economicsConfig                  *config.EconomicsConfig
-	systemSCConfig                   *config.SystemSmartContractsConfig
-	ratingsConfig                    *config.RatingsConfig
-	preferencesConfig                *config.Preferences
-	externalConfig                   *config.ExternalConfig
-	p2pConfig                        *config.P2PConfig
-	configurationFileName            string
-	configurationEconomicsFileName   string
-	configurationRatingsFileName     string
-	configurationPreferencesFileName string
-	p2pConfigurationFileName         string
-}
-
 func main() {
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 	log := logger.GetOrCreate("main")
@@ -89,12 +71,21 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		nodeStarter, err := NewNodeRunner(c, log, app.Version)
+		var cfgs *config.Configs
+		cfgs, err = readConfigs(c, log)
 		if err != nil {
 			return err
 		}
 
-		return nodeStarter.StartNode()
+		applyFlags(c, cfgs, log)
+		cfgs.FlagsConfig.Version = app.Version
+
+		nodeRunner, err := node.NewNodeRunner(cfgs, log)
+		if err != nil {
+			return err
+		}
+
+		return nodeRunner.StartNode()
 	}
 
 	err = app.Run(os.Args)
@@ -102,4 +93,105 @@ func main() {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
+	log.Trace("reading Configs")
+
+	configurationFileName := ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := core.LoadMainConfig(configurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationFileName)
+
+	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := core.LoadApiConfig(configurationApiFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationApiFileName)
+
+	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
+	economicsConfig, err := core.LoadEconomicsConfig(configurationEconomicsFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationEconomicsFileName)
+
+	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
+	systemSCConfig, err := core.LoadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationSystemSCConfigFileName)
+
+	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
+	ratingsConfig, err := core.LoadRatingsConfig(configurationRatingsFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationRatingsFileName)
+
+	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
+	preferencesConfig, err := core.LoadPreferencesConfig(configurationPreferencesFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPreferencesFileName)
+
+	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
+	externalConfig, err := core.LoadExternalConfig(externalConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", externalConfigurationFileName)
+
+	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("config", "file", p2pConfigurationFileName)
+	if ctx.IsSet(port.Name) {
+		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+	if ctx.IsSet(destinationShardAsObserver.Name) {
+		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
+	}
+	if ctx.IsSet(nodeDisplayName.Name) {
+		preferencesConfig.Preferences.NodeDisplayName = ctx.GlobalString(nodeDisplayName.Name)
+	}
+	if ctx.IsSet(identityFlagName.Name) {
+		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
+	}
+
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	if len(importDbDirectoryValue) > 0 {
+		importCheckpointRoundsModulus := uint(generalConfig.EpochStartConfig.RoundsPerEpoch)
+		log.Info("import DB directory is set, altering config values!",
+			"GeneralSettings.StartInEpochEnabled", "false",
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"import DB path", importDbDirectoryValue,
+		)
+		generalConfig.GeneralSettings.StartInEpochEnabled = false
+		generalConfig.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+	}
+
+	return &config.Configs{
+		GeneralConfig:                    generalConfig,
+		ApiRoutesConfig:                  apiRoutesConfig,
+		EconomicsConfig:                  economicsConfig,
+		SystemSCConfig:                   systemSCConfig,
+		RatingsConfig:                    ratingsConfig,
+		PreferencesConfig:                preferencesConfig,
+		ExternalConfig:                   externalConfig,
+		P2pConfig:                        p2pConfig,
+		ConfigurationFileName:            configurationFileName,
+		ConfigurationEconomicsFileName:   configurationEconomicsFileName,
+		ConfigurationRatingsFileName:     configurationRatingsFileName,
+		ConfigurationPreferencesFileName: configurationPreferencesFileName,
+		P2pConfigurationFileName:         p2pConfigurationFileName,
+	}, nil
 }

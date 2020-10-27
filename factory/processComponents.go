@@ -85,10 +85,15 @@ type processComponents struct {
 	txLogsProcessor             process.TransactionLogProcessorDatabase
 	headerConstructionValidator process.HeaderConstructionValidator
 	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper       process.NetworkShardingCollector
-	txSimulatorProcessor  TransactionSimulatorProcessor
-	miniBlocksPoolCleaner process.PoolsCleaner
-	txsPoolCleaner        process.PoolsCleaner
+	peerShardMapper        process.NetworkShardingCollector
+	txSimulatorProcessor   TransactionSimulatorProcessor
+	miniBlocksPoolCleaner  process.PoolsCleaner
+	txsPoolCleaner         process.PoolsCleaner
+	whiteListHandler       process.WhiteListHandler
+	whiteListerVerifiedTxs process.WhiteListHandler
+	historyRepository      dblookupext.HistoryRepository
+	importStartHandler     update.ImportStartHandler
+	requestedItemsHandler  dataRetriever.RequestedItemsHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -506,6 +511,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		txSimulatorProcessor:        txSimulator,
 		miniBlocksPoolCleaner:       mbsPoolsCleaner,
 		txsPoolCleaner:              txsPoolsCleaner,
+		whiteListHandler:            pcf.whiteListHandler,
+		whiteListerVerifiedTxs:      pcf.whiteListerVerifiedTxs,
+		historyRepository:           pcf.historyRepo,
+		importStartHandler:          pcf.importStartHandler,
+		requestedItemsHandler:       pcf.requestedItemsHandler,
 	}, nil
 }
 

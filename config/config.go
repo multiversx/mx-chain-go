@@ -420,3 +420,20 @@ type VersionsConfig struct {
 	VersionsByEpochs []VersionByEpochs
 	Cache            CacheConfig
 }
+
+type Configs struct {
+	GeneralConfig                    *Config
+	ApiRoutesConfig                  *ApiRoutesConfig
+	EconomicsConfig                  *EconomicsConfig
+	SystemSCConfig                   *SystemSmartContractsConfig
+	RatingsConfig                    *RatingsConfig
+	PreferencesConfig                *Preferences
+	ExternalConfig                   *ExternalConfig
+	P2pConfig                        *P2PConfig
+	FlagsConfig                      *ContextFlagsConfig
+	ConfigurationFileName            string
+	ConfigurationEconomicsFileName   string
+	ConfigurationRatingsFileName     string
+	ConfigurationPreferencesFileName string
+	P2pConfigurationFileName         string
+}

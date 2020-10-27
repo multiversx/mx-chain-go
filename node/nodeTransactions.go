@@ -29,7 +29,7 @@ func (n *Node) GetTransaction(txHash string) (*transaction.ApiTransactionResult,
 		return tx, nil
 	}
 
-	if n.historyRepository.IsEnabled() {
+	if n.processComponents.HistoryRepository().IsEnabled() {
 		return n.lookupHistoricalTransaction(hash)
 	}
 
@@ -59,7 +59,7 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 }
 
 func (n *Node) lookupHistoricalTransaction(hash []byte) (*transaction.ApiTransactionResult, error) {
-	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	miniblockMetadata, err := n.processComponents.HistoryRepository().GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}

@@ -50,6 +50,7 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	storerMock := mock.NewStorerMock()
 	coreComponentsMock := getDefaultCoreComponents()
 	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepo = historyProc
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
@@ -61,7 +62,6 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 		node.WithCoreComponents(coreComponentsMock),
 		node.WithProcessComponents(processComponentsMock),
 		node.WithDataComponents(dataComponentsMock),
-		node.WithHistoryRepository(historyProc),
 	)
 
 	header := &block.Header{
@@ -107,6 +107,11 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	coreComponentsMock := getDefaultCoreComponents()
 	processComponentsMock := getDefaultProcessComponents()
 	processComponentsMock.ShardCoord = &mock.ShardCoordinatorMock{SelfShardId: core.MetachainShardId}
+	processComponentsMock.HistoryRepo = &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return false
+		},
+	}
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
@@ -118,11 +123,6 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		node.WithCoreComponents(coreComponentsMock),
 		node.WithProcessComponents(processComponentsMock),
 		node.WithDataComponents(dataComponentsMock),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
 	)
 
 	header := &block.MetaBlock{
@@ -177,6 +177,7 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	headerHash := "d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00"
 	coreComponentsMock := getDefaultCoreComponents()
 	processComponentsMock := getDefaultProcessComponents()
+	processComponentsMock.HistoryRepo = historyProc
 	dataComponentsMock := getDefaultDataComponents()
 	dataComponentsMock.Store = &mock.ChainStorerMock{
 		GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
@@ -189,7 +190,6 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponentsMock),
-		node.WithHistoryRepository(historyProc),
 		node.WithDataComponents(dataComponentsMock),
 		node.WithProcessComponents(processComponentsMock),
 	)
@@ -256,14 +256,15 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		},
 	}
 
+	processComponentsMock.HistoryRepo = &testscommon.HistoryRepositoryStub{
+		IsEnabledCalled: func() bool {
+			return false
+		},
+	}
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponentsMock),
 		node.WithDataComponents(dataComponentsMock),
-		node.WithHistoryRepository(&testscommon.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return false
-			},
-		}),
 		node.WithProcessComponents(processComponentsMock),
 	)
 

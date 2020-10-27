@@ -5,11 +5,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 var _ ComponentHandler = (*managedProcessComponents)(nil)
@@ -393,6 +395,7 @@ func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingColl
 	return m.processComponents.peerShardMapper
 }
 
+// TransactionSimulatorProcessor returns the transaction simulator processor
 func (m *managedProcessComponents) TransactionSimulatorProcessor() TransactionSimulatorProcessor {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
@@ -402,6 +405,66 @@ func (m *managedProcessComponents) TransactionSimulatorProcessor() TransactionSi
 	}
 
 	return m.processComponents.txSimulatorProcessor
+}
+
+// WhiteListHandler returns the white list handler
+func (m *managedProcessComponents) WhiteListHandler() process.WhiteListHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.whiteListHandler
+}
+
+// WhiteListerVerifiedTxs returns the white lister verified txs
+func (m *managedProcessComponents) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.whiteListerVerifiedTxs
+}
+
+// HistoryRepository returns the history repository
+func (m *managedProcessComponents) HistoryRepository() dblookupext.HistoryRepository {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.historyRepository
+}
+
+// ImportStartHandler returns the import status handler
+func (m *managedProcessComponents) ImportStartHandler() update.ImportStartHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.importStartHandler
+}
+
+// RequestedItemsHandler returns the items handler for the requests
+func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.requestedItemsHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -212,7 +212,7 @@ package consensusComponents
 //		Config:              *cfgs.generalConfig,
 //		ConsensusGroupSize:  int(nodesSetup.GetShardConsensusGroupSize()),
 //		BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
-//		HardforkTrigger:     hardForkTrigger,
+//		hardforkTrigger:     hardForkTrigger,
 //		CoreComponents:      managedCoreComponents,
 //		NetworkComponents:   managedNetworkComponents,
 //		CryptoComponents:    managedCryptoComponents,

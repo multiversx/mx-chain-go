@@ -6,17 +6,12 @@ import (
 	"path/filepath"
 	"time"
 
-	factory2 "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
-	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	"github.com/ElrondNetwork/elrond-go/process"
 	factory4 "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
@@ -30,16 +25,14 @@ func CreateHardForkTrigger(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
+	nodesShuffledOut update.Closer,
 	coreData factory.CoreComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 	data factory.DataComponentsHolder,
 	crypto factory.CryptoComponentsHolder,
 	process factory.ProcessComponentsHolder,
 	network factory.NetworkComponentsHolder,
-	whiteListRequest process.WhiteListHandler,
-	whiteListerVerifiedTxs process.WhiteListHandler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	epochNotifier factory2.EpochStartNotifier,
+	epochNotifier factory.EpochStartNotifierWithConfirm,
 	importStartHandler update.ImportStartHandler,
 	workingDir string,
 ) (HardforkTrigger, error) {
@@ -70,8 +63,8 @@ func CreateHardForkTrigger(
 		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
 		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
 		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
-		WhiteListHandler:         whiteListRequest,
-		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		WhiteListHandler:         process.WhiteListHandler(),
+		WhiteListerVerifiedTxs:   process.WhiteListerVerifiedTxs(),
 		InterceptorsContainer:    process.InterceptorsContainer(),
 		NodesCoordinator:         nodesCoordinator,
 		HeaderSigVerifier:        process.HeaderSigVerifier(),
@@ -96,7 +89,7 @@ func CreateHardForkTrigger(
 		ArgumentParser:            atArgumentParser,
 		EpochProvider:             process.EpochStartTrigger(),
 		ExportFactoryHandler:      hardForkExportFactory,
-		ChanStopNodeProcess:       chanStopNodeProcess,
+		ChanStopNodeProcess:       coreData.ChanStopNodeProcess(),
 		EpochConfirmedNotifier:    epochNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
@@ -104,6 +97,11 @@ func CreateHardForkTrigger(
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
 		return nil, err
+	}
+
+	err = hardforkTrigger.AddCloser(nodesShuffledOut)
+	if err != nil {
+		return nil, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
 	return hardforkTrigger, nil
@@ -138,7 +136,6 @@ func prepareOpenTopics(
 
 func CreateNode(
 	config *config.Config,
-	preferencesConfig *config.Preferences,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
 	cryptoComponents factory.CryptoComponentsHandler,
@@ -150,12 +147,6 @@ func CreateNode(
 	heartbeatComponents factory.HeartbeatComponentsHandler,
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
-	requestedItemsHandler dataRetriever.RequestedItemsHandler,
-	whiteListRequest process.WhiteListHandler,
-	whiteListerVerifiedTxs process.WhiteListHandler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	hardForkTrigger HardforkTrigger,
-	historyRepository dblookupext.HistoryRepository,
 ) (*Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -192,7 +183,6 @@ func CreateNode(
 
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
-
 	var nd *Node
 	nd, err = NewNode(
 		WithCoreComponents(coreComponents),
@@ -212,15 +202,12 @@ func CreateNode(
 		WithConsensusType(config.Consensus.Type),
 		WithBootstrapRoundIndex(bootstrapRoundIndex),
 		WithPeerDenialEvaluator(peerDenialEvaluator),
-		WithRequestedItemsHandler(requestedItemsHandler),
+		WithRequestedItemsHandler(processComponents.RequestedItemsHandler()),
 		WithTxAccumulator(txAccumulator),
-		WithHardforkTrigger(hardForkTrigger),
-		WithWhiteListHandler(whiteListRequest),
-		WithWhiteListHandlerVerified(whiteListerVerifiedTxs),
+		WithHardforkTrigger(consensusComponents.HardforkTrigger()),
 		WithSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
-		WithNodeStopChannel(chanStopNodeProcess),
-		WithHistoryRepository(historyRepository),
+		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

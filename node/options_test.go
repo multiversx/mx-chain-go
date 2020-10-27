@@ -238,54 +238,6 @@ func TestWithHardforkTrigger_ShouldWork(t *testing.T) {
 	assert.True(t, node.hardforkTrigger == hardforkTrigger)
 }
 
-func TestWithWhiteListHandler_NilWhiteListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithWhiteListHandler(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilWhiteListHandler, err)
-}
-
-func TestWithWhiteListHandler_WhiteListHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	whiteListHandler := &mock.WhiteListHandlerStub{}
-	opt := WithWhiteListHandler(whiteListHandler)
-	err := opt(node)
-
-	assert.Nil(t, err)
-	assert.True(t, node.whiteListRequest == whiteListHandler)
-}
-
-func TestWithWhiteListHandlerVerified_NilWhiteListHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithWhiteListHandlerVerified(nil)
-	err := opt(node)
-
-	assert.Equal(t, ErrNilWhiteListHandler, err)
-}
-
-func TestWithWhiteListHandlerVerified_WhiteListHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	whiteListHandler := &mock.WhiteListHandlerStub{}
-	opt := WithWhiteListHandlerVerified(whiteListHandler)
-	err := opt(node)
-
-	assert.Nil(t, err)
-	assert.True(t, node.whiteListerVerifiedTxs == whiteListHandler)
-}
-
 func TestWithSignatureSize(t *testing.T) {
 	t.Parallel()
 

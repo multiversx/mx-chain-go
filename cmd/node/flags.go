@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"os"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -317,4 +320,70 @@ func getFlags() []cli.Flag {
 		startInEpoch,
 		importDbDirectory,
 	}
+}
+
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
+	flagsConfig := &config.ContextFlagsConfig{}
+
+	workingDir := ctx.GlobalString(workingDirectory.Name)
+	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
+	flagsConfig.NodesFileName = ctx.GlobalString(nodesFile.Name)
+	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
+	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
+	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
+	flagsConfig.EnableLogName = ctx.GlobalBool(logWithLoggerName.Name)
+	flagsConfig.LogLevel = ctx.GlobalString(logLevel.Name)
+	flagsConfig.DisableAnsiColor = ctx.GlobalBool(disableAnsiColor.Name)
+	flagsConfig.GenesisFileName = ctx.GlobalString(genesisFile.Name)
+	flagsConfig.CleanupStorage = ctx.GlobalBool(storageCleanup.Name)
+	flagsConfig.UseHealthService = ctx.GlobalBool(useHealthService.Name)
+	flagsConfig.GasScheduleConfigurationFileName = ctx.GlobalString(gasScheduleConfigurationFile.Name)
+	flagsConfig.EnableTxIndexing = ctx.GlobalBoolT(enableTxIndexing.Name)
+	flagsConfig.SmartContractsFileName = ctx.GlobalString(smartContractsFile.Name)
+	flagsConfig.BootstrapRoundIndex = ctx.GlobalUint64(bootstrapRoundIndex.Name)
+	flagsConfig.EnableRestAPIServerDebugMode = ctx.GlobalBool(restApiDebug.Name)
+	flagsConfig.RestApiInterface = ctx.GlobalString(restApiInterface.Name)
+	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
+	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
+	flagsConfig.ValidatorKeyPemFileName = ctx.GlobalString(validatorKeyPemFile.Name)
+	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+
+	if ctx.IsSet(startInEpoch.Name) {
+		log.Debug("start in epoch is enabled")
+		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+	if ctx.IsSet(numActivePersisters.Name) {
+		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+
+	cfgs.FlagsConfig = flagsConfig
+
+	for _, flag := range ctx.App.Flags {
+		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
+		if flagValue != "" {
+			flagsConfig.SessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
+		}
+	}
+
+}
+
+func getWorkingDir(workingDir string, log logger.Logger) string {
+	var err error
+	if len(workingDir) == 0 {
+		workingDir, err = os.Getwd()
+		if err != nil {
+			log.LogIfError(err)
+			workingDir = ""
+		}
+	}
+	log.Trace("working directory", "path", workingDir)
+
+	return workingDir
 }
