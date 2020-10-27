@@ -56,21 +56,21 @@ func TestInterceptedTxWithDataField(t *testing.T) {
 
 func TestInterceptedTxWithSigningOverTxHash(t *testing.T) {
 	value := big.NewInt(0)
-	value.SetString("100000000000000", 10)
+	value.SetString("1000000000000000000", 10)
 
 	testInterceptedTxFromFrontendGeneratedParams(
 		t,
-		0,
+		1,
 		value,
 		"erd1ez0puv8mqsulwllnavfygfzqe5zveeqjwpr6dsm8egchkf449kjqf8udu6",
 		"erd1ez0puv8mqsulwllnavfygfzqe5zveeqjwpr6dsm8egchkf449kjqf8udu6",
-		"46b6a94e86c858fb4ba79ef45ea3cd056af4d08d66db6517ee7ac4dacc6f9e9da3ab87a75721413d7d7c9cf8842f1698c6baa7e3d6532b94061e12394183f20b",
+		"89cb10cafb75040d704b66610990c2ec7f6393e8da7ac867b1db417a9c9a3340947d5139e23ef14ebe80fd33ce352458ede505c0532f0316ac85c44456c8bf06",
 		1000000000,
-		50000,
-		[]byte{},
+		56000,
+		[]byte("test"),
 		integrationTests.ChainID,
 		2,
-		16777217,
+		1,
 	)
 }
 
@@ -101,7 +101,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 	txSignPrivKeyShardId := uint32(0)
 	initialNodeAddr := "nodeAddr"
 	valMinting, _ := big.NewInt(0).SetString(mintingValue, 10)
-	valMinting.Mul(valMinting, big.NewInt(500000))
+	valMinting.Mul(valMinting, big.NewInt(5000000))
 
 	node := integrationTests.NewTestProcessorNode(
 		maxShards,
