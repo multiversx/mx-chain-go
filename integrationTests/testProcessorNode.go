@@ -43,7 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/hashing/legacyKeccak256"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -92,7 +92,7 @@ import (
 var TestHasher = sha256.Sha256{}
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
-var TestTxSignHasher = legacyKeccak256.LegacyKeccak256{}
+var TestTxSignHasher = keccak.Keccak{}
 
 // TestMarshalizer represents the main marshalizer
 var TestMarshalizer = &marshal.GogoProtoMarshalizer{}

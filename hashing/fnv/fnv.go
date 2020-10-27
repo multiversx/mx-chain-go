@@ -16,7 +16,7 @@ type Fnv struct {
 
 // Compute takes a string, and returns the fnv128a hash of that string
 func (f Fnv) Compute(s string) []byte {
-	if len(s) == 0 && len(fnvEmptyHash) != 0 {
+	if len(s) == 0 {
 		return f.EmptyHash()
 	}
 	h := fnv.New128a()
@@ -27,9 +27,15 @@ func (f Fnv) Compute(s string) []byte {
 // EmptyHash returns the fnv128a hash of the empty string
 func (f Fnv) EmptyHash() []byte {
 	if len(fnvEmptyHash) == 0 {
-		fnvEmptyHash = f.Compute("")
+		f.setEmptyHash()
 	}
 	return fnvEmptyHash
+}
+
+func (f Fnv) setEmptyHash() {
+	h := fnv.New128a()
+	_, _ = h.Write([]byte(""))
+	fnvEmptyHash = h.Sum(nil)
 }
 
 // Size returns the size, in number of bytes, of a fnv128a hash
