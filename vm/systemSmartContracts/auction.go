@@ -166,6 +166,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unJail(args)
 	case "getTotalStaked":
 		return s.getTotalStaked(args)
+	case "getTopUp":
+		return s.getTopUp(args)
 	case "getBlsKeysStatus":
 		return s.getBlsKeysStatus(args)
 	case "unStakeTokens":
@@ -1620,6 +1622,41 @@ func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmco
 
 	if len(registrationData.RewardAddress) == 0 {
 		s.eei.AddReturnMessage("caller not registered in staking/auction sc")
+		return vmcommon.UserError
+	}
+
+	s.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
+	return vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) getTopUp(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagEnableTopUp.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Get)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
+		return vmcommon.OutOfGas
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.RewardAddress) == 0 {
+		s.eei.AddReturnMessage("caller not registered in staking/auction sc")
+		return vmcommon.UserError
+	}
+	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
+	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
+		s.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")
 		return vmcommon.UserError
 	}
 

@@ -244,3 +244,18 @@ var ErrNilLocalTxCache = errors.New("nil local tx cache")
 
 // ErrSystemDelegationCall signals that delegation system sc returned with error
 var ErrSystemDelegationCall = errors.New("delegation system sc call returned with error")
+
+// ErrExecutingSystemScCode signals that an error occurred while executing system SC code
+var ErrExecutingSystemScCode = errors.New("error executing system SC code")
+
+// ErrNilValue signals that a nil value was retrieved
+var ErrNilValue = errors.New("nil value")
+
+// ErrNilSystemVmInstance signals that a nil system VM instance was provided
+var ErrNilSystemVmInstance = errors.New("nil system VM instance")
+
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
+// ErrNilDataTrie signals that a nil data trie was provided
+var ErrNilDataTrie = errors.New("nil data trie")

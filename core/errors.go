@@ -79,3 +79,6 @@ var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is inv
 
 // ErrFileLoggingProcessIsClosed signals that the file logging process is closed
 var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
+
+// ErrSuffixNotPresentOrInIncorrectPosition signals that the suffix is not present in the data field or its position is incorrect
+var ErrSuffixNotPresentOrInIncorrectPosition = errors.New("suffix is not present or the position is incorrect")

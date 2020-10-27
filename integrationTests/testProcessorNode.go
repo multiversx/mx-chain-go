@@ -1460,6 +1460,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
+		systemVM, errGet := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+		if errGet != nil {
+			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
+		}
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM)
+		if errRsp != nil {
+			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
+		}
+
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
@@ -1473,6 +1482,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
 			NodesConfigProvider:           tpn.NodesCoordinator,
 			UserAccountsDB:                tpn.AccntState,
+			StakingDataProvider:           stakingDataProvider,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
@@ -1484,7 +1494,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			DataPool:         tpn.DataPool,
 		}
 
-		systemVM, _ := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
 			SystemVM:                systemVM,
@@ -1498,6 +1507,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ChanceComputer:          tpn.NodesCoordinator,
 			EpochNotifier:           &mock.EpochNotifierStub{},
 			GenesisNodesConfig:      tpn.NodesSetup,
+			StakingV2EnableEpoch:    1000000,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 

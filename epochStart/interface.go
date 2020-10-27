@@ -144,3 +144,10 @@ type TransactionCacher interface {
 	GetTx(txHash []byte) (data.TransactionHandler, error)
 	IsInterfaceNil() bool
 }
+
+// StakingDataProvider is able to provide staking data from the system smart contracts
+type StakingDataProvider interface {
+	PrepareDataForBlsKey(blsKey []byte) error
+	Clean()
+	IsInterfaceNil() bool
+}

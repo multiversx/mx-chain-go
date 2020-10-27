@@ -1992,6 +1992,15 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM)
+	if err != nil {
+		return nil, err
+	}
+
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
@@ -2005,6 +2014,7 @@ func newMetaBlockProcessor(
 		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           nodesCoordinator,
 		UserAccountsDB:                stateComponents.AccountsAdapter,
+		StakingDataProvider:           stakingDataProvider,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
@@ -2056,10 +2066,6 @@ func newMetaBlockProcessor(
 		EpochNotifier:           epochNotifier,
 	}
 
-	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
-	if err != nil {
-		return nil, err
-	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                               systemVM,
 		UserAccountsDB:                         stateComponents.AccountsAdapter,
@@ -2074,6 +2080,7 @@ func newMetaBlockProcessor(
 		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
 		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
+		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)

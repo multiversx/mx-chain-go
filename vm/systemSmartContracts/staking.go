@@ -29,7 +29,7 @@ const waitingElementPrefix = "w_"
 type stakingSC struct {
 	eei                      vm.SystemEI
 	unBondPeriod             uint64
-	stakeAccessAddr          []byte
+	stakeAccessAddr          []byte //TODO add a viewAddress field and use it on all system SC view functions
 	jailAccessAddr           []byte
 	endOfEpochAccessAddr     []byte
 	numRoundsWithoutBleed    uint64
@@ -173,6 +173,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.updateConfigMinNodes(args)
 	case "setOwner":
 		return r.setOwner(args)
+	case "getOwner":
+		return r.getOwner(args)
 	}
 
 	return vmcommon.UserError
@@ -1342,6 +1344,30 @@ func (r *stakingSC) setOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
+	return vmcommon.Ok
+}
+
+func (r *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !r.flagSetOwner.IsSet() {
+		r.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+		r.eei.AddReturnMessage("this is only a view function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 1 {
+		r.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, len(args.Arguments)))
+		return vmcommon.UserError
+	}
+
+	stakedData, errGet := r.getOrCreateRegisteredData(args.Arguments[0])
+	if errGet != nil {
+		r.eei.AddReturnMessage(errGet.Error())
+		return vmcommon.UserError
+	}
+
+	r.eei.Finish([]byte(hex.EncodeToString(stakedData.OwnerAddress)))
 	return vmcommon.Ok
 }
 
