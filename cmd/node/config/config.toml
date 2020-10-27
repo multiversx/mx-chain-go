@@ -553,12 +553,17 @@
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
 
-[VirtualMachineConfig]
-    OutOfProcessEnabled = true
-    [VirtualMachineConfig.OutOfProcessConfig]
-        LogsMarshalizer = "json"
-        MessagesMarshalizer = "json"
-        MaxLoopTime = 1000
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = true
+        WarmInstanceEnabled = false
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        OutOfProcessEnabled = false
+        WarmInstanceEnabled = true
 
 [Hardfork]
     EnableTrigger = true

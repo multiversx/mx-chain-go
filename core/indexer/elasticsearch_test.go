@@ -46,6 +46,8 @@ func NewElasticIndexerArguments() indexer.ElasticIndexerArgs {
 		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		IsInImportDBMode:         false,
 	}
 }
 
@@ -266,7 +268,9 @@ func TestElasticIndexer_EpochChange(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	arguments.ShardId = core.MetachainShardId
+	scm := &mock.ShardCoordinatorMock{}
+	scm.SetSelfId(core.MetachainShardId)
+	arguments.ShardCoordinator = scm
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
 	arguments.EpochStartNotifier = epochChangeNotifier
 
@@ -303,7 +307,9 @@ func TestElasticIndexer_EpochChangeValidators(t *testing.T) {
 	arguments := NewElasticIndexerArguments()
 	arguments.Url = ts.URL
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	arguments.ShardId = core.MetachainShardId
+	scm := &mock.ShardCoordinatorMock{}
+	scm.SetSelfId(core.MetachainShardId)
+	arguments.ShardCoordinator = scm
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
 	arguments.EpochStartNotifier = epochChangeNotifier
 

@@ -37,6 +37,8 @@ func newTestElasticSearchDatabase(elasticsearchWriter databaseClientHandler, arg
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
+			nil,
+			false,
 		),
 		dbClient:    elasticsearchWriter,
 		marshalizer: arguments.Marshalizer,

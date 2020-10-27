@@ -55,6 +55,9 @@ func checkElasticSearchParams(arguments ElasticIndexerArgs) error {
 	if arguments.EpochStartNotifier == nil {
 		return core.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(arguments.ShardCoordinator) {
+		return core.ErrNilShardCoordinator
+	}
 
 	return nil
 }

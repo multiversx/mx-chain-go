@@ -1204,7 +1204,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
-		shardCoordinator.SelfId(),
+		shardCoordinator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -1520,12 +1521,14 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		log.Warn("the node is in import mode! Will auto-set some config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
@@ -1993,7 +1996,8 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	shardCoordinator storage.ShardCoordinator,
+	isInImportDB bool,
 ) (indexer.Indexer, error) {
 
 	if !elasticSearchConfig.Enabled {
@@ -2013,7 +2017,8 @@ func createElasticIndexer(
 		EpochStartNotifier:       startNotifier,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		ShardCoordinator:         shardCoordinator,
+		IsInImportDBMode:         isInImportDB,
 	}
 
 	return indexer.NewElasticIndexer(arguments)
@@ -2375,7 +2380,7 @@ func startStatisticsMonitor(
 }
 
 func createApiResolver(
-	config *config.Config,
+	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
@@ -2438,11 +2443,11 @@ func createApiResolver(
 		}
 	} else {
 		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
+			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook,
-			config.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		)
 		if err != nil {
 			return nil, err
