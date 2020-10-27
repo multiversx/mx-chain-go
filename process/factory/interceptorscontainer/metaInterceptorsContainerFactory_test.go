@@ -529,5 +529,6 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		ChainID:                 []byte("chainID"),
 		MinTransactionVersion:   1,
 		TxSignHasher:            mock.HasherMock{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }
