@@ -106,6 +106,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+				UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -116,7 +117,8 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createInProcessArwenVM")
+	logVMContainerFactory.Info("createInProcessArwenVM", "config", vmf.config)
+
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
 		&arwen.VMHostParameters{
@@ -126,6 +128,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+			UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 		},
 	)
 }
