@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -30,9 +31,11 @@ const (
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor process.TransactionLogProcessorDatabase
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
+	txLogsProcessor  process.TransactionLogProcessorDatabase
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	isInImportMode   bool
+	shardCoordinator sharding.Coordinator
 }
 
 func newTxDatabaseProcessor(
@@ -40,6 +43,8 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
+	shardCoordinator sharding.Coordinator,
+	isInImportMode bool,
 ) *txDatabaseProcessor {
 	return &txDatabaseProcessor{
 		hasher:      hasher,
@@ -48,7 +53,9 @@ func newTxDatabaseProcessor(
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
 		},
-		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
+		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
+		shardCoordinator: shardCoordinator,
+		isInImportMode:   isInImportMode,
 	}
 }
 
@@ -228,8 +235,11 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.TxBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
 			for hash, tx := range txs {
-				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
-				transactions[hash] = dbTx
+				if tdp.shouldIndex(tx) {
+					dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
+					transactions[hash] = dbTx
+				}
+
 				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
@@ -242,8 +252,10 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
 			for hash, rtx := range rTxs {
-				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
-				rewardsTxs = append(rewardsTxs, dbTx)
+				if tdp.shouldIndex(rtx) {
+					dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
+					rewardsTxs = append(rewardsTxs, dbTx)
+				}
 				delete(txPool, hash)
 			}
 		default:
@@ -252,6 +264,15 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	}
 
 	return transactions, rewardsTxs
+}
+
+func (tdp *txDatabaseProcessor) shouldIndex(txHandler data.TransactionHandler) bool {
+	if !tdp.isInImportMode {
+		return true
+	}
+
+	destShardId := tdp.shardCoordinator.ComputeId(txHandler.GetRcvAddr())
+	return destShardId == tdp.shardCoordinator.SelfId()
 }
 
 func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction, shardId uint32) map[string]*Transaction {

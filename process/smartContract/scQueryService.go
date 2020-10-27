@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"sync"
 
@@ -23,6 +24,7 @@ type SCQueryService struct {
 	mutRunSc       sync.Mutex
 	blockChainHook process.BlockChainHookHandler
 	blockChain     data.ChainHandler
+	numQueries     int
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -69,6 +71,9 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	service.numQueries++
+
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
 
 	vm, err := findVMByScAddress(service.vmContainer, query.ScAddress)
@@ -81,6 +86,15 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	if err != nil {
 		return nil, err
+	}
+
+	if service.hasRetriableExecutionError(vmOutput) {
+		log.Error("Retriable execution error detected. Will retry (once) executeScCall()", "returnCode", vmOutput.ReturnCode, "returnMessage", vmOutput.ReturnMessage)
+
+		vmOutput, err = vm.RunSmartContractCall(vmInput)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = service.checkVMOutput(vmOutput)
@@ -107,7 +121,7 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 		CallerAddr:  query.CallerAddr,
 		CallValue:   query.CallValue,
 		GasPrice:    gasPrice,
-		GasProvided: service.economicsFee.MaxGasLimitPerBlock(0),
+		GasProvided: math.MaxUint64,
 		Arguments:   query.Arguments,
 		CallType:    vmcommon.DirectCall,
 	}
@@ -119,6 +133,10 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 	}
 
 	return vmContractCallInput
+}
+
+func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
+	return vmOutput.ReturnMessage == "allocation error"
 }
 
 func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {
