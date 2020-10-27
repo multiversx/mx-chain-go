@@ -1277,7 +1277,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
-	genesisVmConfig := args.mainConfig.VirtualMachineConfig
+	genesisVmConfig := args.mainConfig.VirtualMachine.Execution
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
@@ -1520,7 +1520,7 @@ func newShardBlockProcessor(
 		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig,
+		config.VirtualMachine.Execution,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 		gasSchedule,
 		argsHook,
