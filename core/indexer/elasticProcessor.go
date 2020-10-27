@@ -60,7 +60,13 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
 		arguments.FeeConfig,
+		arguments.IsInImportDBMode,
 	)
+
+	if arguments.IsInImportDBMode {
+		log.Warn("the node is in import mode! Cross shard transactions and rewards where destination shard is " +
+			"not the current node's shard won't be indexed in Elastic Search")
+	}
 
 	if arguments.Options.UseKibana {
 		err = ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)

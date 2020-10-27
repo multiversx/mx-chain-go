@@ -19,7 +19,6 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 	return &ArgsIndexerFactory{
 		Enabled:                  true,
 		IndexerCacheSize:         100,
-		ShardID:                  0,
 		Url:                      ts.URL,
 		UserName:                 "",
 		Password:                 "",
@@ -35,6 +34,8 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
 		FeeConfig:                &config.FeeSettings{},
+		ShardID:                  0,
+		IsInImportDBMode:         false,
 	}
 }
 
@@ -145,9 +146,6 @@ func TestNewIndexerFactory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.exError == nil {
-				print("a")
-			}
 			_, err := NewIndexer(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
 		})

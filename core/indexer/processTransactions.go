@@ -34,6 +34,7 @@ type txDatabaseProcessor struct {
 	txLogsProcessor process.TransactionLogProcessorDatabase
 	hasher          hashing.Hasher
 	marshalizer     marshal.Marshalizer
+	isInImportMode  bool
 }
 
 func newTxDatabaseProcessor(
@@ -42,6 +43,7 @@ func newTxDatabaseProcessor(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	feeConfig *config.FeeSettings,
+	isInImportMode bool,
 ) *txDatabaseProcessor {
 	// this should never return error because is tested when economics file is created
 	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
@@ -57,6 +59,7 @@ func newTxDatabaseProcessor(
 			gasPerDataByte:           gasPerDataByte,
 		},
 		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
+		isInImportMode:  isInImportMode,
 	}
 }
 
@@ -93,8 +96,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 		// append child smart contract results
 		scrs := findAllChildScrResults(scHash, scResults)
-		for scHash, sc := range scrs {
-			tx = tdp.addScResultInfoInTx(scHash, sc, tx)
+		for childScHash, sc := range scrs {
+			tx = tdp.addScResultInfoInTx(childScHash, sc, tx)
 			countScResults[string(scResult.OriginalTxHash)]++
 		}
 	}
@@ -252,7 +255,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
-				transactions[hash] = dbTx
+				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
+					transactions[hash] = dbTx
+				}
 				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
@@ -268,8 +273,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, rtx := range rTxs {
 				dbTx := tdp.commonProcessor.buildRewardTransaction(rtx, []byte(hash), mbHash, mb, header, mbTxStatus)
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, true)
-				alteredAddresses[dbTx.Receiver] = struct{}{}
-				rewardsTxs = append(rewardsTxs, dbTx)
+				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
+					rewardsTxs = append(rewardsTxs, dbTx)
+				}
 				delete(txPool, hash)
 			}
 		default:
@@ -278,6 +284,14 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	}
 
 	return transactions, rewardsTxs, alteredAddresses
+}
+
+func (tdp *txDatabaseProcessor) shouldIndex(selfShardID uint32, destinationShardID uint32) bool {
+	if !tdp.isInImportMode {
+		return true
+	}
+
+	return selfShardID == destinationShardID
 }
 
 func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[string]*Transaction) map[string]*Transaction {

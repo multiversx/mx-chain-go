@@ -369,7 +369,7 @@ func testCreateIndexer(t *testing.T) {
 		DBClient:                 dbClient,
 	})
 
-	dataIndexer, err := NewDataIndexer(ArgDataIndexer{
+	di, err := NewDataIndexer(ArgDataIndexer{
 		Options:            &Options{},
 		Marshalizer:        &marshal.JsonMarshalizer{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
@@ -413,7 +413,7 @@ func testCreateIndexer(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		dataIndexer.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
+		di.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
 	}
 
 	time.Sleep(100 * time.Second)

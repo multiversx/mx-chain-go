@@ -4,7 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-var maxSpeedHistorySaved = 1000
+var maxSpeedHistorySaved = 2000
 
 // GetNonce will return current nonce of node
 func (psh *PresenterStatusHandler) GetNonce() uint64 {
@@ -58,7 +58,11 @@ func (psh *PresenterStatusHandler) GetCurrentRound() uint64 {
 
 // CalculateTimeToSynchronize will calculate and return an estimation of
 // the time required for synchronization in a human friendly format
-func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
+func (psh *PresenterStatusHandler) CalculateTimeToSynchronize(numMillisecondsRefreshTime int) string {
+	if numMillisecondsRefreshTime < 1 {
+		return "N/A"
+	}
+
 	currentSynchronizedRound := psh.GetSynchronizedRound()
 
 	numSynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
@@ -70,7 +74,7 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 
 	speed := float64(0)
 	if numSynchronizationSpeedHistory > 0 {
-		speed = float64(sum) / float64(numSynchronizationSpeedHistory)
+		speed = float64(sum*1000) / float64(numSynchronizationSpeedHistory*numMillisecondsRefreshTime)
 	}
 
 	currentRound := psh.GetCurrentRound()
@@ -87,7 +91,7 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize() string {
 
 // CalculateSynchronizationSpeed will calculate and return speed of synchronization
 // how many blocks per second are synchronized
-func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
+func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed(numMillisecondsRefreshTime int) uint64 {
 	currentSynchronizedRound := psh.GetSynchronizedRound()
 	if psh.oldRound == 0 {
 		psh.oldRound = currentSynchronizedRound
@@ -106,7 +110,30 @@ func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed() uint64 {
 
 	psh.oldRound = currentSynchronizedRound
 
-	return uint64(roundsPerSecond)
+	numSyncedBlocks := uint64(0)
+	cumulatedTime := uint64(0)
+	lastIndex := len(psh.synchronizationSpeedHistory) - 1
+	millisecondsInASecond := uint64(1000)
+	for {
+		if lastIndex < 0 {
+			break
+		}
+		if cumulatedTime >= millisecondsInASecond {
+			break
+		}
+
+		numSyncedBlocks += psh.synchronizationSpeedHistory[lastIndex]
+		lastIndex--
+		cumulatedTime += uint64(numMillisecondsRefreshTime)
+	}
+	if cumulatedTime == 0 || numSyncedBlocks == 0 {
+		return 0
+	}
+
+	timeAdjustment := float64(millisecondsInASecond) / float64(cumulatedTime)
+	syncedBlocksAdjustment := timeAdjustment * float64(numSyncedBlocks)
+
+	return uint64(syncedBlocksAdjustment)
 }
 
 // GetNumTxProcessed will return number of processed transactions since node starts

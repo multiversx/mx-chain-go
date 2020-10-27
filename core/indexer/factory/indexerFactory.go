@@ -37,6 +37,7 @@ type ArgsIndexerFactory struct {
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
 	FeeConfig                *config.FeeSettings
+	IsInImportDBMode         bool
 }
 
 // NewIndexer will create a new instance of Indexer
@@ -110,6 +111,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
 		FeeConfig:                args.FeeConfig,
+		IsInImportDBMode:         args.IsInImportDBMode,
 	}
 
 	return indexer.NewElasticProcessor(esIndexerArgs)

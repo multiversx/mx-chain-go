@@ -36,4 +36,5 @@ type ArgElasticProcessor struct {
 	AccountsDB               state.AccountsAdapter
 	Denomination             int
 	FeeConfig                *config.FeeSettings
+	IsInImportDBMode         bool
 }
