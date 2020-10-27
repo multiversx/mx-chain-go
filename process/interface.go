@@ -685,6 +685,7 @@ type RequestBlockBodyHandler interface {
 
 // InterceptedHeaderSigVerifier is the interface needed at interceptors level to check that a header's signature is correct
 type InterceptedHeaderSigVerifier interface {
+	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error

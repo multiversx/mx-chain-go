@@ -751,7 +751,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(

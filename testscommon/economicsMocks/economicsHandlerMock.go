@@ -8,7 +8,7 @@ import (
 
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
-	MaxInflationRateCalled                 func() float64
+	MaxInflationRateCalled                 func(year uint32) float64
 	MinInflationRateCalled                 func() float64
 	LeaderPercentageCalled                 func() float64
 	ProtocolSustainabilityPercentageCalled func() float64
@@ -16,13 +16,15 @@ type EconomicsHandlerMock struct {
 	SetMaxGasLimitPerBlockCalled           func(maxGasLimitPerBlock uint64)
 	SetMinGasPriceCalled                   func(minGasPrice uint64)
 	SetMinGasLimitCalled                   func(minGasLimit uint64)
-	MaxGasLimitPerBlockCalled              func() uint64
+	MaxGasLimitPerBlockCalled              func(shard uint32) uint64
 	ComputeGasLimitCalled                  func(tx process.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled                       func(tx process.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled            func(tx process.TransactionWithFeeHandler) error
 	ComputeMoveBalanceFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled                     func(tx process.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled              func() float64
 	MinGasPriceCalled                      func() uint64
+	GasPerDataByteCalled                   func() uint64
 }
 
 // LeaderPercentage -
@@ -46,8 +48,8 @@ func (ehm *EconomicsHandlerMock) MinInflationRate() float64 {
 }
 
 // MaxInflationRate -
-func (ehm *EconomicsHandlerMock) MaxInflationRate(uint32) float64 {
-	return ehm.MaxInflationRateCalled()
+func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32) float64 {
+	return ehm.MaxInflationRateCalled(year)
 }
 
 // MinGasPrice -
@@ -94,8 +96,8 @@ func (ehm *EconomicsHandlerMock) SetMinGasLimit(minGasLimit uint64) {
 }
 
 // MaxGasLimitPerBlock -
-func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(uint32) uint64 {
-	return ehm.MaxGasLimitPerBlockCalled()
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shard uint32) uint64 {
+	return ehm.MaxGasLimitPerBlockCalled(shard)
 }
 
 // ComputeGasLimit -
@@ -126,6 +128,14 @@ func (ehm *EconomicsHandlerMock) CheckValidityTxValues(tx process.TransactionWit
 func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
 	if ehm.ComputeMoveBalanceFeeCalled != nil {
 		return ehm.ComputeMoveBalanceFeeCalled(tx)
+	}
+	return big.NewInt(0)
+}
+
+// ComputeTxFee
+func (ehm *EconomicsHandlerMock) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ehm.ComputeTxFeeCalled != nil {
+		return ehm.ComputeTxFeeCalled(tx)
 	}
 	return big.NewInt(0)
 }

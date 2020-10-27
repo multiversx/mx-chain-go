@@ -2626,12 +2626,6 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	t.Parallel()
 
 	var addedNonces []uint64
-
-	rounderMock := &mock.RounderMock{}
-
-	arguments := createMockMetaArguments()
-	arguments.Rounder = rounderMock
-
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
@@ -2641,7 +2635,12 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 			},
 		}
 	}
-	arguments.DataPool = poolsHolderStub
+
+	coreComponents, dataComponents := createMockComponentHolders()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := createMockMetaArguments(coreComponents, dataComponents)
+	rounderMock := &mock.RounderMock{}
+	arguments.Rounder = rounderMock
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

@@ -385,7 +385,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		vmContainer,
 		arg.Economics,
 		virtualMachineFactory.BlockChainHookImpl(),
-		arg.Blkc,
+		arg.Data.Blockchain(),
 	)
 	if err != nil {
 		return nil, err

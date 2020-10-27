@@ -438,7 +438,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		vmContainer,
 		arg.Economics,
 		vmFactoryImpl.BlockChainHookImpl(),
-		arg.Blkc,
+		arg.Data.Blockchain(),
 	)
 	if err != nil {
 		return nil, err

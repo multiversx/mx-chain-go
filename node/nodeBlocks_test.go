@@ -7,9 +7,11 @@ import (
 	"time"
 
 	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	mock2 "github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -351,4 +353,28 @@ func getDefaultDataComponents() *mock.DataComponentsMock {
 		DataPool:   &testscommon.PoolsHolderMock{},
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
+}
+
+func createDefaultBootstrapComponents(
+	coreComponents mainFactory.CoreComponentsHandler,
+	networkComponents mainFactory.NetworkComponentsHandler,
+	cryptoComponents mainFactory.CryptoComponentsHandler,
+) (mainFactory.BootstrapComponentsHandler, error) {
+
+	factoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
+		Config:            testscommon.GetGeneralConfig(),
+		WorkingDir:        "home",
+		CoreComponents:    coreComponents,
+		CryptoComponents:  cryptoComponents,
+		NetworkComponents: networkComponents,
+		PrefConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				DestinationShardAsObserver: "0",
+			},
+		},
+	}
+
+	bcf, _ := mainFactory.NewBootstrapComponentsFactory(factoryArgs)
+	mbc, err := mainFactory.NewManagedBootstrapComponents(bcf)
+	return mbc, err
 }

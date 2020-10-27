@@ -1147,11 +1147,6 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	t.Parallel()
 
 	var addedNonces []uint64
-
-	arguments := CreateMockArguments()
-	rounder := &mock.RounderMock{}
-	arguments.Rounder = rounder
-
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
@@ -1161,7 +1156,12 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 			},
 		}
 	}
-	arguments.DataPool = poolsHolderStub
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := CreateMockArguments(coreComponents, dataComponents )
+	rounder := &mock.RounderMock{}
+	arguments.Rounder = rounder
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1206,8 +1206,6 @@ func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
 	var wasCalled bool
 	shardID := core.MetachainShardId
 	nonce := uint64(1)
-
-	arguments := CreateMockArguments()
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
@@ -1221,8 +1219,10 @@ func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
 			},
 		}
 	}
-	arguments.DataPool = poolsHolderStub
 
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	wasCalled = false

@@ -29,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -735,41 +736,54 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	crtShardID := uint32(1)
 	chainID := []byte("chain ID")
 	version := uint32(1)
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+	coreComponents.ChainIdCalled = func() string {
+		return string(chainID)
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.EconomicsHandler = &economicsMocks.EconomicsHandlerMock{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID + 1
+		},
+		SelfShardId: crtShardID,
+	}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+
+	cryptoComponents := getDefaultCryptoComponents()
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID + 1
-			},
-			SelfShardId: crtShardID,
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
 		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
 		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
 	)
 
 	nonce := uint64(0)
@@ -816,10 +830,18 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	processComponents := getDefaultProcessComponents()
 
+	networkComponents := getDefaultNetworkComponents()
+	cryptoComponents := getDefaultCryptoComponents()
+	bootstrapComponents, err:= createDefaultBootstrapComponents(coreComponents, networkComponents, cryptoComponents)
+	require.Nil(t, err)
+
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
 	)
 
 	nonce := uint64(0)
@@ -831,7 +853,11 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
+	tx, txHash, err := n.CreateTransaction(
+		nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData,
+		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(),
+	)
+
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)

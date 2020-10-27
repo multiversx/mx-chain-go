@@ -840,7 +840,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinal
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container)
+	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	cnsData := consensus.Message{
 		BlockHeaderHash: []byte("X"),
 		PubKey:          []byte("A"),
@@ -895,7 +895,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container)
+	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
@@ -917,7 +917,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container)
+	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
@@ -939,7 +939,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 	}
 
 	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := *initSubroundEndRoundWithContainer(container)
+	sr := *initSubroundEndRoundWithContainer(container, &mock.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
 	sr.Header = &block.Header{}
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)

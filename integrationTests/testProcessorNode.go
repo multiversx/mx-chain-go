@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -2112,21 +2113,47 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	)
 	log.LogIfError(err)
 
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
+	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
+	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
+	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
+	cryptoComponents.PeerSignHandler = psh
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tpn.Messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+
+	processComponents := GetDefaultProcessComponents()
+	processComponents.BlockProcess = tpn.BlockProcessor
+	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
+	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
+	processComponents.BlackListHdl = tpn.BlockBlackListHandler
+	processComponents.NodesCoord = tpn.NodesCoordinator
+	processComponents.ShardCoord = tpn.ShardCoordinator
+	processComponents.IntContainer = tpn.InterceptorsContainer
+	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			return map[uint32][]*state.ValidatorInfo{
+				0: {{PublicKey: []byte("pk0")}},
+			}, nil
+		},
+	}
+	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.EpochTrigger = tpn.EpochStartTrigger
+	processComponents.EpochNotifier = tpn.EpochStartNotifier
+
 	err = tpn.Node.ApplyOptions(
 		node.WithHardforkTrigger(hardforkTrigger),
-		node.WithPeerSignatureHandler(psh),
-		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
-		node.WithValidatorStatistics(&mock.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
-				return map[uint32][]*state.ValidatorInfo{
-					0: {{PublicKey: []byte("pk0")}},
-				}, nil
-			},
-		}),
-		node.WithEpochStartEventNotifier(tpn.EpochStartNotifier),
-		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
-		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithProcessComponents(processComponents),
 	)
+	log.LogIfError(err)
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,
@@ -2135,7 +2162,33 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		HeartbeatRefreshIntervalInSec:       5,
 		HideInactiveValidatorIntervalInSec:  600,
 	}
-	err = tpn.Node.StartHeartbeat(hbConfig, "test", config.PreferencesConfig{})
+
+	hbFactoryArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+		Config: config.Config{
+			Heartbeat: hbConfig,
+		},
+		Prefs:             config.Preferences{},
+		HardforkTrigger:   hardforkTrigger,
+		CoreComponents:    tpn.Node.GetCoreComponents(),
+		DataComponents:    tpn.Node.GetDataComponents(),
+		NetworkComponents: tpn.Node.GetNetworkComponents(),
+		CryptoComponents:  tpn.Node.GetCryptoComponents(),
+		ProcessComponents: tpn.Node.GetProcessComponents(),
+	}
+
+	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)
+	log.LogIfError(err)
+
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatFactory)
+	log.LogIfError(err)
+
+	err = managedHeartbeatComponents.Create()
+	log.LogIfError(err)
+
+	err = tpn.Node.ApplyOptions(
+		node.WithHeartbeatComponents(managedHeartbeatComponents),
+	)
+
 	log.LogIfError(err)
 }
 
