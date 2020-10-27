@@ -1,9 +1,9 @@
 package versioning
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
