@@ -684,7 +684,8 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
-	if registrationData.TotalStakeValue.Cmp(auctionConfig.NodePrice) < 0 {
+	if registrationData.TotalStakeValue.Cmp(auctionConfig.NodePrice) < 0 &&
+		!core.IsSmartContractAddress(args.CallerAddr) {
 		s.eei.AddReturnMessage(
 			fmt.Sprintf("insufficient stake value: expected %s, got %s",
 				auctionConfig.NodePrice.String(),

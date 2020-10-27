@@ -32,9 +32,9 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		},
 		Eei:                    &mock.SystemEIStub{},
 		SigVerifier:            &mock.MessageSignVerifierMock{},
-		DelegationMgrSCAddress: []byte("delegMgrScAddr"),
-		StakingSCAddress:       []byte("stakingScAddr"),
-		AuctionSCAddress:       []byte("auctionScAddr"),
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		StakingSCAddress:       vm.StakingSCAddress,
+		AuctionSCAddress:       vm.AuctionSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -45,6 +45,7 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 	auctionArgs := createMockArgumentsForAuction()
 	auctionArgs.Eei = eei
 	auctionArgs.StakingSCConfig.GenesisNodePrice = "100"
+	auctionArgs.StakingSCAddress = vm.StakingSCAddress
 	auctionSc, _ := NewStakingAuctionSmartContract(auctionArgs)
 
 	stakingArgs := createMockStakingScArguments()
@@ -54,11 +55,11 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 	eei.inputParser = parsers.NewCallArgsParser()
 
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		if bytes.Equal(key, []byte("staking")) {
+		if bytes.Equal(key, vm.StakingSCAddress) {
 			return stakingSc, nil
 		}
 
-		if bytes.Equal(key, []byte("auctionScAddr")) {
+		if bytes.Equal(key, vm.AuctionSCAddress) {
 			auctionSc.flagEnableTopUp.Set()
 			_ = auctionSc.saveRegistrationData([]byte("addr"), &AuctionDataV2{
 				RewardAddress:   []byte("rewardAddr"),
@@ -344,16 +345,19 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 			return createdNonce
 		}},
 		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
+		parsers.NewCallArgsParser(),
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 20
+	_ = eei.SetSystemSCContainer(
+		createSystemSCContainer(eei),
+	)
 
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallValue = callValue
-
+	vmInput.RecipientAddr = createNewAddress(vm.FirstDelegationSCAddress)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
@@ -385,7 +389,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dGlobalFund.ActiveFunds))
 	assert.Equal(t, 0, len(dGlobalFund.UnStakedFunds))
-	assert.Equal(t, 0, len(dGlobalFund.WithdrawOnlyFunds))
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStakedFromNodes)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnBondedFromNodes)
 	assert.Equal(t, callValue, dGlobalFund.TotalActive)
@@ -396,7 +399,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, delegatorDataPresent)
 	assert.Equal(t, 0, len(delegator.UnStakedFunds))
-	assert.Equal(t, 0, len(delegator.WithdrawOnlyFunds))
 	assert.Equal(t, fundKey, delegator.ActiveFund)
 }
 
@@ -1014,7 +1016,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	stakingMap[nodesConfigKey] = stkNodes
 
 	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
-	eei.storageUpdate["staking"] = stakingMap
+	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	vmInput := getDefaultVmInputForFunc("unStakeNodes", [][]byte{blsKey1, blsKey2})
 	output := d.Execute(vmInput)
@@ -1161,7 +1163,7 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	stakingMap[nodesConfigKey] = stkNodes
 
 	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
-	eei.storageUpdate["staking"] = stakingMap
+	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	vmInput := getDefaultVmInputForFunc("unBondNodes", [][]byte{blsKey1, blsKey2})
 	output := d.Execute(vmInput)
@@ -1330,7 +1332,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 	stakingMap["blsKey2"] = regData
 
 	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
-	eei.storageUpdate["staking"] = stakingMap
+	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)

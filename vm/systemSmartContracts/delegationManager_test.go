@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,9 +28,9 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 			BaseIssuingCost:    "10",
 		},
 		Eei:                    &mock.SystemEIStub{},
-		DelegationMgrSCAddress: []byte("delegMgrScAddr"),
-		StakingSCAddress:       []byte("stakingScAddr"),
-		AuctionSCAddress:       []byte("auctionScAddr"),
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		StakingSCAddress:       vm.StakingSCAddress,
+		AuctionSCAddress:       vm.AuctionSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -306,6 +307,36 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 }
 
+func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
+	argsStaking := createMockStakingScArguments()
+	argsStaking.Eei = eei
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
+
+	argsAuction := createMockArgumentsForAuction()
+	argsAuction.Eei = eei
+	auctionSC, _ := NewStakingAuctionSmartContract(argsAuction)
+
+	delegationSCArgs := createMockArgumentsForDelegation()
+	delegationSCArgs.Eei = eei
+	delegationSc, _ := NewDelegationSystemSC(delegationSCArgs)
+
+	systemSCContainer := &mock.SystemSCContainerStub{
+		GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+			switch string(key) {
+			case string(vm.StakingSCAddress):
+				return stakingSc, nil
+			case string(vm.AuctionSCAddress):
+				return auctionSC, nil
+			case string(vm.FirstDelegationSCAddress):
+				return delegationSc, nil
+			}
+			return nil, nil
+		},
+	}
+
+	return systemSCContainer
+}
+
 func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing.T) {
 	t.Parallel()
 
@@ -315,26 +346,12 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
+		parsers.NewCallArgsParser(),
 		&mock.AccountsStub{},
 		&mock.RaterMock{},
 	)
-
-	delegationSCArgs := createMockArgumentsForDelegation()
-	delegationSCArgs.Eei, _ = NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	delegationSc, _ := NewDelegationSystemSC(delegationSCArgs)
 	_ = eei.SetSystemSCContainer(
-		&mock.SystemSCContainerStub{
-			GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-				return delegationSc, nil
-			},
-		},
+		createSystemSCContainer(eei),
 	)
 
 	args.Eei = eei
@@ -377,6 +394,9 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	expectedMetaData := codeMetaData.ToBytes()
 	assert.Equal(t, expectedMetaData, outAcc.CodeMetadata)
 
+	systemSc, _ := eei.systemContracts.Get(vm.FirstDelegationSCAddress)
+	delegationSc := systemSc.(*delegation)
+	eei.scAddress = createNewAddress(vm.FirstDelegationSCAddress)
 	dContractConfig, _ := delegationSc.getDelegationContractConfig()
 	assert.Equal(t, vmInput.CallerAddr, dContractConfig.OwnerAddress)
 	assert.Equal(t, uint64(10), dContractConfig.ServiceFee)
