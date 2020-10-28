@@ -350,7 +350,7 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *
 	dataComponents.Store = chainStorer
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = createShardCoordinator()
-	processComponents.HistoryRepo = historyRepo
+	processComponents.HistoryRepositoryInternal = historyRepo
 
 	n, err := node.NewNode(
 		node.WithCoreComponents(coreComponents),

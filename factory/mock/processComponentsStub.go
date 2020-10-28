@@ -13,49 +13,33 @@ import (
 
 // ProcessComponentsMock -
 type ProcessComponentsMock struct {
-	NodesCoord               sharding.NodesCoordinator
-	ShardCoord               sharding.Coordinator
-	IntContainer             process.InterceptorsContainer
-	ResFinder                dataRetriever.ResolversFinder
-	RoundHandler             consensus.Rounder
-	EpochTrigger             epochStart.TriggerHandler
-	EpochNotifier            factory.EpochStartNotifier
-	ForkDetect               process.ForkDetector
-	BlockProcess             process.BlockProcessor
-	BlackListHdl             process.TimeCacher
-	BootSore                 process.BootStorer
-	HeaderSigVerif           process.InterceptedHeaderSigVerifier
-	HeaderIntegrVerif        process.HeaderIntegrityVerifier
-	ValidatorStatistics      process.ValidatorStatisticsProcessor
-	ValidatorProvider        process.ValidatorsProvider
-	BlockTrack               process.BlockTracker
-	PendingMiniBlocksHdl     process.PendingMiniBlocksHandler
-	ReqHandler               process.RequestHandler
-	TxLogsProcess            process.TransactionLogProcessorDatabase
-	HeaderConstructValidator process.HeaderConstructionValidator
-	PeerMapper               process.NetworkShardingCollector
-	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
-	HistoryRepo              dblookupext.HistoryRepository
-}
-
-func (pcm *ProcessComponentsMock) WhiteListHandler() process.WhiteListHandler {
-	panic("implement me")
-}
-
-func (pcm *ProcessComponentsMock) WhiteListerVerifiedTxs() process.WhiteListHandler {
-	panic("implement me")
-}
-
-func (pcm *ProcessComponentsMock) HistoryRepository() dblookupext.HistoryRepository {
-	return pcm.HistoryRepo
-}
-
-func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler {
-	panic("implement me")
-}
-
-func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
-	panic("implement me")
+	NodesCoord                     sharding.NodesCoordinator
+	ShardCoord                     sharding.Coordinator
+	IntContainer                   process.InterceptorsContainer
+	ResFinder                      dataRetriever.ResolversFinder
+	RoundHandler                   consensus.Rounder
+	EpochTrigger                   epochStart.TriggerHandler
+	EpochNotifier                  factory.EpochStartNotifier
+	ForkDetect                     process.ForkDetector
+	BlockProcess                   process.BlockProcessor
+	BlackListHdl                   process.TimeCacher
+	BootSore                       process.BootStorer
+	HeaderSigVerif                 process.InterceptedHeaderSigVerifier
+	HeaderIntegrVerif              process.HeaderIntegrityVerifier
+	ValidatorStatistics            process.ValidatorStatisticsProcessor
+	ValidatorProvider              process.ValidatorsProvider
+	BlockTrack                     process.BlockTracker
+	PendingMiniBlocksHdl           process.PendingMiniBlocksHandler
+	ReqHandler                     process.RequestHandler
+	TxLogsProcess                  process.TransactionLogProcessorDatabase
+	HeaderConstructValidator       process.HeaderConstructionValidator
+	PeerMapper                     process.NetworkShardingCollector
+	TxSimulatorProcessor           factory.TransactionSimulatorProcessor
+	WhiteListHandlerInternal       process.WhiteListHandler
+	WhiteListerVerifiedTxsInternal process.WhiteListHandler
+	HistoryRepositoryInternal      dblookupext.HistoryRepository
+	ImportStartHandlerInternal     update.ImportStartHandler
+	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 }
 
 // Create -
@@ -181,6 +165,31 @@ func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingColle
 // TransactionSimulatorProcessor -
 func (pcm *ProcessComponentsMock) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
 	return pcm.TxSimulatorProcessor
+}
+
+// WhiteListHandler -
+func (pcm *ProcessComponentsMock) WhiteListHandler() process.WhiteListHandler {
+	return pcm.WhiteListHandlerInternal
+}
+
+// WhiteListerVerifiedTxs -
+func (pcm *ProcessComponentsMock) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	return pcm.WhiteListerVerifiedTxsInternal
+}
+
+// HistoryRepository -
+func (pcm *ProcessComponentsMock) HistoryRepository() dblookupext.HistoryRepository {
+	return pcm.HistoryRepositoryInternal
+}
+
+// ImportStartHandler -
+func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler {
+	return pcm.ImportStartHandlerInternal
+}
+
+// RequestedItemsHandler -
+func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	return pcm.RequestedItemsHandlerInternal
 }
 
 // IsInterfaceNil -

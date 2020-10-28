@@ -1565,7 +1565,7 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.NodesCoord = tpn.NodesCoordinator
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.InterceptorsContainer
-	processComponents.HistoryRepo = tpn.HistoryRepository
+	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk

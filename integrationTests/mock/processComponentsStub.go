@@ -13,49 +13,33 @@ import (
 
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
-	NodesCoord               sharding.NodesCoordinator
-	ShardCoord               sharding.Coordinator
-	IntContainer             process.InterceptorsContainer
-	ResFinder                dataRetriever.ResolversFinder
-	RoundHandler             consensus.Rounder
-	EpochTrigger             epochStart.TriggerHandler
-	EpochNotifier            factory.EpochStartNotifier
-	ForkDetect               process.ForkDetector
-	BlockProcess             process.BlockProcessor
-	BlackListHdl             process.TimeCacher
-	BootSore                 process.BootStorer
-	HeaderSigVerif           process.InterceptedHeaderSigVerifier
-	HeaderIntegrVerif        process.HeaderIntegrityVerifier
-	ValidatorStatistics      process.ValidatorStatisticsProcessor
-	ValidatorProvider        process.ValidatorsProvider
-	BlockTrack               process.BlockTracker
-	PendingMiniBlocksHdl     process.PendingMiniBlocksHandler
-	ReqHandler               process.RequestHandler
-	TxLogsProcess            process.TransactionLogProcessorDatabase
-	HeaderConstructValidator process.HeaderConstructionValidator
-	PeerMapper               process.NetworkShardingCollector
-	TxSimulatorProcessor     factory.TransactionSimulatorProcessor
-	HistoryRepo              dblookupext.HistoryRepository
-}
-
-func (pcs *ProcessComponentsStub) WhiteListHandler() process.WhiteListHandler {
-	panic("implement me")
-}
-
-func (pcs *ProcessComponentsStub) WhiteListerVerifiedTxs() process.WhiteListHandler {
-	panic("implement me")
-}
-
-func (pcs *ProcessComponentsStub) HistoryRepository() dblookupext.HistoryRepository {
-	return pcs.HistoryRepo
-}
-
-func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler {
-	panic("implement me")
-}
-
-func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
-	panic("implement me")
+	NodesCoord                     sharding.NodesCoordinator
+	ShardCoord                     sharding.Coordinator
+	IntContainer                   process.InterceptorsContainer
+	ResFinder                      dataRetriever.ResolversFinder
+	RoundHandler                   consensus.Rounder
+	EpochTrigger                   epochStart.TriggerHandler
+	EpochNotifier                  factory.EpochStartNotifier
+	ForkDetect                     process.ForkDetector
+	BlockProcess                   process.BlockProcessor
+	BlackListHdl                   process.TimeCacher
+	BootSore                       process.BootStorer
+	HeaderSigVerif                 process.InterceptedHeaderSigVerifier
+	HeaderIntegrVerif              process.HeaderIntegrityVerifier
+	ValidatorStatistics            process.ValidatorStatisticsProcessor
+	ValidatorProvider              process.ValidatorsProvider
+	BlockTrack                     process.BlockTracker
+	PendingMiniBlocksHdl           process.PendingMiniBlocksHandler
+	ReqHandler                     process.RequestHandler
+	TxLogsProcess                  process.TransactionLogProcessorDatabase
+	HeaderConstructValidator       process.HeaderConstructionValidator
+	PeerMapper                     process.NetworkShardingCollector
+	TxSimulatorProcessor           factory.TransactionSimulatorProcessor
+	WhiteListHandlerInternal       process.WhiteListHandler
+	WhiteListerVerifiedTxsInternal process.WhiteListHandler
+	HistoryRepositoryInternal      dblookupext.HistoryRepository
+	ImportStartHandlerInternal     update.ImportStartHandler
+	RequestedItemsHandlerInternal  dataRetriever.RequestedItemsHandler
 }
 
 // Create -
@@ -181,6 +165,31 @@ func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingColle
 // TransactionSimulatorProcessor -
 func (pcs *ProcessComponentsStub) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
 	return pcs.TxSimulatorProcessor
+}
+
+// WhiteListHandler -
+func (pcs *ProcessComponentsStub) WhiteListHandler() process.WhiteListHandler {
+	return pcs.WhiteListHandlerInternal
+}
+
+// WhiteListerVerifiedTxs -
+func (pcs *ProcessComponentsStub) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	return pcs.WhiteListerVerifiedTxsInternal
+}
+
+// HistoryRepository -
+func (pcs *ProcessComponentsStub) HistoryRepository() dblookupext.HistoryRepository {
+	return pcs.HistoryRepositoryInternal
+}
+
+// ImportStartHandler -
+func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler {
+	return pcs.ImportStartHandlerInternal
+}
+
+// RequestedItemsHandler -
+func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	return pcs.RequestedItemsHandlerInternal
 }
 
 // IsInterfaceNil -
