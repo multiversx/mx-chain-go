@@ -290,6 +290,8 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
+	// increase nonce due to SC deploy
+	nodes[0].OwnAccount.Nonce++
 
 	round := uint64(0)
 	nonce := uint64(0)
