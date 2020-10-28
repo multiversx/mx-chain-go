@@ -30,7 +30,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		Marshalizer:      &mock.MarshalizerMock{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:         &testscommon.PoolsHolderMock{},
+		DataPool:         testscommon.NewPoolsHolderMock(),
 	}
 	return arguments
 }

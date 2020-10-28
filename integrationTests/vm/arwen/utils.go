@@ -178,7 +178,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:      marshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions: builtInFuncs,
-		DataPool:         &testscommon.PoolsHolderMock{},
+		DataPool:         testscommon.NewPoolsHolderMock(),
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

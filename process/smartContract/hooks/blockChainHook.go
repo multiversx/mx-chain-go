@@ -81,6 +81,13 @@ func NewBlockChainHookImpl(
 		compiledScStorage: args.StorageService.GetStorer(dataRetriever.SmartContractUnit),
 	}
 
+	if check.IfNil(blockChainHookImpl.compiledScStorage) {
+		return nil, process.ErrNilStorage
+	}
+	if check.IfNil(blockChainHookImpl.compiledScPool) {
+		return nil, process.ErrNilPoolsHolder
+	}
+
 	blockChainHookImpl.currentHdr = &block.Header{}
 
 	return blockChainHookImpl, nil
