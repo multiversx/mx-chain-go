@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	esdtData "github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -80,7 +81,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	esdtNotFrozen := ESDTUserMetadata{Frozen: false}
 
 	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
+	esdtToken := &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
@@ -90,7 +91,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	pauseHandler.IsPausedCalled = func(token []byte) bool {
 		return true
 	}
-	esdtToken = &ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
+	esdtToken = &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 

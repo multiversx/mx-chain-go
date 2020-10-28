@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +26,8 @@ type FacadeHandler interface {
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (state.UserAccountHandler, error)
+	GetESDTBalance(address string, key string) (string, string, error)
+	GetAllESDTTokens(address string) ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -283,8 +284,7 @@ func GetESDTBalance(c *gin.Context) {
 		return
 	}
 
-	storageKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
-	value, err := facade.GetValueForKey(addr, storageKey)
+	balance, freeze, err := facade.GetESDTBalance(addr, tokenName)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -300,7 +300,7 @@ func GetESDTBalance(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"value": value},
+			Data:  gin.H{"tokenName": tokenName, "balance": balance, "frozen": freeze},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -327,20 +327,7 @@ func GetESDTTokens(c *gin.Context) {
 		return
 	}
 
-	key := c.Param("key")
-	if key == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), errors.ErrEmptyKey.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
-		return
-	}
-
-	value, err := facade.GetValueForKey(addr, key)
+	tokens, err := facade.GetAllESDTTokens(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -356,7 +343,7 @@ func GetESDTTokens(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"value": value},
+			Data:  gin.H{"tokens": tokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

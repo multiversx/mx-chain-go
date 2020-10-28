@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	esdtData "github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -70,7 +71,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	assert.Equal(t, err, process.ErrInsufficientFunds)
 
 	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
+	esdtToken := &esdtData.ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
@@ -104,7 +105,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	accSnd, _ := state.NewUserAccount([]byte("snd"))
 
 	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
+	esdtToken := &esdtData.ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
@@ -136,7 +137,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	_, err := esdt.ProcessBuiltinFunction(nil, accDst, input)
 	assert.Nil(t, err)
 	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{}
+	esdtToken := &esdtData.ESDigitalToken{}
 	marshaledData, _ := accDst.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
@@ -167,18 +168,18 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	esdtNotFrozen := ESDTUserMetadata{Frozen: false}
 
 	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
+	esdtToken := &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
 
-	esdtToken = &ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
+	esdtToken = &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
-	esdtToken = &ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
+	esdtToken = &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
 	accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
@@ -189,7 +190,7 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(100)) == 0)
 
-	esdtToken = &ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
+	esdtToken = &esdtData.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
 	accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 

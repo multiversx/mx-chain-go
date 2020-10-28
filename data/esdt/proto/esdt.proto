@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package protoBuiltInFunctions;
 
-option go_package = "builtInFunctions";
+option go_package = "esdt";
 option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
