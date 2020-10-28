@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -43,7 +44,6 @@ func loadResponseBody(body io.ReadCloser, dest interface{}) error {
 	if body == nil {
 		return nil
 	}
-
 	if dest == nil {
 		_, err := io.Copy(ioutil.Discard, body)
 		return err
@@ -57,14 +57,20 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 	responseBody := map[string]interface{}{}
 	bodyBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Warn("cannot read elastic response body bytes", "error", err)
-		return err
+		return fmt.Errorf("%w cannot read elastic response body bytes", err)
 	}
 
-	notJson := json.Unmarshal(bodyBytes, &responseBody)
-	if notJson != nil {
-		log.Warn("cannot unmarshal elastic response body to map[string]interface{}", "decode error", notJson, "body response", string(bodyBytes))
-		return ErrBackOff
+	err = json.Unmarshal(bodyBytes, &responseBody)
+	if err != nil {
+		errToReturn := err
+		isBackOffError := strings.Contains(string(bodyBytes), fmt.Sprintf("%d", http.StatusForbidden)) ||
+			strings.Contains(string(bodyBytes), fmt.Sprintf("%d", http.StatusTooManyRequests))
+		if isBackOffError {
+			errToReturn = ErrBackOff
+		}
+
+		return fmt.Errorf("%w, cannot unmarshal elastic response body to map[string]interface{}, "+
+			"decode error: %s, body response: %s", errToReturn, err.Error(), string(bodyBytes))
 	}
 
 	if res.IsError() {
@@ -72,16 +78,12 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 			return nil
 		}
 	}
-
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
 		return nil
 	}
 
-	log.Warn("elasticClient.parseResponse",
-		"code returned by elastic API", res.StatusCode,
-		"errors map", fmt.Sprintf("%v", responseBody["error"]))
-
-	return ErrBackOff
+	return fmt.Errorf("error while parsing the response: code returned: %v, body: %v, bodyBytes: %v",
+		res.StatusCode, responseBody, bodyBytes)
 }
 
 func errIsAlreadyExists(response map[string]interface{}) bool {
