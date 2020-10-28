@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -37,6 +38,8 @@ type ArgBlockChainHook struct {
 	Marshalizer      marshal.Marshalizer
 	Uint64Converter  typeConverters.Uint64ByteSliceConverter
 	BuiltInFunctions process.BuiltInFunctionContainer
+	SCPool           storage.Cacher
+	SCStorage        storage.Storer
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -52,6 +55,9 @@ type BlockChainHookImpl struct {
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
+
+	compiledScStorage storage.Storer
+	compiledScPool    storage.Cacher
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -64,14 +70,16 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:         args.Accounts,
-		pubkeyConv:       args.PubkeyConv,
-		storageService:   args.StorageService,
-		blockChain:       args.BlockChain,
-		shardCoordinator: args.ShardCoordinator,
-		marshalizer:      args.Marshalizer,
-		uint64Converter:  args.Uint64Converter,
-		builtInFunctions: args.BuiltInFunctions,
+		accounts:          args.Accounts,
+		pubkeyConv:        args.PubkeyConv,
+		storageService:    args.StorageService,
+		blockChain:        args.BlockChain,
+		shardCoordinator:  args.ShardCoordinator,
+		marshalizer:       args.Marshalizer,
+		uint64Converter:   args.Uint64Converter,
+		builtInFunctions:  args.BuiltInFunctions,
+		compiledScPool:    args.SCPool,
+		compiledScStorage: args.SCStorage,
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
@@ -103,6 +111,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return process.ErrNilBuiltInFunction
+	}
+	if check.IfNil(args.SCPool) {
+		return process.ErrNilPoolsHolder
+	}
+	if check.IfNil(args.SCStorage) {
+		return process.ErrNilStorage
 	}
 
 	return nil
@@ -478,6 +492,16 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 	bh.mutCurrentHdr.Lock()
 	bh.currentHdr = hdr
 	bh.mutCurrentHdr.Unlock()
+}
+
+// SaveCompiledCode saves to cache and storage the compiled code
+func (bh *BlockChainHookImpl) SaveCompiledCode() {
+
+}
+
+// GetCompiledCode returns the compiled code if it finds in the cache or storage
+func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) interface{} {
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
