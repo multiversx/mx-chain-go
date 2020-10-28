@@ -633,7 +633,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 			Config:              *cfgs.generalConfig,
-			ConsensusGroupSize:  int(managedCoreComponents.GenesisNodesSetup().GetShardConsensusGroupSize()),
 			BootstrapRoundIndex: ctx.GlobalUint64(bootstrapRoundIndex.Name),
 			HardforkTrigger:     hardForkTrigger,
 			CoreComponents:      managedCoreComponents,
