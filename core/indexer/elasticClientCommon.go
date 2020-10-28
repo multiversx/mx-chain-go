@@ -55,8 +55,15 @@ func loadResponseBody(body io.ReadCloser, dest interface{}) error {
 
 func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 	responseBody := map[string]interface{}{}
-	decodeErr := loadResponseBody(res.Body, &responseBody)
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Warn("cannot read elastic response body bytes", "error", err)
+		return err
+	}
+
+	decodeErr := json.Unmarshal(bodyBytes, &responseBody)
 	if decodeErr != nil {
+		log.Warn("cannot unmarshal elastic response body to map[string]interface{}", "decode error", decodeErr, "body response", string(bodyBytes))
 		return decodeErr
 	}
 
