@@ -15,8 +15,6 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-const esdtKeyIdentifier = "esdt"
-
 var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
 var zero = big.NewInt(0)
@@ -45,7 +43,7 @@ func NewESDTTransferFunc(
 	e := &esdtTransfer{
 		funcGasCost:    funcGasCost,
 		marshalizer:    marshalizer,
-		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pauseHandler:   pauseHandler,
 		payableHandler: &disabledPayableHandler{},
 	}

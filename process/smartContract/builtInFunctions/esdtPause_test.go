@@ -61,7 +61,7 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
 	assert.Nil(t, err)
 
-	pauseKey := []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier + string(key))
+	pauseKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(key))
 	assert.True(t, esdt.IsPaused(pauseKey))
 
 	esdtPauseFalse, _ := NewESDTPauseFunc(&mock.AccountsStub{

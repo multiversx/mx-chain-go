@@ -195,7 +195,7 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 
 	systemAccount, _ := state.NewUserAccount(core.SystemAccountAddress)
 	esdtGlobal := ESDTGlobalMetadata{Paused: true}
-	pauseKey := []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier + string(key))
+	pauseKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(key))
 	systemAccount.DataTrieTracker().SaveKeyValue(pauseKey, esdtGlobal.ToBytes())
 
 	accountStub.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
