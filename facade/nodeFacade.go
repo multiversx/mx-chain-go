@@ -271,12 +271,12 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 
 // GetESDTBalance returns the ESDT balance and if it is frozen
 func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string, error) {
-	return "", "", nil
+	return nf.node.GetESDTBalance(address, key)
 }
 
 // GetAllESDTTokens returns all the esdt tokens from this address
 func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
-	return []string{""}, nil
+	return nf.node.GetAllESDTTokens(address)
 }
 
 // CreateTransaction creates a transaction from all needed fields

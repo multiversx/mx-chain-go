@@ -18,6 +18,8 @@ const (
 	getBalancePath  = "/:address/balance"
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
+	getESDTTokens   = "/:address/allesdttokens"
+	getESDTBalance  = "/:address/esdt/:tokenName"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -47,6 +49,8 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
 	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
 	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
+	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
+	router.RegisterHandler(http.MethodGet, getESDTTokens, GetESDTTokens)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {

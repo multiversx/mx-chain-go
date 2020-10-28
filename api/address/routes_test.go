@@ -444,6 +444,126 @@ func startNodeServerWrongFacade() *gin.Engine {
 	return ws
 }
 
+func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/esdt/tokenName/newToken", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
+			return "", "", expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/tokenName/newToken", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTBalance_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue := "value"
+	facade := mock.Facade{
+		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
+			return testValue, testValue, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/tokenName/newToken", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	valueForKeyResponseObj := valueForKeyResponse{}
+	loadResponse(resp.Body, &valueForKeyResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
+}
+
+func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/some/allesdttokens", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetAllESDTTokensCalled: func(_ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/allesdttokens", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTTokens_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue := "value"
+	facade := mock.Facade{
+		GetAllESDTTokensCalled: func(address string) ([]string, error) {
+			return []string{testValue}, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/allesdttokens", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	valueForKeyResponseObj := valueForKeyResponse{}
+	loadResponse(resp.Body, &valueForKeyResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
+}
+
 func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -453,6 +573,8 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
+					{Name: "/:address/allesdttokens", Open: true},
+					{Name: "/:address/esdt/:tokenName", Open: true},
 				},
 			},
 		},

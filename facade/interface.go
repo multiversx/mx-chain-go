@@ -28,6 +28,12 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
 
+	// GetESDTBalance returns the esdt balance and frozen property of a from a given account
+	GetESDTBalance(address string, key string) (string, string, error)
+
+	// GetAllESDTTokens returns the value of a key from a given account
+	GetAllESDTTokens(address string) ([]string, error)
+
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
