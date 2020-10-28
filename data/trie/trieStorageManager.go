@@ -567,6 +567,9 @@ func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	tsm.cancelFunc()
 
 	err1 := tsm.db.Close()

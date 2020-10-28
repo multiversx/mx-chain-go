@@ -406,7 +406,6 @@ func CreateProcessComponents(
 	}
 	economicsData, err := economics.NewEconomicsData(economicsArgs)
 	totalSupply, _ := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	fmt.Println(os.Getwd())
 	gasSchedule, err := core.LoadGasScheduleConfig(GasSchedule)
 	if err != nil {
 		return nil, err
