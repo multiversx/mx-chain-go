@@ -61,10 +61,10 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 		return err
 	}
 
-	decodeErr := json.Unmarshal(bodyBytes, &responseBody)
-	if decodeErr != nil {
-		log.Warn("cannot unmarshal elastic response body to map[string]interface{}", "decode error", decodeErr, "body response", string(bodyBytes))
-		return decodeErr
+	notJson := json.Unmarshal(bodyBytes, &responseBody)
+	if notJson != nil {
+		log.Warn("cannot unmarshal elastic response body to map[string]interface{}", "decode error", notJson, "body response", string(bodyBytes))
+		return ErrBackOff
 	}
 
 	if res.IsError() {
