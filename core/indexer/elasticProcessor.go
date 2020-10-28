@@ -350,10 +350,13 @@ func (ei *elasticProcessor) SaveTransactions(
 	}
 
 	txs, alteredAccounts := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	buffSlice := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
+	buffSlice, err := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
+	if err != nil {
+		return err
+	}
 
 	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
 		if err != nil {
 			log.Warn("indexer indexing bulk of transactions",
 				"error", err.Error())
@@ -544,7 +547,10 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		accountsMap[address] = acc
 	}
 
-	buffSlice := serializeAccounts(accountsMap)
+	buffSlice, err := serializeAccounts(accountsMap)
+	if err != nil {
+		return err
+	}
 	for idx := range buffSlice {
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
 		if err != nil {
@@ -574,7 +580,10 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*Acco
 		accountsMap[addressKey] = acc
 	}
 
-	buffSlice := serializeAccountsHistory(accountsMap)
+	buffSlice, err := serializeAccountsHistory(accountsMap)
+	if err != nil {
+		return err
+	}
 	for idx := range buffSlice {
 		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
 		if err != nil {

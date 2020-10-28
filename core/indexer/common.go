@@ -246,16 +246,17 @@ func serializeTransactions(
 	selfShardID uint32,
 	_ func(hashes []string, index string) (map[string]bool, error),
 	mbsHashInDB map[string]bool,
-) []bytes.Buffer {
+) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for _, tx := range transactions {
 		isMBOfTxInDB := mbsHashInDB[tx.MBHash]
-		meta, serializedData := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
-		if len(meta) == 0 {
-			continue
+		meta, serializedData, errPrepareTx := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
+		if errPrepareTx != nil {
+			log.Warn("error preparing transaction for indexing", "tx hash", tx.Hash, "error", err)
+			return nil, errPrepareTx
 		}
 
 		// append a newline for each element
@@ -271,10 +272,13 @@ func serializeTransactions(
 		_, err = buff.Write(meta)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+			return nil, err
+
 		}
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+			return nil, err
 		}
 	}
 
@@ -283,18 +287,19 @@ func serializeTransactions(
 		buffSlice = append(buffSlice, buff)
 	}
 
-	return buffSlice
+	return buffSlice, nil
 }
 
-func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
+func serializeAccounts(accounts map[string]*AccountInfo) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for address, acc := range accounts {
-		meta, serializedData := prepareSerializedAccountInfo(address, acc)
+		meta, serializedData, errPrepareAcc := prepareSerializedAccountInfo(address, acc)
 		if len(meta) == 0 {
-			continue
+			log.Warn("cannot prepare serializes account info", "error", errPrepareAcc)
+			return nil, err
 		}
 
 		// append a newline for each element
@@ -310,10 +315,12 @@ func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
 		_, err = buff.Write(meta)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
+			return nil, err
 		}
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk accounts, write serialized account", "error", err.Error())
+			return nil, err
 		}
 	}
 
@@ -322,18 +329,19 @@ func serializeAccounts(accounts map[string]*AccountInfo) []bytes.Buffer {
 		buffSlice = append(buffSlice, buff)
 	}
 
-	return buffSlice
+	return buffSlice, nil
 }
 
-func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []bytes.Buffer {
+func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for address, acc := range accounts {
-		meta, serializedData := prepareSerializedAccountBalanceHistory(address, acc)
-		if len(meta) == 0 {
-			continue
+		meta, serializedData, errPrepareAcc := prepareSerializedAccountBalanceHistory(address, acc)
+		if errPrepareAcc != nil {
+			log.Warn("cannot prepare serializes account balance history", "error", err)
+			return nil, err
 		}
 
 		// append a newline for each element
@@ -349,10 +357,12 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 		_, err = buff.Write(meta)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk accounts history, write meta", "error", err.Error())
+			return nil, err
 		}
 		_, err = buff.Write(serializedData)
 		if err != nil {
 			log.Warn("elastic search: serialize bulk accounts history, write serialized account history", "error", err.Error())
+			return nil, err
 		}
 	}
 
@@ -361,102 +371,106 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) []byte
 		buffSlice = append(buffSlice, buff)
 	}
 
-	return buffSlice
+	return buffSlice, nil
 }
 
 func prepareSerializedDataForATransaction(
 	tx *Transaction,
 	selfShardID uint32,
-	isMBOfTxInDB bool,
-) (meta []byte, serializedData []byte) {
-	var err error
-	if isMBOfTxInDB {
-		if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
-			return
-		}
-		// update transaction
-		meta, serializedData = prepareTxUpdate(tx)
-	} else {
-		// insert transaction in database
-		meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, tx.Hash, "\n"))
-		serializedData, err = json.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal",
-				"error", "could not serialize transaction, will skip indexing",
-				"tx hash", tx.Hash)
-			return
-		}
-	}
-	return
-}
+	_ bool,
+) ([]byte, []byte, error) {
+	metaData := []byte(fmt.Sprintf(`{"update":{"_id":"%s", "_type": "_doc"}}%s`, tx.Hash, "\n"))
 
-func prepareSerializedAccountInfo(address string, account *AccountInfo) (meta []byte, serializedData []byte) {
-	var err error
-	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
-	serializedData, err = json.Marshal(account)
+	marshaledTx, err := json.Marshal(tx)
 	if err != nil {
 		log.Debug("indexer: marshal",
-			"error", "could not serialize account, will skip indexing",
-			"address", address)
-		return
+			"error", "could not serialize transaction, will skip indexing",
+			"tx hash", tx.Hash)
+		return nil, nil, err
+	}
+	if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
+		serializedData :=
+			[]byte(fmt.Sprintf(`{"script":{"source":""},"upsert":%s}`,
+				string(marshaledTx)))
+		return metaData, serializedData, nil
 	}
 
-	return
-}
-
-func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) (meta []byte, serializedData []byte) {
-	var err error
-	meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
-	serializedData, err = json.Marshal(account)
-	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize account history entry, will skip indexing",
-			"address", address)
-		return
-	}
-
-	return
-}
-
-func prepareTxUpdate(tx *Transaction) ([]byte, []byte) {
-	var meta, serializedData []byte
-
-	meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s", "_type" : "%s"  } }%s`, tx.Hash, "_doc", "\n"))
-
-	marshalizedLog, err := json.Marshal(tx.Log)
+	marshaledLog, err := json.Marshal(tx.Log)
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize transaction log, will skip indexing",
 			"tx hash", tx.Hash)
-		return nil, nil
+		return nil, nil, err
 	}
 	scResults, err := json.Marshal(tx.SmartContractResults)
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize smart contract results, will skip indexing",
 			"tx hash", tx.Hash)
-		return nil, nil
+		return nil, nil, err
 	}
 
-	marshalizedTimestamp, err := json.Marshal(tx.Timestamp)
+	marshaledTimestamp, err := json.Marshal(tx.Timestamp)
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize timestamp, will skip indexing",
 			"tx hash", tx.Hash)
-		return nil, nil
+		return nil, nil, err
 	}
 
+	var serializedData []byte
 	if tx.GasUsed == tx.GasLimit {
 		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
-		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s } }`,
-			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp)))
+		serializedData =
+			[]byte(fmt.Sprintf(`{"script":{"source":"`+
+				`ctx._source.status = params.status;`+
+				`ctx._source.log = params.log;`+
+				`ctx._source.scResults = params.scResults;`+
+				`ctx._source.timestamp = params.timestamp;`+
+				`","lang": "painless","params":`+
+				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
+				tx.Status, string(marshaledLog), string(scResults), string(marshaledTimestamp), string(marshaledTx)))
 	} else {
 		// update gasUsed because was changed (is a smart contract operation)
-		serializedData = []byte(fmt.Sprintf(`{ "doc" : { "log" : %s, "scResults" : %s, "status": "%s", "timestamp": %s, "gasUsed" : %s } }`,
-			string(marshalizedLog), string(scResults), tx.Status, string(marshalizedTimestamp), fmt.Sprintf("%d", tx.GasUsed)))
+		serializedData =
+			[]byte(fmt.Sprintf(`{"script":{"source":"`+
+				`ctx._source.status = params.status;`+
+				`ctx._source.log = params.log;`+
+				`ctx._source.scResults = params.scResults;`+
+				`ctx._source.timestamp = params.timestamp;`+
+				`ctx._source.gasUsed = params.gasUsed;`+
+				`","lang": "painless","params":`+
+				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
+				tx.Status, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
 	}
 
-	return meta, serializedData
+	return metaData, serializedData, nil
+}
+
+func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte, []byte, error) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err := json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account, will skip indexing",
+			"address", address)
+		return nil, nil, err
+	}
+
+	return meta, serializedData, nil
+}
+
+func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) ([]byte, []byte, error) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
+	serializedData, err := json.Marshal(account)
+	if err != nil {
+		log.Debug("indexer: marshal",
+			"error", "could not serialize account history entry, will skip indexing",
+			"address", address)
+		return nil, nil, err
+	}
+
+	return meta, serializedData, nil
 }
 
 func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
