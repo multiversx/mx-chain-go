@@ -8,33 +8,53 @@ import (
 )
 
 type systemVM struct {
-	systemEI        vm.ContextHandler
-	vmType          []byte
-	systemContracts vm.SystemSCContainer
+	systemEI             vm.ContextHandler
+	vmType               []byte
+	systemContracts      vm.SystemSCContainer
+	asyncCallbackGasLock uint64
+	asyncCallStepCost    uint64
+}
+
+// ArgsNewSystemVM defines the needed arguments to create a new system vm
+type ArgsNewSystemVM struct {
+	SystemEI        vm.ContextHandler
+	SystemContracts vm.SystemSCContainer
+	VmType          []byte
+	GasSchedule     map[string]map[string]uint64
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
-func NewSystemVM(
-	systemEI vm.ContextHandler,
-	systemContracts vm.SystemSCContainer,
-	vmType []byte,
-) (*systemVM, error) {
-	if check.IfNil(systemEI) {
+func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
+	if check.IfNil(args.SystemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if check.IfNil(systemContracts) {
+	if check.IfNil(args.SystemContracts) {
 		return nil, vm.ErrNilSystemContractsContainer
 	}
-	if len(vmType) == 0 { // no need for nil check, len() for nil returns 0
+	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
+	}
+	if args.GasSchedule == nil {
+		return nil, vm.ErrNilGasSchedule
+	}
+
+	apiCosts := args.GasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return nil, vm.ErrNilGasSchedule
 	}
 
 	sVm := &systemVM{
-		systemEI:        systemEI,
-		systemContracts: systemContracts,
-		vmType:          make([]byte, len(vmType)),
+		systemEI:             args.SystemEI,
+		systemContracts:      args.SystemContracts,
+		vmType:               make([]byte, len(args.VmType)),
+		asyncCallStepCost:    apiCosts[core.AsyncCallStepField],
+		asyncCallbackGasLock: apiCosts[core.AsyncCallbackGasLockField],
 	}
-	copy(sVm.vmType, vmType)
+	copy(sVm.vmType, args.VmType)
+
+	if sVm.asyncCallStepCost == 0 || sVm.asyncCallbackGasLock == 0 {
+		return nil, vm.ErrNilGasSchedule
+	}
 
 	return sVm, nil
 }
@@ -91,10 +111,43 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		}, nil
 	}
 
+	lockedGas, err := s.handleAsyncStepGas(input)
+	if err != nil {
+		return &vmcommon.VMOutput{
+			ReturnCode:    vmcommon.UserError,
+			ReturnMessage: err.Error(),
+			GasRemaining:  lockedGas,
+		}, nil
+	}
+
 	returnCode := contract.Execute(input)
 
 	vmOutput := s.systemEI.CreateVMOutput()
 	vmOutput.ReturnCode = returnCode
+	vmOutput.GasRemaining += lockedGas
 
 	return vmOutput, nil
+}
+
+func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
+	if input.CallType != vmcommon.AsynchronousCall {
+		return 0, nil
+	}
+
+	// gasToLock is the amount of gas to set aside for the callback, to avoid it
+	// being used by executing built-in functions; this amount will be restored
+	// to the caller, so that there is sufficient gas for the async callback
+	gasToLock := s.asyncCallStepCost + s.asyncCallbackGasLock
+
+	// gasToDeduct also contains an extra asyncCallStepCost, apart from
+	// gasToLock; asyncCallStepCost will be deducted, but not refunded, just as
+	// Arwen does when executing an async call
+	gasToDeduct := s.asyncCallStepCost + gasToLock
+	if input.GasProvided <= gasToDeduct {
+		return 0, vm.ErrNotEnoughGas
+	}
+
+	input.GasProvided -= gasToDeduct
+
+	return gasToLock, nil
 }

@@ -1198,7 +1198,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Uint64Converter:  TestUint64Converter,
 		BuiltInFunctions: builtInFuncs,
 	}
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {

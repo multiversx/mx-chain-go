@@ -531,7 +531,6 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
 	gasSchedule = arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
@@ -621,7 +620,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{

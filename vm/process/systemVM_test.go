@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
@@ -11,52 +12,102 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createMockArguments() ArgsNewSystemVM {
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+	args := ArgsNewSystemVM{
+		SystemEI:        &mock.SystemEIStub{},
+		SystemContracts: &mock.SystemSCContainerStub{},
+		VmType:          factory.SystemVirtualMachine,
+		GasSchedule:     gasSchedule,
+	}
+	return args
+}
+
 func TestNewSystemVM_NilSystemEI(t *testing.T) {
 	t.Parallel()
 
-	systemVM, err := NewSystemVM(nil, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	args.SystemEI = nil
+	sVM, err := NewSystemVM(args)
 
-	assert.Nil(t, systemVM)
+	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
 }
 
 func TestNewSystemVM_NilContainer(t *testing.T) {
 	t.Parallel()
 
-	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, nil, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	args.SystemContracts = nil
+	sVM, err := NewSystemVM(args)
 
-	assert.Nil(t, systemVM)
+	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilSystemContractsContainer, err)
 }
 
 func TestNewSystemVM_NilVMType(t *testing.T) {
 	t.Parallel()
 
-	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, nil)
+	args := createMockArguments()
+	args.VmType = nil
+	sVM, err := NewSystemVM(args)
 
-	assert.Nil(t, systemVM)
+	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilVMType, err)
+}
+
+func TestNewSystemVM_NilGasSchedule(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArguments()
+	args.GasSchedule = nil
+	sVM, err := NewSystemVM(args)
+
+	assert.Nil(t, sVM)
+	assert.Equal(t, vm.ErrNilGasSchedule, err)
+}
+
+func TestNewSystemVM_NoApiCost(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArguments()
+	args.GasSchedule = make(map[string]map[string]uint64)
+	sVM, err := NewSystemVM(args)
+
+	assert.Nil(t, sVM)
+	assert.Equal(t, vm.ErrNilGasSchedule, err)
+
+	args.GasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	sVM, err = NewSystemVM(args)
+
+	assert.Nil(t, sVM)
+	assert.Equal(t, vm.ErrNilGasSchedule, err)
 }
 
 func TestNewSystemVM_Ok(t *testing.T) {
 	t.Parallel()
 
-	systemVM, err := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	sVM, err := NewSystemVM(args)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, systemVM)
+	assert.NotNil(t, sVM)
 }
 
 func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 	t.Parallel()
 
-	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	sVM, _ := NewSystemVM(args)
 
-	vmOutput, err := systemVM.RunSmartContractCreate(nil)
+	vmOutput, err := sVM.RunSmartContractCreate(nil)
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, vm.ErrInputArgsIsNil, err)
 
-	vmOutput, err = systemVM.RunSmartContractCreate(&vmcommon.ContractCreateInput{})
+	vmOutput, err = sVM.RunSmartContractCreate(&vmcommon.ContractCreateInput{})
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, vm.ErrInputCallerAddrIsNil, err)
 }
@@ -64,9 +115,10 @@ func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 	t.Parallel()
 
-	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	sVM, _ := NewSystemVM(args)
 
-	vmOutput, err := systemVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})
+	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})
 	assert.Nil(t, vmOutput)
 	assert.Equal(t, vm.ErrUnknownSystemSmartContract, err)
 }
@@ -86,9 +138,11 @@ func TestSystemVM_RunSmartContractCall(t *testing.T) {
 		return nil, vm.ErrUnknownSystemSmartContract
 	}}
 
-	systemVM, _ := NewSystemVM(&mock.SystemEIStub{}, container, factory.SystemVirtualMachine)
+	args := createMockArguments()
+	args.SystemContracts = container
+	sVM, _ := NewSystemVM(args)
 
-	vmOutput, err := systemVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: scAddress})
+	vmOutput, err := sVM.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: scAddress})
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 }

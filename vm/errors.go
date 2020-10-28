@@ -190,3 +190,6 @@ var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
 
 // ErrInvalidArgument signals that invalid argument has been provided
 var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrNilGasSchedule signals that nil gas schedule has been provided
+var ErrNilGasSchedule = errors.New("nil gas schedule")
