@@ -19,6 +19,7 @@ import (
 const minLengthForTokenName = 10
 const maxLengthForTokenName = 20
 const configKeyPrefix = "esdtConfig"
+const allIssuedTokens = "allIssuedTokens"
 const burnable = "canBurn"
 const mintable = "canMint"
 const canPause = "canPause"
@@ -30,26 +31,28 @@ const upgradable = "canUpgrade"
 const conversionBase = 10
 
 type esdt struct {
-	eei             vm.SystemEI
-	gasCost         vm.GasCost
-	baseIssuingCost *big.Int
-	ownerAddress    []byte
-	eSDTSCAddress   []byte
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	enabledEpoch    uint32
-	flagEnabled     atomic.Flag
+	eei                 vm.SystemEI
+	gasCost             vm.GasCost
+	baseIssuingCost     *big.Int
+	ownerAddress        []byte
+	eSDTSCAddress       []byte
+	endOfEpochSCAddress []byte
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	enabledEpoch        uint32
+	flagEnabled         atomic.Flag
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
 type ArgsNewESDTSmartContract struct {
-	Eei           vm.SystemEI
-	GasCost       vm.GasCost
-	ESDTSCConfig  config.ESDTSystemSCConfig
-	ESDTSCAddress []byte
-	Marshalizer   marshal.Marshalizer
-	Hasher        hashing.Hasher
-	EpochNotifier vm.EpochNotifier
+	Eei                 vm.SystemEI
+	GasCost             vm.GasCost
+	ESDTSCConfig        config.ESDTSystemSCConfig
+	ESDTSCAddress       []byte
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	EpochNotifier       vm.EpochNotifier
+	EndOfEpochSCAddress []byte
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -73,14 +76,15 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 
 	e := &esdt{
-		eei:             args.Eei,
-		gasCost:         args.GasCost,
-		baseIssuingCost: baseIssuingCost,
-		ownerAddress:    []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:   args.ESDTSCAddress,
-		hasher:          args.Hasher,
-		marshalizer:     args.Marshalizer,
-		enabledEpoch:    args.ESDTSCConfig.EnabledEpoch,
+		eei:                 args.Eei,
+		gasCost:             args.GasCost,
+		baseIssuingCost:     baseIssuingCost,
+		ownerAddress:        []byte(args.ESDTSCConfig.OwnerAddress),
+		eSDTSCAddress:       args.ESDTSCAddress,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		enabledEpoch:        args.ESDTSCConfig.EnabledEpoch,
+		endOfEpochSCAddress: args.EndOfEpochSCAddress,
 	}
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -129,6 +133,10 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.esdtControlChanges(args)
 	case "transferOwnership":
 		return e.transferOwnership(args)
+	case "getAllESDTTokens":
+		return e.getAllESDTTokens(args)
+	case "getTokenProperties":
+		return e.getTokenProperties(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -142,10 +150,11 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		MinTokenNameLength: minLengthForTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
-	marshaledData, err := e.marshalizer.Marshal(scConfig)
-	log.LogIfError(err, "marshal error on esdt init function")
+	err := e.saveESDTConfig(scConfig)
+	if err != nil {
+		return vmcommon.UserError
+	}
 
-	e.eei.SetStorage([]byte(configKeyPrefix), marshaledData)
 	return vmcommon.Ok
 }
 
@@ -162,14 +171,19 @@ func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		e.eei.AddReturnMessage("invalid owner address length")
 		return vmcommon.FunctionWrongSignature
 	}
-	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
-		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
-		return vmcommon.OutOfFunds
-	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
+	}
+	esdtConfig, err := e.getESDTConfig()
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if args.CallValue.Cmp(esdtConfig.BaseIssuingCost) != 0 {
+		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
+		return vmcommon.OutOfFunds
 	}
 
 	err = e.issueToken(args.Arguments[0], args.Arguments[1:])
@@ -186,18 +200,24 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	if len(args.Arguments[0]) < minLengthForTokenName || len(args.Arguments[0]) > maxLengthForTokenName {
-		e.eei.AddReturnMessage("token name length not in parameters")
-		return vmcommon.FunctionWrongSignature
-	}
-	if args.CallValue.Cmp(e.baseIssuingCost) != 0 {
-		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
-		return vmcommon.OutOfFunds
-	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
 		e.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
+	}
+	esdtConfig, err := e.getESDTConfig()
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments[0]) < int(esdtConfig.MinTokenNameLength) ||
+		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
+		e.eei.AddReturnMessage("token name length not in parameters")
+		return vmcommon.FunctionWrongSignature
+	}
+	if args.CallValue.Cmp(esdtConfig.BaseIssuingCost) != 0 {
+		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
+		return vmcommon.OutOfFunds
 	}
 
 	err = e.issueToken(args.CallerAddr, args.Arguments)
@@ -260,6 +280,8 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		return err
 	}
 
+	e.addToIssuedTokens(string(tokenName))
+
 	return nil
 }
 
@@ -308,6 +330,13 @@ func checkAndGetSetting(arg string) (bool, error) {
 		return false, nil
 	}
 	return false, vm.ErrInvalidArgument
+}
+
+func getStringFromBool(val bool) string {
+	if val {
+		return "true"
+	}
+	return "false"
 }
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -482,14 +511,156 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	return vmcommon.Ok
 }
 
-func (e *esdt) configChange(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+		e.eei.AddReturnMessage("configChange can be called by whitelisted address only")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 4 {
+		e.eei.AddReturnMessage("invalid number of arguments, needed 4")
+		return vmcommon.UserError
+	}
+
+	newConfig := &ESDTConfig{
+		OwnerAddress:       args.Arguments[0],
+		BaseIssuingCost:    big.NewInt(0).SetBytes(args.Arguments[1]),
+		MinTokenNameLength: uint32(big.NewInt(0).SetBytes(args.Arguments[2]).Uint64()),
+		MaxTokenNameLength: uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64()),
+	}
+
+	if len(newConfig.OwnerAddress) != len(args.RecipientAddr) {
+		e.eei.AddReturnMessage("invalid arguments, first argument must be a valid address")
+		return vmcommon.UserError
+	}
+	if newConfig.BaseIssuingCost.Cmp(zero) < 0 {
+		e.eei.AddReturnMessage("invalid new base issueing cost")
+		return vmcommon.UserError
+	}
+	if newConfig.MinTokenNameLength > newConfig.MaxTokenNameLength {
+		e.eei.AddReturnMessage("invalind min and max token name lengths")
+		return vmcommon.UserError
+	}
+
+	err = e.saveESDTConfig(newConfig)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
 }
 
-func (e *esdt) claim(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	//TODO: implement me
+func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
+		e.eei.AddReturnMessage("claim can be called by whitelisted address only")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		e.eei.AddReturnMessage("arguments number must be 0")
+		return vmcommon.UserError
+	}
+
+	scBalance := e.eei.GetBalance(args.RecipientAddr)
+	err = e.eei.Transfer(args.CallerAddr, args.RecipientAddr, scBalance, nil, 0)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	return vmcommon.Ok
+}
+
+func (e *esdt) getAllESDTTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		e.eei.AddReturnMessage("arguments number must be 0")
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	savedData := e.eei.GetStorage([]byte(allIssuedTokens))
+	err = e.eei.UseGas(e.gasCost.BaseOperationCost.DataCopyPerByte * uint64(len(savedData)))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(savedData)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		e.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("arguments number must be 0")
+		return vmcommon.UserError
+	}
+	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	esdtToken, err := e.getExistingToken(args.Arguments[0])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	e.eei.Finish(esdtToken.TokenName)
+	e.eei.Finish(esdtToken.OwnerAddress)
+	e.eei.Finish([]byte(esdtToken.MintedValue.String()))
+	e.eei.Finish([]byte(esdtToken.BurntValue.String()))
+	e.eei.Finish([]byte("IsPaused" + getStringFromBool(esdtToken.IsPaused)))
+	e.eei.Finish([]byte("CanUpgrade" + getStringFromBool(esdtToken.Upgradable)))
+	e.eei.Finish([]byte("CanMint" + getStringFromBool(esdtToken.Mintable)))
+	e.eei.Finish([]byte("CanBurn" + getStringFromBool(esdtToken.Burnable)))
+	e.eei.Finish([]byte("CanChangeOwner" + getStringFromBool(esdtToken.CanChangeOwner)))
+	e.eei.Finish([]byte("CanPause" + getStringFromBool(esdtToken.CanPause)))
+	e.eei.Finish([]byte("CanFreeze" + getStringFromBool(esdtToken.CanFreeze)))
+	e.eei.Finish([]byte("CanWipe" + getStringFromBool(esdtToken.CanWipe)))
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) addToIssuedTokens(newToken string) {
+	allTokens := e.eei.GetStorage([]byte(allIssuedTokens))
+	if len(allTokens) == 0 {
+		e.eei.SetStorage([]byte(allIssuedTokens), []byte(newToken))
+		return
+	}
+
+	allTokens = append(allTokens, []byte("@"+newToken)...)
+	e.eei.SetStorage([]byte(allIssuedTokens), allTokens)
 }
 
 func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData, vmcommon.ReturnCode) {
@@ -590,6 +761,32 @@ func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
 	token := &ESDTData{}
 	err := e.marshalizer.Unmarshal(token, marshalledData)
 	return token, err
+}
+
+func (e *esdt) getESDTConfig() (*ESDTConfig, error) {
+	esdtConfig := &ESDTConfig{
+		OwnerAddress:       e.ownerAddress,
+		BaseIssuingCost:    e.baseIssuingCost,
+		MinTokenNameLength: minLengthForTokenName,
+		MaxTokenNameLength: maxLengthForTokenName,
+	}
+	marshalledData := e.eei.GetStorage([]byte(configKeyPrefix))
+	if len(marshalledData) == 0 {
+		return esdtConfig, nil
+	}
+
+	err := e.marshalizer.Unmarshal(esdtConfig, marshalledData)
+	return esdtConfig, err
+}
+
+func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
+	marshaledData, err := e.marshalizer.Marshal(esdtConfig)
+	if err != nil {
+		return err
+	}
+
+	e.eei.SetStorage([]byte(configKeyPrefix), marshaledData)
+	return nil
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

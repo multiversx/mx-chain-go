@@ -13,14 +13,13 @@ message ESDTData {
     bool  Mintable       = 3 [(gogoproto.jsontag) = "Mintable"];
     bool  Burnable       = 4 [(gogoproto.jsontag) = "Burnable"];
     bool  CanPause       = 5 [(gogoproto.jsontag) = "CanPause"];
-    bool  Paused         = 6 [(gogoproto.jsontag) = "Paused"];
-    bool  CanFreeze      = 7 [(gogoproto.jsontag) = "CanFreeze"];
-    bool  CanWipe        = 8 [(gogoproto.jsontag) = "CanWipe"];
-    bool  Upgradable     = 10 [(gogoproto.jsontag) = "CanUpgrade"];
-    bool  CanChangeOwner = 11 [(gogoproto.jsontag) = "CanChangeOwner"];
-    bool  IsPaused       = 12 [(gogoproto.jsontag) = "IsPaused"];
-    bytes MintedValue    = 13 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes BurntValue     = 14 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bool  CanFreeze      = 6 [(gogoproto.jsontag) = "CanFreeze"];
+    bool  CanWipe        = 7 [(gogoproto.jsontag) = "CanWipe"];
+    bool  Upgradable     = 8 [(gogoproto.jsontag) = "CanUpgrade"];
+    bool  CanChangeOwner = 9 [(gogoproto.jsontag) = "CanChangeOwner"];
+    bool  IsPaused       = 10 [(gogoproto.jsontag) = "IsPaused"];
+    bytes MintedValue    = 11 [(gogoproto.jsontag) = "MintedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes BurntValue     = 12 [(gogoproto.jsontag) = "BurntValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message ESDTConfig {
