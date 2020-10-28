@@ -1468,6 +1468,7 @@ func newShardBlockProcessor(
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         data.Datapool,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig,
@@ -1764,6 +1765,7 @@ func newMetaBlockProcessor(
 		Marshalizer:      core.InternalMarshalizer,
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
+		DataPool:         data.Datapool,
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,

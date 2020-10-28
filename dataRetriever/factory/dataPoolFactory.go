@@ -90,6 +90,13 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, err
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
+	smartContracts, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		log.Info("error creating trieNodes")
+		return nil, err
+	}
+
 	currBlockTxs, err := dataPool.NewCurrentBlockPool()
 	if err != nil {
 		return nil, err
@@ -104,5 +111,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		peerChangeBlockBody,
 		trieNodes,
 		currBlockTxs,
+		smartContracts,
 	)
 }

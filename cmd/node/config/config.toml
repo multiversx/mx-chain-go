@@ -195,6 +195,18 @@
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
+[SmartContractsStorage]
+    [SmartContractsStorage.Cache]
+        Name = "SmartContractsStorage"
+        Capacity = 1000
+        Type = "LRU"
+    [SmartContractsStorage.DB]
+        FilePath = "SmartContractsStorage"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
         Name = "StatusMetricsStorage"
@@ -313,6 +325,12 @@
 
 [TrieNodesDataPool]
     Name = "TrieNodesDataPool"
+    Capacity = 900000
+    Type = "SizeLRU"
+    SizeInBytes = 314572800 #300MB
+
+[SmartContractDataPool]
+    Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB

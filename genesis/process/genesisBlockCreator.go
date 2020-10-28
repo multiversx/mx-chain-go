@@ -366,6 +366,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		Marshalizer:      gbc.arg.Marshalizer,
 		Uint64Converter:  gbc.arg.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         gbc.arg.DataPool,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

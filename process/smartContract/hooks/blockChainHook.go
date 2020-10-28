@@ -33,13 +33,12 @@ type ArgBlockChainHook struct {
 	Accounts         state.AccountsAdapter
 	PubkeyConv       core.PubkeyConverter
 	StorageService   dataRetriever.StorageService
+	DataPool         dataRetriever.PoolsHolder
 	BlockChain       data.ChainHandler
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
 	Uint64Converter  typeConverters.Uint64ByteSliceConverter
 	BuiltInFunctions process.BuiltInFunctionContainer
-	SCPool           storage.Cacher
-	SCStorage        storage.Storer
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -78,8 +77,8 @@ func NewBlockChainHookImpl(
 		marshalizer:       args.Marshalizer,
 		uint64Converter:   args.Uint64Converter,
 		builtInFunctions:  args.BuiltInFunctions,
-		compiledScPool:    args.SCPool,
-		compiledScStorage: args.SCStorage,
+		compiledScPool:    args.DataPool.SmartContracts(),
+		compiledScStorage: args.StorageService.GetStorer(dataRetriever.SmartContractUnit),
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
@@ -111,12 +110,6 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return process.ErrNilBuiltInFunction
-	}
-	if check.IfNil(args.SCPool) {
-		return process.ErrNilPoolsHolder
-	}
-	if check.IfNil(args.SCStorage) {
-		return process.ErrNilStorage
 	}
 
 	return nil
@@ -495,13 +488,39 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 }
 
 // SaveCompiledCode saves to cache and storage the compiled code
-func (bh *BlockChainHookImpl) SaveCompiledCode() {
-
+func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
+	bh.compiledScPool.Put(codeHash, code, len(code))
+	err := bh.compiledScStorage.Put(codeHash, code)
+	if err != nil {
+		log.Debug("SaveCompiledCode", "error", err)
+	}
 }
 
 // GetCompiledCode returns the compiled code if it finds in the cache or storage
-func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) interface{} {
+func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
+	val, found := bh.compiledScPool.Get(codeHash)
+	if found {
+		compiledCode, ok := val.([]byte)
+		if ok {
+			return found, compiledCode
+		}
+	}
 
+	compiledCode, err := bh.compiledScStorage.Get(codeHash)
+	if err != nil {
+		return false, nil
+	}
+
+	return found, compiledCode
+}
+
+// DeleteCompiledCode deletes from storage and cache the compiled code
+func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
+	bh.compiledScPool.Remove(codeHash)
+	err := bh.compiledScStorage.Remove(codeHash)
+	if err != nil {
+		log.Debug("DeleteCompiledCode", "error", err)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

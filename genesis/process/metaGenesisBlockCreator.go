@@ -214,6 +214,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		Marshalizer:      arg.Marshalizer,
 		Uint64Converter:  arg.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         arg.DataPool,
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
