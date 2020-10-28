@@ -27,9 +27,8 @@ const fundKeyPrefix = "fund"
 const percentageDenominator = uint64(100000)
 
 const (
-	active       = uint32(0)
-	unStaked     = uint32(1)
-	withdrawOnly = uint32(2)
+	active   = uint32(0)
+	unStaked = uint32(1)
 )
 
 type delegation struct {
@@ -246,7 +245,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	delegator := &DelegatorData{
 		ActiveFund:        fundKey,
 		UnStakedFunds:     make([][]byte, 0),
-		WithdrawOnlyFunds: make([][]byte, 0),
 		RewardsCheckpoint: d.eei.BlockChainHook().CurrentEpoch(),
 		UnClaimedRewards:  big.NewInt(0),
 	}
@@ -254,7 +252,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	globalFund := &GlobalFundData{
 		ActiveFunds:            make([][]byte, 1),
 		UnStakedFunds:          make([][]byte, 0),
-		WithdrawOnlyFunds:      make([][]byte, 0),
 		TotalUnStakedFromNodes: big.NewInt(0),
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalActive:            big.NewInt(0).Set(args.CallValue),
@@ -272,6 +269,16 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
+	}
+
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", [][]byte{}, args.CallValue)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		d.eei.AddReturnMessage(vmOutput.ReturnMessage)
+		return vmOutput.ReturnCode
 	}
 
 	return vmcommon.Ok
@@ -1583,8 +1590,6 @@ func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey 
 		globalFund.ActiveFunds = append(globalFund.ActiveFunds, fundKey)
 	case unStaked:
 		globalFund.UnStakedFunds = append(globalFund.UnStakedFunds, fundKey)
-	case withdrawOnly:
-		globalFund.WithdrawOnlyFunds = append(globalFund.WithdrawOnlyFunds, fundKey)
 	}
 }
 
