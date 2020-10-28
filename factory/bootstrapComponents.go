@@ -178,6 +178,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
+	if bootstrapParameters.NodesConfig != nil {
+		log.Info("the epoch from nodesConfig is",
+			"epoch", bootstrapParameters.NodesConfig.CurrentEpoch)
+	}
+
 	return &bootstrapComponents{
 		epochStartBootstraper: epochStartBootstraper,
 		bootstrapParamsHandler: &bootstrapParamsHolder{

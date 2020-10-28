@@ -10,7 +10,6 @@ import (
 	factoryState "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 //TODO: merge this with data components
@@ -18,18 +17,14 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config              config.Config
-	ShardCoordinator    sharding.Coordinator
+	BootstrapComponents BootstrapComponentsHolder
 	Core                CoreComponentsHolder
-	TriesContainer      state.TriesHolder
-	TrieStorageManagers map[string]data.StorageManager
 }
 
 type stateComponentsFactory struct {
-	config              config.Config
-	shardCoordinator    sharding.Coordinator
-	core                CoreComponentsHolder
-	triesContainer      state.TriesHolder
-	trieStorageManagers map[string]data.StorageManager
+	config         config.Config
+	bootComponents BootstrapComponentsHolder
+	core           CoreComponentsHolder
 }
 
 // stateComponents struct holds the state components of the Elrond protocol
@@ -54,42 +49,44 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.Core.PathHandler()) {
 		return nil, errors.ErrNilPathHandler
 	}
-	if check.IfNil(args.ShardCoordinator) {
+	if check.IfNil(args.BootstrapComponents) {
+		return nil, errors.ErrNilBootstrapComponentsHolder
+	}
+	if check.IfNil(args.BootstrapComponents.ShardCoordinator()) {
 		return nil, errors.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.TriesContainer) {
+	if check.IfNil(args.BootstrapComponents.EpochStartBootstrapper()) {
 		return nil, errors.ErrNilTriesContainer
-	}
-	if len(args.TrieStorageManagers) == 0 {
-		return nil, errors.ErrNilTriesStorageManagers
-	}
-	for _, storageManager := range args.TrieStorageManagers {
-		if check.IfNil(storageManager) {
-			return nil, errors.ErrNilTrieStorageManager
-		}
 	}
 
 	return &stateComponentsFactory{
-		config:              args.Config,
-		shardCoordinator:    args.ShardCoordinator,
-		core:                args.Core,
-		triesContainer:      args.TriesContainer,
-		trieStorageManagers: args.TrieStorageManagers,
+		config:         args.Config,
+		core:           args.Core,
+		bootComponents: args.BootstrapComponents,
 	}, nil
 }
 
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	accountFactory := factoryState.NewAccountCreator()
+	triesComponents, trieStorageManagers := scf.bootComponents.EpochStartBootstrapper().GetTriesComponents()
+	if len(trieStorageManagers) == 0 {
+		return nil, errors.ErrNilTriesStorageManagers
+	}
+	for _, storageManager := range trieStorageManagers {
+		if check.IfNil(storageManager) {
+			return nil, errors.ErrNilTrieStorageManager
+		}
+	}
 
-	merkleTrie := scf.triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	merkleTrie := triesComponents.Get([]byte(trieFactory.UserAccountTrie))
 	accountsAdapter, err := state.NewAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountFactory = factoryState.NewPeerAccountCreator()
-	merkleTrie = scf.triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie = triesComponents.Get([]byte(trieFactory.PeerAccountTrie))
 	peerAdapter, err := state.NewPeerAccountsDB(merkleTrie, scf.core.Hasher(), scf.core.InternalMarshalizer(), accountFactory)
 	if err != nil {
 		return nil, err
@@ -98,8 +95,8 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	return &stateComponents{
 		peerAccounts:        peerAdapter,
 		accountsAdapter:     accountsAdapter,
-		triesContainer:      scf.triesContainer,
-		trieStorageManagers: scf.trieStorageManagers,
+		triesContainer:      triesComponents,
+		trieStorageManagers: trieStorageManagers,
 	}, nil
 }
 

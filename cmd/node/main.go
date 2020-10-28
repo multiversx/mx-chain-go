@@ -236,49 +236,14 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			return err
 		}
 
+		log.Trace("creating bootstrap components")
 		managedBootstrapComponents, err := createManagedBootstrapComponents(cfgs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, workingDir)
 		if err != nil {
 			return err
 		}
 
-		currentEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
-		storerEpoch := currentEpoch
-		if !cfgs.generalConfig.StoragePruning.Enabled {
-			// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
-			// and it should be Epoch_ALL or something similar
-			storerEpoch = 0
-		}
-
-		log.Info("Bootstrap", "epoch", managedBootstrapComponents.EpochBootstrapParams().Epoch())
-		if managedBootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
-			log.Info("the epoch from nodesConfig is",
-				"epoch", managedBootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
-		}
-
-		var shardIdString = core.GetShardIDString(managedBootstrapComponents.ShardCoordinator().SelfId())
-		logger.SetCorrelationShard(shardIdString)
-
 		log.Trace("creating state components")
-		triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
-		stateArgs := mainFactory.StateComponentsFactoryArgs{
-			Config:              *cfgs.generalConfig,
-			ShardCoordinator:    managedBootstrapComponents.ShardCoordinator(),
-			Core:                managedCoreComponents,
-			TriesContainer:      triesComponents,
-			TrieStorageManagers: trieStorageManagers,
-		}
-
-		stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
-		if err != nil {
-			return fmt.Errorf("NewStateComponentsFactory failed: %w", err)
-		}
-
-		managedStateComponents, err := mainFactory.NewManagedStateComponents(stateComponentsFactory)
-		if err != nil {
-			return err
-		}
-
-		err = managedStateComponents.Create()
+		managedStateComponents, err := createManagedStateComponents(cfgs, managedCoreComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
@@ -286,23 +251,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		log.Trace("creating data components")
 		epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 
-		dataArgs := mainFactory.DataComponentsFactoryArgs{
-			Config:             *cfgs.generalConfig,
-			ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
-			Core:               managedCoreComponents,
-			EpochStartNotifier: epochStartNotifier,
-			CurrentEpoch:       storerEpoch,
-		}
-
-		dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
-		if err != nil {
-			return fmt.Errorf("NewDataComponentsFactory failed: %w", err)
-		}
-		managedDataComponents, err := mainFactory.NewManagedDataComponents(dataComponentsFactory)
-		if err != nil {
-			return err
-		}
-		err = managedDataComponents.Create()
+		managedDataComponents, err := createManagedDataComponents(cfgs, epochStartNotifier, managedBootstrapComponents, managedCoreComponents)
 		if err != nil {
 			return err
 		}
@@ -360,7 +309,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			managedBootstrapComponents.ShardCoordinator().SelfId(),
 			chanStopNodeProcess,
 			managedBootstrapComponents.EpochBootstrapParams(),
-			currentEpoch,
+			managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 		)
 		if err != nil {
 			return err
@@ -374,7 +323,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 			"PkBlockSign", managedCryptoComponents.PublicKeyString(),
-			"ShardId", shardIdString,
+			"ShardId", managedBootstrapComponents.ShardCoordinator().SelfId(),
 			"TotalShards", managedBootstrapComponents.ShardCoordinator().NumberOfShards(),
 			"AppVersion", version,
 			"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
@@ -528,7 +477,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 			EpochStart:                &cfgs.generalConfig.EpochStartConfig,
 			Rater:                     managedCoreComponents.Rater(),
 			RatingsData:               managedCoreComponents.RatingsData(),
-			StartEpochNum:             currentEpoch,
+			StartEpochNum:             managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 			SizeCheckDelta:            cfgs.generalConfig.Marshalizer.SizeCheckDelta,
 			StateCheckpointModulus:    cfgs.generalConfig.StateTriesConfig.CheckpointRoundsModulus,
 			MaxComputableRounds:       cfgs.generalConfig.GeneralSettings.MaxComputableRounds,
@@ -657,7 +606,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 		err = managedConsensusComponents.Create()
 		if err != nil {
-			log.Error("starting node failed", "epoch", currentEpoch, "error", err.Error())
+			log.Error("starting node failed", "epoch", managedBootstrapComponents.EpochBootstrapParams().Epoch(), "error", err.Error())
 			return err
 		}
 
@@ -803,6 +752,71 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	return nil
 }
 
+func createManagedDataComponents(
+	cfgs *configs,
+	epochStartNotifier mainFactory.EpochStartNotifier,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+) (mainFactory.DataComponentsHandler, error) {
+	storerEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
+	if !cfgs.generalConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		storerEpoch = 0
+	}
+
+	dataArgs := mainFactory.DataComponentsFactoryArgs{
+		Config:             *cfgs.generalConfig,
+		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
+		Core:               managedCoreComponents,
+		EpochStartNotifier: epochStartNotifier,
+		CurrentEpoch:       storerEpoch,
+	}
+
+	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewDataComponentsFactory failed: %w", err)
+	}
+	managedDataComponents, err := mainFactory.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedDataComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+	return managedDataComponents, nil
+}
+
+func createManagedStateComponents(
+	cfgs *configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+) (mainFactory.StateComponentsHandler, error) {
+	stateArgs := mainFactory.StateComponentsFactoryArgs{
+		Config:              *cfgs.generalConfig,
+		Core:                managedCoreComponents,
+		BootstrapComponents: managedBootstrapComponents,
+	}
+
+	stateComponentsFactory, err := mainFactory.NewStateComponentsFactory(stateArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewStateComponentsFactory failed: %w", err)
+	}
+
+	managedStateComponents, err := mainFactory.NewManagedStateComponents(stateComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedStateComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedStateComponents, nil
+}
+
 func createManagedBootstrapComponents(
 	cfgs *configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
@@ -834,6 +848,9 @@ func createManagedBootstrapComponents(
 	if err != nil {
 		return nil, err
 	}
+
+	var shardIdString = core.GetShardIDString(managedBootstrapComponents.ShardCoordinator().SelfId())
+	logger.SetCorrelationShard(shardIdString)
 
 	return managedBootstrapComponents, nil
 }
