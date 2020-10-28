@@ -63,6 +63,7 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["SaveUserName"] = 1
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
+	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
 	epochStartConfig := getEpochStartConfig()

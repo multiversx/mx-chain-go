@@ -771,6 +771,8 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		},
 		SelfShardId: crtShardID,
 	}
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = shardCoordinator
 
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = shardCoordinator
@@ -778,6 +780,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	cryptoComponents := getDefaultCryptoComponents()
 
 	n, _ := node.NewNode(
+		node.WithBootstrapComponents(bootstrapComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
@@ -832,9 +835,9 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	networkComponents := getDefaultNetworkComponents()
 	cryptoComponents := getDefaultCryptoComponents()
-	bootstrapComponents, err:= createDefaultBootstrapComponents(coreComponents, networkComponents, cryptoComponents)
-	require.Nil(t, err)
-
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = processComponents.ShardCoordinator()
+	bootstrapComponents.HdrIntegrityVerifier = processComponents.HeaderIntegrVerif
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
@@ -842,6 +845,8 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		node.WithNetworkComponents(networkComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
 	)
 
 	nonce := uint64(0)
