@@ -531,7 +531,7 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule = arwenConfig.MakeGasMapForTests()
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
