@@ -3,8 +3,6 @@
   "settings": {
     "number_of_shards": 3,
     "number_of_replicas": 0,
-    "opendistro.index_state_management.policy_id": "tps_policy",
-    "opendistro.index_state_management.rollover_alias": "tps",
     "index": {
       "sort.field": ["timestamp", "nonce"],
       "sort.order": ["desc", "desc"]

@@ -1,6 +1,6 @@
 {
   "policy": {
-    "description": "A default policy that changes the replica count between hot and cold states.",
+    "description": "Open distro policy for the transactions elastic index.",
     "default_state": "hot",
     "states": [
       {
@@ -8,7 +8,7 @@
         "actions": [
           {
             "rollover": {
-              "min_size": "1gb"
+              "min_size": "85gb"
             }
           }
         ],
@@ -16,7 +16,7 @@
           {
             "state_name": "warm",
             "conditions": {
-              "min_size": "1gb"
+              "min_size": "85gb"
             }
           }
         ]

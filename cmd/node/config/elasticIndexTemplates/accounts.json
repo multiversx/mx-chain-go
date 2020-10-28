@@ -1,10 +1,8 @@
 {
   "index_patterns": ["accounts-*"],
   "settings": {
-    "number_of_shards": 5,
-    "number_of_replicas": 0,
-    "opendistro.index_state_management.policy_id": "accounts_policy",
-    "opendistro.index_state_management.rollover_alias": "accounts"
+    "number_of_shards": 3,
+    "number_of_replicas": 0
   },
   "mappings": {
     "properties": {
