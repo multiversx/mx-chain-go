@@ -74,8 +74,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	selfShardID uint32,
 ) ([]*Transaction, map[string]struct{}) {
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
-	//we can not iterate smart contracts results directly on the miniblocks contained in the block body
-	// as some moniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
+	//we can not iterate smart contract results directly on the miniblocks contained in the block body
+	// as some miniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
