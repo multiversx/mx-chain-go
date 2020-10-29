@@ -49,6 +49,27 @@ type valueForKeyResponse struct {
 	Code  string                  `json:"code"`
 }
 
+type esdtBalanceResponseData struct {
+	Balance string `json:"balance"`
+	Frozen  string `json:"frozen"`
+}
+
+type esdtBalanceResponse struct {
+	Data  esdtBalanceResponseData `json:"data"`
+	Error string                  `json:"error"`
+	Code  string                  `json:"code"`
+}
+
+type esdtTokensResponseData struct {
+	Tokens []string `json:"tokens"`
+}
+
+type esdtTokensResponse struct {
+	Data  esdtTokensResponseData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string
+}
+
 type usernameResponseData struct {
 	Username string `json:"username"`
 }
@@ -448,7 +469,7 @@ func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/esdt/tokenName/newToken", nil)
+	req, _ := http.NewRequest("GET", "/address/myAddress/esdt/newToken", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -471,7 +492,7 @@ func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/tokenName/newToken", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -486,22 +507,24 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 
 	testAddress := "address"
 	testValue := "value"
+	frozenValue := "frozen"
 	facade := mock.Facade{
 		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
-			return testValue, testValue, nil
+			return testValue, frozenValue, nil
 		},
 	}
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/tokenName/newToken", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	valueForKeyResponseObj := valueForKeyResponse{}
-	loadResponse(resp.Body, &valueForKeyResponseObj)
+	esdtBalanceResponseObj := esdtBalanceResponse{}
+	loadResponse(resp.Body, &esdtBalanceResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
+	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
+	assert.Equal(t, frozenValue, esdtBalanceResponseObj.Data.Frozen)
 }
 
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
@@ -545,10 +568,11 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
-	testValue := "value"
+	testValue1 := "token1"
+	testValue2 := "token2"
 	facade := mock.Facade{
 		GetAllESDTTokensCalled: func(address string) ([]string, error) {
-			return []string{testValue}, nil
+			return []string{testValue1, testValue2}, nil
 		},
 	}
 
@@ -558,10 +582,10 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	valueForKeyResponseObj := valueForKeyResponse{}
-	loadResponse(resp.Body, &valueForKeyResponseObj)
+	esdtTokenResponseObj := esdtTokensResponse{}
+	loadResponse(resp.Body, &esdtTokenResponseObj)
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Equal(t, testValue, valueForKeyResponseObj.Data.Value)
+	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
 }
 
 func getRoutesConfig() config.ApiRoutesConfig {
