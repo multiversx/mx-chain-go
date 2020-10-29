@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -31,10 +32,11 @@ const (
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor process.TransactionLogProcessorDatabase
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
-	isInImportMode  bool
+	txLogsProcessor  process.TransactionLogProcessorDatabase
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	shardCoordinator sharding.Coordinator
+	isInImportMode   bool
 }
 
 func newTxDatabaseProcessor(
@@ -43,6 +45,7 @@ func newTxDatabaseProcessor(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	feeConfig *config.FeeSettings,
+	shardCoordinator sharding.Coordinator,
 	isInImportMode bool,
 ) *txDatabaseProcessor {
 	// this should never return error because is tested when economics file is created
@@ -58,8 +61,9 @@ func newTxDatabaseProcessor(
 			minGasLimit:              minGasLimit,
 			gasPerDataByte:           gasPerDataByte,
 		},
-		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
-		isInImportMode:  isInImportMode,
+		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
+		shardCoordinator: shardCoordinator,
+		isInImportMode:   isInImportMode,
 	}
 }
 
@@ -72,6 +76,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
+	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
 
 	transactions = tdp.setTransactionSearchOrder(transactions)
 	for _, rec := range receipts {
@@ -134,6 +139,16 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.txLogsProcessor.Clean()
 
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
+}
+
+func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(alteredAddress map[string]struct{}, scrs map[string]*smartContractResult.SmartContractResult) {
+	for _, scr := range scrs {
+		shardID := tdp.shardCoordinator.ComputeId(scr.RcvAddr)
+		if shardID == tdp.shardCoordinator.SelfId() {
+			encodedReceiverAddress := tdp.addressPubkeyConverter.Encode(scr.RcvAddr)
+			alteredAddress[encodedReceiverAddress] = struct{}{}
+		}
+	}
 }
 
 func getGasUsedFromReceipt(rec *receipt.Receipt, tx *Transaction) uint64 {

@@ -50,6 +50,7 @@ func NewDataIndexerArguments() ArgDataIndexer {
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     &mock.DispatcherMock{},
 		ElasticProcessor:   &mock.ElasticProcessorStub{},
+		ShardCoordinator:   &mock.ShardCoordinatorMock{},
 	}
 }
 
@@ -258,7 +259,7 @@ func TestDataIndexer_EpochChange(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewDataIndexerArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	arguments.ShardID = core.MetachainShardId
+	arguments.ShardCoordinator = &mock.ShardCoordinatorMock{SelfID: core.MetachainShardId}
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
 	arguments.EpochStartNotifier = epochChangeNotifier
 
@@ -292,7 +293,7 @@ func TestDataIndexer_EpochChangeValidators(t *testing.T) {
 	_ = logger.AddLogObserver(output, &logger.PlainFormatter{})
 	arguments := NewDataIndexerArguments()
 	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
-	arguments.ShardID = core.MetachainShardId
+	arguments.ShardCoordinator = &mock.ShardCoordinatorMock{SelfID: core.MetachainShardId}
 	epochChangeNotifier := &mock.EpochStartNotifierStub{}
 	arguments.EpochStartNotifier = epochChangeNotifier
 

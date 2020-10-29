@@ -3,9 +3,12 @@ package indexer
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -15,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPrepareTransactionsForDatabase(t *testing.T) {
@@ -125,6 +129,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -142,6 +147,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -232,6 +238,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -260,6 +267,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
+		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -326,6 +334,103 @@ func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
 
 	gasUsed := getGasUsedFromReceipt(rec, tx)
 	assert.Equal(t, expectedGasUsed, gasUsed)
+}
+
+func TestAlteredAddresses(t *testing.T) {
+	selfShardID := uint32(0)
+
+	expectedAlteredAccounts := make(map[string]struct{})
+	// addresses marked with a comment should be added to the altered addresses map
+
+	// normal txs
+	addressSh0NormalTx1 := []byte("sender in shard 0 - tx 1") // should be added
+	addressSh1NormalTx1 := []byte("receiver in shard 1 - tx 1")
+	expectedAlteredAccounts[hex.EncodeToString(addressSh0NormalTx1)] = struct{}{}
+	tx1 := &transaction.Transaction{SndAddr: addressSh0NormalTx1, RcvAddr: addressSh1NormalTx1}
+	tx1Hash := []byte("tx1Hash")
+
+	addressSh0NormalTx2 := []byte("receiver in shard 0 - tx 2") // should be added
+	addressSh1NormalTx2 := []byte("sender in shard 1 - tx 2")
+	expectedAlteredAccounts[hex.EncodeToString(addressSh0NormalTx2)] = struct{}{}
+	tx2 := &transaction.Transaction{SndAddr: addressSh1NormalTx2, RcvAddr: addressSh0NormalTx2}
+	tx2Hash := []byte("tx2hash")
+
+	txMiniBlock1 := &block.MiniBlock{Type: block.TxBlock, TxHashes: [][]byte{tx1Hash}, SenderShardID: 0, ReceiverShardID: 1}
+	txMiniBlock2 := &block.MiniBlock{Type: block.TxBlock, TxHashes: [][]byte{tx2Hash}, SenderShardID: 1, ReceiverShardID: 0}
+
+	// reward txs
+	addressSh0RewardTx1 := []byte("receiver in shard 0 - rew tx 1") // should be added
+	expectedAlteredAccounts[hex.EncodeToString(addressSh0RewardTx1)] = struct{}{}
+	rwdTx1 := &rewardTx.RewardTx{RcvAddr: addressSh0RewardTx1}
+	rwdTx1Hash := []byte("rwdTx1")
+
+	addressSh0RewardTx2 := []byte("receiver in shard 1 - rew tx 2")
+	rwdTx2 := &rewardTx.RewardTx{RcvAddr: addressSh0RewardTx2}
+	rwdTx2Hash := []byte("rwdTx2")
+
+	rewTxMiniBlock1 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx1Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 0}
+	rewTxMiniBlock2 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx2Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 1}
+
+	// smart contract rewards
+	addressSh0Scr1 := []byte("receiver in shard 0 - scr 1") // should be added
+	addressSh1Scr1 := []byte("sender in shard 1 - scr 1")
+	expectedAlteredAccounts[hex.EncodeToString(addressSh0Scr1)] = struct{}{}
+	scr1 := &smartContractResult.SmartContractResult{RcvAddr: addressSh0Scr1, SndAddr: addressSh1Scr1}
+	scr1Hash := []byte("scr1Hash")
+
+	addressSh0Scr2 := []byte("receiver in shard 1 - scr 2")
+	addressSh1Scr2 := []byte("sender in shard 0 - scr 2")
+	scr2 := &smartContractResult.SmartContractResult{RcvAddr: addressSh0Scr2, SndAddr: addressSh1Scr2}
+	scr2Hash := []byte("scr2Hash")
+
+	scrMiniBlock1 := &block.MiniBlock{Type: block.SmartContractResultBlock, TxHashes: [][]byte{scr1Hash, scr2Hash}, SenderShardID: 1, ReceiverShardID: 0}
+	scrMiniBlock2 := &block.MiniBlock{Type: block.SmartContractResultBlock, TxHashes: [][]byte{scr1Hash, scr2Hash}, SenderShardID: 0, ReceiverShardID: 1}
+
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{txMiniBlock1, txMiniBlock2, rewTxMiniBlock1, rewTxMiniBlock2, scrMiniBlock1, scrMiniBlock2}}
+
+	hdr := &block.Header{}
+	txPool := map[string]data.TransactionHandler{
+		string(tx1Hash):    tx1,
+		string(tx2Hash):    tx2,
+		string(rwdTx1Hash): rwdTx1,
+		string(rwdTx2Hash): rwdTx2,
+		string(scr1Hash):   scr1,
+		string(scr2Hash):   scr2,
+	}
+
+	txLogProc := disabled.NewNilTxLogsProcessor()
+	txProc := &txDatabaseProcessor{
+		shardCoordinator: &mock.ShardCoordinatorStub{
+			ComputeIdCalled: func(address []byte) uint32 {
+				if strings.Contains(string(address), "shard 0") {
+					return 0
+				}
+
+				return 1
+			},
+		},
+		commonProcessor: &commonProcessor{
+			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		},
+		marshalizer:     &mock.MarshalizerMock{},
+		hasher:          &mock.HasherMock{},
+		txLogsProcessor: txLogProc,
+	}
+
+	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
+	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
+
+	count := 0
+	for addrActual := range alteredAddresses {
+		for addrExpected := range expectedAlteredAccounts {
+			if addrActual == addrExpected {
+				count++
+				break
+			}
+		}
+	}
+
+	require.Equal(t, len(expectedAlteredAccounts), count)
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
