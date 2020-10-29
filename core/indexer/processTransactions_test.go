@@ -348,8 +348,8 @@ func TestAlteredAddresses(t *testing.T) {
 	}
 	tx1Hash := []byte("tx1Hash")
 
-	address3 := []byte("address3") // should be added
-	address4 := []byte("address4")
+	address3 := []byte("address3")
+	address4 := []byte("address4") // should be added
 	expectedAlteredAccounts[hex.EncodeToString(address4)] = struct{}{}
 	tx2 := &transaction.Transaction{
 		SndAddr: address3,
@@ -462,8 +462,6 @@ func TestAlteredAddresses(t *testing.T) {
 			assert.Fail(t, fmt.Sprintf("address %s not found", addrActual))
 		}
 	}
-
-	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {

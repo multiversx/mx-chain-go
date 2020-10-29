@@ -156,6 +156,7 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 			if !ok {
 				log.Warn("internal error: missing already computed scr when altering address",
 					"hash", txHash)
+				continue
 			}
 
 			encodedReceiverAddress := tdp.addressPubkeyConverter.Encode(scr.RcvAddr)
