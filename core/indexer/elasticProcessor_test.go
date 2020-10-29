@@ -462,7 +462,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
@@ -500,7 +500,7 @@ func TestSaveRoundsInfo(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
@@ -531,7 +531,7 @@ func TestUpdateTransaction(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
@@ -643,7 +643,7 @@ func TestGetMultiple(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
@@ -671,7 +671,7 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
@@ -732,7 +732,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
-	})
+	}, "")
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,

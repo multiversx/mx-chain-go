@@ -76,16 +76,19 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	return indexer.NewDataIndexer(arguments)
 }
 
-func createDatabaseClient(url, userName, password string) (indexer.DatabaseClientHandler, error) {
-	return indexer.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{url},
-		Username:  userName,
-		Password:  password,
-	})
+func createDatabaseClient(url string, userName string, password string, kibanaBaseURL string) (indexer.DatabaseClientHandler, error) {
+	return indexer.NewElasticClient(
+		elasticsearch.Config{
+			Addresses: []string{url},
+			Username:  userName,
+			Password:  password,
+		},
+		kibanaBaseURL,
+	)
 }
 
 func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor, error) {
-	databaseClient, err := createDatabaseClient(args.Url, args.UserName, args.Password)
+	databaseClient, err := createDatabaseClient(args.Url, args.UserName, args.Password, args.Options.KibanaURL)
 	if err != nil {
 		return nil, err
 	}

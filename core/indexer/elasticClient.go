@@ -17,12 +17,13 @@ const errPolicyAlreadyExists = "document already exists"
 type responseErrorHandler func(res *esapi.Response) error
 
 type elasticClient struct {
-	elasticBaseUrl string
+	elasticBaseURL string
+	kibanaBaseURL  string
 	es             *elasticsearch.Client
 }
 
 // NewElasticClient will create a new instance of elasticClient
-func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
+func NewElasticClient(cfg elasticsearch.Config, kibanaBaseURL string) (*elasticClient, error) {
 	if len(cfg.Addresses) == 0 {
 		return nil, ErrNoElasticUrlProvided
 	}
@@ -34,7 +35,8 @@ func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 
 	ec := &elasticClient{
 		es:             es,
-		elasticBaseUrl: cfg.Addresses[0],
+		elasticBaseURL: cfg.Addresses[0],
+		kibanaBaseURL:  kibanaBaseURL,
 	}
 
 	return ec, nil
@@ -50,12 +52,16 @@ func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template *b
 }
 
 // CheckAndCreatePolicy creates a new index policy if it does not already exist
-func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer, kibanaURL string) error {
-	if ec.PolicyExists(policyName, kibanaURL) {
+func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error {
+	if len(ec.kibanaBaseURL) == 0 {
+		return ErrEmptyKibanaBaseURL
+	}
+
+	if ec.PolicyExists(policyName) {
 		return nil
 	}
 
-	return ec.createPolicy(policyName, policy, kibanaURL)
+	return ec.createPolicy(policyName, policy)
 }
 
 // CheckAndCreateIndex creates a new index if it does not already exist
@@ -172,10 +178,10 @@ func (ec *elasticClient) indexExists(index string) bool {
 }
 
 // PolicyExists checks if a policy was already created
-func (ec *elasticClient) PolicyExists(policy string, kibanaURL string) bool {
+func (ec *elasticClient) PolicyExists(policy string) bool {
 	policyRoute := fmt.Sprintf(
 		"%s/api/ism/policies/%s",
-		kibanaURL,
+		ec.kibanaBaseURL,
 		policy,
 	)
 
@@ -214,7 +220,7 @@ func (ec *elasticClient) PolicyExists(policy string, kibanaURL string) bool {
 func (ec *elasticClient) aliasExists(alias string) bool {
 	aliasRoute := fmt.Sprintf(
 		"%s/_alias/%s",
-		ec.elasticBaseUrl,
+		ec.elasticBaseURL,
 		alias,
 	)
 
@@ -252,10 +258,10 @@ func (ec *elasticClient) createIndex(index string) error {
 }
 
 // CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
-func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer, kibanaURL string) error {
+func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) error {
 	policyRoute := fmt.Sprintf(
 		"%s/api/ism/policies/%s",
-		kibanaURL,
+		ec.kibanaBaseURL,
 		policyName,
 	)
 

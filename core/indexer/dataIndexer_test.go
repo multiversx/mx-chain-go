@@ -356,7 +356,8 @@ func testCreateIndexer(t *testing.T) {
 		Addresses: []string{"http://localhost:9200"},
 		Username:  "",
 		Password:  "",
-	})
+	},
+		"")
 
 	elasticIndexer, _ := NewElasticProcessor(ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,

@@ -39,3 +39,6 @@ var ErrEmptyEnabledIndexes = errors.New("empty enabled indexes slice")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrEmptyKibanaBaseURL signals that an empty kibana base URL has been provided
+var ErrEmptyKibanaBaseURL = errors.New("empty kibana base URL")
