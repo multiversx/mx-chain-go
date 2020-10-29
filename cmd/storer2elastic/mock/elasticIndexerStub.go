@@ -10,8 +10,9 @@ import (
 
 // ElasticIndexerStub -
 type ElasticIndexerStub struct {
-	SetTxLogsProcessorCalled    func(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveBlockCalled             func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
+	SetTxLogsProcessorCalled func(txLogsProc process.TransactionLogProcessorDatabase)
+	SaveBlockCalled          func(body data.BodyHandler, header data.HeaderHandler,
+		txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
 	SaveRoundsInfosCalled       func(roundsInfos []workItems.RoundInfo)
 	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
@@ -26,9 +27,10 @@ func (e *ElasticIndexerStub) SetTxLogsProcessor(txLogsProc process.TransactionLo
 }
 
 // SaveBlock -
-func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string) {
+func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.HeaderHandler,
+	txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte) {
 	if e.SaveBlockCalled != nil {
-		e.SaveBlockCalled(body, header, txPool, signersIndexes, notarizedHeadersHashes)
+		e.SaveBlockCalled(body, header, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
 	}
 }
 

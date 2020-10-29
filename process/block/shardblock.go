@@ -587,7 +587,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil)
+	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil, headerHash)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
 	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)

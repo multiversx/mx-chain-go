@@ -90,6 +90,7 @@ func (di *dataIndexer) SaveBlock(
 	txPool map[string]data.TransactionHandler,
 	signersIndexes []uint64,
 	notarizedHeadersHashes []string,
+	headerHash []byte,
 ) {
 	wi := workItems.NewItemBlock(
 		di.elasticProcessor,
@@ -99,6 +100,7 @@ func (di *dataIndexer) SaveBlock(
 		txPool,
 		signersIndexes,
 		notarizedHeadersHashes,
+		headerHash,
 	)
 	di.dispatcher.Add(wi)
 }

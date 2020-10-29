@@ -52,11 +52,12 @@ func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {
 		nil,
 		[]uint64{},
 		[]string{},
+		[]byte("hash"),
 	)
 	require.False(t, itemBlock.IsInterfaceNil())
 
 	err := itemBlock.Save()
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }
 
 func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
@@ -82,6 +83,7 @@ func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
 		nil,
 		[]uint64{},
 		[]string{},
+		[]byte("hash"),
 	)
 	require.False(t, itemBlock.IsInterfaceNil())
 
@@ -106,11 +108,12 @@ func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 		nil,
 		[]uint64{},
 		[]string{},
+		[]byte("hash"),
 	)
 	require.False(t, itemBlock.IsInterfaceNil())
 
 	err := itemBlock.Save()
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }
 
 func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
@@ -129,11 +132,12 @@ func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 		nil,
 		[]uint64{},
 		[]string{},
+		[]byte("hash"),
 	)
 	require.False(t, itemBlock.IsInterfaceNil())
 
 	err := itemBlock.Save()
-	require.Equal(t, localErr, err)
+	require.True(t, errors.Is(err, localErr))
 }
 
 func TestItemBlock_SaveShouldWork(t *testing.T) {
@@ -161,6 +165,7 @@ func TestItemBlock_SaveShouldWork(t *testing.T) {
 		nil,
 		[]uint64{},
 		[]string{},
+		[]byte("hash"),
 	)
 	require.False(t, itemBlock.IsInterfaceNil())
 

@@ -159,7 +159,8 @@ func TestDataIndexer_SaveBlock(t *testing.T) {
 	}
 	ei, _ := NewDataIndexer(arguments)
 
-	ei.SaveBlock(&dataBlock.Body{MiniBlocks: []*dataBlock.MiniBlock{}}, nil, nil, nil, nil)
+	ei.SaveBlock(&dataBlock.Body{MiniBlocks: []*dataBlock.MiniBlock{}}, nil,
+		nil, nil, nil, []byte("hash"))
 	require.True(t, called)
 }
 
@@ -413,7 +414,7 @@ func testCreateIndexer(t *testing.T) {
 		body.MiniBlocks[0].ReceiverShardID = 2
 		body.MiniBlocks[0].SenderShardID = 1
 
-		di.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"})
+		di.SaveBlock(body, header, txsPool, signers, []string{"aaaaa", "bbbb"}, []byte("hash"))
 	}
 
 	time.Sleep(100 * time.Second)

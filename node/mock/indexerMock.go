@@ -15,7 +15,7 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
+func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
 	panic("implement me")
 }
 
