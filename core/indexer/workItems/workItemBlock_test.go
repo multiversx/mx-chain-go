@@ -14,6 +14,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +35,25 @@ func generateTxs(numTxs int) map[string]data.TransactionHandler {
 	}
 
 	return txs
+}
+
+func TestItemBlock_SaveNilHeaderShouldRetNil(t *testing.T) {
+	itemBlock := workItems.NewItemBlock(
+		&mock.ElasticProcessorStub{},
+		&mock.MarshalizerMock{},
+		&dataBlock.Body{
+			MiniBlocks: dataBlock.MiniBlockSlice{{}},
+		},
+		nil,
+		nil,
+		[]uint64{},
+		[]string{},
+		[]byte("hash"),
+	)
+	require.False(t, itemBlock.IsInterfaceNil())
+
+	err := itemBlock.Save()
+	assert.Nil(t, err)
 }
 
 func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -47,6 +48,11 @@ func NewItemBlock(
 
 // Save will prepare and save a block item in elasticsearch database
 func (wib *itemBlock) Save() error {
+	if check.IfNil(wib.headerHandler) {
+		log.Warn("nil header provided when trying to index block, will skip")
+		return nil
+	}
+
 	body, ok := wib.bodyHandler.(*block.Body)
 	if !ok {
 		return fmt.Errorf("%w when trying body assertion, block hash %s, nonce %d",
