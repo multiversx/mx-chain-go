@@ -37,6 +37,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.ValidatorPubkeyConverter,
 			arguments.FeeConfig,
 			arguments.IsInImportDBMode,
+			arguments.ShardCoordinator,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{
@@ -65,6 +66,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 			MinGasLimit:    "10",
 			GasPerDataByte: "1",
 		},
+		ShardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
 

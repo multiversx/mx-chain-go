@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -31,10 +32,11 @@ const (
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor process.TransactionLogProcessorDatabase
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
-	isInImportMode  bool
+	txLogsProcessor  process.TransactionLogProcessorDatabase
+	hasher           hashing.Hasher
+	marshalizer      marshal.Marshalizer
+	isInImportMode   bool
+	shardCoordinator sharding.Coordinator
 }
 
 func newTxDatabaseProcessor(
@@ -44,6 +46,7 @@ func newTxDatabaseProcessor(
 	validatorPubkeyConverter core.PubkeyConverter,
 	feeConfig *config.FeeSettings,
 	isInImportMode bool,
+	shardCoordinator sharding.Coordinator,
 ) *txDatabaseProcessor {
 	// this should never return error because is tested when economics file is created
 	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
@@ -58,8 +61,9 @@ func newTxDatabaseProcessor(
 			minGasLimit:              minGasLimit,
 			gasPerDataByte:           gasPerDataByte,
 		},
-		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
-		isInImportMode:  isInImportMode,
+		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
+		isInImportMode:   isInImportMode,
+		shardCoordinator: shardCoordinator,
 	}
 }
 
@@ -70,9 +74,11 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	selfShardID uint32,
 ) ([]*Transaction, map[string]struct{}) {
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
-	receipts := groupReceipts(body, txPool)
-	scResults := groupSmartContractResults(body, txPool)
-	tdp.addScrsReceiverToAlteredAccounts(body, alteredAddresses, scResults, selfShardID)
+	//we can not iterate smart contracts results directly on the miniblocks contained in the block body
+	// as some moniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
+	receipts := groupReceipts(txPool)
+	scResults := groupSmartContractResults(txPool)
+	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
 
 	transactions = tdp.setTransactionSearchOrder(transactions)
 	for _, rec := range receipts {
@@ -138,27 +144,12 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 }
 
 func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
-	body *block.Body,
 	alteredAddress map[string]struct{},
 	scrs map[string]*smartContractResult.SmartContractResult,
-	selfShardID uint32,
 ) {
-	for _, mb := range body.MiniBlocks {
-		if mb.Type != block.SmartContractResultBlock {
-			continue
-		}
-		if mb.ReceiverShardID != selfShardID {
-			continue
-		}
-
-		for _, txHash := range mb.TxHashes {
-			scr, ok := scrs[string(txHash)]
-			if !ok {
-				log.Warn("internal error: missing already computed scr when altering address",
-					"hash", txHash)
-				continue
-			}
-
+	for _, scr := range scrs {
+		shardID := tdp.shardCoordinator.ComputeId(scr.RcvAddr)
+		if shardID == tdp.shardCoordinator.SelfId() {
 			encodedReceiverAddress := tdp.addressPubkeyConverter.Encode(scr.RcvAddr)
 			alteredAddress[encodedReceiverAddress] = struct{}{}
 		}
@@ -287,6 +278,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
 					transactions[hash] = dbTx
 				}
+				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
@@ -294,6 +286,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
+				delete(txPool, hash)
 			}
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
@@ -303,6 +296,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
 					rewardsTxs = append(rewardsTxs, dbTx)
 				}
+				delete(txPool, hash)
 			}
 		default:
 			continue
@@ -345,55 +339,29 @@ func addToAlteredAddresses(
 	}
 }
 
-func groupSmartContractResults(body *block.Body, txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
+func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
 	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
-	for _, mb := range body.MiniBlocks {
-		if mb.Type != block.SmartContractResultBlock {
+	for hash, tx := range txPool {
+		scResult, ok := tx.(*smartContractResult.SmartContractResult)
+		if !ok {
 			continue
 		}
-
-		for _, txHash := range mb.TxHashes {
-			txHandler, ok := txPool[string(txHash)]
-			if !ok {
-				log.Warn("internal error: missing scr", "hash", txHash)
-				continue
-			}
-
-			scResult, ok := txHandler.(*smartContractResult.SmartContractResult)
-			if !ok {
-				log.Warn("internal error: wrong type assertion for scr", "hash", txHash)
-				continue
-			}
-
-			scResults[string(txHash)] = scResult
-		}
+		scResults[hash] = scResult
 	}
 
 	return scResults
 }
 
-func groupReceipts(body *block.Body, txPool map[string]data.TransactionHandler) []*receipt.Receipt {
+func groupReceipts(txPool map[string]data.TransactionHandler) []*receipt.Receipt {
 	receipts := make([]*receipt.Receipt, 0)
-	for _, mb := range body.MiniBlocks {
-		if mb.Type != block.ReceiptBlock {
+	for hash, tx := range txPool {
+		rec, ok := tx.(*receipt.Receipt)
+		if !ok {
 			continue
 		}
 
-		for _, txHash := range mb.TxHashes {
-			txHandler, ok := txPool[string(txHash)]
-			if !ok {
-				log.Warn("internal error: missing receipt", "hash", txHash)
-				continue
-			}
-
-			rtx, ok := txHandler.(*receipt.Receipt)
-			if !ok {
-				log.Warn("internal error: wrong type assertion for receipt", "hash", txHash)
-				continue
-			}
-
-			receipts = append(receipts, rtx)
-		}
+		receipts = append(receipts, rec)
+		delete(txPool, hash)
 	}
 
 	return receipts

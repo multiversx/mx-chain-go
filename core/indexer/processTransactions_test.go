@@ -130,6 +130,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
+		&mock.ShardCoordinatorMock{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -147,6 +148,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
+		&mock.ShardCoordinatorMock{},
 	)
 
 	scAddr := []byte("addr")
@@ -237,6 +239,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
+		&mock.ShardCoordinatorMock{},
 	)
 
 	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -265,6 +268,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
+		&mock.ShardCoordinatorMock{},
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)
@@ -422,15 +426,9 @@ func TestAlteredAddresses(t *testing.T) {
 		SenderShardID:   1,
 		ReceiverShardID: 0,
 	}
-	scrMiniBlock2 := &block.MiniBlock{
-		Type:            block.SmartContractResultBlock,
-		TxHashes:        [][]byte{scr1Hash, scr2Hash},
-		SenderShardID:   0,
-		ReceiverShardID: 1,
-	}
 
 	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{txMiniBlock1, txMiniBlock2, rewTxMiniBlock1, rewTxMiniBlock2, scrMiniBlock1, scrMiniBlock2},
+		MiniBlocks: []*block.MiniBlock{txMiniBlock1, txMiniBlock2, rewTxMiniBlock1, rewTxMiniBlock2, scrMiniBlock1},
 	}
 
 	hdr := &block.Header{}
@@ -451,6 +449,16 @@ func TestAlteredAddresses(t *testing.T) {
 		marshalizer:     &mock.MarshalizerMock{},
 		hasher:          &mock.HasherMock{},
 		txLogsProcessor: txLogProc,
+		shardCoordinator: &mock.ShardCoordinatorMock{
+			ComputeIdCalled: func(address []byte) uint32 {
+				switch string(address) {
+				case string(address1), string(address4), string(address5), string(address7), string(address9):
+					return 0
+				default:
+					return 1
+				}
+			},
+		},
 	}
 
 	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
