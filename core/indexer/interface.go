@@ -22,7 +22,9 @@ type DataIndexerFactory interface {
 // This could be an elastic search index, a MySql database or any other external services.
 type Indexer interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
+	//SaveBlock TODO add a structure instead of these params
+	SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler,
+		signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
 	RevertIndexedBlock(header data.HeaderHandler, body data.BodyHandler)
 	SaveRoundsInfo(roundsInfos []workItems.RoundInfo)
 	UpdateTPS(tpsBenchmark statistics.TPSBenchmark)

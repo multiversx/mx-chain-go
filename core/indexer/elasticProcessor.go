@@ -61,6 +61,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.ValidatorPubkeyConverter,
 		arguments.FeeConfig,
 		arguments.IsInImportDBMode,
+		arguments.ShardCoordinator,
 	)
 
 	if arguments.IsInImportDBMode {
@@ -105,6 +106,9 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	if arguments.Options == nil {
 		return ErrNilOptions
 	}
+	if check.IfNil(arguments.ShardCoordinator) {
+		return ErrNilShardCoordinator
+	}
 
 	return nil
 }
@@ -115,10 +119,11 @@ func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[str
 		return err
 	}
 
-	err = ei.createIndexPolicies(indexPolicies)
-	if err != nil {
-		return err
-	}
+	// TODO: Re-activate after we think of a solid way to handle forks+rotating indexes
+	//err = ei.createIndexPolicies(indexPolicies)
+	//if err != nil {
+	//	return err
+	//}
 
 	err = ei.createIndexTemplates(indexTemplates)
 	if err != nil {
@@ -552,7 +557,7 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		return err
 	}
 	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts",
 				"error", err.Error())
@@ -585,7 +590,7 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*Acco
 		return err
 	}
 	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts history",
 				"error", err.Error())

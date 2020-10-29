@@ -37,6 +37,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.ValidatorPubkeyConverter,
 			arguments.FeeConfig,
 			arguments.IsInImportDBMode,
+			arguments.ShardCoordinator,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{
@@ -65,6 +66,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 			MinGasLimit:    "10",
 			GasPerDataByte: "1",
 		},
+		ShardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
 
@@ -534,14 +536,35 @@ func TestUpdateTransaction(t *testing.T) {
 	})
 
 	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
+		DBClient:                 dbClient,
+		Marshalizer:              &mock.MarshalizerMock{},
+		Hasher:                   &mock.HasherMock{},
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		IsInImportDBMode:         false,
+		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		AccountsDB:               &mock.AccountsStub{},
+		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		Options: &Options{
+			UseKibana:        false,
+			IndexerCacheSize: 10000,
+		},
+		FeeConfig: &config.FeeSettings{
+			MaxGasLimitPerBlock:     "10000000",
+			MaxGasLimitPerMetaBlock: "10000000",
+			GasPerDataByte:          "1",
+			DataLimitForBaseCalc:    "1",
+			MinGasPrice:             "1",
+			MinGasLimit:             "1",
+		},
+		EnabledIndexes: map[string]struct{}{
+			"transactions": {},
+		},
 	}
 
-	esDatabase, _ := NewElasticProcessor(args)
+	esDatabase, err := NewElasticProcessor(args)
+	require.Nil(t, err)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -623,7 +646,9 @@ func TestUpdateTransaction(t *testing.T) {
 
 	body.MiniBlocks[0].ReceiverShardID = 1
 	// insert
-	_ = esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
+	_ = esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
+
+	fmt.Println(hex.EncodeToString(txHash1))
 
 	header.TimeStamp = 1234
 	txPool = map[string]data.TransactionHandler{
@@ -633,8 +658,10 @@ func TestUpdateTransaction(t *testing.T) {
 		string(scHash2): scResult2,
 	}
 
+	body.MiniBlocks[0].TxHashes = append(body.MiniBlocks[0].TxHashes, txHash3)
+
 	// update
-	_ = esDatabase.SaveTransactions(body, header, txPool, 1, map[string]bool{})
+	_ = esDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
 }
 
 func TestGetMultiple(t *testing.T) {

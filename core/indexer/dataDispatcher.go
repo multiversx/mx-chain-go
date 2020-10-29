@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -10,6 +11,8 @@ import (
 )
 
 var log = logger.GetOrCreate("core/indexer")
+
+const durationBetweenErrorRetry = time.Second * 3
 
 // Options structure holds the indexer's configuration options
 type Options struct {
@@ -83,7 +86,7 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
 	for {
 		err := wi.Save()
-		if err == ErrBackOff {
+		if errors.Is(err, ErrBackOff) {
 			log.Warn("dataDispatcher.doWork could not index item",
 				"received back off:", err.Error())
 
@@ -92,11 +95,15 @@ func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
 
 			continue
 		}
-		if err != nil {
-			log.Warn("dataDispatcher.doWork", "removing item from queue", err.Error())
-		}
 
 		d.backOffTime = 0
+		if err != nil {
+			log.Warn("dataDispatcher.doWork could not index item (will retry)", "error", err.Error())
+			time.Sleep(durationBetweenErrorRetry)
+
+			continue
+		}
+
 		return
 	}
 
@@ -107,7 +114,6 @@ func (d *dataDispatcher) increaseBackOffTime() {
 		d.backOffTime = backOffTime
 		return
 	}
-
 	if d.backOffTime >= maxBackOff {
 		return
 	}

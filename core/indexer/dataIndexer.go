@@ -39,7 +39,7 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 		options:          arguments.Options,
 	}
 
-	if arguments.ShardID == core.MetachainShardId {
+	if arguments.ShardCoordinator.SelfId() == core.MetachainShardId {
 		arguments.EpochStartNotifier.RegisterHandler(dataIndexerObj.epochStartEventHandler())
 	}
 
@@ -61,6 +61,9 @@ func checkIndexerArgs(arguments ArgDataIndexer) error {
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
+	}
+	if check.IfNil(arguments.ShardCoordinator) {
+		return ErrNilShardCoordinator
 	}
 
 	return nil
@@ -90,6 +93,7 @@ func (di *dataIndexer) SaveBlock(
 	txPool map[string]data.TransactionHandler,
 	signersIndexes []uint64,
 	notarizedHeadersHashes []string,
+	headerHash []byte,
 ) {
 	wi := workItems.NewItemBlock(
 		di.elasticProcessor,
@@ -99,6 +103,7 @@ func (di *dataIndexer) SaveBlock(
 		txPool,
 		signersIndexes,
 		notarizedHeadersHashes,
+		headerHash,
 	)
 	di.dispatcher.Add(wi)
 }

@@ -388,13 +388,26 @@ func prepareSerializedDataForATransaction(
 			"tx hash", tx.Hash)
 		return nil, nil, err
 	}
-	if !isCrossShardDstMe(tx, selfShardID) || tx.Status == transaction.TxStatusInvalid.String() {
+
+	if isIntraShardOrInvalid(tx, selfShardID) {
+		// if transaction is intra-shard, use basic insert as data can be re-written at forks
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
+		log.Trace("indexer tx is intra shard or invalid tx", "meta", string(meta), "marshaledTx", string(marshaledTx))
+
+		return meta, marshaledTx, nil
+	}
+
+	if !isCrossShardDstMe(tx, selfShardID) {
+		// if transaction is cross-shard and current shard ID is source, use upsert without updating anything
 		serializedData :=
-			[]byte(fmt.Sprintf(`{"script":{"source":""},"upsert":%s}`,
+			[]byte(fmt.Sprintf(`{"script":{"source":"return"},"upsert":%s}`,
 				string(marshaledTx)))
+		log.Trace("indexer tx is on sender shard", "metaData", string(metaData), "serializedData", string(serializedData))
+
 		return metaData, serializedData, nil
 	}
 
+	// if transaction is cross-shard and current shard ID is destination, use upsert with updating fields
 	marshaledLog, err := json.Marshal(tx.Log)
 	if err != nil {
 		log.Debug("indexer: marshal",
@@ -424,25 +437,28 @@ func prepareSerializedDataForATransaction(
 		serializedData =
 			[]byte(fmt.Sprintf(`{"script":{"source":"`+
 				`ctx._source.status = params.status;`+
+				`ctx._source.miniBlockHash = params.miniBlockHash;`+
 				`ctx._source.log = params.log;`+
 				`ctx._source.scResults = params.scResults;`+
 				`ctx._source.timestamp = params.timestamp;`+
 				`","lang": "painless","params":`+
-				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
-				tx.Status, string(marshaledLog), string(scResults), string(marshaledTimestamp), string(marshaledTx)))
+				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
+				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), string(marshaledTx)))
 	} else {
 		// update gasUsed because was changed (is a smart contract operation)
 		serializedData =
 			[]byte(fmt.Sprintf(`{"script":{"source":"`+
 				`ctx._source.status = params.status;`+
+				`ctx._source.miniBlockHash = params.miniBlockHash;`+
 				`ctx._source.log = params.log;`+
 				`ctx._source.scResults = params.scResults;`+
 				`ctx._source.timestamp = params.timestamp;`+
 				`ctx._source.gasUsed = params.gasUsed;`+
 				`","lang": "painless","params":`+
-				`{"status": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
-				tx.Status, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
+				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
+				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
 	}
+	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
 	return metaData, serializedData, nil
 }
@@ -475,6 +491,10 @@ func prepareSerializedAccountBalanceHistory(address string, account *AccountBala
 
 func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
 	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
+}
+
+func isIntraShardOrInvalid(tx *Transaction, selfShardID uint32) bool {
+	return (tx.SenderShard == tx.ReceiverShard && tx.ReceiverShard == selfShardID) || tx.Status == transaction.TxStatusInvalid.String()
 }
 
 func getDecodedResponseMultiGet(response objectsMap) map[string]bool {

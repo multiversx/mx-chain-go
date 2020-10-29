@@ -1,7 +1,10 @@
 package indexer
 
 import (
+	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -28,6 +31,8 @@ func TestNewDataDispatcher(t *testing.T) {
 }
 
 func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
+	t.Parallel()
+
 	dispatcher, err := NewDataDispatcher(100)
 	require.NoError(t, err)
 	dispatcher.StartIndexData()
@@ -52,21 +57,23 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 }
 
 func TestDataDispatcher_Add(t *testing.T) {
+	t.Parallel()
+
 	dispatcher, err := NewDataDispatcher(100)
 	require.NoError(t, err)
 	dispatcher.StartIndexData()
 
-	calledCount := 0
+	calledCount := uint32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &mock.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
-			if calledCount <= 1 {
-				calledCount++
-				return ErrBackOff
+			if calledCount < 2 {
+				atomic.AddUint32(&calledCount, 1)
+				return fmt.Errorf("%w: wrapped error", ErrBackOff)
 			}
 
-			calledCount++
+			atomic.AddUint32(&calledCount, 1)
 			wg.Done()
 			return nil
 		},
@@ -79,7 +86,43 @@ func TestDataDispatcher_Add(t *testing.T) {
 	timePassed := time.Since(start)
 	require.Greater(t, 2*int64(timePassed), int64(backOffTime))
 
-	require.Equal(t, 3, calledCount)
+	require.Equal(t, uint32(3), atomic.LoadUint32(&calledCount))
+
+	err = dispatcher.Close()
+	require.NoError(t, err)
+}
+
+func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
+	t.Parallel()
+
+	dispatcher, err := NewDataDispatcher(100)
+	require.NoError(t, err)
+	dispatcher.StartIndexData()
+
+	calledCount := uint32(0)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	elasticProc := &mock.ElasticProcessorStub{
+		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
+			if calledCount < 2 {
+				atomic.AddUint32(&calledCount, 1)
+				return errors.New("generic error")
+			}
+
+			atomic.AddUint32(&calledCount, 1)
+			wg.Done()
+			return nil
+		},
+	}
+
+	start := time.Now()
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []workItems.RoundInfo{}))
+	wg.Wait()
+
+	timePassed := time.Since(start)
+	require.Greater(t, int64(timePassed), int64(2*durationBetweenErrorRetry))
+
+	require.Equal(t, uint32(3), atomic.LoadUint32(&calledCount))
 
 	err = dispatcher.Close()
 	require.NoError(t, err)

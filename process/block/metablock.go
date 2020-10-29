@@ -569,7 +569,7 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
