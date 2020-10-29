@@ -392,8 +392,8 @@ func prepareSerializedDataForATransaction(
 	if isIntraShardOrInvalid(tx, selfShardID) {
 		// if transaction is intra-shard, use basic insert as data can be re-written at forks
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, tx.Hash, "_doc", "\n"))
-		//TODO remove log
-		log.Debug("indexer isIntraShardOrInvalid", "meta", string(meta), "marshaledTx", string(marshaledTx))
+		log.Trace("indexer isIntraShardOrInvalid", "meta", string(meta), "marshaledTx", string(marshaledTx))
+
 		return meta, marshaledTx, nil
 	}
 
@@ -402,8 +402,8 @@ func prepareSerializedDataForATransaction(
 		serializedData :=
 			[]byte(fmt.Sprintf(`{"script":{"source":"return"},"upsert":%s}`,
 				string(marshaledTx)))
-		//TODO remove log
-		log.Debug("indexer isCrossShardDstMe", "metaData", string(metaData), "serializedData", string(serializedData))
+		log.Trace("indexer isCrossShardDstMe", "metaData", string(metaData), "serializedData", string(serializedData))
+
 		return metaData, serializedData, nil
 	}
 
@@ -458,8 +458,7 @@ func prepareSerializedDataForATransaction(
 				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
 				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
 	}
-	//TODO remove log
-	log.Debug("indexer", "metaData", string(metaData), "serializedData", string(serializedData))
+	log.Trace("indexer", "metaData", string(metaData), "serializedData", string(serializedData))
 
 	return metaData, serializedData, nil
 }
