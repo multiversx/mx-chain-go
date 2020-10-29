@@ -1644,9 +1644,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithHistoryRepository(tpn.HistoryRepository),
-		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
-		node.WithWhiteListHandler(tpn.WhiteListHandler),
 	)
 	log.LogIfError(err)
 

@@ -43,6 +43,12 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
+// EpochStartNotifierWithConfirm defines which actions should be done for handling new epoch's events and confirmation
+type EpochStartNotifierWithConfirm interface {
+	EpochStartNotifier
+	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
@@ -110,6 +116,7 @@ type CoreComponentsHolder interface {
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() sharding.NodesShuffler
 	EpochNotifier() EpochNotifier
+	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
 	ChainID() string

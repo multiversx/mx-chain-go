@@ -155,7 +155,7 @@ func (nr *NodeRunner) StartNode() error {
 			nodesShufflerOut,
 			managedCoreComponents.GenesisNodesSetup(),
 			configs.PreferencesConfig.Preferences,
-			managedCoreComponents.EpochStartNotifier(),
+			managedCoreComponents.EpochStartNotifierWithConfirm(),
 			managedCryptoComponents.PublicKey(),
 			managedCoreComponents.InternalMarshalizer(),
 			managedCoreComponents.Hasher(),
@@ -291,6 +291,8 @@ func createApiFacade(configs *config.Configs, currentNode *Node, gasSchedule map
 		currentNode.cryptoComponents.MessageSignVerifier(),
 		currentNode.coreComponents.GenesisNodesSetup(),
 		configs.SystemSCConfig,
+		currentNode.coreComponents.Rater(),
+		currentNode.coreComponents.EpochNotifier(),
 	)
 	if err != nil {
 		return nil, err
@@ -390,7 +392,7 @@ func createManagedConsensusComponents(
 		managedCryptoComponents,
 		managedProcessComponents,
 		managedNetworkComponents,
-		managedCoreComponents.EpochStartNotifier(),
+		managedCoreComponents.EpochStartNotifierWithConfirm(),
 		managedProcessComponents.ImportStartHandler(),
 		configs.FlagsConfig.WorkingDir,
 	)
@@ -400,7 +402,6 @@ func createManagedConsensusComponents(
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
 		Config:              *configs.GeneralConfig,
-		ConsensusGroupSize:  int(managedCoreComponents.GenesisNodesSetup().GetShardConsensusGroupSize()),
 		BootstrapRoundIndex: configs.FlagsConfig.BootstrapRoundIndex,
 		HardforkTrigger:     hardForkTrigger,
 		CoreComponents:      managedCoreComponents,
@@ -564,7 +565,7 @@ func createManagedStatusComponents(configs *config.Configs, managedCoreComponent
 		ElasticOptions:     &indexer.Options{TxIndexingEnabled: configs.FlagsConfig.EnableTxIndexing},
 		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
 		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifier(),
+		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CoreComponents:     managedCoreComponents,
 		DataComponents:     managedDataComponents,
 		NetworkComponents:  managedNetworkComponents,
@@ -698,7 +699,7 @@ func createManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		RequestedItemsHandler:     requestedItemsHandler,
 		WhiteListHandler:          whiteListRequest,
 		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
-		EpochStartNotifier:        managedCoreComponents.EpochStartNotifier(),
+		EpochStartNotifier:        managedCoreComponents.EpochStartNotifierWithConfirm(),
 		EpochStart:                &configs.GeneralConfig.EpochStartConfig,
 		Rater:                     managedCoreComponents.Rater(),
 		RatingsData:               managedCoreComponents.RatingsData(),
@@ -738,9 +739,6 @@ func createManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		return nil, err
 	}
 
-	// TODO: check if this can't be refactored
-	managedProcessComponents.HistoryRepository().RegisterToBlockTracker(managedProcessComponents.BlockTracker())
-
 	return managedProcessComponents, nil
 }
 
@@ -756,7 +754,7 @@ func createManagedDataComponents(configs *config.Configs, managedCoreComponents 
 		Config:             *configs.GeneralConfig,
 		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
 		Core:               managedCoreComponents,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifier(),
+		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:       storerEpoch,
 	}
 

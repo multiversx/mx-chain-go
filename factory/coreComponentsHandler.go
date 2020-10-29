@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -433,6 +434,30 @@ func (mcc *managedCoreComponents) EpochNotifier() EpochNotifier {
 	}
 
 	return mcc.coreComponents.epochNotifier
+}
+
+// EpochStartNotifierWithConfirm returns the epoch notifier with confirm
+func (mcc *managedCoreComponents) EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochStartNotifierWithConfirm
+}
+
+// ChanStopNodeProcess returns the channel for stop node
+func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chanStopNodeProcess
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

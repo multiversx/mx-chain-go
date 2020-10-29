@@ -18,6 +18,7 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
@@ -56,29 +57,30 @@ type coreComponentsFactory struct {
 
 // coreComponents is the DTO used for core components
 type coreComponents struct {
-	hasher                   hashing.Hasher
-	internalMarshalizer      marshal.Marshalizer
-	vmMarshalizer            marshal.Marshalizer
-	txSignMarshalizer        marshal.Marshalizer
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	addressPubKeyConverter   core.PubkeyConverter
-	validatorPubKeyConverter core.PubkeyConverter
-	statusHandlersUtils      factory.StatusHandlersUtils
-	pathHandler              storage.PathManagerHandler
-	syncTimer                ntp.SyncTimer
-	rounder                  consensus.Rounder
-	alarmScheduler           core.TimersScheduler
-	watchdog                 core.WatchdogTimer
-	nodesSetupHandler        sharding.GenesisNodesSetupHandler
-	economicsData            process.EconomicsHandler
-	ratingsData              process.RatingsInfoHandler
-	rater                    sharding.PeerAccountListAndRatingHandler
-	nodesShuffler            sharding.NodesShuffler
-	genesisTime              time.Time
-	chainID                  string
-	minTransactionVersion    uint32
-	epochNotifier            EpochNotifier
-	chanStopNodeProcess      chan endProcess.ArgEndProcess
+	hasher                        hashing.Hasher
+	internalMarshalizer           marshal.Marshalizer
+	vmMarshalizer                 marshal.Marshalizer
+	txSignMarshalizer             marshal.Marshalizer
+	uint64ByteSliceConverter      typeConverters.Uint64ByteSliceConverter
+	addressPubKeyConverter        core.PubkeyConverter
+	validatorPubKeyConverter      core.PubkeyConverter
+	statusHandlersUtils           factory.StatusHandlersUtils
+	pathHandler                   storage.PathManagerHandler
+	syncTimer                     ntp.SyncTimer
+	rounder                       consensus.Rounder
+	alarmScheduler                core.TimersScheduler
+	watchdog                      core.WatchdogTimer
+	nodesSetupHandler             sharding.GenesisNodesSetupHandler
+	economicsData                 process.EconomicsHandler
+	ratingsData                   process.RatingsInfoHandler
+	rater                         sharding.PeerAccountListAndRatingHandler
+	nodesShuffler                 sharding.NodesShuffler
+	genesisTime                   time.Time
+	chainID                       string
+	minTransactionVersion         uint32
+	epochNotifier                 EpochNotifier
+	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
+	chanStopNodeProcess           chan endProcess.ArgEndProcess
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -238,29 +240,30 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	)
 
 	return &coreComponents{
-		hasher:                   hasher,
-		internalMarshalizer:      internalMarshalizer,
-		vmMarshalizer:            vmMarshalizer,
-		txSignMarshalizer:        txSignMarshalizer,
-		uint64ByteSliceConverter: uint64ByteSliceConverter,
-		addressPubKeyConverter:   addressPubkeyConverter,
-		validatorPubKeyConverter: validatorPubkeyConverter,
-		statusHandlersUtils:      statusHandlersInfo,
-		pathHandler:              pathHandler,
-		syncTimer:                syncer,
-		rounder:                  rounder,
-		alarmScheduler:           alarmScheduler,
-		watchdog:                 watchdogTimer,
-		nodesSetupHandler:        genesisNodesConfig,
-		economicsData:            economicsData,
-		ratingsData:              ratingsData,
-		rater:                    rater,
-		nodesShuffler:            nodesShuffler,
-		genesisTime:              genesisTime,
-		chainID:                  ccf.config.GeneralSettings.ChainID,
-		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
-		epochNotifier:            epochNotifier,
-		chanStopNodeProcess:      ccf.chanStopNodeProcess,
+		hasher:                        hasher,
+		internalMarshalizer:           internalMarshalizer,
+		vmMarshalizer:                 vmMarshalizer,
+		txSignMarshalizer:             txSignMarshalizer,
+		uint64ByteSliceConverter:      uint64ByteSliceConverter,
+		addressPubKeyConverter:        addressPubkeyConverter,
+		validatorPubKeyConverter:      validatorPubkeyConverter,
+		statusHandlersUtils:           statusHandlersInfo,
+		pathHandler:                   pathHandler,
+		syncTimer:                     syncer,
+		rounder:                       rounder,
+		alarmScheduler:                alarmScheduler,
+		watchdog:                      watchdogTimer,
+		nodesSetupHandler:             genesisNodesConfig,
+		economicsData:                 economicsData,
+		ratingsData:                   ratingsData,
+		rater:                         rater,
+		nodesShuffler:                 nodesShuffler,
+		genesisTime:                   genesisTime,
+		chainID:                       ccf.config.GeneralSettings.ChainID,
+		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
+		epochNotifier:                 epochNotifier,
+		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
+		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 	}, nil
 }
 

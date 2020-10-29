@@ -785,8 +785,6 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -845,8 +843,6 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		node.WithNetworkComponents(networkComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithBootstrapComponents(bootstrapComponents),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
 	)
 
 	nonce := uint64(0)
