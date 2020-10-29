@@ -5,7 +5,6 @@ var headerContentTypeJSON = []string{"application/json"}
 const (
 	headerXSRF        = "kbn-xsrf"
 	headerContentType = "Content-Type"
-	kibanaPluginPath  = "_plugin/kibana/api"
 
 	blockIndex           = "blocks"
 	miniblocksIndex      = "miniblocks"
