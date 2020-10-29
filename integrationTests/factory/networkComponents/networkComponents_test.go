@@ -51,5 +51,5 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 		factory.PrintStack()
 	}
 
-	require.LessOrEqual(t, nrBefore, nrAfter-1)
+	require.LessOrEqual(t, nrBefore, nrAfter)
 }
