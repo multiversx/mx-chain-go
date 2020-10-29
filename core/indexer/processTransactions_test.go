@@ -2,8 +2,8 @@ package indexer
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -129,7 +129,6 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -147,7 +146,6 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -238,7 +236,6 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -267,7 +264,6 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
 		&config.FeeSettings{},
-		&mock.ShardCoordinatorMock{},
 		false,
 	)
 
@@ -343,50 +339,99 @@ func TestAlteredAddresses(t *testing.T) {
 	// addresses marked with a comment should be added to the altered addresses map
 
 	// normal txs
-	addressSh0NormalTx1 := []byte("sender in shard 0 - tx 1") // should be added
-	addressSh1NormalTx1 := []byte("receiver in shard 1 - tx 1")
-	expectedAlteredAccounts[hex.EncodeToString(addressSh0NormalTx1)] = struct{}{}
-	tx1 := &transaction.Transaction{SndAddr: addressSh0NormalTx1, RcvAddr: addressSh1NormalTx1}
+	address1 := []byte("address1") // should be added
+	address2 := []byte("address2")
+	expectedAlteredAccounts[hex.EncodeToString(address1)] = struct{}{}
+	tx1 := &transaction.Transaction{
+		SndAddr: address1,
+		RcvAddr: address2,
+	}
 	tx1Hash := []byte("tx1Hash")
 
-	addressSh0NormalTx2 := []byte("receiver in shard 0 - tx 2") // should be added
-	addressSh1NormalTx2 := []byte("sender in shard 1 - tx 2")
-	expectedAlteredAccounts[hex.EncodeToString(addressSh0NormalTx2)] = struct{}{}
-	tx2 := &transaction.Transaction{SndAddr: addressSh1NormalTx2, RcvAddr: addressSh0NormalTx2}
+	address3 := []byte("address3") // should be added
+	address4 := []byte("address4")
+	expectedAlteredAccounts[hex.EncodeToString(address4)] = struct{}{}
+	tx2 := &transaction.Transaction{
+		SndAddr: address3,
+		RcvAddr: address4,
+	}
 	tx2Hash := []byte("tx2hash")
 
-	txMiniBlock1 := &block.MiniBlock{Type: block.TxBlock, TxHashes: [][]byte{tx1Hash}, SenderShardID: 0, ReceiverShardID: 1}
-	txMiniBlock2 := &block.MiniBlock{Type: block.TxBlock, TxHashes: [][]byte{tx2Hash}, SenderShardID: 1, ReceiverShardID: 0}
+	txMiniBlock1 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		TxHashes:        [][]byte{tx1Hash},
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+	}
+	txMiniBlock2 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		TxHashes:        [][]byte{tx2Hash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+	}
 
 	// reward txs
-	addressSh0RewardTx1 := []byte("receiver in shard 0 - rew tx 1") // should be added
-	expectedAlteredAccounts[hex.EncodeToString(addressSh0RewardTx1)] = struct{}{}
-	rwdTx1 := &rewardTx.RewardTx{RcvAddr: addressSh0RewardTx1}
+	address5 := []byte("address5") // should be added
+	expectedAlteredAccounts[hex.EncodeToString(address5)] = struct{}{}
+	rwdTx1 := &rewardTx.RewardTx{
+		RcvAddr: address5,
+	}
 	rwdTx1Hash := []byte("rwdTx1")
 
-	addressSh0RewardTx2 := []byte("receiver in shard 1 - rew tx 2")
-	rwdTx2 := &rewardTx.RewardTx{RcvAddr: addressSh0RewardTx2}
+	address6 := []byte("address6")
+	rwdTx2 := &rewardTx.RewardTx{
+		RcvAddr: address6,
+	}
 	rwdTx2Hash := []byte("rwdTx2")
 
-	rewTxMiniBlock1 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx1Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 0}
-	rewTxMiniBlock2 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx2Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 1}
+	rewTxMiniBlock1 := &block.MiniBlock{
+		Type:            block.RewardsBlock,
+		TxHashes:        [][]byte{rwdTx1Hash},
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 0,
+	}
+	rewTxMiniBlock2 := &block.MiniBlock{
+		Type:            block.RewardsBlock,
+		TxHashes:        [][]byte{rwdTx2Hash},
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 1,
+	}
 
 	// smart contract results
-	addressSh0Scr1 := []byte("receiver in shard 0 - scr 1") // should be added
-	addressSh1Scr1 := []byte("sender in shard 1 - scr 1")
-	expectedAlteredAccounts[hex.EncodeToString(addressSh0Scr1)] = struct{}{}
-	scr1 := &smartContractResult.SmartContractResult{RcvAddr: addressSh0Scr1, SndAddr: addressSh1Scr1}
+	address7 := []byte("address7") // should be added
+	address8 := []byte("address8")
+	expectedAlteredAccounts[hex.EncodeToString(address7)] = struct{}{}
+	scr1 := &smartContractResult.SmartContractResult{
+		RcvAddr: address7,
+		SndAddr: address8,
+	}
 	scr1Hash := []byte("scr1Hash")
 
-	addressSh0Scr2 := []byte("receiver in shard 1 - scr 2")
-	addressSh1Scr2 := []byte("sender in shard 0 - scr 2")
-	scr2 := &smartContractResult.SmartContractResult{RcvAddr: addressSh0Scr2, SndAddr: addressSh1Scr2}
+	address9 := []byte("address9") // should be added
+	address10 := []byte("address10")
+	expectedAlteredAccounts[hex.EncodeToString(address9)] = struct{}{}
+	scr2 := &smartContractResult.SmartContractResult{
+		RcvAddr: address9,
+		SndAddr: address10,
+	}
 	scr2Hash := []byte("scr2Hash")
 
-	scrMiniBlock1 := &block.MiniBlock{Type: block.SmartContractResultBlock, TxHashes: [][]byte{scr1Hash, scr2Hash}, SenderShardID: 1, ReceiverShardID: 0}
-	scrMiniBlock2 := &block.MiniBlock{Type: block.SmartContractResultBlock, TxHashes: [][]byte{scr1Hash, scr2Hash}, SenderShardID: 0, ReceiverShardID: 1}
+	scrMiniBlock1 := &block.MiniBlock{
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        [][]byte{scr1Hash, scr2Hash},
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+	}
+	scrMiniBlock2 := &block.MiniBlock{
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        [][]byte{scr1Hash, scr2Hash},
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+	}
 
-	body := &block.Body{MiniBlocks: []*block.MiniBlock{txMiniBlock1, txMiniBlock2, rewTxMiniBlock1, rewTxMiniBlock2, scrMiniBlock1, scrMiniBlock2}}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{txMiniBlock1, txMiniBlock2, rewTxMiniBlock1, rewTxMiniBlock2, scrMiniBlock1, scrMiniBlock2},
+	}
 
 	hdr := &block.Header{}
 	txPool := map[string]data.TransactionHandler{
@@ -400,15 +445,6 @@ func TestAlteredAddresses(t *testing.T) {
 
 	txLogProc := disabled.NewNilTxLogsProcessor()
 	txProc := &txDatabaseProcessor{
-		shardCoordinator: &mock.ShardCoordinatorStub{
-			ComputeIdCalled: func(address []byte) uint32 {
-				if strings.Contains(string(address), "shard 0") {
-					return 0
-				}
-
-				return 1
-			},
-		},
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		},
@@ -420,17 +456,14 @@ func TestAlteredAddresses(t *testing.T) {
 	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
 	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
 
-	count := 0
 	for addrActual := range alteredAddresses {
-		for addrExpected := range expectedAlteredAccounts {
-			if addrActual == addrExpected {
-				count++
-				break
-			}
+		_, found := expectedAlteredAccounts[addrActual]
+		if !found {
+			assert.Fail(t, fmt.Sprintf("address %s not found", addrActual))
 		}
 	}
 
-	require.Equal(t, len(expectedAlteredAccounts), count)
+	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
 }
 
 func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {

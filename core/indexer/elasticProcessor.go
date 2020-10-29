@@ -60,7 +60,6 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
 		arguments.FeeConfig,
-		arguments.ShardCoordinator,
 		arguments.IsInImportDBMode,
 	)
 
@@ -102,9 +101,6 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	}
 	if check.IfNil(arguments.AccountsDB) {
 		return ErrNilAccountsDB
-	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return ErrNilShardCoordinator
 	}
 	if arguments.Options == nil {
 		return ErrNilOptions
@@ -556,7 +552,7 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		return err
 	}
 	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts",
 				"error", err.Error())
@@ -589,7 +585,7 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*Acco
 		return err
 	}
 	for idx := range buffSlice {
-		err := ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts history",
 				"error", err.Error())

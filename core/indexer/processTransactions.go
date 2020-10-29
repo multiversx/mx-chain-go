@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -32,11 +31,10 @@ const (
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor  process.TransactionLogProcessorDatabase
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	shardCoordinator sharding.Coordinator
-	isInImportMode   bool
+	txLogsProcessor process.TransactionLogProcessorDatabase
+	hasher          hashing.Hasher
+	marshalizer     marshal.Marshalizer
+	isInImportMode  bool
 }
 
 func newTxDatabaseProcessor(
@@ -45,7 +43,6 @@ func newTxDatabaseProcessor(
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
 	feeConfig *config.FeeSettings,
-	shardCoordinator sharding.Coordinator,
 	isInImportMode bool,
 ) *txDatabaseProcessor {
 	// this should never return error because is tested when economics file is created
@@ -61,9 +58,8 @@ func newTxDatabaseProcessor(
 			minGasLimit:              minGasLimit,
 			gasPerDataByte:           gasPerDataByte,
 		},
-		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
-		shardCoordinator: shardCoordinator,
-		isInImportMode:   isInImportMode,
+		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
+		isInImportMode:  isInImportMode,
 	}
 }
 
@@ -74,9 +70,9 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	selfShardID uint32,
 ) ([]*Transaction, map[string]struct{}) {
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
-	receipts := groupReceipts(txPool)
-	scResults := groupSmartContractResults(txPool)
-	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
+	receipts := groupReceipts(body, txPool)
+	scResults := groupSmartContractResults(body, txPool)
+	tdp.addScrsReceiverToAlteredAccounts(body, alteredAddresses, scResults, selfShardID)
 
 	transactions = tdp.setTransactionSearchOrder(transactions)
 	for _, rec := range receipts {
@@ -141,10 +137,27 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
 }
 
-func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(alteredAddress map[string]struct{}, scrs map[string]*smartContractResult.SmartContractResult) {
-	for _, scr := range scrs {
-		shardID := tdp.shardCoordinator.ComputeId(scr.RcvAddr)
-		if shardID == tdp.shardCoordinator.SelfId() {
+func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
+	body *block.Body,
+	alteredAddress map[string]struct{},
+	scrs map[string]*smartContractResult.SmartContractResult,
+	selfShardID uint32,
+) {
+	for _, mb := range body.MiniBlocks {
+		if mb.Type != block.SmartContractResultBlock {
+			continue
+		}
+		if mb.ReceiverShardID != selfShardID {
+			continue
+		}
+
+		for _, txHash := range mb.TxHashes {
+			scr, ok := scrs[string(txHash)]
+			if !ok {
+				log.Warn("internal error: missing already computed scr when altering address",
+					"hash", txHash)
+			}
+
 			encodedReceiverAddress := tdp.addressPubkeyConverter.Encode(scr.RcvAddr)
 			alteredAddress[encodedReceiverAddress] = struct{}{}
 		}
@@ -273,7 +286,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
 					transactions[hash] = dbTx
 				}
-				delete(txPool, hash)
 			}
 		case block.InvalidBlock:
 			txs := getTransactions(txPool, mb.TxHashes)
@@ -281,7 +293,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
 				transactions[hash] = dbTx
-				delete(txPool, hash)
 			}
 		case block.RewardsBlock:
 			rTxs := getRewardsTransaction(txPool, mb.TxHashes)
@@ -291,7 +302,6 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 				if tdp.shouldIndex(selfShardID, mb.ReceiverShardID) {
 					rewardsTxs = append(rewardsTxs, dbTx)
 				}
-				delete(txPool, hash)
 			}
 		default:
 			continue
@@ -334,29 +344,55 @@ func addToAlteredAddresses(
 	}
 }
 
-func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
+func groupSmartContractResults(body *block.Body, txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
 	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
-	for hash, tx := range txPool {
-		scResult, ok := tx.(*smartContractResult.SmartContractResult)
-		if !ok {
+	for _, mb := range body.MiniBlocks {
+		if mb.Type != block.SmartContractResultBlock {
 			continue
 		}
-		scResults[hash] = scResult
+
+		for _, txHash := range mb.TxHashes {
+			txHandler, ok := txPool[string(txHash)]
+			if !ok {
+				log.Warn("internal error: missing scr", "hash", txHash)
+				continue
+			}
+
+			scResult, ok := txHandler.(*smartContractResult.SmartContractResult)
+			if !ok {
+				log.Warn("internal error: wrong type assertion for scr", "hash", txHash)
+				continue
+			}
+
+			scResults[string(txHash)] = scResult
+		}
 	}
 
 	return scResults
 }
 
-func groupReceipts(txPool map[string]data.TransactionHandler) []*receipt.Receipt {
+func groupReceipts(body *block.Body, txPool map[string]data.TransactionHandler) []*receipt.Receipt {
 	receipts := make([]*receipt.Receipt, 0)
-	for hash, tx := range txPool {
-		rec, ok := tx.(*receipt.Receipt)
-		if !ok {
+	for _, mb := range body.MiniBlocks {
+		if mb.Type != block.ReceiptBlock {
 			continue
 		}
 
-		receipts = append(receipts, rec)
-		delete(txPool, hash)
+		for _, txHash := range mb.TxHashes {
+			txHandler, ok := txPool[string(txHash)]
+			if !ok {
+				log.Warn("internal error: missing receipt", "hash", txHash)
+				continue
+			}
+
+			rtx, ok := txHandler.(*receipt.Receipt)
+			if !ok {
+				log.Warn("internal error: wrong type assertion for receipt", "hash", txHash)
+				continue
+			}
+
+			receipts = append(receipts, rtx)
+		}
 	}
 
 	return receipts

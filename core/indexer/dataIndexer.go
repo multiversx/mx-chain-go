@@ -39,7 +39,7 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 		options:          arguments.Options,
 	}
 
-	if arguments.ShardCoordinator.SelfId() == core.MetachainShardId {
+	if arguments.ShardID == core.MetachainShardId {
 		arguments.EpochStartNotifier.RegisterHandler(dataIndexerObj.epochStartEventHandler())
 	}
 

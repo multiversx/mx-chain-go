@@ -1197,7 +1197,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		validatorPubkeyConverter,
 		stateComponents.AccountsAdapter,
 		economicsConfig.GlobalSettings.Denomination,
-		shardCoordinator,
+		shardCoordinator.SelfId(),
 		&economicsConfig.FeeSettings,
 		isInImportMode,
 	)
@@ -1990,7 +1990,7 @@ func createElasticIndexer(
 	validatorPubkeyConverter core.PubkeyConverter,
 	accountsDB state.AccountsAdapter,
 	denomination int,
-	shardCoordinator sharding.Coordinator,
+	shardID uint32,
 	feeConfig *config.FeeSettings,
 	isInImportDBMode bool,
 ) (indexer.Indexer, error) {
@@ -1999,7 +1999,7 @@ func createElasticIndexer(
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
-		ShardCoordinator:         shardCoordinator,
+		ShardID:                  shardID,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
