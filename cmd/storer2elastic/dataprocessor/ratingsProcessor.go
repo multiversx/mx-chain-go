@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	factory2 "github.com/ElrondNetwork/elrond-go/data/state/factory"
+	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -95,7 +95,9 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	rootHash := metaBlock.ValidatorStatsRootHash
 	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash)
 	if err != nil {
-		return err
+		log.Error("ratingsProcessor -> GetAllLeaves error", "error", err, "root hash", rootHash)
+		// don't return error because if the trie is prunned this kind of data will be available only for the last 3 epochs
+		return nil
 	}
 
 	validatorsRatingData, err := rp.getValidatorsRatingFromLeaves(leaves)
@@ -125,7 +127,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 
 	pathTemplateForStaticStorer := filepath.Join(
 		rp.dbPathWithChainID,
-		"Static",
+		core.DefaultStaticDbString,
 		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
@@ -159,7 +161,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 		peerAccountsTrie,
 		rp.hasher,
 		rp.marshalizer,
-		factory2.NewPeerAccountCreator(),
+		stateFactory.NewPeerAccountCreator(),
 	)
 	if err != nil {
 		return err
@@ -209,6 +211,11 @@ func (rp *ratingsProcessor) getGenesisRating() map[uint32][]indexer.ValidatorRat
 	}
 
 	return ratingsForGenesis
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rp *ratingsProcessor) IsInterfaceNil() bool {
+	return rp == nil
 }
 
 func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {

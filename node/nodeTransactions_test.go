@@ -55,9 +55,9 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
-	require.Equal(t, transaction.TxStatusReceived, actualA.Status)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualB.Status)
-	require.Equal(t, transaction.TxStatusReceived, actualC.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
+	require.Equal(t, transaction.TxStatusPending, actualB.Status)
+	require.Equal(t, transaction.TxStatusPending, actualC.Status)
 
 	// Reward transactions
 
@@ -67,7 +67,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusPending, actualD.Status)
 
 	// Unsigned transactions
 
@@ -91,9 +91,9 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
-	require.Equal(t, transaction.TxStatusReceived, actualE.Status)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualF.Status)
-	require.Equal(t, transaction.TxStatusReceived, actualG.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
+	require.Equal(t, transaction.TxStatusPending, actualF.Status)
+	require.Equal(t, transaction.TxStatusPending, actualG.Status)
 }
 
 func TestNode_GetTransaction_FromStorage(t *testing.T) {
@@ -124,9 +124,9 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualB.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualC.Status)
 
 	// Reward transactions
 
@@ -136,7 +136,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
-	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
 
 	// Unsigned transactions
 
@@ -160,13 +160,13 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualF.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
-	require.NotNil(t, err)
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Nil(t, tx)
 
@@ -194,7 +194,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, 42, int(actualA.Epoch))
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
 
 	// Cross-shard, we are destination
 	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
@@ -205,7 +205,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, 42, int(actualB.Epoch))
-	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualB.Status)
 
 	// Intra-shard
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
@@ -216,7 +216,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
 	require.Equal(t, 42, int(actualC.Epoch))
-	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualC.Status)
 
 	// Invalid transaction
 	txInvalid := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
@@ -240,7 +240,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualD.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
 
 	// Unsigned transactions
 
@@ -254,7 +254,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualE.Epoch))
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualE.Type)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
 
 	// Cross-shard, we are destination
 	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
@@ -266,7 +266,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualF.Epoch))
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualF.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualF.Status)
 
 	// Intra-shard
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
@@ -278,17 +278,17 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualG.Epoch))
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualG.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
-	require.NotNil(t, err)
+	require.Nil(t, tx)
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Contains(t, err.Error(), "fooError")
-	require.Nil(t, tx)
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))

@@ -231,7 +231,7 @@ func TestRelayedTransactions(t *testing.T) {
 	transactions := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
-	assert.Equal(t, txStatusSuccess, transactions[0].Status)
+	assert.Equal(t, transaction.TxStatusSuccess.String(), transactions[0].Status)
 }
 
 func TestSetTransactionSearchOrder(t *testing.T) {
@@ -242,7 +242,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 	txHash2 := []byte("txHash2")
 	tx2 := &Transaction{}
 
-	txPool := map[string]*Transaction {
+	txPool := map[string]*Transaction{
 		string(txHash1): tx1,
 		string(txHash2): tx2,
 	}

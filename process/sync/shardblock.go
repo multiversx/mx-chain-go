@@ -131,6 +131,9 @@ func (boot *ShardBootstrap) SyncBlock() error {
 
 // Close closes the synchronization loop
 func (boot *ShardBootstrap) Close() error {
+	if !check.IfNil(boot.baseBootstrap) {
+		log.LogIfError(boot.baseBootstrap.Close())
+	}
 	boot.cancelFunc()
 	return nil
 }

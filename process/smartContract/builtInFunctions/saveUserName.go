@@ -2,6 +2,7 @@ package builtInFunctions
 
 import (
 	"encoding/hex"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -11,8 +12,6 @@ import (
 )
 
 var _ process.BuiltinFunction = (*saveUserName)(nil)
-
-const userNameHashLength = 32
 
 type saveUserName struct {
 	gasCost         uint64
@@ -60,7 +59,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	if !ok {
 		return nil, process.ErrCallerIsNotTheDNSAddress
 	}
-	if len(vmInput.Arguments) != 1 || len(vmInput.Arguments[0]) != userNameHashLength {
+	if len(vmInput.Arguments) != 1 {
 		return nil, process.ErrInvalidArguments
 	}
 
@@ -70,11 +69,15 @@ func (s *saveUserName) ProcessBuiltinFunction(
 		vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		setUserNameTxData := core.BuiltInFunctionSetUserName + "@" + hex.EncodeToString(vmInput.Arguments[0])
-		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
-			Address:  vmInput.RecipientAddr,
+		outTransfer := vmcommon.OutputTransfer{
+			Value:    big.NewInt(0),
+			GasLimit: vmInput.GasProvided,
 			Data:     []byte(setUserNameTxData),
 			CallType: vmcommon.AsynchronousCall,
-			GasLimit: vmInput.GasProvided,
+		}
+		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+			Address:         vmInput.RecipientAddr,
+			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
 		return vmOutput, nil
 	}
@@ -87,7 +90,7 @@ func (s *saveUserName) ProcessBuiltinFunction(
 
 	acntDst.SetUserName(vmInput.Arguments[0])
 
-	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - s.gasCost}, nil
+	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - s.gasCost, ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil

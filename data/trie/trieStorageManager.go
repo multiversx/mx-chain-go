@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -300,6 +301,13 @@ func (tsm *trieStorageManager) removeFromDb(rootHash []byte) error {
 	}
 	identifier := data.TriePruningIdentifier(rootHash[lastBytePos])
 
+	sw := core.NewStopWatch()
+	sw.Start("removeFromDb")
+	defer func() {
+		sw.Stop("removeFromDb")
+		log.Debug("trieStorageManager.removeFromDb", sw.GetMeasurements()...)
+	}()
+
 	var hash []byte
 	var shouldKeepHash bool
 	for key := range hashes {
@@ -559,6 +567,9 @@ func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
 	tsm.cancelFunc()
 
 	err1 := tsm.db.Close()

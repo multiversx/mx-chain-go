@@ -839,6 +839,8 @@ func (sp *shardProcessor) CommitBlock(
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash := sp.getLastSelfNotarizedHeaderByMetachain()
 	sp.blockTracker.AddSelfNotarizedHeader(core.MetachainShardId, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 
+	sp.notifyFinalMetaHdrs(processedMetaHdrs)
+
 	sp.updateState(selfNotarizedHeaders, header)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
@@ -910,14 +912,29 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeBlockDataFromPools(headerHandler, bodyHandler)
-	if errNotCritical != nil {
-		log.Debug("removeBlockDataFromPools", "error", errNotCritical.Error())
-	}
-
 	sp.cleanupPools(headerHandler)
 
 	return nil
+}
+
+func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
+	metaHeaders := make([]data.HeaderHandler, 0)
+	metaHeadersHashes := make([][]byte, 0)
+
+	for _, metaHeader := range processedMetaHeaders {
+		metaHeaderHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, metaHeader)
+		if err != nil {
+			log.Debug("shardProcessor.notifyFinalMetaHdrs", "error", err.Error())
+			continue
+		}
+
+		metaHeaders = append(metaHeaders, metaHeader)
+		metaHeadersHashes = append(metaHeadersHashes, metaHeaderHash)
+	}
+
+	if len(metaHeaders) > 0 {
+		go sp.historyRepo.OnNotarizedBlocks(core.MetachainShardId, metaHeaders, metaHeadersHashes)
+	}
 }
 
 func (sp *shardProcessor) displayPoolsInfo() {
@@ -1021,6 +1038,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 			rootHash := epochStartShData.RootHash
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
 			accounts.SnapshotState(rootHash)
+			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 		}
 	}
 }
@@ -1594,7 +1612,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
+	go sp.requestMetaHeadersIfNeeded(hdrsAdded, lastMetaHdr)
 
 	for _, miniBlock := range miniBlocks {
 		log.Debug("mini block info",
@@ -1623,7 +1641,8 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		fromNonce := lastMetaHdr.GetNonce() + 1
 		toNonce := fromNonce + uint64(sp.metaBlockFinality)
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
-			go sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
+			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
 	}
 }

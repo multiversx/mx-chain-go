@@ -20,6 +20,7 @@ type NodesSetupStub struct {
 	GetStartTimeCalled                        func() int64
 	MinNumberOfNodesCalled                    func() uint32
 	AllInitialNodesCalled                     func() []sharding.GenesisNodeInfoHandler
+	MinNumberOfNodesWithHysteresisCalled      func() uint32
 }
 
 // InitialNodesPubKeys -
@@ -146,6 +147,14 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 		return n.MinNumberOfNodesCalled()
 	}
 	return 1
+}
+
+// MinNumberOfNodes -
+func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if n.MinNumberOfNodesWithHysteresisCalled != nil {
+		return n.MinNumberOfNodesWithHysteresisCalled()
+	}
+	return n.MinNumberOfNodes()
 }
 
 // AllInitialNodes -

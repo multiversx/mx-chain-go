@@ -8,11 +8,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/vm"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // Facade is the mock implementation of a node router handler
@@ -28,8 +28,9 @@ type Facade struct {
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler              func() (map[string]*state.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler       func(tx *transaction.Transaction) (uint64, error)
@@ -145,13 +146,18 @@ func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
 }
 
+// ValidateTransactionForSimulation -
+func (f *Facade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	return f.ValidateTransactionForSimulationHandler(tx)
+}
+
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
 func (f *Facade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return f.ValidatorStatisticsHandler()
 }
 
 // ExecuteSCQuery is a mock implementation.
-func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
 	return f.ExecuteSCQueryHandler(query)
 }
 

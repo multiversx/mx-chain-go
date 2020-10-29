@@ -43,12 +43,6 @@ type EpochStartNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartNotifierWithConfirm defines which actions should be done for handling new epoch's events and confirmation
-type EpochStartNotifierWithConfirm interface {
-	EpochStartNotifier
-	RegisterForEpochChangeConfirmed(handler func(epoch uint32))
-}
-
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
@@ -85,6 +79,14 @@ type ComponentHandler interface {
 	CheckSubcomponents() error
 }
 
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(epoch uint32)
+	IsInterfaceNil() bool
+}
+
 // CoreComponentsHolder holds the core components
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
@@ -107,7 +109,7 @@ type CoreComponentsHolder interface {
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() sharding.NodesShuffler
-	EpochStartNotifier() EpochStartNotifierWithConfirm
+	EpochNotifier() EpochNotifier
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
 	ChainID() string
@@ -253,6 +255,7 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
+	FallbackHeaderValidator() process.FallbackHeaderValidator
 	TransactionSimulatorProcessor() TransactionSimulatorProcessor
 	WhiteListHandler() process.WhiteListHandler
 	WhiteListerVerifiedTxs() process.WhiteListHandler
@@ -311,6 +314,7 @@ type HeartbeatMonitor interface {
 	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	GetHeartbeats() []heartbeatData.PubKeyHeartbeat
 	IsInterfaceNil() bool
+	Cleanup()
 	Close() error
 }
 
@@ -358,6 +362,8 @@ type ConsensusWorker interface {
 	ExecuteStoredMessages()
 	//DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
+	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	ResetConsensusMessages()
 	//ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -367,7 +373,7 @@ type ConsensusWorker interface {
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
@@ -380,6 +386,7 @@ type ConsensusComponentsHolder interface {
 	Chronology() consensus.ChronologyHandler
 	ConsensusWorker() ConsensusWorker
 	BroadcastMessenger() consensus.BroadcastMessenger
+	ConsensusGroupSize() (int, error)
 	HardforkTrigger() HardforkTrigger
 	IsInterfaceNil() bool
 }

@@ -4590,3 +4590,36 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonc
 	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
 	assert.Equal(t, finalHash, bootstrapHeaderInfos[1].Hash)
 }
+
+func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool(t *testing.T) {
+	t.Parallel()
+
+	var addedNonces []uint64
+	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				addedNonces = append(addedNonces, hdrNonce)
+				return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
+			},
+		}
+	}
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	rounderMock := &mock.RounderMock{}
+	arguments.Rounder = rounderMock
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	rounderMock.RoundIndex = 20
+	metaBlock := &block.MetaBlock{
+		Round: 9,
+		Nonce: 5,
+	}
+	sp.RequestMetaHeadersIfNeeded(0, metaBlock)
+
+	expectedAddedNonces := []uint64{6, 7}
+	assert.Equal(t, expectedAddedNonces, addedNonces)
+}

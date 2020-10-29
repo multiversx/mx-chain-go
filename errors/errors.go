@@ -119,7 +119,7 @@ var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 // ErrNilChronologyHandler is raised when a valid chronology handler is expected but nil used
 var ErrNilChronologyHandler = errors.New("chronology handler is nil")
 
-// ErrNilConsensusComponentsHolder signals that a nil consenus components holder was provided
+// ErrNilConsensusComponentsHolder signals that a nil consensus components holder was provided
 var ErrNilConsensusComponentsHolder = errors.New("nil consensus components holder")
 
 // ErrNilConsensusWorker signals that a nil consensus worker was provided
@@ -172,6 +172,9 @@ var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier provided")
 
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger has been provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 
 // ErrNilForkDetector is raised when a valid fork detector is expected but nil used
 var ErrNilForkDetector = errors.New("fork detector is nil")

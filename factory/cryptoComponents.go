@@ -11,11 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
+	disabledCrypto "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled"
+	disabledMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/multisig"
+	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
-	mclmultisig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
-	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	mclMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/multisig"
+	mclSig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/multisig"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
@@ -28,6 +31,8 @@ import (
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
+const disabledSigChecking = "disabled"
+
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
@@ -36,15 +41,19 @@ type CryptoComponentsFactoryArgs struct {
 	CoreComponentsHolder                 CoreComponentsHolder
 	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            KeyLoaderHandler
+	UseDisabledSigVerifier               bool
+	IsInImportMode                       bool
 }
 
 type cryptoComponentsFactory struct {
+	consensusType                        string
 	validatorKeyPemFileName              string
 	skIndex                              int
 	config                               config.Config
 	coreComponentsHolder                 CoreComponentsHolder
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            KeyLoaderHandler
+	isInImportMode                       bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -80,14 +89,22 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		return nil, errors.ErrNilKeyLoader
 	}
 
-	return &cryptoComponentsFactory{
+	ccf := &cryptoComponentsFactory{
+		consensusType:                        args.Config.Consensus.Type,
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
 		coreComponentsHolder:                 args.CoreComponentsHolder,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
-	}, nil
+		isInImportMode:                       args.IsInImportMode,
+	}
+	if args.UseDisabledSigVerifier {
+		ccf.consensusType = disabledSigChecking
+		log.Warn("using disabled key generator")
+	}
+
+	return ccf, nil
 }
 
 // Create will create and return crypto components
@@ -159,16 +176,19 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 }
 
 func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
-	switch ccf.config.Consensus.Type {
+	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
-		return &mclsig.BlsSingleSigner{}, nil
+		return &mclSig.BlsSingleSigner{}, nil
+	case disabledSigChecking:
+		log.Warn("using disabled single signer")
+		return &disabledSig.DisabledSingleSig{}, nil
 	default:
 		return nil, errors.ErrInvalidConsensusConfig
 	}
 }
 
 func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hasher, error) {
-	if ccf.config.Consensus.Type == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
+	if ccf.consensusType == consensus.BlsConsensusType && ccf.config.MultisigHasher.Type != "blake2b" {
 		return nil, errors.ErrMultiSigHasherMissmatch
 	}
 
@@ -176,7 +196,7 @@ func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hashe
 	case "sha256":
 		return sha256.Sha256{}, nil
 	case "blake2b":
-		if ccf.config.Consensus.Type == consensus.BlsConsensusType {
+		if ccf.consensusType == consensus.BlsConsensusType {
 			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
 		}
 		return &blake2b.Blake2b{}, nil
@@ -190,10 +210,13 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 ) (crypto.MultiSigner, error) {
-	switch ccf.config.Consensus.Type {
+	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
-		blsSigner := &mclmultisig.BlsMultiSigner{Hasher: hasher}
+		blsSigner := &mclMultiSig.BlsMultiSigner{Hasher: hasher}
 		return multisig.NewBLSMultisig(blsSigner, []string{string(cp.publicKeyBytes)}, cp.privateKey, blSignKeyGen, uint16(0))
+	case disabledSigChecking:
+		log.Warn("using disabled multi signer")
+		return &disabledMultiSig.DisabledMultiSig{}, nil
 	default:
 		return nil, errors.ErrInvalidConsensusConfig
 	}
@@ -203,6 +226,9 @@ func (ccf *cryptoComponentsFactory) getSuite() (crypto.Suite, error) {
 	switch ccf.config.Consensus.Type {
 	case consensus.BlsConsensusType:
 		return mcl.NewSuiteBLS12(), nil
+	case disabledSigChecking:
+		log.Warn("using disabled multi signer")
+		return disabledCrypto.NewDisabledSuite(), nil
 	default:
 		return nil, errors.ErrInvalidConsensusConfig
 	}
@@ -212,6 +238,14 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
+	if ccf.isInImportMode {
+		return ccf.generateCryptoParams(keygen)
+	}
+
+	return ccf.readCryptoParams(keygen)
+}
+
+func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
 	cryptoParams := &cryptoParams{}
 	sk, readPk, err := ccf.getSkPk()
 	if err != nil {
@@ -225,7 +259,6 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 
 	cryptoParams.publicKey = cryptoParams.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
-
 		cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
 		if err != nil {
 			return nil, err
@@ -234,6 +267,23 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		if !bytes.Equal(cryptoParams.publicKeyBytes, readPk) {
 			return nil, errors.ErrPublicKeyMismatch
 		}
+	}
+
+	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
+	cryptoParams.publicKeyString = validatorKeyConverter.Encode(cryptoParams.publicKeyBytes)
+
+	return cryptoParams, nil
+}
+
+func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
+	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
+	cryptoParams := &cryptoParams{}
+	cryptoParams.privateKey, cryptoParams.publicKey = keygen.GeneratePair()
+
+	var err error
+	cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()

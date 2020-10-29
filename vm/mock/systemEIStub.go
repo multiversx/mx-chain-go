@@ -28,6 +28,26 @@ type SystemEIStub struct {
 	ExecuteOnDestContextCalled      func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	GetStorageFromAddressCalled     func(address []byte, key []byte) []byte
 	SetStorageForAddressCalled      func(address []byte, key []byte, value []byte)
+	CanUnJailCalled                 func(blsKey []byte) bool
+	IsBadRatingCalled               func(blsKey []byte) bool
+	SendGlobalSettingToAllCalled    func(sender []byte, input []byte)
+	ReturnMessage                   string
+}
+
+// CanUnJail -
+func (s *SystemEIStub) CanUnJail(blsKey []byte) bool {
+	if s.CanUnJailCalled != nil {
+		return s.CanUnJailCalled(blsKey)
+	}
+	return false
+}
+
+// IsBadRating -
+func (s *SystemEIStub) IsBadRating(blsKey []byte) bool {
+	if s.IsBadRatingCalled != nil {
+		return s.IsBadRatingCalled(blsKey)
+	}
+	return false
 }
 
 // IsValidator -
@@ -110,6 +130,13 @@ func (s *SystemEIStub) Finish(value []byte) {
 	}
 }
 
+// SendGlobalSettingToAll -
+func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
+	if s.SendGlobalSettingToAllCalled != nil {
+		s.SendGlobalSettingToAllCalled(sender, input)
+	}
+}
+
 // Transfer -
 func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 	if s.TransferCalled != nil {
@@ -137,6 +164,8 @@ func (s *SystemEIStub) SetStorage(key []byte, value []byte) {
 func (s *SystemEIStub) AddReturnMessage(msg string) {
 	if s.AddReturnMessageCalled != nil {
 		s.AddReturnMessageCalled(msg)
+	} else {
+		s.ReturnMessage = msg
 	}
 }
 
@@ -156,6 +185,7 @@ func (s *SystemEIStub) GetStorageFromAddress(address []byte, key []byte) []byte 
 	return nil
 }
 
+// SetStorageForAddress -
 func (s *SystemEIStub) SetStorageForAddress(address []byte, key []byte, value []byte) {
 	if s.SetStorageForAddressCalled != nil {
 		s.SetStorageForAddressCalled(address, key, value)

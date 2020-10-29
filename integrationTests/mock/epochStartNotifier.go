@@ -7,27 +7,12 @@ import (
 
 // EpochStartNotifierStub -
 type EpochStartNotifierStub struct {
-	RegisterHandlerCalled                 func(handler epochStart.ActionHandler)
-	UnregisterHandlerCalled               func(handler epochStart.ActionHandler)
-	NotifyAllCalled                       func(hdr data.HeaderHandler)
-	NotifyAllPrepareCalled                func(hdr data.HeaderHandler, body data.BodyHandler)
-	epochStartHdls                        []epochStart.ActionHandler
-	NotifyEpochChangeConfirmedCalled      func(epoch uint32)
-	RegisterForEpochChangeConfirmedCalled func(handler func(epoch uint32))
-}
-
-// RegisterForEpochChangeConfirmed -
-func (esnm *EpochStartNotifierStub) RegisterForEpochChangeConfirmed(handler func(epoch uint32)) {
-	if esnm.RegisterForEpochChangeConfirmedCalled != nil {
-		esnm.RegisterForEpochChangeConfirmedCalled(handler)
-	}
-}
-
-// NotifyEpochChangeConfirmed -
-func (esnm *EpochStartNotifierStub) NotifyEpochChangeConfirmed(epoch uint32) {
-	if esnm.NotifyEpochChangeConfirmedCalled != nil {
-		esnm.NotifyEpochChangeConfirmedCalled(epoch)
-	}
+	RegisterHandlerCalled            func(handler epochStart.ActionHandler)
+	UnregisterHandlerCalled          func(handler epochStart.ActionHandler)
+	NotifyAllCalled                  func(hdr data.HeaderHandler)
+	NotifyAllPrepareCalled           func(hdr data.HeaderHandler, body data.BodyHandler)
+	NotifyEpochChangeConfirmedCalled func(epoch uint32)
+	epochStartHdls                   []epochStart.ActionHandler
 }
 
 // RegisterHandler -
@@ -72,6 +57,13 @@ func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
 
 	for _, hdl := range esnm.epochStartHdls {
 		hdl.EpochStartAction(hdr)
+	}
+}
+
+// NotifyEpochChangeConfirmed -
+func (esnm *EpochStartNotifierStub) NotifyEpochChangeConfirmed(epoch uint32) {
+	if esnm.NotifyEpochChangeConfirmedCalled != nil {
+		esnm.NotifyEpochChangeConfirmedCalled(epoch)
 	}
 }
 

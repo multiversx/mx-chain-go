@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
@@ -28,6 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,7 +70,7 @@ func getMessenger() *mock.MessengerStub {
 }
 
 func getMarshalizer() marshal.Marshalizer {
-	return &mock.MarshalizerMock{}
+	return &mock.MarshalizerFake{}
 }
 
 func getHasher() hashing.Hasher {
@@ -727,6 +729,87 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
+func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	crtShardID := uint32(1)
+	chainID := []byte("chain ID")
+	version := uint32(1)
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+	coreComponents.ChainIdCalled = func() string {
+		return string(chainID)
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.EconomicsHandler = &economicsMocks.EconomicsHandlerMock{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+
+	stateComponents := getDefaultStateComponents()
+
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID + 1
+		},
+		SelfShardId: crtShardID,
+	}
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = shardCoordinator
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = shardCoordinator
+
+	cryptoComponents := getDefaultCryptoComponents()
+
+	n, _ := node.NewNode(
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := "617eff4f"
+
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
+	assert.NotNil(t, tx)
+	assert.Equal(t, expectedHash, txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, nonce, tx.Nonce)
+	assert.Equal(t, value, tx.Value)
+	assert.True(t, bytes.Equal([]byte(receiver), tx.RcvAddr))
+
+	err = n.ValidateTransaction(tx)
+	assert.True(t, errors.Is(err, node.ErrDifferentSenderShardId))
+}
+
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -750,10 +833,20 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	processComponents := getDefaultProcessComponents()
 
+	networkComponents := getDefaultNetworkComponents()
+	cryptoComponents := getDefaultCryptoComponents()
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = processComponents.ShardCoordinator()
+	bootstrapComponents.HdrIntegrityVerifier = processComponents.HeaderIntegrVerif
 	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
 	)
 
 	nonce := uint64(0)
@@ -765,7 +858,11 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
+	tx, txHash, err := n.CreateTransaction(
+		nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData,
+		signature, coreComponents.ChainID(), coreComponents.MinTransactionVersion(),
+	)
+
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -1555,10 +1652,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 	wasCalled := false
 	epoch := uint32(47839)
 	recoveredEpoch := uint32(0)
+	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
 	hardforkTrigger := &mock.HardforkTriggerStub{
-		TriggerCalled: func(e uint32) error {
+		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
 			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, e)
+			atomic.StoreUint32(&recoveredEpoch, epoch)
+			recoveredWithEarlyEndOfEpoch.Toggle(withEarlyEndOfEpoch)
 
 			return nil
 		},
@@ -1567,11 +1666,12 @@ func TestNode_DirectTrigger(t *testing.T) {
 		node.WithHardforkTrigger(hardforkTrigger),
 	)
 
-	err := n.DirectTrigger(epoch)
+	err := n.DirectTrigger(epoch, true)
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, epoch, recoveredEpoch)
+	assert.True(t, recoveredWithEarlyEndOfEpoch.IsSet())
 }
 
 func TestNode_IsSelfTrigger(t *testing.T) {

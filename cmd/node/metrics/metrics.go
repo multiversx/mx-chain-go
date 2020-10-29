@@ -50,6 +50,7 @@ func InitMetrics(
 	isSyncing := uint64(1)
 	initUint := uint64(0)
 	initString := ""
+	initZeroString := "0"
 	appStatusHandler := statusHandlerUtils.StatusHandler()
 
 	appStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initUint)
@@ -104,6 +105,11 @@ func InitMetrics(
 	appStatusHandler.SetUInt64Value(core.MetricStartTime, uint64(nodesConfig.GetStartTime()))
 	appStatusHandler.SetUInt64Value(core.MetricRoundDuration, nodesConfig.GetRoundDuration())
 	appStatusHandler.SetUInt64Value(core.MetricMinTransactionVersion, uint64(minTransactionVersion))
+	appStatusHandler.SetStringValue(core.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
+	appStatusHandler.SetStringValue(core.MetricInflation, initZeroString)
+	appStatusHandler.SetStringValue(core.MetricDevRewards, initZeroString)
+	appStatusHandler.SetStringValue(core.MetricTotalFees, initZeroString)
+	appStatusHandler.SetUInt64Value(core.MetricEpochForEconomicsData, initUint)
 
 	var consensusGroupSize uint32
 	switch {

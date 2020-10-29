@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -119,6 +120,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 
 	pubkeys := tP2pNode.getPubkeys()
 
+	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
 	pkBytes, _ := tP2pNode.NodeKeys.Pk.ToByteArray()
 	argHardforkTrigger := trigger.ArgHardforkTrigger{
 		TriggerPubKeyBytes:        []byte("invalid trigger public key"),
@@ -129,7 +131,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
 		CloseAfterExportInMinutes: 5,
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
-		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
+		EpochConfirmedNotifier:    epochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
 	}
@@ -168,7 +170,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 			}, nil
 		},
 	}
-	processComponents.EpochNotifier = &mock.EpochStartNotifierStub{}
+	processComponents.EpochNotifier = epochStartNotifier
 	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{}
 	processComponents.PeerMapper = tP2pNode.NetworkShardingUpdater
 
@@ -333,7 +335,7 @@ func CreateNodesWithTestP2PNodes(
 			BootStorer:              CreateMemUnit(),
 			WaitingNodes:            make(map[uint32][]sharding.Validator),
 			Epoch:                   0,
-			EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
 			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 		}
 		nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -374,7 +376,7 @@ func CreateNodesWithTestP2PNodes(
 				BootStorer:              CreateMemUnit(),
 				WaitingNodes:            make(map[uint32][]sharding.Validator),
 				Epoch:                   0,
-				EpochStartNotifier:      &mock.EpochStartNotifierStub{},
+				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 			}
 			nodesCoordinator, err := sharding.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

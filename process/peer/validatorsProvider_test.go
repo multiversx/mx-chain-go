@@ -430,10 +430,6 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 	assert.NotNil(t, cache[encodedPkNew])
 	assert.Equal(t, newList, cache[encodedPkNew].ValidatorStatus)
 	assert.Equal(t, newShardId, cache[encodedPkNew].ShardId)
-
-	// inactive validators are not returned
-	encodedPkInactive := pubKeyConverter.Encode(pkInactive)
-	assert.Nil(t, cache[encodedPkInactive])
 }
 
 func TestValidatorsProvider_createCache_combined(t *testing.T) {
@@ -501,10 +497,6 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorLeavingShardId, cache[encodedPkLeavingInTrie].ShardId)
-
-	// inactive validators are not returned
-	encodedPkInactive := arg.PubKeyConverter.Encode(pkInactive)
-	assert.Nil(t, cache[encodedPkInactive])
 }
 
 func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {

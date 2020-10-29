@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHeader_GetEpoch(t *testing.T) {
@@ -283,6 +284,8 @@ func TestBody_IntegrityAndValidityOK(t *testing.T) {
 }
 
 func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
+	t.Parallel()
+
 	hashS0R0 := []byte("hash_0_0")
 	hashS0R1 := []byte("hash_0_1")
 	hash1S0R2 := []byte("hash_0_2")
@@ -317,6 +320,49 @@ func TestHeader_GetMiniBlockHeadersWithDstShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(0), hashesWithDest2[string(hash1S0R2)])
 	assert.Equal(t, uint32(0), hashesWithDest2[string(hash2S0R2)])
+}
+
+func TestHeader_GetOrderedCrossMiniblocksWithDstShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hashSh0ToSh0 := []byte("hash_0_0")
+	hashSh0ToSh1 := []byte("hash_0_1")
+	hash1Sh0ToSh2 := []byte("hash1_0_2")
+	hash2Sh0ToSh2 := []byte("hash2_0_2")
+
+	hdr := &block.Header{
+		Round: 10,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				Hash:            hashSh0ToSh0,
+			},
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				Hash:            hashSh0ToSh1,
+			},
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash1Sh0ToSh2,
+			},
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 2,
+				Hash:            hash2Sh0ToSh2,
+			},
+		},
+	}
+
+	miniBlocksInfo := hdr.GetOrderedCrossMiniblocksWithDst(2)
+
+	require.Equal(t, 2, len(miniBlocksInfo))
+	assert.Equal(t, hash1Sh0ToSh2, miniBlocksInfo[0].Hash)
+	assert.Equal(t, hdr.Round, miniBlocksInfo[0].Round)
+	assert.Equal(t, hash2Sh0ToSh2, miniBlocksInfo[1].Hash)
+	assert.Equal(t, hdr.Round, miniBlocksInfo[1].Round)
 }
 
 func TestMiniBlock_Clone(t *testing.T) {

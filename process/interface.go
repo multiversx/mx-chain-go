@@ -149,6 +149,7 @@ type TransactionCoordinator interface {
 // SmartContractProcessor is the main interface for the smart contract caller engine
 type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
 	IsPayable(address []byte) (bool, error)
@@ -158,6 +159,7 @@ type SmartContractProcessor interface {
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
 	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
 	SaveCurrentIntermediateTxToStorage() error
@@ -201,7 +203,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool) ([][]byte, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -231,7 +233,6 @@ type BlockProcessor interface {
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
 	RevertPeerState(header data.HeaderHandler) error
-	GetPeerAccount(address []byte) (state.PeerAccountHandler, error)
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
@@ -324,6 +325,7 @@ type ForkDetector interface {
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
+	SetFinalToLastCheckpoint()
 	IsInterfaceNil() bool
 }
 
@@ -547,6 +549,7 @@ type feeHandler interface {
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	MinGasLimit() uint64
@@ -600,6 +603,7 @@ type TimeCacher interface {
 	Upsert(key string, span time.Duration) error
 	Has(key string) bool
 	Sweep()
+	Len() int
 	IsInterfaceNil() bool
 }
 
@@ -681,8 +685,9 @@ type RequestBlockBodyHandler interface {
 
 // InterceptedHeaderSigVerifier is the interface needed at interceptors level to check that a header's signature is correct
 type InterceptedHeaderSigVerifier interface {
-	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
+	VerifyRandSeed(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
@@ -718,7 +723,9 @@ type BlockTracker interface {
 	GetTrackedHeadersWithNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuck(shardID uint32) bool
 	RegisterCrossNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterSelfNotarizedFromCrossHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
+	RegisterFinalMetachainHeadersHandler(func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RemoveLastNotarizedHeaders()
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
@@ -947,6 +954,24 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(epoch uint32)
+	IsInterfaceNil() bool
+}
+
+// ESDTPauseHandler provides IsPaused function for an ESDT token
+type ESDTPauseHandler interface {
+	IsPaused(token []byte) bool
+	IsInterfaceNil() bool
+}
+
+// PayableHandler provides IsPayable function which returns if an account is payable or not
+type PayableHandler interface {
+	IsPayable(address []byte) (bool, error)
+	IsInterfaceNil() bool
+}
+
+// FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
+type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
 

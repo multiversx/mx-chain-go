@@ -20,6 +20,7 @@ env:
   GKE_CLUSTER: elrond-testnets-cluster
   IMAGE_NODE: elrond-go-node
   IMAGE_SEEDNODE: elrond-go-seednode
+  IMAGE_KEYGENERATOR: elrond-go-keygenerator
   IMAGE_PROXY: elrond-go-proxy
   IMAGE_TXGEN: elrond-go-txgen
   REGISTRY_HOSTNAME: gcr.io
@@ -128,6 +129,7 @@ jobs:
         run: |
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_NODE":"$GITHUB_SHA" -f ./docker/elrond/Dockerfile .
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_SEEDNODE":"$GITHUB_SHA" -f ./docker/seednode/Dockerfile .
+          docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_KEYGENERATOR":"$GITHUB_SHA" -f ./docker/keygenerator/Dockerfile .
           cd elrond-proxy-go
           docker build -t "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_PROXY":"$GITHUB_SHA" -f ./Docker/Dockerfile .
           cd ../elrond-txgen-go
@@ -140,6 +142,7 @@ jobs:
         run: |
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_NODE:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_SEEDNODE:$GITHUB_SHA
+          docker push $REGISTRY_HOSTNAME/$GKE_PROJECT/$IMAGE_KEYGENERATOR:$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_PROXY":"$GITHUB_SHA
           docker push $REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE_TXGEN":"$GITHUB_SHA
 

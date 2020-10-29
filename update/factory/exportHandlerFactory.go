@@ -7,10 +7,12 @@ import (
 	"path"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/debug/factory"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
@@ -27,6 +29,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/storing"
 	"github.com/ElrondNetwork/elrond-go/update/sync"
 )
+
+var log = logger.GetOrCreate("update/factory")
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
@@ -55,6 +59,7 @@ type ArgsExporter struct {
 	InputAntifloodHandler    process.P2PAntifloodHandler
 	OutputAntifloodHandler   process.P2PAntifloodHandler
 	Rounder                  process.Rounder
+	InterceptorDebugConfig   config.InterceptorResolverDebugConfig
 }
 
 type exportHandlerFactory struct {
@@ -86,6 +91,7 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler    process.P2PAntifloodHandler
 	outputAntifloodHandler   process.P2PAntifloodHandler
 	rounder                  process.Rounder
+	interceptorDebugConfig   config.InterceptorResolverDebugConfig
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -211,6 +217,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:     args.MaxTrieLevelInMemory,
 		rounder:                  args.Rounder,
+		interceptorDebugConfig:   args.InterceptorDebugConfig,
 	}
 
 	return e, nil
@@ -221,6 +228,12 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	err := e.prepareFolders(e.exportFolder)
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
+	debugger, errNotCritical := factory.NewInterceptorResolverDebuggerFactory(e.interceptorDebugConfig)
+	if errNotCritical != nil {
+		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
 
 	argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
@@ -287,6 +300,15 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	e.resolverContainer.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		errNotCritical = resolver.SetResolverDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "resolver", key, "error", errNotCritical)
+		}
+
+		return true
+	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
 		TrieCacher:           e.dataPool.TrieNodes(),
@@ -401,6 +423,15 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	e.interceptorsContainer.Iterate(func(key string, interceptor process.Interceptor) bool {
+		errNotCritical = interceptor.SetInterceptedDebugHandler(debugger)
+		if errNotCritical != nil {
+			log.Warn("error setting debugger", "interceptor", key, "error", errNotCritical)
+		}
+
+		return true
+	})
 
 	return exportHandler, nil
 }

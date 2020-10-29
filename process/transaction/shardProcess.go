@@ -5,7 +5,7 @@ import (
 	"errors"
 	"math/big"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,7 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/transaction")
@@ -187,7 +187,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
 	case process.RelayedTx:
 		return txProc.processRelayedTx(tx, tx.SndAddr, tx.RcvAddr)
 	}
@@ -240,13 +240,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
-	txFee := big.NewInt(0)
-	if txProc.flagPenalizedTooMuchGas.IsSet() {
-		txFee.Set(core.SafeMul(tx.GasPrice, tx.GasLimit))
-	} else {
-		txFee.Set(txProc.economicsFee.ComputeMoveBalanceFee(tx))
-	}
-
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
 		return err
@@ -468,6 +462,20 @@ func (txProc *txProcessor) processSCInvoking(
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
+func (txProc *txProcessor) processBuiltInFunctionCall(
+	tx *transaction.Transaction,
+	adrSrc, adrDst []byte,
+) (vmcommon.ReturnCode, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return 0, err
+	}
+
+	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
+}
+
 func (txProc *txProcessor) processRelayedTx(
 	tx *transaction.Transaction,
 	adrSrc, adrDst []byte,
@@ -638,7 +646,7 @@ func (txProc *txProcessor) processUserTx(
 	case process.SCInvoking:
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
+		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
 		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
@@ -694,8 +702,7 @@ func (txProc *txProcessor) getUserTxCost(
 		gasUsed := txProc.economicsFee.ComputeGasLimit(userTx)
 		isTooMuchGasProvided := userTx.GasLimit > gasUsed*process.MaxGasFeeHigherFactorAccepted
 		if isTooMuchGasProvided {
-			//TODO: Change log level back to Trace
-			log.Warn("txProcessor.getUserTxCost: too much gas provided",
+			log.Trace("txProcessor.getUserTxCost: too much gas provided",
 				"hash", userTxHash,
 				"nonce", userTx.GetNonce(),
 				"value", userTx.GetValue(),

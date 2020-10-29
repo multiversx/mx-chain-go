@@ -20,7 +20,6 @@ import (
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
 	Config              config.Config
-	ConsensusGroupSize  int
 	BootstrapRoundIndex uint64
 	HardforkTrigger     HardforkTrigger
 	CoreComponents      CoreComponentsHolder
@@ -34,7 +33,6 @@ type ConsensusComponentsFactoryArgs struct {
 
 type consensusComponentsFactory struct {
 	config              config.Config
-	consensusGroupSize  int
 	bootstrapRoundIndex uint64
 	hardforkTrigger     HardforkTrigger
 	coreComponents      CoreComponentsHolder
@@ -53,6 +51,7 @@ type consensusComponents struct {
 	worker             ConsensusWorker
 	hardforkTrigger    HardforkTrigger
 	consensusTopic     string
+	consensusGroupSize int
 }
 
 // NewConsensusComponentsFactory creates an instance of consensusComponentsFactory
@@ -81,7 +80,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 
 	return &consensusComponentsFactory{
 		config:              args.Config,
-		consensusGroupSize:  args.ConsensusGroupSize,
 		bootstrapRoundIndex: args.BootstrapRoundIndex,
 		hardforkTrigger:     args.HardforkTrigger,
 		coreComponents:      args.CoreComponents,
@@ -103,6 +101,14 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 	cc := &consensusComponents{}
+
+	consensusGroupSize, err := getConsensusGroupSize(ccf.coreComponents.GenesisNodesSetup(), ccf.processComponents.ShardCoordinator())
+	if err != nil {
+		return nil, err
+	}
+
+	cc.consensusGroupSize = int(consensusGroupSize)
+
 	cc.hardforkTrigger = ccf.hardforkTrigger
 	blockchain := ccf.dataComponents.Blockchain()
 	notInitializedGenesisBlock := len(blockchain.GetGenesisHeaderHash()) == 0 ||
@@ -124,7 +130,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	cc.bootstrapper.StartSyncingBlocks()
 
 	epoch := ccf.getEpoch()
-	consensusState, err := ccf.createConsensusState(epoch)
+	consensusState, err := ccf.createConsensusState(epoch, cc.consensusGroupSize)
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +222,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EpochStartRegistrationHandler: ccf.processComponents.EpochStartNotifier(),
 		AntifloodHandler:              ccf.networkComponents.InputAntiFloodHandler(),
 		PeerHonestyHandler:            ccf.networkComponents.PeerHonestyHandler(),
+		HeaderSigVerifier:             ccf.processComponents.HeaderSigVerifier(),
+		FallbackHeaderValidator:       ccf.processComponents.FallbackHeaderValidator(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -265,7 +273,6 @@ func (cc *consensusComponents) Close() error {
 	if err != nil {
 		return err
 	}
-
 	err = cc.bootstrapper.Close()
 	if err != nil {
 		return err
@@ -303,7 +310,7 @@ func (ccf *consensusComponentsFactory) getEpoch() uint32 {
 }
 
 // createConsensusState method creates a consensusState object
-func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos.ConsensusState, error) {
+func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consensusGroupSize int) (*spos.ConsensusState, error) {
 	if ccf.cryptoComponents.PublicKey() == nil {
 		return nil, errors.ErrNilPublicKey
 	}
@@ -323,7 +330,7 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32) (*spos
 	roundConsensus := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		// TODO: move the consensus data from nodesSetup json to config
-		ccf.consensusGroupSize,
+		consensusGroupSize,
 		string(selfId))
 
 	roundConsensus.ResetRoundState()
@@ -542,4 +549,15 @@ func (ccf *consensusComponentsFactory) checkArgs() error {
 	}
 
 	return nil
+}
+
+func getConsensusGroupSize(nodesConfig sharding.GenesisNodesSetupHandler, shardCoordinator sharding.Coordinator) (uint32, error) {
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		return nodesConfig.GetMetaConsensusGroupSize(), nil
+	}
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		return nodesConfig.GetShardConsensusGroupSize(), nil
+	}
+
+	return 0, sharding.ErrShardIdOutOfRange
 }

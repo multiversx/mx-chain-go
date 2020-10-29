@@ -20,22 +20,24 @@ var log = logger.GetOrCreate("process/headerCheck")
 
 // ArgsHeaderSigVerifier is used to store all components that are needed to create a new HeaderSigVerifier
 type ArgsHeaderSigVerifier struct {
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	NodesCoordinator  sharding.NodesCoordinator
-	MultiSigVerifier  crypto.MultiSigVerifier
-	SingleSigVerifier crypto.SingleSigner
-	KeyGen            crypto.KeyGenerator
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	NodesCoordinator        sharding.NodesCoordinator
+	MultiSigVerifier        crypto.MultiSigVerifier
+	SingleSigVerifier       crypto.SingleSigner
+	KeyGen                  crypto.KeyGenerator
+	FallbackHeaderValidator process.FallbackHeaderValidator
 }
 
 //HeaderSigVerifier is component used to check if a header is valid
 type HeaderSigVerifier struct {
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	nodesCoordinator  sharding.NodesCoordinator
-	multiSigVerifier  crypto.MultiSigVerifier
-	singleSigVerifier crypto.SingleSigner
-	keyGen            crypto.KeyGenerator
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	nodesCoordinator        sharding.NodesCoordinator
+	multiSigVerifier        crypto.MultiSigVerifier
+	singleSigVerifier       crypto.SingleSigner
+	keyGen                  crypto.KeyGenerator
+	fallbackHeaderValidator process.FallbackHeaderValidator
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -46,12 +48,13 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 	}
 
 	return &HeaderSigVerifier{
-		marshalizer:       arguments.Marshalizer,
-		hasher:            arguments.Hasher,
-		nodesCoordinator:  arguments.NodesCoordinator,
-		multiSigVerifier:  arguments.MultiSigVerifier,
-		singleSigVerifier: arguments.SingleSigVerifier,
-		keyGen:            arguments.KeyGen,
+		marshalizer:             arguments.Marshalizer,
+		hasher:                  arguments.Hasher,
+		nodesCoordinator:        arguments.NodesCoordinator,
+		multiSigVerifier:        arguments.MultiSigVerifier,
+		singleSigVerifier:       arguments.SingleSigVerifier,
+		keyGen:                  arguments.KeyGen,
+		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
 	}, nil
 }
 
@@ -76,6 +79,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.SingleSigVerifier) {
 		return process.ErrNilSingleSigner
+	}
+	if check.IfNil(arguments.FallbackHeaderValidator) {
+		return process.ErrNilFallbackHeaderValidator
 	}
 
 	return nil
@@ -155,7 +161,15 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
 	}
 
-	minNumRequiredSignatures := consensusSize*2/3 + 1
+	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
+	if hsv.fallbackHeaderValidator.ShouldApplyFallbackValidation(header) {
+		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
+		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
+			"minimum number of signatures required", minNumRequiredSignatures,
+			"actual number of signatures in bitmap", numOfOnesInBitmap,
+		)
+	}
+
 	if numOfOnesInBitmap >= minNumRequiredSignatures {
 		return nil
 	}
@@ -177,6 +191,23 @@ func (hsv *HeaderSigVerifier) VerifyRandSeed(header data.HeaderHandler) error {
 	err = hsv.verifyRandSeed(leaderPubKey, header)
 	if err != nil {
 		log.Trace("block rand seed",
+			"error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// VerifyLeaderSignature will check if leader signature is correct
+func (hsv *HeaderSigVerifier) VerifyLeaderSignature(header data.HeaderHandler) error {
+	leaderPubKey, err := hsv.getLeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = hsv.verifyLeaderSignature(leaderPubKey, header)
+	if err != nil {
+		log.Trace("block leader's signature",
 			"error", err.Error())
 		return err
 	}

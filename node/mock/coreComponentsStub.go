@@ -19,30 +19,30 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                      marshal.Marshalizer
-	TxMarsh                       marshal.Marshalizer
-	VmMarsh                       marshal.Marshalizer
-	Hash                          hashing.Hasher
-	UInt64ByteSliceConv           typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv                core.PubkeyConverter
-	ValPubKeyConv                 core.PubkeyConverter
-	PathHdl                       storage.PathManagerHandler
-	ChainIdCalled                 func() string
-	MinTransactionVersionCalled   func() uint32
-	StatusHdlUtils                nodeFactory.StatusHandlersUtils
-	AppStatusHdl                  core.AppStatusHandler
-	WDTimer                       core.WatchdogTimer
-	Alarm                         core.TimersScheduler
-	NtpTimer                      ntp.SyncTimer
-	RoundHandler                  consensus.Rounder
-	EconomicsHandler              process.EconomicsHandler
-	RatingsConfig                 process.RatingsInfoHandler
-	RatingHandler                 sharding.PeerAccountListAndRatingHandler
-	NodesConfig                   sharding.GenesisNodesSetupHandler
-	Shuffler                      sharding.NodesShuffler
-	StartTime                     time.Time
+	IntMarsh                    marshal.Marshalizer
+	TxMarsh                     marshal.Marshalizer
+	VmMarsh                     marshal.Marshalizer
+	Hash                        hashing.Hasher
+	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv              core.PubkeyConverter
+	ValPubKeyConv               core.PubkeyConverter
+	PathHdl                     storage.PathManagerHandler
+	ChainIdCalled               func() string
+	MinTransactionVersionCalled func() uint32
+	StatusHdlUtils              nodeFactory.StatusHandlersUtils
+	AppStatusHdl                core.AppStatusHandler
+	WDTimer                     core.WatchdogTimer
+	Alarm                       core.TimersScheduler
+	NtpTimer                    ntp.SyncTimer
+	RoundHandler                consensus.Rounder
+	EconomicsHandler            process.EconomicsHandler
+	RatingsConfig               process.RatingsInfoHandler
+	RatingHandler               sharding.PeerAccountListAndRatingHandler
+	NodesConfig                 sharding.GenesisNodesSetupHandler
+	EpochChangeNotifier         factory.EpochNotifier
 	ChanStopProcess               chan endProcess.ArgEndProcess
-	EpochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
+	Shuffler                    sharding.NodesShuffler
+	StartTime                   time.Time
 }
 
 // Create -
@@ -121,6 +121,11 @@ func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 	return ccm.Shuffler
 }
 
+// EpochNotifier -
+func (ccm *CoreComponentsMock) EpochNotifier() factory.EpochNotifier {
+	return ccm.EpochChangeNotifier
+}
+
 // GenesisTime -
 func (ccm *CoreComponentsMock) GenesisTime() time.Time {
 	return ccm.StartTime
@@ -186,11 +191,6 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
-}
-
-// EpochStartNotifier -
-func (ccm *CoreComponentsMock) EpochStartNotifier() factory.EpochStartNotifierWithConfirm {
-	return ccm.EpochStartNotifierWithConfirm
 }
 
 // IsInterfaceNil -

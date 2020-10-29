@@ -41,6 +41,8 @@ func CreateApiResolver(
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.ChanceComputer,
+	epochNotifier process.EpochNotifier,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -49,6 +51,7 @@ func CreateApiResolver(
 		GasMap:          gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
+		Accounts:        accnts,
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {
@@ -77,6 +80,8 @@ func CreateApiResolver(
 			marshalizer,
 			systemSCConfig,
 			validatorAccounts,
+			rater,
+			epochNotifier,
 		)
 		if err != nil {
 			return nil, err
@@ -86,7 +91,9 @@ func CreateApiResolver(
 			config.VirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
-			argsHook)
+			argsHook,
+			config.GeneralSettings.SCDeployEnableEpoch,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +104,12 @@ func CreateApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics)
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
+	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
 	if err != nil {
 		return nil, err
 	}

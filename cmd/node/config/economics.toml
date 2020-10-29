@@ -1,6 +1,6 @@
 #Economics config of the node
 [GlobalSettings]
-    GenesisTotalSupply = "20000000000000000000000000" #20MILERD
+    GenesisTotalSupply = "20000000000000000000000000" #20MIL eGLD
     MinimumInflation   = 0.0
     YearSettings = [
          {Year = 1, MaximumInflation  = 0.10845130},
@@ -15,18 +15,18 @@
          {Year = 10, MaximumInflation = 0.00570796},
          {Year = 11, MaximumInflation = 0.0},
     ]
-    Denomination = 18 # represents the smallest erd subdivision (10^-X ERD for a denomination of X)
+    Denomination = 18 # represents the smallest eGLD subdivision (10^-X eGLD for a denomination of X)
 
 [RewardsSettings]
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
     DeveloperPercentage = 0.3 #fraction of value 1 - 30%
     ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
-    ProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+    ProtocolSustainabilityAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
 
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
     MaxGasLimitPerMetaBlock = "15000000000"
-    MinGasPrice = "1000000000" #will yield min tx fee of 0.00005ERD
+    MinGasPrice = "1000000000" #will yield min tx fee of 0.00005 eGLD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
     DataLimitForBaseCalc = "10000"

@@ -399,9 +399,13 @@ func CreateProcessComponents(
 	managedStatusComponents factory.StatusComponentsHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (factory.ProcessComponentsHandler, error) {
-	economicsData, err := economics.NewEconomicsData(economicsConfig)
+	economicsArgs := economics.ArgsNewEconomicsData{
+		Economics:                      economicsConfig,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		EpochNotifier:                  managedCoreComponents.EpochNotifier(),
+	}
+	economicsData, err := economics.NewEconomicsData(economicsArgs)
 	totalSupply, _ := big.NewInt(0).SetString(economicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	fmt.Println(os.Getwd())
 	gasSchedule, err := core.LoadGasScheduleConfig(GasSchedule)
 	if err != nil {
 		return nil, err

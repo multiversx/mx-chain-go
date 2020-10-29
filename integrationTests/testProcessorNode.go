@@ -21,10 +21,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
+	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
+	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -36,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -72,9 +77,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/bootstrapMocks"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsMocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/mainFactoryMocks"
 	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
+	vmProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -269,6 +278,7 @@ type TestProcessorNode struct {
 	DeployEnableEpoch              uint32
 	RelayedTxEnableEpoch           uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	UseValidVmBlsSigVerifier       bool
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -387,6 +397,22 @@ func NewTestProcessorNode(
 	return tpn
 }
 
+// NewTestProcessorNodeWithBLSSigVerifier returns a new TestProcessorNode instance with a libp2p messenger
+// with a real BLS sig verifier used in system smart contracts
+func NewTestProcessorNodeWithBLSSigVerifier(
+	maxShards uint32,
+	nodeShardId uint32,
+	txSignPrivKeyShardId uint32,
+	initialNodeAddr string,
+) *TestProcessorNode {
+
+	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
+	tpn.UseValidVmBlsSigVerifier = true
+	tpn.initTestNode()
+
+	return tpn
+}
+
 // NewTestProcessorNodeSoftFork returns a TestProcessorNode instance with soft fork parameters
 func NewTestProcessorNodeSoftFork(
 	maxShards uint32,
@@ -417,6 +443,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	initialNodeAddr string,
 	accountParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
+	heartbeatPk string,
 ) *TestProcessorNode {
 
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
@@ -449,7 +476,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -466,6 +493,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.initNode()
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
+	tpn.createHeartbeatWithHardforkTrigger(heartbeatPk)
 
 	return tpn
 }
@@ -554,6 +582,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 		RewardsHandler:      tpn.EconomicsData,
 		NodesSetup:          tpn.NodesSetup,
 		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -590,7 +619,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -614,7 +643,7 @@ func (tpn *TestProcessorNode) InitializeProcessors() {
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors()
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData)
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -676,8 +705,8 @@ func CreateEconomicsData() *economics.EconomicsData {
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
 
-	economicsData, _ := economics.NewEconomicsData(
-		&config.EconomicsConfig{
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
 				MinimumInflation:   0,
@@ -702,7 +731,10 @@ func CreateEconomicsData() *economics.EconomicsData {
 				DataLimitForBaseCalc:    "10000",
 			},
 		},
-	)
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
 }
 
@@ -798,7 +830,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlockBlackListHandler = timecache.NewTimeCache(TimeSpanForBadHeaders)
 	if check.IfNil(tpn.EpochStartNotifier) {
-		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
 	coreComponents := GetDefaultCoreComponents()
@@ -1017,11 +1049,13 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		GasMap:          gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
 	for name, function := range TestBuiltinFunctions {
-		_ = builtInFuncs.Add(name, function)
+		err := builtInFuncs.Add(name, function)
+		log.LogIfError(err)
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -1043,6 +1077,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
+		0,
 	)
 
 	var err error
@@ -1052,6 +1087,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, tpn.BlockchainHook)
 
 	mockVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
@@ -1179,11 +1215,19 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+	var signVerifier vm.MessageSignVerifier
+	if tpn.UseValidVmBlsSigVerifier {
+		signVerifier, _ = vmProcess.NewMessageSigVerifier(
+			signing.NewKeyGenerator(mcl.NewSuiteBLS12()),
+			mclsig.NewBlsSigner(),
+		)
+	} else {
+		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
-		signVerifer,
+		signVerifier,
 		gasSchedule,
 		tpn.NodesSetup,
 		TestHasher,
@@ -1206,8 +1250,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableNonce:                   1000000,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   1000000,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -1217,6 +1261,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 		},
 		tpn.PeerState,
+		&mock.RaterMock{},
+		&mock.EpochNotifierStub{},
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1365,7 +1411,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
-		tpn.EpochStartNotifier = &mock.EpochStartNotifierStub{}
+		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1390,15 +1436,15 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
 		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:  TestValidatorPubkeyConverter,
-			Hasher:      TestHasher,
-			Marshalizer: TestMarshalizer,
-			PeerState:   tpn.PeerState,
-			BaseState:   tpn.AccntState,
-			ArgParser:   tpn.ArgsParser,
-			CurrTxs:     tpn.DataPool.CurrentBlockTxs(),
-			ScQuery:     tpn.SCQueryService,
-			RatingsData: tpn.RatingsData,
+			PubkeyConv:    TestValidatorPubkeyConverter,
+			Hasher:        TestHasher,
+			Marshalizer:   TestMarshalizer,
+			PeerState:     tpn.PeerState,
+			BaseState:     tpn.AccntState,
+			ArgParser:     tpn.ArgsParser,
+			CurrTxs:       tpn.DataPool.CurrentBlockTxs(),
+			RatingsData:   tpn.RatingsData,
+			EpochNotifier: &mock.EpochNotifierStub{},
 		}
 		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
 
@@ -1459,12 +1505,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ValidatorInfoCreator:    tpn.ValidatorStatisticsProcessor,
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
+			ChanceComputer:          tpn.NodesCoordinator,
+			EpochNotifier:           &mock.EpochNotifierStub{},
+			GenesisNodesConfig:      tpn.NodesSetup,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
-			SCDataGetter:                 tpn.SCQueryService,
 			SCToProtocol:                 scToProtocolInstance,
 			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 			EpochEconomics:               epochEconomics,
@@ -1556,6 +1604,8 @@ func (tpn *TestProcessorNode) initNode() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.Store = tpn.Storage
 
+	bootstrapComponents := GetDefaultBootstrapComponents(tpn.ShardCoordinator)
+
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
 	processComponents.ResFinder = tpn.ResolverFinder
@@ -1583,6 +1633,7 @@ func (tpn *TestProcessorNode) initNode() {
 	stateComponents.Accounts = tpn.AccntState
 
 	tpn.Node, err = node.NewNode(
+		node.WithBootstrapComponents(bootstrapComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
@@ -1593,6 +1644,9 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
+		node.WithHistoryRepository(tpn.HistoryRepository),
+		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
+		node.WithWhiteListHandler(tpn.WhiteListHandler),
 	)
 	log.LogIfError(err)
 
@@ -2033,6 +2087,117 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
 }
 
+func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk string) {
+	pkBytes, _ := tpn.NodeKeys.Pk.ToByteArray()
+	argHardforkTrigger := trigger.ArgHardforkTrigger{
+		TriggerPubKeyBytes:        pkBytes,
+		Enabled:                   true,
+		EnabledAuthenticated:      true,
+		ArgumentParser:            smartContract.NewArgumentParser(),
+		EpochProvider:             tpn.EpochStartTrigger,
+		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
+		CloseAfterExportInMinutes: 5,
+		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
+		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
+		SelfPubKeyBytes:           pkBytes,
+		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+	}
+	var err error
+	if len(heartbeatPk) > 0 {
+		argHardforkTrigger.TriggerPubKeyBytes, err = hex.DecodeString(heartbeatPk)
+		log.LogIfError(err)
+	}
+
+	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)
+	log.LogIfError(err)
+
+	cacher := testscommon.NewCacherMock()
+	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
+		cacher,
+		tpn.OwnAccount.BlockSingleSigner,
+		tpn.OwnAccount.KeygenBlockSign,
+	)
+	log.LogIfError(err)
+
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
+	cryptoComponents.PubKey = tpn.NodeKeys.Pk
+	cryptoComponents.TxSig = tpn.OwnAccount.SingleSigner
+	cryptoComponents.BlockSig = tpn.OwnAccount.SingleSigner
+	cryptoComponents.MultiSig = tpn.MultiSigner
+	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenTxSign
+	cryptoComponents.TxKeyGen = TestKeyGenForAccounts
+	cryptoComponents.PeerSignHandler = psh
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tpn.Messenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+
+	processComponents := GetDefaultProcessComponents()
+	processComponents.BlockProcess = tpn.BlockProcessor
+	processComponents.ResFinder = tpn.ResolverFinder
+	processComponents.HeaderIntegrVerif = tpn.HeaderIntegrityVerifier
+	processComponents.HeaderSigVerif = tpn.HeaderSigVerifier
+	processComponents.BlackListHdl = tpn.BlockBlackListHandler
+	processComponents.NodesCoord = tpn.NodesCoordinator
+	processComponents.ShardCoord = tpn.ShardCoordinator
+	processComponents.IntContainer = tpn.InterceptorsContainer
+	processComponents.ValidatorStatistics = &mock.ValidatorStatisticsProcessorStub{
+		GetValidatorInfoForRootHashCalled: func(_ []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			return map[uint32][]*state.ValidatorInfo{
+				0: {{PublicKey: []byte("pk0")}},
+			}, nil
+		},
+	}
+	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
+	processComponents.EpochTrigger = tpn.EpochStartTrigger
+	processComponents.EpochNotifier = tpn.EpochStartNotifier
+
+	err = tpn.Node.ApplyOptions(
+		node.WithHardforkTrigger(hardforkTrigger),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithNetworkComponents(networkComponents),
+		node.WithProcessComponents(processComponents),
+	)
+	log.LogIfError(err)
+
+	hbConfig := config.HeartbeatConfig{
+		MinTimeToWaitBetweenBroadcastsInSec: 4,
+		MaxTimeToWaitBetweenBroadcastsInSec: 6,
+		DurationToConsiderUnresponsiveInSec: 60,
+		HeartbeatRefreshIntervalInSec:       5,
+		HideInactiveValidatorIntervalInSec:  600,
+	}
+
+	hbFactoryArgs := mainFactory.HeartbeatComponentsFactoryArgs{
+		Config: config.Config{
+			Heartbeat: hbConfig,
+		},
+		Prefs:             config.Preferences{},
+		HardforkTrigger:   hardforkTrigger,
+		CoreComponents:    tpn.Node.GetCoreComponents(),
+		DataComponents:    tpn.Node.GetDataComponents(),
+		NetworkComponents: tpn.Node.GetNetworkComponents(),
+		CryptoComponents:  tpn.Node.GetCryptoComponents(),
+		ProcessComponents: tpn.Node.GetProcessComponents(),
+	}
+
+	heartbeatFactory, err := mainFactory.NewHeartbeatComponentsFactory(hbFactoryArgs)
+	log.LogIfError(err)
+
+	managedHeartbeatComponents, err := mainFactory.NewManagedHeartbeatComponents(heartbeatFactory)
+	log.LogIfError(err)
+
+	err = managedHeartbeatComponents.Create()
+	log.LogIfError(err)
+
+	err = tpn.Node.ApplyOptions(
+		node.WithHeartbeatComponents(managedHeartbeatComponents),
+	)
+
+	log.LogIfError(err)
+}
+
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
@@ -2090,6 +2255,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 	}
 }
 
@@ -2148,5 +2314,19 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 		Indexer:              &mock.NilIndexer{},
 		SoftwareVersionCheck: &mock.SoftwareVersionCheckerMock{},
 		AppStatusHandler:     &mock.AppStatusHandlerStub{},
+	}
+}
+
+func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
+	return &mainFactoryMocks.BootstrapComponentsStub{
+		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{
+			TrieHolder:      &mock.TriesHolderStub{},
+			StorageManagers: map[string]data.StorageManager{"0": &mock.StorageManagerStub{}},
+			BootstrapCalled: nil,
+		},
+		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
+		NodeRole:             "",
+		ShCoordinator:        shardCoordinator,
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 	}
 }

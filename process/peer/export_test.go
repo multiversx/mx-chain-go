@@ -17,6 +17,11 @@ func (vs *validatorStatistics) CheckForMissedBlocks(
 	return vs.checkForMissedBlocks(currentHeaderRound, previousHeaderRound, prevRandSeed, shardId, epoch)
 }
 
+// LoadPeerAccount -
+func (vs *validatorStatistics) LoadPeerAccount(address []byte) (state.PeerAccountHandler, error) {
+	return vs.loadPeerAccount(address)
+}
+
 // GetMatchingPrevShardData -
 func (vs *validatorStatistics) GetMatchingPrevShardData(currentShardData block.ShardData, shardInfo []block.ShardData) *block.ShardData {
 	return vs.getMatchingPrevShardData(currentShardData, shardInfo)

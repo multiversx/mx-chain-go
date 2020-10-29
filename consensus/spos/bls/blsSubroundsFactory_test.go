@@ -31,6 +31,10 @@ func extend(subroundId int) {
 func executeStoredMessages() {
 }
 
+// resetConsensusMessages resets at the start of each round, all the previous consensus messages received
+func resetConsensusMessages() {
+}
+
 func initRounderMock() *mock.RounderMock {
 	return &mock.RounderMock{
 		RoundIndex: 0,

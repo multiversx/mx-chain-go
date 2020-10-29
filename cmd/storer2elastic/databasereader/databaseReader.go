@@ -81,7 +81,9 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 		epochStr := re.FindString(dirname)
 		epoch, errParseInt := strconv.ParseInt(epochStr, 10, 64)
 		if errParseInt != nil {
-			log.Warn("cannot parse epoch number from directory name", "directory name", dirname)
+			if dirname != core.DefaultStaticDbString {
+				log.Warn("cannot parse epoch number from directory name", "directory name", dirname)
+			}
 			continue
 		}
 
@@ -162,7 +164,7 @@ func (dr *databaseReader) getShardDirectoriesForEpoch(dirEpoch string) ([]uint32
 // GetStaticDatabaseInfo returns all the databases' data found in the path specified on the constructor
 func (dr *databaseReader) GetStaticDatabaseInfo() ([]*DatabaseInfo, error) {
 	dbs := make([]*DatabaseInfo, 0)
-	dirname := "Static"
+	dirname := core.DefaultStaticDbString
 	shardDirectories, err := dr.getShardDirectoriesForEpoch(filepath.Join(dr.dbPathWithChainID, dirname))
 	if err != nil {
 		log.Warn("cannot parse shard directories for epoch", "epoch directory name", dirname)

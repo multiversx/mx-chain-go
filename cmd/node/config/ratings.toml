@@ -5,8 +5,8 @@
 
 # ProposerIncreaseRatingStep = 1/2 * (maxRating - startRating)/(nrTimesProposerPerHour * hoursToGetToMaxRating)
 # ValidatorIncreaseRatingStep = 1/2 * (maxRating - startRating)/(nrTimeValidatorPerHour * hoursToGetToMaxRating)
-# ProposerDecreaseRatingStep = -2 * ProposerIncreaseRatingStep
-# ValidatorDecreaseRatingStep = -2 * ValidatorIncreaseRatingStep
+# ProposerDecreaseRatingStep = -4 * ProposerIncreaseRatingStep
+# ValidatorDecreaseRatingStep = -4 * ValidatorIncreaseRatingStep
 
 
 [General]
@@ -33,21 +33,21 @@
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.10
+    ConsecutiveMissedBlocksPenalty = 1.50
 
 [MetaChain.RatingSteps]
     HoursToMaxRatingFromStartRating = 55
     ProposerValidatorImportance = 1.0
     ProposerDecreaseFactor = -4.0
     ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.10
+    ConsecutiveMissedBlocksPenalty = 1.50
 
 [PeerHonesty]
     #this value will be multiplied with the current value for a public key each DecayUpdateIntervalInSeconds seconds
     #for the current settings, a pk will reach to value 0 after maximum 2h (if it stopped misbehaving or stopped sending good messages)
     DecayCoefficient             = 0.9779
     DecayUpdateIntervalInSeconds = 10
-    MaxScore                     = 100
-    MinScore                     = -100
-    BadPeerThreshold             = -80
+    MaxScore                     = 100.0
+    MinScore                     = -100.0
+    BadPeerThreshold             = -80.0
     UnitValue                    = 1.0

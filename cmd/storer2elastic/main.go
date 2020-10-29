@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -26,7 +27,7 @@ import (
 )
 
 type flags struct {
-	dbPathWithChainID    string
+	dbPath               string
 	configFilePath       string
 	nodeConfigFilePath   string
 	ratingConfigFilePath string
@@ -60,12 +61,12 @@ VERSION:
 		Destination: &flagsValues.configFilePath,
 	}
 
-	// address defines a flag for setting the address and port on which the node will listen for connections
-	dbPathWithChainIDFlag = cli.StringFlag{
+	// dbPathFlag defines a flag for setting the db path where nodes' databases are held in
+	dbPathFlag = cli.StringFlag{
 		Name:        "db-path",
 		Usage:       "This string flag specifies the path for the database directory, the chain ID directory",
-		Value:       "db/chainID",
-		Destination: &flagsValues.dbPathWithChainID,
+		Value:       "db",
+		Destination: &flagsValues.dbPath,
 	}
 
 	// nodeConfigFilePathFlag defines a flag which holds the configuration file path
@@ -133,7 +134,7 @@ func initCliFlags() {
 	cliApp.Version = fmt.Sprintf("%s/%s/%s-%s", "1.0.0", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	cliApp.Usage = "Elrond storer2elastic application is used to index all data inside storers to elastic search"
 	cliApp.Flags = []cli.Flag{
-		dbPathWithChainIDFlag,
+		dbPathFlag,
 		configFilePathFlag,
 		nodeConfigFilePathFlag,
 		ratingsConfigFilePathFlag,
@@ -159,8 +160,8 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if ctx.IsSet(dbPathWithChainIDFlag.Name) {
-		configuration.General.DBPathWithChainID = ctx.GlobalString(dbPathWithChainIDFlag.Name)
+	if ctx.IsSet(dbPathFlag.Name) {
+		configuration.General.DBPath = ctx.GlobalString(dbPathFlag.Name)
 	}
 	if ctx.IsSet(nodeConfigFilePathFlag.Name) {
 		configuration.General.NodeConfigFilePath = ctx.GlobalString(nodeConfigFilePathFlag.Name)
@@ -187,6 +188,11 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	)
 	if err != nil {
 		return err
+	}
+
+	dbPathWithChainID := filepath.Join(configuration.General.DBPath, configuration.General.ChainID)
+	if !core.DoesFileExist(dbPathWithChainID) {
+		return fmt.Errorf("no db directory found for the chain ID. Path: %s, chain id: %s", dbPathWithChainID, configuration.General.ChainID)
 	}
 
 	shardCoordinator, err = sharding.NewMultiShardCoordinator(genesisNodesConfig.NumberOfShards(), 0)
@@ -241,7 +247,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		GeneralConfig:     nodeConfig,
 		Marshalizer:       marshalizer,
 		PersisterFactory:  persisterFactory,
-		DbPathWithChainID: configuration.General.DBPathWithChainID,
+		DbPathWithChainID: dbPathWithChainID,
 	}
 	dbReader, err := databasereader.New(dbReaderArgs)
 	if err != nil {
@@ -252,7 +258,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		dataprocessor.RatingProcessorArgs{
 			ShardCoordinator:         shardCoordinator,
 			ValidatorPubKeyConverter: validatorPubKeyConverter,
-			DbPathWithChainID:        configuration.General.DBPathWithChainID,
+			DbPathWithChainID:        dbPathWithChainID,
 			GeneralConfig:            nodeConfig,
 			Marshalizer:              marshalizer,
 			Hasher:                   hasher,
@@ -271,7 +277,6 @@ func startStorer2Elastic(ctx *cli.Context) error {
 	}
 
 	dataReplayerArgs := dataprocessor.DataReplayerArgs{
-		ElasticIndexer:           elasticIndexer,
 		GeneralConfig:            nodeConfig,
 		DatabaseReader:           dbReader,
 		ShardCoordinator:         shardCoordinator,

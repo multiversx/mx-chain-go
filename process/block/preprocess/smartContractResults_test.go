@@ -33,6 +33,10 @@ func isMaxBlockSizeReachedFalse(int, int) bool {
 	return false
 }
 
+func getNumOfCrossInterMbsAndTxsZero() (int, int) {
+	return 0, 0
+}
+
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 
@@ -933,7 +937,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
+	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 
 	assert.Nil(t, err)
 }
@@ -965,7 +969,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		SenderShardID:   0,
 	}
 
-	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue)
+	_, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)

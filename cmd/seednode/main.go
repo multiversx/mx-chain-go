@@ -11,11 +11,13 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
+	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/display"
+	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	factoryMarshalizer "github.com/ElrondNetwork/elrond-go/marshal/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -48,6 +50,13 @@ VERSION:
 		Usage: "The `[p2p port]` number on which the application will start. Can use single values such as " +
 			"`0, 10230, 15670` or range of ports such as `5000-10000`",
 		Value: "10000",
+	}
+	// restApiInterfaceFlag defines a flag for the interface on which the rest API will try to bind with
+	restApiInterfaceFlag = cli.StringFlag{
+		Name: "rest-api-interface",
+		Usage: "The interface `address and port` to which the REST API will attempt to bind. " +
+			"To bind to all available interfaces, set this flag to :8080. If set to `off` then the API won't be available",
+		Value: facade.DefaultRestInterface,
 	}
 	// p2pSeed defines a flag to be used as a seed when generating P2P credentials. Useful for seed nodes.
 	p2pSeed = cli.StringFlag{
@@ -88,6 +97,7 @@ func main() {
 	app.Usage = "This is the entry point for starting a new seed node - the app will help bootnodes connect to the network"
 	app.Flags = []cli.Flag{
 		port,
+		restApiInterfaceFlag,
 		p2pSeed,
 		logLevel,
 		logSaveFile,
@@ -146,6 +156,8 @@ func startNode(ctx *cli.Context) error {
 			return err
 		}
 	}
+
+	startRestServices(ctx, internalMarshalizer)
 
 	log.Info("starting seednode...")
 
@@ -287,4 +299,20 @@ func checkExpectedPeerCount(p2pConfig config.P2PConfig) error {
 	}
 
 	return nil
+}
+
+func startRestServices(ctx *cli.Context, marshalizer marshal.Marshalizer) {
+	restApiInterface := ctx.GlobalString(restApiInterfaceFlag.Name)
+	if restApiInterface != facade.DefaultRestPortOff {
+		go startGinServer(restApiInterface, marshalizer)
+	} else {
+		log.Info("rest api is disabled")
+	}
+}
+
+func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer) {
+	err := api.Start(restApiInterface, marshalizer)
+	if err != nil {
+		log.LogIfError(err)
+	}
 }

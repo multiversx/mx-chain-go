@@ -139,6 +139,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.peerShardMapper) {
 		return errors.ErrNilPeerShardMapper
 	}
+	if check.IfNil(m.processComponents.fallbackHeaderValidator) {
+		return errors.ErrNilFallbackHeaderValidator
+	}
 
 	return nil
 }
@@ -393,6 +396,18 @@ func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingColl
 	}
 
 	return m.processComponents.peerShardMapper
+}
+
+// FallbackHeaderValidator returns the fallback header validator
+func (m *managedProcessComponents) FallbackHeaderValidator() process.FallbackHeaderValidator {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.fallbackHeaderValidator
 }
 
 // TransactionSimulatorProcessor returns the transaction simulator processor

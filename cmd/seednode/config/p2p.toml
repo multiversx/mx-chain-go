@@ -23,6 +23,10 @@
     # The maximum peers that will connect to this node
     MaximumExpectedPeerCount = 1024
 
+    #ThresholdMinConnectedPeers can be any value when used in conjunction with a seednode because the seednode does
+    #not have a sync and consensus mechanism. Default is 0.
+    ThresholdMinConnectedPeers = 0
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered

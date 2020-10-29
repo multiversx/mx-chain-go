@@ -210,3 +210,9 @@ var ErrOriginatorMismatch = errors.New("consensus message originator mismatch")
 
 // ErrNilPeerSignatureHandler signals that a nil peerSignatureHandler object has been provided
 var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHandler")
+
+// ErrMessageTypeLimitReached signals that a consensus message type limit has been reached for a public key
+var ErrMessageTypeLimitReached = errors.New("consensus message type limit has been reached")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")

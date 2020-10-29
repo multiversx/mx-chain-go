@@ -12,12 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	hasherFactory "github.com/ElrondNetwork/elrond-go/hashing/factory"
@@ -75,9 +75,9 @@ type coreComponents struct {
 	rater                    sharding.PeerAccountListAndRatingHandler
 	nodesShuffler            sharding.NodesShuffler
 	genesisTime              time.Time
-	epochStartNotifier       EpochStartNotifierWithConfirm
 	chainID                  string
 	minTransactionVersion    uint32
+	epochNotifier            EpochNotifier
 	chanStopNodeProcess      chan endProcess.ArgEndProcess
 }
 
@@ -192,8 +192,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
+
 	log.Trace("creating economics data components")
-	economicsData, err := economics.NewEconomicsData(&ccf.economicsConfig)
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics:                      &ccf.economicsConfig,
+		PenalizedTooMuchGasEnableEpoch: ccf.config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		EpochNotifier:                  epochNotifier,
+	}
+	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +237,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		true,
 	)
 
-	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-
 	return &coreComponents{
 		hasher:                   hasher,
 		internalMarshalizer:      internalMarshalizer,
@@ -251,10 +256,10 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ratingsData:              ratingsData,
 		rater:                    rater,
 		nodesShuffler:            nodesShuffler,
-		epochStartNotifier:       epochStartNotifier,
 		genesisTime:              genesisTime,
 		chainID:                  ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:    ccf.config.GeneralSettings.MinTransactionVersion,
+		epochNotifier:            epochNotifier,
 		chanStopNodeProcess:      ccf.chanStopNodeProcess,
 	}, nil
 }

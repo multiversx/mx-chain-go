@@ -100,7 +100,6 @@ func createMockMetaArguments(
 			EpochNotifier:           &mock.EpochNotifierStub{},
 			AppStatusHandler:        &mock.AppStatusHandlerStub{},
 		},
-		SCDataGetter:                 &mock.ScQueryStub{},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
@@ -2621,4 +2620,42 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 
 	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
+}
+
+func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool(t *testing.T) {
+	t.Parallel()
+
+	var addedNonces []uint64
+	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				addedNonces = append(addedNonces, hdrNonce)
+				return []data.HeaderHandler{&block.Header{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
+			},
+		}
+	}
+
+	coreComponents, dataComponents := createMockComponentHolders()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := createMockMetaArguments(coreComponents, dataComponents)
+	rounderMock := &mock.RounderMock{}
+	arguments.Rounder = rounderMock
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	rounderMock.RoundIndex = 20
+	header := &block.Header{
+		Round: 9,
+		Nonce: 5,
+	}
+
+	hdrsAddedForShard := make(map[uint32]uint32)
+	lastShardHdr := make(map[uint32]data.HeaderHandler)
+	lastShardHdr[header.ShardID] = header
+
+	mp.RequestShardHeadersIfNeeded(hdrsAddedForShard, lastShardHdr)
+
+	expectedAddedNonces := []uint64{6, 7}
+	assert.Equal(t, expectedAddedNonces, addedNonces)
 }

@@ -115,8 +115,6 @@ func startNodesWithCommitBlock(nodes []*testNode, mutex *sync.Mutex, nonceForRou
 					SignatureLength: 48,
 				},
 			},
-
-			ConsensusGroupSize:  n.node.GetConsensusGroupSize(),
 			BootstrapRoundIndex: 0,
 			HardforkTrigger:     n.node.GetHardforkTrigger(),
 			CoreComponents:      n.node.GetCoreComponents(),

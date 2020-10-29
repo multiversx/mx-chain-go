@@ -16,6 +16,7 @@ import (
 // HeaderSigVerifierHandler is the interface needed to check that a header's signature is correct
 type HeaderSigVerifierHandler interface {
 	VerifyRandSeed(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool

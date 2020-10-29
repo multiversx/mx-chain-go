@@ -29,6 +29,8 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		EpochStartRegistrationHandler: consensusCoreMock.EpochStartRegistrationHandler(),
 		AntifloodHandler:              consensusCoreMock.GetAntiFloodHandler(),
 		PeerHonestyHandler:            consensusCoreMock.PeerHonestyHandler(),
+		HeaderSigVerifier:             consensusCoreMock.HeaderSigVerifier(),
+		FallbackHeaderValidator:       consensusCoreMock.FallbackHeaderValidator(),
 	}
 	return args
 }
@@ -253,6 +255,34 @@ func TestConsensusCore_WithNilPeerHonestyHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilPeerHonestyHandler, err)
+}
+
+func TestConsensusCore_WithNilHeaderSigVerifierShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.HeaderSigVerifier = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilHeaderSigVerifier, err)
+}
+
+func TestConsensusCore_WithNilFallbackHeaderValidatorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.FallbackHeaderValidator = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilFallbackHeaderValidator, err)
 }
 
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {

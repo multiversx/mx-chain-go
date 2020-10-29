@@ -892,3 +892,27 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrAddressIsNotESDTSystemSC signals that destination is not a system sc address
+var ErrAddressIsNotESDTSystemSC = errors.New("destination is not system sc address")
+
+// ErrOnlySystemAccountAccepted signals that only system account is accepted
+var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
+
+// ErrNilPauseHandler signals that nil pause handler has been provided
+var ErrNilPauseHandler = errors.New("nil pause handler")
+
+// ErrESDTTokenIsPaused signals that esdt token is paused
+var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
+
+// ErrESDTIsFrozenForAccount signals that account is frozen for given esdt token
+var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt token")
+
+// ErrNilPayableHandler signals that nil payableHandler was provided
+var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
+
+// ErrFailedExecutionAfterBuiltInFunc signals that tx execution after built in func call failed
+var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after built in func call failed")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")

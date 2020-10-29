@@ -62,6 +62,17 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	require.NotNil(t, ccf)
 }
 
+func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	args.UseDisabledSigVerifier = true
+	ccf, err := factory.NewCryptoComponentsFactory(args)
+	require.NoError(t, err)
+	require.NotNil(t, ccf)
+}
+
 func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -114,6 +125,19 @@ func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
+	ccf, _ := factory.NewCryptoComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
+func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getCoreComponents()
+	args := getCryptoArgs(coreComponents)
+	args.UseDisabledSigVerifier = true
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()

@@ -63,6 +63,7 @@ func getProcessArgs(
 	gasSchedule["BuiltInCost"]["SaveUserName"] = 1
 	gasSchedule["BuiltInCost"]["SaveKeyValue"] = 1
 	gasSchedule["BuiltInCost"]["ESDTTransfer"] = 1
+	gasSchedule["BuiltInCost"]["ESDTBurn"] = 1
 	gasSchedule[core.MetaChainSystemSCsCost] = FillGasMapMetaChainSystemSCsCosts(1)
 
 	epochStartConfig := getEpochStartConfig()
@@ -166,8 +167,8 @@ func getProcessArgs(
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
 				UnBondPeriod:                         0,
-				AuctionEnableNonce:                   0,
-				StakeEnableNonce:                     0,
+				AuctionEnableEpoch:                   0,
+				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -188,9 +189,12 @@ func getProcessArgs(
 // CreateEconomicsData creates a mock EconomicsData object
 func CreateEconomicsData() *economics.EconomicsData {
 	economicsConfig := createDummyEconomicsConfig()
-	economicsData, _ := economics.NewEconomicsData(
-		&economicsConfig,
-	)
+	args := economics.ArgsNewEconomicsData{
+		Economics:                      &economicsConfig,
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(args)
 	return economicsData
 }
 

@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,12 +19,13 @@ const defaultChancesSelection = 1
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
-		Marshalizer:       &mock.MarshalizerMock{},
-		Hasher:            &mock.HasherMock{},
-		NodesCoordinator:  &mock.NodesCoordinatorMock{},
-		MultiSigVerifier:  mock.NewMultiSigner(),
-		SingleSigVerifier: &mock.SignerMock{},
-		KeyGen:            &mock.SingleSignKeyGenMock{},
+		Marshalizer:             &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherMock{},
+		NodesCoordinator:        &mock.NodesCoordinatorMock{},
+		MultiSigVerifier:        mock.NewMultiSigner(),
+		SingleSigVerifier:       &mock.SignerMock{},
+		KeyGen:                  &mock.SingleSignKeyGenMock{},
+		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 	}
 }
 
@@ -279,7 +282,7 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 	require.Equal(t, 2, count)
 }
 
-func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
+func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureOk(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
@@ -311,6 +314,127 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignature(t *testing.T) {
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Nil(t, err)
 	require.Equal(t, 2, count)
+}
+
+func TestHeaderSigVerifier_VerifyLeaderSignatureNilRandomnessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{}
+
+	err := hdrSigVerifier.VerifyLeaderSignature(header)
+	require.Equal(t, sharding.ErrNilRandomness, err)
+}
+
+func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	count := 0
+	localErr := errors.New("err")
+
+	args.KeyGen = &mock.SingleSignKeyGenMock{
+		PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+			return &mock.SingleSignPublicKey{}, nil
+		},
+	}
+	args.SingleSigVerifier = &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			count++
+			return localErr
+		},
+	}
+
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []sharding.Validator{v}, nil
+		},
+	}
+	args.NodesCoordinator = nodesCoordinator
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{}
+
+	err := hdrSigVerifier.VerifyLeaderSignature(header)
+	require.Equal(t, localErr, err)
+	require.Equal(t, 1, count)
+}
+
+func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyLeaderSigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	count := 0
+	localErr := errors.New("err")
+	leaderSig := []byte("signature")
+
+	args.KeyGen = &mock.SingleSignKeyGenMock{
+		PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+			return &mock.SingleSignPublicKey{}, nil
+		},
+	}
+	args.SingleSigVerifier = &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			count++
+			if bytes.Equal(sig, leaderSig) {
+				return localErr
+			}
+			return nil
+		},
+	}
+
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []sharding.Validator{v}, nil
+		},
+	}
+	args.NodesCoordinator = nodesCoordinator
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{
+		LeaderSignature: leaderSig,
+	}
+
+	err := hdrSigVerifier.VerifyLeaderSignature(header)
+	require.Equal(t, localErr, err)
+	require.Equal(t, 1, count)
+}
+
+func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	count := 0
+
+	args.KeyGen = &mock.SingleSignKeyGenMock{
+		PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+			return &mock.SingleSignPublicKey{}, nil
+		},
+	}
+	args.SingleSigVerifier = &mock.SignerMock{
+		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
+			count++
+			return nil
+		},
+	}
+
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []sharding.Validator{v}, nil
+		},
+	}
+	args.NodesCoordinator = nodesCoordinator
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.Header{}
+
+	err := hdrSigVerifier.VerifyLeaderSignature(header)
+	require.Nil(t, err)
+	require.Equal(t, 1, count)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
@@ -421,6 +545,88 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("1"),
+	}
+
+	err := hdrSigVerifier.VerifySignature(header)
+	require.Nil(t, err)
+	require.True(t, wasCalled)
+}
+
+func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	args := createHeaderSigVerifierArgs()
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []sharding.Validator{v, v, v, v, v}, nil
+		},
+	}
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return false
+		},
+	}
+	multiSigVerifier := &mock.BelNevMock{
+		CreateMock: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
+			return &mock.BelNevMock{
+				VerifyMock: func(msg []byte, bitmap []byte) error {
+					wasCalled = true
+					return nil
+				}}, nil
+		},
+	}
+
+	args.NodesCoordinator = nodesCoordinator
+	args.FallbackHeaderValidator = fallbackHeaderValidator
+	args.MultiSigVerifier = multiSigVerifier
+
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.MetaBlock{
+		PubKeysBitmap: []byte("C"),
+	}
+
+	err := hdrSigVerifier.VerifySignature(header)
+	require.Equal(t, ErrNotEnoughSignatures, err)
+	require.False(t, wasCalled)
+}
+
+func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	args := createHeaderSigVerifierArgs()
+	pkAddr := []byte("aaa00000000000000000000000000000")
+	nodesCoordinator := &mock.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []sharding.Validator, err error) {
+			v, _ := sharding.NewValidator(pkAddr, 1, defaultChancesSelection)
+			return []sharding.Validator{v, v, v, v, v}, nil
+		},
+	}
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{
+		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+			return true
+		},
+	}
+	multiSigVerifier := &mock.BelNevMock{
+		CreateMock: func(pubKeys []string, index uint16) (signer crypto.MultiSigner, err error) {
+			return &mock.BelNevMock{
+				VerifyMock: func(msg []byte, bitmap []byte) error {
+					wasCalled = true
+					return nil
+				}}, nil
+		},
+	}
+
+	args.NodesCoordinator = nodesCoordinator
+	args.FallbackHeaderValidator = fallbackHeaderValidator
+	args.MultiSigVerifier = multiSigVerifier
+
+	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+	header := &dataBlock.MetaBlock{
+		PubKeysBitmap: []byte("C"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)

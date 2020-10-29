@@ -401,7 +401,6 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 
 	return factory.ConsensusComponentsFactoryArgs{
 		Config:              testscommon.GetGeneralConfig(),
-		ConsensusGroupSize:  5,
 		BootstrapRoundIndex: 0,
 		HardforkTrigger:     &mock.HardforkTriggerStub{},
 		CoreComponents:      coreComponents,
@@ -464,6 +463,7 @@ func getDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
 		PeerMapper:               &mock.NetworkShardingCollectorStub{},
+		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 	}
 }
 
