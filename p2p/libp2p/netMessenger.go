@@ -88,6 +88,7 @@ type networkMessenger struct {
 	peerDiscoverer      p2p.PeerDiscoverer
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
+	mutPeerResolver     sync.RWMutex
 	mutTopics           sync.RWMutex
 	processors          map[string]p2p.MessageProcessor
 	topics              map[string]*pubsub.Topic
@@ -1087,7 +1088,9 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 		return err
 	}
 
+	netMes.mutPeerResolver.Lock()
 	netMes.peerShardResolver = peerShardResolver
+	netMes.mutPeerResolver.Unlock()
 
 	return nil
 }
@@ -1110,6 +1113,10 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		NumObserversOnShard:  make(map[uint32]int),
 		NumValidatorsOnShard: make(map[uint32]int),
 	}
+
+	netMes.mutPeerResolver.RLock()
+	defer netMes.mutPeerResolver.RUnlock()
+
 	selfPeerInfo := netMes.peerShardResolver.GetPeerInfo(netMes.ID())
 	connPeerInfo.SelfShardID = selfPeerInfo.ShardID
 
