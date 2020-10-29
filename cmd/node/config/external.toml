@@ -8,6 +8,7 @@
     IndexerCacheSize  = 100
     URL               = "http://localhost:9200"
     UseKibana         = false
+    KibanaURL         = "http://localhost:9200/_plugin/kibana"
     Username          = ""
     Password          = ""
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:

@@ -14,6 +14,7 @@ var log = logger.GetOrCreate("core/indexer")
 // Options structure holds the indexer's configuration options
 type Options struct {
 	IndexerCacheSize int
+	KibanaURL        string
 	UseKibana        bool
 }
 

@@ -64,7 +64,7 @@ func (dwm *DatabaseWriterStub) CheckAndCreateTemplate(_ string, _ *bytes.Buffer)
 }
 
 // CheckAndCreatePolicy -
-func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ *bytes.Buffer) error {
+func (dwm *DatabaseWriterStub) CheckAndCreatePolicy(_ string, _ *bytes.Buffer, _ string) error {
 	return nil
 }
 

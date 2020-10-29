@@ -50,12 +50,12 @@ func (ec *elasticClient) CheckAndCreateTemplate(templateName string, template *b
 }
 
 // CheckAndCreatePolicy creates a new index policy if it does not already exist
-func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error {
-	if ec.PolicyExists(policyName) {
+func (ec *elasticClient) CheckAndCreatePolicy(policyName string, policy *bytes.Buffer, kibanaURL string) error {
+	if ec.PolicyExists(policyName, kibanaURL) {
 		return nil
 	}
 
-	return ec.createPolicy(policyName, policy)
+	return ec.createPolicy(policyName, policy, kibanaURL)
 }
 
 // CheckAndCreateIndex creates a new index if it does not already exist
@@ -172,11 +172,10 @@ func (ec *elasticClient) indexExists(index string) bool {
 }
 
 // PolicyExists checks if a policy was already created
-func (ec *elasticClient) PolicyExists(policy string) bool {
+func (ec *elasticClient) PolicyExists(policy string, kibanaURL string) bool {
 	policyRoute := fmt.Sprintf(
-		"%s/%s/ism/policies/%s",
-		ec.elasticBaseUrl,
-		kibanaPluginPath,
+		"%s/api/ism/policies/%s",
+		kibanaURL,
 		policy,
 	)
 
@@ -253,11 +252,10 @@ func (ec *elasticClient) createIndex(index string) error {
 }
 
 // CreatePolicy creates a new policy for elastic indexes. Policies define rollover parameters
-func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) error {
+func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer, kibanaURL string) error {
 	policyRoute := fmt.Sprintf(
-		"%s/%s/ism/policies/%s",
-		ec.elasticBaseUrl,
-		kibanaPluginPath,
+		"%s/api/ism/policies/%s",
+		kibanaURL,
 		policyName,
 	)
 

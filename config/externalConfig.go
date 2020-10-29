@@ -11,6 +11,7 @@ type ElasticSearchConfig struct {
 	IndexerCacheSize int
 	URL              string
 	UseKibana        bool
+	KibanaURL        string
 	Username         string
 	Password         string
 	EnabledIndexes   []string

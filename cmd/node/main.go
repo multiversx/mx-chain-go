@@ -2016,6 +2016,7 @@ func createElasticIndexer(
 		Denomination:             denomination,
 		FeeConfig:                feeConfig,
 		Options: &indexer.Options{
+			KibanaURL: elasticSearchConfig.KibanaURL,
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
 		IsInImportDBMode: isInImportDBMode,
