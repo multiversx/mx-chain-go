@@ -199,7 +199,8 @@
     [SmartContractsStorage.Cache]
         Name = "SmartContractsStorage"
         Capacity = 1000
-        Type = "LRU"
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
     [SmartContractsStorage.DB]
         FilePath = "SmartContractsStorage"
         Type = "LvlDBSerial"

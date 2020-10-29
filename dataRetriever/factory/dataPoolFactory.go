@@ -86,14 +86,14 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.TrieNodesDataPool)
 	trieNodes, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Info("error creating trieNodes")
+		log.Error("error creating trieNodes")
 		return nil, err
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.SmartContractDataPool)
 	smartContracts, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
-		log.Info("error creating trieNodes")
+		log.Error("error creating smartContracts cache unit")
 		return nil, err
 	}
 

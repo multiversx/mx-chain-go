@@ -503,7 +503,7 @@ func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	}
 }
 
-// GetCompiledCode returns the compiled code if it finds in the cache or storage
+// GetCompiledCode returns the compiled code if it is found in the cache or storage
 func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 	val, found := bh.compiledScPool.Get(codeHash)
 	if found {
@@ -518,7 +518,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 		return false, nil
 	}
 
-	return found, compiledCode
+	return true, compiledCode
 }
 
 // DeleteCompiledCode deletes from storage and cache the compiled code
