@@ -59,7 +59,7 @@ func NewNodeRunner(cfgs *config.Configs, log logger.Logger) (*NodeRunner, error)
 	}, nil
 }
 
-func (nr *NodeRunner) StartNode() error {
+func (nr *NodeRunner) Start() error {
 	log := nr.log
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
@@ -929,6 +929,8 @@ func createManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
+		UseDisabledSigVerifier:               cfgs.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       cfgs.IsInImportMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

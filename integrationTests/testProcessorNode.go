@@ -1616,6 +1616,8 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.ShardCoord = tpn.ShardCoordinator
 	processComponents.IntContainer = tpn.InterceptorsContainer
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
+	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
+	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.Sk
@@ -2149,6 +2151,9 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 	processComponents.ValidatorProvider = &mock.ValidatorsProviderStub{}
 	processComponents.EpochTrigger = tpn.EpochStartTrigger
 	processComponents.EpochNotifier = tpn.EpochStartNotifier
+	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
+	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
+	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 
 	err = tpn.Node.ApplyOptions(
 		node.WithHardforkTrigger(hardforkTrigger),

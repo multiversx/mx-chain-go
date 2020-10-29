@@ -369,6 +369,13 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
+	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
+	isInImportMode := len(importDbDirectoryValue) > 0
+	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
+	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
+	cfgs.IsInImportMode = isInImportMode
+	cfgs.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
+
 	cfgs.FlagsConfig = flagsConfig
 
 	for _, flag := range ctx.App.Flags {
@@ -392,4 +399,23 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 	log.Trace("working directory", "path", workingDir)
 
 	return workingDir
+}
+
+func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
+	if isInImportMode {
+		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
+		log.Warn("the node is in import mode! Will auto-set some config values",
+			"GeneralSettings.StartInEpochEnabled", "false",
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"p2p.ThresholdMinConnectedPeers", 0,
+			"no sig check", importDbNoSigCheckFlag,
+			"heartbeat sender", "off",
+		)
+		config.GeneralSettings.StartInEpochEnabled = false
+		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		p2pConfig.Node.ThresholdMinConnectedPeers = 0
+		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
+		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
+		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+	}
 }

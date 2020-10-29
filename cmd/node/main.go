@@ -85,7 +85,7 @@ func main() {
 			return err
 		}
 
-		return nodeRunner.StartNode()
+		return nodeRunner.Start()
 	}
 
 	err = app.Run(os.Args)

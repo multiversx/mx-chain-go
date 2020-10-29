@@ -209,8 +209,8 @@ type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
 	MaxComputableRounds                    uint64
 	StartInEpochEnabled                    bool
-	ChainID                        string
-	MinTransactionVersion          uint32
+	ChainID                                string
+	MinTransactionVersion                  uint32
 	SCDeployEnableEpoch                    uint32
 	BuiltInFunctionsEnableEpoch            uint32
 	RelayedTransactionsEnableEpoch         uint32
@@ -439,4 +439,6 @@ type Configs struct {
 	ConfigurationRatingsFileName     string
 	ConfigurationPreferencesFileName string
 	P2pConfigurationFileName         string
+	IsInImportMode                   bool
+	ImportDbNoSigCheckFlag           bool
 }
