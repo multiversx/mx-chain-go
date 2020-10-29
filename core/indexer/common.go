@@ -506,7 +506,7 @@ func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*byt
 		indexTemplates[index] = getTemplateByIndex(index)
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, tpsPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsPolicy, accountsHistoryPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
 	for _, indexPolicy := range indexesPolicies {
 		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
 	}

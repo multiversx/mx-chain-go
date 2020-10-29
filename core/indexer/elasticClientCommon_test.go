@@ -19,3 +19,5 @@ func TestLoadResponseBody_NilBodyNotNilDest(t *testing.T) {
 	err := loadResponseBody(nil, struct{}{})
 	require.NoError(t, err)
 }
+
+
