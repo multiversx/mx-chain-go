@@ -371,7 +371,7 @@ func TestAlteredAddresses(t *testing.T) {
 	rewTxMiniBlock1 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx1Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 0}
 	rewTxMiniBlock2 := &block.MiniBlock{Type: block.RewardsBlock, TxHashes: [][]byte{rwdTx2Hash}, SenderShardID: core.MetachainShardId, ReceiverShardID: 1}
 
-	// smart contract rewards
+	// smart contract results
 	addressSh0Scr1 := []byte("receiver in shard 0 - scr 1") // should be added
 	addressSh1Scr1 := []byte("sender in shard 1 - scr 1")
 	expectedAlteredAccounts[hex.EncodeToString(addressSh0Scr1)] = struct{}{}
