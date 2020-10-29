@@ -53,6 +53,8 @@ func (wib *itemBlock) Save() error {
 		return nil
 	}
 
+	log.Debug("indexer: starting indexing block", "hash", wib.headerHash, "nonce", wib.headerHandler.GetNonce())
+
 	body, ok := wib.bodyHandler.(*block.Body)
 	if !ok {
 		return fmt.Errorf("%w when trying body assertion, block hash %s, nonce %d",
