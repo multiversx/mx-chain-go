@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -130,22 +131,25 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:     []byte("addr"),
-			Arguments:      nil,
-			CallValue:      big.NewInt(0),
-			CallType:       0,
-			GasPrice:       0,
-			GasProvided:    0,
-			OriginalTxHash: nil,
-			CurrentTxHash:  nil,
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
 		},
 		RecipientAddr: []byte("addr"),
 		Function:      "issue",
 	}
+	eei.gasRemaining = vmInput.GasProvided
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
@@ -163,6 +167,14 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getAllESDTTokens", [][]byte{})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, []byte("01234567891"), eei.output[0])
 }
 
 func TestEsdt_ExecuteNilArgsShouldErr(t *testing.T) {
@@ -2045,6 +2057,8 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 		TokenName:    []byte("esdtToken"),
 		OwnerAddress: []byte("owner"),
 		Upgradable:   true,
+		BurntValue:   big.NewInt(100),
+		MintedValue:  big.NewInt(1000),
 	})
 	tokensMap[string(tokenName)] = marshalizedData
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
@@ -2078,4 +2092,80 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	assert.True(t, esdtData.CanWipe)
 	assert.False(t, esdtData.Upgradable)
 	assert.True(t, esdtData.CanChangeOwner)
+
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getTokenProperties", [][]byte{[]byte("esdtToken")})
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 12, len(eei.output))
+	assert.Equal(t, []byte("esdtToken"), eei.output[0])
+	assert.Equal(t, vmInput.CallerAddr, eei.output[1])
+}
+
+func TestEsdt_ExecuteConfigChange(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("configChange", [][]byte{[]byte("esdtToken"), []byte(burnable)})
+	vmInput.CallerAddr = e.ownerAddress
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
+
+	newOwner := vmInput.RecipientAddr
+	vmInput = getDefaultVmInputForFunc("configChange",
+		[][]byte{newOwner, big.NewInt(100).Bytes(), big.NewInt(5).Bytes(), big.NewInt(20).Bytes()})
+	vmInput.CallerAddr = e.ownerAddress
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	esdtData := &ESDTConfig{}
+	_ = args.Marshalizer.Unmarshal(esdtData, eei.GetStorage([]byte(configKeyPrefix)))
+	assert.True(t, esdtData.BaseIssuingCost.Cmp(big.NewInt(100)) == 0)
+	assert.Equal(t, esdtData.MaxTokenNameLength, uint32(20))
+	assert.Equal(t, esdtData.MinTokenNameLength, uint32(5))
+	assert.True(t, bytes.Equal(newOwner, esdtData.OwnerAddress))
+}
+
+func TestEsdt_ExecuteClaim(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("claim", [][]byte{})
+	vmInput.CallerAddr = e.ownerAddress
+
+	eei.outputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
+		Address:      vmInput.RecipientAddr,
+		Nonce:        0,
+		BalanceDelta: big.NewInt(0),
+		Balance:      big.NewInt(100),
+	}
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	scOutAcc := eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, scOutAcc.BalanceDelta.Cmp(big.NewInt(-100)) == 0)
+
+	receiver := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.True(t, receiver.BalanceDelta.Cmp(big.NewInt(100)) == 0)
 }

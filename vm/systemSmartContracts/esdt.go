@@ -526,7 +526,7 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 4 {
-		e.eei.AddReturnMessage("invalid number of arguments, needed 4")
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
 	}
 
@@ -574,7 +574,7 @@ func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 0 {
-		e.eei.AddReturnMessage("arguments number must be 0")
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
 	}
 
@@ -594,7 +594,7 @@ func (e *esdt) getAllESDTTokens(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 0 {
-		e.eei.AddReturnMessage("arguments number must be 0")
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
 	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
@@ -621,7 +621,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
-		e.eei.AddReturnMessage("arguments number must be 0")
+		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return vmcommon.UserError
 	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
@@ -640,14 +640,14 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish(esdtToken.OwnerAddress)
 	e.eei.Finish([]byte(esdtToken.MintedValue.String()))
 	e.eei.Finish([]byte(esdtToken.BurntValue.String()))
-	e.eei.Finish([]byte("IsPaused" + getStringFromBool(esdtToken.IsPaused)))
-	e.eei.Finish([]byte("CanUpgrade" + getStringFromBool(esdtToken.Upgradable)))
-	e.eei.Finish([]byte("CanMint" + getStringFromBool(esdtToken.Mintable)))
-	e.eei.Finish([]byte("CanBurn" + getStringFromBool(esdtToken.Burnable)))
-	e.eei.Finish([]byte("CanChangeOwner" + getStringFromBool(esdtToken.CanChangeOwner)))
-	e.eei.Finish([]byte("CanPause" + getStringFromBool(esdtToken.CanPause)))
-	e.eei.Finish([]byte("CanFreeze" + getStringFromBool(esdtToken.CanFreeze)))
-	e.eei.Finish([]byte("CanWipe" + getStringFromBool(esdtToken.CanWipe)))
+	e.eei.Finish([]byte("IsPaused-" + getStringFromBool(esdtToken.IsPaused)))
+	e.eei.Finish([]byte("CanUpgrade-" + getStringFromBool(esdtToken.Upgradable)))
+	e.eei.Finish([]byte("CanMint-" + getStringFromBool(esdtToken.Mintable)))
+	e.eei.Finish([]byte("CanBurn-" + getStringFromBool(esdtToken.Burnable)))
+	e.eei.Finish([]byte("CanChangeOwner-" + getStringFromBool(esdtToken.CanChangeOwner)))
+	e.eei.Finish([]byte("CanPause-" + getStringFromBool(esdtToken.CanPause)))
+	e.eei.Finish([]byte("CanFreeze-" + getStringFromBool(esdtToken.CanFreeze)))
+	e.eei.Finish([]byte("CanWipe-" + getStringFromBool(esdtToken.CanWipe)))
 
 	return vmcommon.Ok
 }
