@@ -613,7 +613,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, stakeValue)
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
