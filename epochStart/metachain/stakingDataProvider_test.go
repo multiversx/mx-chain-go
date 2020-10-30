@@ -62,15 +62,15 @@ func TestStakingDataProvider_GPrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(
 		},
 	})
 
-	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err := sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the owner address"))
@@ -115,20 +115,20 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 		},
 	})
 
-	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err := sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the top up value"))
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
@@ -150,7 +150,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyReturnedOwnerIsNotHexShouldErr(
 		},
 	})
 
-	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err := sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 }
 
@@ -163,7 +163,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err := sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
 	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
@@ -181,10 +181,10 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, &numRunContractCalls)
 
-	err := sdp.PrepareDataForBlsKey([]byte("bls key"))
+	err := sdp.prepareDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 
-	err = sdp.PrepareDataForBlsKey([]byte("bls key2"))
+	err = sdp.prepareDataForBlsKey([]byte("bls key2"))
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
@@ -202,7 +202,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	blsKey := []byte("bls key")
 
 	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
-	err := sdp.PrepareDataForBlsKey(blsKey)
+	err := sdp.prepareDataForBlsKey(blsKey)
 	assert.Nil(t, err)
 	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)

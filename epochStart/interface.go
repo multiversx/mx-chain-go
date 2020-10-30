@@ -150,7 +150,6 @@ type TransactionCacher interface {
 type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	PrepareStakingData(keys map[uint32][][]byte) error
-	PrepareDataForBlsKey(blsKey []byte) error
 	Clean()
 	IsInterfaceNil() bool
 }

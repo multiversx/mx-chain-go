@@ -16,18 +16,21 @@ import (
 const conversionBase = 10
 
 type ownerStats struct {
-	numEligible    int
-	numStakedNodes int
-	topUpValue     *big.Int
-	totalStaked    *big.Int
+	numEligible        int
+	numStakedNodes     int
+	topUpValue         *big.Int
+	totalStaked        *big.Int
+	eligibleBaseStake  *big.Int
+	eligibleTopUpStake *big.Int
 }
 
 type stakingDataProvider struct {
-	mutStakingData     sync.Mutex
-	cache              map[string]*ownerStats
-	systemVM           vmcommon.VMExecutionHandler
-	totalEligibleStake *big.Int
-	minNodePrice       *big.Int
+	mutStakingData          sync.Mutex
+	cache                   map[string]*ownerStats
+	systemVM                vmcommon.VMExecutionHandler
+	totalEligibleStake      *big.Int
+	totalEligibleTopUpStake *big.Int
+	minNodePrice            *big.Int
 }
 
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
@@ -47,10 +50,11 @@ func NewStakingDataProvider(
 	}
 
 	sdp := &stakingDataProvider{
-		systemVM:           systemVM,
-		cache:              make(map[string]*ownerStats),
-		minNodePrice:       nodePrice,
-		totalEligibleStake: big.NewInt(0),
+		systemVM:                systemVM,
+		cache:                   make(map[string]*ownerStats),
+		minNodePrice:            nodePrice,
+		totalEligibleStake:      big.NewInt(0),
+		totalEligibleTopUpStake: big.NewInt(0),
 	}
 
 	return sdp, nil
@@ -61,27 +65,55 @@ func (sdp *stakingDataProvider) Clean() {
 	sdp.mutStakingData.Lock()
 	sdp.cache = make(map[string]*ownerStats)
 	sdp.totalEligibleStake.SetInt64(0)
+	sdp.totalEligibleTopUpStake.SetInt64(0)
 	sdp.mutStakingData.Unlock()
 }
 
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
 func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
+	sdp.Clean()
+
 	for _, keysList := range keys {
 		for _, blsKey := range keysList {
-			err := sdp.PrepareDataForBlsKey(blsKey)
+			err := sdp.prepareDataForBlsKey(blsKey)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
+	sdp.processStakingData()
+
 	return nil
 }
 
-// PrepareDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
+func (sdp *stakingDataProvider) processStakingData() {
+	totalEligibleStake := big.NewInt(0)
+	totalEligibleTopUpStake := big.NewInt(0)
+
+	sdp.mutStakingData.Lock()
+	defer sdp.mutStakingData.Unlock()
+
+	for _, owner := range sdp.cache {
+		ownerEligibleNodes := big.NewInt(int64(owner.numEligible))
+		ownerStakePerNode := big.NewInt(0).Div(owner.totalStaked, big.NewInt(int64(owner.numStakedNodes)))
+		ownerEligibleStake := big.NewInt(0).Mul(ownerStakePerNode, ownerEligibleNodes)
+
+		owner.eligibleBaseStake = big.NewInt(0).Mul(ownerEligibleNodes, sdp.minNodePrice)
+		owner.eligibleTopUpStake = big.NewInt(0).Sub(ownerEligibleStake, owner.eligibleBaseStake)
+
+		totalEligibleStake.Add(totalEligibleStake, ownerEligibleStake)
+		totalEligibleTopUpStake.Add(totalEligibleTopUpStake, owner.eligibleTopUpStake)
+	}
+
+	sdp.totalEligibleTopUpStake = totalEligibleTopUpStake
+	sdp.totalEligibleStake = totalEligibleStake
+}
+
+// prepareDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
 // staking data can be recovered from the staking system smart contracts.
 // The function will error if something went wrong. It does change the inner state of the called instance.
-func (sdp *stakingDataProvider) PrepareDataForBlsKey(blsKey []byte) error {
+func (sdp *stakingDataProvider) prepareDataForBlsKey(blsKey []byte) error {
 	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)

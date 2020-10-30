@@ -18,15 +18,6 @@ func (sdps *StakingDataProviderStub) GetTotalStakeEligibleNodes() *big.Int {
 	return big.NewInt(0)
 }
 
-// PrepareDataForBlsKey -
-func (sdps *StakingDataProviderStub) PrepareDataForBlsKey(blsKey []byte) error {
-	if sdps.PrepareDataForBlsKeyCalled != nil {
-		return sdps.PrepareDataForBlsKeyCalled(blsKey)
-	}
-
-	return nil
-}
-
 // PrepareStakingData -
 func (sdps *StakingDataProviderStub) PrepareStakingData(keys map[uint32][][]byte) error {
 	if sdps.PrepareStakingDataCalled != nil {
