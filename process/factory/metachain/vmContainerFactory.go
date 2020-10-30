@@ -155,7 +155,13 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	systemVM, err := systemVMProcess.NewSystemVM(systemEI, vmf.systemContracts, factory.SystemVirtualMachine)
+	argsNewSystemVM := systemVMProcess.ArgsNewSystemVM{
+		SystemEI:        systemEI,
+		SystemContracts: vmf.systemContracts,
+		VmType:          factory.SystemVirtualMachine,
+		GasSchedule:     vmf.gasSchedule,
+	}
+	systemVM, err := systemVMProcess.NewSystemVM(argsNewSystemVM)
 	if err != nil {
 		return nil, err
 	}

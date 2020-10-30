@@ -3,6 +3,7 @@ package metachain
 import (
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -38,7 +39,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := makeGasSchedule()
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
@@ -181,7 +182,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func makeGasSchedule() map[string]map[string]uint64 {
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	FillGasMapInternal(gasSchedule, 1)
 	return gasSchedule
 }
