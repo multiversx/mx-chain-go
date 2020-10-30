@@ -25,10 +25,10 @@ func NewViewsFactory(presenter view.Presenter, refreshTimeInMilliseconds int) (*
 }
 
 // Create returns an view slice that will hold all views in the system
-func (wf *viewsFactory) Create() ([]Viewer, error) {
+func (vf *viewsFactory) Create() ([]Viewer, error) {
 	views := make([]Viewer, 0)
 
-	termuiConsole, err := wf.createTermuiConsole()
+	termuiConsole, err := vf.createTermuiConsole()
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,8 @@ func (wf *viewsFactory) Create() ([]Viewer, error) {
 	return views, nil
 }
 
-func (wf *viewsFactory) createTermuiConsole() (*termuic.TermuiConsole, error) {
-	termuiConsole, err := termuic.NewTermuiConsole(wf.presenter, wf.refreshTimeInMilliseconds)
+func (vf *viewsFactory) createTermuiConsole() (*termuic.TermuiConsole, error) {
+	termuiConsole, err := termuic.NewTermuiConsole(vf.presenter, vf.refreshTimeInMilliseconds)
 	if err != nil {
 		return nil, err
 	}

@@ -5,33 +5,82 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
-func createCommonProcessor() commonProcessor {
+func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProcessor {
 	return commonProcessor{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		gasPerDataByte:           gasPerDataByte,
+		minGasLimit:              minGasLimit,
 	}
+}
+
+func TestGetMoveBalanceTransaction(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("txHash")
+	mbHash := []byte("mbHash")
+	mb := &block.MiniBlock{TxHashes: [][]byte{txHash}}
+	header := &block.Header{Nonce: 2}
+	status := "Success"
+	gasPrice := uint64(1000)
+	gasLimit := uint64(1000)
+	minGasLimit := uint64(100)
+	gasPerDataByte := uint64(10)
+	cp := createCommonProcessor(minGasLimit, gasPerDataByte)
+
+	tx := &transaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(1000),
+		RcvAddr:   []byte("receiver"),
+		SndAddr:   []byte("sender"),
+		GasPrice:  gasPrice,
+		GasLimit:  gasLimit,
+		Data:      []byte("data"),
+		ChainID:   []byte("1"),
+		Version:   1,
+		Signature: []byte("signature"),
+	}
+
+	expectedTx := &Transaction{
+		Hash:          hex.EncodeToString(txHash),
+		MBHash:        hex.EncodeToString(mbHash),
+		Nonce:         tx.Nonce,
+		Round:         header.Round,
+		Value:         tx.Value.String(),
+		Receiver:      cp.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:        cp.addressPubkeyConverter.Encode(tx.SndAddr),
+		ReceiverShard: mb.ReceiverShardID,
+		SenderShard:   mb.SenderShardID,
+		GasPrice:      gasPrice,
+		GasLimit:      gasLimit,
+		GasUsed:       minGasLimit + uint64(len(tx.Data))*gasPerDataByte,
+		Data:          tx.Data,
+		Signature:     hex.EncodeToString(tx.Signature),
+		Timestamp:     time.Duration(header.GetTimeStamp()),
+		Status:        status,
+	}
+
+	dbTx := cp.buildTransaction(tx, txHash, mbHash, mb, header, status)
+	require.Equal(t, expectedTx, dbTx)
 }
 
 func TestGetTransactionByType_SC(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor()
+	cp := createCommonProcessor(0, 0)
 
 	nonce := uint64(10)
 	txHash := []byte("txHash")
@@ -68,7 +117,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 func TestGetTransactionByType_RewardTx(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor()
+	cp := createCommonProcessor(0, 0)
 
 	round := uint64(10)
 	rcvAddr := []byte("receiver")
@@ -109,59 +158,4 @@ func TestPrepareBufferMiniblocks(t *testing.T) {
 	_, _ = expectedBuff.Write(serializedData)
 
 	require.Equal(t, expectedBuff, buff)
-}
-
-func generateTxs(numTxs int) map[string]data.TransactionHandler {
-	txs := make(map[string]data.TransactionHandler, numTxs)
-	for i := 0; i < numTxs; i++ {
-		tx := &transaction.Transaction{
-			Nonce:     uint64(i),
-			Value:     big.NewInt(int64(i)),
-			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
-			GasPrice:  10000000,
-			GasLimit:  1000,
-			Data:      []byte("dasjdksakjdksajdjksajkdjkasjdksajkdasjdksakjdksajdjksajkdjkasjdksajkdasjdksakjdksajdjksajkdjkasjdksajk"),
-			Signature: []byte("randomSignatureasdasldkasdsahjgdlhjaskldsjkaldjklasjkdjskladjkl;sajkl"),
-		}
-		txs[fmt.Sprintf("%d", i)] = tx
-	}
-
-	return txs
-}
-
-func TestComputeSizeOfTxsDuration(t *testing.T) {
-	res := testing.Benchmark(benchmarkComputeSizeOfTxsDuration)
-
-	fmt.Println("Time to calculate size of txs :", time.Duration(res.NsPerOp()))
-}
-
-func benchmarkComputeSizeOfTxsDuration(b *testing.B) {
-	numTxs := 20000
-	txs := generateTxs(numTxs)
-	gogoMarsh := &marshal.GogoProtoMarshalizer{}
-
-	for i := 0; i < b.N; i++ {
-		computeSizeOfTxs(gogoMarsh, txs)
-	}
-}
-
-func TestComputeSizeOfTxs(t *testing.T) {
-	const kb = 1024
-	numTxs := 20000
-
-	txs := generateTxs(numTxs)
-	gogoMarsh := &marshal.GogoProtoMarshalizer{}
-	lenTxs := computeSizeOfTxs(gogoMarsh, txs)
-
-	keys := reflect.ValueOf(txs).MapKeys()
-	oneTxBytes, _ := gogoMarsh.Marshal(txs[keys[0].String()])
-	oneTxSize := len(oneTxBytes)
-	expectedSize := numTxs * oneTxSize
-	expectedSizeDeltaPlus := expectedSize + int(0.01*float64(expectedSize))
-	expectedSizeDeltaMinus := expectedSize - int(0.01*float64(expectedSize))
-
-	require.Greater(t, lenTxs, expectedSizeDeltaMinus)
-	require.Less(t, lenTxs, expectedSizeDeltaPlus)
-	fmt.Printf("Size of %d transactions : %d Kbs \n", numTxs, lenTxs/kb)
 }

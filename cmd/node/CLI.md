@@ -45,7 +45,6 @@ GLOBAL OPTIONS:
    --log-logger-name                      Boolean option for logger name in the logs.
    --use-log-view                         Boolean option for enabling the simple node's interface. If set, the node will not enable the user-friendly terminal view of the node.
    --bootstrap-round-index index          This flag specifies the round index from which node should bootstrap from storage. (default: 18446744073709551615)
-   --tx-indexing                          Boolean option for enabling transactions indexing. There can be cases when it's too expensive to index all transactions so this flag will disable this.
    --working-directory directory          This flag specifies the directory where the node will store databases, logs and statistics.
    --destination-shard-as-observer value  This flag specifies the shard to start in when running as an observer. It will override the configuration set in the preferences TOML config file.
    --keep-old-epochs-data                 Boolean option for enabling a node to keep old epochs data. If set, the node won't remove any database and will have a full history over epochs.
