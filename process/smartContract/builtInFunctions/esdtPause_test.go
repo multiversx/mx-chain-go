@@ -17,12 +17,12 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
 	acnt, _ := state.NewUserAccount(core.SystemAccountAddress)
-	esdt, _ := NewESDTPauseFunc(&mock.AccountsStub{
+	pauseFunc, _ := NewESDTPauseFunc(&mock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return acnt, nil
 		},
 	}, true)
-	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
+	_, err := pauseFunc.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
 	input := &vmcommon.ContractCallInput{
@@ -30,7 +30,7 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 			CallValue: big.NewInt(0),
 		},
 	}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
 	input = &vmcommon.ContractCallInput{
@@ -39,30 +39,30 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 			CallValue:   big.NewInt(1),
 		},
 	}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrBuiltInFunctionCalledWithValue)
 
 	input.CallValue = big.NewInt(0)
 	key := []byte("key")
 	value := []byte("value")
 	input.Arguments = [][]byte{key, value}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
 	input.Arguments = [][]byte{key}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrAddressIsNotESDTSystemSC)
 
 	input.CallerAddr = vm.ESDTSCAddress
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrOnlySystemAccountAccepted)
 
 	input.RecipientAddr = core.SystemAccountAddress
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = pauseFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Nil(t, err)
 
 	pauseKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(key))
-	assert.True(t, esdt.IsPaused(pauseKey))
+	assert.True(t, pauseFunc.IsPaused(pauseKey))
 
 	esdtPauseFalse, _ := NewESDTPauseFunc(&mock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
@@ -73,5 +73,5 @@ func TestESDTPause_ProcessBuiltInFunction(t *testing.T) {
 	_, err = esdtPauseFalse.ProcessBuiltinFunction(nil, nil, input)
 	assert.Nil(t, err)
 
-	assert.False(t, esdt.IsPaused(pauseKey))
+	assert.False(t, pauseFunc.IsPaused(pauseKey))
 }

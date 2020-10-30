@@ -445,7 +445,7 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	return hex.EncodeToString(valueBytes), nil
 }
 
-// GetESDTBalance returns the esdt balance and frozen property of a from a given account
+// GetESDTBalance returns the esdt balance and properties from a given account
 func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
 	account, err := n.getAccountHandler(address)
 	if err != nil {
@@ -456,9 +456,12 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 	if !ok {
 		return "", "", ErrAccountNotFound
 	}
+	if check.IfNil(userAccount.DataTrie()) {
+		return "", "", ErrNilDataTrie
+	}
 
-	tokenkey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
-	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenkey))
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
+	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
 	if err != nil {
 		return "", "", err
 	}

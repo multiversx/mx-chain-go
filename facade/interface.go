@@ -28,7 +28,7 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
 
-	// GetESDTBalance returns the esdt balance and frozen property of a from a given account
+	// GetESDTBalance returns the esdt balance and properties from a given account
 	GetESDTBalance(address string, key string) (string, string, error)
 
 	// GetAllESDTTokens returns the value of a key from a given account

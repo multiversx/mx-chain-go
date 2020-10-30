@@ -469,7 +469,7 @@ func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
 	t.Parallel()
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/myAddress/esdt/newToken", nil)
+	req, _ := http.NewRequest("GET", "/address/myAddress/esdtbalance/newToken", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -492,7 +492,7 @@ func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtbalance/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -516,7 +516,7 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt/newToken", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtbalance/newToken", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -529,6 +529,7 @@ func TestGetESDTBalance_ShouldWork(t *testing.T) {
 
 func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 	t.Parallel()
+
 	ws := startNodeServer(nil)
 
 	req, _ := http.NewRequest("GET", "/address/some/allesdttokens", nil)
@@ -598,7 +599,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/allesdttokens", Open: true},
-					{Name: "/:address/esdt/:tokenName", Open: true},
+					{Name: "/:address/esdtbalance/:tokenName", Open: true},
 				},
 			},
 		},

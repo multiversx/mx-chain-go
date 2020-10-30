@@ -19,7 +19,7 @@ const (
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
 	getESDTTokens   = "/:address/allesdttokens"
-	getESDTBalance  = "/:address/esdt/:tokenName"
+	getESDTBalance  = "/:address/esdtbalance/:tokenName"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver

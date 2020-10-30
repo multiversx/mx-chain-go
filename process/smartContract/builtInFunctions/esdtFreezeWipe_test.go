@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	esdtData "github.com/ElrondNetwork/elrond-go/data/esdt"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -58,7 +58,7 @@ func TestESDTFreezeWipe_ProcessBuiltInFunctionErrors(t *testing.T) {
 	_, err = freeze.ProcessBuiltinFunction(nil, acnt, input)
 	assert.Nil(t, err)
 
-	esdtToken := &esdtData.ESDigitalToken{}
+	esdtToken := &esdt.ESDigitalToken{}
 	esdtKey := append(freeze.keyPrefix, key...)
 	marshaledData, _ := acnt.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
@@ -90,7 +90,7 @@ func TestESDTFreezeWipe_ProcessBuiltInFunction(t *testing.T) {
 	_, err = freeze.ProcessBuiltinFunction(nil, acnt, input)
 	assert.Nil(t, err)
 
-	esdtToken := &esdtData.ESDigitalToken{}
+	esdtToken := &esdt.ESDigitalToken{}
 	esdtKey := append(freeze.keyPrefix, key...)
 	marshaledData, _ := acnt.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)

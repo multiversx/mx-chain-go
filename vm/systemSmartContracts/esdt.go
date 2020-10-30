@@ -173,13 +173,13 @@ func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
 	if err != nil {
-		e.eei.AddReturnMessage("not enough gas")
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
 	esdtConfig, err := e.getESDTConfig()
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.OutOfGas
+		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(esdtConfig.BaseIssuingCost) != 0 {
 		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
@@ -208,7 +208,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	esdtConfig, err := e.getESDTConfig()
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.OutOfGas
+		return vmcommon.UserError
 	}
 	if len(args.Arguments[0]) < int(esdtConfig.MinTokenNameLength) ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
@@ -523,7 +523,7 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 4 {
 		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
@@ -546,7 +546,7 @@ func (e *esdt) configChange(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 	if newConfig.MinTokenNameLength > newConfig.MaxTokenNameLength {
-		e.eei.AddReturnMessage("invalind min and max token name lengths")
+		e.eei.AddReturnMessage("invalid min and max token name lengths")
 		return vmcommon.UserError
 	}
 
@@ -571,7 +571,7 @@ func (e *esdt) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 0 {
 		e.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
@@ -600,7 +600,7 @@ func (e *esdt) getAllESDTTokens(args *vmcommon.ContractCallInput) vmcommon.Retur
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	savedData := e.eei.GetStorage([]byte(allIssuedTokens))
@@ -627,7 +627,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTOperations)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	esdtToken, err := e.getExistingToken(args.Arguments[0])

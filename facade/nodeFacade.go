@@ -274,7 +274,7 @@ func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string
 	return nf.node.GetESDTBalance(address, key)
 }
 
-// GetAllESDTTokens returns all the esdt tokens from this address
+// GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 	return nf.node.GetAllESDTTokens(address)
 }
