@@ -1540,7 +1540,6 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	if isUpgrade {
-		sc.blockChainHook.DeleteCompiledCode(stateAccount.GetCodeHash())
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
 		log.Info("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)

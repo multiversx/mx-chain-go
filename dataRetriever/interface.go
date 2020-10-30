@@ -79,7 +79,7 @@ const (
 	MiniblocksMetadataUnit UnitType = 12
 	// EpochByHashUnit is the epoch by hash storage unit identifier
 	EpochByHashUnit UnitType = 13
-	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
+	// MiniblockHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
 	MiniblockHashByTxHashUnit UnitType = 14
 	// ReceiptsUnit is the receipts storage unit identifier
 	ReceiptsUnit UnitType = 15

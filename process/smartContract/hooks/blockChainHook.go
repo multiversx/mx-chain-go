@@ -494,12 +494,12 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 	bh.mutCurrentHdr.Unlock()
 }
 
-// SaveCompiledCode saves to cache and storage the compiled code
+// SaveCompiledCode saves the compiled code to cache and storage
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
 	err := bh.compiledScStorage.Put(codeHash, code)
 	if err != nil {
-		log.Debug("SaveCompiledCode", "error", err)
+		log.Debug("SaveCompiledCode", "error", err, "codeHash", codeHash)
 	}
 }
 
@@ -509,7 +509,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 	if found {
 		compiledCode, ok := val.([]byte)
 		if ok {
-			return found, compiledCode
+			return true, compiledCode
 		}
 	}
 
@@ -521,12 +521,12 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 	return true, compiledCode
 }
 
-// DeleteCompiledCode deletes from storage and cache the compiled code
+// DeleteCompiledCode deletes the compiled code from storage and cache
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
 	err := bh.compiledScStorage.Remove(codeHash)
 	if err != nil {
-		log.Debug("DeleteCompiledCode", "error", err)
+		log.Debug("DeleteCompiledCode", "error", err, "codeHash", codeHash)
 	}
 }
 
