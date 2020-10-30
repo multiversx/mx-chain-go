@@ -1052,6 +1052,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         tpn.DataPool,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, _ := shard.NewVMContainerFactory(
@@ -1197,6 +1198,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Marshalizer:      TestMarshalizer,
 		Uint64Converter:  TestUint64Converter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         tpn.DataPool,
 	}
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)

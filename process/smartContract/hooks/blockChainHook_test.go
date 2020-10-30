@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		Marshalizer:      &mock.MarshalizerMock{},
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:         testscommon.NewPoolsHolderMock(),
 	}
 	return arguments
 }

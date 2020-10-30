@@ -79,10 +79,12 @@ const (
 	MiniblocksMetadataUnit UnitType = 12
 	// EpochByHashUnit is the epoch by hash storage unit identifier
 	EpochByHashUnit UnitType = 13
-	// MiniblocksHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
+	// MiniblockHashByTxHashUnit is the miniblocks hash by tx hash storage unit identifier
 	MiniblockHashByTxHashUnit UnitType = 14
 	// ReceiptsUnit is the receipts storage unit identifier
 	ReceiptsUnit UnitType = 15
+	// SmartContractUnit is the smart contracts storage unit identifier
+	SmartContractUnit UnitType = 16
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -287,6 +289,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
+	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

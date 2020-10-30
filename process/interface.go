@@ -437,6 +437,7 @@ type BlockChainHookHandler interface {
 	SetCurrentHeader(hdr data.HeaderHandler)
 	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	DeleteCompiledCode(codeHash []byte)
 	IsInterfaceNil() bool
 }
 

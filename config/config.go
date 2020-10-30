@@ -107,6 +107,7 @@ type Config struct {
 	MetaHdrNonceHashStorage    StorageConfig
 	StatusMetricsStorage       StorageConfig
 	ReceiptsStorage            StorageConfig
+	SmartContractsStorage      StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -127,6 +128,7 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
+	SmartContractDataPool       CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig

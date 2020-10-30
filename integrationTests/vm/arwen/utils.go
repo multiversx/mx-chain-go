@@ -34,6 +34,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
@@ -177,6 +178,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:      marshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         testscommon.NewPoolsHolderMock(),
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
