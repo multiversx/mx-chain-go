@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -32,6 +33,7 @@ type ArgBlockChainHook struct {
 	Accounts         state.AccountsAdapter
 	PubkeyConv       core.PubkeyConverter
 	StorageService   dataRetriever.StorageService
+	DataPool         dataRetriever.PoolsHolder
 	BlockChain       data.ChainHandler
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
@@ -52,6 +54,9 @@ type BlockChainHookImpl struct {
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
+
+	compiledScStorage storage.Storer
+	compiledScPool    storage.Cacher
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -64,14 +69,23 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:         args.Accounts,
-		pubkeyConv:       args.PubkeyConv,
-		storageService:   args.StorageService,
-		blockChain:       args.BlockChain,
-		shardCoordinator: args.ShardCoordinator,
-		marshalizer:      args.Marshalizer,
-		uint64Converter:  args.Uint64Converter,
-		builtInFunctions: args.BuiltInFunctions,
+		accounts:          args.Accounts,
+		pubkeyConv:        args.PubkeyConv,
+		storageService:    args.StorageService,
+		blockChain:        args.BlockChain,
+		shardCoordinator:  args.ShardCoordinator,
+		marshalizer:       args.Marshalizer,
+		uint64Converter:   args.Uint64Converter,
+		builtInFunctions:  args.BuiltInFunctions,
+		compiledScPool:    args.DataPool.SmartContracts(),
+		compiledScStorage: args.StorageService.GetStorer(dataRetriever.SmartContractUnit),
+	}
+
+	if check.IfNil(blockChainHookImpl.compiledScStorage) {
+		return nil, process.ErrNilStorage
+	}
+	if check.IfNil(blockChainHookImpl.compiledScPool) {
+		return nil, process.ErrNilPoolsHolder
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
@@ -478,6 +492,42 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 	bh.mutCurrentHdr.Lock()
 	bh.currentHdr = hdr
 	bh.mutCurrentHdr.Unlock()
+}
+
+// SaveCompiledCode saves the compiled code to cache and storage
+func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
+	bh.compiledScPool.Put(codeHash, code, len(code))
+	err := bh.compiledScStorage.Put(codeHash, code)
+	if err != nil {
+		log.Debug("SaveCompiledCode", "error", err, "codeHash", codeHash)
+	}
+}
+
+// GetCompiledCode returns the compiled code if it is found in the cache or storage
+func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
+	val, found := bh.compiledScPool.Get(codeHash)
+	if found {
+		compiledCode, ok := val.([]byte)
+		if ok {
+			return true, compiledCode
+		}
+	}
+
+	compiledCode, err := bh.compiledScStorage.Get(codeHash)
+	if err != nil {
+		return false, nil
+	}
+
+	return true, compiledCode
+}
+
+// DeleteCompiledCode deletes the compiled code from storage and cache
+func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
+	bh.compiledScPool.Remove(codeHash)
+	err := bh.compiledScStorage.Remove(codeHash)
+	if err != nil {
+		log.Debug("DeleteCompiledCode", "error", err, "codeHash", codeHash)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

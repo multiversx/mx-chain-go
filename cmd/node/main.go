@@ -1410,6 +1410,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
+		dataComponents.Datapool,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -2380,6 +2381,7 @@ func createApiResolver(
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
 	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -2417,6 +2419,7 @@ func createApiResolver(
 		Marshalizer:      marshalizer,
 		Uint64Converter:  uint64Converter,
 		BuiltInFunctions: builtInFuncs,
+		DataPool:         dataPool,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
