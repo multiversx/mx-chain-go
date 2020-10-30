@@ -456,9 +456,6 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 	if !ok {
 		return "", "", ErrAccountNotFound
 	}
-	if check.IfNil(userAccount.DataTrie()) {
-		return "", "", ErrNilDataTrie
-	}
 
 	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
