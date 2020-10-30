@@ -268,7 +268,7 @@ func GetESDTBalance(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), errors.ErrEmptyAddress.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -281,7 +281,7 @@ func GetESDTBalance(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), errors.ErrEmptyKey.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyKey.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -294,7 +294,7 @@ func GetESDTBalance(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), err.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)
@@ -324,7 +324,7 @@ func GetESDTTokens(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), errors.ErrEmptyAddress.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), errors.ErrEmptyAddress.Error()),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)
@@ -337,7 +337,7 @@ func GetESDTTokens(c *gin.Context) {
 			http.StatusInternalServerError,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s: %s", errors.ErrGetValueForKey.Error(), err.Error()),
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), err.Error()),
 				Code:  shared.ReturnCodeInternalError,
 			},
 		)

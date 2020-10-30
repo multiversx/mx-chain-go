@@ -467,6 +467,7 @@ func startNodeServerWrongFacade() *gin.Engine {
 
 func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
 	t.Parallel()
+
 	ws := startNodeServer(nil)
 
 	req, _ := http.NewRequest("GET", "/address/myAddress/esdtbalance/newToken", nil)
