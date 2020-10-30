@@ -290,6 +290,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		Marshalizer:      marshalizer,
 		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:         testscommon.NewPoolsHolderMock(),
 	}
 
 	gasSchedule := make(map[string]map[string]uint64)
