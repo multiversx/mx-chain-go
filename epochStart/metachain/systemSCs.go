@@ -620,6 +620,7 @@ func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount s
 		err := s.marshalizer.Unmarshal(auctionData, value)
 		dataIsNotValid := err != nil || len(auctionData.BlsPubKeys) == 0
 		if dataIsNotValid {
+			log.Warn("getValidAuctionUserAccountsKeys invalid data", "err", err, "blsPubKeys", auctionData.BlsPubKeys)
 			continue
 		}
 		auctionAccounts = append(auctionAccounts, leaf.Key())

@@ -259,3 +259,6 @@ var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")

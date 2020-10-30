@@ -16,39 +16,66 @@ import (
 const conversionBase = 10
 
 type ownerStats struct {
-	numEligible int
-	topUpValue  *big.Int
+	numEligible    int
+	numStakedNodes int
+	topUpValue     *big.Int
+	totalStaked    *big.Int
 }
 
 type stakingDataProvider struct {
-	mutCache sync.Mutex
-	cache    map[string]*ownerStats
-	systemVM vmcommon.VMExecutionHandler
+	mutStakingData     sync.Mutex
+	cache              map[string]*ownerStats
+	systemVM           vmcommon.VMExecutionHandler
+	totalEligibleStake *big.Int
+	minNodePrice       *big.Int
 }
 
 // NewStakingDataProvider will create a new instance of a staking data provider able to aid in the final rewards
 // computation as this will retrieve the staking data from the system VM
 func NewStakingDataProvider(
 	systemVM vmcommon.VMExecutionHandler,
+	minNodePrice string,
 ) (*stakingDataProvider, error) {
 	//TODO make vmcommon.VMExecutionHandler implement NilInterfaceChecker
 	if check.IfNilReflect(systemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
 
-	sdp := &stakingDataProvider{
-		systemVM: systemVM,
+	nodePrice, ok := big.NewInt(0).SetString(minNodePrice, 10)
+	if !ok || nodePrice.Cmp(big.NewInt(0)) < 0 {
+		return nil, epochStart.ErrInvalidMinNodePrice
 	}
-	sdp.Clean()
+
+	sdp := &stakingDataProvider{
+		systemVM:           systemVM,
+		cache:              make(map[string]*ownerStats),
+		minNodePrice:       nodePrice,
+		totalEligibleStake: big.NewInt(0),
+	}
 
 	return sdp, nil
 }
 
 // Clean will reset the inner state of the called instance
 func (sdp *stakingDataProvider) Clean() {
-	sdp.mutCache.Lock()
+	sdp.mutStakingData.Lock()
 	sdp.cache = make(map[string]*ownerStats)
-	sdp.mutCache.Unlock()
+	sdp.totalEligibleStake.SetInt64(0)
+	sdp.mutStakingData.Unlock()
+}
+
+// PrepareStakingData prepares the staking data for the given map of node keys per shard
+func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
+	for _, keysList := range keys {
+		for _, blsKey := range keysList {
+			err := sdp.PrepareDataForBlsKey(blsKey)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 // PrepareDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
@@ -61,8 +88,8 @@ func (sdp *stakingDataProvider) PrepareDataForBlsKey(blsKey []byte) error {
 		return err
 	}
 
-	sdp.mutCache.Lock()
-	defer sdp.mutCache.Unlock()
+	sdp.mutStakingData.Lock()
+	defer sdp.mutStakingData.Unlock()
 
 	ownerData, err := sdp.getValidatorData(owner)
 	if err != nil {
@@ -72,6 +99,12 @@ func (sdp *stakingDataProvider) PrepareDataForBlsKey(blsKey []byte) error {
 	ownerData.numEligible++
 
 	return nil
+}
+
+// GetTotalStakeEligibleNodes returns the total staked amount of the current epoch eligible nodes
+func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
+	// TODO: implement this
+	return big.NewInt(0)
 }
 
 func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
@@ -115,9 +148,18 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 		return nil, err
 	}
 
+	totalStakedValue, err := sdp.getTotalStaked(validatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	ownerBaseNodesStake := big.NewInt(0).Sub(totalStakedValue, topUpValue)
+	numStakedNodes := big.NewInt(0).Div(ownerBaseNodesStake, sdp.minNodePrice)
 	ownerData := &ownerStats{
-		numEligible: 0,
-		topUpValue:  topUpValue,
+		numEligible:    0,
+		numStakedNodes: int(numStakedNodes.Int64()),
+		topUpValue:     topUpValue,
+		totalStaked:    totalStakedValue,
 	}
 	sdp.cache[validatorAddress] = ownerData
 
@@ -158,6 +200,42 @@ func (sdp *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int
 	}
 
 	return topUpValue, nil
+}
+
+func (sdp *stakingDataProvider) getTotalStaked(validatorAddress string) (*big.Int, error) {
+	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  validatorAddressBytes,
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.AuctionSCAddress,
+		Function:      "getTotalStaked",
+	}
+
+	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return nil, err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+	}
+	totalStakedBytes := vmOutput.ReturnData
+	if len(totalStakedBytes) != 1 {
+		return nil, fmt.Errorf("%w, getTotalStaked function should have returned exactly one value: the total staked value", epochStart.ErrExecutingSystemScCode)
+	}
+
+	totalStakedValue, ok := big.NewInt(0).SetString(string(totalStakedBytes[0]), conversionBase)
+	if !ok {
+		return nil, fmt.Errorf("%w, error: totalStaked string returned is not a number", epochStart.ErrExecutingSystemScCode)
+	}
+
+	return totalStakedValue, nil
 }
 
 // IsInterfaceNil return true if underlying object is nil

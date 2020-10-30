@@ -1996,7 +1996,9 @@ func newMetaBlockProcessor(
 	if err != nil {
 		return nil, err
 	}
-	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM)
+
+	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
 	if err != nil {
 		return nil, err
 	}

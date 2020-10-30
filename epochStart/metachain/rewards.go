@@ -222,6 +222,81 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	return finalMiniBlocks, nil
 }
 
+// CreateRewardsMiniBlocksV2 creates the rewards miniblocks according to economics data and validator info.
+// This method applies the rewards according to the economics version 2 proposal, which takes into consideration
+// stake top-up values per node and follows the below formula:
+//      (2*k/pi)*arctan(x/p), where:
+//     k is the rewards per day limit for top-up stake k = c * economics.TotalToDistribute, c - constant, e.g c = 0.25
+//     x is the cumulative top-up stake value for eligible nodes
+//     p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
+//     pi is the mathematical constant pi = 3.1415...
+func (rc *rewardsCreator) CreateRewardsMiniBlocksV2(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+	if check.IfNil(metaBlock) {
+		return nil, epochStart.ErrNilHeaderHandler
+	}
+
+	rc.clean()
+	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
+	err := rc.prepareStakingData(validatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
+		miniBlocks[i] = &block.MiniBlock{}
+		miniBlocks[i].SenderShardID = core.MetachainShardId
+		miniBlocks[i].ReceiverShardID = i
+		miniBlocks[i].Type = block.RewardsBlock
+		miniBlocks[i].TxHashes = make([][]byte, 0)
+	}
+	miniBlocks[rc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
+
+	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	rc.fillRewardsPerBlockPerNode(&metaBlock.EpochStart.Economics)
+	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protocolSustainabilityRwdTx)
+	if err != nil {
+		return nil, err
+	}
+
+	totalWithoutDevelopers := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, metaBlock.DevFeesInEpoch)
+	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
+	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+
+	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
+	if errHash != nil {
+		return nil, errHash
+	}
+
+	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
+	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
+
+	for shId := uint32(0); shId <= rc.shardCoordinator.NumberOfShards(); shId++ {
+		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
+			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
+		})
+	}
+
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
+	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
+		if len(miniBlocks[i].TxHashes) > 0 {
+			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+		}
+	}
+
+	return finalMiniBlocks, nil
+}
+
 func (rc *rewardsCreator) fillRewardsPerBlockPerNode(economicsData *block.Economics) {
 	rc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
@@ -621,15 +696,14 @@ func (rc *rewardsCreator) prepareStakingData(validatorsInfo map[uint32][]*state.
 		log.Debug("rewardsCreator.prepareRewardsFromStakingSC time measurements", sw.GetMeasurements())
 	}()
 
-	for _, validatorInfoSlice := range validatorsInfo {
-		for _, validatorInfo := range validatorInfoSlice {
-			err := rc.stakingDataProvider.PrepareDataForBlsKey(validatorInfo.PublicKey)
-			if err != nil {
-				//TODO uncomment this return when this function will be used
-				//return err
-			}
+	eligibleNodesKeys := make(map[uint32][][]byte)
+	for shardID, validatorsInfoSlice:= range validatorsInfo{
+		shardEligibleNodeKeys := make([][]byte, len(validatorsInfoSlice))
+		eligibleNodesKeys[shardID] = shardEligibleNodeKeys
+		for i, validatorInfo := range validatorsInfoSlice{
+			eligibleNodesKeys[shardID][i] = validatorInfo.PublicKey
 		}
 	}
 
-	return nil
+	return rc.stakingDataProvider.PrepareStakingData(eligibleNodesKeys)
 }

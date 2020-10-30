@@ -2,6 +2,7 @@ package epochStart
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -147,6 +148,8 @@ type TransactionCacher interface {
 
 // StakingDataProvider is able to provide staking data from the system smart contracts
 type StakingDataProvider interface {
+	GetTotalStakeEligibleNodes() *big.Int
+	PrepareStakingData(keys map[uint32][][]byte) error
 	PrepareDataForBlsKey(blsKey []byte) error
 	Clean()
 	IsInterfaceNil() bool
