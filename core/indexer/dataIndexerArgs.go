@@ -13,7 +13,7 @@ import (
 
 //ArgDataIndexer is struct that is used to store all components that are needed to create a indexer
 type ArgDataIndexer struct {
-	ShardID            uint32
+	ShardCoordinator   sharding.Coordinator
 	Marshalizer        marshal.Marshalizer
 	EpochStartNotifier sharding.EpochStartEventNotifier
 	NodesCoordinator   sharding.NodesCoordinator
@@ -37,4 +37,5 @@ type ArgElasticProcessor struct {
 	Denomination             int
 	FeeConfig                *config.FeeSettings
 	IsInImportDBMode         bool
+	ShardCoordinator         sharding.Coordinator
 }

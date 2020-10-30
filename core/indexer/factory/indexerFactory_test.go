@@ -34,7 +34,7 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
 		FeeConfig:                &config.FeeSettings{},
-		ShardID:                  0,
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		IsInImportDBMode:         false,
 	}
 }

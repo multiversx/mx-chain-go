@@ -695,7 +695,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 
 	if !args.indexer.IsNilIndexer() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

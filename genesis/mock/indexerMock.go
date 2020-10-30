@@ -14,7 +14,7 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, _ []uint64, _ []string) {
+func (im *IndexerMock) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
 	if im.SaveBlockCalled != nil {
 		im.SaveBlockCalled(body, header, txPool)
 	}

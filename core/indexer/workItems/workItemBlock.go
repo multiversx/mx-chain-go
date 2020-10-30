@@ -1,7 +1,10 @@
 package workItems
 
 import (
+	"fmt"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -17,6 +20,7 @@ type itemBlock struct {
 	txPool                 map[string]data.TransactionHandler
 	signersIndexes         []uint64
 	notarizedHeadersHashes []string
+	headerHash             []byte
 }
 
 // NewItemBlock will create a new instance of ItemBlock
@@ -28,6 +32,7 @@ func NewItemBlock(
 	txPool map[string]data.TransactionHandler,
 	signersIndexes []uint64,
 	notarizedHeadersHashes []string,
+	headerHash []byte,
 ) WorkItemHandler {
 	return &itemBlock{
 		indexer:                indexer,
@@ -37,22 +42,30 @@ func NewItemBlock(
 		signersIndexes:         signersIndexes,
 		notarizedHeadersHashes: notarizedHeadersHashes,
 		marshalizer:            marshalizer,
+		headerHash:             headerHash,
 	}
 }
 
 // Save will prepare and save a block item in elasticsearch database
 func (wib *itemBlock) Save() error {
+	if check.IfNil(wib.headerHandler) {
+		log.Warn("nil header provided when trying to index block, will skip")
+		return nil
+	}
+
+	log.Debug("indexer: starting indexing block", "hash", wib.headerHash, "nonce", wib.headerHandler.GetNonce())
+
 	body, ok := wib.bodyHandler.(*block.Body)
 	if !ok {
-		log.Warn("itemBlock.Save", "body", ErrBodyTypeAssertion.Error())
-		return ErrBodyTypeAssertion
+		return fmt.Errorf("%w when trying body assertion, block hash %s, nonce %d",
+			ErrBodyTypeAssertion, logger.DisplayByteSlice(wib.headerHash), wib.headerHandler.GetNonce())
 	}
 
 	txsSizeInBytes := ComputeSizeOfTxs(wib.marshalizer, wib.txPool)
 	err := wib.indexer.SaveHeader(wib.headerHandler, wib.signersIndexes, body, wib.notarizedHeadersHashes, txsSizeInBytes)
 	if err != nil {
-		log.Warn("itemBlock.Save", "could not index block:", err.Error())
-		return err
+		return fmt.Errorf("%w when saving header block, hash %s, nonce %d",
+			err, logger.DisplayByteSlice(wib.headerHash), wib.headerHandler.GetNonce())
 	}
 
 	if len(body.MiniBlocks) == 0 {
@@ -61,15 +74,15 @@ func (wib *itemBlock) Save() error {
 
 	mbsInDb, err := wib.indexer.SaveMiniblocks(wib.headerHandler, body)
 	if err != nil {
-		log.Warn("itemBlock.Save", "could not index miniblocks", err.Error())
-		return err
+		return fmt.Errorf("%w when saving miniblocks, block hash %s, nonce %d",
+			err, logger.DisplayByteSlice(wib.headerHash), wib.headerHandler.GetNonce())
 	}
 
 	shardID := wib.headerHandler.GetShardID()
 	err = wib.indexer.SaveTransactions(body, wib.headerHandler, wib.txPool, shardID, mbsInDb)
 	if err != nil {
-		log.Warn("itemBlock.Save", "could not index transactions", err.Error())
-		return err
+		return fmt.Errorf("%w when saving transactions, block hash %s, nonce %d",
+			err, logger.DisplayByteSlice(wib.headerHash), wib.headerHandler.GetNonce())
 	}
 
 	return nil
