@@ -1464,7 +1464,7 @@ func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCal
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
@@ -1583,17 +1583,23 @@ func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	d.eei.Finish([]byte("staked"))
+	if len(delegationStatus.StakedKeys) > 0 {
+		d.eei.Finish([]byte("staked"))
+	}
 	for _, node := range delegationStatus.StakedKeys {
 		d.eei.Finish(node.BLSKey)
 	}
 
-	d.eei.Finish([]byte("notStaked"))
+	if len(delegationStatus.NotStakedKeys) > 0 {
+		d.eei.Finish([]byte("notStaked"))
+	}
 	for _, node := range delegationStatus.NotStakedKeys {
 		d.eei.Finish(node.BLSKey)
 	}
 
-	d.eei.Finish([]byte("unStaked"))
+	if len(delegationStatus.UnStakedKeys) > 0 {
+		d.eei.Finish([]byte("unStaked"))
+	}
 	for _, node := range delegationStatus.UnStakedKeys {
 		d.eei.Finish(node.BLSKey)
 	}
@@ -1661,7 +1667,7 @@ func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallIn
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return nil, vmcommon.UserError
+		return nil, vmcommon.OutOfGas
 	}
 	if len(args.Arguments) != 1 {
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
