@@ -734,11 +734,11 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true, 100, 1)
+	delegationProcessManyTimes(t, true, 1000, 1)
 }
 
 func TestDelegationProcessManyTimeCompile(t *testing.T) {
-	delegationProcessManyTimes(t, false, 100, 1)
+	delegationProcessManyTimes(t, false, 1000, 1)
 }
 
 func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark int, numRun int) {
