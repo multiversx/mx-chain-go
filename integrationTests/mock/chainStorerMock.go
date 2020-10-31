@@ -38,7 +38,7 @@ func (bc *ChainStorerMock) GetStorer(unitType dataRetriever.UnitType) storage.St
 	if bc.GetStorerCalled != nil {
 		return bc.GetStorerCalled(unitType)
 	}
-	return &StorerMock{}
+	return NewStorerMock()
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise
