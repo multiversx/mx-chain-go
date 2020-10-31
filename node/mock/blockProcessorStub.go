@@ -24,6 +24,7 @@ type BlockProcessorStub struct {
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	RevertIndexedBlockCalled         func(header data.HeaderHandler)
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -112,4 +113,11 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) err
 	}
 
 	return nil
+}
+
+// RevertIndexedBlock -
+func (bps *BlockProcessorStub) RevertIndexedBlock(header data.HeaderHandler) {
+	if bps.RevertIndexedBlockCalled != nil {
+		bps.RevertIndexedBlockCalled(header)
+	}
 }
