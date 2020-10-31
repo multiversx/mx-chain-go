@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-vm-common"
@@ -404,8 +404,8 @@ func checkAddressHasESDTTokens(
 	assert.Equal(t, esdtData.Value.Cmp(value), 0)
 }
 
-func getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*builtInFunctions.ESDigitalToken, error) {
-	esdtData := &builtInFunctions.ESDigitalToken{Value: big.NewInt(0)}
+func getESDTDataFromKey(userAcnt state.UserAccountHandler, key []byte) (*esdt.ESDigitalToken, error) {
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil {
 		return esdtData, nil

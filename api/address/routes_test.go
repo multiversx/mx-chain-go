@@ -49,6 +49,27 @@ type valueForKeyResponse struct {
 	Code  string                  `json:"code"`
 }
 
+type esdtBalanceResponseData struct {
+	Balance string `json:"balance"`
+	Frozen  string `json:"frozen"`
+}
+
+type esdtBalanceResponse struct {
+	Data  esdtBalanceResponseData `json:"data"`
+	Error string                  `json:"error"`
+	Code  string                  `json:"code"`
+}
+
+type esdtTokensResponseData struct {
+	Tokens []string `json:"tokens"`
+}
+
+type esdtTokensResponse struct {
+	Data  esdtTokensResponseData `json:"data"`
+	Error string                 `json:"error"`
+	Code  string
+}
+
 type usernameResponseData struct {
 	Username string `json:"username"`
 }
@@ -444,6 +465,131 @@ func startNodeServerWrongFacade() *gin.Engine {
 	return ws
 }
 
+func TestGetESDTBalance_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/myAddress/esdtbalance/newToken", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTBalance_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
+			return "", "", expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtbalance/newToken", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTBalance_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue := "value"
+	frozenValue := "frozen"
+	facade := mock.Facade{
+		GetESDTBalanceCalled: func(_ string, _ string) (string, string, error) {
+			return testValue, frozenValue, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdtbalance/newToken", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtBalanceResponseObj := esdtBalanceResponse{}
+	loadResponse(resp.Body, &esdtBalanceResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, testValue, esdtBalanceResponseObj.Data.Balance)
+	assert.Equal(t, frozenValue, esdtBalanceResponseObj.Data.Frozen)
+}
+
+func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
+	t.Parallel()
+
+	ws := startNodeServer(nil)
+
+	req, _ := http.NewRequest("GET", "/address/some/allesdttokens", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, apiErrors.ErrNilAppContext.Error()))
+}
+
+func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		GetAllESDTTokensCalled: func(_ string) ([]string, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/allesdttokens", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	usernameResponseObj := usernameResponse{}
+	loadResponse(resp.Body, &usernameResponseObj)
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.True(t, strings.Contains(usernameResponseObj.Error, expectedErr.Error()))
+}
+
+func TestGetESDTTokens_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testAddress := "address"
+	testValue1 := "token1"
+	testValue2 := "token2"
+	facade := mock.Facade{
+		GetAllESDTTokensCalled: func(address string) ([]string, error) {
+			return []string{testValue1, testValue2}, nil
+		},
+	}
+
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/allesdttokens", testAddress), nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	esdtTokenResponseObj := esdtTokensResponse{}
+	loadResponse(resp.Body, &esdtTokenResponseObj)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, []string{testValue1, testValue2}, esdtTokenResponseObj.Data.Tokens)
+}
+
 func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
@@ -453,6 +599,8 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
+					{Name: "/:address/allesdttokens", Open: true},
+					{Name: "/:address/esdtbalance/:tokenName", Open: true},
 				},
 			},
 		},

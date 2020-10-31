@@ -29,7 +29,7 @@ func NewESDTPauseFunc(
 	}
 
 	e := &esdtPause{
-		keyPrefix: []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix: []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pause:     pause,
 		accounts:  accounts,
 	}

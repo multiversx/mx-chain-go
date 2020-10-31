@@ -33,7 +33,7 @@ func NewESDTFreezeWipeFunc(
 
 	e := &esdtFreezeWipe{
 		marshalizer: marshalizer,
-		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		freeze:      freeze,
 		wipe:        wipe,
 	}

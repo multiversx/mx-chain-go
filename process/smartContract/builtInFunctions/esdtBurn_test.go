@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
@@ -16,8 +17,8 @@ func TestESDTBurn_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
 	pauseHandler := &mock.PauseHandlerStub{}
-	esdt, _ := NewESDTBurnFunc(10, &mock.MarshalizerMock{}, pauseHandler)
-	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
+	burnFunc, _ := NewESDTBurnFunc(10, &mock.MarshalizerMock{}, pauseHandler)
+	_, err := burnFunc.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
 	input := &vmcommon.ContractCallInput{
@@ -25,7 +26,7 @@ func TestESDTBurn_ProcessBuiltInFunctionErrors(t *testing.T) {
 			CallValue: big.NewInt(0),
 		},
 	}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
 	input = &vmcommon.ContractCallInput{
@@ -37,23 +38,23 @@ func TestESDTBurn_ProcessBuiltInFunctionErrors(t *testing.T) {
 	key := []byte("key")
 	value := []byte("value")
 	input.Arguments = [][]byte{key, value}
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrAddressIsNotESDTSystemSC)
 
 	input.RecipientAddr = vm.ESDTSCAddress
-	input.GasProvided = esdt.funcGasCost - 1
+	input.GasProvided = burnFunc.funcGasCost - 1
 	accSnd, _ := state.NewUserAccount([]byte("dst"))
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrNotEnoughGas)
 
-	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrNilUserAccount)
 
 	pauseHandler.IsPausedCalled = func(token []byte) bool {
 		return true
 	}
-	input.GasProvided = esdt.funcGasCost
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	input.GasProvided = burnFunc.funcGasCost
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
 }
 
@@ -62,7 +63,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	pauseHandler := &mock.PauseHandlerStub{}
-	esdt, _ := NewESDTBurnFunc(10, marshalizer, pauseHandler)
+	burnFunc, _ := NewESDTBurnFunc(10, marshalizer, pauseHandler)
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -79,28 +80,28 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	esdtFrozen := ESDTUserMetadata{Frozen: true}
 	esdtNotFrozen := ESDTUserMetadata{Frozen: false}
 
-	esdtKey := append(esdt.keyPrefix, key...)
-	esdtToken := &ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
+	esdtKey := append(burnFunc.keyPrefix, key...)
+	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
-	_, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err := burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
 
 	pauseHandler.IsPausedCalled = func(token []byte) bool {
 		return true
 	}
-	esdtToken = &ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
+	esdtToken = &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
 	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
 
 	pauseHandler.IsPausedCalled = func(token []byte) bool {
 		return false
 	}
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)
 
 	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)
@@ -109,12 +110,12 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 
 	value = big.NewInt(100).Bytes()
 	input.Arguments = [][]byte{key, value}
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrInsufficientFunds)
 
 	value = big.NewInt(90).Bytes()
 	input.Arguments = [][]byte{key, value}
-	_, err = esdt.ProcessBuiltinFunction(accSnd, nil, input)
+	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)
 
 	marshaledData, _ = accSnd.DataTrieTracker().RetrieveValue(esdtKey)

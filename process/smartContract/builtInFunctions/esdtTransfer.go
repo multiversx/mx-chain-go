@@ -1,4 +1,3 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
 package builtInFunctions
 
 import (
@@ -8,14 +7,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
-
-const esdtKeyIdentifier = "esdt"
 
 var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
@@ -45,7 +43,7 @@ func NewESDTTransferFunc(
 	e := &esdtTransfer{
 		funcGasCost:    funcGasCost,
 		marshalizer:    marshalizer,
-		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pauseHandler:   pauseHandler,
 		payableHandler: &disabledPayableHandler{},
 	}
@@ -198,7 +196,7 @@ func addToESDTBalance(
 
 func saveESDTData(
 	userAcnt state.UserAccountHandler,
-	esdtData *ESDigitalToken,
+	esdtData *esdt.ESDigitalToken,
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) error {
@@ -216,8 +214,8 @@ func getESDTDataFromKey(
 	userAcnt state.UserAccountHandler,
 	key []byte,
 	marshalizer marshal.Marshalizer,
-) (*ESDigitalToken, error) {
-	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
+) (*esdt.ESDigitalToken, error) {
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil
