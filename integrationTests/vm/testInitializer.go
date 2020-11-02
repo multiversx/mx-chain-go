@@ -300,6 +300,7 @@ func CreateVMAndBlockchainHook(
 		actualGasSchedule,
 		args,
 		0,
+		0,
 	)
 	if err != nil {
 		log.LogIfError(err)

@@ -2451,6 +2451,7 @@ func createApiResolver(
 			gasSchedule,
 			argsHook,
 			generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnable,
 		)
 		if err != nil {
 			return nil, err

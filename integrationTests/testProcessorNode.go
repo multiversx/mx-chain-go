@@ -1064,6 +1064,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		gasSchedule,
 		argsHook,
 		0,
+		0,
 	)
 
 	var err error

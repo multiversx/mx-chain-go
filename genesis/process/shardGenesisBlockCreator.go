@@ -256,6 +256,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		arg.GasMap,
 		argsHook,
 		arg.GeneralConfig.SCDeployEnableEpoch,
+		arg.GeneralConfig.AheadOfTimeGasUsageEnable,
 	)
 	if err != nil {
 		return nil, err
