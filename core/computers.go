@@ -82,6 +82,14 @@ func MinInt64(a int64, b int64) int64 {
 	return b
 }
 
+// MaxFloat64 returns the maximum of two given numbers
+func MaxFloat64(a float64, b float64) float64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // GetPercentageOfValue returns the percentage part of the value
 func GetPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 	x := new(big.Float).SetInt(value)
