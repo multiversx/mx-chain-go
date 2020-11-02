@@ -36,8 +36,8 @@
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
    MetaProtectionEnableEpoch = 2
 
-   # AheadOfTimeGasUsageEnable represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnable = 2
+   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+   AheadOfTimeGasUsageEnableEpoch = 2
 
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"

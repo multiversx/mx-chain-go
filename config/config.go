@@ -215,7 +215,7 @@ type GeneralSettingsConfig struct {
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
 	MetaProtectionEnableEpoch              uint32
-	AheadOfTimeGasUsageEnable              uint32
+	AheadOfTimeGasUsageEnableEpoch         uint32
 	GenesisString                          string
 }
 

@@ -1526,7 +1526,7 @@ func newShardBlockProcessor(
 		gasSchedule,
 		argsHook,
 		config.GeneralSettings.SCDeployEnableEpoch,
-		config.GeneralSettings.AheadOfTimeGasUsageEnable,
+		config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
