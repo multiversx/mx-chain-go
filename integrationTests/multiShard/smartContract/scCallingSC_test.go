@@ -279,7 +279,6 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
-	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"../../vm/arwen/testdata/counter/counter.wasm",
@@ -290,6 +289,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
+	nodes[0].OwnAccount.Nonce += 1
 
 	round := uint64(0)
 	nonce := uint64(0)
