@@ -9,14 +9,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view"
 	"github.com/ElrondNetwork/elrond-go/statusHandler/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
 )
-
-//refreshInterval is used for a ticker that refresh termui console at a specific interval
-const refreshInterval = time.Second
 
 // numOfTicksBeforeRedrawing represents the number of ticks which have to pass until a fake resize will be made
 // in order to clean the unwanted appeared characters
@@ -26,21 +24,26 @@ var log = logger.GetOrCreate("statushandler/view/termuic")
 
 // TermuiConsole data where is store data from handler
 type TermuiConsole struct {
-	presenter     view.Presenter
-	consoleRender TermuiRender
-	grid          *termuiRenders.DrawableContainer
-	mutRefresh    *sync.RWMutex
+	presenter                 view.Presenter
+	consoleRender             TermuiRender
+	grid                      *termuiRenders.DrawableContainer
+	mutRefresh                *sync.RWMutex
+	refreshTimeInMilliseconds int
 }
 
 //NewTermuiConsole method is used to return a new TermuiConsole structure
-func NewTermuiConsole(presenter view.Presenter) (*TermuiConsole, error) {
-	if presenter == nil || presenter.IsInterfaceNil() {
+func NewTermuiConsole(presenter view.Presenter, refreshTimeInMilliseconds int) (*TermuiConsole, error) {
+	if check.IfNil(presenter) {
 		return nil, statusHandler.ErrNilPresenterInterface
+	}
+	if refreshTimeInMilliseconds < 1 {
+		return nil, statusHandler.ErrInvalidRefreshTimeInMilliseconds
 	}
 
 	tc := TermuiConsole{
-		presenter:  presenter,
-		mutRefresh: &sync.RWMutex{},
+		presenter:                 presenter,
+		mutRefresh:                &sync.RWMutex{},
+		refreshTimeInMilliseconds: refreshTimeInMilliseconds,
 	}
 
 	return &tc, nil
@@ -83,26 +86,26 @@ func (tc *TermuiConsole) eventLoop() {
 	sigTerm := make(chan os.Signal, 2)
 	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 
-	tc.consoleRender.RefreshData()
+	tc.consoleRender.RefreshData(tc.refreshTimeInMilliseconds)
 	ticksCounter := uint32(0)
 
 	for {
 		select {
-		case <-time.After(refreshInterval):
-			tc.doChanges(&ticksCounter)
+		case <-time.After(time.Millisecond * time.Duration(tc.refreshTimeInMilliseconds)):
+			tc.doChanges(&ticksCounter, tc.refreshTimeInMilliseconds)
 		case <-sigTerm:
 			ui.Clear()
 			return
 		case e := <-uiEvents:
-			tc.processUiEvents(e)
+			tc.processUiEvents(e, tc.refreshTimeInMilliseconds)
 		}
 	}
 }
 
-func (tc *TermuiConsole) processUiEvents(e ui.Event) {
+func (tc *TermuiConsole) processUiEvents(e ui.Event, numMillisecondsRefreshTime int) {
 	switch e.ID {
 	case "<Resize>":
-		tc.doResizeEvent(e)
+		tc.doResizeEvent(e, numMillisecondsRefreshTime)
 	case "<C-c>":
 		ui.Close()
 		stopApplication()
@@ -110,31 +113,32 @@ func (tc *TermuiConsole) processUiEvents(e ui.Event) {
 	}
 }
 
-func (tc *TermuiConsole) doChanges(counter *uint32) {
+func (tc *TermuiConsole) doChanges(counter *uint32, numMillisecondsRefreshTime int) {
 	atomic.AddUint32(counter, 1)
 	if atomic.LoadUint32(counter) > numOfTicksBeforeRedrawing {
-		tc.doResize(ui.TerminalDimensions())
+		width, height := ui.TerminalDimensions()
+		tc.doResize(width, height, numMillisecondsRefreshTime)
 		atomic.StoreUint32(counter, 0)
 	} else {
-		tc.refreshWindow()
+		tc.refreshWindow(numMillisecondsRefreshTime)
 	}
 }
 
-func (tc *TermuiConsole) doResizeEvent(e ui.Event) {
+func (tc *TermuiConsole) doResizeEvent(e ui.Event, numMillisecondsRefreshTime int) {
 	payload := e.Payload.(ui.Resize)
-	tc.doResize(payload.Width, payload.Height)
+	tc.doResize(payload.Width, payload.Height, numMillisecondsRefreshTime)
 }
 
-func (tc *TermuiConsole) doResize(width int, height int) {
+func (tc *TermuiConsole) doResize(width int, height int, numMillisecondsRefreshTime int) {
 	tc.grid.SetRectangle(0, 0, width, height)
-	tc.refreshWindow()
+	tc.refreshWindow(numMillisecondsRefreshTime)
 }
 
-func (tc *TermuiConsole) refreshWindow() {
+func (tc *TermuiConsole) refreshWindow(numMillisecondsRefreshTime int) {
 	tc.mutRefresh.Lock()
 	defer tc.mutRefresh.Unlock()
 
-	tc.consoleRender.RefreshData()
+	tc.consoleRender.RefreshData(numMillisecondsRefreshTime)
 	ui.Clear()
 	ui.Render(tc.grid.TopLeft(), tc.grid.TopRight(), tc.grid.Bottom())
 }
