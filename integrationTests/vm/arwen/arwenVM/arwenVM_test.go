@@ -242,7 +242,7 @@ func TestGasModel(t *testing.T) {
 	fmt.Println("STRINGCONCAT 1000 ")
 	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 2, gasSchedule)
+	deployAndExecuteERC20WithBigInt(t, 1, 2, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 }
 
 func TestWASMMetering(t *testing.T) {
@@ -325,12 +325,25 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	for i := 0; i < 3; i++ {
-		deployAndExecuteERC20WithBigInt(t, 1000, nil)
-	}
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
 }
 
-func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[string]map[string]uint64) {
+func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
+}
+
+func deployAndExecuteERC20WithBigInt(
+	t *testing.T,
+	numRun int,
+	numTransferInBatch int,
+	gasSchedule map[string]map[string]uint64,
+	fileName string,
+	functionName string,
+) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -338,7 +351,7 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
-	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
+	scCode := arwen.GetSCCode(fileName)
 
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, true)
 	defer testContext.Close()
@@ -368,32 +381,34 @@ func deployAndExecuteERC20WithBigInt(t *testing.T, numRun int, gasSchedule map[s
 	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(1000000))
 
 	initAlice := big.NewInt(100000)
-	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
+	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	start := time.Now()
+	for batch := 0; batch < numRun; batch++ {
+		start := time.Now()
 
-	for i := 0; i < numRun; i++ {
-		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, bob)
+		for i := 0; i < numTransferInBatch; i++ {
+			tx = vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
 
-		_, err = testContext.TxProcessor.ProcessTransaction(tx)
+			_, err = testContext.TxProcessor.ProcessTransaction(tx)
+			require.Nil(t, err)
+			require.Nil(t, testContext.GetLatestError())
+			aliceNonce++
+		}
+
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numTransferInBatch, elapsedTime.String())
+
+		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
-		require.Nil(t, testContext.GetLatestError())
-		aliceNonce++
 	}
 
-	elapsedTime := time.Since(start)
-	fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numRun, elapsedTime.String())
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun)*transferOnCalls.Int64()))
+	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
 	require.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
-	finalBob := big.NewInt(int64(numRun) * transferOnCalls.Int64())
+	finalBob := big.NewInt(int64(numRun*numTransferInBatch) * transferOnCalls.Int64())
 	require.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
 }
 
@@ -458,7 +473,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 	fmt.Println("done")
 
 	initAlice := big.NewInt(100000)
-	tx = vm.CreateTransferTokenTx(ownerNonce, initAlice, scAddress, ownerAddressBytes, alice)
+	tx = vm.CreateTransferTokenTx(ownerNonce, "transferToken", initAlice, scAddress, ownerAddressBytes, alice)
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
@@ -468,7 +483,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		start := time.Now()
 
 		for i := 0; i < 1000; i++ {
-			tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
+			tx = vm.CreateTransferTokenTx(aliceNonce, "transferToken", transferOnCalls, scAddress, alice, testAddresses[j*1000+i])
 
 			_, err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
@@ -488,7 +503,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	start := time.Now()
 	for i := 0; i < numRun; i++ {
-		tx = vm.CreateTransferTokenTx(aliceNonce, transferOnCalls, scAddress, alice, testAddresses[i])
+		tx = vm.CreateTransferTokenTx(aliceNonce, "transferToken", transferOnCalls, scAddress, alice, testAddresses[i])
 
 		_, err = testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, err)
@@ -659,7 +674,7 @@ func TestAndCatchTrieError(t *testing.T) {
 	// ERC20 Minting
 	erc20value := big.NewInt(100)
 	for _, testAddress := range testAddresses {
-		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, testAddress)
+		tx = vm.CreateTransferTokenTx(ownerNonce, "transferToken", erc20value, scAddress, ownerAddressBytes, testAddress)
 		ownerNonce++
 
 		_, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -678,7 +693,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		rootHash, _ := testContext.Accounts.RootHash()
 
 		for index, testAddress := range testAddresses {
-			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, receiverAddresses[index])
+			tx = vm.CreateTransferTokenTx(transferNonce, "transferToken", erc20value, scAddress, testAddress, receiverAddresses[index])
 
 			snapShot := testContext.Accounts.JournalLen()
 			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
@@ -692,7 +707,7 @@ func TestAndCatchTrieError(t *testing.T) {
 			}
 		}
 
-		tx = vm.CreateTransferTokenTx(ownerNonce, erc20value, scAddress, ownerAddressBytes, accumulateAddress)
+		tx = vm.CreateTransferTokenTx(ownerNonce, "transferToken", erc20value, scAddress, ownerAddressBytes, accumulateAddress)
 		require.NotNil(t, tx)
 
 		newRootHash, errNewRh := testContext.Accounts.Commit()
@@ -703,7 +718,7 @@ func TestAndCatchTrieError(t *testing.T) {
 				continue
 			}
 
-			tx = vm.CreateTransferTokenTx(transferNonce, erc20value, scAddress, testAddress, testAddresses[index])
+			tx = vm.CreateTransferTokenTx(transferNonce, "transferToken", erc20value, scAddress, testAddress, testAddresses[index])
 
 			snapShot := testContext.Accounts.JournalLen()
 			_, _ = testContext.TxProcessor.ProcessTransaction(tx)
