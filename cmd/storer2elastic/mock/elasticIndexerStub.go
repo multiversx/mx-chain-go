@@ -1,20 +1,22 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // ElasticIndexerStub -
 type ElasticIndexerStub struct {
-	SetTxLogsProcessorCalled    func(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveBlockCalled             func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string)
-	SaveRoundsInfosCalled       func(roundsInfos []indexer.RoundInfo)
+	SetTxLogsProcessorCalled func(txLogsProc process.TransactionLogProcessorDatabase)
+	SaveBlockCalled          func(body data.BodyHandler, header data.HeaderHandler,
+		txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
+	SaveRoundsInfosCalled       func(roundsInfos []workItems.RoundInfo)
 	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []indexer.ValidatorRatingInfo)
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []workItems.ValidatorRatingInfo)
 }
 
 // SetTxLogsProcessor -
@@ -25,14 +27,15 @@ func (e *ElasticIndexerStub) SetTxLogsProcessor(txLogsProc process.TransactionLo
 }
 
 // SaveBlock -
-func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string) {
+func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.HeaderHandler,
+	txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte) {
 	if e.SaveBlockCalled != nil {
-		e.SaveBlockCalled(body, header, txPool, signersIndexes, notarizedHeadersHashes)
+		e.SaveBlockCalled(body, header, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
 	}
 }
 
-// SaveRoundsInfos -
-func (e *ElasticIndexerStub) SaveRoundsInfos(roundsInfos []indexer.RoundInfo) {
+// SaveRoundsInfo -
+func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []workItems.RoundInfo) {
 	if e.SaveRoundsInfosCalled != nil {
 		e.SaveRoundsInfosCalled(roundsInfos)
 	}
@@ -53,10 +56,23 @@ func (e *ElasticIndexerStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32]
 }
 
 // SaveValidatorsRating -
-func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []indexer.ValidatorRatingInfo) {
+func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo) {
 	if e.SaveValidatorsRatingCalled != nil {
 		e.SaveValidatorsRatingCalled(indexID, infoRating)
 	}
+}
+
+// Close -
+func (e *ElasticIndexerStub) Close() error {
+	return nil
+}
+
+// RevertIndexedBlock -
+func (e *ElasticIndexerStub) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// SaveAccounts -
+func (e *ElasticIndexerStub) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil -
