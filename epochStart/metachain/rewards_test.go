@@ -142,13 +142,9 @@ func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing
 	t.Parallel()
 
 	args := getRewardsArguments()
-	cleanWasCalled := false
 	numComputeRewards := 0
 	expectedErr := errors.New("expected error")
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		CleanCalled: func() {
-			cleanWasCalled = true
-		},
 		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
 			numComputeRewards += len(keys)
 			return expectedErr
@@ -173,7 +169,6 @@ func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, bdy)
-	assert.True(t, cleanWasCalled)
 	assert.Equal(t, 1, numComputeRewards)
 }
 
@@ -181,12 +176,8 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	cleanWasCalled := false
 	numComputeRewards := 0
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		CleanCalled: func() {
-			cleanWasCalled = true
-		},
 		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
 			numComputeRewards += len(keys)
 			return nil
@@ -210,7 +201,6 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
-	assert.True(t, cleanWasCalled)
 	assert.Equal(t, 1, numComputeRewards)
 }
 
@@ -769,6 +759,7 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
+	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("300000000000000000000", 10)
 	return ArgsNewRewardsCreator{
 		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
 		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
@@ -781,5 +772,7 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
 		UserAccountsDB:                userAccountsDB,
 		StakingDataProvider:           &mock.StakingDataProviderStub{},
+		RewardsTopUpFactor:            0.25,
+		RewardsTopUpGradientPoint:     rewardsTopUpGradientPoint,
 	}
 }

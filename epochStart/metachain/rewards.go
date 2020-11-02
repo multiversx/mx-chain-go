@@ -43,6 +43,8 @@ type ArgsNewRewardsCreator struct {
 	DelegationSystemSCEnableEpoch uint32
 	UserAccountsDB                state.AccountsAdapter
 	StakingDataProvider           epochStart.StakingDataProvider
+	RewardsTopUpFactor            float64
+	RewardsTopUpGradientPoint     *big.Int
 }
 
 type rewardsCreator struct {
@@ -65,6 +67,9 @@ type rewardsCreator struct {
 	delegationSystemSCEnableEpoch uint32
 	userAccountsDB                state.AccountsAdapter
 	stakingDataProvider           epochStart.StakingDataProvider
+
+	topUpRewardFactor  float64
+	topUpGradientPoint *big.Int
 }
 
 type rewardInfoData struct {
@@ -108,6 +113,12 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 	if check.IfNil(args.StakingDataProvider) {
 		return nil, epochStart.ErrNilStakingDataProvider
 	}
+	if big.NewInt(0).Cmp(args.RewardsTopUpGradientPoint) >= 0 {
+		return nil, epochStart.ErrInvalidRewardsTopUpGradientPoint
+	}
+	if args.RewardsTopUpFactor < 0 || args.RewardsTopUpFactor > 1 {
+		return nil, epochStart.ErrInvalidRewardsTopUpFactor
+	}
 
 	address, err := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
 	if err != nil {
@@ -140,6 +151,8 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		delegationSystemSCEnableEpoch: args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                args.UserAccountsDB,
 		stakingDataProvider:           args.StakingDataProvider,
+		topUpRewardFactor:             args.RewardsTopUpFactor,
+		topUpGradientPoint:            args.RewardsTopUpGradientPoint,
 	}
 
 	return rc, nil
@@ -151,7 +164,6 @@ func (rc *rewardsCreator) clean() {
 	rc.currTxs.Clean()
 	rc.accumulatedRewards = big.NewInt(0)
 	rc.protocolSustainability = big.NewInt(0)
-	rc.stakingDataProvider.Clean()
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
@@ -697,10 +709,10 @@ func (rc *rewardsCreator) prepareStakingData(validatorsInfo map[uint32][]*state.
 	}()
 
 	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice:= range validatorsInfo{
+	for shardID, validatorsInfoSlice := range validatorsInfo {
 		shardEligibleNodeKeys := make([][]byte, len(validatorsInfoSlice))
 		eligibleNodesKeys[shardID] = shardEligibleNodeKeys
-		for i, validatorInfo := range validatorsInfoSlice{
+		for i, validatorInfo := range validatorsInfoSlice {
 			eligibleNodesKeys[shardID][i] = validatorInfo.PublicKey
 		}
 	}

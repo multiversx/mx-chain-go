@@ -2017,6 +2017,8 @@ func newMetaBlockProcessor(
 		NodesConfigProvider:           nodesCoordinator,
 		UserAccountsDB:                stateComponents.AccountsAdapter,
 		StakingDataProvider:           stakingDataProvider,
+		RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
+		RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

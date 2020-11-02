@@ -711,6 +711,8 @@ func CreateEconomicsData() *economics.EconomicsData {
 				LeaderPercentage:              0.1,
 				DeveloperPercentage:           0.1,
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				TopUpFactor:                   0.25,
+				TopUpGradientPoint:            "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1483,6 +1485,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			NodesConfigProvider:           tpn.NodesCoordinator,
 			UserAccountsDB:                tpn.AccntState,
 			StakingDataProvider:           stakingDataProvider,
+			RewardsTopUpGradientPoint:     tpn.EconomicsData.RewardsTopUpGradientPoint(),
+			RewardsTopUpFactor:            tpn.EconomicsData.RewardsTopUpFactor(),
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 
