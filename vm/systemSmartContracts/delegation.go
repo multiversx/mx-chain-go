@@ -1496,7 +1496,7 @@ func (d *delegation) getTotalCumulatedRewards(args *vmcommon.ContractCallInput) 
 			continue
 		}
 
-		totalCumulatedRewards.Add(totalCumulatedRewards, rewardsData.TotalActive)
+		totalCumulatedRewards.Add(totalCumulatedRewards, rewardsData.RewardsToDistribute)
 	}
 	d.eei.Finish(totalCumulatedRewards.Bytes())
 
