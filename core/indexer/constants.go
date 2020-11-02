@@ -1,15 +1,32 @@
 package indexer
 
-const txsBulkSizeThreshold = 900000 // 0.9MB
+var headerContentTypeJSON = []string{"application/json"}
 
-const maxNumberOfDocumentsGet = 5000
-const txIndex = "transactions"
-const blockIndex = "blocks"
-const miniblocksIndex = "miniblocks"
-const tpsIndex = "tps"
-const validatorsIndex = "validators"
-const roundIndex = "rounds"
-const ratingIndex = "rating"
+const (
+	headerXSRF        = "kbn-xsrf"
+	headerContentType = "Content-Type"
+	kibanaPluginPath  = "_plugin/kibana/api"
 
-const metachainTpsDocID = "meta"
-const shardTpsDocIDPrefix = "shard"
+	blockIndex           = "blocks"
+	miniblocksIndex      = "miniblocks"
+	txIndex              = "transactions"
+	tpsIndex             = "tps"
+	validatorsIndex      = "validators"
+	roundIndex           = "rounds"
+	ratingIndex          = "rating"
+	accountsIndex        = "accounts"
+	accountsHistoryIndex = "accountshistory"
+
+	txPolicy              = "transactions_policy"
+	blockPolicy           = "blocks_policy"
+	miniblocksPolicy      = "miniblocks_policy"
+	validatorsPolicy      = "validators_policy"
+	roundPolicy           = "rounds_policy"
+	ratingPolicy          = "rating_policy"
+	accountsHistoryPolicy = "accountshistory_policy"
+
+	metachainTpsDocID   = "meta"
+	shardTpsDocIDPrefix = "shard"
+
+	bulkSizeThreshold = 800000 // 0.8MB
+)
