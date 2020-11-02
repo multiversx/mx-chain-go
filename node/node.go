@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -227,6 +228,12 @@ func (n *Node) StartConsensus() error {
 		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
 		return ErrGenesisBlockNotInitialized
+	}
+
+	if !n.indexer.IsNilIndexer() {
+		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
+			"it is incompatible with the indexing process.")
+		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
 
 	chronologyHandler, err := n.createChronologyHandler(
@@ -558,6 +565,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -619,6 +627,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

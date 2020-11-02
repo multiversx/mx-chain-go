@@ -6,9 +6,7 @@ import (
 	"fmt"
 )
 
-type object = map[string]interface{}
-
-func encode(obj object) (bytes.Buffer, error) {
+func encode(obj objectsMap) (bytes.Buffer, error) {
 	var buff bytes.Buffer
 	if err := json.NewEncoder(&buff).Encode(obj); err != nil {
 		return bytes.Buffer{}, fmt.Errorf("error encoding : %w", err)
@@ -17,16 +15,27 @@ func encode(obj object) (bytes.Buffer, error) {
 	return buff, nil
 }
 
-func getDocumentsByIDsQuery(hashes []string) object {
+func getDocumentsByIDsQuery(hashes []string) objectsMap {
 	interfaceSlice := make([]interface{}, len(hashes))
 	for idx := range hashes {
-		interfaceSlice[idx] = object{
+		interfaceSlice[idx] = objectsMap{
 			"_id":     hashes[idx],
 			"_source": false,
 		}
 	}
 
-	return object{
+	return objectsMap{
 		"docs": interfaceSlice,
+	}
+}
+
+func prepareHashesForBulkRemove(hashes []string) objectsMap {
+	return objectsMap{
+		"query": objectsMap{
+			"ids": objectsMap{
+				"type":   "_doc",
+				"values": hashes,
+			},
+		},
 	}
 }
