@@ -18,6 +18,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		MiniblocksMetadataStorer:    genericmocks.NewStorerMock("MiniblocksMetadata", epoch),
 		MiniblockHashByTxHashStorer: genericmocks.NewStorerMock("MiniblockHashByTxHash", epoch),
 		EpochByHashStorer:           genericmocks.NewStorerMock("EpochByHash", epoch),
+		EventsHashesByTxHashStorer:  genericmocks.NewStorerMock("EventsHashesByTxHash", epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &mock.HasherMock{},
 	}
@@ -90,7 +91,7 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 		},
 	}
 
-	err = repo.RecordBlock(headerHash, blockHeader, blockBody)
+	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil)
 	require.Nil(t, err)
 	// Two miniblocks
 	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericmocks.StorerMock).GetCurrentEpochData().Len())
@@ -116,7 +117,7 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 		TxHashes: [][]byte{[]byte("txB")},
 	}
 
-	repo.RecordBlock([]byte("fooblock"),
+	_ = repo.RecordBlock([]byte("fooblock"),
 		&block.Header{Epoch: 42, Round: 4321},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
@@ -124,6 +125,7 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 				miniblockB,
 			},
 		},
+		nil, nil,
 	)
 
 	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
@@ -156,12 +158,12 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
 	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
 
-	repo.RecordBlock([]byte("fooblock"), &block.Header{Epoch: 42}, &block.Body{
+	_ = repo.RecordBlock([]byte("fooblock"), &block.Header{Epoch: 42}, &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			miniblockA,
 			miniblockB,
 		},
-	})
+	}, nil, nil)
 
 	// Get epoch by block hash
 	epoch, err := repo.GetEpochByHash([]byte("fooblock"))
@@ -211,7 +213,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	miniblockHashC, _ := repo.computeMiniblockHash(miniblockC)
 
 	// Let's have a block committed
-	repo.RecordBlock([]byte("fooblock"),
+	_ = repo.RecordBlock([]byte("fooblock"),
 		&block.Header{Epoch: 42, Round: 4321},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
@@ -219,7 +221,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 				miniblockB,
 				miniblockC,
 			},
-		},
+		}, nil, nil,
 	)
 
 	// Check "notarization coordinates"
@@ -413,21 +415,21 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
 
 	// Let's commit the blocks at destination
-	repo.RecordBlock([]byte("fooBlock"),
+	_ = repo.RecordBlock([]byte("fooBlock"),
 		&block.Header{Epoch: 42, Round: 4321},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		},
+		}, nil, nil,
 	)
-	repo.RecordBlock([]byte("barBlock"),
+	_ = repo.RecordBlock([]byte("barBlock"),
 		&block.Header{Epoch: 42, Round: 4322},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblockB,
 			},
-		},
+		}, nil, nil,
 	)
 
 	// Notifications have not been cleared after record block
@@ -468,13 +470,13 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
 
 	// Let's commit the intrashard block in epoch 42
-	repo.RecordBlock([]byte("fooBlock"),
+	_ = repo.RecordBlock([]byte("fooBlock"),
 		&block.Header{Epoch: 42, Round: 4321},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		},
+		}, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification, in the next epoch
@@ -525,26 +527,26 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 	miniblockHash, _ := repo.computeMiniblockHash(miniblock)
 
 	// Let's commit the intrashard block in epoch 42, on a fork
-	repo.RecordBlock([]byte("fooOnFork"),
+	_ = repo.RecordBlock([]byte("fooOnFork"),
 		&block.Header{Epoch: 42, Round: 4321},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		},
+		}, nil, nil,
 	)
 
 	// Let's go to next epoch
 	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).SetCurrentEpoch(43)
 
 	// Let's commit a block with the same miniblock, in the next epoch, on the canonical chain
-	repo.RecordBlock([]byte("fooOnChain"),
+	_ = repo.RecordBlock([]byte("fooOnChain"),
 		&block.Header{Epoch: 43, Round: 4350},
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		},
+		}, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification
@@ -577,7 +579,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 
 	// Epoch 42 will contain an orphaned record
 	orphanedMetadata := &MiniblockMetadata{}
-	args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
+	_ = args.MiniblocksMetadataStorer.(*genericmocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
 
 	require.Equal(t, 42, int(orphanedMetadata.Epoch))
 	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtSourceInMetaNonce))
@@ -627,13 +629,13 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	go func() {
 		// Simulate commit & rollback
 		for i := 0; i < 500; i++ {
-			repo.RecordBlock([]byte("fooBlock"),
+			_ = repo.RecordBlock([]byte("fooBlock"),
 				&block.Header{Epoch: 42, Round: 4321},
 				&block.Body{
 					MiniBlocks: []*block.MiniBlock{
 						miniblock,
 					},
-				},
+				}, nil, nil,
 			)
 		}
 

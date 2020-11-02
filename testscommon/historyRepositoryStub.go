@@ -9,7 +9,7 @@ import (
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
+	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler) error
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
@@ -17,9 +17,15 @@ type HistoryRepositoryStub struct {
 }
 
 // RecordBlock -
-func (hp *HistoryRepositoryStub) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+func (hp *HistoryRepositoryStub) RecordBlock(
+	blockHeaderHash []byte,
+	blockHeader data.HeaderHandler,
+	blockBody data.BodyHandler,
+	scrsPool map[string]data.TransactionHandler,
+	receipts map[string]data.TransactionHandler,
+) error {
 	if hp.RecordBlockCalled != nil {
-		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody)
+		return hp.RecordBlockCalled(blockHeaderHash, blockHeader, blockBody, scrsPool, receipts)
 	}
 	return nil
 }
@@ -50,6 +56,11 @@ func (hp *HistoryRepositoryStub) IsEnabled() bool {
 		return hp.IsEnabledCalled()
 	}
 	return true
+}
+
+// GetEventsHashesByTxHash -
+func (hp *HistoryRepositoryStub) GetEventsHashesByTxHash(_ []byte, _ uint32) (*dblookupext.EventsHashesByTxHash, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil -

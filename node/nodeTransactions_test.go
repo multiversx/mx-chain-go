@@ -23,7 +23,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := NewNode()
-	_, err := n.GetTransaction("zzz")
+	_, err := n.GetTransaction("zzz", false)
 	assert.Error(t, err)
 }
 
@@ -44,11 +44,11 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	dataPool.Transactions().AddData([]byte("c"), txC, 42, "1")
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
@@ -63,7 +63,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	dataPool.RewardTransactions().AddData([]byte("d"), txD, 42, "foo")
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
 	require.Equal(t, transaction.TxStatusPending, actualD.Status)
@@ -80,11 +80,11 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	dataPool.UnsignedTransactions().AddData([]byte("g"), txG, 42, "foo")
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -112,11 +112,11 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
@@ -131,7 +131,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
 	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
@@ -148,11 +148,11 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -163,14 +163,14 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
-	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")), false)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
-	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
 }
@@ -187,7 +187,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 2, 42)
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, 42, int(actualA.Epoch))
@@ -198,7 +198,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 2, 1, 42)
 
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, 42, int(actualB.Epoch))
@@ -209,7 +209,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 1, 42)
 
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
 	require.Equal(t, 42, int(actualC.Epoch))
@@ -220,7 +220,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42)
 
-	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")))
+	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")), false)
 	require.Nil(t, err)
 	require.Equal(t, txInvalid.Nonce, actualInvalid.Nonce)
 	require.Equal(t, 42, int(actualInvalid.Epoch))
@@ -233,7 +233,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42)
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualD.Type)
@@ -246,7 +246,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 2, 42)
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualE.Epoch))
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -258,7 +258,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 2, 1, 42)
 
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualF.Epoch))
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
@@ -270,7 +270,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 1, 42)
 
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualG.Epoch))
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
@@ -281,7 +281,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return nil, fmt.Errorf("fooError")
 	}
-	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, tx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
@@ -292,7 +292,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return &dblookupext.MiniblockMetadata{}, nil
 	}
-	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
 }
