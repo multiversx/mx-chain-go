@@ -7,19 +7,19 @@ type WatchdogMock struct {
 }
 
 // Set -
-func (w *WatchdogMock) Set(callback func(alarmID string), duration time.Duration, alarmID string) {
+func (w *WatchdogMock) Set(_ func(alarmID string), _ time.Duration, _ string) {
 }
 
 // SetDefault -
-func (w *WatchdogMock) SetDefault(duration time.Duration, alarmID string) {
+func (w *WatchdogMock) SetDefault(_ time.Duration, _ string) {
 }
 
 // Stop -
-func (w *WatchdogMock) Stop(alarmID string) {
+func (w *WatchdogMock) Stop(_ string) {
 }
 
 // Reset -
-func (w *WatchdogMock) Reset(alarmID string) {
+func (w *WatchdogMock) Reset(_ string) {
 }
 
 // IsInterfaceNil -

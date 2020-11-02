@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -167,17 +168,25 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 
 		newBody.MiniBlocks = append(newBody.MiniBlocks, mb)
 	}
+
+	headerHash, err := core.CalculateHash(dp.marshalizer, dp.hasher, data.Header)
+	if err != nil {
+		log.Warn("error while calculating the hash of a header for logging",
+			"header nonce", data.Header.GetNonce(), "error", err)
+		return err
+	}
+
 	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
 	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
 	// not all data was indexed
-	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders)
+	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders, headerHash)
 	dp.indexRoundInfo(signersIndexes, data.Header)
-	dp.logHeaderInfo(data.Header)
+	dp.logHeaderInfo(data.Header, headerHash)
 	return nil
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := indexer.RoundInfo{
+	ri := workItems.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -185,7 +194,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfos([]indexer.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]workItems.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {
@@ -383,7 +392,7 @@ func (dp *dataProcessor) computeNotarizedHeaders(hdr data.HeaderHandler) []strin
 	return nil
 }
 
-func (dp *dataProcessor) logHeaderInfo(hdr data.HeaderHandler) {
+func (dp *dataProcessor) logHeaderInfo(hdr data.HeaderHandler, headerHash []byte) {
 	if hdr.GetNonce()%indexLogStep != 0 {
 		return
 	}
@@ -393,11 +402,6 @@ func (dp *dataProcessor) logHeaderInfo(hdr data.HeaderHandler) {
 
 	elapsedTime := time.Since(dp.startTime)
 	log.Info("elapsed time from start", "time", elapsedTime, "meta nonce", hdr.GetNonce())
-	headerHash, err := core.CalculateHash(dp.marshalizer, dp.hasher, hdr)
-	if err != nil {
-		log.Warn("error while calculating the hash of a header for logging", "error", err)
-		return
-	}
 
 	log.Info("indexed header",
 		"epoch", hdr.GetEpoch(),
