@@ -289,8 +289,8 @@ VERSION:
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
-	// elasticsearchTemplates defines a flag for the path to the elasticsearch templates
-	elasticsearchTemplates = cli.StringFlag{
+	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
+	elasticSearchTemplates = cli.StringFlag{
 		Name:  "elasticsearch-templates-path",
 		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
 		Value: "./config/elasticIndexTemplates",
@@ -438,7 +438,7 @@ func main() {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
-		elasticsearchTemplates,
+		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
@@ -1207,7 +1207,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		&economicsConfig.FeeSettings,
 		isInImportMode,
-		ctx.GlobalString(elasticsearchTemplates.Name),
+		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
