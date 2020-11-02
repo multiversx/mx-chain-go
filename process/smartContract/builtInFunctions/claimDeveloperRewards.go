@@ -55,7 +55,10 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: 0,
 		Data:     nil,
-		CallType: vmcommon.AsynchronousCall,
+		CallType: vmcommon.DirectCall,
+	}
+	if vmInput.CallType == vmcommon.AsynchronousCall {
+		outTransfer.CallType = vmcommon.AsynchronousCallBack
 	}
 	outputAcc := &vmcommon.OutputAccount{
 		Address:         vmInput.CallerAddr,

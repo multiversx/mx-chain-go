@@ -79,3 +79,6 @@ var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is inv
 
 // ErrFileLoggingProcessIsClosed signals that the file logging process is closed
 var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
+
+// ErrNilFeeConfig signals that a nil fee config is provided
+var ErrNilFeeConfig = errors.New("nil fee config")

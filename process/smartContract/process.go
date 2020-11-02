@@ -1356,7 +1356,12 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 		vmOutput.GasRefund = big.NewInt(0)
 	}
 
-	storageFreeRefund := big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
+	storageFreeRefund := big.NewInt(0)
+	// backward compatibility - there should be no refund as the storage pay was already distributed among validators
+	// this would only create additional inflation
+	if !sc.flagDeploy.IsSet() {
+		storageFreeRefund = big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
+	}
 	gasRefund := core.SafeMul(vmOutput.GasRemaining, tx.GetGasPrice())
 
 	rcvAddress := tx.GetSndAddr()

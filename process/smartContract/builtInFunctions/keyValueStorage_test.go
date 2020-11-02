@@ -18,11 +18,12 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 
 	funcGasCost := uint64(1)
 	gasConfig := BaseOperationCost{
-		StorePerByte:    1,
-		ReleasePerByte:  1,
-		DataCopyPerByte: 1,
-		PersistPerByte:  1,
-		CompilePerByte:  1,
+		StorePerByte:      1,
+		ReleasePerByte:    1,
+		DataCopyPerByte:   1,
+		PersistPerByte:    1,
+		CompilePerByte:    1,
+		AoTPreparePerByte: 1,
 	}
 
 	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)

@@ -24,6 +24,10 @@ import (
 var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
+// RefundGasMessage is the message returned in the data field of a receipt,
+// for move balance transactions that provide more gas than needed
+const RefundGasMessage = "refundedGas"
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
@@ -309,7 +313,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
 		SndAddr: tx.SndAddr,
-		Data:    []byte("refundedGas"),
+		Data:    []byte(RefundGasMessage),
 		TxHash:  txHash,
 	}
 

@@ -36,6 +36,9 @@
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
    MetaProtectionEnableEpoch = 2
 
+   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+   AheadOfTimeGasUsageEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
@@ -575,12 +578,17 @@
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
 
-[VirtualMachineConfig]
-    OutOfProcessEnabled = true
-    [VirtualMachineConfig.OutOfProcessConfig]
-        LogsMarshalizer = "json"
-        MessagesMarshalizer = "json"
-        MaxLoopTime = 1000
+[VirtualMachine]
+    [VirtualMachine.Execution]
+        OutOfProcessEnabled = true
+        WarmInstanceEnabled = false
+        [VirtualMachine.Execution.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 1000
+    [VirtualMachine.Querying]
+        OutOfProcessEnabled = false
+        WarmInstanceEnabled = true
 
 [Hardfork]
     EnableTrigger = true

@@ -44,6 +44,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		nil,
 		createMockVMAccountsArguments(),
 		0,
+		0,
 	)
 
 	assert.Nil(t, vmf)
@@ -58,6 +59,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 		10000,
 		arwenConfig.MakeGasMapForTests(),
 		createMockVMAccountsArguments(),
+		0,
 		0,
 	)
 
@@ -74,6 +76,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		10000,
 		arwenConfig.MakeGasMapForTests(),
 		createMockVMAccountsArguments(),
+		0,
 		0,
 	)
 	assert.NotNil(t, vmf)
