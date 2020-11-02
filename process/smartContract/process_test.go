@@ -1382,6 +1382,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
+	arguments.DeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1421,6 +1422,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
+	arguments.DeployEnableEpoch = 10
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
