@@ -2,15 +2,15 @@ package metachain
 
 // SetInCache -
 func (sdp *stakingDataProvider) SetInCache(key []byte, ownerData *ownerStats) {
-	sdp.mutCache.Lock()
+	sdp.mutStakingData.Lock()
 	sdp.cache[string(key)] = ownerData
-	sdp.mutCache.Unlock()
+	sdp.mutStakingData.Unlock()
 }
 
 // GetFromCache -
 func (sdp *stakingDataProvider) GetFromCache(key []byte) *ownerStats {
-	sdp.mutCache.Lock()
-	defer sdp.mutCache.Unlock()
+	sdp.mutStakingData.Lock()
+	defer sdp.mutStakingData.Unlock()
 
 	return sdp.cache[string(key)]
 }

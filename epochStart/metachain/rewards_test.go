@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
@@ -137,24 +138,24 @@ func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TODO fix this test
 func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	//cleanWasCalled := false
+	cleanWasCalled := false
 	numComputeRewards := 0
 	expectedErr := errors.New("expected error")
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		CleanCalled: func() {
-			//cleanWasCalled = true
+			cleanWasCalled = true
 		},
-		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
-			numComputeRewards++
+		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
+			numComputeRewards += len(keys)
 			return expectedErr
 		},
 	}
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, err := NewEpochStartRewardsCreator(args)
+	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -168,12 +169,12 @@ func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing
 			AccumulatedFees: big.NewInt(100),
 		},
 	}
-	_, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
-	assert.Nil(t, err)
-	//assert.Equal(t, expectedErr, err)
-	//assert.Nil(t, bdy)
-	//assert.True(t, cleanWasCalled)
-	//assert.Equal(t, 1, numComputeRewards)
+	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	assert.NotNil(t, err)
+	assert.Equal(t, expectedErr, err)
+	assert.Nil(t, bdy)
+	assert.True(t, cleanWasCalled)
+	assert.Equal(t, 1, numComputeRewards)
 }
 
 func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
@@ -186,12 +187,13 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 		CleanCalled: func() {
 			cleanWasCalled = true
 		},
-		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
-			numComputeRewards++
+		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
+			numComputeRewards += len(keys)
 			return nil
 		},
 	}
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, err := NewEpochStartRewardsCreator(args)
+	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),

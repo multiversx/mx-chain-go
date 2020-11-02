@@ -4,10 +4,11 @@ import "math/big"
 
 // StakingDataProviderStub -
 type StakingDataProviderStub struct {
-	CleanCalled                      func()
-	PrepareDataForBlsKeyCalled       func(blsKey []byte) error
-	PrepareStakingDataCalled         func(keys map[uint32][][]byte) error
-	GetTotalStakeEligibleNodesCalled func() *big.Int
+	CleanCalled                           func()
+	PrepareStakingDataCalled              func(keys map[uint32][][]byte) error
+	GetTotalStakeEligibleNodesCalled      func() *big.Int
+	GetTotalTopUpStakeEligibleNodesCalled func() *big.Int
+	GetNodeStakingStatsCalled             func(blsKey []byte) (*big.Int, *big.Int, error)
 }
 
 // GetTotalStakeEligibleNodes -
@@ -16,6 +17,22 @@ func (sdps *StakingDataProviderStub) GetTotalStakeEligibleNodes() *big.Int {
 		return sdps.GetTotalStakeEligibleNodesCalled()
 	}
 	return big.NewInt(0)
+}
+
+// GetTotalTopUpStakeEligibleNodes -
+func (sdps *StakingDataProviderStub) GetTotalTopUpStakeEligibleNodes() *big.Int {
+	if sdps.GetTotalTopUpStakeEligibleNodesCalled != nil {
+		return sdps.GetTotalTopUpStakeEligibleNodesCalled()
+	}
+	return big.NewInt(0)
+}
+
+// GetNodeStakingStats -
+func (sdps *StakingDataProviderStub) GetNodeStakingStats(blsKey []byte) (*big.Int, *big.Int, error) {
+	if sdps.GetNodeStakingStatsCalled != nil {
+		return sdps.GetNodeStakingStatsCalled(blsKey)
+	}
+	return big.NewInt(0), big.NewInt(0), nil
 }
 
 // PrepareStakingData -

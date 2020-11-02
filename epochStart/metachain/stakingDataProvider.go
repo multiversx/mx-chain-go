@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -69,13 +70,42 @@ func (sdp *stakingDataProvider) Clean() {
 	sdp.mutStakingData.Unlock()
 }
 
+// GetTotalStakeEligibleNodes returns the total stake backing the current epoch eligible nodes
+// This value is populated by a previous call to PrepareStakingData (done for epoch start)
+func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
+	return big.NewInt(0).Set(sdp.totalEligibleStake)
+}
+
+// GetTotalTopUpStakeEligibleNodes returns the stake in excess of the minimum stake required, that is backing the
+//current epoch eligible nodes
+// This value is populated by a previous call to PrepareStakingData (done for epoch start)
+func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
+	return big.NewInt(0).Set(sdp.totalEligibleTopUpStake)
+}
+
+// GetOwnerStakingStats returns the owner of provided bls key staking stats for the current epoch
+func (sdp *stakingDataProvider) GetNodeStakingStats(blsKey []byte) (*big.Int, *big.Int, error) {
+	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	if err != nil {
+		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
+		return nil, nil, err
+	}
+
+	ownerStats, ok := sdp.cache[owner]
+	if !ok {
+		return nil, nil, errors.New("owner has no eligible nodes in epoch")
+	}
+
+	return big.NewInt(0).Set(ownerStats.eligibleBaseStake), big.NewInt(0).Set(ownerStats.eligibleTopUpStake), nil
+}
+
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
 func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
 	sdp.Clean()
 
 	for _, keysList := range keys {
 		for _, blsKey := range keysList {
-			err := sdp.prepareDataForBlsKey(blsKey)
+			err := sdp.loadDataForBlsKey(blsKey)
 			if err != nil {
 				return err
 			}
@@ -110,10 +140,10 @@ func (sdp *stakingDataProvider) processStakingData() {
 	sdp.totalEligibleStake = totalEligibleStake
 }
 
-// prepareDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
+// loadDataForBlsKey will be called for each BLS key that took part in the consensus (no matter the shard ID) so the
 // staking data can be recovered from the staking system smart contracts.
 // The function will error if something went wrong. It does change the inner state of the called instance.
-func (sdp *stakingDataProvider) prepareDataForBlsKey(blsKey []byte) error {
+func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
@@ -131,12 +161,6 @@ func (sdp *stakingDataProvider) prepareDataForBlsKey(blsKey []byte) error {
 	ownerData.numEligible++
 
 	return nil
-}
-
-// GetTotalStakeEligibleNodes returns the total staked amount of the current epoch eligible nodes
-func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
-	// TODO: implement this
-	return big.NewInt(0)
 }
 
 func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {

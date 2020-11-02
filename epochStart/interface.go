@@ -149,6 +149,8 @@ type TransactionCacher interface {
 // StakingDataProvider is able to provide staking data from the system smart contracts
 type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
+	GetTotalTopUpStakeEligibleNodes() *big.Int
+	GetNodeStakingStats(blsKey []byte) (*big.Int, *big.Int, error)
 	PrepareStakingData(keys map[uint32][][]byte) error
 	Clean()
 	IsInterfaceNil() bool
