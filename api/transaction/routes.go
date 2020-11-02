@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -35,7 +36,7 @@ type FacadeHandler interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
-	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -404,7 +405,20 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := facade.GetTransaction(txhash)
+	withEvents, err := getQueryParamWithEvents(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s", errors.ErrValidation.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tx, err := facade.GetTransaction(txhash, withEvents)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -493,4 +507,13 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+func getQueryParamWithEvents(c *gin.Context) (bool, error) {
+	withEventsStr := c.Request.URL.Query().Get("withEvents")
+	if withEventsStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withEventsStr)
 }

@@ -360,6 +360,7 @@ type DbLookupExtensionsConfig struct {
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
 	EpochByHashStorageConfig           StorageConfig
+	EventsHashesByTxHashStorageConfig  StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

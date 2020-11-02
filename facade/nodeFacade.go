@@ -312,8 +312,8 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 }
 
 // GetTransaction gets the transaction with a specified hash
-func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash)
+func (nf *nodeFacade) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
+	return nf.node.GetTransaction(hash, withEvents)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

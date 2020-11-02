@@ -13,7 +13,7 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler) error {
+func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler) error {
 	return nil
 }
 
@@ -21,7 +21,7 @@ func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ d
 func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 }
 
-// GetTransaction returns a not implemented error
+// GetMiniblockMetadataByTxHash does nothing
 func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*MiniblockMetadata, error) {
 	return nil, nil
 }
@@ -34,6 +34,11 @@ func (nhr *nilHistoryRepository) GetEpochByHash(_ []byte) (uint32, error) {
 // IsEnabled returns false
 func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
+}
+
+// GetEventsHashesByTxHash -
+func (nhr *nilHistoryRepository) GetEventsHashesByTxHash(_ []byte, _ uint32) (*EventsHashesByTxHash, error) {
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "dblookupext";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// ScrHashesAndEpoch is used to store smart contract results and epoch
+message ScrHashesAndEpoch {
+     uint32 Epoch                               = 1;
+     repeated bytes  SmartContractResultsHashes = 2;
+}
+
+// MiniblockMetadata is used to store smart contract results hashes and receipt hash for a transaction hash
+message EventsHashesByTxHash {
+    bytes ReceiptsHash                        = 1;
+    repeated ScrHashesAndEpoch ScrHashesEpoch = 2;
+}
+
