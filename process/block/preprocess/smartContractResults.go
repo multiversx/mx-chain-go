@@ -144,13 +144,18 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 	return nil
 }
 
-// RemoveTxBlockFromPools removes smartContractResults and miniblocks from associated pools
-func (scr *smartContractResults) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	return scr.removeDataFromPools(body, miniBlockPool, scr.scrPool, scr.isMiniBlockCorrect)
+// RemoveBlockDataFromPools removes smart contract results and miniblocks from associated pools
+func (scr *smartContractResults) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return scr.removeBlockDataFromPools(body, miniBlockPool, scr.scrPool, scr.isMiniBlockCorrect)
 }
 
-// RestoreTxBlockIntoPools restores the smartContractResults and miniblocks to associated pools
-func (scr *smartContractResults) RestoreTxBlockIntoPools(
+// RemoveTxsFromPools removes smart contract results from associated pools
+func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body) error {
+	return scr.removeTxsFromPools(body, scr.scrPool, scr.isMiniBlockCorrect)
+}
+
+// RestoreBlockDataIntoPools restores the smart contract results and miniblocks to associated pools
+func (scr *smartContractResults) RestoreBlockDataIntoPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
@@ -260,8 +265,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxBlockToStorage saves smartContractResults from body into storage
-func (scr *smartContractResults) SaveTxBlockToStorage(body *block.Body) error {
+// SaveTxsToStorage saves smart contract results from body into storage
+func (scr *smartContractResults) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}
