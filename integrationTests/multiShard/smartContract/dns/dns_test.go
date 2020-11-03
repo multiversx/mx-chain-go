@@ -46,7 +46,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard := 25
+	nrRoundsToPropagateMultiShard := 5 // TODO: put 25 here after debug
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
@@ -126,7 +126,7 @@ func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrat
 }
 
 func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
-	numOfShards := 2
+	numOfShards := 1 // TODO: put 2 here - after debug
 	nodesPerShard := 1
 	numMetachainNodes := 1
 

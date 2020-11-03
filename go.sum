@@ -13,6 +13,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33 h1:D4XY0ax6PigUzVYUzYzdfjdcHEJY2hFPYzBJb26WbKE=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33/go.mod h1:TktLl1iYOuio2TYGRVTUFI47QX0gEuOml7l3pyGsbog=
+github.com/ElrondNetwork/arwen-wasm-vm v0.4.3 h1:iIcqwQJmPtQAYKajaoEz6F0WB26Z2RVnko3wIuN32FY=
+github.com/ElrondNetwork/arwen-wasm-vm v0.4.3/go.mod h1:5IDfRXbrub9DDgo3p0h8J7H9roHVICl99G0AmrxK8EM=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.4-0.20201103193320-060f1d5e90d3 h1:2kuwEYjUm+vb0MnITt/sntxJ4i7tp90hXZPSEPS6Ub8=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.4-0.20201103193320-060f1d5e90d3/go.mod h1:5IDfRXbrub9DDgo3p0h8J7H9roHVICl99G0AmrxK8EM=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
