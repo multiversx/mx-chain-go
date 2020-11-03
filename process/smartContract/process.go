@@ -1409,7 +1409,11 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
-			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				log.Warn("saveKeyValue", "error", err)
+				return nil, err
+			}
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 

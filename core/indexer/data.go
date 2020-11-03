@@ -3,6 +3,8 @@ package indexer
 import (
 	"math/big"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 )
 
 // Transaction is a structure containing all the fields that need
@@ -85,7 +87,7 @@ type Block struct {
 	PrevHash              string        `json:"prevHash"`
 	ShardID               uint32        `json:"shardId"`
 	TxCount               uint32        `json:"txCount"`
-	SearchOrder           uint32        `json:"searchOrder"`
+	SearchOrder           uint64        `json:"searchOrder"`
 }
 
 //ValidatorsPublicKeys is a structure containing fields for validators public keys
@@ -93,24 +95,23 @@ type ValidatorsPublicKeys struct {
 	PublicKeys []string `json:"publicKeys"`
 }
 
-// RoundInfo is a structure containing block signers and shard id
-type RoundInfo struct {
-	Index            uint64        `json:"round"`
-	SignersIndexes   []uint64      `json:"signersIndexes"`
-	BlockWasProposed bool          `json:"blockWasProposed"`
-	ShardId          uint32        `json:"shardId"`
-	Timestamp        time.Duration `json:"timestamp"`
+// AccountInfo holds (serializable) data about an account
+type AccountInfo struct {
+	Nonce      uint64  `json:"nonce"`
+	Balance    string  `json:"balance"`
+	BalanceNum float64 `json:"balanceNum"`
+}
+
+// AccountBalanceHistory represents an entry in the user accounts balances history
+type AccountBalanceHistory struct {
+	Address   string `json:"address"`
+	Timestamp int64  `json:"timestamp"`
+	Balance   string `json:"balance"`
 }
 
 // ValidatorsRatingInfo is a structure containing validators information
 type ValidatorsRatingInfo struct {
-	ValidatorsInfos []ValidatorRatingInfo `json:"validatorsRating"`
-}
-
-// ValidatorRatingInfo is a structure containing validator rating information
-type ValidatorRatingInfo struct {
-	PublicKey string  `json:"publicKey"`
-	Rating    float32 `json:"rating"`
+	ValidatorsInfos []workItems.ValidatorRatingInfo `json:"validatorsRating"`
 }
 
 // Miniblock is a structure containing miniblock information
@@ -139,4 +140,9 @@ type TPS struct {
 	NrOfNodes             uint32   `json:"nrOfNodes"`
 	LastBlockTxCount      uint32   `json:"lastBlockTxCount"`
 	ShardID               uint32   `json:"shardID"`
+}
+
+type kibanaResponse struct {
+	Ok    bool   `json:"ok"`
+	Error string `json:"error,omitempty"`
 }

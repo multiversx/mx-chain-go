@@ -270,7 +270,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	accCode := []byte("code")
 	acc := generateAccount()
 	acc.SetCode(accCode)
-	acc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+	_ = acc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
 
 	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
@@ -710,7 +710,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	adb := generateAccountDBFromTrie(&trieStub)
 
 	state2, _ := adb.LoadAccount(make([]byte, 32))
-	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
+	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue([]byte("dog"), []byte("puppy"))
 	_ = adb.SaveAccount(state2)
 
 	_, err := adb.Commit()
@@ -945,7 +945,7 @@ func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	_ = adb.SaveAccount(acc)
 
 	acc, _ = adb.LoadAccount(address)
-	acc.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
+	_ = acc.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, value)
 	_ = adb.SaveAccount(acc)
 
 	assert.Equal(t, 5, adb.JournalLen())
@@ -1345,7 +1345,7 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
 	userAcc := acc.(state.UserAccountHandler)
-	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
 
 	_ = adb.SaveAccount(userAcc)
 	_, _ = adb.Commit()
@@ -1384,7 +1384,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
 	userAcc := acc.(state.UserAccountHandler)
-	userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
+	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
 	_ = adb.SaveAccount(userAcc)
 
 	addr1 := make([]byte, 32)

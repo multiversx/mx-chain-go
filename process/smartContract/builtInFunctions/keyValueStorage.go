@@ -78,7 +78,10 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		acntDst.DataTrieTracker().SaveKeyValue(key, value)
+		err = acntDst.DataTrieTracker().SaveKeyValue(key, value)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	vmOutput.GasRemaining -= useGas
