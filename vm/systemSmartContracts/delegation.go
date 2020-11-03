@@ -282,7 +282,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalActive:            big.NewInt(0).Set(args.CallValue),
 		TotalUnStaked:          big.NewInt(0),
-		TotalStaked:            big.NewInt(0),
 	}
 	globalFund.ActiveFunds[0] = fundKey
 	err = d.saveGlobalFundData(globalFund)
@@ -602,9 +601,6 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("not enough in total active to stake")
 		return vmcommon.UserError
 	}
-
-	globalFund.TotalActive.Sub(globalFund.TotalActive, stakeValue)
-	globalFund.TotalStaked.Add(globalFund.TotalStaked, stakeValue)
 
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
@@ -1231,6 +1227,14 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			return errGet
 		}
 		if !found {
+			continue
+		}
+
+		if rewardData.TotalActive.Cmp(big.NewInt(0)) == 0 {
+			if isOwner {
+				totalRewards.Add(totalRewards, rewardData.RewardsToDistribute)
+			}
+
 			continue
 		}
 
