@@ -290,6 +290,12 @@ VERSION:
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
+	elasticSearchTemplates = cli.StringFlag{
+		Name:  "elasticsearch-templates-path",
+		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
+		Value: "./config/elasticIndexTemplates",
+	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -433,6 +439,7 @@ func main() {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
+		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
@@ -1201,6 +1208,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		&economicsConfig.FeeSettings,
 		isInImportMode,
+		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -2014,9 +2022,9 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	feeConfig *config.FeeSettings,
 	isInImportDBMode bool,
+	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
 
-	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
@@ -2030,8 +2038,7 @@ func createElasticIndexer(
 		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
+		TemplatesPath:            elasticSearchTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
