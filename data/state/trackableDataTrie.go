@@ -1,6 +1,7 @@
 package state
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -67,13 +68,19 @@ func trimValue(value []byte, tailLength int) ([]byte, error) {
 
 // SaveKeyValue stores in dirtyData the data keys "touched"
 // It does not care if the data is really dirty as calling this check here will be sub-optimal
-func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) {
+func (tdaw *TrackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	var identifier []byte
-	if len(value) != 0 {
+	lenValue := uint64(len(value))
+	if lenValue > core.MaxLeafSize {
+		return data.ErrLeafSizeTooBig
+	}
+
+	if lenValue != 0 {
 		identifier = append(key, tdaw.identifier...)
 	}
 
 	tdaw.dirtyData[string(key)] = append(value, identifier...)
+	return nil
 }
 
 // SetDataTrie sets the internal data trie
