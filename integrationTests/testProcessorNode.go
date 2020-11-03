@@ -248,6 +248,8 @@ type TestProcessorNode struct {
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
 
+	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
+
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
@@ -1276,7 +1278,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStakeAmount: "100",
 				EnabledEpoch:   0,
 				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				MaxServiceFee:  100000,
 			},
 		},
 		tpn.PeerState,
@@ -1532,6 +1534,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			StakingV2EnableEpoch:    1000000,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
+		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
