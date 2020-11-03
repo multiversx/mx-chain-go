@@ -24,8 +24,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	vmConstants "github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -325,9 +323,9 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -335,9 +333,9 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
 }
 
 func deployAndExecuteERC20WithBigInt(
@@ -751,129 +749,5 @@ func TestAndCatchTrieError(t *testing.T) {
 		transferNonce++
 		testContext.Accounts.PruneTrie(rootHash, data.OldRoot)
 		testContext.Accounts.PruneTrie(newRootHash, data.OldRoot)
-	}
-}
-
-func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true, false, 1000, 1)
-}
-
-func TestDelegationProcessManyTimeCompile(t *testing.T) {
-	delegationProcessManyTimes(t, false, false, 1000, 1)
-}
-
-func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
-	delegationProcessManyTimes(t, false, true, 1000, 1)
-}
-
-func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
-	ownerAddressBytes := []byte("12345678901234567890123456789011")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(10000000000000)
-	gasPrice := uint64(1)
-	gasLimit := uint64(10000000000)
-
-	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
-	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
-	defer testContext.Close()
-
-	value := big.NewInt(10)
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-	serviceFeePer10000 := 3000
-	blocksBeforeUnBond := 60
-
-	totalDelegationCap := big.NewInt(0).Mul(big.NewInt(int64(txPerBenchmark)), value)
-
-	tx := vm.CreateDeployTx(
-		ownerAddressBytes,
-		ownerNonce,
-		big.NewInt(0),
-		gasPrice,
-		gasLimit,
-		arwen.CreateDeployTxData(scCode)+
-			"@"+hex.EncodeToString(vmConstants.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
-			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
-			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
-	)
-
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
-	ownerNonce++
-
-	testAddresses := createTestAddresses(uint64(txPerBenchmark * 2))
-	for _, testAddress := range testAddresses {
-		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(10000000000000))
-	}
-	_, _ = testContext.Accounts.Commit()
-
-	for j := 0; j < numRun; j++ {
-		start := time.Now()
-		for i := 0; i < txPerBenchmark*2; i++ {
-			testAddress := testAddresses[i]
-			nonce := uint64(j)
-			if i < txPerBenchmark {
-				nonce *= 2
-			}
-			tx = &transaction.Transaction{
-				Nonce:    nonce,
-				Value:    big.NewInt(0).Set(value),
-				SndAddr:  testAddress,
-				RcvAddr:  scAddress,
-				Data:     []byte("stake"),
-				GasPrice: gasPrice,
-				GasLimit: gasLimit,
-			}
-
-			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-			if returnCode != vmcommon.Ok {
-				fmt.Printf("return code %s \n", returnCode.String())
-			}
-		}
-
-		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process %d stake on delegation %s \n", 2*txPerBenchmark, elapsedTime.String())
-
-		start = time.Now()
-		for i := 0; i < txPerBenchmark; i++ {
-			testAddress := testAddresses[i]
-			tx = &transaction.Transaction{
-				Nonce:    uint64(j*2 + 1),
-				Value:    big.NewInt(0),
-				SndAddr:  testAddress,
-				RcvAddr:  scAddress,
-				Data:     []byte("unStake@" + hex.EncodeToString(value.Bytes())),
-				GasPrice: gasPrice,
-				GasLimit: gasLimit,
-			}
-
-			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-			if returnCode != vmcommon.Ok {
-				fmt.Printf("return code %s \n", returnCode.String())
-			}
-		}
-
-		tx = &transaction.Transaction{
-			Nonce:    ownerNonce,
-			Value:    big.NewInt(0),
-			SndAddr:  ownerAddressBytes,
-			RcvAddr:  scAddress,
-			Data:     []byte("getFullWaitingList"),
-			GasPrice: gasPrice,
-			GasLimit: gasLimit,
-		}
-
-		ownerNonce++
-		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
-		if returnCode != vmcommon.Ok {
-			fmt.Printf("return code %s \n", returnCode.String())
-		}
-
-		elapsedTime = time.Since(start)
-		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
-		_, _ = testContext.Accounts.Commit()
-
 	}
 }
