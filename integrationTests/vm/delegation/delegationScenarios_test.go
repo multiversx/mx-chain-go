@@ -13,9 +13,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -316,6 +319,121 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	}
 }
 
+func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(10000) // 10%
+	totalNumNodes := 5
+	numDelegators := 4
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+
+	// add 5 nodes to the delegation contract
+	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
+	txData := addNodesTxData(blsKeys, sigs)
+	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// 4 delegators fill the delegation cap
+	delegators := getAddresses(numDelegators)
+	firstDelegators := delegators[:2]
+	firstDelegatorsValue := big.NewInt(1500)
+	lastDelegators := delegators[2:]
+	lastDelegatorsValue := big.NewInt(500)
+	processMultipleTransactions(t, tpn, firstDelegators, delegationScAddress, "delegate", firstDelegatorsValue)
+	processMultipleTransactions(t, tpn, lastDelegators, delegationScAddress, "delegate", lastDelegatorsValue)
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstDelegators, delegationScAddress, firstDelegatorsValue)
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastDelegators, delegationScAddress, lastDelegatorsValue)
+
+	// stake 3 nodes
+	txData = txDataForFunc("stakeNodes", blsKeys)
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(1000), 1)
+	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(2000), 2)
+
+	txData = "changeServiceFee@" + hex.EncodeToString([]byte("20000")) // 20%
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Nil(t, err)
+
+	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(1000), 3)
+	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(2000), 4)
+
+	checkRewardData(t, tpn, delegationScAddress, 1, 1000, 5000, serviceFee)
+	checkRewardData(t, tpn, delegationScAddress, 2, 2000, 5000, serviceFee)
+	checkRewardData(t, tpn, delegationScAddress, 3, 1000, 5000, big.NewInt(20000))
+	checkRewardData(t, tpn, delegationScAddress, 4, 2000, 5000, big.NewInt(20000))
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5, Epoch: 4})
+
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 1530)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 1530)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[2], 510)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 510)
+	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
+}
+
+func checkDelegatorReward(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	delegScAddr []byte,
+	delegAddr []byte,
+	expectedRewards int64,
+) {
+	txData := "getClaimableRewards@" + hex.EncodeToString(delegAddr)
+	delegRewards := delegationViewFuncSingleResult(t, tpn, txData, delegScAddr)
+	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), delegRewards)
+
+}
+
+func checkRewardData(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	delegScAddr []byte,
+	epoch uint8,
+	expectedRewards int64,
+	expectedTotalActive int64,
+	expectedServiceFee *big.Int,
+) {
+	txData := "getRewardData@" + hex.EncodeToString([]byte{epoch})
+	epoch0RewardData := delegationViewFuncMultipleResults(t, tpn, txData, delegScAddr)
+	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), epoch0RewardData[0])
+	assert.Equal(t, big.NewInt(expectedTotalActive).Bytes(), epoch0RewardData[1])
+	assert.Equal(t, expectedServiceFee.Bytes(), epoch0RewardData[2])
+}
+
+func addRewardsToDelegation(tpn *integrationTests.TestProcessorNode, recvAddr []byte, value *big.Int, epoch uint32) {
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: epoch})
+
+	tx := &rewardTx.RewardTx{
+		Round:   0,
+		Value:   value,
+		RcvAddr: recvAddr,
+		Epoch:   0,
+	}
+	rewardTxSerialized, _ := integrationTests.TestMarshalizer.Marshal(tx)
+	rewardTxHash := integrationTests.TestHasher.Compute(string(rewardTxSerialized))
+
+	mbSlice := block.MiniBlockSlice{
+		&block.MiniBlock{
+			TxHashes:        [][]byte{rewardTxHash},
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.RewardsBlock,
+		},
+	}
+
+	txCacher, _ := dataPool.NewCurrentBlockPool()
+	txCacher.AddTx(rewardTxHash, tx)
+
+	_ = tpn.EpochStartSystemSCProcessor.ProcessDelegationRewards(mbSlice, txCacher)
+}
+
 func verifyDelegatorsStake(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
@@ -326,7 +444,7 @@ func verifyDelegatorsStake(
 ) {
 	for i := range addresses {
 		txData := txDataForFunc(funcName, [][]byte{addresses[i]})
-		delegActiveStake := delegatorViewFuncSingleResult(t, tpn, txData, delegationAddr)
+		delegActiveStake := delegationViewFuncSingleResult(t, tpn, txData, delegationAddr)
 		assert.Equal(t, expectedRes, big.NewInt(0).SetBytes(delegActiveStake))
 	}
 }
@@ -366,12 +484,44 @@ func deployNewSc(
 	return []byte{}
 }
 
-func delegatorViewFuncSingleResult(
+func delegationViewFuncSingleResult(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
 	txData string,
 	delegScAddr []byte,
 ) []byte {
+	scr := getMyScr(t, tpn, txData, delegScAddr)
+
+	tokens := strings.Split(string(scr.GetData()), "@")
+	res, _ := hex.DecodeString(tokens[2])
+
+	return res
+}
+
+func delegationViewFuncMultipleResults(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	txData string,
+	delegScAddr []byte,
+) [][]byte {
+	scr := getMyScr(t, tpn, txData, delegScAddr)
+
+	tokens := strings.Split(string(scr.GetData()), "@")
+
+	result := make([][]byte, 0)
+	for i := 2; i < len(tokens); i++ {
+		res, _ := hex.DecodeString(tokens[i])
+		result = append(result, res)
+	}
+	return result
+}
+
+func getMyScr(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	txData string,
+	delegScAddr []byte,
+) data.TransactionHandler {
 	scrForwarder, _ := tpn.ScrForwarder.(interface {
 		CleanIntermediateTransactions()
 	})
@@ -383,13 +533,10 @@ func delegatorViewFuncSingleResult(
 
 	scr := smartContract.GetAllSCRs(tpn.ScProcessor)
 	if len(scr) != 1 {
-		return []byte{}
+		return nil
 	}
 
-	tokens := strings.Split(string(scr[0].GetData()), "@")
-	res, _ := hex.DecodeString(tokens[2])
-
-	return res
+	return scr[0]
 }
 
 func intToString(val uint32) string {

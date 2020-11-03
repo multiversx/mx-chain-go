@@ -393,7 +393,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnBondedFromNodes)
 	assert.Equal(t, callValue, dGlobalFund.TotalActive)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStaked)
-	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalStaked)
 
 	delegatorDataPresent, delegator, err := d.getOrCreateDelegatorData(ownerAddr)
 	assert.Nil(t, err)
@@ -870,7 +869,6 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 
 	globalFund = &GlobalFundData{
 		TotalActive: big.NewInt(200),
-		TotalStaked: big.NewInt(0),
 	}
 	_ = d.saveGlobalFundData(globalFund)
 	addAuctionAndStakingScToVmContext(eei)
@@ -879,8 +877,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 	assert.Equal(t, vmcommon.Ok, output)
 
 	globalFund, _ = d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(200), globalFund.TotalStaked)
-	assert.Equal(t, big.NewInt(0), globalFund.TotalActive)
+	assert.Equal(t, big.NewInt(200), globalFund.TotalActive)
 
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.StakedKeys))
@@ -2018,4 +2015,82 @@ func TestDelegation_getSuccessAndUnSuccessKeys(t *testing.T) {
 
 	assert.Equal(t, 1, len(failedKeys))
 	assert.Equal(t, blsKey2, failedKeys[0])
+}
+
+func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 1
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+
+	fundKey := []byte{2}
+	dData := &DelegatorData{
+		ActiveFund:       fundKey,
+		UnClaimedRewards: big.NewInt(0),
+	}
+
+	rewards := big.NewInt(1000)
+	_ = d.saveFund(fundKey, &Fund{Value: big.NewInt(1)})
+	_ = d.saveRewardData(1, &RewardComputationData{
+		TotalActive:         big.NewInt(0),
+		RewardsToDistribute: rewards,
+	})
+
+	ownerAddr := []byte("ownerAddress")
+	eei.SetStorage([]byte(ownerKey), ownerAddr)
+
+	err := d.computeAndUpdateRewards([]byte("other address"), dData)
+	assert.Nil(t, err)
+	assert.Equal(t, big.NewInt(0), dData.UnClaimedRewards)
+}
+
+func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToOwner(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 1
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+
+	fundKey := []byte{2}
+	dData := &DelegatorData{
+		ActiveFund:       fundKey,
+		UnClaimedRewards: big.NewInt(0),
+	}
+
+	rewards := big.NewInt(1000)
+	_ = d.saveFund(fundKey, &Fund{Value: big.NewInt(1)})
+	_ = d.saveRewardData(1, &RewardComputationData{
+		TotalActive:         big.NewInt(0),
+		RewardsToDistribute: rewards,
+	})
+
+	ownerAddr := []byte("ownerAddress")
+	eei.SetStorage([]byte(ownerKey), ownerAddr)
+
+	err := d.computeAndUpdateRewards(ownerAddr, dData)
+	assert.Nil(t, err)
+	assert.Equal(t, rewards, dData.UnClaimedRewards)
 }

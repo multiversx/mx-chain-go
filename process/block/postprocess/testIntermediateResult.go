@@ -10,12 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// TestIntermediateResProc --
+// TestIntermediateResProc extends intermediateResultsProcessor and is used in integration tests
+// as it exposes some functions that are not supposed to be used in production code
+// Exported functions simplify the reproduction of edge cases
 type TestIntermediateResProc struct {
 	*intermediateResultsProcessor
 }
 
-// NewTestIntermediateResultsProcessor --
+// NewTestIntermediateResultsProcessor creates a new instance of TestIntermediateResProc
 func NewTestIntermediateResultsProcessor(
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -29,7 +31,7 @@ func NewTestIntermediateResultsProcessor(
 	return &TestIntermediateResProc{interimProc}, err
 }
 
-// GetIntermediateTransactions --
+// GetIntermediateTransactions returns all the intermediate transactions from the underlying map
 func (tirp *TestIntermediateResProc) GetIntermediateTransactions() []data.TransactionHandler {
 	tirp.mutInterResultsForBlock.Lock()
 	defer tirp.mutInterResultsForBlock.Unlock()
@@ -42,7 +44,7 @@ func (tirp *TestIntermediateResProc) GetIntermediateTransactions() []data.Transa
 	return intermediateTxs
 }
 
-// CleanIntermediateTransactions --
+// CleanIntermediateTransactions removes the intermediate transactions from the underlying map
 func (tirp *TestIntermediateResProc) CleanIntermediateTransactions() {
 	tirp.mutInterResultsForBlock.Lock()
 	defer tirp.mutInterResultsForBlock.Unlock()
