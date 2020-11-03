@@ -189,7 +189,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, true)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -242,7 +242,7 @@ func TestGasModel(t *testing.T) {
 	fmt.Println("STRINGCONCAT 1000 ")
 	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 1, 2, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
+	deployAndExecuteERC20WithBigInt(t, 1, 2, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
 }
 
 func TestWASMMetering(t *testing.T) {
@@ -325,7 +325,9 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken")
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -333,7 +335,9 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
+	deployAndExecuteERC20WithBigInt(t, 10, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
 }
 
 func deployAndExecuteERC20WithBigInt(
@@ -343,6 +347,8 @@ func deployAndExecuteERC20WithBigInt(
 	gasSchedule map[string]map[string]uint64,
 	fileName string,
 	functionName string,
+	warmInstance bool,
+	outOfProcess bool,
 ) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
@@ -353,7 +359,7 @@ func deployAndExecuteERC20WithBigInt(
 
 	scCode := arwen.GetSCCode(fileName)
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, true)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -443,7 +449,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, true)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, false, false)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -642,7 +648,7 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, true)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, nil, false, false)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -749,14 +755,18 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	delegationProcessManyTimes(t, true, 1000, 1)
+	delegationProcessManyTimes(t, true, false, 1000, 1)
 }
 
 func TestDelegationProcessManyTimeCompile(t *testing.T) {
-	delegationProcessManyTimes(t, false, 1000, 1)
+	delegationProcessManyTimes(t, false, false, 1000, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark int, numRun int) {
+func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
+	delegationProcessManyTimes(t, false, true, 1000, 1)
+}
+
+func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -766,7 +776,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, txPerBenchmark 
 	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
 	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
 	defer testContext.Close()
 
 	value := big.NewInt(10)
