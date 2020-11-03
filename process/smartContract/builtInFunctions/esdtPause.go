@@ -79,8 +79,7 @@ func (e *esdtPause) togglePause(token []byte) error {
 	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(token)
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 	esdtMetaData.Paused = e.pause
-	systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
-	return nil
+	return systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
 }
 
 func (e *esdtPause) getSystemAccount() (state.UserAccountHandler, error) {

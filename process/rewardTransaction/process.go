@@ -116,7 +116,7 @@ func (rtp *rewardTxProcessor) saveAccumulatedRewards(
 	}
 
 	existingReward.Add(existingReward, rtx.Value)
-	userAccount.DataTrieTracker().SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
+	_ = userAccount.DataTrieTracker().SaveKeyValue([]byte(fullRewardKey), existingReward.Bytes())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

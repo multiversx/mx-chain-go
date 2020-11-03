@@ -70,7 +70,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err = esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Nil(t, err)
@@ -104,7 +104,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)

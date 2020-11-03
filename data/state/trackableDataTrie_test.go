@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/pkg/errors"
@@ -126,7 +128,7 @@ func TestTrackableDataTrie_RetrieveValueShouldCheckDirtyDataFirst(t *testing.T) 
 	assert.Equal(t, retrievedTrieVal, valRecovered)
 	assert.Nil(t, err)
 
-	mdaw.SaveKeyValue(key, newTrieValue)
+	_ = mdaw.SaveKeyValue(key, newTrieValue)
 	valRecovered, err = mdaw.RetrieveValue(key)
 	assert.Equal(t, newTrieValue, valRecovered)
 	assert.Nil(t, err)
@@ -154,7 +156,7 @@ func TestTrackableDataTrie_SaveKeyValueShouldSaveOnlyInDirty(t *testing.T) {
 	mdaw := state.NewTrackableDataTrie(identifier, trie)
 	assert.NotNil(t, mdaw)
 
-	mdaw.SaveKeyValue(keyExpected, value)
+	_ = mdaw.SaveKeyValue(keyExpected, value)
 
 	//test in dirty
 	assert.Equal(t, expectedVal, mdaw.DirtyData()[string(keyExpected)])
@@ -172,7 +174,7 @@ func TestTrackableDataTrie_ClearDataCachesValidDataShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(mdaw.DirtyData()))
 
 	//add something
-	mdaw.SaveKeyValue([]byte("ABC"), []byte("123"))
+	_ = mdaw.SaveKeyValue([]byte("ABC"), []byte("123"))
 	assert.Equal(t, 1, len(mdaw.DirtyData()))
 
 	//clear
@@ -188,6 +190,16 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 
 	newTrie := &mock.TrieStub{}
 	mdaw.SetDataTrie(newTrie)
-
 	assert.Equal(t, newTrie, mdaw.DataTrie())
+}
+
+func TestTrackableDataTrie_SaveKeyValueTooBig(t *testing.T) {
+	t.Parallel()
+
+	identifier := []byte("identifier")
+	trie := &mock.TrieStub{}
+	tdaw := state.NewTrackableDataTrie(identifier, trie)
+
+	err := tdaw.SaveKeyValue([]byte("key"), make([]byte, core.MaxLeafSize+1))
+	assert.Equal(t, err, data.ErrLeafSizeTooBig)
 }
