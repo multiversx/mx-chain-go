@@ -92,6 +92,7 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
+	logFilePrefix                = "elrond-go"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -490,7 +491,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath, logFilePrefix)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}

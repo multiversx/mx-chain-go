@@ -112,7 +112,7 @@ type DataTrieTracker interface {
 	ClearDataCaches()
 	DirtyData() map[string][]byte
 	RetrieveValue(key []byte) ([]byte, error)
-	SaveKeyValue(key []byte, value []byte)
+	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr data.Trie)
 	DataTrie() data.Trie
 	IsInterfaceNil() bool
