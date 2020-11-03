@@ -48,6 +48,12 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.Equal(t, core.ErrNilStore, err)
 
 	args = createMockHistoryRepoArgs(0)
+	args.EventsHashesByTxHashStorer = nil
+	repo, err = NewHistoryRepository(args)
+	require.Nil(t, repo)
+	require.Equal(t, core.ErrNilStore, err)
+
+	args = createMockHistoryRepoArgs(0)
 	args.Hasher = nil
 	repo, err = NewHistoryRepository(args)
 	require.Nil(t, repo)

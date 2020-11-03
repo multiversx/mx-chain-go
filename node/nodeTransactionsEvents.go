@@ -28,6 +28,8 @@ func (n *Node) putEventsInTransaction(hash []byte, tx *transaction.ApiTransactio
 func (n *Node) putReceiptInTransaction(tx *transaction.ApiTransactionResult, recHash []byte, epoch uint32) {
 	rec, err := n.getReceiptFromStorage(recHash, epoch)
 	if err != nil {
+		log.Warn("nodeTransactionEvents:putReceiptInTransaction() cannot get receipt from storage",
+			"hash", hex.EncodeToString(recHash))
 		return
 	}
 
@@ -69,6 +71,7 @@ func (n *Node) putSmartContractResultsInTransaction(
 			if err != nil {
 				continue
 			}
+
 			tx.ScResults = append(tx.ScResults, n.adaptSmartContractResult(scr))
 		}
 	}
@@ -94,8 +97,6 @@ func (n *Node) adaptSmartContractResult(scr *smartContractResult.SmartContractRe
 	apiSCR := &transaction.SmartContractResultApi{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
-		RcvAddr:        n.addressPubkeyConverter.Encode(scr.RcvAddr),
-		SndAddr:        n.addressPubkeyConverter.Encode(scr.SndAddr),
 		RelayedValue:   scr.RelayedValue,
 		Code:           string(scr.Code),
 		Data:           string(scr.Data),
@@ -106,6 +107,14 @@ func (n *Node) adaptSmartContractResult(scr *smartContractResult.SmartContractRe
 		CallType:       scr.CallType,
 		CodeMetadata:   string(scr.CodeMetadata),
 		ReturnMessage:  string(scr.ReturnMessage),
+	}
+
+	if len(scr.SndAddr) != 0 {
+		apiSCR.SndAddr = n.addressPubkeyConverter.Encode(scr.SndAddr)
+	}
+
+	if len(scr.RcvAddr) != 0 {
+		apiSCR.RcvAddr = n.addressPubkeyConverter.Encode(scr.RcvAddr)
 	}
 
 	if len(scr.RelayerAddr) != 0 {

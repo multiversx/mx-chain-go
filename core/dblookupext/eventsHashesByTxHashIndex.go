@@ -96,7 +96,7 @@ func (eht *eventsHashesByTxHash) prepareSmartContractResultsEvents(
 		originalTxHash := string(scrResult.OriginalTxHash)
 
 		if eventsHashes, ok := eventsHashesMap[originalTxHash]; ok {
-			// append scr hash in already create event
+			// append scr hash in already created event
 			eventsHashes.ScrHashesEpoch[0].SmartContractResultsHashes = append(eventsHashes.ScrHashesEpoch[0].SmartContractResultsHashes, []byte(scrHash))
 		} else {
 			// create a new event for this hash
