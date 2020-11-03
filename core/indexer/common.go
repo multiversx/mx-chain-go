@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -517,59 +518,64 @@ func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
 }
 
 // GetElasticTemplatesAndPolicies will return elastic templates and policies
-func GetElasticTemplatesAndPolicies() (map[string]*bytes.Buffer, map[string]*bytes.Buffer) {
+func GetElasticTemplatesAndPolicies(path string) (map[string]*bytes.Buffer, map[string]*bytes.Buffer, error) {
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
+	var err error
 
 	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
 	for _, index := range indexes {
-		indexTemplates[index] = getTemplateByIndex(index)
+		indexTemplates[index], err = getTemplateByIndex(path, index)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
 	for _, indexPolicy := range indexesPolicies {
-		indexPolicies[indexPolicy] = getPolicyByIndex(indexPolicy)
+		indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	return indexTemplates, indexPolicies
+	return indexTemplates, indexPolicies, nil
 }
 
-func getTemplateByIndex(index string) *bytes.Buffer {
+func getTemplateByIndex(path string, index string) (*bytes.Buffer, error) {
 	indexTemplate := &bytes.Buffer{}
 
-	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileName := fmt.Sprintf("%s.json", index)
+	filePath := filepath.Join(path, fileName)
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Error("cannot read bytes from elastic template file", "path", filePath, "err", err)
-		return &bytes.Buffer{}
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrReadTemplatesFile, filePath, err.Error())
 	}
 
 	indexTemplate.Grow(len(fileBytes))
 	_, err = indexTemplate.Write(fileBytes)
 	if err != nil {
-		log.Error("getTemplateByIndex: cannot write bytes to buffer", "err", err)
-		return &bytes.Buffer{}
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
 	}
 
-	return indexTemplate
+	return indexTemplate, nil
 }
 
-func getPolicyByIndex(index string) *bytes.Buffer {
+func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
 	indexPolicy := &bytes.Buffer{}
 
-	filePath := fmt.Sprintf("./config/elasticIndexTemplates/%s.json", index)
+	fileName := fmt.Sprintf("%s.json", index)
+	filePath := filepath.Join(path, fileName)
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		log.Error("cannot read bytes from elastic policy file", "path", filePath, "err", err)
-		return &bytes.Buffer{}
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrReadPolicyFile, filePath, err.Error())
 	}
 
 	indexPolicy.Grow(len(fileBytes))
 	_, err = indexPolicy.Write(fileBytes)
 	if err != nil {
-		log.Error("getPolicyByIndex: cannot write bytes to buffer", "err", err)
-		return &bytes.Buffer{}
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
 	}
 
-	return indexPolicy
+	return indexPolicy, nil
 }
