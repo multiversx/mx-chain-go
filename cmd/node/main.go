@@ -1521,10 +1521,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
@@ -1532,11 +1533,30 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
+		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+
+		alterStorageConfigsForDBImport(config)
 	}
+}
+
+func alterStorageConfigsForDBImport(config *config.Config) {
+	changeStorageConfigForDBImport(&config.MiniBlocksStorage)
+	changeStorageConfigForDBImport(&config.BlockHeaderStorage)
+	changeStorageConfigForDBImport(&config.MetaBlockStorage)
+	changeStorageConfigForDBImport(&config.ShardHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.MetaHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.PeerAccountsTrieStorage)
+}
+
+func changeStorageConfigForDBImport(storageConfig *config.StorageConfig) {
+	alterCoefficient := uint32(10)
+
+	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
+	storageConfig.DB.MaxBatchSize = storageConfig.DB.MaxBatchSize * int(alterCoefficient)
 }
 
 func closeAllComponents(
