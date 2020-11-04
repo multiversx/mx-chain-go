@@ -57,6 +57,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
 		statusHandler:       arguments.AppStatusHandler,
+		indexer:             arguments.Indexer,
 	}
 
 	boot := ShardBootstrap{

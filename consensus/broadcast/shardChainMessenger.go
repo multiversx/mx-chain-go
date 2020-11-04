@@ -197,6 +197,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 	if err != nil {
 		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
 }
 
@@ -232,6 +233,7 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	err = scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
 	if err != nil {
 		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		return
 	}
 }
 

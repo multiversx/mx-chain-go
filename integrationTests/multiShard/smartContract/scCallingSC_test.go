@@ -279,7 +279,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
-
+	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"../../vm/arwen/testdata/counter/counter.wasm",
@@ -347,9 +347,10 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	txData := "ClaimDeveloperRewards"
-	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, 1)
+	time.Sleep(time.Second)
 
-	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+	for i := 0; i < 3; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -358,6 +359,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nonce++
 	}
 
+	time.Sleep(time.Second)
 	account = getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
 	fmt.Println("smart contract owner after claim", account.GetBalance())
 	require.True(t, account.GetBalance().Cmp(oldOwnerBalance) == 1)

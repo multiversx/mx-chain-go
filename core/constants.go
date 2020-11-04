@@ -578,3 +578,6 @@ const MultiplyFactorForScCall = 3
 // MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
+
+// MaxLeafSize represents maximum amount of data which can be saved under one leaf
+const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB

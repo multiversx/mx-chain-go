@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -91,10 +92,11 @@ type trigger struct {
 	epochStartNotifier epochStart.Notifier
 	rounder            process.Rounder
 
-	epoch               uint32
-	metaEpoch           uint32
-	newEpochHdrReceived bool
-	isEpochStart        bool
+	epoch                           uint32
+	metaEpoch                       uint32
+	newEpochHdrReceived             bool
+	isEpochStart                    bool
+	requestedFinalityAttestingBlock atomic.Flag
 
 	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
@@ -387,6 +389,7 @@ func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler
 
 func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 	metaHdr *block.MetaBlock,
+	receivedHash []byte,
 ) {
 	hash := t.mapFinalizedEpochs[metaHdr.Epoch]
 	epochStartMetaHdr := t.mapEpochStartHdrs[hash]
@@ -399,6 +402,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+t.finality, metaHdr.PrevHash)
 		if err != nil {
 			log.Debug("searched metaHeader was not found")
+			t.requestedFinalityAttestingBlock.Set()
 			return
 		}
 
@@ -406,11 +410,28 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
+	isFinalityAttestingBlock := metaHdr.Nonce == epochStartMetaHdr.Nonce+t.finality
+	if !isFinalityAttestingBlock {
 		return
 	}
+
 	err := t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
 	if err != nil {
+		return
+	}
+
+	if t.requestedFinalityAttestingBlock.IsSet() {
+		_, err = t.getHeaderWithNonceAndPrevHash(metaHdr.Nonce+1, receivedHash)
+		if err != nil {
+			return
+		}
+
+		t.epochFinalityAttestingRound = metaHdr.GetRound()
+		t.requestedFinalityAttestingBlock.Unset()
+		return
+	}
+
+	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
 		return
 	}
 
@@ -430,7 +451,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 
 	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
 	if t.metaEpoch == headerHandler.GetEpoch() && ok {
-		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr)
+		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
 		return
 	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {

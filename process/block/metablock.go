@@ -506,6 +506,7 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
 
 func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
+	headerHash []byte,
 	body data.BodyHandler,
 	lastMetaBlock data.HeaderHandler,
 	notarizedHeadersHashes []string,
@@ -515,7 +516,9 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	go mp.indexer.UpdateTPS(mp.tpsBenchmark)
+	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
+
+	mp.indexer.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
@@ -531,6 +534,10 @@ func (mp *metaProcessor) indexBlock(
 		metaBlock.GetPrevRandSeed(), metaBlock.GetRound(), core.MetachainShardId, metaBlock.GetEpoch(),
 	)
 	if err != nil {
+		log.Debug("indexBlock: GetConsensusValidatorsPublicKeys",
+			"hash", headerHash,
+			"epoch", metaBlock.GetEpoch(),
+			"error", err.Error())
 		return
 	}
 
@@ -554,10 +561,15 @@ func (mp *metaProcessor) indexBlock(
 
 	signersIndexes, err := mp.nodesCoordinator.GetValidatorsIndexes(publicKeys, epoch)
 	if err != nil {
+		log.Debug("indexBlock: GetValidatorsIndexes",
+			"hash", headerHash,
+			"epoch", metaBlock.GetEpoch(),
+			"error", err.Error())
 		return
 	}
 
-	go mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes)
+	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
+	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
@@ -1101,7 +1113,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.tpsBenchmark.Update(lastMetaBlock)
 
-	mp.indexBlock(header, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
@@ -1147,6 +1159,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockSizeThrottler.Succeed(header.Round)
 
 	mp.displayPoolsInfo()
+
+	errNotCritical = mp.removeTxsFromPools(bodyHandler)
+	if errNotCritical != nil {
+		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
+	}
 
 	mp.cleanupPools(headerHandler)
 

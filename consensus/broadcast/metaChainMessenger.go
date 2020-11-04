@@ -142,6 +142,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 ) {
 	if check.IfNil(header) {
 		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
+		return
 	}
 
 	headerHash, err := core.CalculateHash(mcm.marshalizer, mcm.hasher, header)
@@ -161,6 +162,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 	if err != nil {
 		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		return
 	}
 }
 

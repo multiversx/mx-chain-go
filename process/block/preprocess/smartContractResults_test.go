@@ -624,7 +624,7 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 	}
 }
 
-func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
+func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -645,13 +645,13 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) 
 		&mock.BalanceComputationStub{},
 	)
 
-	err := txs.RemoveTxBlockFromPools(nil, tdp.MiniBlocks())
+	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
-func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
+func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -684,7 +684,7 @@ func TestScrsPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	err := txs.RemoveTxBlockFromPools(body, tdp.MiniBlocks())
+	err := txs.RemoveBlockDataFromPools(body, tdp.MiniBlocks())
 
 	assert.Nil(t, err)
 
@@ -749,7 +749,7 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
+func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -785,11 +785,11 @@ func TestScrsPreprocessor_SaveTxBlockToStorage(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	err := txs.SaveTxBlockToStorage(body)
+	err := txs.SaveTxsToStorage(body)
 	assert.Nil(t, err)
 }
 
-func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *testing.T) {
+func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -825,7 +825,7 @@ func TestScrsPreprocessor_SaveTxBlockToStorageMissingTransactionsShouldErr(t *te
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
-	err := txs.SaveTxBlockToStorage(body)
+	err := txs.SaveTxsToStorage(body)
 
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
@@ -975,7 +975,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
 }
 
-func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
+func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("txHash")
@@ -1035,13 +1035,13 @@ func TestScrsPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 	miniblockPool := testscommon.NewCacherMock()
-	scrRestored, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	scrRestored, err := scr.RestoreBlockDataIntoPools(body, miniblockPool)
 
 	assert.Equal(t, scrRestored, 1)
 	assert.Nil(t, err)
 }
 
-func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *testing.T) {
+func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -1067,7 +1067,7 @@ func TestScrsPreprocessor__RestoreTxBlockIntoPoolsNilMiniblockPoolShouldErr(t *t
 
 	miniblockPool := storage.Cacher(nil)
 
-	_, err := scr.RestoreTxBlockIntoPools(body, miniblockPool)
+	_, err := scr.RestoreBlockDataIntoPools(body, miniblockPool)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilMiniBlockPool)

@@ -15,6 +15,7 @@ import (
 
 const (
 	maxMachineIDLen = 10
+	logFilePrefix   = "elrond-go"
 )
 
 var (

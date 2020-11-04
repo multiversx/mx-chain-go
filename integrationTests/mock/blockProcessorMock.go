@@ -26,6 +26,7 @@ type BlockProcessorMock struct {
 	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RestoreLastNotarizedHrdsToGenesisCalled func()
 	RevertStateToBlockCalled                func(header data.HeaderHandler) error
+	RevertIndexedBlockCalled                func(header data.HeaderHandler)
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -133,6 +134,13 @@ func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr 
 // Close -
 func (bpm *BlockProcessorMock) Close() error {
 	return nil
+}
+
+// RevertIndexedBlock -
+func (bpm *BlockProcessorMock) RevertIndexedBlock(header data.HeaderHandler) {
+	if bpm.RevertIndexedBlockCalled != nil {
+		bpm.RevertIndexedBlockCalled(header)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

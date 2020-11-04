@@ -255,6 +255,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
+		Indexer:             indexer.NewNilIndexer(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -293,6 +294,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
+		Indexer:             indexer.NewNilIndexer(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
