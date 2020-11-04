@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
@@ -45,8 +46,8 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-
-	nrRoundsToPropagateMultiShard := 5 // TODO: put 25 here after debug
+	_ = logger.SetLogLevel("arwen:TRACE")
+	nrRoundsToPropagateMultiShard := 1 // TODO: put 25 here after debug
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)

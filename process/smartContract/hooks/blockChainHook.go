@@ -518,6 +518,8 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 		return false, nil
 	}
 
+	bh.compiledScPool.Put(codeHash, compiledCode, len(compiledCode))
+
 	return true, compiledCode
 }
 
