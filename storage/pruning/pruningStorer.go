@@ -310,7 +310,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 		return nil, nil, err
 	}
 
-	close := func() {
+	closeFunc := func() {
 		err = persister.Close()
 		if err != nil {
 			log.Warn("createAndInitPersister(): persister.Close()", "error", err.Error())
@@ -324,7 +324,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 		return nil, nil, err
 	}
 
-	return persister, close, nil
+	return persister, closeFunc, nil
 }
 
 // Get searches the key in the cache. In case it is not found, it verifies with the bloom filter
@@ -374,7 +374,7 @@ func (ps *PruningStorer) Close() error {
 		err := persister.persister.Close()
 
 		if err != nil {
-			log.Error("cannot close persister", err)
+			log.Error("cannot close persister", "error", err)
 			closedSuccessfully = false
 		}
 		persister.setIsClosed(true)
