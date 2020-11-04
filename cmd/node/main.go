@@ -93,6 +93,7 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
+	logFilePrefix                = "elrond-go"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -290,6 +291,12 @@ VERSION:
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
+	elasticSearchTemplates = cli.StringFlag{
+		Name:  "elasticsearch-templates-path",
+		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
+		Value: "./config/elasticIndexTemplates",
+	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -433,6 +440,7 @@ func main() {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
+		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
@@ -484,7 +492,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath, logFilePrefix)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -1203,6 +1211,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		shardCoordinator,
 		&economicsConfig.FeeSettings,
 		isInImportMode,
+		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -1516,10 +1525,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
 			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
@@ -1527,11 +1537,30 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
+		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+
+		alterStorageConfigsForDBImport(config)
 	}
+}
+
+func alterStorageConfigsForDBImport(config *config.Config) {
+	changeStorageConfigForDBImport(&config.MiniBlocksStorage)
+	changeStorageConfigForDBImport(&config.BlockHeaderStorage)
+	changeStorageConfigForDBImport(&config.MetaBlockStorage)
+	changeStorageConfigForDBImport(&config.ShardHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.MetaHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.PeerAccountsTrieStorage)
+}
+
+func changeStorageConfigForDBImport(storageConfig *config.StorageConfig) {
+	alterCoefficient := uint32(10)
+
+	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
+	storageConfig.DB.MaxBatchSize = storageConfig.DB.MaxBatchSize * int(alterCoefficient)
 }
 
 func closeAllComponents(
@@ -1997,9 +2026,9 @@ func createElasticIndexer(
 	shardCoordinator sharding.Coordinator,
 	feeConfig *config.FeeSettings,
 	isInImportDBMode bool,
+	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
 
-	indexTemplates, indexPolicies := indexer.GetElasticTemplatesAndPolicies()
 	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
@@ -2013,8 +2042,7 @@ func createElasticIndexer(
 		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
+		TemplatesPath:            elasticSearchTemplatesPath,
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,

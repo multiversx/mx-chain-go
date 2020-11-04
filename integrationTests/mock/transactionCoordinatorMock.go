@@ -14,9 +14,10 @@ type TransactionCoordinatorMock struct {
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
-	SaveBlockDataToStorageCalled                         func(body *block.Body) error
+	SaveTxsToStorageCalled                               func(body *block.Body) error
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
+	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(body *block.Body, haveTime func() time.Duration) error
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler,
@@ -81,13 +82,13 @@ func (tcm *TransactionCoordinatorMock) IsDataPreparedForProcessing(haveTime func
 	return tcm.IsDataPreparedForProcessingCalled(haveTime)
 }
 
-// SaveBlockDataToStorage -
-func (tcm *TransactionCoordinatorMock) SaveBlockDataToStorage(body *block.Body) error {
-	if tcm.SaveBlockDataToStorageCalled == nil {
+// SaveTxsToStorage -
+func (tcm *TransactionCoordinatorMock) SaveTxsToStorage(body *block.Body) error {
+	if tcm.SaveTxsToStorageCalled == nil {
 		return nil
 	}
 
-	return tcm.SaveBlockDataToStorageCalled(body)
+	return tcm.SaveTxsToStorageCalled(body)
 }
 
 // RestoreBlockDataFromStorage -
@@ -106,6 +107,15 @@ func (tcm *TransactionCoordinatorMock) RemoveBlockDataFromPool(body *block.Body)
 	}
 
 	return tcm.RemoveBlockDataFromPoolCalled(body)
+}
+
+// RemoveTxsFromPool -
+func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error {
+	if tcm.RemoveTxsFromPoolCalled == nil {
+		return nil
+	}
+
+	return tcm.RemoveTxsFromPoolCalled(body)
 }
 
 // ProcessBlockTransaction -

@@ -24,7 +24,7 @@ func TestNewFileLogging_ShouldWork(t *testing.T) {
 		log.LogIfError(err)
 	}()
 
-	fl, err := NewFileLogging(dir, logsDirectory)
+	fl, err := NewFileLogging(dir, logsDirectory, "elrond-go")
 
 	assert.False(t, check.IfNil(fl))
 	assert.Nil(t, err)
@@ -39,7 +39,7 @@ func TestNewFileLogging_CloseShouldStopCreatingLogFiles(t *testing.T) {
 		log.LogIfError(err)
 	}()
 
-	fl, _ := NewFileLogging(dir, logsDirectory)
+	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	_ = fl.ChangeFileLifeSpan(time.Second)
 	time.Sleep(time.Second*3 + time.Millisecond*200)
 
@@ -64,7 +64,7 @@ func TestNewFileLogging_CloseCallTwiceShouldWork(t *testing.T) {
 		log.LogIfError(err)
 	}()
 
-	fl, _ := NewFileLogging(dir, logsDirectory)
+	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 
 	err := fl.Close()
 	assert.Nil(t, err)
@@ -82,7 +82,7 @@ func TestFileLogging_ChangeFileLifeSpanInvalidValueShouldErr(t *testing.T) {
 		log.LogIfError(err)
 	}()
 
-	fl, _ := NewFileLogging(dir, logsDirectory)
+	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	err := fl.ChangeFileLifeSpan(time.Millisecond)
 
 	assert.True(t, errors.Is(err, core.ErrInvalidLogFileMinLifeSpan))
@@ -97,7 +97,7 @@ func TestFileLogging_ChangeFileLifeSpanAfterCloseShouldErr(t *testing.T) {
 		log.LogIfError(err)
 	}()
 
-	fl, _ := NewFileLogging(dir, logsDirectory)
+	fl, _ := NewFileLogging(dir, logsDirectory, "elrond-go")
 	err := fl.ChangeFileLifeSpan(time.Second)
 	assert.Nil(t, err)
 
