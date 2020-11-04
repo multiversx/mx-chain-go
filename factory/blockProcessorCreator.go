@@ -111,7 +111,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
-		pcf.config.VirtualMachineConfig,
+		pcf.config.VirtualMachine.Execution,
 		pcf.economicsData.MaxGasLimitPerBlock(pcf.shardCoordinator.SelfId()),
 		pcf.gasSchedule,
 		argsHook,

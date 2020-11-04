@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -30,28 +31,34 @@ type statusComponents struct {
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
 type StatusComponentsFactoryArgs struct {
-	Config             config.Config
-	ExternalConfig     config.ExternalConfig
-	ElasticOptions     *indexer.Options
-	ShardCoordinator   sharding.Coordinator
-	NodesCoordinator   sharding.NodesCoordinator
-	EpochStartNotifier EpochStartNotifier
-	CoreComponents     CoreComponentsHolder
-	DataComponents     DataComponentsHolder
-	NetworkComponents  NetworkComponentsHolder
+	Config               config.Config
+	ExternalConfig       config.ExternalConfig
+	EconomicsConfig      config.EconomicsConfig
+	ShardCoordinator     sharding.Coordinator
+	NodesCoordinator     sharding.NodesCoordinator
+	EpochStartNotifier   EpochStartNotifier
+	CoreComponents       CoreComponentsHolder
+	DataComponents       DataComponentsHolder
+	NetworkComponents    NetworkComponentsHolder
+	StateComponents      StateComponentsHolder
+	IsInImportMode       bool
+	ElasticTemplatesPath string
 }
 
 type statusComponentsFactory struct {
-	config             config.Config
-	externalConfig     config.ExternalConfig
-	elasticOptions     *indexer.Options
-	shardCoordinator   sharding.Coordinator
-	nodesCoordinator   sharding.NodesCoordinator
-	epochStartNotifier EpochStartNotifier
-	forkDetector       process.ForkDetector
-	coreComponents     CoreComponentsHolder
-	dataComponents     DataComponentsHolder
-	networkComponents  NetworkComponentsHolder
+	config               config.Config
+	externalConfig       config.ExternalConfig
+	economicsConfig      config.EconomicsConfig
+	shardCoordinator     sharding.Coordinator
+	nodesCoordinator     sharding.NodesCoordinator
+	epochStartNotifier   EpochStartNotifier
+	forkDetector         process.ForkDetector
+	coreComponents       CoreComponentsHolder
+	dataComponents       DataComponentsHolder
+	networkComponents    NetworkComponentsHolder
+	stateComponents      StateComponentsHolder
+	isInImportMode       bool
+	elasticTemplatesPath string
 }
 
 // NewStatusComponentsFactory will return a status components factory
@@ -81,20 +88,19 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		return nil, errors.ErrNilEpochStartNotifier
 	}
 
-	if args.ElasticOptions == nil {
-		return nil, errors.ErrNilElasticOptions
-	}
-
 	return &statusComponentsFactory{
-		config:             args.Config,
-		externalConfig:     args.ExternalConfig,
-		elasticOptions:     args.ElasticOptions,
-		shardCoordinator:   args.ShardCoordinator,
-		nodesCoordinator:   args.NodesCoordinator,
-		epochStartNotifier: args.EpochStartNotifier,
-		coreComponents:     args.CoreComponents,
-		dataComponents:     args.DataComponents,
-		networkComponents:  args.NetworkComponents,
+		config:               args.Config,
+		externalConfig:       args.ExternalConfig,
+		economicsConfig:      args.EconomicsConfig,
+		shardCoordinator:     args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
+		epochStartNotifier:   args.EpochStartNotifier,
+		coreComponents:       args.CoreComponents,
+		dataComponents:       args.DataComponents,
+		networkComponents:    args.NetworkComponents,
+		stateComponents:      args.StateComponents,
+		isInImportMode:       args.IsInImportMode,
+		elasticTemplatesPath: args.ElasticTemplatesPath,
 	}, nil
 }
 
@@ -186,27 +192,32 @@ func (pc *statusComponents) Close() error {
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, error) {
-	if !scf.externalConfig.ElasticSearchConnector.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		return indexer.NewNilIndexer(), nil
-	}
-
-	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
-	elasticIndexerArgs := indexer.ElasticIndexerArgs{
-		ShardId:                  scf.shardCoordinator.SelfId(),
-		Url:                      scf.externalConfig.ElasticSearchConnector.URL,
-		UserName:                 scf.externalConfig.ElasticSearchConnector.Username,
-		Password:                 scf.externalConfig.ElasticSearchConnector.Password,
-		Marshalizer:              scf.coreComponents.VmMarshalizer(),
+	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		ShardCoordinator:         scf.shardCoordinator,
+		Url:                      elasticSearchConfig.URL,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              scf.coreComponents.InternalMarshalizer(),
 		Hasher:                   scf.coreComponents.Hasher(),
 		EpochStartNotifier:       scf.epochStartNotifier,
 		NodesCoordinator:         scf.nodesCoordinator,
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
-		Options:                  scf.elasticOptions,
+		TemplatesPath:            scf.elasticTemplatesPath,
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		AccountsDB:               scf.stateComponents.AccountsAdapter(),
+		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
+		FeeConfig:                &scf.economicsConfig.FeeSettings,
+		Options: &indexer.Options{
+			UseKibana: elasticSearchConfig.UseKibana,
+		},
+		IsInImportDBMode: scf.isInImportMode,
 	}
 
-	return indexer.NewElasticIndexer(elasticIndexerArgs)
+	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
 
 func startStatisticsMonitor(

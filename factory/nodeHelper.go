@@ -25,7 +25,7 @@ import (
 )
 
 func CreateApiResolver(
-	config *config.Config,
+	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
@@ -88,11 +88,11 @@ func CreateApiResolver(
 		}
 	} else {
 		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
+			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook,
-			config.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		)
 		if err != nil {
 			return nil, err

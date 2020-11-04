@@ -397,6 +397,7 @@ func getConsensusArgs(shardCoordinator sharding.Coordinator) factory.ConsensusCo
 		networkComponents,
 		dataComponents,
 		processComponents,
+		stateComponents,
 	)
 
 	return factory.ConsensusComponentsFactoryArgs{

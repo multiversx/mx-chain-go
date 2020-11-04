@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
@@ -91,11 +92,11 @@ type processComponents struct {
 	miniBlocksPoolCleaner   process.PoolsCleaner
 	txsPoolCleaner          process.PoolsCleaner
 	fallbackHeaderValidator process.FallbackHeaderValidator
-	whiteListHandler       process.WhiteListHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
-	historyRepository      dblookupext.HistoryRepository
-	importStartHandler     update.ImportStartHandler
-	requestedItemsHandler  dataRetriever.RequestedItemsHandler
+	whiteListHandler        process.WhiteListHandler
+	whiteListerVerifiedTxs  process.WhiteListHandler
+	historyRepository       dblookupext.HistoryRepository
+	importStartHandler      update.ImportStartHandler
+	requestedItemsHandler   dataRetriever.RequestedItemsHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -300,6 +301,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	genesisBlocks, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
 		return nil, err
+	}
+
+	err = pcf.indexGenesisAccounts()
+	if err != nil {
+		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
 	if pcf.startEpochNum == 0 {
@@ -642,7 +648,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, error) {
-	genesisVmConfig := pcf.config.VirtualMachineConfig
+	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
@@ -682,6 +688,49 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	return gbc.CreateGenesisBlocks()
+}
+
+func (pcf *processComponentsFactory) indexGenesisAccounts() error {
+	if pcf.indexer.IsNilIndexer() {
+		return nil
+	}
+
+	rootHash, err := pcf.state.AccountsAdapter().RootHash()
+	if err != nil {
+		return err
+	}
+
+	leaves, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash)
+	if err != nil {
+		return err
+	}
+
+	genesisAccounts := make([]state.UserAccountHandler, 0)
+	for addressKey, userAccountsBytes := range leaves {
+		userAccount, errUnmarshal := pcf.unmarshalUserAccount([]byte(addressKey), userAccountsBytes)
+		if errUnmarshal != nil {
+			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+
+		genesisAccounts = append(genesisAccounts, userAccount)
+	}
+
+	pcf.indexer.SaveAccounts(genesisAccounts)
+	return nil
+}
+
+func (pcf *processComponentsFactory) unmarshalUserAccount(address []byte, userAccountsBytes []byte) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = pcf.coreData.InternalMarshalizer().Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
 }
 
 func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]data.HeaderHandler) error {
@@ -754,9 +803,10 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
-	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-
-	pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+	if !pcf.indexer.IsNilIndexer() {
+		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
+		pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
 	var shardID uint32

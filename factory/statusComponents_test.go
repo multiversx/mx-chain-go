@@ -151,17 +151,22 @@ func getStatusComponents(
 	networkComponents factory.NetworkComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	processComponents factory.ProcessComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
 ) factory.StatusComponentsHandler {
 	statusArgs := factory.StatusComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		ExternalConfig:     config.ExternalConfig{},
-		ElasticOptions:     &indexer.Options{},
-		ShardCoordinator:   processComponents.ShardCoordinator(),
-		NodesCoordinator:   processComponents.NodesCoordinator(),
-		EpochStartNotifier: processComponents.EpochStartNotifier(),
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
+		Config:               testscommon.GetGeneralConfig(),
+		ExternalConfig:       config.ExternalConfig{},
+		EconomicsConfig:      config.EconomicsConfig{},
+		ElasticOptions:       &indexer.Options{},
+		ShardCoordinator:     processComponents.ShardCoordinator(),
+		NodesCoordinator:     processComponents.NodesCoordinator(),
+		EpochStartNotifier:   processComponents.EpochStartNotifier(),
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		ElasticTemplatesPath: "",
 	}
 
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)

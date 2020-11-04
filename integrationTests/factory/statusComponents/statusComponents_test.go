@@ -54,7 +54,17 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	require.Nil(t, err)
-	managedStatusComponents, err := node.CreateManagedStatusComponents(configs, managedCoreComponents, managedNetworkComponents, managedBootstrapComponents, managedDataComponents, nodesCoordinator)
+	managedStatusComponents, err := node.CreateManagedStatusComponents(
+		configs,
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		nodesCoordinator,
+		"",
+		false,
+	)
 	require.Nil(t, err)
 	require.NotNil(t, managedStatusComponents)
 

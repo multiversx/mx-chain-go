@@ -186,6 +186,12 @@ var (
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
+	elasticSearchTemplates = cli.StringFlag{
+		Name:  "elasticsearch-templates-path",
+		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
+		Value: "./config/elasticIndexTemplates",
+	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -221,14 +227,6 @@ var (
 		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
 		Value: math.MaxUint64,
 	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
-	}
-
 	// workingDirectory defines a flag for the path for the working directory.
 	workingDirectory = cli.StringFlag{
 		Name:  "working-directory",
@@ -310,13 +308,13 @@ func getFlags() []cli.Flag {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
+		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
 		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
-		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
@@ -344,7 +342,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	flagsConfig.CleanupStorage = ctx.GlobalBool(storageCleanup.Name)
 	flagsConfig.UseHealthService = ctx.GlobalBool(useHealthService.Name)
 	flagsConfig.GasScheduleConfigurationFileName = ctx.GlobalString(gasScheduleConfigurationFile.Name)
-	flagsConfig.EnableTxIndexing = ctx.GlobalBoolT(enableTxIndexing.Name)
 	flagsConfig.SmartContractsFileName = ctx.GlobalString(smartContractsFile.Name)
 	flagsConfig.BootstrapRoundIndex = ctx.GlobalUint64(bootstrapRoundIndex.Name)
 	flagsConfig.EnableRestAPIServerDebugMode = ctx.GlobalBool(restApiDebug.Name)
@@ -353,6 +350,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyPemFileName = ctx.GlobalString(validatorKeyPemFile.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
+	flagsConfig.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
@@ -384,7 +382,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 			flagsConfig.SessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
 		}
 	}
-
 }
 
 func getWorkingDir(workingDir string, log logger.Logger) string {
@@ -404,18 +401,40 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
+		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+
+		alterStorageConfigsForDBImport(config)
 	}
+}
+
+func alterStorageConfigsForDBImport(config *config.Config) {
+	changeStorageConfigForDBImport(&config.MiniBlocksStorage)
+	changeStorageConfigForDBImport(&config.BlockHeaderStorage)
+	changeStorageConfigForDBImport(&config.MetaBlockStorage)
+	changeStorageConfigForDBImport(&config.ShardHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.MetaHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.PeerAccountsTrieStorage)
+}
+
+func changeStorageConfigForDBImport(storageConfig *config.StorageConfig) {
+	alterCoefficient := uint32(10)
+
+	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
+	storageConfig.DB.MaxBatchSize = storageConfig.DB.MaxBatchSize * int(alterCoefficient)
 }

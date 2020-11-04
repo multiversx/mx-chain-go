@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -282,11 +283,18 @@ func (cc *consensusComponents) Close() error {
 }
 
 func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyHandler, error) {
+	wd := ccf.coreComponents.Watchdog()
+	if !ccf.statusComponents.ElasticIndexer().IsNilIndexer() {
+		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
+			"it is incompatible with the indexing process.")
+		wd = &watchdog.DisabledWatchdog{}
+	}
+
 	chronologyArg := chronology.ArgChronology{
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
 		Rounder:          ccf.processComponents.Rounder(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
-		Watchdog:         ccf.coreComponents.Watchdog(),
+		Watchdog:         wd,
 		AppStatusHandler: ccf.coreComponents.StatusHandler(),
 	}
 	chronologyHandler, err := chronology.NewChronology(chronologyArg)
@@ -412,6 +420,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		MiniblocksProvider:  ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
+		Indexer:             ccf.statusComponents.ElasticIndexer(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -474,6 +483,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		MiniblocksProvider:  ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:     ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:    ccf.coreComponents.StatusHandler(),
+		Indexer:             ccf.statusComponents.ElasticIndexer(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

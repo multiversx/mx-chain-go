@@ -75,8 +75,8 @@ type Node struct {
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
-	mutQueryHandlers syncGo.RWMutex
-	queryHandlers    map[string]debug.QueryHandler
+	mutQueryHandlers    syncGo.RWMutex
+	queryHandlers       map[string]debug.QueryHandler
 	bootstrapComponents mainFactory.BootstrapComponentsHolder
 	consensusComponents mainFactory.ConsensusComponentsHolder
 	coreComponents      mainFactory.CoreComponentsHolder

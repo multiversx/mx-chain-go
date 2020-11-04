@@ -44,6 +44,7 @@ import (
 
 const (
 	defaultLogsPath = "logs"
+	logFilePrefix   = "elrond-go"
 	maxTimeToClose  = 10 * time.Second
 )
 
@@ -170,7 +171,17 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Trace("starting status pooling components")
-		managedStatusComponents, err := CreateManagedStatusComponents(configs, managedCoreComponents, managedNetworkComponents, managedBootstrapComponents, managedDataComponents, nodesCoordinator)
+		managedStatusComponents, err := CreateManagedStatusComponents(
+			configs,
+			managedCoreComponents,
+			managedNetworkComponents,
+			managedBootstrapComponents,
+			managedDataComponents,
+			managedStateComponents,
+			nodesCoordinator,
+			flagsConfig.ElasticSearchTemplatesPath,
+			flagsConfig.IsInImportMode,
+		)
 		if err != nil {
 			return err
 		}
@@ -556,17 +567,30 @@ func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
 	log.Warn(buffer.String())
 }
 
-func CreateManagedStatusComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, nodesCoordinator sharding.NodesCoordinator) (mainFactory.StatusComponentsHandler, error) {
+func CreateManagedStatusComponents(
+	configs *config.Configs,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
+	managedStateComponents mainFactory.StateComponentsHandler,
+	nodesCoordinator sharding.NodesCoordinator,
+	elasticTemplatePath string,
+	isInImportMode bool,
+) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
-		Config:             *configs.GeneralConfig,
-		ExternalConfig:     *configs.ExternalConfig,
-		ElasticOptions:     &indexer.Options{TxIndexingEnabled: configs.FlagsConfig.EnableTxIndexing},
-		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:   nodesCoordinator,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:     managedCoreComponents,
-		DataComponents:     managedDataComponents,
-		NetworkComponents:  managedNetworkComponents,
+		Config:               *configs.GeneralConfig,
+		ExternalConfig:       *configs.ExternalConfig,
+		EconomicsConfig:      *configs.EconomicsConfig,
+		ShardCoordinator:     managedBootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:     nodesCoordinator,
+		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:       managedCoreComponents,
+		DataComponents:       managedDataComponents,
+		NetworkComponents:    managedNetworkComponents,
+		StateComponents:      managedStateComponents,
+		ElasticTemplatesPath: elasticTemplatePath,
+		IsInImportMode:       isInImportMode,
 	}
 
 	statusComponentsFactory, err := mainFactory.NewStatusComponentsFactory(statArgs)
@@ -1066,7 +1090,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
@@ -1093,7 +1117,7 @@ func attachFileLogger(configs *config.Configs, log logger.Logger) (factory.FileL
 	var fileLogging factory.FileLoggingHandler
 	var err error
 	if flagsConfig.SaveLogFile {
-		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath)
+		fileLogging, err = logging.NewFileLogging(flagsConfig.WorkingDir, defaultLogsPath, logFilePrefix)
 		if err != nil {
 			return nil, fmt.Errorf("%w creating a log file", err)
 		}
