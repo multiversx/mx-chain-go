@@ -135,6 +135,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 
 	expectedSCRS := []*transaction.SmartContractResultApi{
 		{
+			Hash:           hex.EncodeToString(scrHash1),
 			Nonce:          scr1.Nonce,
 			Value:          scr1.Value,
 			RelayedValue:   scr1.RelayedValue,
@@ -153,6 +154,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 			OriginalSender: n.addressPubkeyConverter.Encode(scr1.OriginalSender),
 		},
 		{
+			Hash:           hex.EncodeToString(scrHash2),
 			OriginalTxHash: hex.EncodeToString(scr1.OriginalTxHash),
 		},
 	}

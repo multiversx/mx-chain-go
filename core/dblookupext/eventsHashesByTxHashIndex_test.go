@@ -68,11 +68,11 @@ func TestSaveAndGetEventsSCRSHashesByTxHash(t *testing.T) {
 		ScrHashesEpoch: []*ScrHashesAndEpoch{
 			{
 				Epoch:                      epoch,
-				SmartContractResultsHashes: [][]byte{scrHash3, scrHash4},
+				SmartContractResultsHashes: [][]byte{scrHash1, scrHash2},
 			},
 			{
 				Epoch:                      epoch,
-				SmartContractResultsHashes: [][]byte{scrHash1, scrHash2},
+				SmartContractResultsHashes: [][]byte{scrHash3, scrHash4},
 			},
 		},
 	}

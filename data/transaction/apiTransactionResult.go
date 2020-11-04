@@ -54,22 +54,23 @@ type SimulationResults struct {
 
 // SmartContractResultApi represents a smart contract result with changed fields' types in order to make it friendly for API's json
 type SmartContractResultApi struct {
+	Hash           string            `json:"hash,omitempty"`
 	Nonce          uint64            `json:"nonce"`
 	Value          *big.Int          `json:"value"`
 	RcvAddr        string            `json:"receiver"`
 	SndAddr        string            `json:"sender"`
-	RelayerAddr    string            `json:"relayerAddress"`
-	RelayedValue   *big.Int          `json:"relayedValue"`
-	Code           string            `json:"code"`
-	Data           string            `json:"data"`
+	RelayerAddr    string            `json:"relayerAddress,omitempty"`
+	RelayedValue   *big.Int          `json:"relayedValue,omitempty"`
+	Code           string            `json:"code,omitempty"`
+	Data           string            `json:"data,omitempty"`
 	PrevTxHash     string            `json:"prevTxHash"`
 	OriginalTxHash string            `json:"originalTxHash"`
 	GasLimit       uint64            `json:"gasLimit"`
 	GasPrice       uint64            `json:"gasPrice"`
 	CallType       vmcommon.CallType `json:"callType"`
-	CodeMetadata   string            `json:"codeMetadata"`
-	ReturnMessage  string            `json:"returnMessage"`
-	OriginalSender string            `json:"originalSender"`
+	CodeMetadata   string            `json:"codeMetadata,omitempty"`
+	ReturnMessage  string            `json:"returnMessage,omitempty"`
+	OriginalSender string            `json:"originalSender,omitempty"`
 }
 
 // ReceiptApi represents a receipt with changed fields' types in order to make it friendly for API's json

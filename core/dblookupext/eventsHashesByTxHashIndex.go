@@ -124,7 +124,7 @@ func (eht *eventsHashesByTxHash) prepareSmartContractResultsEvents(
 		}
 
 		// if a record exits in storage merge with current record
-		events.ScrHashesEpoch = append(events.ScrHashesEpoch, record.ScrHashesEpoch...)
+		events.ScrHashesEpoch = append(record.ScrHashesEpoch, events.ScrHashesEpoch...)
 	}
 
 	return eventsHashesMap

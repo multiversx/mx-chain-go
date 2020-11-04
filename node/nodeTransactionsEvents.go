@@ -72,7 +72,7 @@ func (n *Node) putSmartContractResultsInTransaction(
 				continue
 			}
 
-			tx.ScResults = append(tx.ScResults, n.adaptSmartContractResult(scr))
+			tx.ScResults = append(tx.ScResults, n.adaptSmartContractResult(scrHash, scr))
 		}
 	}
 }
@@ -93,8 +93,9 @@ func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResul
 	return scr, nil
 }
 
-func (n *Node) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.SmartContractResultApi {
+func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.SmartContractResultApi {
 	apiSCR := &transaction.SmartContractResultApi{
+		Hash:           hex.EncodeToString(scrHash),
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
 		RelayedValue:   scr.RelayedValue,
