@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
@@ -46,8 +45,7 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-	_ = logger.SetLogLevel("arwen:TRACE")
-	nrRoundsToPropagateMultiShard := 1 // TODO: put 25 here after debug
+	nrRoundsToPropagateMultiShard := 25
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 
 	checkUserNamesAreSetCorrectly(t, players, nodes, userNames, sortedDNSAddresses)
@@ -127,7 +125,7 @@ func createAndMintRelayer(nodes []*integrationTests.TestProcessorNode) *integrat
 }
 
 func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, []int, p2p.Messenger) {
-	numOfShards := 1 // TODO: put 2 here - after debug
+	numOfShards := 2
 	nodesPerShard := 1
 	numMetachainNodes := 1
 
@@ -155,7 +153,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	numPlayers := 1
+	numPlayers := 6
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
