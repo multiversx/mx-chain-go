@@ -155,7 +155,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	numPlayers := 6
+	numPlayers := 1
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
