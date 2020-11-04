@@ -15,10 +15,10 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
-const delegationConfigKey = "delegationConfigKey"
-const delegationStatusKey = "delegationStatusKey"
-const lastFundKey = "lastFundKey"
-const globalFundKey = "globalFundKey"
+const delegationConfigKey = "delegationConfig"
+const delegationStatusKey = "delegationStatus"
+const lastFundKey = "lastFund"
+const globalFundKey = "globalFund"
 const serviceFeeKey = "serviceFee"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
@@ -136,14 +136,15 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	return d, nil
 }
 
-// Execute  calls one of the functions from the delegation manager contract and runs the code according to the input
+// Execute calls one of the functions from the delegation contract and runs the code according to the input
 func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if CheckIfNil(args) != nil {
-		d.eei.AddReturnMessage("nil contract call input")
+	err := CheckIfNil(args)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	if !d.delegationEnabled.IsSet() {
-		d.eei.AddReturnMessage("delegation manager contract is not enabled")
+		d.eei.AddReturnMessage("delegation contract is not enabled")
 		return vmcommon.UserError
 	}
 	if bytes.Equal(args.RecipientAddr, vm.FirstDelegationSCAddress) {
@@ -195,7 +196,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	case "getUserActiveStake":
 		return d.getUserActiveStake(args)
 	case "getUserUnStakedValue":
-		return d.getUserUnstakedValue(args)
+		return d.getUserUnStakedValue(args)
 	case "getUserUnBondable":
 		return d.getUserUnBondable(args)
 	case "getNumNodes":
@@ -224,14 +225,29 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		d.eei.AddReturnMessage("invalid number of arguments to init delegation contract")
 		return vmcommon.UserError
 	}
+	serviceFee := big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()
+	if serviceFee < d.minServiceFee || serviceFee > d.maxServiceFee {
+		d.eei.AddReturnMessage("service fee out of bounds")
+		return vmcommon.UserError
+	}
+	maxDelegationCap := big.NewInt(0).SetBytes(args.Arguments[0])
+	if maxDelegationCap.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("invalid max delegation cap")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) < 0 {
+		d.eei.AddReturnMessage("invalid call value")
+		return vmcommon.UserError
+	}
 
 	ownerAddress = args.CallerAddr
+	//TODO: Why is done the following SetStorage with the same key and value -> DelegationSystemSCKey?
 	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
 	dConfig := &DelegationConfig{
 		OwnerAddress:         ownerAddress,
-		ServiceFee:           big.NewInt(0).SetBytes(args.Arguments[1]).Uint64(),
-		MaxDelegationCap:     big.NewInt(0).SetBytes(args.Arguments[0]),
+		ServiceFee:           serviceFee,
+		MaxDelegationCap:     maxDelegationCap,
 		InitialOwnerFunds:    big.NewInt(0).Set(args.CallValue),
 		AutomaticActivation:  false,
 		WithDelegationCap:    true,
@@ -255,6 +271,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		NotStakedKeys: make([]*NodesData, 0),
 		UnStakedKeys:  make([]*NodesData, 0),
 	}
+	//TODO: If saveDelegationStatus will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegationStatus(dStatus)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -262,6 +279,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	var fundKey []byte
+	//TODO: If createAndSaveNextFund will fail, then the last saves done will remain saved. Is this ok?
 	fundKey, err = d.createAndSaveNextFund(ownerAddress, args.CallValue, active)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -284,18 +302,20 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		TotalUnStaked:          big.NewInt(0),
 	}
 	globalFund.ActiveFunds[0] = fundKey
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-
+	//TODO: If saveDelegatorData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegatorData(ownerAddress, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
+	//TODO: If executeOnAuctionSC will fail, then the last saves done will remain saved. Is this ok?
 	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", [][]byte{}, args.CallValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -314,13 +334,13 @@ func (d *delegation) isOwner(address []byte) bool {
 	return bytes.Equal(address, ownerAddress)
 }
 
-func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) checkOwnerCallValueGasAndDuplicates(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.isOwner(args.CallerAddr) {
-		d.eei.AddReturnMessage("only owner can change delegation config")
+		d.eei.AddReturnMessage("only owner can call this method")
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage("callValue must be 0")
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
@@ -338,7 +358,7 @@ func (d *delegation) checkOwnerCallValueGas(args *vmcommon.ContractCallInput) vm
 }
 
 func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallInput) (*DelegationConfig, vmcommon.ReturnCode) {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return nil, returnCode
 	}
@@ -360,7 +380,7 @@ func (d *delegation) basicArgCheckForConfigChanges(args *vmcommon.ContractCallIn
 func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.UserError
+		return returnCode
 	}
 
 	switch string(args.Arguments[0]) {
@@ -446,9 +466,9 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 }
 
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.UserError
+		return returnCode
 	}
 	if len(args.Arguments)%2 != 0 {
 		d.eei.AddReturnMessage("arguments must be of pair length - BLSKey and signedMessage")
@@ -522,9 +542,9 @@ func (d *delegation) verifyBLSKeysAndSignature(txPubKey []byte, args [][]byte) (
 }
 
 func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
-		return vmcommon.UserError
+		return returnCode
 	}
 
 	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
@@ -568,7 +588,7 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -576,13 +596,19 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
+	//TODO: Should not be check if there is enough gas for all the nodes which would be staked?
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
 	status, err := d.getDelegationStatus()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	listToCheck := append(status.NotStakedKeys, status.UnStakedKeys...)
-	foundAll := verifyAllBLSKeysExist(listToCheck, args.Arguments)
+	foundAll := verifyIfAllBLSPubKeysExist(listToCheck, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
@@ -602,6 +628,9 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
+	//TODO: Missing this line, before calling saveGlobalFundData?: globalFund.TotalActive.Sub(globalFund.TotalActive, stakeValue)
+	//Or otherwise, calling saveGlobalFundData is not needed as it was nothing modified in the globalFund structure
+
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -609,12 +638,14 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
+	//TODO: If executeOnAuctionSC will fail, then the last saves done will remain saved. Is this ok?
 	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		d.eei.AddReturnMessage(vmOutput.ReturnMessage)
 		return vmOutput.ReturnCode
 	}
 
@@ -624,6 +655,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
 	}
 
+	//TODO: If saveDelegationStatus will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegationStatus(status)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -634,7 +666,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -642,12 +674,18 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
+	//TODO: Should not be check if there is enough gas for all the nodes which would be unStaked?
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
 	status, err := d.getDelegationStatus()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	foundAll := verifyAllBLSKeysExist(status.StakedKeys, args.Arguments)
+	foundAll := verifyIfAllBLSPubKeysExist(status.StakedKeys, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
@@ -659,6 +697,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		d.eei.AddReturnMessage(vmOutput.ReturnMessage)
 		return vmOutput.ReturnCode
 	}
 
@@ -674,6 +713,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	totalNewUnStakedValue := big.NewInt(0).Mul(big.NewInt(int64(len(successKeys))), d.nodePrice)
+	//TODO: If getGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	globalFundData, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -681,6 +721,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	globalFundData.TotalUnStakedFromNodes.Add(globalFundData.TotalUnStakedFromNodes, totalNewUnStakedValue)
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFundData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -691,7 +732,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkOwnerCallValueGas(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -699,13 +740,19 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
+	//TODO: Should not be check if there is enough gas for all the nodes which would be unBonded?
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
 	status, err := d.getDelegationStatus()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	foundAll := verifyAllBLSKeysExist(status.UnStakedKeys, args.Arguments)
+	foundAll := verifyIfAllBLSPubKeysExist(status.UnStakedKeys, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
@@ -717,6 +764,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		d.eei.AddReturnMessage(vmOutput.ReturnMessage)
 		return vmOutput.ReturnCode
 	}
 
@@ -732,6 +780,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	totalNewUnBondedValue := big.NewInt(0).Mul(big.NewInt(int64(len(successKeys))), d.nodePrice)
+	//TODO: If getGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	globalFundData, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -739,6 +788,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	globalFundData.TotalUnBondedFromNodes.Add(globalFundData.TotalUnBondedFromNodes, totalNewUnBondedValue)
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFundData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -753,24 +803,25 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	//TODO: Should not be check if there is enough gas for all the nodes which would be unJailed?
+	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
-	}
-	status, err := d.getDelegationStatus()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
 	}
 	duplicates := checkForDuplicates(args.Arguments)
 	if duplicates {
 		d.eei.AddReturnMessage(vm.ErrDuplicatesFoundInArguments.Error())
 		return vmcommon.UserError
 	}
+	status, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	listToCheck := append(status.StakedKeys, status.UnStakedKeys...)
-	foundAll := verifyAllBLSKeysExist(listToCheck, args.Arguments)
+	foundAll := verifyIfAllBLSPubKeysExist(listToCheck, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
@@ -788,6 +839,7 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		d.eei.AddReturnMessage(vmOutput.ReturnMessage)
 		return vmOutput.ReturnCode
 	}
 
@@ -869,13 +921,13 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		delegator.ActiveFund = fundKey
 		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
+			//TODO: If addNewDelegatorToList will fail, then the save done in method createAndSaveNextFund -> saveFund will remain saved. Is this ok?
 			err = d.addNewDelegatorToList(args.CallerAddr)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
 				return vmcommon.UserError
 			}
 		}
-
 	} else {
 		err = d.addValueToFund(delegator.ActiveFund, args.CallValue)
 		if err != nil {
@@ -884,6 +936,7 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		}
 	}
 
+	//TODO: If executeOnAuctionSC will fail, then the last saves done will remain saved. Is this ok?
 	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", nil, args.CallValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -894,12 +947,14 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmOutput.ReturnCode
 	}
 
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
+	//TODO: If saveDelegatorData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -927,8 +982,8 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 	}
 
 	fund.Value.Add(fund.Value, value)
-	err = d.saveFund(key, fund)
-	return err
+
+	return d.saveFund(key, fund)
 }
 
 func (d *delegation) resolveUnStakedUnBondResponse(
@@ -1039,13 +1094,16 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("invalid value to undelegate")
 		return vmcommon.UserError
 	}
-	if activeFund.Value.Cmp(zero) > 0 && activeFund.Value.Cmp(d.minDelegationAmount) < 0 {
+
+	//TODO: The dust check should be done with the remained fund, subtracting valueToUndelegate from activeFund, and not directly with activeFund ?
+	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
+	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(d.minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
 	err = d.checkOwnerCanUnDelegate(args.CallerAddr, activeFund, valueToUnDelegate)
 	if err != nil {
-		d.eei.AddReturnMessage("owner cannot unDelegate the specified sum")
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
@@ -1060,7 +1118,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.unStakeOrBondFromAuctionSC(args.RecipientAddr, "unStakeTokensWithNodes", globalFund.TotalUnStakedFromNodes, valueToUnDelegate)
+	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unStakeTokensWithNodes", globalFund.TotalUnStakedFromNodes, valueToUnDelegate)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1073,12 +1131,14 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	globalFund.TotalUnStakedFromNodes.Add(globalFund.TotalUnStakedFromNodes, unStakeFromNodes)
 	activeFund.Value.Sub(activeFund.Value, actualUserUnStake)
+	//TODO: If saveFund will fail, then the save done in method resolveUnStakedUnBondResponse -> saveDelegationStatus will remain saved. Is this ok?
 	err = d.saveFund(delegator.ActiveFund, activeFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
+	//TODO: If createAndSaveNextFund will fail, then the last saves done will remain saved. Is this ok?
 	unStakedFundKey, err := d.createAndSaveNextFund(args.CallerAddr, actualUserUnStake, unStaked)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1103,12 +1163,14 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		delegator.ActiveFund = nil
 	}
 
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
+	//TODO: If saveDelegatorData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1155,13 +1217,13 @@ func (d *delegation) getRewardData(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage("cannot call with negative value")
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	epoch := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
@@ -1230,11 +1292,10 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			continue
 		}
 
-		if rewardData.TotalActive.Cmp(big.NewInt(0)) == 0 {
+		if rewardData.TotalActive.Cmp(zero) == 0 {
 			if isOwner {
 				totalRewards.Add(totalRewards, rewardData.RewardsToDistribute)
 			}
-
 			continue
 		}
 
@@ -1285,13 +1346,16 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
+	//TODO: The call of method saveDelegatorData should be done before the call of method Transfer, because if it is done afterwards and it will fail,
+	//then the transfer of UnClaimedRewards remains done but the update of (delegator.UnClaimedRewards and delegator.RewardsCheckpoint)
+	//will not be done. This means that if the claimRewards method would be called again, it will transfer these unClaimedRewards one more time?
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	err = d.saveDelegatorData(args.CallerAddr, delegator)
+	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1300,7 +1364,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (d *delegation) unStakeOrBondFromAuctionSC(
+func (d *delegation) unStakeOrUnBondFromAuctionSC(
 	scAddress []byte,
 	functionToCall string,
 	baseValue *big.Int,
@@ -1343,7 +1407,7 @@ func (d *delegation) getUnBondableTokens(delegator *DelegatorData, unBondPeriod 
 	return totalUnBondable, nil
 }
 
-func (d *delegation) deleteFund(fundKey []byte, globalFund *GlobalFundData) {
+func (d *delegation) deleteUnStakedFund(fundKey []byte, globalFund *GlobalFundData) {
 	d.eei.SetStorage(fundKey, nil)
 	for i, globalKey := range globalFund.UnStakedFunds {
 		if bytes.Equal(fundKey, globalKey) {
@@ -1397,7 +1461,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.unStakeOrBondFromAuctionSC(args.RecipientAddr, "unBondTokensWithNodes", globalFund.TotalUnBondedFromNodes, totalUnBondable)
+	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unBondTokensWithNodes", globalFund.TotalUnBondedFromNodes, totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1413,6 +1477,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
 	for fundIndex, fundKey := range delegator.UnStakedFunds {
+		//TODO: If getFund will fail, then the save done in method resolveUnStakedUnBondResponse -> saveDelegationStatus will remain saved. Is this ok?
 		fund, err = d.getFund(fundKey)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -1427,6 +1492,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		if totalUnBonded.Cmp(actualUserUnBond) > 0 {
 			unBondedFromThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
 			fund.Value.Sub(fund.Value, unBondedFromThisFund)
+			//TODO: If saveFund will fail, then the save done in method resolveUnStakedUnBondResponse -> saveDelegationStatus will remain saved. Is this ok?
 			err = d.saveFund(fundKey, fund)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
@@ -1434,17 +1500,19 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
-		d.deleteFund(fundKey, globalFund)
+		d.deleteUnStakedFund(fundKey, globalFund)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 
 	globalFund.TotalUnStaked.Sub(globalFund.TotalUnStaked, actualUserUnBond)
 	globalFund.TotalUnBondedFromNodes.Add(globalFund.TotalUnBondedFromNodes, unBondFromNodes)
+	//TODO: If saveGlobalFundData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	//TODO: If saveDelegatorData will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1500,7 +1568,8 @@ func (d *delegation) getTotalCumulatedRewards(args *vmcommon.ContractCallInput) 
 			continue
 		}
 
-		totalCumulatedRewards.Add(totalCumulatedRewards, rewardsData.TotalActive)
+		// TODO: Should not be RewardsToDistribute instead TotalActive ?
+		totalCumulatedRewards.Add(totalCumulatedRewards, rewardsData.RewardsToDistribute)
 	}
 	d.eei.Finish(totalCumulatedRewards.Bytes())
 
@@ -1643,6 +1712,7 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.ServiceFee).Bytes())
 	d.eei.Finish(delegationConfig.InitialOwnerFunds.Bytes())
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.CreatedNonce).Bytes())
+	//TODO: We can add also the other info like: UnBondPeriod, AutomaticActivation, WithDelegationCap, ChangeableServiceFee, OwnerAddress
 
 	return vmcommon.Ok
 }
@@ -1708,7 +1778,7 @@ func (d *delegation) getUserActiveStake(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
-func (d *delegation) getUserUnstakedValue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) getUserUnStakedValue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1783,12 +1853,12 @@ func (d *delegation) executeOnAuctionSC(address []byte, function string, args []
 }
 
 func (d *delegation) getDelegationContractConfig() (*DelegationConfig, error) {
-	dConfig := &DelegationConfig{}
 	marshaledData := d.eei.GetStorage([]byte(delegationConfigKey))
 	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
 	}
 
+	dConfig := &DelegationConfig{}
 	err := d.marshalizer.Unmarshal(dConfig, marshaledData)
 	if err != nil {
 		return nil, err
@@ -1809,12 +1879,12 @@ func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) err
 }
 
 func (d *delegation) getDelegationStatus() (*DelegationContractStatus, error) {
-	status := &DelegationContractStatus{}
 	marshaledData := d.eei.GetStorage([]byte(delegationStatusKey))
 	if len(marshaledData) == 0 {
 		return nil, fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
 	}
 
+	status := &DelegationContractStatus{}
 	err := d.marshalizer.Unmarshal(status, marshaledData)
 	if err != nil {
 		return nil, err
@@ -1917,8 +1987,8 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 		Type:    fundType,
 	}
 
-	nextKey = append([]byte(fundKeyPrefix), nextKey...)
-	return nextKey, fund
+	fundKey := append([]byte(fundKeyPrefix), nextKey...)
+	return fundKey, fund
 }
 
 func (d *delegation) addNewFundToGlobalData(globalFund *GlobalFundData, fundKey []byte, fundType uint32) {
@@ -1956,10 +2026,10 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	return nil
 }
 
-// EpochConfirmed  is called whenever a new epoch is confirmed
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegation) EpochConfirmed(epoch uint32) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
-	log.Debug("delegationManager", "enabled", d.delegationEnabled.IsSet())
+	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
@@ -2058,7 +2128,7 @@ func verifyIfBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 	return false
 }
 
-func verifyAllBLSKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
+func verifyIfAllBLSPubKeysExist(listKeys []*NodesData, arguments [][]byte) bool {
 	for _, argKey := range arguments {
 		found := false
 		for _, nodeData := range listKeys {
