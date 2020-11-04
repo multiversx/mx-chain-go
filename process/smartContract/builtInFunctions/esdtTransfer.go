@@ -208,8 +208,7 @@ func saveESDTData(
 	}
 
 	log.Trace("esdt after transfer", "addr", userAcnt.AddressBytes(), "value", esdtData.Value, "tokenKey", key)
-	userAcnt.DataTrieTracker().SaveKeyValue(key, marshaledData)
-	return nil
+	return userAcnt.DataTrieTracker().SaveKeyValue(key, marshaledData)
 }
 
 func getESDTDataFromKey(
