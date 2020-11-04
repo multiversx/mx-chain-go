@@ -70,11 +70,13 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.BaseIssuingCost, conversionBase)
+	//TODO: So, we allow ZERO baseIssuingCost?
 	if !okConvert || baseIssuingCost.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
 	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
+	//TODO: So, we allow ZERO minCreationDeposit?
 	if !okConvert || minCreationDeposit.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidMinCreationDeposit
 	}
@@ -99,9 +101,11 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	return d, nil
 }
 
-// Execute  calls one of the functions from the delegation manager contract and runs the code according to the input
+// Execute calls one of the functions from the delegation manager contract and runs the code according to the input
 func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if CheckIfNil(args) != nil {
+	err := CheckIfNil(args)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -129,7 +133,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 
 func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage("callValue must be 0")
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
 
@@ -148,6 +152,7 @@ func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	delegationList := &DelegationContractList{Addresses: [][]byte{vm.FirstDelegationSCAddress}}
+	//TODO: If saveDelegationContractList will fail, then the last saves done will remain saved. Is this ok?
 	err = d.saveDelegationContractList(delegationList)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -214,6 +219,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
+	//TODO: If saveDelegationContractList will fail, then the last saves done will remain saved. Also SetStorage is already done here. Is this ok?
 	err = d.saveDelegationContractList(delegationList)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -294,6 +300,8 @@ func (d *delegationManager) changeMinDeposit(args *vmcommon.ContractCallInput) v
 }
 
 func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	//TODO: This method wasn't supposed to be called by anyone? (like in the document description)
+	//With the following check it could be called only by delegationMgrSCAddress
 	if !bytes.Equal(args.CallerAddr, d.delegationMgrSCAddress) {
 		d.eei.AddReturnMessage(vm.ErrInvalidCaller.Error())
 		return vmcommon.UserError
@@ -377,7 +385,7 @@ func (d *delegationManager) saveDelegationContractList(list *DelegationContractL
 	return nil
 }
 
-// EpochConfirmed  is called whenever a new epoch is confirmed
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegationManager) EpochConfirmed(epoch uint32) {
 	d.delegationMgrEnabled.Toggle(epoch >= d.enableDelegationMgrEpoch)
 	log.Debug("delegationManager", "enabled", d.delegationMgrEnabled.IsSet())
