@@ -1976,6 +1976,7 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
 		Marshalizer:        core.InternalMarshalizer,
 		Hasher:             core.Hasher,
@@ -1986,6 +1987,7 @@ func newMetaBlockProcessor(
 		GenesisNonce:       genesisHdr.GetNonce(),
 		GenesisEpoch:       genesisHdr.GetEpoch(),
 		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -2019,6 +2021,8 @@ func newMetaBlockProcessor(
 		StakingDataProvider:           stakingDataProvider,
 		RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
 		RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),
+		LeaderPercentage:              economicsData.LeaderPercentage(),
+		EconomicsDataProvider:         economicsDataProvider,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

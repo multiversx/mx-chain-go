@@ -1451,14 +1451,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
+		economicsDataProvider := metachain.NewEpochEconomicsStatistics()
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			Store:              tpn.Storage,
-			ShardCoordinator:   tpn.ShardCoordinator,
-			RewardsHandler:     tpn.EconomicsData,
-			RoundTime:          tpn.Rounder,
-			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			Store:                 tpn.Storage,
+			ShardCoordinator:      tpn.ShardCoordinator,
+			RewardsHandler:        tpn.EconomicsData,
+			RoundTime:             tpn.Rounder,
+			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
+			EconomicsDataNotified: economicsDataProvider,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1487,6 +1489,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			StakingDataProvider:           stakingDataProvider,
 			RewardsTopUpGradientPoint:     tpn.EconomicsData.RewardsTopUpGradientPoint(),
 			RewardsTopUpFactor:            tpn.EconomicsData.RewardsTopUpFactor(),
+			LeaderPercentage:              tpn.EconomicsData.LeaderPercentage(),
+			EconomicsDataProvider:         economicsDataProvider,
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 

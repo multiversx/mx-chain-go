@@ -155,3 +155,16 @@ type StakingDataProvider interface {
 	Clean()
 	IsInterfaceNil() bool
 }
+
+// EpochEconomicsDataProvider provides end of epoch economics data
+type EpochEconomicsDataProvider interface {
+	SetNumberOfBlocks(nbBlocks uint64)
+	SetNumberOfBlocksPerShard(blocksPerShard map[uint32]uint64)
+	SetRewardsToBeDistributed(rewards *big.Int)
+	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	NumberOfBlocks() uint64
+	NumberOfBlocksPerShard() map[uint32]uint64
+	RewardsToBeDistributed() *big.Int
+	RewardsToBeDistributedForBlocks() *big.Int
+	IsInterfaceNil() bool
+}
