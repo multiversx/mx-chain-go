@@ -428,3 +428,15 @@ type VersionsConfig struct {
 	VersionsByEpochs []VersionByEpochs
 	Cache            CacheConfig
 }
+
+// GasScheduleByEpochs represents a gas schedule toml entry that will be applied between from the provided epoch
+type GasScheduleByEpochs struct {
+	StartEpoch uint32
+	FileName   string
+}
+
+// GasScheduleConfig represents the versioning config area for the gas schedule toml
+type GasScheduleConfig struct {
+	DefaultFile         string
+	GasScheduleByEpochs []GasScheduleByEpochs
+}
