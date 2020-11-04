@@ -33,10 +33,11 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+   # TO BE CHANGED IN MAINNET CONFIG
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
-        { EpochEnable = 2, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
+        { EpochEnable = 0, MaxNumNodes = 44, NodesToShufflePerShard = 4 },
+        { EpochEnable = 2, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
