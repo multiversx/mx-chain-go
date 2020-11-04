@@ -75,12 +75,12 @@ func (nr *NodeRunner) Start() error {
 		return err
 	}
 
-	nodesFileName, err := getNodesFileName(configs)
+	flagsConfig.NodesFileName, err = getNodesFileName(configs)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("config", "file", nodesFileName)
+	log.Debug("config", "file", flagsConfig.NodesFileName)
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage, log)
 	if err != nil {
@@ -95,9 +95,8 @@ func (nr *NodeRunner) Start() error {
 		log.Debug("\n\n====================Starting managedComponents creation================================")
 
 		log.Debug("creating core components")
-		managedCoreComponents, err := createManagedCoreComponents(
+		managedCoreComponents, err := CreateManagedCoreComponents(
 			configs,
-			nodesFileName,
 			chanStopNodeProcess1,
 		)
 		if err != nil {
@@ -105,19 +104,19 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Debug("creating crypto components")
-		managedCryptoComponents, err := createManagedCryptoComponents(configs, managedCoreComponents)
+		managedCryptoComponents, err := CreateManagedCryptoComponents(configs, managedCoreComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating network components")
-		managedNetworkComponents, err := createManagedNetworkComponents(configs, managedCoreComponents)
+		managedNetworkComponents, err := CreateManagedNetworkComponents(configs, managedCoreComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating bootstrap components")
-		managedBootstrapComponents, err := createManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+		managedBootstrapComponents, err := CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 		if err != nil {
 			return err
 		}
@@ -125,13 +124,13 @@ func (nr *NodeRunner) Start() error {
 		logInformation(log, configs, managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 		log.Debug("creating state components")
-		managedStateComponents, err := createManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
+		managedStateComponents, err := CreateManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating data components")
-		managedDataComponents, err := createManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
+		managedDataComponents, err := CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
@@ -171,7 +170,7 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Trace("starting status pooling components")
-		managedStatusComponents, err := createManagedStatusComponents(configs, managedCoreComponents, managedNetworkComponents, managedBootstrapComponents, managedDataComponents, nodesCoordinator)
+		managedStatusComponents, err := CreateManagedStatusComponents(configs, managedCoreComponents, managedNetworkComponents, managedBootstrapComponents, managedDataComponents, nodesCoordinator)
 		if err != nil {
 			return err
 		}
@@ -182,7 +181,7 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Trace("creating process components")
-		managedProcessComponents, err := createManagedProcessComponents(
+		managedProcessComponents, err := CreateManagedProcessComponents(
 			configs,
 			managedCoreComponents,
 			managedCryptoComponents,
@@ -209,12 +208,12 @@ func (nr *NodeRunner) Start() error {
 
 		log.Debug("starting node...")
 
-		managedConsensusComponents, err := createManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut, log)
+		managedConsensusComponents, err := CreateManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut)
 		if err != nil {
 			return err
 		}
 
-		managedHeartbeatComponents, err := createManagedHeartbeatComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents, managedConsensusComponents.HardforkTrigger())
+		managedHeartbeatComponents, err := CreateManagedHeartbeatComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents, managedConsensusComponents.HardforkTrigger())
 		if err != nil {
 			return err
 		}
@@ -368,7 +367,7 @@ func createHealthService(configs *config.Configs, flagsConfig *config.ContextFla
 	return healthService
 }
 
-func createManagedConsensusComponents(
+func CreateManagedConsensusComponents(
 	configs *config.Configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
@@ -380,7 +379,7 @@ func createManagedConsensusComponents(
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
 	nodesCoordinator sharding.NodesCoordinator,
 	nodesShuffledOut update.Closer,
-	log logger.Logger) (mainFactory.ConsensusComponentsHandler, error) {
+) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
 		configs.GeneralConfig,
 		managedBootstrapComponents.ShardCoordinator(),
@@ -425,13 +424,12 @@ func createManagedConsensusComponents(
 
 	err = managedConsensusComponents.Create()
 	if err != nil {
-		log.Error("starting node failed", "epoch", managedBootstrapComponents.EpochBootstrapParams().Epoch(), "error", err.Error())
 		return nil, err
 	}
 	return managedConsensusComponents, nil
 }
 
-func createManagedHeartbeatComponents(configs *config.Configs,
+func CreateManagedHeartbeatComponents(configs *config.Configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
@@ -558,7 +556,7 @@ func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
 	log.Warn(buffer.String())
 }
 
-func createManagedStatusComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, nodesCoordinator sharding.NodesCoordinator) (mainFactory.StatusComponentsHandler, error) {
+func CreateManagedStatusComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, nodesCoordinator sharding.NodesCoordinator) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
 		Config:             *configs.GeneralConfig,
 		ExternalConfig:     *configs.ExternalConfig,
@@ -614,7 +612,7 @@ func logSessionInformation(workingDir string, log logger.Logger, configs *config
 	log.LogIfError(err)
 }
 
-func createManagedProcessComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedCryptoComponents mainFactory.CryptoComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedStateComponents mainFactory.StateComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, managedStatusComponents mainFactory.StatusComponentsHandler, gasSchedule map[string]map[string]uint64, nodesCoordinator sharding.NodesCoordinator) (mainFactory.ProcessComponentsHandler, error) {
+func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedCryptoComponents mainFactory.CryptoComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedStateComponents mainFactory.StateComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, managedStatusComponents mainFactory.StatusComponentsHandler, gasSchedule map[string]map[string]uint64, nodesCoordinator sharding.NodesCoordinator) (mainFactory.ProcessComponentsHandler, error) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, core.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -742,7 +740,7 @@ func createManagedProcessComponents(configs *config.Configs, managedCoreComponen
 	return managedProcessComponents, nil
 }
 
-func createManagedDataComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.DataComponentsHandler, error) {
+func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.DataComponentsHandler, error) {
 	storerEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
 	if !configs.GeneralConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
@@ -782,7 +780,7 @@ func createManagedDataComponents(configs *config.Configs, managedCoreComponents 
 	return managedDataComponents, nil
 }
 
-func createManagedStateComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.StateComponentsHandler, error) {
+func CreateManagedStateComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.StateComponentsHandler, error) {
 	triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
 		Config:              *configs.GeneralConfig,
@@ -809,7 +807,7 @@ func createManagedStateComponents(configs *config.Configs, managedCoreComponents
 	return managedStateComponents, nil
 }
 
-func createManagedBootstrapComponents(
+func CreateManagedBootstrapComponents(
 	cfgs *config.Configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
@@ -843,7 +841,7 @@ func createManagedBootstrapComponents(
 	return managedBootstrapComponents, nil
 }
 
-func createManagedNetworkComponents(
+func CreateManagedNetworkComponents(
 	cfgs *config.Configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
@@ -874,9 +872,8 @@ func createManagedNetworkComponents(
 	return managedNetworkComponents, nil
 }
 
-func createManagedCoreComponents(
+func CreateManagedCoreComponents(
 	cfgs *config.Configs,
-	nodesFileName string,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 
@@ -893,7 +890,7 @@ func createManagedCoreComponents(
 		Config:                *cfgs.GeneralConfig,
 		RatingsConfig:         *cfgs.RatingsConfig,
 		EconomicsConfig:       *cfgs.EconomicsConfig,
-		NodesFilename:         nodesFileName,
+		NodesFilename:         cfgs.FlagsConfig.NodesFileName,
 		WorkingDirectory:      cfgs.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess:   chanStopNodeProcess,
 		StatusHandlersFactory: statusHandlersFactory,
@@ -917,7 +914,7 @@ func createManagedCoreComponents(
 	return managedCoreComponents, nil
 }
 
-func createManagedCryptoComponents(
+func CreateManagedCryptoComponents(
 	cfgs *config.Configs,
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.CryptoComponentsHandler, error) {
@@ -929,8 +926,8 @@ func createManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               cfgs.ImportDbNoSigCheckFlag,
-		IsInImportMode:                       cfgs.IsInImportMode,
+		UseDisabledSigVerifier:               cfgs.FlagsConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       cfgs.FlagsConfig.IsInImportMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

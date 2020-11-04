@@ -373,8 +373,8 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	isInImportMode := len(importDbDirectoryValue) > 0
 	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
-	cfgs.IsInImportMode = isInImportMode
-	cfgs.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
+	flagsConfig.IsInImportMode = isInImportMode
+	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
 
 	cfgs.FlagsConfig = flagsConfig
 

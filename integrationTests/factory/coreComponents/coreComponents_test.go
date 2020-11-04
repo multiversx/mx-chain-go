@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,12 +17,12 @@ func TestCoreComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	coreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
 	require.NotNil(t, coreComponents)
 

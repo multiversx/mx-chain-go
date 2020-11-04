@@ -7,110 +7,92 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test StatusComponents --------------------
 func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
-	time.Sleep(time.Second)
 	defer factory.CleanupWorkingDir()
+	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
-	prefsConfig, _ := core.LoadPreferencesConfig(factory.PrefsPath)
-	p2pConfig, _ := core.LoadP2PConfig(factory.P2pPath)
-	externalConfig, _ := core.LoadExternalConfig(factory.ExternalPath)
-	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(factory.SystemSCConfigPath)
-
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-
-	cryptoComponents, err := factory.CreateCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
+	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, cryptoComponents)
-
-	networkComponents, err := factory.CreateNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
+	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, networkComponents)
-
-	bootstrapComponents, err := factory.CreateBootstrapComponents(
-		*generalConfig,
-		*prefsConfig,
-		coreComponents,
-		cryptoComponents,
-		networkComponents)
+	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	require.NotNil(t, bootstrapComponents)
-
-	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataComponents, err := factory.CreateDataComponents(*generalConfig, epochStartNotifier, coreComponents)
+	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
-	require.NotNil(t, dataComponents)
+	managedStateComponents, err := node.CreateManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	require.Nil(t, err)
+	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
+	require.Nil(t, err)
+	nodesCoordinator, err := mainFactory.CreateNodesCoordinator(
+		nodesShufflerOut,
+		managedCoreComponents.GenesisNodesSetup(),
+		configs.PreferencesConfig.Preferences,
+		managedCoreComponents.EpochStartNotifierWithConfirm(),
+		managedCryptoComponents.PublicKey(),
+		managedCoreComponents.InternalMarshalizer(),
+		managedCoreComponents.Hasher(),
+		managedCoreComponents.Rater(),
+		managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit),
+		managedCoreComponents.NodesShuffler(),
+		managedBootstrapComponents.ShardCoordinator().SelfId(),
+		managedBootstrapComponents.EpochBootstrapParams(),
+		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
+	)
+	require.Nil(t, err)
+	managedStatusComponents, err := node.CreateManagedStatusComponents(configs, managedCoreComponents, managedNetworkComponents, managedBootstrapComponents, managedDataComponents, nodesCoordinator)
+	require.Nil(t, err)
+	require.NotNil(t, managedStatusComponents)
+
+	gasSchedule, err := core.LoadGasScheduleConfig(configs.FlagsConfig.GasScheduleConfigurationFileName)
+	require.Nil(t, err)
+	managedProcessComponents, err := node.CreateManagedProcessComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedBootstrapComponents, managedStateComponents, managedDataComponents, managedStatusComponents, gasSchedule, nodesCoordinator)
+	require.Nil(t, err)
 	time.Sleep(2 * time.Second)
 
-	nodesSetup := coreComponents.GenesisNodesSetup()
-	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
-	genesisShardCoordinator, nodesCoordinator, _, _, _ := factory.CreateCoordinators(
-		generalConfig,
-		prefsConfig,
-		ratingsConfig,
-		nodesSetup,
-		epochStartNotifier,
-		chanStopNodeProcess,
-		coreComponents,
-		cryptoComponents,
-		dataComponents,
-		bootstrapComponents)
-
-	statusComponents, err := factory.CreateStatusComponents(
-		*generalConfig,
-		*externalConfig,
-		genesisShardCoordinator,
-		nodesCoordinator,
-		epochStartNotifier,
-		coreComponents,
-		dataComponents,
-		networkComponents)
+	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
+	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
-	require.NotNil(t, statusComponents)
 
 	time.Sleep(5 * time.Second)
 
-	err = statusComponents.Close()
+	err = managedStatusComponents.Close()
 	require.Nil(t, err)
+	err = managedProcessComponents.Close()
+	require.Nil(t, err)
+	err = managedStateComponents.Close()
+	require.Nil(t, err)
+	err = managedDataComponents.Close()
+	require.Nil(t, err)
+	err = managedBootstrapComponents.Close()
+	require.Nil(t, err)
+	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
+	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
+	require.Nil(t, err)
+
 	time.Sleep(5 * time.Second)
-
-	err = dataComponents.Close()
-	require.Nil(t, err)
-
-	err = bootstrapComponents.Close()
-	require.Nil(t, err)
-
-	err = networkComponents.Close()
-	require.Nil(t, err)
-
-	err = cryptoComponents.Close()
-	require.Nil(t, err)
-
-	err = coreComponents.Close()
-	require.Nil(t, err)
-
-	time.Sleep(30 * time.Second)
 
 	nrAfter := runtime.NumGoroutine()
-
-	//TODO: make sure natpmp goroutine is closed as well
-	// normally should be closed after ~3 minutes on timeout
-	// temp fix: ignore the extra goroutine
-	if nrBefore <= nrAfter {
+	if nrBefore != nrAfter {
 		factory.PrintStack()
 	}
 
-	require.LessOrEqual(t, nrBefore, nrAfter)
+	require.Equal(t, nrBefore, nrAfter)
 }

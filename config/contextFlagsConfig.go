@@ -25,4 +25,6 @@ type ContextFlagsConfig struct {
 	ValidatorKeyIndex                int
 	EnableRestAPIServerDebugMode     bool
 	Version                          string
+	IsInImportMode                   bool
+	ImportDbNoSigCheckFlag           bool
 }

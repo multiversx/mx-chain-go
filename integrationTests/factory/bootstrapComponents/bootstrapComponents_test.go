@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,60 +17,37 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
-	prefsConfig, _ := core.LoadPreferencesConfig(factory.PrefsPath)
-	p2pConfig, _ := core.LoadP2PConfig(factory.P2pPath)
-	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(factory.SystemSCConfigPath)
-
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-
-	cryptoComponents, err := factory.CreateCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
+	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, cryptoComponents)
-
-	networkComponents, err := factory.CreateNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
+	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, networkComponents)
-
-	time.Sleep(2 * time.Second)
-
-	bootstrapComponents, err := factory.CreateBootstrapComponents(
-		*generalConfig,
-		*prefsConfig,
-		coreComponents,
-		cryptoComponents,
-		networkComponents)
+	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	require.NotNil(t, bootstrapComponents)
+	require.NotNil(t, managedBootstrapComponents)
 
-	time.Sleep(2 * time.Second)
-	err = bootstrapComponents.Close()
+	time.Sleep(5 * time.Second)
+
+	err = managedBootstrapComponents.Close()
+	require.Nil(t, err)
+	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
+	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
-	err = networkComponents.Close()
-	require.Nil(t, err)
-
-	err = cryptoComponents.Close()
-	require.Nil(t, err)
-
-	err = coreComponents.Close()
-	require.Nil(t, err)
-
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	nrAfter := runtime.NumGoroutine()
-
-	//TODO: make sure natpmp goroutine is closed as well
-	// normally should be closed after ~3 minutes on timeout
-	// temp fix: ignore the extra goroutine
-	if nrBefore <= nrAfter {
+	if nrBefore != nrAfter {
 		factory.PrintStack()
 	}
 
-	require.LessOrEqual(t, nrBefore, nrAfter)
+	require.Equal(t, nrBefore, nrAfter)
 }

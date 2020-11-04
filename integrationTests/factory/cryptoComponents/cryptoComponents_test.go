@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,31 +17,24 @@ func TestCryptoComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(factory.SystemSCConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
-
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-
-	time.Sleep(2 * time.Second)
-
-	cryptoComponents, err := factory.CreateCryptoComponents(*generalConfig, *systemSCConfig, coreComponents)
+	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, cryptoComponents)
+	require.NotNil(t, managedCryptoComponents)
 
-	err = cryptoComponents.Close()
+	time.Sleep(5 * time.Second)
+
+	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
-	time.Sleep(2 * time.Second)
-
-	err = coreComponents.Close()
-	require.Nil(t, err)
-
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	nrAfter := runtime.NumGoroutine()
 	if nrBefore != nrAfter {

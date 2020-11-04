@@ -439,6 +439,4 @@ type Configs struct {
 	ConfigurationRatingsFileName     string
 	ConfigurationPreferencesFileName string
 	P2pConfigurationFileName         string
-	IsInImportMode                   bool
-	ImportDbNoSigCheckFlag           bool
 }

@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,40 +17,33 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
+	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
-	p2pConfig, _ := core.LoadP2PConfig(factory.P2pPath)
-
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-
-	time.Sleep(2 * time.Second)
-
-	networkComponents, err := factory.CreateNetworkComponents(*generalConfig, *p2pConfig, *ratingsConfig, coreComponents)
+	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, networkComponents)
-	time.Sleep(2 * time.Second)
-
-	err = networkComponents.Close()
+	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
+	require.NotNil(t, managedNetworkComponents)
 
-	time.Sleep(2 * time.Second)
-	err = coreComponents.Close()
+	time.Sleep(5 * time.Second)
+
+	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
+	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	nrAfter := runtime.NumGoroutine()
-
-	//TODO: make sure natpmp goroutine is closed as well
-	// normally should be closed after ~3 minutes on timeout
-	// temp fix: ignore the extra goroutine
-	if nrBefore <= nrAfter {
+	if nrBefore != nrAfter {
 		factory.PrintStack()
 	}
 
-	require.LessOrEqual(t, nrBefore, nrAfter)
+	require.Equal(t, nrBefore, nrAfter)
 }

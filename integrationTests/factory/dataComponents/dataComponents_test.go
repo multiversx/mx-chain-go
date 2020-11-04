@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,32 +16,36 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 
 	nrBefore := runtime.NumGoroutine()
-
 	factory.PrintStack()
 
-	generalConfig, _ := core.LoadMainConfig(factory.ConfigPath)
-	ratingsConfig, _ := core.LoadRatingsConfig(factory.RatingsPath)
-	economicsConfig, _ := core.LoadEconomicsConfig(factory.EconomicsPath)
-
-	time.Sleep(2 * time.Second)
-
-	coreComponents, err := factory.CreateCoreComponents(*generalConfig, *ratingsConfig, *economicsConfig)
+	configs := factory.CreateDefaultConfig()
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
+	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
-	require.NotNil(t, coreComponents)
-
-	epochStartNotifier := notifier.NewEpochStartSubscriptionHandler()
-	dataComponents, err := factory.CreateDataComponents(*generalConfig, epochStartNotifier, coreComponents)
+	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	require.NotNil(t, dataComponents)
-	time.Sleep(2 * time.Second)
+	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
+	require.Nil(t, err)
+	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	require.Nil(t, err)
+	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	require.Nil(t, err)
+	require.NotNil(t, managedDataComponents)
 
-	err = dataComponents.Close()
+	time.Sleep(5 * time.Second)
+
+	err = managedDataComponents.Close()
+	require.Nil(t, err)
+	err = managedBootstrapComponents.Close()
+	require.Nil(t, err)
+	err = managedNetworkComponents.Close()
+	require.Nil(t, err)
+	err = managedCryptoComponents.Close()
+	require.Nil(t, err)
+	err = managedCoreComponents.Close()
 	require.Nil(t, err)
 
-	err = coreComponents.Close()
-	require.Nil(t, err)
-
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	nrAfter := runtime.NumGoroutine()
 	if nrBefore != nrAfter {
