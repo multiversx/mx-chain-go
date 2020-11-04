@@ -30,15 +30,17 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts         state.AccountsAdapter
-	PubkeyConv       core.PubkeyConverter
-	StorageService   dataRetriever.StorageService
-	DataPool         dataRetriever.PoolsHolder
-	BlockChain       data.ChainHandler
-	ShardCoordinator sharding.Coordinator
-	Marshalizer      marshal.Marshalizer
-	Uint64Converter  typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions process.BuiltInFunctionContainer
+	Accounts          state.AccountsAdapter
+	PubkeyConv        core.PubkeyConverter
+	StorageService    dataRetriever.StorageService
+	DataPool          dataRetriever.PoolsHolder
+	BlockChain        data.ChainHandler
+	ShardCoordinator  sharding.Coordinator
+	Marshalizer       marshal.Marshalizer
+	Uint64Converter   typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions  process.BuiltInFunctionContainer
+	CompiledSCPool    storage.Cacher
+	CompiledSCStorage storage.Storer
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -77,15 +79,14 @@ func NewBlockChainHookImpl(
 		marshalizer:       args.Marshalizer,
 		uint64Converter:   args.Uint64Converter,
 		builtInFunctions:  args.BuiltInFunctions,
-		compiledScPool:    args.DataPool.SmartContracts(),
-		compiledScStorage: args.StorageService.GetStorer(dataRetriever.SmartContractUnit),
+		compiledScPool:    args.CompiledSCPool,
+		compiledScStorage: args.CompiledSCStorage,
 	}
 
-	if check.IfNil(blockChainHookImpl.compiledScStorage) {
-		return nil, process.ErrNilStorage
-	}
-	if check.IfNil(blockChainHookImpl.compiledScPool) {
-		return nil, process.ErrNilPoolsHolder
+	blockChainHookImpl.compiledScPool.Clear()
+	err = blockChainHookImpl.compiledScStorage.DestroyUnit()
+	if err != nil {
+		return nil, err
 	}
 
 	blockChainHookImpl.currentHdr = &block.Header{}
@@ -117,6 +118,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return process.ErrNilBuiltInFunction
+	}
+	if check.IfNil(args.CompiledSCStorage) {
+		return process.ErrNilStorage
+	}
+	if check.IfNil(args.CompiledSCPool) {
+		return process.ErrNilCacher
 	}
 
 	return nil
@@ -514,7 +521,7 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 	}
 
 	compiledCode, err := bh.compiledScStorage.Get(codeHash)
-	if err != nil {
+	if err != nil || len(compiledCode) == 0 {
 		return false, nil
 	}
 
@@ -529,6 +536,15 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	err := bh.compiledScStorage.Remove(codeHash)
 	if err != nil {
 		log.Debug("DeleteCompiledCode", "error", err, "codeHash", codeHash)
+	}
+}
+
+// ClearCompiledCodes deletes the compiled codes from storage and cache
+func (bh *BlockChainHookImpl) ClearCompiledCodes() {
+	bh.compiledScPool.Clear()
+	err := bh.compiledScStorage.DestroyUnit()
+	if err != nil {
+		log.Error("blockchainHook ClearCompiledCodes", "error", err)
 	}
 }
 

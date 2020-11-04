@@ -97,17 +97,18 @@ type SoftwareVersionConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage          StorageConfig
-	PeerBlockBodyStorage       StorageConfig
-	BlockHeaderStorage         StorageConfig
-	TxStorage                  StorageConfig
-	UnsignedTransactionStorage StorageConfig
-	RewardTxStorage            StorageConfig
-	ShardHdrNonceHashStorage   StorageConfig
-	MetaHdrNonceHashStorage    StorageConfig
-	StatusMetricsStorage       StorageConfig
-	ReceiptsStorage            StorageConfig
-	SmartContractsStorage      StorageConfig
+	MiniBlocksStorage               StorageConfig
+	PeerBlockBodyStorage            StorageConfig
+	BlockHeaderStorage              StorageConfig
+	TxStorage                       StorageConfig
+	UnsignedTransactionStorage      StorageConfig
+	RewardTxStorage                 StorageConfig
+	ShardHdrNonceHashStorage        StorageConfig
+	MetaHdrNonceHashStorage         StorageConfig
+	StatusMetricsStorage            StorageConfig
+	ReceiptsStorage                 StorageConfig
+	SmartContractsStorage           StorageConfig
+	SmartContractsStorageForSCQuery StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig

@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
@@ -240,15 +241,17 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.PubkeyConv,
-		StorageService:   arg.Store,
-		BlockChain:       arg.Blkc,
-		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Marshalizer,
-		Uint64Converter:  arg.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         arg.DataPool,
+		Accounts:          arg.Accounts,
+		PubkeyConv:        arg.PubkeyConv,
+		StorageService:    arg.Store,
+		BlockChain:        arg.Blkc,
+		ShardCoordinator:  arg.ShardCoordinator,
+		Marshalizer:       arg.Marshalizer,
+		Uint64Converter:   arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:  builtInFuncs,
+		DataPool:          arg.DataPool,
+		CompiledSCPool:    arg.DataPool.SmartContracts(),
+		CompiledSCStorage: arg.Store.GetStorer(dataRetriever.SmartContractUnit),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
 		arg.VirtualMachineConfig,

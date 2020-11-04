@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -168,17 +169,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
-
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         context.Accounts,
-		PubkeyConv:       pkConverter,
-		StorageService:   chainStorer,
-		BlockChain:       blockchainMock,
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:          context.Accounts,
+		PubkeyConv:        pkConverter,
+		StorageService:    chainStorer,
+		BlockChain:        blockchainMock,
+		ShardCoordinator:  oneShardCoordinator,
+		Marshalizer:       marshalizer,
+		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:  builtInFuncs,
+		DataPool:          datapool,
+		CompiledSCPool:    datapool.SmartContracts(),
+		CompiledSCStorage: chainStorer.GetStorer(dataRetriever.SmartContractUnit),
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
