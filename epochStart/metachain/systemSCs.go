@@ -408,7 +408,10 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
-			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = s.userAccountsDB.SaveAccount(acc)

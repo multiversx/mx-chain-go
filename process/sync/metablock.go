@@ -59,6 +59,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		miniBlocksProvider:  arguments.MiniblocksProvider,
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
+		indexer:             arguments.Indexer,
 	}
 
 	boot := MetaBootstrap{

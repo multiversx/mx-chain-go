@@ -31,6 +31,7 @@ import (
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
@@ -91,6 +92,7 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
+	logFilePrefix                = "elrond-go"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -288,6 +290,12 @@ VERSION:
 		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
 		Value: "./config/validatorKey.pem",
 	}
+	// elasticSearchTemplates defines a flag for the path to the elasticsearch templates
+	elasticSearchTemplates = cli.StringFlag{
+		Name:  "elasticsearch-templates-path",
+		Usage: "The `path` to the elasticsearch templates directory containing the templates in .json format",
+		Value: "./config/elasticIndexTemplates",
+	}
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -322,13 +330,6 @@ VERSION:
 		Name:  "bootstrap-round-index",
 		Usage: "This flag specifies the round `index` from which node should bootstrap from storage.",
 		Value: math.MaxUint64,
-	}
-	// enableTxIndexing enables transaction indexing. There can be cases when it's too expensive to index all transactions
-	//  so we provide the command line option to disable this behaviour
-	enableTxIndexing = cli.BoolTFlag{
-		Name: "tx-indexing",
-		Usage: "Boolean option for enabling transactions indexing. There can be cases when it's too expensive to " +
-			"index all transactions so this flag will disable this.",
 	}
 
 	// workingDirectory defines a flag for the path for the working directory.
@@ -438,13 +439,13 @@ func main() {
 		restApiInterface,
 		restApiDebug,
 		disableAnsiColor,
+		elasticSearchTemplates,
 		logLevel,
 		logSaveFile,
 		logWithCorrelation,
 		logWithLoggerName,
 		useLogView,
 		bootstrapRoundIndex,
-		enableTxIndexing,
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
@@ -490,7 +491,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
 	if withLogFile {
-		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath, logFilePrefix)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -1201,8 +1202,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	elasticIndexer, err := createElasticIndexer(
-		ctx,
-		log,
 		externalConfig.ElasticSearchConnector,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
@@ -1210,7 +1209,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		epochStartNotifier,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
-		shardCoordinator.SelfId(),
+		stateComponents.AccountsAdapter,
+		economicsConfig.GlobalSettings.Denomination,
+		shardCoordinator,
+		&economicsConfig.FeeSettings,
+		isInImportMode,
+		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
 	if err != nil {
 		return err
@@ -1523,20 +1527,42 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
 	if isInImportMode {
 		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values",
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 			"GeneralSettings.StartInEpochEnabled", "false",
 			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
 			"p2p.ThresholdMinConnectedPeers", 0,
 			"no sig check", importDbNoSigCheckFlag,
 			"heartbeat sender", "off",
 		)
 		config.GeneralSettings.StartInEpochEnabled = false
 		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
+		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
 		p2pConfig.Node.ThresholdMinConnectedPeers = 0
 		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
 		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+
+		alterStorageConfigsForDBImport(config)
 	}
+}
+
+func alterStorageConfigsForDBImport(config *config.Config) {
+	changeStorageConfigForDBImport(&config.MiniBlocksStorage)
+	changeStorageConfigForDBImport(&config.BlockHeaderStorage)
+	changeStorageConfigForDBImport(&config.MetaBlockStorage)
+	changeStorageConfigForDBImport(&config.ShardHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.MetaHdrNonceHashStorage)
+	changeStorageConfigForDBImport(&config.PeerAccountsTrieStorage)
+}
+
+func changeStorageConfigForDBImport(storageConfig *config.StorageConfig) {
+	alterCoefficient := uint32(10)
+
+	storageConfig.Cache.Capacity = storageConfig.Cache.Capacity * alterCoefficient
+	storageConfig.DB.MaxBatchSize = storageConfig.DB.MaxBatchSize * int(alterCoefficient)
 }
 
 func closeAllComponents(
@@ -1684,7 +1710,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		go elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
@@ -1990,8 +2016,6 @@ func processDestinationShardAsObserver(prefsConfig config.PreferencesConfig) (ui
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
 func createElasticIndexer(
-	ctx *cli.Context,
-	log logger.Logger,
 	elasticSearchConfig config.ElasticSearchConfig,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -1999,30 +2023,39 @@ func createElasticIndexer(
 	startNotifier notifier.EpochStartNotifier,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	shardId uint32,
+	accountsDB state.AccountsAdapter,
+	denomination int,
+	shardCoordinator sharding.Coordinator,
+	feeConfig *config.FeeSettings,
+	isInImportDBMode bool,
+	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
 
-	if !elasticSearchConfig.Enabled {
-		log.Debug("elastic search indexing not enabled, will create a NilIndexer")
-		return indexer.NewNilIndexer(), nil
-	}
-
-	log.Debug("elastic search indexing enabled, will create an ElasticIndexer")
-	arguments := indexer.ElasticIndexerArgs{
+	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
+		ShardCoordinator:         shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              marshalizer,
 		Hasher:                   hasher,
-		Options:                  &indexer.Options{TxIndexingEnabled: ctx.GlobalBoolT(enableTxIndexing.Name)},
-		NodesCoordinator:         nodesCoordinator,
 		EpochStartNotifier:       startNotifier,
+		NodesCoordinator:         nodesCoordinator,
 		AddressPubkeyConverter:   addressPubkeyConverter,
 		ValidatorPubkeyConverter: validatorPubkeyConverter,
-		ShardId:                  shardId,
+		TemplatesPath:            elasticSearchTemplatesPath,
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		AccountsDB:               accountsDB,
+		Denomination:             denomination,
+		FeeConfig:                feeConfig,
+		Options: &indexer.Options{
+			UseKibana: elasticSearchConfig.UseKibana,
+		},
+		IsInImportDBMode: isInImportDBMode,
 	}
 
-	return indexer.NewElasticIndexer(arguments)
+	return indexerFactory.NewIndexer(indexerFactoryArgs)
 }
 func getConsensusGroupSize(nodesConfig *sharding.NodesSetup, shardCoordinator sharding.Coordinator) (uint32, error) {
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2381,7 +2414,7 @@ func startStatisticsMonitor(
 }
 
 func createApiResolver(
-	config *config.Config,
+	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
@@ -2444,11 +2477,11 @@ func createApiResolver(
 		}
 	} else {
 		vmFactory, err = shard.NewVMContainerFactory(
-			config.VirtualMachineConfig,
+			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasSchedule,
 			argsHook,
-			config.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		)
 		if err != nil {
 			return nil, err
