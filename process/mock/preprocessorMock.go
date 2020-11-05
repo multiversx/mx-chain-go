@@ -12,9 +12,10 @@ import (
 type PreProcessorMock struct {
 	CreateBlockStartedCalled              func()
 	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
-	RemoveTxBlockFromPoolsCalled          func(body *block.Body, miniBlockPool storage.Cacher) error
-	RestoreTxBlockIntoPoolsCalled         func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
-	SaveTxBlockToStorageCalled            func(body *block.Body) error
+	RemoveBlockDataFromPoolsCalled        func(body *block.Body, miniBlockPool storage.Cacher) error
+	RemoveTxsFromPoolsCalled              func(body *block.Body) error
+	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
+	SaveTxsToStorageCalled                func(body *block.Body) error
 	ProcessBlockTransactionsCalled        func(body *block.Body, haveTime func() bool) error
 	RequestBlockTransactionsCalled        func(body *block.Body) int
 	CreateMarshalizedDataCalled           func(txHashes [][]byte) ([][]byte, error)
@@ -40,28 +41,36 @@ func (ppm *PreProcessorMock) IsDataPrepared(requestedTxs int, haveTime func() ti
 	return ppm.IsDataPreparedCalled(requestedTxs, haveTime)
 }
 
-// RemoveTxBlockFromPools -
-func (ppm *PreProcessorMock) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	if ppm.RemoveTxBlockFromPoolsCalled == nil {
+// RemoveBlockDataFromPools -
+func (ppm *PreProcessorMock) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	if ppm.RemoveBlockDataFromPoolsCalled == nil {
 		return nil
 	}
-	return ppm.RemoveTxBlockFromPoolsCalled(body, miniBlockPool)
+	return ppm.RemoveBlockDataFromPoolsCalled(body, miniBlockPool)
 }
 
-// RestoreTxBlockIntoPools -
-func (ppm *PreProcessorMock) RestoreTxBlockIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error) {
-	if ppm.RestoreTxBlockIntoPoolsCalled == nil {
+// RemoveTxsFromPools -
+func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body) error {
+	if ppm.RemoveTxsFromPoolsCalled == nil {
+		return nil
+	}
+	return ppm.RemoveTxsFromPoolsCalled(body)
+}
+
+// RestoreBlockDataIntoPools -
+func (ppm *PreProcessorMock) RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error) {
+	if ppm.RestoreBlockDataIntoPoolsCalled == nil {
 		return 0, nil
 	}
-	return ppm.RestoreTxBlockIntoPoolsCalled(body, miniBlockPool)
+	return ppm.RestoreBlockDataIntoPoolsCalled(body, miniBlockPool)
 }
 
-// SaveTxBlockToStorage -
-func (ppm *PreProcessorMock) SaveTxBlockToStorage(body *block.Body) error {
-	if ppm.SaveTxBlockToStorageCalled == nil {
+// SaveTxsToStorage -
+func (ppm *PreProcessorMock) SaveTxsToStorage(body *block.Body) error {
+	if ppm.SaveTxsToStorageCalled == nil {
 		return nil
 	}
-	return ppm.SaveTxBlockToStorageCalled(body)
+	return ppm.SaveTxsToStorageCalled(body)
 }
 
 // ProcessBlockTransactions -

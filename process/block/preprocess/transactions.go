@@ -176,13 +176,18 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 	return nil
 }
 
-// RemoveTxBlockFromPools removes transactions and miniblocks from associated pools
-func (txs *transactions) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	return txs.removeDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
+// RemoveBlockDataFromPools removes transactions and miniblocks from associated pools
+func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return txs.removeBlockDataFromPools(body, miniBlockPool, txs.txPool, txs.isMiniBlockCorrect)
 }
 
-// RestoreTxBlockIntoPools restores the transactions and miniblocks to associated pools
-func (txs *transactions) RestoreTxBlockIntoPools(
+// RemoveTxsFromPools removes transactions from associated pools
+func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
+	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
+}
+
+// RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
+func (txs *transactions) RestoreBlockDataIntoPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
@@ -493,8 +498,8 @@ func (txs *transactions) processTxsFromMe(
 	return nil
 }
 
-// SaveTxBlockToStorage saves transactions from body into storage
-func (txs *transactions) SaveTxBlockToStorage(body *block.Body) error {
+// SaveTxsToStorage saves transactions from body into storage
+func (txs *transactions) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}

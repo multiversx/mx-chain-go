@@ -143,7 +143,7 @@ func (u *Unit) PutInEpoch(key, data []byte, _ uint32) error {
 func (u *Unit) Close() error {
 	err := u.persister.Close()
 	if err != nil {
-		log.Error("cannot close storage unit persister", err)
+		log.Error("cannot close storage unit persister", "error", err)
 		return err
 	}
 
