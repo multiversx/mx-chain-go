@@ -1510,15 +1510,17 @@ func newShardBlockProcessor(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         data.Datapool,
+		Accounts:          stateComponents.AccountsAdapter,
+		PubkeyConv:        stateComponents.AddressPubkeyConverter,
+		StorageService:    data.Store,
+		BlockChain:        data.Blkc,
+		ShardCoordinator:  shardCoordinator,
+		Marshalizer:       core.InternalMarshalizer,
+		Uint64Converter:   core.Uint64ByteSliceConverter,
+		BuiltInFunctions:  builtInFuncs,
+		DataPool:          data.Datapool,
+		CompiledSCStorage: data.Store.GetStorer(dataRetriever.SmartContractUnit),
+		CompiledSCPool:    data.Datapool.SmartContracts(),
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachine.Execution,
@@ -1808,15 +1810,17 @@ func newMetaBlockProcessor(
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
-		DataPool:         data.Datapool,
+		Accounts:          stateComponents.AccountsAdapter,
+		PubkeyConv:        stateComponents.AddressPubkeyConverter,
+		StorageService:    data.Store,
+		BlockChain:        data.Blkc,
+		ShardCoordinator:  shardCoordinator,
+		Marshalizer:       core.InternalMarshalizer,
+		Uint64Converter:   core.Uint64ByteSliceConverter,
+		BuiltInFunctions:  builtInFuncs, // no built-in functions for meta.
+		DataPool:          data.Datapool,
+		CompiledSCPool:    data.Datapool.SmartContracts(),
+		CompiledSCStorage: data.Store.GetStorer(dataRetriever.SmartContractUnit),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
