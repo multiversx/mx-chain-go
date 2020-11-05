@@ -518,7 +518,7 @@ func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
 }
 
 // GetElasticTemplatesAndPolicies will return elastic templates and policies
-func GetElasticTemplatesAndPolicies(path string) (map[string]*bytes.Buffer, map[string]*bytes.Buffer, error) {
+func GetElasticTemplatesAndPolicies(path string, useKibana bool) (map[string]*bytes.Buffer, map[string]*bytes.Buffer, error) {
 	indexTemplates := make(map[string]*bytes.Buffer)
 	indexPolicies := make(map[string]*bytes.Buffer)
 	var err error
@@ -531,11 +531,13 @@ func GetElasticTemplatesAndPolicies(path string) (map[string]*bytes.Buffer, map[
 		}
 	}
 
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
-	for _, indexPolicy := range indexesPolicies {
-		indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
-		if err != nil {
-			return nil, nil, err
+	if useKibana {
+		indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
+		for _, indexPolicy := range indexesPolicies {
+			indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 
