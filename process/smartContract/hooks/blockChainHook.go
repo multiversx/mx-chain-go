@@ -3,10 +3,12 @@ package hooks
 import (
 	"encoding/binary"
 	"fmt"
+	"path"
 	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -19,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -26,21 +30,24 @@ var _ process.BlockChainHookHandler = (*BlockChainHookImpl)(nil)
 
 var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
+const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts          state.AccountsAdapter
-	PubkeyConv        core.PubkeyConverter
-	StorageService    dataRetriever.StorageService
-	DataPool          dataRetriever.PoolsHolder
-	BlockChain        data.ChainHandler
-	ShardCoordinator  sharding.Coordinator
-	Marshalizer       marshal.Marshalizer
-	Uint64Converter   typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions  process.BuiltInFunctionContainer
-	CompiledSCPool    storage.Cacher
-	CompiledSCStorage storage.Storer
+	Accounts           state.AccountsAdapter
+	PubkeyConv         core.PubkeyConverter
+	StorageService     dataRetriever.StorageService
+	DataPool           dataRetriever.PoolsHolder
+	BlockChain         data.ChainHandler
+	ShardCoordinator   sharding.Coordinator
+	Marshalizer        marshal.Marshalizer
+	Uint64Converter    typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions   process.BuiltInFunctionContainer
+	CompiledSCPool     storage.Cacher
+	ConfigSCStorage    config.StorageConfig
+	WorkingDir         string
+	NilCompiledSCStore bool
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -57,8 +64,11 @@ type BlockChainHookImpl struct {
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
 
-	compiledScStorage storage.Storer
 	compiledScPool    storage.Cacher
+	compiledScStorage storage.Storer
+	configSCStorage   config.StorageConfig
+	workingDir        string
+	nilStorage        bool
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -71,24 +81,26 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:          args.Accounts,
-		pubkeyConv:        args.PubkeyConv,
-		storageService:    args.StorageService,
-		blockChain:        args.BlockChain,
-		shardCoordinator:  args.ShardCoordinator,
-		marshalizer:       args.Marshalizer,
-		uint64Converter:   args.Uint64Converter,
-		builtInFunctions:  args.BuiltInFunctions,
-		compiledScPool:    args.CompiledSCPool,
-		compiledScStorage: args.CompiledSCStorage,
+		accounts:         args.Accounts,
+		pubkeyConv:       args.PubkeyConv,
+		storageService:   args.StorageService,
+		blockChain:       args.BlockChain,
+		shardCoordinator: args.ShardCoordinator,
+		marshalizer:      args.Marshalizer,
+		uint64Converter:  args.Uint64Converter,
+		builtInFunctions: args.BuiltInFunctions,
+		compiledScPool:   args.CompiledSCPool,
+		configSCStorage:  args.ConfigSCStorage,
+		workingDir:       args.WorkingDir,
+		nilStorage:       args.NilCompiledSCStore,
 	}
 
-	blockChainHookImpl.compiledScPool.Clear()
-	err = blockChainHookImpl.compiledScStorage.DestroyUnit()
+	err = blockChainHookImpl.makeCompiledSCStorage()
 	if err != nil {
 		return nil, err
 	}
 
+	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
 
 	return blockChainHookImpl, nil
@@ -118,9 +130,6 @@ func checkForNil(args ArgBlockChainHook) error {
 	}
 	if check.IfNil(args.BuiltInFunctions) {
 		return process.ErrNilBuiltInFunction
-	}
-	if check.IfNil(args.CompiledSCStorage) {
-		return process.ErrNilStorage
 	}
 	if check.IfNil(args.CompiledSCPool) {
 		return process.ErrNilCacher
@@ -544,8 +553,39 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
-		log.Error("blockchainHook ClearCompiledCodes", "error", err)
+		log.Error("blockchainHook ClearCompiledCodes DestroyUnit", "error", err)
 	}
+
+	err = bh.compiledScStorage.Close()
+	if err != nil {
+		log.Error("blockchainHook ClearCompiledCodes Close", "error", err)
+	}
+
+	err = bh.makeCompiledSCStorage()
+	if err != nil {
+		log.Error("blockchainHook ClearCompiledCodes makeCompiledSCStorage", "error", err)
+	}
+}
+
+func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
+	if bh.nilStorage {
+		bh.compiledScStorage = storageUnit.NewNilStorer()
+		return nil
+	}
+
+	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
+	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
+	store, err := storageUnit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
+		dbConfig,
+		factory.GetBloomFromConfig(bh.configSCStorage.Bloom),
+	)
+	if err != nil {
+		return err
+	}
+
+	bh.compiledScStorage = store
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

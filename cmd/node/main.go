@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -93,7 +92,6 @@ import (
 const (
 	defaultStatsPath             = "stats"
 	defaultLogsPath              = "logs"
-	defaultCompiledSCPath        = "compiledSCs"
 	notSetDestinationShardID     = "disabled"
 	metachainShardName           = "metachain"
 	secondsToWaitForP2PBootstrap = 20
@@ -2425,23 +2423,20 @@ func createApiResolver(
 		return nil, err
 	}
 
-	smartContractsStorage, err := createStorer(generalConfig.SmartContractsStorageForSCQuery, filepath.Join(workingDir, defaultCompiledSCPath))
-	if err != nil {
-		return nil, err
-	}
-
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:          accnts,
-		PubkeyConv:        pubkeyConv,
-		StorageService:    storageService,
-		BlockChain:        blockChain,
-		ShardCoordinator:  shardCoordinator,
-		Marshalizer:       marshalizer,
-		Uint64Converter:   uint64Converter,
-		BuiltInFunctions:  builtInFuncs,
-		DataPool:          dataPool,
-		CompiledSCStorage: smartContractsStorage,
-		CompiledSCPool:    smartContractsCache,
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     storageService,
+		BlockChain:         blockChain,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    uint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           dataPool,
+		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		CompiledSCPool:     smartContractsCache,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2515,19 +2510,4 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
-	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
-	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-	store, err := storageUnit.NewStorageUnitFromConf(
-		storageFactory.GetCacherFromConfig(storageConfig.Cache),
-		dbConfig,
-		storageFactory.GetBloomFromConfig(storageConfig.Bloom),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return store, nil
 }

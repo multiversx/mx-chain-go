@@ -206,17 +206,17 @@ func saveGenesisMetaToStorage(
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:          arg.Accounts,
-		PubkeyConv:        arg.PubkeyConv,
-		StorageService:    arg.Store,
-		BlockChain:        arg.Blkc,
-		ShardCoordinator:  arg.ShardCoordinator,
-		Marshalizer:       arg.Marshalizer,
-		Uint64Converter:   arg.Uint64ByteSliceConverter,
-		BuiltInFunctions:  builtInFuncs,
-		DataPool:          arg.DataPool,
-		CompiledSCStorage: arg.Store.GetStorer(dataRetriever.SmartContractUnit),
-		CompiledSCPool:    arg.DataPool.SmartContracts(),
+		Accounts:           arg.Accounts,
+		PubkeyConv:         arg.PubkeyConv,
+		StorageService:     arg.Store,
+		BlockChain:         arg.Blkc,
+		ShardCoordinator:   arg.ShardCoordinator,
+		Marshalizer:        arg.Marshalizer,
+		Uint64Converter:    arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           arg.DataPool,
+		CompiledSCPool:     arg.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()

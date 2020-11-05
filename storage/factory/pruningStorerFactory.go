@@ -214,18 +214,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
 
-	scDbConfig := GetDBFromConfig(psf.generalConfig.SmartContractsStorage.DB)
-	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.SmartContractsStorage.DB.FilePath)
-	scDbConfig.FilePath = dbPath
-	scStorage, err := storageUnit.NewStorageUnitFromConf(
-		GetCacherFromConfig(psf.generalConfig.SmartContractsStorage.Cache),
-		scDbConfig,
-		GetBloomFromConfig(psf.generalConfig.SmartContractsStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, scStorage)
-
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
@@ -242,7 +230,6 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
-	store.AddStorer(dataRetriever.SmartContractUnit, scStorage)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {
@@ -397,18 +384,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	}
 	successfullyCreatedStorers = append(successfullyCreatedStorers, receiptsUnit)
 
-	scDbConfig := GetDBFromConfig(psf.generalConfig.SmartContractsStorage.DB)
-	dbPath = psf.pathManager.PathForStatic(shardId, psf.generalConfig.SmartContractsStorage.DB.FilePath)
-	scDbConfig.FilePath = dbPath
-	scStorage, err := storageUnit.NewStorageUnitFromConf(
-		GetCacherFromConfig(psf.generalConfig.SmartContractsStorage.Cache),
-		scDbConfig,
-		GetBloomFromConfig(psf.generalConfig.SmartContractsStorage.Bloom))
-	if err != nil {
-		return nil, err
-	}
-	successfullyCreatedStorers = append(successfullyCreatedStorers, scStorage)
-
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.MetaBlockUnit, metaBlockUnit)
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
@@ -426,7 +401,6 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	store.AddStorer(dataRetriever.StatusMetricsUnit, statusMetricsStorageUnit)
 	store.AddStorer(dataRetriever.TxLogsUnit, txLogsUnit)
 	store.AddStorer(dataRetriever.ReceiptsUnit, receiptsUnit)
-	store.AddStorer(dataRetriever.SmartContractUnit, scStorage)
 
 	err = psf.setupDbLookupExtensions(store, &successfullyCreatedStorers)
 	if err != nil {

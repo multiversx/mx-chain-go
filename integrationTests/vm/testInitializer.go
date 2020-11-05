@@ -159,17 +159,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:          accnts,
-		PubkeyConv:        pubkeyConv,
-		StorageService:    &mock.ChainStorerMock{},
-		BlockChain:        &mock.BlockChainMock{},
-		ShardCoordinator:  oneShardCoordinator,
-		Marshalizer:       testMarshalizer,
-		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:  builtInFuncs,
-		DataPool:          datapool,
-		CompiledSCPool:    datapool.SmartContracts(),
-		CompiledSCStorage: mock.NewStorerMock(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -245,17 +245,17 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:          accnts,
-		PubkeyConv:        pubkeyConv,
-		StorageService:    &mock.ChainStorerMock{},
-		BlockChain:        &mock.BlockChainMock{},
-		ShardCoordinator:  oneShardCoordinator,
-		Marshalizer:       testMarshalizer,
-		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:  builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:          datapool,
-		CompiledSCStorage: mock.NewStorerMock(),
-		CompiledSCPool:    datapool.SmartContracts(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -286,17 +286,17 @@ func CreateVMAndBlockchainHook(
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:          accnts,
-		PubkeyConv:        pubkeyConv,
-		StorageService:    &mock.ChainStorerMock{},
-		BlockChain:        &mock.BlockChainMock{},
-		ShardCoordinator:  oneShardCoordinator,
-		Marshalizer:       testMarshalizer,
-		Uint64Converter:   &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions:  builtInFuncs,
-		DataPool:          datapool,
-		CompiledSCStorage: mock.NewStorerMock(),
-		CompiledSCPool:    datapool.SmartContracts(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
