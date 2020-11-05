@@ -6,7 +6,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -92,15 +91,18 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 	)
 
 	statusArgs := factory.StatusComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		ExternalConfig:     config.ExternalConfig{},
-		ElasticOptions:     &indexer.Options{},
-		ShardCoordinator:   processComponents.ShardCoordinator(),
-		NodesCoordinator:   processComponents.NodesCoordinator(),
-		EpochStartNotifier: processComponents.EpochStartNotifier(),
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
+		Config:               testscommon.GetGeneralConfig(),
+		ExternalConfig:       config.ExternalConfig{},
+		ShardCoordinator:     processComponents.ShardCoordinator(),
+		NodesCoordinator:     processComponents.NodesCoordinator(),
+		EpochStartNotifier:   processComponents.EpochStartNotifier(),
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		EconomicsConfig:      config.EconomicsConfig{},
+		ElasticTemplatesPath: "",
 	}
 	scf, err := factory.NewStatusComponentsFactory(statusArgs)
 	assert.Nil(t, err)
@@ -153,11 +155,22 @@ func getStatusComponents(
 	processComponents factory.ProcessComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
 ) factory.StatusComponentsHandler {
+
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
 	statusArgs := factory.StatusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		ExternalConfig:       config.ExternalConfig{},
+		Config: testscommon.GetGeneralConfig(),
+		ExternalConfig: config.ExternalConfig{
+			ElasticSearchConnector: config.ElasticSearchConfig{
+				Enabled:        false,
+				URL:            indexerURL,
+				Username:       elasticUsername,
+				Password:       elasticPassword,
+				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+		},
 		EconomicsConfig:      config.EconomicsConfig{},
-		ElasticOptions:       &indexer.Options{},
 		ShardCoordinator:     processComponents.ShardCoordinator(),
 		NodesCoordinator:     processComponents.NodesCoordinator(),
 		EpochStartNotifier:   processComponents.EpochStartNotifier(),
@@ -166,7 +179,8 @@ func getStatusComponents(
 		NetworkComponents:    networkComponents,
 		StateComponents:      stateComponents,
 		IsInImportMode:       false,
-		ElasticTemplatesPath: "",
+
+		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
 	}
 
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
@@ -197,16 +211,30 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 		stateComponents,
 	)
 
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
 	return factory.StatusComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		ExternalConfig:     config.ExternalConfig{},
-		ElasticOptions:     &indexer.Options{},
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:   processComponents.NodesCoordinator(),
-		EpochStartNotifier: processComponents.EpochStartNotifier(),
-		CoreComponents:     coreComponents,
-		DataComponents:     dataComponents,
-		NetworkComponents:  networkComponents,
+		Config:               testscommon.GetGeneralConfig(),
+		ExternalConfig: config.ExternalConfig{
+			ElasticSearchConnector: config.ElasticSearchConfig{
+				Enabled:        false,
+				URL:            indexerURL,
+				Username:       elasticUsername,
+				Password:       elasticPassword,
+				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+		},
+		EconomicsConfig:      config.EconomicsConfig{},
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
+		NodesCoordinator:     processComponents.NodesCoordinator(),
+		EpochStartNotifier:   processComponents.EpochStartNotifier(),
+		CoreComponents:       coreComponents,
+		DataComponents:       dataComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
 	}, processComponents
 }
 

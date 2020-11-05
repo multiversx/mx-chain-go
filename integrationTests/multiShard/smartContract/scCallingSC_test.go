@@ -275,7 +275,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000)
+	initialVal, _:= big.NewInt(0).SetString("100000000000000000000000", 10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
@@ -347,7 +347,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	}
 
 	txData := "ClaimDeveloperRewards"
-	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, 1)
+	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
 	time.Sleep(time.Second)
 
 	for i := 0; i < 3; i++ {
