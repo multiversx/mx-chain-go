@@ -282,6 +282,7 @@ func (stp *stakingToPeer) updatePeerState(
 		if account.GetTempRating() < stp.unJailRating {
 			account.SetTempRating(stp.unJailRating)
 		}
+		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
 		return stp.peerState.SaveAccount(account)
 	}

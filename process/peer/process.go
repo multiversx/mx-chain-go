@@ -75,6 +75,7 @@ type validatorStatistics struct {
 	jailedEnableEpoch               uint32
 	belowSignedThresholdEnableEpoch uint32
 	flagJailedEnabled               atomic.Flag
+	flagInactiveToJailCorrection    atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -215,7 +216,7 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
-		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		isNodeJailed := vs.flagInactiveToJailCorrection.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
@@ -670,7 +671,7 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
-	if !vs.flagJailedEnabled.IsSet() {
+	if !vs.flagInactiveToJailCorrection.IsSet() {
 		return
 	}
 
@@ -1195,5 +1196,6 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
+	vs.flagInactiveToJailCorrection.Toggle(epoch == vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
 }
