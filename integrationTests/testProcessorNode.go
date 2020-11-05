@@ -1468,29 +1468,31 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
-		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000")
-		if errRsp != nil {
-			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
-		}
+		//stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000")
+		//if errRsp != nil {
+		//	log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
+		//}
 
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
 		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:              tpn.ShardCoordinator,
-			PubkeyConverter:               TestAddressPubkeyConverter,
-			RewardsStorage:                rewardsStorage,
-			MiniBlockStorage:              miniBlockStorage,
-			Hasher:                        TestHasher,
-			Marshalizer:                   TestMarshalizer,
-			DataPool:                      tpn.DataPool,
-			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-			NodesConfigProvider:           tpn.NodesCoordinator,
-			UserAccountsDB:                tpn.AccntState,
-			StakingDataProvider:           stakingDataProvider,
-			RewardsTopUpGradientPoint:     tpn.EconomicsData.RewardsTopUpGradientPoint(),
-			RewardsTopUpFactor:            tpn.EconomicsData.RewardsTopUpFactor(),
-			LeaderPercentage:              tpn.EconomicsData.LeaderPercentage(),
-			EconomicsDataProvider:         economicsDataProvider,
+			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
+				ShardCoordinator:              tpn.ShardCoordinator,
+				PubkeyConverter:               TestAddressPubkeyConverter,
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        TestHasher,
+				Marshalizer:                   TestMarshalizer,
+				DataPool:                      tpn.DataPool,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				NodesConfigProvider:           tpn.NodesCoordinator,
+				UserAccountsDB:                tpn.AccntState,
+				//StakingDataProvider:           stakingDataProvider,
+				//RewardsTopUpGradientPoint:     tpn.EconomicsData.RewardsTopUpGradientPoint(),
+				//RewardsTopUpFactor:            tpn.EconomicsData.RewardsTopUpFactor(),
+				//LeaderPercentage:              tpn.EconomicsData.LeaderPercentage(),
+				//EconomicsDataProvider:         economicsDataProvider,
+			},
 		}
 		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
 

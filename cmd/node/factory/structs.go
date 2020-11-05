@@ -1978,15 +1978,15 @@ func newMetaBlockProcessor(
 
 	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:        core.InternalMarshalizer,
-		Hasher:             core.Hasher,
-		Store:              data.Store,
-		ShardCoordinator:   shardCoordinator,
-		RewardsHandler:     economicsData,
-		RoundTime:          rounder,
-		GenesisNonce:       genesisHdr.GetNonce(),
-		GenesisEpoch:       genesisHdr.GetEpoch(),
-		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
+		Marshalizer:           core.InternalMarshalizer,
+		Hasher:                core.Hasher,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		RewardsHandler:        economicsData,
+		RoundTime:             rounder,
+		GenesisNonce:          genesisHdr.GetNonce(),
+		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
@@ -2000,29 +2000,31 @@ func newMetaBlockProcessor(
 	}
 
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
-	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
-	if err != nil {
-		return nil, err
-	}
+	//stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
 	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               stateComponents.AddressPubkeyConverter,
-		RewardsStorage:                rewardsStorage,
-		MiniBlockStorage:              miniBlockStorage,
-		Hasher:                        core.Hasher,
-		Marshalizer:                   core.InternalMarshalizer,
-		DataPool:                      data.Datapool,
-		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
-		NodesConfigProvider:           nodesCoordinator,
-		UserAccountsDB:                stateComponents.AccountsAdapter,
-		StakingDataProvider:           stakingDataProvider,
-		RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
-		RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),
-		LeaderPercentage:              economicsData.LeaderPercentage(),
-		EconomicsDataProvider:         economicsDataProvider,
+		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
+			ShardCoordinator:              shardCoordinator,
+			PubkeyConverter:               stateComponents.AddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        core.Hasher,
+			Marshalizer:                   core.InternalMarshalizer,
+			DataPool:                      data.Datapool,
+			ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
+			NodesConfigProvider:           nodesCoordinator,
+			UserAccountsDB:                stateComponents.AccountsAdapter,
+			//StakingDataProvider:           stakingDataProvider,
+			//RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
+			//RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),
+			//LeaderPercentage:              economicsData.LeaderPercentage(),
+			//EconomicsDataProvider:         economicsDataProvider,
+		},
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

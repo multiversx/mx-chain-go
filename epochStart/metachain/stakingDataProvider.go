@@ -84,19 +84,21 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 }
 
 // GetOwnerStakingStats returns the owner of provided bls key staking stats for the current epoch
-func (sdp *stakingDataProvider) GetNodeStakingStats(blsKey []byte) (*big.Int, *big.Int, error) {
+func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
 	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
 		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	ownerStats, ok := sdp.cache[owner]
 	if !ok {
-		return nil, nil, errors.New("owner has no eligible nodes in epoch")
+		return nil, errors.New("owner has no eligible nodes in epoch")
 	}
 
-	return big.NewInt(0).Set(ownerStats.eligibleBaseStake), big.NewInt(0).Set(ownerStats.eligibleTopUpStake), nil
+	topUpPerNode := big.NewInt(0).Div(ownerStats.eligibleTopUpStake, big.NewInt(0).SetInt64(int64(ownerStats.numEligible)))
+
+	return topUpPerNode, nil
 }
 
 // PrepareStakingData prepares the staking data for the given map of node keys per shard

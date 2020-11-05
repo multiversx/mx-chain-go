@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
@@ -117,17 +116,6 @@ func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *tes
 	assert.NotNil(t, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilStakingDataProvider(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.StakingDataProvider = nil
-
-	rwd, err := NewEpochStartRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilStakingDataProvider, err)
-}
-
 func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -138,51 +126,10 @@ func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	numComputeRewards := 0
-	expectedErr := errors.New("expected error")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
-			numComputeRewards += len(keys)
-			return expectedErr
-		},
-	}
-	rwd, err := NewEpochStartRewardsCreator(args)
-	require.Nil(t, err)
-
-	mb := &block.MetaBlock{
-		EpochStart:     getDefaultEpochStart(),
-		DevFeesInEpoch: big.NewInt(0),
-	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
-	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
-	assert.NotNil(t, err)
-	assert.Equal(t, expectedErr, err)
-	assert.Nil(t, bdy)
-	assert.Equal(t, 1, numComputeRewards)
-}
-
 func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	numComputeRewards := 0
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
-			numComputeRewards += len(keys)
-			return nil
-		},
-	}
 	rwd, err := NewEpochStartRewardsCreator(args)
 	require.Nil(t, err)
 
@@ -201,7 +148,6 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
-	assert.Equal(t, 1, numComputeRewards)
 }
 
 func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
@@ -582,7 +528,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
@@ -627,7 +573,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{})
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
@@ -759,20 +705,24 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
 	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
-	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("300000000000000000000", 10)
+	//rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("300000000000000000000", 10)
 	return ArgsNewRewardsCreator{
-		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
-		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
-		RewardsStorage:                &mock.StorerStub{},
-		MiniBlockStorage:              &mock.StorerStub{},
-		Hasher:                        &mock.HasherMock{},
-		Marshalizer:                   &mock.MarshalizerMock{},
-		DataPool:                      testscommon.NewPoolsHolderStub(),
-		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
-		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
-		UserAccountsDB:                userAccountsDB,
-		StakingDataProvider:           &mock.StakingDataProviderStub{},
-		RewardsTopUpFactor:            0.25,
-		RewardsTopUpGradientPoint:     rewardsTopUpGradientPoint,
+		BaseRewardsCreatorArgs: BaseRewardsCreatorArgs{
+			ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
+			PubkeyConverter:               mock.NewPubkeyConverterMock(32),
+			RewardsStorage:                &mock.StorerStub{},
+			MiniBlockStorage:              &mock.StorerStub{},
+			Hasher:                        &mock.HasherMock{},
+			Marshalizer:                   &mock.MarshalizerMock{},
+			DataPool:                      testscommon.NewPoolsHolderStub(),
+			ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
+			NodesConfigProvider:           &mock.NodesCoordinatorStub{},
+			UserAccountsDB:                userAccountsDB,
+		},
+		//StakingDataProvider:           &mock.StakingDataProviderStub{},
+		//RewardsTopUpFactor:            0.25,
+		//RewardsTopUpGradientPoint:     rewardsTopUpGradientPoint,
+		//LeaderPercentage:              0.1,
+		//EconomicsDataProvider:         NewEpochEconomicsStatistics(),
 	}
 }

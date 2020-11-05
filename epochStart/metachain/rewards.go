@@ -1,9 +1,7 @@
 package metachain
 
 import (
-	"bytes"
 	"math/big"
-	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -52,26 +50,20 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
+	rc.mutRewardsData.Lock()
+	defer rc.mutRewardsData.Unlock()
 
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 
-	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
-		miniBlocks[i] = &block.MiniBlock{}
-		miniBlocks[i].SenderShardID = core.MetachainShardId
-		miniBlocks[i].ReceiverShardID = i
-		miniBlocks[i].Type = block.RewardsBlock
-		miniBlocks[i].TxHashes = make([][]byte, 0)
-	}
-	miniBlocks[rc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
+	miniBlocks := rc.initializeRewardsMiniBlocks()
 
 	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	rc.fillRewardsPerBlockPerNode(&metaBlock.EpochStart.Economics)
+	rc.fillBaseRewardsPerBlockPerNode(metaBlock.EpochStart.Economics.RewardsPerBlock)
 	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protocolSustainabilityRwdTx)
 	if err != nil {
 		return nil, err
@@ -80,48 +72,13 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	totalWithoutDevelopers := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
-	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
-	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
-		log.Error("negative rewards protocol sustainability")
-		protocolSustainabilityRwdTx.Value.SetUint64(0)
-	}
-	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
-
-	protocolSustainabilityRwdHash, errHash := core.CalculateHash(rc.marshalizer, rc.hasher, protocolSustainabilityRwdTx)
-	if errHash != nil {
-		return nil, errHash
+	rc.adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx, difference)
+	err = rc.addProtocolRewardToMiniBlocks(protocolSustainabilityRwdTx, miniBlocks, protocolSustainabilityShardId)
+	if err != nil {
+		return nil, err
 	}
 
-	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
-	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
-
-	for shId := uint32(0); shId <= rc.shardCoordinator.NumberOfShards(); shId++ {
-		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
-			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
-		})
-	}
-
-	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i <= rc.shardCoordinator.NumberOfShards(); i++ {
-		if len(miniBlocks[i].TxHashes) > 0 {
-			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
-		}
-	}
-
-	return finalMiniBlocks, nil
-}
-
-func (rc *rewardsCreator) fillRewardsPerBlockPerNode(economicsData *block.Economics) {
-	rc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
-	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
-		consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(i)))
-		rc.mapRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
-		log.Debug("rewardsPerBlockPerValidator", "shardID", i, "value", rc.mapRewardsPerBlockPerValidator[i].String())
-	}
-
-	consensusSize := big.NewInt(int64(rc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
-	rc.mapRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(economicsData.RewardsPerBlock, consensusSize)
-	log.Debug("rewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", rc.mapRewardsPerBlockPerValidator[core.MetachainShardId].String())
+	return rc.finalizeMiniblocks(miniBlocks), nil
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
@@ -174,7 +131,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[validatorInfo.ShardId]
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
-			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
+			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}

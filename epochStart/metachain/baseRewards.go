@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"sort"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
@@ -48,16 +50,17 @@ type baseRewardsCreator struct {
 	protocolSustainabilityAddress []byte
 	nodesConfigProvider           epochStart.NodesConfigProvider
 
-	hasher                         hashing.Hasher
-	marshalizer                    marshal.Marshalizer
-	dataPool                       dataRetriever.PoolsHolder
-	mapRewardsPerBlockPerValidator map[uint32]*big.Int
-	accumulatedRewards             *big.Int
-	protocolSustainability         *big.Int
+	hasher                             hashing.Hasher
+	marshalizer                        marshal.Marshalizer
+	dataPool                           dataRetriever.PoolsHolder
+	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
+	accumulatedRewards                 *big.Int
+	protocolSustainability             *big.Int
 
 	flagDelegationSystemSCEnabled atomic.Flag
 	delegationSystemSCEnableEpoch uint32
 	userAccountsDB                state.AccountsAdapter
+	mutRewardsData                sync.RWMutex
 }
 
 func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, error) {
@@ -102,128 +105,17 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 	return brc, nil
 }
 
-func checkBaseArgs(args BaseRewardsCreatorArgs) error {
-	if check.IfNil(args.ShardCoordinator) {
-		return epochStart.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.PubkeyConverter) {
-		return epochStart.ErrNilPubkeyConverter
-	}
-	if check.IfNil(args.RewardsStorage) {
-		return epochStart.ErrNilStorage
-	}
-	if check.IfNil(args.Marshalizer) {
-		return epochStart.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return epochStart.ErrNilHasher
-	}
-	if check.IfNil(args.MiniBlockStorage) {
-		return epochStart.ErrNilStorage
-	}
-	if check.IfNil(args.DataPool) {
-		return epochStart.ErrNilDataPoolsHolder
-	}
-	if len(args.ProtocolSustainabilityAddress) == 0 {
-		return epochStart.ErrNilProtocolSustainabilityAddress
-	}
-	if check.IfNil(args.NodesConfigProvider) {
-		return epochStart.ErrNilNodesConfigProvider
-	}
-	if check.IfNil(args.UserAccountsDB) {
-		return epochStart.ErrNilAccountsDB
-	}
-
-	return nil
-}
-
-// CreateBlockStarted announces block creation started and cleans inside data
-func (brc *baseRewardsCreator) clean() {
-	brc.mapRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
-	brc.currTxs.Clean()
-	brc.accumulatedRewards = big.NewInt(0)
-	brc.protocolSustainability = big.NewInt(0)
-}
-
-func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
-	acc, errExist := brc.userAccountsDB.GetExistingAccount(address)
-	if errExist != nil {
-		return false
-	}
-
-	userAcc, ok := acc.(state.UserAccountHandler)
-	if !ok {
-		return false
-	}
-
-	val, err := userAcc.DataTrieTracker().RetrieveValue([]byte(core.DelegationSystemSCKey))
-	if err != nil {
-		return false
-	}
-
-	return len(val) > 0
-}
-
-func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
-	metaBlock *block.MetaBlock,
-) (*rewardTx.RewardTx, uint32, error) {
-
-	shardID := brc.shardCoordinator.ComputeId(brc.protocolSustainabilityAddress)
-	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
-		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability),
-		RcvAddr: brc.protocolSustainabilityAddress,
-		Epoch:   metaBlock.Epoch,
-	}
-
-	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
-	return protocolSustainabilityRwdTx, shardID, nil
-}
-
-func (brc *baseRewardsCreator) createRewardFromRwdInfo(
-	rwdInfo *rewardInfoData,
-	metaBlock *block.MetaBlock,
-) (*rewardTx.RewardTx, []byte, error) {
-	rwdTx := &rewardTx.RewardTx{
-		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.protocolRewards),
-		RcvAddr: []byte(rwdInfo.address),
-		Epoch:   metaBlock.Epoch,
-	}
-
-	rwdTxHash, err := core.CalculateHash(brc.marshalizer, brc.hasher, rwdTx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	log.Debug("rewardTx",
-		"address", []byte(rwdInfo.address),
-		"value", rwdTx.Value.String(),
-		"hash", rwdTxHash,
-		"accumulatedFees", rwdInfo.accumulatedFees,
-		"protocolRewards", rwdInfo.protocolRewards,
-	)
-
-	return rwdTx, rwdTxHash, nil
-}
-
 // GetProtocolSustainabilityRewards returns the sum of all rewards
 func (brc *baseRewardsCreator) GetProtocolSustainabilityRewards() *big.Int {
+	brc.mutRewardsData.RLock()
+	defer brc.mutRewardsData.RUnlock()
+
 	return brc.protocolSustainability
 }
 
 // GetLocalTxCache returns the local tx cache which holds all the rewards
 func (brc *baseRewardsCreator) GetLocalTxCache() epochStart.TransactionCacher {
 	return brc.currTxs
-}
-
-func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockSlice) *block.MiniBlock {
-	for _, miniBlock := range miniBlocks {
-		if miniBlock.ReceiverShardID == shardId {
-			return miniBlock
-		}
-	}
-	return nil
 }
 
 // CreateMarshalizedData creates the marshalized data to be sent to shards
@@ -356,12 +248,6 @@ func (brc *baseRewardsCreator) IsInterfaceNil() bool {
 	return brc == nil
 }
 
-func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
-	transactionTopic := factory.RewardsTransactionTopic +
-		shardC.CommunicationIdentifier(destShId)
-	return transactionTopic
-}
-
 // RemoveBlockDataFromPools removes block info from pools
 func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {
@@ -394,6 +280,179 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlo
 			"receiver", mbHeader.ReceiverShardID,
 			"num txs", mbHeader.TxCount)
 	}
+}
+
+func checkBaseArgs(args BaseRewardsCreatorArgs) error {
+	if check.IfNil(args.ShardCoordinator) {
+		return epochStart.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PubkeyConverter) {
+		return epochStart.ErrNilPubkeyConverter
+	}
+	if check.IfNil(args.RewardsStorage) {
+		return epochStart.ErrNilStorage
+	}
+	if check.IfNil(args.Marshalizer) {
+		return epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return epochStart.ErrNilHasher
+	}
+	if check.IfNil(args.MiniBlockStorage) {
+		return epochStart.ErrNilStorage
+	}
+	if check.IfNil(args.DataPool) {
+		return epochStart.ErrNilDataPoolsHolder
+	}
+	if len(args.ProtocolSustainabilityAddress) == 0 {
+		return epochStart.ErrNilProtocolSustainabilityAddress
+	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return epochStart.ErrNilNodesConfigProvider
+	}
+	if check.IfNil(args.UserAccountsDB) {
+		return epochStart.ErrNilAccountsDB
+	}
+
+	return nil
+}
+
+// CreateBlockStarted announces block creation started and cleans inside data
+func (brc *baseRewardsCreator) clean() {
+	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
+	brc.currTxs.Clean()
+	brc.accumulatedRewards = big.NewInt(0)
+	brc.protocolSustainability = big.NewInt(0)
+}
+
+func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
+	acc, errExist := brc.userAccountsDB.GetExistingAccount(address)
+	if errExist != nil {
+		return false
+	}
+
+	userAcc, ok := acc.(state.UserAccountHandler)
+	if !ok {
+		return false
+	}
+
+	val, err := userAcc.DataTrieTracker().RetrieveValue([]byte(core.DelegationSystemSCKey))
+	if err != nil {
+		return false
+	}
+
+	return len(val) > 0
+}
+
+func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
+	metaBlock *block.MetaBlock,
+) (*rewardTx.RewardTx, uint32, error) {
+
+	shardID := brc.shardCoordinator.ComputeId(brc.protocolSustainabilityAddress)
+	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability),
+		RcvAddr: brc.protocolSustainabilityAddress,
+		Epoch:   metaBlock.Epoch,
+	}
+
+	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
+	return protocolSustainabilityRwdTx, shardID, nil
+}
+
+func (brc *baseRewardsCreator) createRewardFromRwdInfo(
+	rwdInfo *rewardInfoData,
+	metaBlock *block.MetaBlock,
+) (*rewardTx.RewardTx, []byte, error) {
+	rwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.protocolRewards),
+		RcvAddr: []byte(rwdInfo.address),
+		Epoch:   metaBlock.Epoch,
+	}
+
+	rwdTxHash, err := core.CalculateHash(brc.marshalizer, brc.hasher, rwdTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Debug("rewardTx",
+		"address", []byte(rwdInfo.address),
+		"value", rwdTx.Value.String(),
+		"hash", rwdTxHash,
+		"accumulatedFees", rwdInfo.accumulatedFees,
+		"protocolRewards", rwdInfo.protocolRewards,
+	)
+
+	return rwdTx, rwdTxHash, nil
+}
+
+func (brc *baseRewardsCreator) initializeRewardsMiniBlocks() block.MiniBlockSlice {
+	miniBlocks := make(block.MiniBlockSlice, brc.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
+		miniBlocks[i] = &block.MiniBlock{}
+		miniBlocks[i].SenderShardID = core.MetachainShardId
+		miniBlocks[i].ReceiverShardID = i
+		miniBlocks[i].Type = block.RewardsBlock
+		miniBlocks[i].TxHashes = make([][]byte, 0)
+	}
+	miniBlocks[brc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
+	return miniBlocks
+}
+
+func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
+	protocolSustainabilityRwdTx *rewardTx.RewardTx,
+	miniBlocks block.MiniBlockSlice,
+	protocolSustainabilityShardId uint32,
+) error {
+	protocolSustainabilityRwdHash, errHash := core.CalculateHash(brc.marshalizer, brc.hasher, protocolSustainabilityRwdTx)
+	if errHash != nil {
+		return errHash
+	}
+
+	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
+	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
+	return nil
+}
+
+func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
+	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+}
+
+func (brc *baseRewardsCreator) finalizeMiniblocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+	for shId := uint32(0); shId <= brc.shardCoordinator.NumberOfShards(); shId++ {
+		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
+			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
+		})
+	}
+
+	finalMiniBlocks := make(block.MiniBlockSlice, 0)
+	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
+		if len(miniBlocks[i].TxHashes) > 0 {
+			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+		}
+	}
+	return finalMiniBlocks
+}
+
+func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {
+	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
+	accumulatedBaseRewards := big.NewInt(0)
+	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
+		consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(i)))
+		brc.mapBaseRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
+		accumulatedBaseRewards.Add(accumulatedBaseRewards, brc.mapBaseRewardsPerBlockPerValidator[i])
+		log.Debug("baseRewardsPerBlockPerValidator", "shardID", i, "value", brc.mapBaseRewardsPerBlockPerValidator[i].String())
+	}
+
+	consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
+	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniblocksWithMetaBlock(metaBlock *block.MetaBlock, createdMiniBlocks block.MiniBlockSlice) error {
@@ -436,4 +495,19 @@ func (brc *baseRewardsCreator) verifyCreatedRewardMiniblocksWithMetaBlock(metaBl
 	}
 
 	return nil
+}
+
+func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockSlice) *block.MiniBlock {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.ReceiverShardID == shardId {
+			return miniBlock
+		}
+	}
+	return nil
+}
+
+func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
+	transactionTopic := factory.RewardsTransactionTopic +
+		shardC.CommunicationIdentifier(destShId)
+	return transactionTopic
 }
