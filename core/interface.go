@@ -64,3 +64,9 @@ type EpochSubscriberHandler interface {
 	EpochConfirmed(epoch uint32)
 	IsInterfaceNil() bool
 }
+
+// GasScheduleSubscribeHandler defines the behavior of a component that can be notified if a the gas schedule was changed
+type GasScheduleSubscribeHandler interface {
+	GasScheduleChanged(gasSchedule map[string]map[string]uint64)
+	IsInterfaceNil() bool
+}
