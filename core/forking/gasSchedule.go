@@ -1,6 +1,7 @@
 package forking
 
 import (
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 
@@ -13,22 +14,32 @@ import (
 type GasScheduleMap = map[string]map[string]uint64
 
 type gasScheduleNotifier struct {
+	mutNotifier       sync.RWMutex
+	configDir         string
 	gasScheduleConfig config.GasScheduleConfig
-
-	currentEpoch    uint32
-	lastGasSchedule GasScheduleMap
-
-	mutNotifier sync.RWMutex
+	currentEpoch      uint32
+	lastGasSchedule   GasScheduleMap
 
 	handlers []core.GasScheduleSubscribeHandler
 }
 
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
-func NewGasScheduleNotifier(gasScheduleConfig config.GasScheduleConfig) *gasScheduleNotifier {
+func NewGasScheduleNotifier(
+	gasScheduleConfig config.GasScheduleConfig,
+	configDir string,
+	startEpoch uint32,
+) (*gasScheduleNotifier, error) {
+	gasSchedule, err := core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConfig.DefaultFile))
+	if err != nil {
+		return nil, err
+	}
+
 	return &gasScheduleNotifier{
 		gasScheduleConfig: gasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
-	}
+		currentEpoch:      startEpoch,
+		lastGasSchedule:   gasSchedule,
+	}, nil
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
@@ -39,9 +50,8 @@ func (g *gasScheduleNotifier) RegisterNotifyHandler(handler core.GasScheduleSubs
 
 	g.mutNotifier.Lock()
 	g.handlers = append(g.handlers, handler)
+	handler.GasScheduleChanged(g.lastGasSchedule)
 	g.mutNotifier.Unlock()
-
-	handler.EpochConfirmed(atomic.LoadUint32(&g.currentEpoch))
 }
 
 // UnRegisterAll removes all registered handlers queue
@@ -63,16 +73,17 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 
 	handlersCopy := make([]core.GasScheduleSubscribeHandler, len(g.handlers))
 	copy(handlersCopy, g.handlers)
-	g.mutNotifier.RUnlock()
 
-	log.Debug("genericEpochNotifier.NotifyEpochChangeConfirmed",
+	log.Debug("gasScheduleNotifier.EpochConfirmed new gas schedule",
 		"new epoch", epoch,
 		"num handlers", len(handlersCopy),
 	)
 
 	for _, handler := range handlersCopy {
-		handler.GasScheduleChanged(epoch)
+		handler.GasScheduleChanged(g.lastGasSchedule)
 	}
+
+	g.mutNotifier.RUnlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
