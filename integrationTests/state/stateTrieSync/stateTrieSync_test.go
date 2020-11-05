@@ -209,7 +209,7 @@ func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.A
 func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.UserAccountHandler, numVals int) []byte {
 	for i := 0; i < numVals; i++ {
 		randBytes := integrationTests.CreateRandomBytes(32)
-		acc.DataTrieTracker().SaveKeyValue(randBytes, randBytes)
+		_ = acc.DataTrieTracker().SaveKeyValue(randBytes, randBytes)
 	}
 
 	err := adb.SaveAccount(acc)

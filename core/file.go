@@ -61,7 +61,7 @@ func LoadTomlFileToMap(relativePath string) (map[string]interface{}, error) {
 
 	fileinfo, err := f.Stat()
 	if err != nil {
-		log.Error("cannot stat file:", err.Error())
+		log.Error("cannot stat file", "error", err.Error())
 		return nil, err
 	}
 
@@ -70,20 +70,20 @@ func LoadTomlFileToMap(relativePath string) (map[string]interface{}, error) {
 
 	_, err = f.Read(buffer)
 	if err != nil {
-		log.Error("cannot read from file:", err.Error())
+		log.Error("cannot read from file", "error", err.Error())
 		return nil, err
 	}
 
 	defer func() {
 		err = f.Close()
 		if err != nil {
-			log.Error("cannot close file: ", err.Error())
+			log.Error("cannot close file", "error", err.Error())
 		}
 	}()
 
 	loadedTree, err := toml.Load(string(buffer))
 	if err != nil {
-		log.Error("cannot interpret file contents as toml:", err.Error())
+		log.Error("cannot interpret file contents as toml", "error", err.Error())
 		return nil, err
 	}
 
