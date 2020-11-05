@@ -921,6 +921,11 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
+	errNotCritical = sp.removeTxsFromPools(bodyHandler)
+	if errNotCritical != nil {
+		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
+	}
+
 	sp.cleanupPools(headerHandler)
 
 	return nil

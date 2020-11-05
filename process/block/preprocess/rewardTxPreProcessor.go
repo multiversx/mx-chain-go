@@ -139,13 +139,18 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 	return nil
 }
 
-// RemoveTxBlockFromPools removes reward transactions and miniblocks from associated pools
-func (rtp *rewardTxPreprocessor) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
-	return rtp.removeDataFromPools(body, miniBlockPool, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
+// RemoveBlockDataFromPools removes reward transactions and miniblocks from associated pools
+func (rtp *rewardTxPreprocessor) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+	return rtp.removeBlockDataFromPools(body, miniBlockPool, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 
-// RestoreTxBlockIntoPools restores the reward transactions and miniblocks to associated pools
-func (rtp *rewardTxPreprocessor) RestoreTxBlockIntoPools(
+// RemoveTxsFromPools removes reward transactions from associated pools
+func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body) error {
+	return rtp.removeTxsFromPools(body, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
+}
+
+// RestoreBlockDataIntoPools restores the reward transactions and miniblocks to associated pools
+func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
@@ -243,8 +248,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxBlockToStorage saves the reward transactions from body into storage
-func (rtp *rewardTxPreprocessor) SaveTxBlockToStorage(body *block.Body) error {
+// SaveTxsToStorage saves the reward transactions from body into storage
+func (rtp *rewardTxPreprocessor) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}

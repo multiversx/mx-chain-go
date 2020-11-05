@@ -50,8 +50,8 @@ func TestAccountsDB_RetrieveDataWithSomeValuesShouldWork(t *testing.T) {
 	val2 := []byte("456")
 	_, account, adb := integrationTests.GenerateAddressJournalAccountAccountsDB()
 
-	account.DataTrieTracker().SaveKeyValue(key1, val1)
-	account.DataTrieTracker().SaveKeyValue(key2, val2)
+	_ = account.DataTrieTracker().SaveKeyValue(key1, val1)
+	_ = account.DataTrieTracker().SaveKeyValue(key2, val2)
 
 	err := adb.SaveAccount(account)
 	assert.Nil(t, err)
@@ -211,7 +211,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	key := []byte("ABC")
 	val := []byte("123")
-	state2.DataTrieTracker().SaveKeyValue(key, val)
+	_ = state2.DataTrieTracker().SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(state2)
@@ -299,7 +299,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	key := []byte("ABC")
 	val := []byte("123")
-	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
 	_ = adb.SaveAccount(state2)
@@ -662,7 +662,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	//Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	assert.Nil(t, err)
-	state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -678,7 +678,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
-	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveAccount(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -741,7 +741,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	//Step 2. create 2 new accounts
 	state1, err := adb.LoadAccount(adr1)
 	assert.Nil(t, err)
-	state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state1.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveAccount(state1)
 	assert.Nil(t, err)
 	snapshotCreated1 := adb.JournalLen()
@@ -757,7 +757,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
-	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
+	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, val)
 	err = adb.SaveAccount(state2)
 	assert.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
@@ -788,7 +788,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err = adb.LoadAccount(adr2)
 	assert.Nil(t, err)
-	state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
+	_ = state2.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(key, newVal)
 	err = adb.SaveAccount(state2)
 	assert.Nil(t, err)
 	rootHash, err = adb.RootHash()
@@ -1176,22 +1176,22 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
+	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 	rootHash, err := adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	state1.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = state1.DataTrieTracker().SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(state1)
 	_, err = adb.Commit()
 	require.Nil(t, err)
 
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
-	state1.DataTrieTracker().SaveKeyValue(key2, value2)
+	_ = state1.DataTrieTracker().SaveKeyValue(key2, value2)
 	_ = adb.SaveAccount(state1)
 	err = adb.RevertToSnapshot(0)
 	require.Nil(t, err)
@@ -1231,21 +1231,21 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 
 	acc1, _ := adb.LoadAccount(address1)
 	state1 := acc1.(state.UserAccountHandler)
-	state1.DataTrieTracker().SaveKeyValue(key1, value1)
-	state1.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state1.DataTrieTracker().SaveKeyValue(key1, value1)
+	_ = state1.DataTrieTracker().SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state1)
 
 	acc2, _ := adb.LoadAccount(address2)
 	state2 := acc2.(state.UserAccountHandler)
-	state2.DataTrieTracker().SaveKeyValue(key1, value1)
-	state2.DataTrieTracker().SaveKeyValue(key2, value1)
+	_ = state2.DataTrieTracker().SaveKeyValue(key1, value1)
+	_ = state2.DataTrieTracker().SaveKeyValue(key2, value1)
 	_ = adb.SaveAccount(state2)
 
 	oldRootHash, _ := adb.Commit()
 
 	acc2, _ = adb.LoadAccount(address2)
 	state2 = acc2.(state.UserAccountHandler)
-	state2.DataTrieTracker().SaveKeyValue(key1, value2)
+	_ = state2.DataTrieTracker().SaveKeyValue(key1, value2)
 	_ = adb.SaveAccount(state2)
 
 	newRootHash, _ := adb.Commit()
@@ -1957,7 +1957,7 @@ func generateAccounts(
 		codeMap[string(code)]++
 
 		for j := 0; j < dataTrieSize; j++ {
-			account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
+			_ = account.(state.UserAccountHandler).DataTrieTracker().SaveKeyValue(getDataTrieEntry())
 		}
 
 		_ = shardNode.AccntState.SaveAccount(account)
