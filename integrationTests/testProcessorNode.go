@@ -248,6 +248,8 @@ type TestProcessorNode struct {
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
 
+	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
+
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
 	SCQueryService external.SCQueryService
@@ -1017,7 +1019,18 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
-	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(
+		TestHasher,
+		TestMarshalizer,
+		tpn.ShardCoordinator,
+		TestAddressPubkeyConverter,
+		tpn.Storage,
+		dataBlock.SmartContractResultBlock,
+		tpn.DataPool.CurrentBlockTxs(),
+	)
+
+	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
+	_ = tpn.InterimProcContainer.Add(dataBlock.SmartContractResultBlock, tpn.ScrForwarder)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
@@ -1187,7 +1200,18 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
-	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(
+		TestHasher,
+		TestMarshalizer,
+		tpn.ShardCoordinator,
+		TestAddressPubkeyConverter,
+		tpn.Storage,
+		dataBlock.SmartContractResultBlock,
+		tpn.DataPool.CurrentBlockTxs(),
+	)
+
+	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
+	_ = tpn.InterimProcContainer.Add(dataBlock.SmartContractResultBlock, tpn.ScrForwarder)
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
@@ -1256,12 +1280,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStakeAmount: "100",
 				EnabledEpoch:   0,
 				MinServiceFee:  0,
-				MaxServiceFee:  100,
+				MaxServiceFee:  100000,
 			},
 		},
 		tpn.PeerState,
 		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
+		tpn.EpochNotifier,
 	)
 
 	tpn.VMContainer, _ = vmFactory.Create()
@@ -1515,11 +1539,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
 			ChanceComputer:          tpn.NodesCoordinator,
-			EpochNotifier:           &mock.EpochNotifierStub{},
+			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
 			StakingV2EnableEpoch:    1000000,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
+		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,

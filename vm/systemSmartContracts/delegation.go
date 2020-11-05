@@ -182,6 +182,32 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.claimRewards(args)
 	case "getRewardData":
 		return d.getRewardData(args)
+	case "getClaimableRewards":
+		return d.getClaimableRewards(args)
+	case "getTotalCumulatedRewards":
+		return d.getTotalCumulatedRewards(args)
+	case "getNumUsers":
+		return d.getNumUsers(args)
+	case "getTotalUnStaked":
+		return d.getTotalUnStaked(args)
+	case "getTotalActiveStake":
+		return d.getTotalActiveStake(args)
+	case "getUserActiveStake":
+		return d.getUserActiveStake(args)
+	case "getUserUnStakedValue":
+		return d.getUserUnstakedValue(args)
+	case "getUserUnBondable":
+		return d.getUserUnBondable(args)
+	case "getNumNodes":
+		return d.getNumNodes(args)
+	case "getAllNodeStates":
+		return d.getAllNodeStates(args)
+	case "getTotalUnStakedFromNodes":
+		return d.getTotalUnStakedFromNodes(args)
+	case "getTotalUnBondedFromNodes":
+		return d.getTotalUnBondedFromNodes(args)
+	case "getContractConfig":
+		return d.getContractConfig(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + "is an unknown function")
@@ -256,7 +282,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalActive:            big.NewInt(0).Set(args.CallValue),
 		TotalUnStaked:          big.NewInt(0),
-		TotalStaked:            big.NewInt(0),
 	}
 	globalFund.ActiveFunds[0] = fundKey
 	err = d.saveGlobalFundData(globalFund)
@@ -577,9 +602,6 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	globalFund.TotalActive.Sub(globalFund.TotalActive, stakeValue)
-	globalFund.TotalStaked.Add(globalFund.TotalStaked, stakeValue)
-
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -587,7 +609,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, stakeValue)
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1208,6 +1230,14 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			continue
 		}
 
+		if rewardData.TotalActive.Cmp(big.NewInt(0)) == 0 {
+			if isOwner {
+				totalRewards.Add(totalRewards, rewardData.RewardsToDistribute)
+			}
+
+			continue
+		}
+
 		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
 		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
@@ -1427,6 +1457,313 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
+	return vmcommon.Ok
+}
+
+func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getTotalCumulatedRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if !bytes.Equal(args.CallerAddr, d.endOfEpochAddr) {
+		d.eei.AddReturnMessage("this is a view function only")
+		return vmcommon.UserError
+	}
+
+	totalCumulatedRewards := big.NewInt(0)
+	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
+	for i := uint32(0); i <= currentEpoch; i++ {
+		found, rewardsData, err := d.getRewardComputationData(i)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+		if !found {
+			continue
+		}
+
+		totalCumulatedRewards.Add(totalCumulatedRewards, rewardsData.RewardsToDistribute)
+	}
+	d.eei.Finish(totalCumulatedRewards.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getNumUsers(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegationStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	numDelegators := big.NewInt(int64(len(delegationStatus.Delegators)))
+	d.eei.Finish(numDelegators.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getTotalUnStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(globalFund.TotalUnStaked.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getTotalActiveStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(globalFund.TotalActive.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegationStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	numNodes := len(delegationStatus.StakedKeys) + len(delegationStatus.UnStakedKeys) + len(delegationStatus.NotStakedKeys)
+	d.eei.Finish(big.NewInt(int64(numNodes)).Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegationStatus, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(delegationStatus.StakedKeys) > 0 {
+		d.eei.Finish([]byte("staked"))
+	}
+	for _, node := range delegationStatus.StakedKeys {
+		d.eei.Finish(node.BLSKey)
+	}
+
+	if len(delegationStatus.NotStakedKeys) > 0 {
+		d.eei.Finish([]byte("notStaked"))
+	}
+	for _, node := range delegationStatus.NotStakedKeys {
+		d.eei.Finish(node.BLSKey)
+	}
+
+	if len(delegationStatus.UnStakedKeys) > 0 {
+		d.eei.Finish([]byte("unStaked"))
+	}
+	for _, node := range delegationStatus.UnStakedKeys {
+		d.eei.Finish(node.BLSKey)
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getTotalUnStakedFromNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(globalFund.TotalUnStakedFromNodes.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegationConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(delegationConfig.MaxDelegationCap.Bytes())
+	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.ServiceFee).Bytes())
+	d.eei.Finish(delegationConfig.InitialOwnerFunds.Bytes())
+	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.CreatedNonce).Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getTotalUnBondedFromNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(globalFund.TotalUnBondedFromNodes.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallInput) (*DelegatorData, vmcommon.ReturnCode) {
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return nil, vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return nil, vmcommon.UserError
+	}
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	if isNew {
+		d.eei.AddReturnMessage("view function works only for existing delegators")
+		return nil, vmcommon.UserError
+	}
+
+	return delegator, vmcommon.Ok
+}
+
+func (d *delegation) getUserActiveStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if len(delegator.ActiveFund) == 0 {
+		d.eei.Finish(big.NewInt(0).Bytes())
+		return vmcommon.Ok
+	}
+
+	fund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	d.eei.Finish(fund.Value.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getUserUnstakedValue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	totalUnStaked := big.NewInt(0)
+	for _, fundKey := range delegator.UnStakedFunds {
+		fund, err := d.getFund(fundKey)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+		totalUnStaked.Add(totalUnStaked, fund.Value)
+	}
+
+	d.eei.Finish(totalUnStaked.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	totalUnBondable, err := d.getUnBondableTokens(delegator, dConfig.UnBondPeriod)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(totalUnBondable.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getClaimableRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.computeAndUpdateRewards(args.Arguments[0], delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Finish(delegator.UnClaimedRewards.Bytes())
 	return vmcommon.Ok
 }
 
