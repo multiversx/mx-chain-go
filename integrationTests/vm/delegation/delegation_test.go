@@ -86,7 +86,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	for _, node := range nodes {
 		txData := "changeRewardAddress" + "@" + hex.EncodeToString(rewardAddress)
-		integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
 		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(1000000))
 	}
 	time.Sleep(time.Second)
@@ -101,7 +101,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	balancesBeforeClaimRewards := getNodesBalances(nodes)
 	for _, node := range nodes {
 		txData := "claimRewards"
-		integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(0), rewardAddress, txData, 10)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), rewardAddress, txData, 10)
 	}
 	time.Sleep(time.Second)
 
@@ -192,7 +192,7 @@ func createNewDelegationSystemSC(
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
 	txData := "createNewDelegationContract" + "@" + hex.EncodeToString(big.NewInt(0).Bytes()) + "@" + hex.EncodeToString(big.NewInt(0).Bytes())
-	integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, integrationTests.AdditionalGasLimit)
 
 	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
 	copy(rewardAddress, vm.FirstDelegationSCAddress)
@@ -208,5 +208,5 @@ func delegateToSystemSC(
 	value *big.Int,
 ) {
 	txData := "delegate"
-	integrationTests.CreateAndSendTransactionOnTheCorrectShard(node, nodes, value, address, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(node, nodes, value, address, txData, integrationTests.AdditionalGasLimit)
 }

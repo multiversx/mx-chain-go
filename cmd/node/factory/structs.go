@@ -357,6 +357,11 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		return nil, err
 	}
 
+	err = indexGenesisAccounts(args.state.AccountsAdapter, args.indexer, args.coreData.InternalMarshalizer)
+	if err != nil {
+		log.Warn("cannot index genesis accounts", "error", err)
+	}
+
 	if args.startEpochNum == 0 {
 		err = indexGenesisBlocks(args, genesisBlocks)
 		if err != nil {
@@ -579,6 +584,49 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 	}, nil
 }
 
+func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer.Indexer, marshalizer marshal.Marshalizer) error {
+	if indexer.IsNilIndexer() {
+		return nil
+	}
+
+	rootHash, err := accountsAdapter.RootHash()
+	if err != nil {
+		return err
+	}
+
+	leaves, err := accountsAdapter.GetAllLeaves(rootHash)
+	if err != nil {
+		return err
+	}
+
+	genesisAccounts := make([]state.UserAccountHandler, 0)
+	for addressKey, userAccountsBytes := range leaves {
+		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, marshalizer)
+		if errUnmarshal != nil {
+			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
+			continue
+		}
+
+		genesisAccounts = append(genesisAccounts, userAccount)
+	}
+
+	indexer.SaveAccounts(genesisAccounts)
+	return nil
+}
+
+func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
+	userAccount, err := state.NewUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return userAccount, nil
+}
+
 func setGenesisHeader(args *processComponentsFactoryArgs, genesisBlocks map[uint32]data.HeaderHandler) error {
 	genesisBlock, ok := genesisBlocks[args.shardCoordinator.SelfId()]
 	if !ok {
@@ -645,8 +693,10 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 		return err
 	}
 
-	log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-	args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil)
+	if !args.indexer.IsNilIndexer() {
+		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
+		args.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks
 	var shardID uint32
@@ -1227,7 +1277,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 	smartContractParser := args.smartContractParser
 	economicsData := args.economicsData
 
-	genesisVmConfig := args.mainConfig.VirtualMachineConfig
+	genesisVmConfig := args.mainConfig.VirtualMachine.Execution
 	genesisVmConfig.OutOfProcessConfig.MaxLoopTime = 5000 // 5 seconds
 
 	arg := genesisProcess.ArgsGenesisBlockCreator{
@@ -1470,7 +1520,7 @@ func newShardBlockProcessor(
 		BuiltInFunctions: builtInFuncs,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
-		config.VirtualMachineConfig,
+		config.VirtualMachine.Execution,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 		gasSchedule,
 		argsHook,
