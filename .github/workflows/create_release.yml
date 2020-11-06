@@ -35,8 +35,6 @@ jobs:
       # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#setting-an-environment-variable
       - name: Set environment variables
         run: |
-          go env
-          
           APP_VER_SHORT=$(git describe --tags)
           GOOS=$(go env GOOS)
           GOARCH=$(go env GOARCH)
@@ -57,7 +55,6 @@ jobs:
 
       - name: Build
         run: |
-          printenv
           mkdir -p ${BUILD_DIR}
           cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
@@ -79,13 +76,15 @@ jobs:
             cp -f ${WASMER_DIR}/libwasmer_linux_amd64.dylib ${BUILD_DIR};
           fi
 
-          tar czvf "${GITHUB_WORKSPACE}/$ARCHIVE" *
+          cd ${BUILD_DIR}
+          tar czvf "${GITHUB_WORKSPACE}/${ARCHIVE}" *
+          stat ${GITHUB_WORKSPACE}/${ARCHIVE}
 
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: $ARCHIVE
-          path: ${GITHUB_WORKSPACE}/$ARCHIVE
+          name: ${ARCHIVE}
+          path: ${GITHUB_WORKSPACE}/${ARCHIVE}
 
   release:
     needs: [build]
