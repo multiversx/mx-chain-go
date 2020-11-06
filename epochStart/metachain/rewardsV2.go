@@ -470,3 +470,4 @@ func (rc *rewardsCreatorV2) prepareRewardsData(
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 	return miniBlocks, nil
 }
+

@@ -22,7 +22,6 @@ type ArgsNewRewardsCreator struct {
 
 type rewardsCreator struct {
 	*baseRewardsCreator
-	mapRewardsPerBlockPerValidator map[uint32]*big.Int
 }
 
 type rewardInfoData struct {
@@ -128,7 +127,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 
 	for _, shardValidatorsInfo := range validatorsInfo {
 		for _, validatorInfo := range shardValidatorsInfo {
-			rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[validatorInfo.ShardId]
+			rewardsPerBlockPerNodeForShard := rc.mapBaseRewardsPerBlockPerValidator[validatorInfo.ShardId]
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
 			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
@@ -166,4 +165,9 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	}
 
 	return rc.verifyCreatedRewardMiniblocksWithMetaBlock(metaBlock, createdMiniBlocks)
+}
+
+// IsInterfaceNil return true if underlying object is nil
+func (rc *rewardsCreator) IsInterfaceNil() bool {
+	return rc == nil
 }

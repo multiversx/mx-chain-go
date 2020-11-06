@@ -243,11 +243,6 @@ func (brc *baseRewardsCreator) DeleteTxsFromStorage(metaBlock *block.MetaBlock, 
 	}
 }
 
-// IsInterfaceNil return true if underlying object is nil
-func (brc *baseRewardsCreator) IsInterfaceNil() bool {
-	return brc == nil
-}
-
 // RemoveBlockDataFromPools removes block info from pools
 func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body) {
 	if check.IfNil(metaBlock) || check.IfNil(body) {

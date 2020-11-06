@@ -31,6 +31,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		RewardsHandler:     &mock.RewardsHandlerStub{},
 		RoundTime:          &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply: big.NewInt(2000000),
+		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 	}
 	return argsNewEpochEconomics
 }
