@@ -72,7 +72,6 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	if err != nil {
 		return nil, err
 	}
-
 	vmf.gasSchedule.RegisterNotifyHandler(currVm)
 
 	err = container.Add(factory.ArwenVirtualMachine, currVm)

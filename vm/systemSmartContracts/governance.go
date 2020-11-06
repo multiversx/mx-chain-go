@@ -910,6 +910,11 @@ func (g *governanceContract) EpochConfirmed(epoch uint32) {
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
+// SetNewGasCosts is called whenever a gas cost was changed
+func (g *governanceContract) SetNewGasCosts(gasCost vm.GasCost) {
+	g.gasCost = gasCost
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (g *governanceContract) IsInterfaceNil() bool {
 	return g == nil

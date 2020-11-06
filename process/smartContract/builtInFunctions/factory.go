@@ -21,109 +21,163 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	Accounts             state.AccountsAdapter
 }
 
+type builtInFuncFactory struct {
+	mapDNSAddresses      map[string]struct{}
+	enableUserNameChange bool
+	marshalizer          marshal.Marshalizer
+	accounts             state.AccountsAdapter
+	builtInFunctions     process.BuiltInFunctionContainer
+	gasConfig            *GasCost
+}
+
+// NewBuiltInFunctionsFactory creates a factory which will instantiate the built in functions contracts
+func NewBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (*builtInFuncFactory, error) {
+	if check.IfNil(args.GasSchedule) {
+		return nil, process.ErrNilGasSchedule
+	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
+
+	b := &builtInFuncFactory{
+		mapDNSAddresses:      args.MapDNSAddresses,
+		enableUserNameChange: args.EnableUserNameChange,
+		marshalizer:          args.Marshalizer,
+		accounts:             args.Accounts,
+	}
+
+	var err error
+	b.gasConfig, err = createGasConfig(args.GasSchedule.LatestGasSchedule())
+	if err != nil {
+		return nil, err
+	}
+	b.builtInFunctions = NewBuiltInFunctionContainer()
+
+	args.GasSchedule.RegisterNotifyHandler(b)
+
+	return b, nil
+}
+
+// GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
+func (b *builtInFuncFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	newGasConfig, err := createGasConfig(gasSchedule)
+	if err != nil {
+		return
+	}
+
+	b.gasConfig = newGasConfig
+	for key := range b.builtInFunctions.Keys() {
+		builtInFunc, errGet := b.builtInFunctions.Get(key)
+		if errGet != nil {
+			return
+		}
+
+		builtInFunc.SetNewGasConfig(b.gasConfig)
+	}
+}
+
 // CreateBuiltInFunctionContainer will create the list of built-in functions
-func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (process.BuiltInFunctionContainer, error) {
-	gasConfig, err := createGasConfig(args.GasSchedule.LatestGasSchedule())
-	if err != nil {
-		return nil, err
-	}
+func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFunctionContainer, error) {
 
-	container := NewBuiltInFunctionContainer()
+	b.builtInFunctions = NewBuiltInFunctionContainer()
 	var newFunc process.BuiltinFunction
-	newFunc = NewClaimDeveloperRewardsFunc(gasConfig.BuiltInCost.ClaimDeveloperRewards)
-	err = container.Add(core.BuiltInFunctionClaimDeveloperRewards, newFunc)
+	newFunc = NewClaimDeveloperRewardsFunc(b.gasConfig.BuiltInCost.ClaimDeveloperRewards)
+	err := b.builtInFunctions.Add(core.BuiltInFunctionClaimDeveloperRewards, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc = NewChangeOwnerAddressFunc(gasConfig.BuiltInCost.ChangeOwnerAddress)
-	err = container.Add(core.BuiltInFunctionChangeOwnerAddress, newFunc)
+	newFunc = NewChangeOwnerAddressFunc(b.gasConfig.BuiltInCost.ChangeOwnerAddress)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionChangeOwnerAddress, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewSaveUserNameFunc(gasConfig.BuiltInCost.SaveUserName, args.MapDNSAddresses, args.EnableUserNameChange)
+	newFunc, err = NewSaveUserNameFunc(b.gasConfig.BuiltInCost.SaveUserName, b.mapDNSAddresses, b.enableUserNameChange)
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(core.BuiltInFunctionSetUserName, newFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	newFunc, err = NewSaveKeyValueStorageFunc(gasConfig.BaseOperationCost, gasConfig.BuiltInCost.SaveKeyValue)
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.BuiltInFunctionSaveKeyValue, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionSetUserName, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	pauseFunc, err := NewESDTPauseFunc(args.Accounts, true)
+	newFunc, err = NewSaveKeyValueStorageFunc(b.gasConfig.BaseOperationCost, b.gasConfig.BuiltInCost.SaveKeyValue)
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(core.BuiltInFunctionESDTPause, pauseFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	newFunc, err = NewESDTTransferFunc(gasConfig.BuiltInCost.ESDTTransfer, args.Marshalizer, pauseFunc)
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.BuiltInFunctionESDTTransfer, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionSaveKeyValue, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewESDTBurnFunc(gasConfig.BuiltInCost.ESDTBurn, args.Marshalizer, pauseFunc)
+	pauseFunc, err := NewESDTPauseFunc(b.accounts, true)
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(core.BuiltInFunctionESDTBurn, newFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	newFunc, err = NewESDTFreezeWipeFunc(args.Marshalizer, true, false)
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.BuiltInFunctionESDTFreeze, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTPause, pauseFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewESDTFreezeWipeFunc(args.Marshalizer, false, false)
+	newFunc, err = NewESDTTransferFunc(b.gasConfig.BuiltInCost.ESDTTransfer, b.marshalizer, pauseFunc)
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(core.BuiltInFunctionESDTUnFreeze, newFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	newFunc, err = NewESDTFreezeWipeFunc(args.Marshalizer, false, true)
-	if err != nil {
-		return nil, err
-	}
-	err = container.Add(core.BuiltInFunctionESDTWipe, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTTransfer, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	newFunc, err = NewESDTPauseFunc(args.Accounts, false)
+	newFunc, err = NewESDTBurnFunc(b.gasConfig.BuiltInCost.ESDTBurn, b.marshalizer, pauseFunc)
 	if err != nil {
 		return nil, err
 	}
-	err = container.Add(core.BuiltInFunctionESDTUnPause, newFunc)
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTBurn, newFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	return container, nil
+	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, true, false)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTFreeze, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, false, false)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTUnFreeze, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTFreezeWipeFunc(b.marshalizer, false, true)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTWipe, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	newFunc, err = NewESDTPauseFunc(b.accounts, false)
+	if err != nil {
+		return nil, err
+	}
+	err = b.builtInFunctions.Add(core.BuiltInFunctionESDTUnPause, newFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.builtInFunctions, nil
 }
 
 func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {

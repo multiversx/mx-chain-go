@@ -1427,6 +1427,11 @@ func (r *stakingSC) EpochConfirmed(epoch uint32) {
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", r.flagStake.IsSet())
 }
 
+// SetNewGasCosts is called whenever a gas cost was changed
+func (r *stakingSC) SetNewGasCosts(gasCost vm.GasCost) {
+	r.gasCost = gasCost
+}
+
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (r *stakingSC) IsInterfaceNil() bool {
 	return r == nil

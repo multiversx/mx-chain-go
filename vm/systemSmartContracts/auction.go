@@ -1435,6 +1435,11 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
+// SetNewGasCosts is called whenever a gas cost was changed
+func (s *stakingAuctionSC) SetNewGasCosts(gasCost vm.GasCost) {
+	s.gasCost = gasCost
+}
+
 // IsInterfaceNil verifies if the underlying object is nil or not
 func (s *stakingAuctionSC) IsInterfaceNil() bool {
 	return s == nil

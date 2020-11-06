@@ -795,6 +795,11 @@ func (e *esdt) EpochConfirmed(epoch uint32) {
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }
 
+// SetNewGasCosts is called whenever a gas cost was changed
+func (e *esdt) SetNewGasCosts(gasCost vm.GasCost) {
+	e.gasCost = gasCost
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (e *esdt) IsInterfaceNil() bool {
 	return e == nil
