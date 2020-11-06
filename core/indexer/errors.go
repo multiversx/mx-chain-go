@@ -39,3 +39,12 @@ var ErrEmptyEnabledIndexes = errors.New("empty enabled indexes slice")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
+// ErrReadTemplatesFile signals that a read error occurred while reading template file
+var ErrReadTemplatesFile = errors.New("error while reading template file")
+
+// ErrReadPolicyFile signals that a read error occurred while reading policy file
+var ErrReadPolicyFile = errors.New("error while reading policy file")
+
+// ErrWriteToBuffer signals that a write error occurred
+var ErrWriteToBuffer = errors.New("error while writing to buffer")

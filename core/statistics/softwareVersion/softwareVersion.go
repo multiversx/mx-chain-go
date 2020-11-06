@@ -83,7 +83,7 @@ func (svc *SoftwareVersionChecker) Close() error {
 func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 	tagVersionFromURL, err := svc.stableTagProvider.FetchTagVersion()
 	if err != nil {
-		log.Debug("cannot read json with latest stable tag", err)
+		log.Debug("cannot read json with latest stable tag", "error", err)
 		return
 	}
 	if tagVersionFromURL != "" {

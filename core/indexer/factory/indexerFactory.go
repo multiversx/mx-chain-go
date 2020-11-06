@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -30,8 +29,7 @@ type ArgsIndexerFactory struct {
 	NodesCoordinator         sharding.NodesCoordinator
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
-	IndexTemplates           map[string]*bytes.Buffer
-	IndexPolicies            map[string]*bytes.Buffer
+	TemplatesPath            string
 	Options                  *indexer.Options
 	EnabledIndexes           []string
 	Denomination             int
@@ -90,6 +88,11 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		return nil, err
 	}
 
+	indexTemplates, indexPolicies, err := indexer.GetElasticTemplatesAndPolicies(args.TemplatesPath)
+	if err != nil {
+		return nil, err
+	}
+
 	enabledIndexesMap := make(map[string]struct{})
 	for _, index := range args.EnabledIndexes {
 		enabledIndexesMap[index] = struct{}{}
@@ -99,8 +102,8 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 	}
 
 	esIndexerArgs := indexer.ArgElasticProcessor{
-		IndexTemplates:           args.IndexTemplates,
-		IndexPolicies:            args.IndexPolicies,
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
 		Marshalizer:              args.Marshalizer,
 		Hasher:                   args.Hasher,
 		AddressPubkeyConverter:   args.AddressPubkeyConverter,
