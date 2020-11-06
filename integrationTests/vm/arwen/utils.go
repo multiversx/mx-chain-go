@@ -168,17 +168,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	require.Nil(context.T, err)
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
-
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         context.Accounts,
-		PubkeyConv:       pkConverter,
-		StorageService:   chainStorer,
-		BlockChain:       blockchainMock,
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:           context.Accounts,
+		PubkeyConv:         pkConverter,
+		StorageService:     chainStorer,
+		BlockChain:         blockchainMock,
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

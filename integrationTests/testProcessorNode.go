@@ -1044,15 +1044,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestAddressPubkeyConverter,
-		StorageService:   tpn.Storage,
-		BlockChain:       tpn.BlockChain,
-		ShardCoordinator: tpn.ShardCoordinator,
-		Marshalizer:      TestMarshalizer,
-		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         tpn.DataPool,
+		Accounts:           tpn.AccntState,
+		PubkeyConv:         TestAddressPubkeyConverter,
+		StorageService:     tpn.Storage,
+		BlockChain:         tpn.BlockChain,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		Marshalizer:        TestMarshalizer,
+		Uint64Converter:    TestUint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           tpn.DataPool,
+		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, _ := shard.NewVMContainerFactory(
@@ -1191,15 +1193,17 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestAddressPubkeyConverter,
-		StorageService:   tpn.Storage,
-		BlockChain:       tpn.BlockChain,
-		ShardCoordinator: tpn.ShardCoordinator,
-		Marshalizer:      TestMarshalizer,
-		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         tpn.DataPool,
+		Accounts:           tpn.AccntState,
+		PubkeyConv:         TestAddressPubkeyConverter,
+		StorageService:     tpn.Storage,
+		BlockChain:         tpn.BlockChain,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		Marshalizer:        TestMarshalizer,
+		Uint64Converter:    TestUint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           tpn.DataPool,
+		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)

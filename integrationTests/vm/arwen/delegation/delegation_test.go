@@ -2,6 +2,7 @@ package delegation
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -9,10 +10,17 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	transactionData "github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/process/factory"
+	systemVm "github.com/ElrondNetwork/elrond-go/vm"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -191,4 +199,157 @@ func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
 	require.Nil(context.T, err)
 	require.Equal(context.T, numNodes, int(context.QuerySCInt("getNumNodes", [][]byte{})))
 	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
+}
+
+func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	delegationProcessManyTimes(t, true, false, 100, 1)
+}
+
+func TestDelegationProcessManyTimeCompile(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	delegationProcessManyTimes(t, false, false, 100, 1)
+}
+
+func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	delegationProcessManyTimes(t, false, true, 100, 1)
+}
+
+func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(10000000000000)
+	gasPrice := uint64(1)
+	gasLimit := uint64(10000000000)
+
+	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
+	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
+	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
+	defer testContext.Close()
+
+	value := big.NewInt(10)
+	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
+	serviceFeePer10000 := 3000
+	blocksBeforeUnBond := 60
+
+	totalDelegationCap := big.NewInt(0).Mul(big.NewInt(int64(txPerBenchmark)), value)
+
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		gasLimit,
+		arwen.CreateDeployTxData(scCode)+
+			"@"+hex.EncodeToString(systemVm.AuctionSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
+			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+
+			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
+	)
+
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+	ownerNonce++
+
+	testAddresses := createTestAddresses(uint64(txPerBenchmark * 2))
+	for _, testAddress := range testAddresses {
+		_, _ = vm.CreateAccount(testContext.Accounts, testAddress, 0, big.NewInt(10000000000000))
+	}
+	_, _ = testContext.Accounts.Commit()
+
+	for j := 0; j < numRun; j++ {
+		start := time.Now()
+		for i := 0; i < txPerBenchmark*2; i++ {
+			testAddress := testAddresses[i]
+			nonce := uint64(j)
+			if i < txPerBenchmark {
+				nonce *= 2
+			}
+			tx = &transactionData.Transaction{
+				Nonce:    nonce,
+				Value:    big.NewInt(0).Set(value),
+				SndAddr:  testAddress,
+				RcvAddr:  scAddress,
+				Data:     []byte("stake"),
+				GasPrice: gasPrice,
+				GasLimit: gasLimit,
+			}
+
+			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCode != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCode.String())
+			}
+		}
+
+		elapsedTime := time.Since(start)
+		fmt.Printf("time elapsed to process %d stake on delegation %s \n", 2*txPerBenchmark, elapsedTime.String())
+
+		start = time.Now()
+		for i := 0; i < txPerBenchmark; i++ {
+			testAddress := testAddresses[i]
+			tx = &transactionData.Transaction{
+				Nonce:    uint64(j*2 + 1),
+				Value:    big.NewInt(0),
+				SndAddr:  testAddress,
+				RcvAddr:  scAddress,
+				Data:     []byte("unStake@" + hex.EncodeToString(value.Bytes())),
+				GasPrice: gasPrice,
+				GasLimit: gasLimit,
+			}
+
+			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCode != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCode.String())
+			}
+		}
+
+		tx = &transactionData.Transaction{
+			Nonce:    ownerNonce,
+			Value:    big.NewInt(0),
+			SndAddr:  ownerAddressBytes,
+			RcvAddr:  scAddress,
+			Data:     []byte("getFullWaitingList"),
+			GasPrice: gasPrice,
+			GasLimit: gasLimit,
+		}
+
+		ownerNonce++
+		returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+		if returnCode != vmcommon.Ok {
+			fmt.Printf("return code %s \n", returnCode.String())
+		}
+
+		elapsedTime = time.Since(start)
+		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		_, _ = testContext.Accounts.Commit()
+
+	}
+}
+
+func createTestAddresses(numAddresses uint64) [][]byte {
+	testAccounts := make([][]byte, numAddresses)
+
+	for i := uint64(0); i < numAddresses; i++ {
+		acc := generateRandomByteArray(32)
+		testAccounts[i] = append(testAccounts[i], acc...)
+	}
+
+	return testAccounts
+}
+
+func generateRandomByteArray(size int) []byte {
+	r := make([]byte, size)
+	_, _ = rand.Read(r)
+	return r
 }

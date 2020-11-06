@@ -282,16 +282,19 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain := blockchain.NewMetaChain()
+	dataPool := testscommon.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         userAccountsDB,
-		PubkeyConv:       &mock.PubkeyConverterMock{},
-		StorageService:   &mock.ChainStorerStub{},
-		BlockChain:       blockChain,
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:           userAccountsDB,
+		PubkeyConv:         &mock.PubkeyConverterMock{},
+		StorageService:     &mock.ChainStorerStub{},
+		BlockChain:         blockChain,
+		ShardCoordinator:   &mock.ShardCoordinatorStub{},
+		Marshalizer:        marshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           dataPool,
+		CompiledSCPool:     dataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	gasSchedule := arwenConfig.MakeGasMapForTests()

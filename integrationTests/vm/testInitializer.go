@@ -157,16 +157,19 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 // CreateTxProcessorWithOneSCExecutorMockVM -
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      testMarshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -240,16 +243,19 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 
 // CreateOneSCExecutorMockVM -
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      testMarshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -262,6 +268,7 @@ func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
 	warmInstance bool,
+	outOfProcess bool,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
 	actualGasSchedule := gasSchedule
 	if gasSchedule == nil {
@@ -277,22 +284,25 @@ func CreateVMAndBlockchainHook(
 	}
 	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      testMarshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        testMarshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
-			OutOfProcessEnabled: false,
+			OutOfProcessEnabled: outOfProcess,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			WarmInstanceEnabled: warmInstance,
 		},
@@ -437,7 +447,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 ) VMTestContext {
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
 	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 
 	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
@@ -450,10 +460,11 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	senderBalance *big.Int,
 	gasSchedule map[string]map[string]uint64,
 	warmInstance bool,
+	outOfProcess bool,
 ) VMTestContext {
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, warmInstance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, warmInstance, outOfProcess)
 	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 
 	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
@@ -563,7 +574,7 @@ func ComputeExpectedBalance(
 
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule, true)
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule, true, false)
 	defer func() {
 		_ = vmContainer.Close()
 	}()

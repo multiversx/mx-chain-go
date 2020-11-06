@@ -1419,6 +1419,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		workingDir,
 	)
 	if err != nil {
 		return err
@@ -2400,6 +2401,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	workingDir string,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2415,16 +2417,26 @@ func createApiResolver(
 		return nil, err
 	}
 
+	cacherCfg := storageFactory.GetCacherFromConfig(generalConfig.SmartContractDataPool)
+	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   storageService,
-		BlockChain:       blockChain,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  uint64Converter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         dataPool,
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     storageService,
+		BlockChain:         blockChain,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    uint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           dataPool,
+		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		CompiledSCPool:     smartContractsCache,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {

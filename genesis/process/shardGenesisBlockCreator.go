@@ -240,15 +240,17 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.PubkeyConv,
-		StorageService:   arg.Store,
-		BlockChain:       arg.Blkc,
-		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Marshalizer,
-		Uint64Converter:  arg.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         arg.DataPool,
+		Accounts:           arg.Accounts,
+		PubkeyConv:         arg.PubkeyConv,
+		StorageService:     arg.Store,
+		BlockChain:         arg.Blkc,
+		ShardCoordinator:   arg.ShardCoordinator,
+		Marshalizer:        arg.Marshalizer,
+		Uint64Converter:    arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           arg.DataPool,
+		CompiledSCPool:     arg.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
 		arg.VirtualMachineConfig,

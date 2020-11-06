@@ -83,8 +83,6 @@ const (
 	MiniblockHashByTxHashUnit UnitType = 14
 	// ReceiptsUnit is the receipts storage unit identifier
 	ReceiptsUnit UnitType = 15
-	// SmartContractUnit is the smart contracts storage unit identifier
-	SmartContractUnit UnitType = 16
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

@@ -69,6 +69,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
@@ -1421,6 +1422,8 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
+			processArgs.mainConfig,
+			processArgs.workingDir,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1455,7 +1458,8 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
-			processArgs.mainConfig.GeneralSettings,
+			processArgs.mainConfig,
+			processArgs.workingDir,
 			processArgs.rater,
 		)
 	}
@@ -1490,6 +1494,8 @@ func newShardBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	generalConfig config.Config,
+	workingDir string,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1510,15 +1516,19 @@ func newShardBlockProcessor(
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         data.Datapool,
+		Accounts:           stateComponents.AccountsAdapter,
+		PubkeyConv:         stateComponents.AddressPubkeyConverter,
+		StorageService:     data.Store,
+		BlockChain:         data.Blkc,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        core.InternalMarshalizer,
+		Uint64Converter:    core.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           data.Datapool,
+		CompiledSCPool:     data.Datapool.SmartContracts(),
+		ConfigSCStorage:    generalConfig.SmartContractsStorage,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachine.Execution,
@@ -1802,21 +1812,26 @@ func newMetaBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	generalSettingsConfig config.GeneralSettingsConfig,
+	generalConfig config.Config,
+	workingDir string,
 	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
-		DataPool:         data.Datapool,
+		Accounts:           stateComponents.AccountsAdapter,
+		PubkeyConv:         stateComponents.AddressPubkeyConverter,
+		StorageService:     data.Store,
+		BlockChain:         data.Blkc,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        core.InternalMarshalizer,
+		Uint64Converter:    core.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs, // no built-in functions for meta.
+		DataPool:           data.Datapool,
+		CompiledSCPool:     data.Datapool.SmartContracts(),
+		ConfigSCStorage:    generalConfig.SmartContractsStorage,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
@@ -1907,9 +1922,9 @@ func newMetaBlockProcessor(
 		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                txLogsProcessor,
-		DeployEnableEpoch:              generalSettingsConfig.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             generalSettingsConfig.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: generalSettingsConfig.PenalizedTooMuchGasEnableEpoch,
+		DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
 	}
@@ -2137,8 +2152,8 @@ func newMetaBlockProcessor(
 		StakingSCAddress:                       vm.StakingSCAddress,
 		ChanceComputer:                         nodesCoordinator,
 		EpochNotifier:                          epochNotifier,
-		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
+		SwitchJailWaitingEnableEpoch:           generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: generalConfig.GeneralSettings.SwitchHysteresisForMinNodesEnableEpoch,
 		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
@@ -2469,7 +2484,7 @@ func CreateLatestStorageDataProvider(
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := storageFactory.NewDirectoryReader()
 
-	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
 		Marshalizer:           marshalizer,
 		Hasher:                hasher,
@@ -2481,7 +2496,7 @@ func CreateLatestStorageDataProvider(
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
 	}
-	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 
 // CreateUnitOpener will create a new unit opener handler
