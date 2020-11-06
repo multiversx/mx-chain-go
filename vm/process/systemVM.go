@@ -129,6 +129,17 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	return vmOutput, nil
 }
 
+// GasScheduleChange sets the new gas schedule where it is needed
+func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	apiCosts := gasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return
+	}
+
+	s.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
+	s.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
+}
+
 func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
 	if input.CallType != vmcommon.AsynchronousCall {
 		return 0, nil
