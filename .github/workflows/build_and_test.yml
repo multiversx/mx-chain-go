@@ -1,10 +1,10 @@
 name: Build and Test
 
 on:
-  pull_request:
-    branches: [development]
-    types: [opened, ready_for_review]
-  push:
+  # pull_request:
+  #   branches: [development]
+  #   types: [opened, ready_for_review]
+  # push:
   workflow_dispatch:
 
 jobs:
