@@ -436,6 +436,9 @@ func (netMes *networkMessenger) printLogsStats() {
 		log.Debug("network connection metrics",
 			"connections/s", connsPerSec,
 			"disconnections/s", disconnsPerSec,
+			"connections", conns,
+			"disconnections", disconns,
+			"time", timeBetweenPeerPrints,
 		)
 	}
 }
