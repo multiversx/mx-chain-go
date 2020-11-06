@@ -70,3 +70,15 @@ type GasScheduleSubscribeHandler interface {
 	GasScheduleChanged(gasSchedule map[string]map[string]uint64)
 	IsInterfaceNil() bool
 }
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler EpochSubscriberHandler)
+	IsInterfaceNil() bool
+}
+
+// GasScheduleNotifier can notify upon a gas schedule change
+type GasScheduleNotifier interface {
+	RegisterNotifyHandler(handler GasScheduleSubscribeHandler)
+	IsInterfaceNil() bool
+}

@@ -437,6 +437,5 @@ type GasScheduleByEpochs struct {
 
 // GasScheduleConfig represents the versioning config area for the gas schedule toml
 type GasScheduleConfig struct {
-	DefaultFile         string
 	GasScheduleByEpochs []GasScheduleByEpochs
 }

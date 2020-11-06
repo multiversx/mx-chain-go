@@ -2,6 +2,7 @@ package forking
 
 import (
 	"path/filepath"
+	"sort"
 	"sync"
 	"sync/atomic"
 
@@ -28,18 +29,26 @@ func NewGasScheduleNotifier(
 	gasScheduleConfig config.GasScheduleConfig,
 	configDir string,
 	startEpoch uint32,
+	epochNotifier core.EpochNotifier,
 ) (*gasScheduleNotifier, error) {
-	gasSchedule, err := core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConfig.DefaultFile))
+	g := &gasScheduleNotifier{
+		gasScheduleConfig: gasScheduleConfig,
+		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
+		currentEpoch:      startEpoch,
+	}
+
+	sort.Slice(g.gasScheduleConfig.GasScheduleByEpochs, func(i, j int) bool {
+		return g.gasScheduleConfig.GasScheduleByEpochs[i].StartEpoch < g.gasScheduleConfig.GasScheduleByEpochs[j].StartEpoch
+	})
+	var err error
+	g.lastGasSchedule, err = core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConfig.GasScheduleByEpochs[0].FileName))
 	if err != nil {
 		return nil, err
 	}
 
-	return &gasScheduleNotifier{
-		gasScheduleConfig: gasScheduleConfig,
-		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
-		currentEpoch:      startEpoch,
-		lastGasSchedule:   gasSchedule,
-	}, nil
+	epochNotifier.RegisterNotifyHandler(g)
+
+	return g, nil
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
@@ -61,6 +70,18 @@ func (g *gasScheduleNotifier) UnRegisterAll() {
 	g.mutNotifier.Unlock()
 }
 
+func (g *gasScheduleNotifier) getMatchingVersion(epoch uint32) config.GasScheduleByEpochs {
+	currentVersion := g.gasScheduleConfig.GasScheduleByEpochs[0]
+	for _, versionByEpoch := range g.gasScheduleConfig.GasScheduleByEpochs {
+		if versionByEpoch.StartEpoch > epoch {
+			break
+		}
+
+		currentVersion = versionByEpoch
+	}
+	return currentVersion
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 	old := atomic.SwapUint32(&g.currentEpoch, epoch)
@@ -70,20 +91,38 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 	}
 
 	g.mutNotifier.RLock()
+	newVersion := g.getMatchingVersion(epoch)
+	oldVersion := g.getMatchingVersion(old)
 
-	handlersCopy := make([]core.GasScheduleSubscribeHandler, len(g.handlers))
-	copy(handlersCopy, g.handlers)
+	if newVersion.StartEpoch == oldVersion.StartEpoch {
+		// gasSchedule is still the same
+		return
+	}
+
+	newGasSchedule, err := core.LoadGasScheduleConfig(filepath.Join(g.configDir, newVersion.FileName))
+	if err != nil {
+		log.Error("could not load the new gas schedule")
+		return
+	}
 
 	log.Debug("gasScheduleNotifier.EpochConfirmed new gas schedule",
 		"new epoch", epoch,
-		"num handlers", len(handlersCopy),
+		"num handlers", len(g.handlers),
 	)
 
-	for _, handler := range handlersCopy {
+	g.lastGasSchedule = newGasSchedule
+	for _, handler := range g.handlers {
 		handler.GasScheduleChanged(g.lastGasSchedule)
 	}
 
 	g.mutNotifier.RUnlock()
+}
+
+// LatestGasSchedule returns the latest gas schedule
+func (g *gasScheduleNotifier) LatestGasSchedule() map[string]map[string]uint64 {
+	g.mutNotifier.RLock()
+	defer g.mutNotifier.RUnlock()
+	return g.lastGasSchedule
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
