@@ -211,6 +211,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[SmartContractsStorageForSCQuery]
+    [SmartContractsStorageForSCQuery.Cache]
+        Name = "SmartContractsStorageForSCQuery"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorageForSCQuery.DB]
+        FilePath = "SmartContractsStorageForSCQuery"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
         Name = "StatusMetricsStorage"
@@ -337,7 +350,7 @@
     Name = "SmartContractDataPool"
     Capacity = 900000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 419430400 #400MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -580,7 +593,7 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = true
+        OutOfProcessEnabled = false
         WarmInstanceEnabled = false
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"

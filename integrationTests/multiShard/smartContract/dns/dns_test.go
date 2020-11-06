@@ -45,7 +45,6 @@ func TestSCCallingDNSUserNames(t *testing.T) {
 	userNames := sendRegisterUserNameTxForPlayers(players, nodes, sortedDNSAddresses, dnsRegisterValue)
 
 	time.Sleep(time.Second)
-
 	nrRoundsToPropagateMultiShard := 25
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 

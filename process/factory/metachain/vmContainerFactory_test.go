@@ -18,20 +18,23 @@ import (
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
+	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		Marshalizer:      &mock.MarshalizerMock{},
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:         testscommon.NewPoolsHolderMock(),
+		PubkeyConv:         mock.NewPubkeyConverterMock(32),
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
+		Marshalizer:        &mock.MarshalizerMock{},
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	return arguments
 }

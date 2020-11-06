@@ -358,15 +358,17 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         gbc.arg.Accounts,
-		PubkeyConv:       gbc.arg.PubkeyConv,
-		StorageService:   gbc.arg.Store,
-		BlockChain:       gbc.arg.Blkc,
-		ShardCoordinator: gbc.arg.ShardCoordinator,
-		Marshalizer:      gbc.arg.Marshalizer,
-		Uint64Converter:  gbc.arg.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
-		DataPool:         gbc.arg.DataPool,
+		Accounts:           gbc.arg.Accounts,
+		PubkeyConv:         gbc.arg.PubkeyConv,
+		StorageService:     gbc.arg.Store,
+		BlockChain:         gbc.arg.Blkc,
+		ShardCoordinator:   gbc.arg.ShardCoordinator,
+		Marshalizer:        gbc.arg.Marshalizer,
+		Uint64Converter:    gbc.arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           gbc.arg.DataPool,
+		CompiledSCPool:     gbc.arg.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {
