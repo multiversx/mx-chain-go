@@ -17,6 +17,7 @@ import (
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgumentsForDelegation() ArgsNewDelegation {
@@ -266,7 +267,7 @@ func TestDelegationSystemSC_ExecuteNilArgsShouldErr(t *testing.T) {
 
 	output := d.Execute(nil)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "nil contract call input"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInputArgsIsNil.Error()))
 }
 
 func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
@@ -286,7 +287,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "delegation manager contract is not enabled"))
+	assert.True(t, strings.Contains(eei.returnMessage, "delegation contract is not enabled"))
 }
 
 func TestDelegationSystemSC_ExecuteInitScAlreadyPresentShouldErr(t *testing.T) {
@@ -433,18 +434,18 @@ func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("addNodes", vmInputArgs)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.OutOfGas, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
 
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
@@ -651,18 +652,18 @@ func TestDelegationSystemSC_ExecuteRemoveNodesUserErrors(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("removeNodes", [][]byte{})
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.OutOfGas, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
 
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
@@ -769,13 +770,13 @@ func TestDelegationSystemSC_ExecuteStakeNodesUserErrors(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("stakeNodes", [][]byte{})
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
@@ -909,13 +910,13 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("unStakeNodes", [][]byte{})
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
@@ -1051,13 +1052,13 @@ func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("unBondNodes", [][]byte{})
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
@@ -1515,9 +1516,9 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid value to undelegate"))
 
 	_ = d.saveFund(fundKey, &Fund{
-		Value: big.NewInt(5),
+		Value: big.NewInt(11),
 	})
-	vmInput.Arguments = [][]byte{{5}}
+	vmInput.Arguments = [][]byte{{10}}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid value to undelegate - need to undelegate all - do not leave dust behind"))
@@ -1789,13 +1790,13 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
@@ -1890,13 +1891,13 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "only owner can change delegation config"))
+	assert.True(t, strings.Contains(eei.returnMessage, "only owner can call this method"))
 
 	delegationsMap[ownerKey] = []byte("owner")
 	vmInput.CallValue = callValue
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
@@ -2208,12 +2209,12 @@ func TestDelegation_ExecuteGetRewardDataUserErrors(t *testing.T) {
 	vmInput.CallValue = big.NewInt(-10)
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot call with negative value"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.OutOfGas, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
 
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
@@ -3299,24 +3300,39 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("getContractConfig", [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
 
+	ownerAddress := []byte("owner")
 	maxDelegationCap := big.NewInt(200)
 	serviceFee := uint64(10000)
 	initialOwnerFunds := big.NewInt(500)
+	automaticActivation := false
+	withDelegationCap := true
+	changeableServiceFee := true
 	createdNonce := uint64(100)
+	unBondPeriod := uint64(144000)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		ServiceFee:        serviceFee,
-		MaxDelegationCap:  maxDelegationCap,
-		InitialOwnerFunds: initialOwnerFunds,
-		CreatedNonce:      createdNonce,
+		OwnerAddress:         ownerAddress,
+		ServiceFee:           serviceFee,
+		MaxDelegationCap:     maxDelegationCap,
+		InitialOwnerFunds:    initialOwnerFunds,
+		AutomaticActivation:  automaticActivation,
+		WithDelegationCap:    withDelegationCap,
+		ChangeableServiceFee: changeableServiceFee,
+		CreatedNonce:         createdNonce,
+		UnBondPeriod:         unBondPeriod,
 	})
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 4, len(eei.output))
-	assert.Equal(t, maxDelegationCap, big.NewInt(0).SetBytes(eei.output[0]))
+	require.Equal(t, 9, len(eei.output))
+	assert.Equal(t, ownerAddress, eei.output[0])
 	assert.Equal(t, big.NewInt(0).SetUint64(serviceFee), big.NewInt(0).SetBytes(eei.output[1]))
-	assert.Equal(t, initialOwnerFunds, big.NewInt(0).SetBytes(eei.output[2]))
-	assert.Equal(t, big.NewInt(0).SetUint64(createdNonce), big.NewInt(0).SetBytes(eei.output[3]))
+	assert.Equal(t, maxDelegationCap, big.NewInt(0).SetBytes(eei.output[2]))
+	assert.Equal(t, initialOwnerFunds, big.NewInt(0).SetBytes(eei.output[3]))
+	assert.Equal(t, []byte("false"), eei.output[4])
+	assert.Equal(t, []byte("true"), eei.output[5])
+	assert.Equal(t, []byte("true"), eei.output[6])
+	assert.Equal(t, big.NewInt(0).SetUint64(createdNonce), big.NewInt(0).SetBytes(eei.output[7]))
+	assert.Equal(t, big.NewInt(0).SetUint64(unBondPeriod), big.NewInt(0).SetBytes(eei.output[8]))
 }
 
 func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
