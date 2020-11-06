@@ -127,9 +127,9 @@ func createMockArgument(
 		},
 	}
 
-	arg.GasSchedule = arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(arg.GasSchedule, 1)
-
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
 	ted := &economics.TestEconomicsData{
 		EconomicsData: &economics.EconomicsData{},
 	}

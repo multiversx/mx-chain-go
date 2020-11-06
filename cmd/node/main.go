@@ -2499,7 +2499,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
 	if err != nil {
 		return nil, err
 	}

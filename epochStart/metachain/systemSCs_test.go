@@ -306,7 +306,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		argsHook,
 		createEconomicsData(),
 		signVerifer,
-		gasSchedule,
+		mock.NewGasScheduleNotifierMock(gasSchedule),
 		nodesSetup,
 		hasher,
 		marshalizer,

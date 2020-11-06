@@ -184,10 +184,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.NotNil(t, acc)
 }
 
-func makeGasSchedule() map[string]map[string]uint64 {
+func makeGasSchedule() core.GasScheduleNotifier {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	FillGasMapInternal(gasSchedule, 1)
-	return gasSchedule
+	return mock.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {

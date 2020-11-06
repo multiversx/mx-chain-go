@@ -13,14 +13,14 @@ import (
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
-
+	gasMap := arwenConfig.MakeGasMapForTests()
+	gasMap = defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
 		Economics:           &mock.EconomicsHandlerStub{},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
-		GasMap:              gasSchedule,
+		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		Hasher:              &mock.HasherMock{},

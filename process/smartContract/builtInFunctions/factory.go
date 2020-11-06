@@ -41,6 +41,9 @@ func NewBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (*built
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
+	if args.MapDNSAddresses == nil {
+		return nil, process.ErrNilDnsAddresses
+	}
 
 	b := &builtInFuncFactory{
 		mapDNSAddresses:      args.MapDNSAddresses,

@@ -148,7 +148,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	apiCosts := args.GasSchedule[core.ElrondAPICost]
+	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
 
 	sc := &scProcessor{
 		vmContainer:                    args.VmContainer,
@@ -175,8 +175,20 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
+	args.GasSchedule.RegisterNotifyHandler(sc)
 
 	return sc, nil
+}
+
+// GasScheduleChange sets the new gas schedule where it is needed
+func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	apiCosts := gasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return
+	}
+
+	sc.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
+	sc.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {

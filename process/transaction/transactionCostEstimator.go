@@ -44,6 +44,11 @@ func NewTransactionCostEstimator(
 	}, nil
 }
 
+// GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
+func (tce *transactionCostEstimator) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	tce.compilePerByteCost, tce.storePerByteCost = getOperationCost(gasSchedule)
+}
+
 func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64) {
 	baseOpMap, ok := gasSchedule[core.BaseOperationCost]
 	if !ok {

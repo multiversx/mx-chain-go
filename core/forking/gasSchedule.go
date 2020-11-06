@@ -51,13 +51,13 @@ func NewGasScheduleNotifier(
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed
 func (g *gasScheduleNotifier) RegisterNotifyHandler(handler core.GasScheduleSubscribeHandler) {
-	if check.IfNil(handler) {
+	if check.IfNilReflect(handler) {
 		return
 	}
 
 	g.mutNotifier.Lock()
 	g.handlers = append(g.handlers, handler)
-	handler.GasScheduleChanged(g.lastGasSchedule)
+	handler.GasScheduleChange(g.lastGasSchedule)
 	g.mutNotifier.Unlock()
 }
 
@@ -110,7 +110,7 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 
 	g.lastGasSchedule = newGasSchedule
 	for _, handler := range g.handlers {
-		handler.GasScheduleChanged(g.lastGasSchedule)
+		handler.GasScheduleChange(g.lastGasSchedule)
 	}
 
 	g.mutNotifier.RUnlock()
