@@ -47,11 +47,14 @@ jobs:
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
           echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
+          echo "BUILD_DIR=${BUILD_DIR}" >> $GITHUB_ENV
           echo "ARWEN_VERSION=${ARWEN_VERSION}" >> $GITHUB_ENV
           echo "ARWEN_PATH=${ARWEN_PATH}" >> $GITHUB_ENV
+          echo "WASMER_DIR=${WASMER_DIR}" >> $GITHUB_ENV
 
       - name: Build
         run: |
+          printenv
           mkdir -p ${BUILD_DIR}
           cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
