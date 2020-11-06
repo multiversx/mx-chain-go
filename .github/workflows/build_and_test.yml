@@ -1,11 +1,11 @@
 name: Build and Test
 
 on:
-   pull_request:
-      branches: [development]
-      types: [opened, ready_for_review]
-   push:
-   workflow_dispatch:
+  pull_request:
+    branches: [development]
+    types: [opened, ready_for_review]
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,34 +15,33 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.15.2
+        id: go
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v2
-      with:
-        go-version: ^1.15.2
-      id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+      - name: Build
+        run: |
+          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+          cd ${GITHUB_WORKSPACE} && make arwen
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
-    - name: Build
-      run: | 
-        export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
-        cd ${GITHUB_WORKSPACE}/cmd/node && go build .
-        cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
-        cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
-        cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
-        cd ${GITHUB_WORKSPACE} && make arwen
-
-    # Skip long-running and other intensive tests
-    - name: Test
-      run: |
-        export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
-        cd ${GITHUB_WORKSPACE} && go test `go list ./... | grep -v 'elrond-go/integrationTests\|elrond-go/storage\|elrond-go/update\|elrond-go/core/indexer'` --short
+      # Skip long-running and other intensive tests
+      - name: Test
+        run: |
+          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
+          cd ${GITHUB_WORKSPACE} && go test `go list ./... | grep -v 'elrond-go/integrationTests\|elrond-go/storage\|elrond-go/update\|elrond-go/core/indexer'` --short
