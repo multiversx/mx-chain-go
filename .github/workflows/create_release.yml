@@ -83,8 +83,8 @@ jobs:
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${ARCHIVE}
-          path: ${GITHUB_WORKSPACE}/${ARCHIVE}
+          name: ${{ARCHIVE}}
+          path: ${{GITHUB_WORKSPACE}}/${{ARCHIVE}}
 
   release:
     needs: [build]
