@@ -12,8 +12,8 @@ jobs:
   build:
     strategy:
       matrix:
-        # TODO macos-latest
-        runs-on: [ubuntu-latest]
+        # TODO ubuntu-latest
+        runs-on: [macos-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -68,6 +68,11 @@ jobs:
 
       - name: Package
         run: |
+          cd ${GOPATH}/pkg/mod/github.com
+          ls
+          cd $(go env GOPATH)/pkg/mod/github.com
+          ls
+
           cd ${GITHUB_WORKSPACE}
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
@@ -95,12 +100,12 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
-      - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v2
-
       - name: Check out code
         uses: actions/checkout@v2
+
+        # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v2
 
       - name: Create release
         env:
