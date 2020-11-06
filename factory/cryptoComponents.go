@@ -75,9 +75,6 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs, importDbNoSigC
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		importDbNoSigCheckFlag:               importDbNoSigCheckFlag,
 	}
-	if importDbNoSigCheckFlag {
-		log.Warn("using disabled key generator")
-	}
 
 	return ccf, nil
 }
@@ -151,7 +148,7 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 
 func (ccf *cryptoComponentsFactory) createSingleSigner(importDbNoSigCheckFlag bool) (crypto.SingleSigner, error) {
 	if importDbNoSigCheckFlag {
-		log.Warn("using disabled single signer")
+		log.Warn("using disabled single signer because the node is running in import-db 'turbo mode'")
 		return &disabledSig.DisabledSingleSig{}, nil
 	}
 
@@ -190,7 +187,7 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	importDbNoSigCheckFlag bool,
 ) (crypto.MultiSigner, error) {
 	if importDbNoSigCheckFlag {
-		log.Warn("using disabled single signer")
+		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
 		return &disabledMultiSig.DisabledMultiSig{}, nil
 	}
 
