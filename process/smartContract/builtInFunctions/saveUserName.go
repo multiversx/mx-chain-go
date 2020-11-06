@@ -41,6 +41,11 @@ func NewSaveUserNameFunc(
 	return s, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (s *saveUserName) SetNewGasConfig(gasCost *process.GasCost) {
+	s.gasCost = gasCost.BuiltInCost.SaveUserName
+}
+
 // ProcessBuiltinFunction sets the username to the account if it is allowed
 func (s *saveUserName) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,

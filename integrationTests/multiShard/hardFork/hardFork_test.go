@@ -422,7 +422,7 @@ func hardForkImport(
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
 			ValidatorAccounts:        node.PeerState,
-			GasMap:                   gasSchedule,
+			GasSchedule:              gasSchedule,
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{

@@ -2411,7 +2411,11 @@ func createApiResolver(
 		Marshalizer:     marshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}

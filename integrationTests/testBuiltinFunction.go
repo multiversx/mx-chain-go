@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/process"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
@@ -13,6 +14,10 @@ type TestBuiltinFunction struct {
 // ProcessBuiltinFunction is a method implementation required by the BuiltinFunction interface
 func (bf *TestBuiltinFunction) ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	return bf.Function(acntSnd, acntDst, vmInput)
+}
+
+// SetNewGasConfig -
+func (bf *TestBuiltinFunction) SetNewGasConfig(_ *process.GasCost) {
 }
 
 // IsInterfaceNil --

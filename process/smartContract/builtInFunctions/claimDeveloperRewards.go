@@ -22,6 +22,11 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 	return &claimDeveloperRewards{gasCost: gasCost}
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (c *claimDeveloperRewards) SetNewGasConfig(gasCost *process.GasCost) {
+	c.gasCost = gasCost.BuiltInCost.ClaimDeveloperRewards
+}
+
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
 func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,

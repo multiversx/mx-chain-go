@@ -60,18 +60,20 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 
 	args := createMockArguments()
 	args.GasSchedule = nil
-	container, err := CreateBuiltInFunctionContainer(args)
+	factory, err := NewBuiltInFunctionsFactory(args)
 	assert.NotNil(t, err)
-	assert.Nil(t, container)
+	assert.Nil(t, factory)
 
 	args = createMockArguments()
 	args.MapDNSAddresses = nil
-	container, err = CreateBuiltInFunctionContainer(args)
+	factory, err = NewBuiltInFunctionsFactory(args)
 	assert.Equal(t, process.ErrNilDnsAddresses, err)
-	assert.Nil(t, container)
+	assert.Nil(t, factory)
 
 	args = createMockArguments()
-	container, err = CreateBuiltInFunctionContainer(args)
+	factory, err = NewBuiltInFunctionsFactory(args)
 	assert.Nil(t, err)
-	assert.Equal(t, container.Len(), 11)
+	container, err := factory.CreateBuiltInFunctionContainer()
+	assert.Nil(t, err)
+	assert.Equal(t, len(container.Keys()), 11)
 }

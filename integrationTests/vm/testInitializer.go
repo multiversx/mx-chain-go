@@ -282,7 +282,8 @@ func CreateVMAndBlockchainHook(
 		Marshalizer:     testMarshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{

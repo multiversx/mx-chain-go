@@ -51,6 +51,11 @@ func NewESDTTransferFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
+}
+
 // ProcessBuiltinFunction resolves ESDT transfer function calls
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,

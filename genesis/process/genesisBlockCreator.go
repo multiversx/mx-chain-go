@@ -171,7 +171,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.AccountsParser) {
 		return genesis.ErrNilAccountsParser
 	}
-	if arg.GasMap == nil {
+	if arg.GasSchedule == nil {
 		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(arg.TxLogsProcessor) {

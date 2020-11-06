@@ -21,6 +21,11 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 	return &changeOwnerAddress{gasCost: gasCost}
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (c *changeOwnerAddress) SetNewGasConfig(gasCost *process.GasCost) {
+	c.gasCost = gasCost.BuiltInCost.ChangeOwnerAddress
+}
+
 // ProcessBuiltinFunction processes simple protocol built-in function
 func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,

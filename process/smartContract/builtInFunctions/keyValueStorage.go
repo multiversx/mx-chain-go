@@ -15,13 +15,13 @@ import (
 var _ process.BuiltinFunction = (*saveKeyValueStorage)(nil)
 
 type saveKeyValueStorage struct {
-	gasConfig   BaseOperationCost
+	gasConfig   process.BaseOperationCost
 	funcGasCost uint64
 }
 
 // NewSaveKeyValueStorageFunc returns the save key-value storage built in function
 func NewSaveKeyValueStorageFunc(
-	gasConfig BaseOperationCost,
+	gasConfig process.BaseOperationCost,
 	funcGasCost uint64,
 ) (*saveKeyValueStorage, error) {
 	s := &saveKeyValueStorage{
@@ -30,6 +30,12 @@ func NewSaveKeyValueStorageFunc(
 	}
 
 	return s, nil
+}
+
+// SetNewGasConfig is called whenever gas cost is changed
+func (k *saveKeyValueStorage) SetNewGasConfig(gasCost *process.GasCost) {
+	k.funcGasCost = gasCost.BuiltInCost.SaveKeyValue
+	k.gasConfig = gasCost.BaseOperationCost
 }
 
 // ProcessBuiltinFunction will save the value for the selected key

@@ -27,7 +27,7 @@ type builtInFuncFactory struct {
 	marshalizer          marshal.Marshalizer
 	accounts             state.AccountsAdapter
 	builtInFunctions     process.BuiltInFunctionContainer
-	gasConfig            *GasCost
+	gasConfig            *process.GasCost
 }
 
 // NewBuiltInFunctionsFactory creates a factory which will instantiate the built in functions contracts
@@ -180,8 +180,8 @@ func (b *builtInFuncFactory) CreateBuiltInFunctionContainer() (process.BuiltInFu
 	return b.builtInFunctions, nil
 }
 
-func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {
-	baseOps := &BaseOperationCost{}
+func createGasConfig(gasMap map[string]map[string]uint64) (*process.GasCost, error) {
+	baseOps := &process.BaseOperationCost{}
 	err := mapstructure.Decode(gasMap[core.BaseOperationCost], baseOps)
 	if err != nil {
 		return nil, err
@@ -192,7 +192,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {
 		return nil, err
 	}
 
-	builtInOps := &BuiltInCost{}
+	builtInOps := &process.BuiltInCost{}
 	err = mapstructure.Decode(gasMap[core.BuiltInCost], builtInOps)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func createGasConfig(gasMap map[string]map[string]uint64) (*GasCost, error) {
 		return nil, err
 	}
 
-	gasCost := GasCost{
+	gasCost := process.GasCost{
 		BaseOperationCost: *baseOps,
 		BuiltInCost:       *builtInOps,
 	}

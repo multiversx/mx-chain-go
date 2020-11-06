@@ -1299,7 +1299,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
 		ValidatorAccounts:        stateComponents.PeerAccounts,
-		GasMap:                   args.gasSchedule,
+		GasSchedule:              args.gasSchedule,
 		VirtualMachineConfig:     genesisVmConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
@@ -1510,7 +1510,11 @@ func newShardBlockProcessor(
 		Marshalizer:     core.InternalMarshalizer,
 		Accounts:        stateComponents.AccountsAdapter,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}

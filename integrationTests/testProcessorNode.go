@@ -1036,7 +1036,8 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		Marshalizer:     TestMarshalizer,
 		Accounts:        tpn.AccntState,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)

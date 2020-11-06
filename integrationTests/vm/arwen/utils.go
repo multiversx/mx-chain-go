@@ -163,9 +163,11 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Marshalizer:     marshalizer,
 		Accounts:        context.Accounts,
 	}
-
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	require.Nil(context.T, err)
+
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
