@@ -83,8 +83,9 @@ jobs:
       - name: Save artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ARCHIVE}}
-          path: ${{GITHUB_WORKSPACE}}/${{ARCHIVE}}
+          name: ${{ env.ARCHIVE }}
+          path: ${{ env.GITHUB_WORKSPACE }}/${{ env.ARCHIVE }}
+          if-no-files-found: error
 
   release:
     needs: [build]
