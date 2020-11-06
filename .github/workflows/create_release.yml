@@ -22,7 +22,7 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
         with:
-          fetch-depth: '0'
+          fetch-depth: "0"
 
       - name: Get dependencies
         run: |
@@ -35,14 +35,17 @@ jobs:
       # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#setting-an-environment-variable
       - name: Set environment variables
         run: |
+          go env
+          
           APP_VER_SHORT=$(git describe --tags)
           GOOS=$(go env GOOS)
           GOARCH=$(go env GOARCH)
+          GOPATH=$(go env GOPATH)
           ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
           ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
           ARWEN_PATH=${GITHUB_WORKSPACE}/build/arwen
-          WASMER_DIR=$GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@${ARWEN_VERSION}/wasmer
+          WASMER_DIR=${GOPATH}/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@${ARWEN_VERSION}/wasmer
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
@@ -85,6 +88,7 @@ jobs:
           path: ${GITHUB_WORKSPACE}/$ARCHIVE
 
   release:
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
