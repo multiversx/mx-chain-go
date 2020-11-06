@@ -158,7 +158,7 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          context.GasSchedule,
+		GasSchedule:     context.GasSchedule,
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
 		Accounts:        context.Accounts,

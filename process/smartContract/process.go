@@ -81,7 +81,7 @@ type ArgsNewSmartContractProcessor struct {
 	EconomicsFee                   process.FeeHandler
 	TxTypeHandler                  process.TxTypeHandler
 	GasHandler                     process.GasHandler
-	GasSchedule                    map[string]map[string]uint64
+	GasSchedule                    core.GasScheduleNotifier
 	BuiltInFunctions               process.BuiltInFunctionContainer
 	TxLogsProcessor                process.TransactionLogProcessor
 	BadTxForwarder                 process.IntermediateTransactionHandler

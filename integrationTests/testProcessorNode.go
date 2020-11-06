@@ -1031,7 +1031,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
 		Accounts:        tpn.AccntState,

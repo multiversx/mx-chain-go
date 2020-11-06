@@ -28,13 +28,11 @@ type gasScheduleNotifier struct {
 func NewGasScheduleNotifier(
 	gasScheduleConfig config.GasScheduleConfig,
 	configDir string,
-	startEpoch uint32,
 	epochNotifier core.EpochNotifier,
 ) (*gasScheduleNotifier, error) {
 	g := &gasScheduleNotifier{
 		gasScheduleConfig: gasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
-		currentEpoch:      startEpoch,
 	}
 
 	sort.Slice(g.gasScheduleConfig.GasScheduleByEpochs, func(i, j int) bool {

@@ -14,7 +14,7 @@ var log = logger.GetOrCreate("process/smartContract/builtInFunctions")
 
 // ArgsCreateBuiltInFunctionContainer -
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasMap               map[string]map[string]uint64
+	GasSchedule          core.GasScheduleNotifier
 	MapDNSAddresses      map[string]struct{}
 	EnableUserNameChange bool
 	Marshalizer          marshal.Marshalizer
@@ -23,7 +23,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 
 // CreateBuiltInFunctionContainer will create the list of built-in functions
 func CreateBuiltInFunctionContainer(args ArgsCreateBuiltInFunctionContainer) (process.BuiltInFunctionContainer, error) {
-	gasConfig, err := createGasConfig(args.GasMap)
+	gasConfig, err := createGasConfig(args.GasSchedule.LatestGasSchedule())
 	if err != nil {
 		return nil, err
 	}

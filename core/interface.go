@@ -67,7 +67,7 @@ type EpochSubscriberHandler interface {
 
 // GasScheduleSubscribeHandler defines the behavior of a component that can be notified if a the gas schedule was changed
 type GasScheduleSubscribeHandler interface {
-	GasScheduleChanged(gasSchedule map[string]map[string]uint64)
+	GasScheduleChange(gasSchedule map[string]map[string]uint64)
 	IsInterfaceNil() bool
 }
 
@@ -80,5 +80,7 @@ type EpochNotifier interface {
 // GasScheduleNotifier can notify upon a gas schedule change
 type GasScheduleNotifier interface {
 	RegisterNotifyHandler(handler GasScheduleSubscribeHandler)
+	LatestGasSchedule() map[string]map[string]uint64
+	UnRegisterAll()
 	IsInterfaceNil() bool
 }

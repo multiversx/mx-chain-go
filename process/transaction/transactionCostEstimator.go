@@ -21,7 +21,7 @@ func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
 	query external.SCQueryService,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -33,7 +33,7 @@ func NewTransactionCostEstimator(
 		return nil, external.ErrNilSCQueryService
 	}
 
-	compileCost, storeCost := getOperationCost(gasSchedule)
+	compileCost, storeCost := getOperationCost(gasSchedule.LatestGasSchedule())
 
 	return &transactionCostEstimator{
 		txTypeHandler:      txTypeHandler,

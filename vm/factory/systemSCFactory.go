@@ -29,7 +29,7 @@ type ArgsNewSystemSCFactory struct {
 	Economics           vm.EconomicsHandler
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
-	GasMap              map[string]map[string]uint64
+	GasSchedule         core.GasScheduleNotifier
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	SystemSCConfig      *config.SystemSmartContractsConfig

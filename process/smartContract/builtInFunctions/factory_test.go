@@ -14,7 +14,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 	fillGasMapInternal(gasMap, 1)
 
 	args := ArgsCreateBuiltInFunctionContainer{
-		GasMap:               gasMap,
+		GasSchedule:          gasMap,
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
@@ -59,7 +59,7 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArguments()
-	args.GasMap = nil
+	args.GasSchedule = nil
 	container, err := CreateBuiltInFunctionContainer(args)
 	assert.NotNil(t, err)
 	assert.Nil(t, container)
