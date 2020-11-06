@@ -1,7 +1,6 @@
 name: Create release
 
 on:
-  # TODO: only dispatch!
   push:
   # branches:
   #   - master
@@ -98,14 +97,21 @@ jobs:
         uses: actions/checkout@v2
 
         # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+        # A directory for each artifact is created using its name
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v2
+        with:
+          path: assets
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: assets
 
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           hub release create --draft --message="Release draft from Github Actions" vNext
-          for i in *.tgz; do
+          for i in $(find ./assets -name '*.tgz'); do
             hub release edit --attach=${i} --message="" vNext
           done
