@@ -50,7 +50,7 @@ jobs:
           echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
           echo "ARWEN_VERSION=${ARWEN_VERSION}" >> $GITHUB_ENV
           echo "ARWEN_PATH=${ARWEN_PATH}" >> $GITHUB_ENV
-        
+
       - name: Build
         run: |
           mkdir -p ${BUILD_DIR}
@@ -84,15 +84,14 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v2
-      
-      - name: Create release
-      - run: |
-         ls
 
+      - name: Create release
+        run: |
+          ls
     # - name: Create Release
     #   id: create_release
     #   uses: actions/create-release@v1
