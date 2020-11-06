@@ -233,7 +233,7 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "callValue must be 0"))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
 
 	vmInput.CallValue = big.NewInt(0)
 	output = dm.Execute(vmInput)
