@@ -79,9 +79,9 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
-	if vmf.config.OutOfProcessEnabled {
-		return vmf.createOutOfProcessArwenVM()
-	}
+	// if vmf.config.OutOfProcessEnabled {
+	// 	return vmf.createOutOfProcessArwenVM()
+	// }
 
 	return vmf.createInProcessArwenVM()
 }

@@ -11,7 +11,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-latest]
+        runs-on: [macos-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -45,4 +45,4 @@ jobs:
     - name: Test
       run: |
         export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
-        cd ${GITHUB_WORKSPACE} && go test `go list ./... | grep -v 'integrationTests\|storage'` --short
+        cd ${GITHUB_WORKSPACE} && go test `go list ./... | grep -v 'elrond-go/integrationTests\|elrond-go/storage\|elrond-go/update\|elrond-go/core/indexer'` --short
