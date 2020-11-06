@@ -721,16 +721,16 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	}
 }
 
-func TestTransactionPreprocessor_RemoveBlockTxsFromPoolNilBlockShouldErr(t *testing.T) {
+func TestTransactionPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T) {
 	t.Parallel()
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
-	err := txs.RemoveTxBlockFromPools(nil, dataPool.MiniBlocks())
+	err := txs.RemoveBlockDataFromPools(nil, dataPool.MiniBlocks())
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrNilTxBlockBody)
 }
 
-func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
+func TestTransactionPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 	t.Parallel()
 	dataPool := initDataPool()
 	txs := createGoodPreprocessor(dataPool)
@@ -744,7 +744,7 @@ func TestTransactionPreprocessor_RemoveBlockTxsFromPoolOK(t *testing.T) {
 		TxHashes:        txHashes,
 	}
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
-	err := txs.RemoveTxBlockFromPools(body, dataPool.MiniBlocks())
+	err := txs.RemoveBlockDataFromPools(body, dataPool.MiniBlocks())
 	assert.Nil(t, err)
 }
 

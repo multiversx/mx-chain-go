@@ -45,14 +45,14 @@ func loadMetricsFromDb(store dataRetriever.StorageService, uint64ByteSliceConver
 	storer := store.GetStorer(dataRetriever.StatusMetricsUnit)
 	statusMetricsDbBytes, err := storer.Get(nonceBytes)
 	if err != nil {
-		log.Info("cannot load persistent metrics from storage", err)
+		log.Debug("cannot load persistent metrics from storage", "error", err)
 		return nil, nil
 	}
 
 	metricsList := &metrics.MetricsList{}
 	err = marshalizer.Unmarshal(metricsList, statusMetricsDbBytes)
 	if err != nil {
-		log.Info("cannot unmarshal persistent metrics", err)
+		log.Debug("cannot unmarshal persistent metrics", "error", err)
 		return nil, nil
 	}
 

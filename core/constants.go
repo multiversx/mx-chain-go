@@ -554,3 +554,6 @@ const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
 // MinMetaTxExtraGasCost is the constant defined for minimum gas value to be sent in meta transaction
 const MinMetaTxExtraGasCost = uint64(1_000_000)
+
+// MaxLeafSize represents maximum amount of data which can be saved under one leaf
+const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB

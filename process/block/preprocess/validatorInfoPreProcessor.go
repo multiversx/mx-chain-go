@@ -51,8 +51,8 @@ func (vip *validatorInfoPreprocessor) IsDataPrepared(_ int, _ func() time.Durati
 	return nil
 }
 
-// RemoveTxBlockFromPools removes the peerMiniBlock from pool
-func (vip *validatorInfoPreprocessor) RemoveTxBlockFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
+// RemoveBlockDataFromPools removes the peer miniblocks from pool
+func (vip *validatorInfoPreprocessor) RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error {
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}
@@ -77,8 +77,13 @@ func (vip *validatorInfoPreprocessor) RemoveTxBlockFromPools(body *block.Body, m
 	return nil
 }
 
-// RestoreTxBlockIntoPools restores the peerMiniBlock to the pool
-func (vip *validatorInfoPreprocessor) RestoreTxBlockIntoPools(
+// RemoveTxsFromPools does nothing for validatorInfoPreprocessor implementation
+func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(_ *block.Body) error {
+	return nil
+}
+
+// RestoreBlockDataIntoPools restores the peer miniblocks to the pool
+func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 	body *block.Body,
 	miniBlockPool storage.Cacher,
 ) (int, error) {
@@ -117,8 +122,8 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	return nil
 }
 
-// SaveTxBlockToStorage does nothing
-func (vip *validatorInfoPreprocessor) SaveTxBlockToStorage(_ *block.Body) error {
+// SaveTxsToStorage does nothing
+func (vip *validatorInfoPreprocessor) SaveTxsToStorage(_ *block.Body) error {
 	return nil
 }
 

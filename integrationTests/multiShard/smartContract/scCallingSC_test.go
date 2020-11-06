@@ -351,7 +351,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, 1)
 	time.Sleep(time.Second)
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 3; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
