@@ -39,6 +39,7 @@ type ArgsNewRewardsCreator struct {
 	DataPool                      dataRetriever.PoolsHolder
 	ProtocolSustainabilityAddress string
 	NodesConfigProvider           epochStart.NodesConfigProvider
+	RewardsFix1EpochEnable        uint32
 }
 
 type rewardsCreator struct {
@@ -56,6 +57,7 @@ type rewardsCreator struct {
 	mapRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards             *big.Int
 	protocolSustainability         *big.Int
+	rewardsFix1EnableEpoch         uint32
 }
 
 type rewardInfoData struct {
@@ -122,6 +124,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 		nodesConfigProvider:           args.NodesConfigProvider,
 		accumulatedRewards:            big.NewInt(0),
 		protocolSustainability:        big.NewInt(0),
+		rewardsFix1EnableEpoch:        args.RewardsFix1EpochEnable,
 	}
 
 	return rc, nil
@@ -212,7 +215,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	miniBlocks block.MiniBlockSlice,
 	protocolSustainabilityRwdTx *rewardTx.RewardTx,
 ) error {
-	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, protocolSustainabilityRwdTx)
+	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, protocolSustainabilityRwdTx, metaBlock.Epoch)
 	for _, rwdInfo := range rwdAddrValidatorInfo {
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
 		if err != nil {
@@ -255,6 +258,7 @@ func (rc *rewardsCreator) createProtocolSustainabilityRewardTransaction(
 func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	protocolSustainabilityRwd *rewardTx.RewardTx,
+	epoch uint32,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
@@ -264,7 +268,12 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[validatorInfo.ShardId]
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
-			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
+			isFix1Enabled := rc.isRewardsFix1Enabled(epoch)
+			if isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
+				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
+				continue
+			}
+			if !isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
@@ -545,4 +554,8 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 			"receiver", mbHeader.ReceiverShardID,
 			"num txs", mbHeader.TxCount)
 	}
+}
+
+func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
+	return epoch > rc.rewardsFix1EnableEpoch
 }
