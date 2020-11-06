@@ -3,6 +3,9 @@ name: Create release
 on:
   # TODO: only dispatch!
   push:
+    # branches:
+    #   - master
+    #   - main
   workflow_dispatch:
 
 jobs:
@@ -84,7 +87,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ${{ env.ARCHIVE }}
-          path: ${{ env.GITHUB_WORKSPACE }}/${{ env.ARCHIVE }}
+          path: ${{ github.workspace }}/${{ env.ARCHIVE }}
           if-no-files-found: error
 
   release:
