@@ -12,7 +12,8 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-latest]
+        # TODO macos-latest
+        runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
