@@ -112,6 +112,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           hub release create --draft --message="Release draft from Github Actions" vNext
-          for i in $(find ./assets -name '*.tgz'); do
+          for i in $(find ./assets -name '*.tgz' -type f); do
             hub release edit --attach=${i} --message="" vNext
           done
