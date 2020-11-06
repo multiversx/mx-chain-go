@@ -3,6 +3,7 @@ package builtInFunctions
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -13,7 +14,8 @@ import (
 var _ process.BuiltinFunction = (*changeOwnerAddress)(nil)
 
 type changeOwnerAddress struct {
-	gasCost uint64
+	gasCost      uint64
+	mutExecution sync.RWMutex
 }
 
 // NewChangeOwnerAddressFunc create a new change owner built in function
@@ -23,7 +25,9 @@ func NewChangeOwnerAddressFunc(gasCost uint64) *changeOwnerAddress {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *changeOwnerAddress) SetNewGasConfig(gasCost *process.GasCost) {
+	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ChangeOwnerAddress
+	c.mutExecution.Unlock()
 }
 
 // ProcessBuiltinFunction processes simple protocol built-in function
@@ -31,6 +35,9 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	c.mutExecution.RLock()
+	defer c.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -60,7 +67,7 @@ func (c *changeOwnerAddress) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+	return &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - c.gasCost, ReturnCode: vmcommon.Ok}, nil
 }
 
 // IsInterfaceNil returns true if underlying object in nil

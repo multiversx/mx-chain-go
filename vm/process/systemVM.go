@@ -1,6 +1,8 @@
 package process
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -13,6 +15,7 @@ type systemVM struct {
 	systemContracts      vm.SystemSCContainer
 	asyncCallbackGasLock uint64
 	asyncCallStepCost    uint64
+	mutGasLock           sync.RWMutex
 }
 
 // ArgsNewSystemVM defines the needed arguments to create a new system vm
@@ -131,6 +134,9 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 
 // GasScheduleChange sets the new gas schedule where it is needed
 func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	s.mutGasLock.Lock()
+	defer s.mutGasLock.Unlock()
+
 	apiCosts := gasSchedule[core.ElrondAPICost]
 	if apiCosts == nil {
 		return
@@ -145,6 +151,8 @@ func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64
 		return 0, nil
 	}
 
+	s.mutGasLock.RLock()
+	defer s.mutGasLock.RUnlock()
 	// gasToLock is the amount of gas to set aside for the callback, to avoid it
 	// being used by executing built-in functions; this amount will be restored
 	// to the caller, so that there is sufficient gas for the async callback

@@ -3,6 +3,7 @@ package builtInFunctions
 import (
 	"bytes"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -14,7 +15,8 @@ import (
 var _ process.BuiltinFunction = (*claimDeveloperRewards)(nil)
 
 type claimDeveloperRewards struct {
-	gasCost uint64
+	gasCost      uint64
+	mutExecution sync.RWMutex
 }
 
 // NewClaimDeveloperRewardsFunc returns a new developer rewards implementation
@@ -24,7 +26,9 @@ func NewClaimDeveloperRewardsFunc(gasCost uint64) *claimDeveloperRewards {
 
 // SetNewGasConfig is called whenever gas cost is changed
 func (c *claimDeveloperRewards) SetNewGasConfig(gasCost *process.GasCost) {
+	c.mutExecution.Lock()
 	c.gasCost = gasCost.BuiltInCost.ClaimDeveloperRewards
+	c.mutExecution.Unlock()
 }
 
 // ProcessBuiltinFunction processes the protocol built-in smart contract function
@@ -32,6 +36,9 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	c.mutExecution.RLock()
+	defer c.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}

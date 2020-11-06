@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"math/rand"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -44,6 +45,8 @@ type stakingAuctionSC struct {
 	marshalizer        marshal.Marshalizer
 	flagStake          atomic.Flag
 	flagAuction        atomic.Flag
+
+	mutExecution sync.Mutex
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -132,6 +135,9 @@ func NewStakingAuctionSmartContract(
 
 // Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	s.mutExecution.Lock()
+	defer s.mutExecution.Unlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		s.eei.AddReturnMessage("nil arguments: " + err.Error())
@@ -1437,7 +1443,9 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 
 // SetNewGasCosts is called whenever a gas cost was changed
 func (s *stakingAuctionSC) SetNewGasCosts(gasCost vm.GasCost) {
+	s.mutExecution.Lock()
 	s.gasCost = gasCost
+	s.mutExecution.Unlock()
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

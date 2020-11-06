@@ -191,10 +191,10 @@ VERSION:
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
-	// gasScheduleConfigurationFolder defines a flag for the path to the folder containing the gas costs used in execution
-	gasScheduleConfigurationFolder = cli.StringFlag{
+	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
+	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration folder.",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
@@ -418,7 +418,7 @@ func main() {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
-		gasScheduleConfigurationFolder,
+		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -1204,7 +1204,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationFolder.Name)
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(generalConfig.GasScheduleConfig, gasScheduleConfigurationFolderName, epochNotifier)
 	if err != nil {
 		return err

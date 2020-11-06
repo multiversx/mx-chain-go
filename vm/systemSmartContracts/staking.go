@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -42,6 +43,7 @@ type stakingSC struct {
 	enableStakingEpoch       uint32
 	stakeValue               *big.Int
 	flagStake                atomic.Flag
+	mutExecution             sync.RWMutex
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -121,6 +123,8 @@ func NewStakingSmartContract(
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
 func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	r.mutExecution.RLock()
+	defer r.mutExecution.RUnlock()
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
@@ -1429,7 +1433,9 @@ func (r *stakingSC) EpochConfirmed(epoch uint32) {
 
 // SetNewGasCosts is called whenever a gas cost was changed
 func (r *stakingSC) SetNewGasCosts(gasCost vm.GasCost) {
+	r.mutExecution.Lock()
 	r.gasCost = gasCost
+	r.mutExecution.Unlock()
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

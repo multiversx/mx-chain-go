@@ -20,8 +20,7 @@ type gasScheduleNotifier struct {
 	gasScheduleConfig config.GasScheduleConfig
 	currentEpoch      uint32
 	lastGasSchedule   GasScheduleMap
-
-	handlers []core.GasScheduleSubscribeHandler
+	handlers          []core.GasScheduleSubscribeHandler
 }
 
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
@@ -33,6 +32,13 @@ func NewGasScheduleNotifier(
 	g := &gasScheduleNotifier{
 		gasScheduleConfig: gasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
+	}
+
+	for _, gasScheduleConf := range g.gasScheduleConfig.GasScheduleByEpochs {
+		_, err := core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConf.FileName))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sort.Slice(g.gasScheduleConfig.GasScheduleByEpochs, func(i, j int) bool {
@@ -88,7 +94,8 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 		return
 	}
 
-	g.mutNotifier.RLock()
+	g.mutNotifier.Lock()
+	defer g.mutNotifier.Unlock()
 	newVersion := g.getMatchingVersion(epoch)
 	oldVersion := g.getMatchingVersion(old)
 
@@ -112,8 +119,6 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32) {
 	for _, handler := range g.handlers {
 		handler.GasScheduleChange(g.lastGasSchedule)
 	}
-
-	g.mutNotifier.RUnlock()
 }
 
 // LatestGasSchedule returns the latest gas schedule

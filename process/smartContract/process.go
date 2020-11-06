@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -62,6 +63,7 @@ type scProcessor struct {
 
 	asyncCallbackGasLock uint64
 	asyncCallStepCost    uint64
+	mutGasLock           sync.RWMutex
 
 	txLogsProcessor process.TransactionLogProcessor
 }
@@ -182,6 +184,9 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 
 // GasScheduleChange sets the new gas schedule where it is needed
 func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	sc.mutGasLock.Lock()
+	defer sc.mutGasLock.Unlock()
+
 	apiCosts := gasSchedule[core.ElrondAPICost]
 	if apiCosts == nil {
 		return
@@ -1224,8 +1229,9 @@ func (sc *scProcessor) createSCRsWhenError(
 		if callType == vmcommon.AsynchronousCall {
 			scr.CallType = vmcommon.AsynchronousCallBack
 			scr.GasPrice = tx.GetGasPrice()
-
+			sc.mutGasLock.RLock()
 			gasToLock := sc.asyncCallStepCost + sc.asyncCallbackGasLock
+			sc.mutGasLock.RUnlock()
 			if tx.GetGasLimit() >= gasToLock {
 				scr.GasLimit = gasToLock
 				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasToLock)
@@ -1735,6 +1741,8 @@ func (sc *scProcessor) handleAsyncStepGas(input *vmcommon.ContractCallInput) (ui
 		return 0, nil
 	}
 
+	sc.mutGasLock.RLock()
+	defer sc.mutGasLock.RUnlock()
 	// gasToLock is the amount of gas to set aside for the callback, to avoid it
 	// being used by executing built-in functions; this amount will be restored
 	// to the caller, so that there is sufficient gas for the async callback
