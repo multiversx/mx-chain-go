@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
-	disabledCrypto "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled"
 	disabledMultiSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/multisig"
 	disabledSig "github.com/ElrondNetwork/elrond-go/crypto/signing/disabled/singlesig"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
@@ -38,7 +37,6 @@ type CryptoComponentsFactoryArgs struct {
 	KeyGen                               crypto.KeyGenerator
 	PrivKey                              crypto.PrivateKey
 	ActivateBLSPubKeyMessageVerification bool
-	UseDisabledSigVerifier               bool
 }
 
 type cryptoComponentsFactory struct {
@@ -49,10 +47,11 @@ type cryptoComponentsFactory struct {
 	keyGen                               crypto.KeyGenerator
 	privKey                              crypto.PrivateKey
 	activateBLSPubKeyMessageVerification bool
+	importDbNoSigCheckFlag               bool
 }
 
 // NewCryptoComponentsFactory returns a new crypto components factory
-func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoComponentsFactory, error) {
+func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs, importDbNoSigCheckFlag bool) (*cryptoComponentsFactory, error) {
 	if args.NodesConfig == nil {
 		return nil, ErrNilNodesConfig
 	}
@@ -74,10 +73,9 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		keyGen:                               args.KeyGen,
 		privKey:                              args.PrivKey,
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
+		importDbNoSigCheckFlag:               importDbNoSigCheckFlag,
 	}
-	if args.UseDisabledSigVerifier {
-		ccf.consensusType = disabledSigChecking
-		ccf.keyGen = signing.NewKeyGenerator(disabledCrypto.NewDisabledSuite())
+	if importDbNoSigCheckFlag {
 		log.Warn("using disabled key generator")
 	}
 
@@ -88,7 +86,12 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 	initialPubKeys := ccf.nodesConfig.InitialNodesPubKeys()
 	txSingleSigner := &singlesig.Ed25519Signer{}
-	singleSigner, err := ccf.createSingleSigner()
+	processingSingleSigner, err := ccf.createSingleSigner(false)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptSingleSigner, err := ccf.createSingleSigner(ccf.importDbNoSigCheckFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +106,7 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 		return nil, fmt.Errorf("%w: %s", ErrMultiSigCreation, err.Error())
 	}
 
-	multiSigner, err := ccf.createMultiSigner(multisigHasher, currentShardNodesPubKeys)
+	multiSigner, err := ccf.createMultiSigner(multisigHasher, currentShardNodesPubKeys, ccf.importDbNoSigCheckFlag)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +115,7 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 
 	var messageSignVerifier vm.MessageSignVerifier
 	if ccf.activateBLSPubKeyMessageVerification {
-		messageSignVerifier, err = systemVM.NewMessageSigVerifier(ccf.keyGen, singleSigner)
+		messageSignVerifier, err = systemVM.NewMessageSigVerifier(ccf.keyGen, processingSingleSigner)
 		if err != nil {
 			return nil, err
 		}
@@ -129,14 +132,14 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 		return nil, err
 	}
 
-	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, singleSigner, ccf.keyGen)
+	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, interceptSingleSigner, ccf.keyGen)
 	if err != nil {
 		return nil, err
 	}
 
 	return &CryptoComponents{
 		TxSingleSigner:       txSingleSigner,
-		SingleSigner:         singleSigner,
+		SingleSigner:         interceptSingleSigner,
 		MultiSigner:          multiSigner,
 		BlockSignKeyGen:      ccf.keyGen,
 		TxSignKeyGen:         txSignKeyGen,
@@ -146,7 +149,12 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 	}, nil
 }
 
-func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
+func (ccf *cryptoComponentsFactory) createSingleSigner(importDbNoSigCheckFlag bool) (crypto.SingleSigner, error) {
+	if importDbNoSigCheckFlag {
+		log.Warn("using disabled single signer")
+		return &disabledSig.DisabledSingleSig{}, nil
+	}
+
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		return &mclSig.BlsSingleSigner{}, nil
@@ -179,7 +187,12 @@ func (ccf *cryptoComponentsFactory) getMultisigHasherFromConfig() (hashing.Hashe
 func (ccf *cryptoComponentsFactory) createMultiSigner(
 	hasher hashing.Hasher,
 	pubKeys []string,
+	importDbNoSigCheckFlag bool,
 ) (crypto.MultiSigner, error) {
+	if importDbNoSigCheckFlag {
+		log.Warn("using disabled single signer")
+		return &disabledMultiSig.DisabledMultiSig{}, nil
+	}
 
 	//TODO: the instantiation of BLS multi signer can be done with own public key instead of all public keys
 	// e.g []string{ownPubKey}.
