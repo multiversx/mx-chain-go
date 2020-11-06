@@ -100,21 +100,10 @@ jobs:
         uses: actions/download-artifact@v2
 
       - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          release_name: Release draft from Github Actions
-          draft: true
-          prerelease: true
-
-      # https://github.com/actions/upload-release-asset
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./*.tgz
-          asset_content_type: application/tar+gzip
+        run: |
+          hub release create --draft --message="Release draft from Github Actions" vNext
+          for i in *.tgz; do
+            hub release edit --attach=${i} --message="" vNext
+          done
