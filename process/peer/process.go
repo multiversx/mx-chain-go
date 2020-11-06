@@ -218,7 +218,6 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
 		isNodeJailed := vs.flagInactiveToJailEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
 		if isNodeJailed {
-			log.Debug("setting to jail case 3")
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
 			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
@@ -678,13 +677,11 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	}
 
 	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
-		log.Debug("setting to jailed case 1")
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 		return
 	}
 
 	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
-		log.Debug("setting to jailed case 2")
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 	}
 }
