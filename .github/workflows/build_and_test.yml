@@ -39,9 +39,3 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
           cd ${GITHUB_WORKSPACE} && make arwen
-
-      # Skip long-running and other intensive tests
-      - name: Test
-        run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
-          cd ${GITHUB_WORKSPACE} && go test `go list ./... | grep -v 'elrond-go/integrationTests\|elrond-go/storage\|elrond-go/update\|elrond-go/core/indexer'` --short
