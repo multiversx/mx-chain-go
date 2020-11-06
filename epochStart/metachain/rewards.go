@@ -39,6 +39,8 @@ type ArgsNewRewardsCreator struct {
 	DataPool                      dataRetriever.PoolsHolder
 	ProtocolSustainabilityAddress string
 	NodesConfigProvider           epochStart.NodesConfigProvider
+	// this fixes the situation where a node has 0 proposed blocks and 0 validator failures
+	// but does not receive rewards.
 	RewardsFix1EpochEnable        uint32
 }
 
