@@ -75,6 +75,7 @@ type validatorStatistics struct {
 	jailedEnableEpoch               uint32
 	belowSignedThresholdEnableEpoch uint32
 	flagJailedEnabled               atomic.Flag
+	flagInactiveToJailEnabled       atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -215,8 +216,9 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
-		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		isNodeJailed := vs.flagInactiveToJailEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
 		if isNodeJailed {
+			log.Debug("setting to jail case 3")
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
 			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
@@ -443,6 +445,7 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
 		if savedList == string(core.InactiveList) {
+			log.Debug("getActual list returns jailed")
 			return string(core.JailedList)
 		}
 		return savedList
@@ -670,16 +673,18 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
-	if !vs.flagJailedEnabled.IsSet() {
+	if !vs.flagInactiveToJailEnabled.IsSet() {
 		return
 	}
 
 	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
+		log.Debug("setting to jailed case 1")
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 		return
 	}
 
 	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
+		log.Debug("setting to jailed case 2")
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 	}
 }
@@ -1195,5 +1200,7 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
+	vs.flagInactiveToJailEnabled.Toggle(epoch == vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
+	log.Debug("validatorStatistics: inactiveToJail", "enabled", vs.flagInactiveToJailEnabled.IsSet())
 }
