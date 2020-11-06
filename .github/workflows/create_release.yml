@@ -12,8 +12,7 @@ jobs:
   build:
     strategy:
       matrix:
-        # TODO ubuntu-latest
-        runs-on: [macos-latest]
+        runs-on: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -68,11 +67,6 @@ jobs:
 
       - name: Package
         run: |
-          cd ${GOPATH}/pkg/mod/github.com
-          ls
-          cd $(go env GOPATH)/pkg/mod/github.com
-          ls
-
           cd ${GITHUB_WORKSPACE}
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
@@ -82,7 +76,7 @@ jobs:
             cp -f ${WASMER_DIR}/libwasmer_linux_arm64.so ${BUILD_DIR};
           fi
           if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_linux_amd64.dylib ${BUILD_DIR};
+            cp -f ${WASMER_DIR}/libwasmer_darwin_amd64.dylib ${BUILD_DIR};
           fi
 
           cd ${BUILD_DIR}
