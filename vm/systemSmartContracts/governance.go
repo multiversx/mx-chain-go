@@ -502,7 +502,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
-		log.Warn("save general proposal", err, "error")
+		log.Warn("save general proposal", "error", err)
 		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
 		return vmcommon.UserError
 	}

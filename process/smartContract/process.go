@@ -584,7 +584,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 
 	isSCCall, newVMOutput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, acntDst, snapshot)
 	if err != nil {
-		log.Debug("treat execution after built in function", err.Error())
+		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
@@ -1464,7 +1464,11 @@ func (sc *scProcessor) processSCOutputAccounts(
 				continue
 			}
 
-			acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				log.Warn("saveKeyValue", "error", err)
+				return nil, err
+			}
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
