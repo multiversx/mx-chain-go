@@ -444,7 +444,6 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 	savedList := peerAccount.GetList()
 	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch {
 		if savedList == string(core.InactiveList) {
-			log.Debug("getActual list returns jailed")
 			return string(core.JailedList)
 		}
 		return savedList
