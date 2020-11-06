@@ -3,16 +3,16 @@ name: Create release
 on:
   # TODO: only dispatch!
   push:
-    # branches:
-    #   - master
-    #   - main
+  # branches:
+  #   - master
+  #   - main
   workflow_dispatch:
 
 jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest]
+        runs-on: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -97,16 +97,25 @@ jobs:
       # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v2
-
-      - name: Create release
         run: |
           ls
-    # - name: Create Release
-    #   id: create_release
-    #   uses: actions/create-release@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     release_name: New elrond-go
-    #     draft: true
-    #     prerelease: true
+
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_name: Release draft from Github Actions
+          draft: true
+          prerelease: true
+
+      # https://github.com/actions/upload-release-asset
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*.tgz
+          asset_content_type: application/tar+gzip
