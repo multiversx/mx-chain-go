@@ -196,7 +196,7 @@ VERSION:
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
-		Value: "./config",
+		Value: "./config/gasSchedules",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
@@ -1214,7 +1214,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(generalConfig.GasScheduleConfig, gasScheduleConfigurationFolderName, epochNotifier)
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(generalConfig.GasSchedule, gasScheduleConfigurationFolderName, epochNotifier)
 	if err != nil {
 		return err
 	}

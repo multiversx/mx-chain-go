@@ -166,7 +166,7 @@ type Config struct {
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
-	GasScheduleConfig     GasScheduleConfig
+	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
 }
 
