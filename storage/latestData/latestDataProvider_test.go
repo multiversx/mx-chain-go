@@ -1,4 +1,4 @@
-package lastestData
+package latestData
 
 import (
 	"encoding/json"

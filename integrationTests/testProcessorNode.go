@@ -1202,8 +1202,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		Uint64Converter:    TestUint64Converter,
 		BuiltInFunctions:   builtInFuncs,
 		DataPool:           tpn.DataPool,
-		NilCompiledSCStore: true,
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)

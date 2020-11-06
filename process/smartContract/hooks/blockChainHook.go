@@ -64,11 +64,11 @@ type BlockChainHookImpl struct {
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
 
-	compiledScPool    storage.Cacher
-	compiledScStorage storage.Storer
-	configSCStorage   config.StorageConfig
-	workingDir        string
-	nilStorage        bool
+	compiledScPool     storage.Cacher
+	compiledScStorage  storage.Storer
+	configSCStorage    config.StorageConfig
+	workingDir         string
+	nilCompiledSCStore bool
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -81,18 +81,18 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:         args.Accounts,
-		pubkeyConv:       args.PubkeyConv,
-		storageService:   args.StorageService,
-		blockChain:       args.BlockChain,
-		shardCoordinator: args.ShardCoordinator,
-		marshalizer:      args.Marshalizer,
-		uint64Converter:  args.Uint64Converter,
-		builtInFunctions: args.BuiltInFunctions,
-		compiledScPool:   args.CompiledSCPool,
-		configSCStorage:  args.ConfigSCStorage,
-		workingDir:       args.WorkingDir,
-		nilStorage:       args.NilCompiledSCStore,
+		accounts:           args.Accounts,
+		pubkeyConv:         args.PubkeyConv,
+		storageService:     args.StorageService,
+		blockChain:         args.BlockChain,
+		shardCoordinator:   args.ShardCoordinator,
+		marshalizer:        args.Marshalizer,
+		uint64Converter:    args.Uint64Converter,
+		builtInFunctions:   args.BuiltInFunctions,
+		compiledScPool:     args.CompiledSCPool,
+		configSCStorage:    args.ConfigSCStorage,
+		workingDir:         args.WorkingDir,
+		nilCompiledSCStore: args.NilCompiledSCStore,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -568,7 +568,7 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 }
 
 func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
-	if bh.nilStorage {
+	if bh.nilCompiledSCStore {
 		bh.compiledScStorage = storageUnit.NewNilStorer()
 		return nil
 	}

@@ -33,8 +33,8 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		DataPool:           datapool,
-		NilCompiledSCStore: true,
 		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	return arguments
 }
