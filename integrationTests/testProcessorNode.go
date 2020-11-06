@@ -1028,8 +1028,9 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		mapDNSAddresses, _ = tpn.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	}
 
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:     gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
@@ -1206,8 +1207,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
 		signVerifier, _ = vmProcess.NewMessageSigVerifier(
@@ -1217,6 +1219,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	} else {
 		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	}
+
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
 		tpn.EconomicsData.EconomicsData,
