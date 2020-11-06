@@ -23,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
+	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -223,6 +224,12 @@ func (n *Node) StartConsensus() error {
 		check.IfNil(n.blkc.GetGenesisHeader())
 	if isGenesisBlockNotInitialized {
 		return ErrGenesisBlockNotInitialized
+	}
+
+	if !n.indexer.IsNilIndexer() {
+		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
+			"it is incompatible with the indexing process.")
+		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
 
 	chronologyHandler, err := n.createChronologyHandler(
@@ -554,6 +561,7 @@ func (n *Node) createShardBootstrapper(rounder consensus.Rounder) (process.Boots
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -615,6 +623,7 @@ func (n *Node) createMetaChainBootstrapper(rounder consensus.Rounder) (process.B
 		EpochHandler:        n.epochStartTrigger,
 		MiniblocksProvider:  n.miniblocksProvider,
 		Uint64Converter:     n.uint64ByteSliceConverter,
+		Indexer:             n.indexer,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -823,6 +832,31 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	if err != nil {
+		return err
+	}
+
+	return txValidator.CheckTxValidity(intTx)
+}
+
+// ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
+func (n *Node) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	txValidator, intTx, err := n.commonTransactionValidation(tx)
+	if err != nil {
+		return err
+	}
+
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAccountNotFound) {
+		// we allow the broadcast of provided transaction even if that transaction is not targeted on the current shard
+		return nil
+	}
+
+	return err
+}
+
+func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process.TxValidator, process.TxValidatorHandler, error) {
 	txValidator, err := dataValidators.NewTxValidator(
 		n.accounts,
 		n.shardCoordinator,
@@ -833,12 +867,12 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	if err != nil {
 		log.Warn("node.ValidateTransaction: can not instantiate a TxValidator",
 			"error", err)
-		return err
+		return nil, nil, err
 	}
 
 	marshalizedTx, err := n.internalMarshalizer.Marshal(tx)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	argumentParser := smartContract.NewArgumentParser()
@@ -858,15 +892,15 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		n.minTransactionVersion,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = intTx.CheckValidity()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	return txValidator, intTx, nil
 }
 
 func (n *Node) checkSenderIsInShard(tx *transaction.Transaction) error {

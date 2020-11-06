@@ -297,7 +297,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -360,7 +360,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -423,7 +423,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
@@ -489,7 +489,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	stp, _ := NewStakingToPeer(arguments)
@@ -548,7 +548,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		return userAcc, nil
 	}
 	retData, _ := json.Marshal(&stakingData)
-	userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
+	_ = userAcc.DataTrieTracker().SaveKeyValue(offset, retData)
 
 	arguments.BaseState = baseState
 	arguments.ArgParser = argParser
