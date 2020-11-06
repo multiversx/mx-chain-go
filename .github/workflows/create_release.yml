@@ -97,8 +97,6 @@ jobs:
       # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
       - name: Download all workflow run artifacts
         uses: actions/download-artifact@v2
-        run: |
-          ls
 
       - name: Create release
         id: create_release
