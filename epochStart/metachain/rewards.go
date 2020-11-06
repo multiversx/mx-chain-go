@@ -264,7 +264,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rewardsPerBlockPerNodeForShard := rc.mapRewardsPerBlockPerValidator[validatorInfo.ShardId]
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
-			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
+			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
