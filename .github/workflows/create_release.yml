@@ -1,0 +1,104 @@
+name: Create release
+
+on:
+  # TODO: only dispatch!
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest]
+    runs-on: ${{ matrix.runs-on }}
+    name: Build
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.15.2
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+              dep ensure
+          fi
+
+      # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-commands-for-github-actions#setting-an-environment-variable
+      - name: Set environment variables
+        run: |
+          APP_VER=$(git describe --tags --long --dirty)
+          APP_VER_SHORT=$(git describe --tags)
+          GOOS=$(go env GOOS)
+          GOARCH=$(go env GOARCH)
+          ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+          BUILD_DIR=${GITHUB_WORKSPACE}/build
+          ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//')
+          ARWEN_PATH=${GITHUB_WORKSPACE}/build/arwen
+          WASMER_DIR=$GOPATH/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@${ARWEN_VERSION}/wasmer
+
+          echo "APP_VER=${APP_VER}" >> $GITHUB_ENV
+          echo "APP_VER_SHORT=${APP_VER_SHORT}" >> $GITHUB_ENV
+          echo "GOOS=${GOOS}" >> $GITHUB_ENV
+          echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
+          echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
+          echo "ARWEN_VERSION=${ARWEN_VERSION}" >> $GITHUB_ENV
+          echo "ARWEN_PATH=${ARWEN_PATH}" >> $GITHUB_ENV
+        
+      - name: Build
+        run: |
+          mkdir -p ${BUILD_DIR}
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE} && make arwen
+
+      - name: Package
+        run: |
+          cd ${GITHUB_WORKSPACE}
+
+          if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
+            cp -f ${WASMER_DIR}/libwasmer_linux_amd64.so ${BUILD_DIR};
+          fi
+          if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
+            cp -f ${WASMER_DIR}/libwasmer_linux_arm64.so ${BUILD_DIR};
+          fi
+          if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
+            cp -f ${WASMER_DIR}/libwasmer_linux_amd64.dylib ${BUILD_DIR};
+          fi
+
+          tar czvf "${GITHUB_WORKSPACE}/$ARCHIVE" *
+
+      - name: Save artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: $ARCHIVE
+          path: ${GITHUB_WORKSPACE}/$ARCHIVE
+
+  release:
+    runs-on: ubuntu-latest
+    steps: 
+      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+      - name: Download all workflow run artifacts
+        uses: actions/download-artifact@v2
+      
+      - name: Create release
+      - run: |
+         ls
+
+    # - name: Create Release
+    #   id: create_release
+    #   uses: actions/create-release@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     release_name: New elrond-go
+    #     draft: true
+    #     prerelease: true
