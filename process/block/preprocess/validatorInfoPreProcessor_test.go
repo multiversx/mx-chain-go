@@ -173,7 +173,7 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	assert.Nil(t, foundMb)
 	assert.False(t, ok)
 
-	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreBlockDataIntoPools(blockBody, miniBlockPool)
 	assert.Equal(t, 1, numRestoredTxs)
 	assert.Nil(t, err)
 
@@ -182,7 +182,7 @@ func TestNewValidatorInfoPreprocessor_RestorePeerBlockIntoPools(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestNewValidatorInfoPreprocessor_RestoreOtherBlockIntoPoolsShouldNotRestore(t *testing.T) {
+func TestNewValidatorInfoPreprocessor_RestoreOtherBlockTypeIntoPoolsShouldNotRestore(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherMock{}
@@ -214,7 +214,7 @@ func TestNewValidatorInfoPreprocessor_RestoreOtherBlockIntoPoolsShouldNotRestore
 	assert.Nil(t, foundMb)
 	assert.False(t, ok)
 
-	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreBlockDataIntoPools(blockBody, miniBlockPool)
 	assert.Equal(t, 0, numRestoredTxs)
 	assert.Nil(t, err)
 
@@ -256,7 +256,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	assert.NotNil(t, foundMb)
 	assert.True(t, ok)
 
-	err := rtp.RemoveTxBlockFromPools(blockBody, miniBlockPool)
+	err := rtp.RemoveBlockDataFromPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)
@@ -264,7 +264,7 @@ func TestNewValidatorInfoPreprocessor_RemovePeerBlockFromPool(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestNewValidatorInfoPreprocessor_RemoveOtherTypeBlockFromPoolShouldNotRemove(t *testing.T) {
+func TestNewValidatorInfoPreprocessor_RemoveOtherBlockTypeFromPoolShouldNotRemove(t *testing.T) {
 	t.Parallel()
 
 	hasher := &mock.HasherMock{}
@@ -297,7 +297,7 @@ func TestNewValidatorInfoPreprocessor_RemoveOtherTypeBlockFromPoolShouldNotRemov
 	assert.NotNil(t, foundMb)
 	assert.True(t, ok)
 
-	err := rtp.RemoveTxBlockFromPools(blockBody, miniBlockPool)
+	err := rtp.RemoveBlockDataFromPools(blockBody, miniBlockPool)
 	assert.Nil(t, err)
 
 	foundMb, ok = miniBlockPool.Get(mbHash)

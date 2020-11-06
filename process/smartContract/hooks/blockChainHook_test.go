@@ -201,7 +201,7 @@ func TestBlockChainHookImpl_GetStorageDataShouldWork(t *testing.T) {
 	variableIdentifier := []byte("variable")
 	variableValue := []byte("value")
 	accnt := mock.NewAccountWrapMock(nil)
-	accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
+	_ = accnt.DataTrieTracker().SaveKeyValue(variableIdentifier, variableValue)
 
 	args := createMockVMAccountsArguments()
 	args.Accounts = &mock.AccountsStub{

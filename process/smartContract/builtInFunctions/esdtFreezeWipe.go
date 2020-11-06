@@ -66,7 +66,10 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	log.Trace(vmInput.Function, "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "token", esdtTokenKey)
 
 	if e.wipe {
-		acntDst.DataTrieTracker().SaveKeyValue(esdtTokenKey, nil)
+		err := acntDst.DataTrieTracker().SaveKeyValue(esdtTokenKey, nil)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		err := e.toggleFreeze(acntDst, esdtTokenKey)
 		if err != nil {

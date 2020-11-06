@@ -452,7 +452,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
-func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
+func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txHash := testTxHash
@@ -491,7 +491,7 @@ func TestRewardTxPreprocessor_SaveTxBlockToStorageShouldWork(t *testing.T) {
 
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
-	err := rtp.SaveTxBlockToStorage(blockBody)
+	err := rtp.SaveTxsToStorage(blockBody)
 
 	assert.Nil(t, err)
 }
@@ -533,7 +533,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 	blockBody := &block.Body{}
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
-	_ = rtp.SaveTxBlockToStorage(blockBody)
+	_ = rtp.SaveTxsToStorage(blockBody)
 
 	res := rtp.RequestBlockTransactions(blockBody)
 	assert.Equal(t, 0, res)
@@ -668,7 +668,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
+func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
@@ -715,7 +715,7 @@ func TestRewardTxPreprocessor_RestoreTxBlockIntoPools(t *testing.T) {
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1)
 	miniBlockPool := testscommon.NewCacherMock()
 
-	numRestoredTxs, err := rtp.RestoreTxBlockIntoPools(blockBody, miniBlockPool)
+	numRestoredTxs, err := rtp.RestoreBlockDataIntoPools(blockBody, miniBlockPool)
 	assert.Equal(t, 1, numRestoredTxs)
 	assert.Nil(t, err)
 }
