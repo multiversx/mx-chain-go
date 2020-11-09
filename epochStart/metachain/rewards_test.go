@@ -1,9 +1,10 @@
 package metachain
 
 import (
-	"github.com/ElrondNetwork/elrond-go/vm"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/vm"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -569,7 +570,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	}
 
 	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{})
+	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
 	assert.Equal(t, rwdInfo.address, pubkey)
@@ -692,5 +693,6 @@ func getRewardsArguments() ArgsNewRewardsCreator {
 		DataPool:                      testscommon.NewPoolsHolderStub(),
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
+		RewardsFix1EpochEnable:        0,
 	}
 }
