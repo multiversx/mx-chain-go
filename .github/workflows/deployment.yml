@@ -1,16 +1,21 @@
 # This workflows will build a docker container, publish it to Google Container Registry, and deploy it to GKE when a release is created
-# pull_request trigger types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, ready_for_review, locked, unlocked, review_requested, review_request_removed]
-
 
 name: Build and Deploy Testnet
 
+# Explicitly trigger this workflow from the web interface: https://github.com/ElrondNetwork/elrond-go/actions
 on:
-  pull_request:
-    branches: [master, development]
-    types: [opened, ready_for_review, closed]
-#  push:
+  workflow_dispatch
+
+# Alternatively, uncomment the configuration below to switch to different triggers
+# Types of pull_request trigger: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, ready_for_review, locked, unlocked, review_requested, review_request_removed]
+
+# on:
+#   pull_request:
+#     branches: [development]
+#     types: [opened, ready_for_review]
+#   push:
 #    branches:
-#      - prometheus-style-metrics-endpoint
+#      - my-branch
 
 # Environment variables available to all jobs and steps in this workflows
 env:
