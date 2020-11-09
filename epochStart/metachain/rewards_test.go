@@ -9,14 +9,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -701,28 +697,7 @@ func getDefaultEpochStart() block.EpochStart {
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
-	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
-	//rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("300000000000000000000", 10)
 	return ArgsNewRewardsCreator{
-		BaseRewardsCreatorArgs: BaseRewardsCreatorArgs{
-			ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
-			PubkeyConverter:               mock.NewPubkeyConverterMock(32),
-			RewardsStorage:                &mock.StorerStub{},
-			MiniBlockStorage:              &mock.StorerStub{},
-			Hasher:                        &mock.HasherMock{},
-			Marshalizer:                   &mock.MarshalizerMock{},
-			DataPool:                      testscommon.NewPoolsHolderStub(),
-			ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
-			NodesConfigProvider:           &mock.NodesCoordinatorStub{},
-			UserAccountsDB:                userAccountsDB,
-		},
-		//StakingDataProvider:           &mock.StakingDataProviderStub{},
-		//RewardsTopUpFactor:            0.25,
-		//RewardsTopUpGradientPoint:     rewardsTopUpGradientPoint,
-		//LeaderPercentage:              0.1,
-		//EconomicsDataProvider:         NewEpochEconomicsStatistics(),
+		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 	}
 }

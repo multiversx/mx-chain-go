@@ -277,6 +277,11 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlo
 	}
 }
 
+// IsInterfaceNil returns true if the underlying object is nil
+func (brc *baseRewardsCreator) IsInterfaceNil() bool {
+	return brc == nil
+}
+
 func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.ShardCoordinator) {
 		return epochStart.ErrNilShardCoordinator
@@ -407,15 +412,22 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 
 	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
+	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+
 	return nil
 }
 
 func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
-	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
 	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
 		log.Error("negative rewards protocol sustainability")
 		protocolSustainabilityRwdTx.Value.SetUint64(0)
 	}
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+		return
+	}
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
+
 	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 }
 
