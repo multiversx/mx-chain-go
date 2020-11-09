@@ -10,7 +10,7 @@ import (
 // SystemSmartContract interface defines the function a system smart contract should have
 type SystemSmartContract interface {
 	Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
-	SetNewGasCosts(gasCosts GasCost)
+	SetNewGasCost(gasCost GasCost)
 	IsInterfaceNil() bool
 }
 

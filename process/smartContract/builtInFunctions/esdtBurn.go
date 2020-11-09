@@ -51,7 +51,7 @@ func NewESDTBurnFunc(
 func (e *esdtBurn) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Lock()
 	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
-	e.mutExecution.RUnlock()
+	e.mutExecution.Unlock()
 }
 
 // ProcessBuiltinFunction resolves ESDT burn function call

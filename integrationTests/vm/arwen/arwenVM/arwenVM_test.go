@@ -260,7 +260,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen.wasm")
+	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm")
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,

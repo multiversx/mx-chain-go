@@ -1441,8 +1441,8 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
-// SetNewGasCosts is called whenever a gas cost was changed
-func (s *stakingAuctionSC) SetNewGasCosts(gasCost vm.GasCost) {
+// SetNewGasCost is called whenever a gas cost was changed
+func (s *stakingAuctionSC) SetNewGasCost(gasCost vm.GasCost) {
 	s.mutExecution.Lock()
 	s.gasCost = gasCost
 	s.mutExecution.Unlock()

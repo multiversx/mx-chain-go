@@ -138,7 +138,7 @@ func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]
 			return
 		}
 
-		systemSC.SetNewGasCosts(scf.gasCost)
+		systemSC.SetNewGasCost(scf.gasCost)
 	}
 }
 

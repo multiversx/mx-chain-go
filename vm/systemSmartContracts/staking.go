@@ -1431,8 +1431,8 @@ func (r *stakingSC) EpochConfirmed(epoch uint32) {
 	log.Debug("stakingSC: stake/unstake/unbond", "enabled", r.flagStake.IsSet())
 }
 
-// SetNewGasCosts is called whenever a gas cost was changed
-func (r *stakingSC) SetNewGasCosts(gasCost vm.GasCost) {
+// SetNewGasCost is called whenever a gas cost was changed
+func (r *stakingSC) SetNewGasCost(gasCost vm.GasCost) {
 	r.mutExecution.Lock()
 	r.gasCost = gasCost
 	r.mutExecution.Unlock()

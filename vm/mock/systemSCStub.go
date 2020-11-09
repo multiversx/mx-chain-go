@@ -7,14 +7,14 @@ import (
 
 // SystemSCStub -
 type SystemSCStub struct {
-	ExecuteCalled        func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
-	SetNewGasCostsCalled func(gasCost vm.GasCost)
+	ExecuteCalled       func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
+	SetNewGasCostCalled func(gasCost vm.GasCost)
 }
 
-// SetNewGasCosts -
-func (s *SystemSCStub) SetNewGasCosts(gasCost vm.GasCost) {
-	if s.SetNewGasCostsCalled != nil {
-		s.SetNewGasCostsCalled(gasCost)
+// SetNewGasCost -
+func (s *SystemSCStub) SetNewGasCost(gasCost vm.GasCost) {
+	if s.SetNewGasCostCalled != nil {
+		s.SetNewGasCostCalled(gasCost)
 	}
 }
 

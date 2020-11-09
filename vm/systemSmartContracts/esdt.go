@@ -800,8 +800,8 @@ func (e *esdt) EpochConfirmed(epoch uint32) {
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
 }
 
-// SetNewGasCosts is called whenever a gas cost was changed
-func (e *esdt) SetNewGasCosts(gasCost vm.GasCost) {
+// SetNewGasCost is called whenever a gas cost was changed
+func (e *esdt) SetNewGasCost(gasCost vm.GasCost) {
 	e.mutExecution.Lock()
 	e.gasCost = gasCost
 	e.mutExecution.Unlock()

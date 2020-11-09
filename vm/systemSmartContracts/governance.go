@@ -914,8 +914,8 @@ func (g *governanceContract) EpochConfirmed(epoch uint32) {
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
-// SetNewGasCosts is called whenever a gas cost was changed
-func (g *governanceContract) SetNewGasCosts(gasCost vm.GasCost) {
+// SetNewGasCost is called whenever a gas cost was changed
+func (g *governanceContract) SetNewGasCost(gasCost vm.GasCost) {
 	g.mutExecution.Lock()
 	g.gasCost = gasCost
 	g.mutExecution.Unlock()

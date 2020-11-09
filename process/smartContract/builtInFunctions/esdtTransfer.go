@@ -56,7 +56,7 @@ func NewESDTTransferFunc(
 // SetNewGasConfig is called whenever gas cost is changed
 func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
 	e.mutExecution.Lock()
-	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
+	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
 	e.mutExecution.Unlock()
 }
 
