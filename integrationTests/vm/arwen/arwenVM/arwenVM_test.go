@@ -161,7 +161,7 @@ func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
 
 func Benchmark_TestStore100WithGasSchedule(b *testing.B) {
 	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	runWASMVMBenchmark(b, "../testdata/storage100/output/storage100.wasm", "store100", 10, 0, gasSchedule)
+	runWASMVMBenchmark(b, "../testdata/storage100/output/storage100.wasm", "store100", b.N, 0, gasSchedule)
 }
 
 func runWASMVMBenchmark(
@@ -330,8 +330,8 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
 }
@@ -340,8 +340,8 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
+	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
 }
