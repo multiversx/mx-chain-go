@@ -334,6 +334,29 @@ func TestDelegationSystemSC_ExecuteInitWrongNumOfArgs(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments to init delegation contract"))
 }
 
+func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxDelegationCap := []byte{250}
+	serviceFee := []byte{10}
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{maxDelegationCap, serviceFee})
+	vmInput.CallValue = big.NewInt(300)
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "call value is higher than max delegation cap"))
+}
+
 func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -607,7 +630,7 @@ func TestDelegationSystemSC_ExecuteAddNodesShouldSaveAddedKeysAsNotStakedKeys(t 
 	assert.Equal(t, signatures[1], delegStatus.NotStakedKeys[1].SignedMsg)
 }
 
-func TestDelegationSystemSC_ExecuteAddNodesWithNoArgsShouldWork(t *testing.T) {
+func TestDelegationSystemSC_ExecuteAddNodesWithNoArgsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegation()
@@ -627,7 +650,8 @@ func TestDelegationSystemSC_ExecuteAddNodesWithNoArgsShouldWork(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 
 	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
 }
 
 func TestDelegationSystemSC_ExecuteRemoveNodesUserErrors(t *testing.T) {
@@ -746,6 +770,30 @@ func TestDelegationSystemSC_ExecuteRemoveNodesShouldRemoveKeyFromNotStakedKeys(t
 	assert.Equal(t, 0, len(delegStatus.StakedKeys))
 	assert.Equal(t, 1, len(delegStatus.NotStakedKeys))
 	assert.Equal(t, blsKey2, delegStatus.NotStakedKeys[0].BLSKey)
+}
+
+func TestDelegationSystemSC_ExecuteRemoveNodesWithNoArgsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc("removeNodes", [][]byte{})
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
 }
 
 func TestDelegationSystemSC_ExecuteStakeNodesUserErrors(t *testing.T) {

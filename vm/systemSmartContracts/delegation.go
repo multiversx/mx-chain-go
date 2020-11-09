@@ -240,6 +240,12 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	initialOwnerFunds := big.NewInt(0).Set(args.CallValue)
+	if initialOwnerFunds.Cmp(maxDelegationCap) > 0 {
+		d.eei.AddReturnMessage("call value is higher than max delegation cap")
+		return vmcommon.UserError
+	}
+
 	ownerAddress = args.CallerAddr
 	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
@@ -247,7 +253,7 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		OwnerAddress:         ownerAddress,
 		ServiceFee:           serviceFee,
 		MaxDelegationCap:     maxDelegationCap,
-		InitialOwnerFunds:    big.NewInt(0).Set(args.CallValue),
+		InitialOwnerFunds:    initialOwnerFunds,
 		AutomaticActivation:  false,
 		WithDelegationCap:    true,
 		ChangeableServiceFee: true,
@@ -464,6 +470,12 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+
+	if len(args.Arguments) <= 0 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
 	if len(args.Arguments)%2 != 0 {
 		d.eei.AddReturnMessage("arguments must be of pair length - BLSKey and signedMessage")
 		return vmcommon.UserError
@@ -539,6 +551,11 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+
+	if len(args.Arguments) <= 0 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
 	}
 
 	err := d.eei.UseGas(uint64(len(args.Arguments)) * d.gasCost.MetaChainSystemSCsCost.DelegationOps)
