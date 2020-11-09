@@ -214,6 +214,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
+	startTime := time.Now()
 	for i := 0; i < numRun; i++ {
 		tx.Nonce = aliceNonce
 
@@ -221,6 +222,7 @@ func runWASMVMBenchmark(
 
 		aliceNonce++
 	}
+	log.Info("elapsed time to process", "time", time.Since(startTime))
 }
 
 func TestGasModel(t *testing.T) {
@@ -234,13 +236,13 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "../testdata/misc/fib_arwen.wasm", 1, 32, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/fib_arwen.wasm", 10, 32, gasSchedule)
 	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen.wasm", 1, 8000, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen.wasm", 1000, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 1, 10000, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", 100, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 1, 2, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
 }
 
 func TestWASMMetering(t *testing.T) {
