@@ -39,7 +39,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	gasLimit := uint64(1000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
+	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen/output/fib_arwen.wasm")
 
 	tx := vm.CreateTx(
 		t,
@@ -62,7 +62,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999699)
+	expectedBalance := big.NewInt(99999670)
 	fmt.Printf("%s \n", hex.EncodeToString(expectedBalance.Bytes()))
 
 	vm.TestAccount(
@@ -81,7 +81,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
-	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen.wasm")
+	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen/output/fib_arwen.wasm")
 
 	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance, true)
 	defer testContext.Close()
@@ -148,15 +148,15 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen.wasm", "_main", b.N, 32, nil)
+	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", "_main", b.N, 32, nil)
 }
 
 func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/cpucalculate_arwen.wasm", "_main", b.N, 8000, nil)
+	runWASMVMBenchmark(b, "../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm", "_main", b.N, 8000, nil)
 }
 
 func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/stringconcat_arwen.wasm", "_main", b.N, 10000, nil)
+	runWASMVMBenchmark(b, "../testdata/misc/stringconcat_arwen/stringconcat_arwen.wasm", "_main", b.N, 10000, nil)
 }
 
 func Benchmark_TestStore100WithGasSchedule(b *testing.B) {
@@ -242,11 +242,11 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "../testdata/misc/fib_arwen.wasm", "_main", 10, 32, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", "_main", 10, 32, gasSchedule)
 	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen.wasm", "_main", 1000, 8000, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm", "_main", 1000, 8000, gasSchedule)
 	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen.wasm", "_main", 100, 10000, gasSchedule)
+	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen/stringconcat_arwen.wasm", "_main", 100, 10000, gasSchedule)
 	fmt.Println("ERC20 BIGINT")
 	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
 }

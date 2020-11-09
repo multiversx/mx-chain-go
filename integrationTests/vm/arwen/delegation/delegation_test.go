@@ -38,7 +38,7 @@ func TestDelegation_Upgrade(t *testing.T) {
 	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
 
 	context.ScCodeMetadata.Upgradeable = true
-	context.GasLimit = 40000000
+	context.GasLimit = 400000000
 
 	err := context.DeploySC(delegationWasmPathA, delegationInitParams)
 	require.Nil(t, err)
@@ -105,12 +105,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15518713, int(context.LastConsumedFee))
+	require.Equal(t, 6924763, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15077713, int(context.LastConsumedFee))
+	require.Equal(t, 6483763, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
