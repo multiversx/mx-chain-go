@@ -149,7 +149,22 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 		return err
 	}
 
-	return ei.createIndexes()
+	err = ei.createIndexTemplates(indexTemplates)
+	if err != nil {
+		return err
+	}
+
+	err = ei.createIndexes()
+	if err != nil {
+		return err
+	}
+
+	err = ei.createAliases()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
