@@ -509,7 +509,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 	t.Skip()
 
 	testMarshalizer := &marshal.JsonMarshalizer{}
-	testHasher := sha256.Sha256{}
+	testHasher := sha256.NewSha256()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pubkeyConv, _ := pubkeyConverter.NewHexPubkeyConverter(32)
 	accnts := vm.CreateInMemoryShardAccountsDB()

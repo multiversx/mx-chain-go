@@ -1,43 +1,47 @@
 package fnv
 
 import (
-	"hash/fnv"
+	fnvLib "hash/fnv"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
-var _ hashing.Hasher = (*Fnv)(nil)
+var _ hashing.Hasher = (*fnv)(nil)
 
-var fnvEmptyHash []byte
+// fnv is a fnv128a implementation of the hasher interface.
+type fnv struct {
+	emptyHash []byte
+}
 
-// Fnv is a fnv128a implementation of the hasher interface.
-type Fnv struct {
+// NewFnv initializes the empty hash and returns a new instance of the fnv hasher
+func NewFnv() *fnv {
+	return &fnv{
+		emptyHash: computeEmptyHash(),
+	}
 }
 
 // Compute takes a string, and returns the fnv128a hash of that string
-func (f Fnv) Compute(s string) []byte {
-	if len(s) == 0 && len(fnvEmptyHash) != 0 {
-		return f.EmptyHash()
+func (f *fnv) Compute(s string) []byte {
+	if len(s) == 0 {
+		return f.emptyHash
 	}
-	h := fnv.New128a()
+	h := fnvLib.New128a()
 	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
-// EmptyHash returns the fnv128a hash of the empty string
-func (f Fnv) EmptyHash() []byte {
-	if len(fnvEmptyHash) == 0 {
-		fnvEmptyHash = f.Compute("")
-	}
-	return fnvEmptyHash
+// Size returns the size, in number of bytes, of a fnv128a hash
+func (f *fnv) Size() int {
+	return fnvLib.New128a().Size()
 }
 
-// Size returns the size, in number of bytes, of a fnv128a hash
-func (Fnv) Size() int {
-	return fnv.New128a().Size()
+func computeEmptyHash() []byte {
+	h := fnvLib.New128a()
+	_, _ = h.Write([]byte(""))
+	return h.Sum(nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (f Fnv) IsInterfaceNil() bool {
-	return false
+func (f *fnv) IsInterfaceNil() bool {
+	return f == nil
 }

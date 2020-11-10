@@ -90,8 +90,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestHasher represents a Sha256 hasher
-var TestHasher = sha256.Sha256{}
+// TestHasher represents a sha256 hasher
+var TestHasher = sha256.NewSha256()
 
 // TestMarshalizer represents the main marshalizer
 var TestMarshalizer = &marshal.GogoProtoMarshalizer{}

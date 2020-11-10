@@ -4,36 +4,56 @@ import (
 	"hash"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
-	"golang.org/x/crypto/blake2b"
+	blake2bLib "golang.org/x/crypto/blake2b"
 )
 
-var _ hashing.Hasher = (*Blake2b)(nil)
+var _ hashing.Hasher = (*blake2b)(nil)
 
-// Blake2b is a blake2b implementation of the hasher interface.
-type Blake2b struct {
-	HashSize  int
-	emptyHash []byte
+// blake2b is a blake2b implementation of the hasher interface.
+type blake2b struct {
+	// customHashSize holds the custom value for the hash size. if not set, it will be 0 and the
+	// default hasher will be used
+	customHashSize int
+	emptyHash      []byte
 }
 
-func (b2b *Blake2b) getHasher() hash.Hash {
-	if b2b.HashSize == 0 {
-		h, _ := blake2b.New256(nil)
-		return h
+// NewBlake2bWithSize returns a new instance of the blake2b with a custom size
+func NewBlake2bWithSize(hashSize int) (*blake2b, error) {
+	if hashSize < 0 {
+		return nil, ErrInvalidHashSize
 	}
-	h, _ := blake2b.New(b2b.HashSize, nil)
+
+	h := &blake2b{
+		customHashSize: hashSize,
+	}
+	h.emptyHash = h.computeEmptyHash()
+
+	return h, nil
+}
+
+// NewBlake2b returns a new instance of the blake2b hasher
+func NewBlake2b() *blake2b {
+	h := &blake2b{
+		customHashSize: 0,
+	}
+
+	h.emptyHash = h.computeEmptyHash()
+
 	return h
 }
 
-func (b2b *Blake2b) setEmpty() {
-	b2b.emptyHash = b2b.getHasher().Sum(nil)
+func (b2b *blake2b) getHasher() hash.Hash {
+	if b2b.customHashSize == 0 {
+		h, _ := blake2bLib.New256(nil)
+		return h
+	}
+	h, _ := blake2bLib.New(b2b.customHashSize, nil)
+	return h
 }
 
 // Compute takes a string, and returns the blake2b hash of that string
-func (b2b *Blake2b) Compute(s string) []byte {
+func (b2b *blake2b) Compute(s string) []byte {
 	if len(s) == 0 {
-		if len(b2b.emptyHash) == 0 {
-			b2b.setEmpty()
-		}
 		return b2b.emptyHash
 	}
 
@@ -42,24 +62,22 @@ func (b2b *Blake2b) Compute(s string) []byte {
 	return h.Sum(nil)
 }
 
-// EmptyHash returns the blake2b hash of the empty string
-func (b2b *Blake2b) EmptyHash() []byte {
-	if len(b2b.emptyHash) == 0 {
-		b2b.setEmpty()
+// Size returns the size, in number of bytes, of a blake2b hash
+func (b2b *blake2b) Size() int {
+	if b2b.customHashSize == 0 {
+		return blake2bLib.Size256
 	}
-	return b2b.emptyHash
+
+	return b2b.customHashSize
 }
 
-// Size returns the size, in number of bytes, of a blake2b hash
-func (b2b *Blake2b) Size() int {
-	if b2b.HashSize == 0 {
-		return blake2b.Size256
-	}
-
-	return b2b.HashSize
+func (b2b *blake2b) computeEmptyHash() []byte {
+	h := b2b.getHasher()
+	_, _ = h.Write([]byte(""))
+	return h.Sum(nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (b2b *Blake2b) IsInterfaceNil() bool {
+func (b2b *blake2b) IsInterfaceNil() bool {
 	return b2b == nil
 }

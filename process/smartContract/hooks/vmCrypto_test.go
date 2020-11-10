@@ -16,7 +16,7 @@ func TestVMCrypto_Sha256(t *testing.T) {
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	input := "input string for hashing"
-	expected := sha256.Sha256{}.Compute(input)
+	expected := sha256.NewSha256().Compute(input)
 	result, err := cryptoHook.Sha256([]byte(input))
 
 	assert.Nil(t, err)
@@ -29,7 +29,7 @@ func TestVMCrypto_Keccak256(t *testing.T) {
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	input := "input string for hashing"
-	expected := keccak.Keccak{}.Compute(input)
+	expected := keccak.NewKeccak().Compute(input)
 	result, err := cryptoHook.Keccak256([]byte(input))
 
 	assert.Nil(t, err)

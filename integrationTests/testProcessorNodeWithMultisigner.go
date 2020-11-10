@@ -65,7 +65,7 @@ func NewTestProcessorNodeWithCustomNodesCoordinator(
 	}
 
 	tpn.NodeKeys = cp.Keys[nodeShardId][keyIndex]
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)
@@ -248,7 +248,7 @@ func CreateNodeWithBLSAndTxKeys(
 	}
 
 	tpn.NodeKeys = cp.Keys[shardId][keyIndex]
-	blsHasher := &blake2b.Blake2b{HashSize: hashing.BlsHashSize}
+	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 
 	pubKeysMap := PubKeysMapFromKeysMap(cp.Keys)

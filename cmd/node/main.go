@@ -80,9 +80,9 @@ func main() {
 		applyFlags(c, cfgs, log)
 		cfgs.FlagsConfig.Version = app.Version
 
-		nodeRunner, err := node.NewNodeRunner(cfgs, log)
-		if err != nil {
-			return err
+		nodeRunner, errNewNodeRunner := node.NewNodeRunner(cfgs, log)
+		if errNewNodeRunner != nil {
+			return errNewNodeRunner
 		}
 
 		return nodeRunner.Start()

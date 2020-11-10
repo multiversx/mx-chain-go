@@ -1,43 +1,47 @@
 package sha256
 
 import (
-	"crypto/sha256"
+	sha256Lib "crypto/sha256"
 
 	"github.com/ElrondNetwork/elrond-go/hashing"
 )
 
-var _ hashing.Hasher = (*Sha256)(nil)
+var _ hashing.Hasher = (*sha256)(nil)
 
-var sha256EmptyHash []byte
+// sha256 is a sha256 implementation of the hasher interface.
+type sha256 struct {
+	emptyHash []byte
+}
 
-// Sha256 is a sha256 implementation of the hasher interface.
-type Sha256 struct {
+// NewSha256 initializes the empty hash and returns a new instance of the sha256 hasher
+func NewSha256() *sha256 {
+	return &sha256{
+		emptyHash: computeEmptyHash(),
+	}
 }
 
 // Compute takes a string, and returns the sha256 hash of that string
-func (sha Sha256) Compute(s string) []byte {
-	if len(s) == 0 && len(sha256EmptyHash) != 0 {
-		return sha.EmptyHash()
+func (s *sha256) Compute(str string) []byte {
+	if len(str) == 0 {
+		return s.emptyHash
 	}
-	h := sha256.New()
-	_, _ = h.Write([]byte(s))
+	h := sha256Lib.New()
+	_, _ = h.Write([]byte(str))
 	return h.Sum(nil)
 }
 
-// EmptyHash returns the sha256 hash of the empty string
-func (sha Sha256) EmptyHash() []byte {
-	if len(sha256EmptyHash) == 0 {
-		sha256EmptyHash = sha.Compute("")
-	}
-	return sha256EmptyHash
+// Size returns the size, in number of bytes, of a sha256 hash
+func (s *sha256) Size() int {
+	return sha256Lib.Size
 }
 
-// Size returns the size, in number of bytes, of a sha256 hash
-func (Sha256) Size() int {
-	return sha256.Size
+func computeEmptyHash() []byte {
+	h := sha256Lib.New()
+	_, _ = h.Write([]byte(""))
+	return h.Sum(nil)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (sha Sha256) IsInterfaceNil() bool {
-	return false
+func (s *sha256) IsInterfaceNil() bool {
+	return s == nil
 }
