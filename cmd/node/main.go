@@ -192,12 +192,11 @@ VERSION:
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
-	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
-	gasScheduleConfigurationFile = cli.StringFlag{
-		Name: "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
-			"gas costs used in SmartContract execution",
-		Value: "./config/gasSchedule.toml",
+	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
+	gasScheduleConfigurationDirectory = cli.StringFlag{
+		Name:  "gas-costs-config",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
+		Value: "./config/gasSchedules",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
@@ -426,7 +425,7 @@ func main() {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
-		gasScheduleConfigurationFile,
+		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -1214,8 +1213,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
-	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(generalConfig.GasSchedule, gasScheduleConfigurationFolderName, epochNotifier)
 	if err != nil {
 		return err
 	}
@@ -1275,7 +1274,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		smartContractParser,
 		economicsData,
 		genesisNodesConfig,
-		gasSchedule,
+		gasScheduleNotifier,
 		rounder,
 		shardCoordinator,
 		nodesCoordinator,
@@ -1421,7 +1420,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
-		gasSchedule,
+		gasScheduleNotifier,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
@@ -2422,7 +2421,7 @@ func createApiResolver(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]map[string]uint64,
+	gasScheduleNotifier core.GasScheduleNotifier,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
@@ -2435,12 +2434,16 @@ func createApiResolver(
 	var err error
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasScheduleNotifier,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}
@@ -2472,7 +2475,7 @@ func createApiResolver(
 			argsHook,
 			economics,
 			messageSigVerifier,
-			gasSchedule,
+			gasScheduleNotifier,
 			nodesSetup,
 			hasher,
 			marshalizer,
@@ -2488,7 +2491,7 @@ func createApiResolver(
 		vmFactory, err = shard.NewVMContainerFactory(
 			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasSchedule,
+			gasScheduleNotifier,
 			argsHook,
 			generalConfig.GeneralSettings.SCDeployEnableEpoch,
 			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
@@ -2524,7 +2527,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
 	if err != nil {
 		return nil, err
 	}

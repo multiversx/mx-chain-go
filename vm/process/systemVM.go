@@ -1,6 +1,8 @@
 package process
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -13,6 +15,7 @@ type systemVM struct {
 	systemContracts      vm.SystemSCContainer
 	asyncCallbackGasLock uint64
 	asyncCallStepCost    uint64
+	mutGasLock           sync.RWMutex
 }
 
 // ArgsNewSystemVM defines the needed arguments to create a new system vm
@@ -20,7 +23,7 @@ type ArgsNewSystemVM struct {
 	SystemEI        vm.ContextHandler
 	SystemContracts vm.SystemSCContainer
 	VmType          []byte
-	GasSchedule     map[string]map[string]uint64
+	GasMap          map[string]map[string]uint64
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
@@ -34,11 +37,11 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
-	if args.GasSchedule == nil {
+	if args.GasMap == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasSchedule[core.ElrondAPICost]
+	apiCosts := args.GasMap[core.ElrondAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
@@ -129,11 +132,27 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	return vmOutput, nil
 }
 
+// GasScheduleChange sets the new gas schedule where it is needed
+func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	s.mutGasLock.Lock()
+	defer s.mutGasLock.Unlock()
+
+	apiCosts := gasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return
+	}
+
+	s.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
+	s.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
+}
+
 func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
 	if input.CallType != vmcommon.AsynchronousCall {
 		return 0, nil
 	}
 
+	s.mutGasLock.RLock()
+	defer s.mutGasLock.RUnlock()
 	// gasToLock is the amount of gas to set aside for the callback, to avoid it
 	// being used by executing built-in functions; this amount will be restored
 	// to the caller, so that there is sufficient gas for the async callback

@@ -37,6 +37,10 @@ func NewESDTPauseFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtPause) SetNewGasConfig(_ *process.GasCost) {
+}
+
 // ProcessBuiltinFunction resolves ESDT pause function call
 func (e *esdtPause) ProcessBuiltinFunction(
 	_, _ state.UserAccountHandler,

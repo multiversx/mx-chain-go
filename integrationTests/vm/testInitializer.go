@@ -212,7 +212,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      gasSchedule,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
@@ -277,12 +277,13 @@ func CreateVMAndBlockchainHook(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          actualGasSchedule,
+		GasSchedule:     mock.NewGasScheduleNotifierMock(actualGasSchedule),
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     testMarshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -307,7 +308,7 @@ func CreateVMAndBlockchainHook(
 			WarmInstanceEnabled: warmInstance,
 		},
 		maxGasLimitPerBlock,
-		actualGasSchedule,
+		mock.NewGasScheduleNotifierMock(actualGasSchedule),
 		args,
 		0,
 		0,
@@ -365,7 +366,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      gasSchedule,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),

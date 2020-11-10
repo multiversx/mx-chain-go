@@ -100,6 +100,7 @@ type testParticipant struct {
 	BalanceSnapshot *big.Int
 }
 
+// RewardsProcessor -
 type RewardsProcessor interface {
 	ProcessRewardTransaction(rTx *rewardTx.RewardTx) error
 }
@@ -158,14 +159,16 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          context.GasSchedule,
+		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
 		Accounts:        context.Accounts,
 	}
-
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	require.Nil(context.T, err)
+
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
 	datapool := testscommon.NewPoolsHolderMock()
@@ -188,7 +191,13 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args, 0, 0)
+	vmFactory, err := shard.NewVMContainerFactory(
+		vmFactoryConfig,
+		maxGasLimit,
+		mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		args,
+		0,
+		0)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()
@@ -230,7 +239,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      gasSchedule,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),

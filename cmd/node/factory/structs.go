@@ -135,7 +135,7 @@ type processComponentsFactoryArgs struct {
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
-	gasSchedule               map[string]map[string]uint64
+	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
@@ -185,7 +185,7 @@ func NewProcessComponentsFactoryArgs(
 	smartContractParser genesis.InitialSmartContractParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1299,7 +1299,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
 		ValidatorAccounts:        stateComponents.PeerAccounts,
-		GasMap:                   args.gasSchedule,
+		GasSchedule:              args.gasSchedule,
 		VirtualMachineConfig:     genesisVmConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
@@ -1480,7 +1480,7 @@ func newShardBlockProcessor(
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
@@ -1505,12 +1505,16 @@ func newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 		Accounts:        stateComponents.AccountsAdapter,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}
@@ -1799,7 +1803,7 @@ func newMetaBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	ratingsData process.RatingsInfoHandler,

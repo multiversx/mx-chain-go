@@ -31,7 +31,7 @@ func createGasMap(value uint64) map[string]map[string]uint64 {
 func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	tce, err := NewTransactionCostEstimator(nil, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
 
 	require.Nil(t, tce)
@@ -41,7 +41,7 @@ func TestTransactionCostEstimator_NilTxTypeHandler(t *testing.T) {
 func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, nil, &mock.ScQueryStub{}, gasSchedule)
 
 	require.Nil(t, tce)
@@ -51,7 +51,7 @@ func TestTransactionCostEstimator_NilFeeHandlerShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, nil, gasSchedule)
 
 	require.Nil(t, tce)
@@ -61,7 +61,7 @@ func TestTransactionCostEstimator_NilQueryServiceShouldErr(t *testing.T) {
 func TestTransactionCostEstimator_Ok(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	tce, err := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{}, &mock.FeeHandlerStub{}, &mock.ScQueryStub{}, gasSchedule)
 
 	require.Nil(t, err)
@@ -71,7 +71,7 @@ func TestTransactionCostEstimator_Ok(t *testing.T) {
 func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	consumedGasUnits := uint64(1000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
@@ -92,7 +92,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(2)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(2))
 	gasLimitBaseTx := uint64(500)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
@@ -115,7 +115,7 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := createGasMap(1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	gasLimitBaseTx := uint64(500)
 	consumedGasUnits := big.NewInt(1000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{

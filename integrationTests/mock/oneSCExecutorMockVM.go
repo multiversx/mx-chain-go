@@ -159,6 +159,10 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 	}
 }
 
+// GasScheduleChange -
+func (vm *OneSCExecutorMockVM) GasScheduleChange(_ map[string]map[string]uint64) {
+}
+
 func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
 	currentValueBuff, err := vm.blockchainHook.GetStorageData(input.RecipientAddr, variableA)
 	if err != nil {

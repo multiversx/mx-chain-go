@@ -9,6 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -25,7 +26,7 @@ type vmContainerFactory struct {
 	blockChainHookImpl             *hooks.BlockChainHookImpl
 	cryptoHook                     vmcommon.CryptoHook
 	blockGasLimit                  uint64
-	gasSchedule                    map[string]map[string]uint64
+	gasSchedule                    core.GasScheduleNotifier
 	builtinFunctions               vmcommon.FunctionNames
 	deployEnableEpoch              uint32
 	aheadOfTimeGasUsageEnableEpoch uint32
@@ -35,12 +36,12 @@ type vmContainerFactory struct {
 func NewVMContainerFactory(
 	config config.VirtualMachineConfig,
 	blockGasLimit uint64,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	argBlockChainHook hooks.ArgBlockChainHook,
 	deployEnableEpoch uint32,
 	aheadOfTimeGasUsageEnableEpoch uint32,
 ) (*vmContainerFactory, error) {
-	if gasSchedule == nil {
+	if check.IfNil(gasSchedule) {
 		return nil, process.ErrNilGasSchedule
 	}
 
@@ -72,6 +73,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	if err != nil {
 		return nil, err
 	}
+	vmf.gasSchedule.RegisterNotifyHandler(currVm)
 
 	err = container.Add(factory.ArwenVirtualMachine, currVm)
 	if err != nil {
@@ -105,7 +107,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 			VMHostParameters: arwen.VMHostParameters{
 				VMType:                   factory.ArwenVirtualMachine,
 				BlockGasLimit:            vmf.blockGasLimit,
-				GasSchedule:              vmf.gasSchedule,
+				GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
@@ -128,7 +130,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 		&arwen.VMHostParameters{
 			VMType:                   factory.ArwenVirtualMachine,
 			BlockGasLimit:            vmf.blockGasLimit,
-			GasSchedule:              vmf.gasSchedule,
+			GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,

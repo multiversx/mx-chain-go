@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -31,7 +32,7 @@ type vmContainerFactory struct {
 	economics           *economics.EconomicsData
 	messageSigVerifier  vm.MessageSignVerifier
 	nodesConfigProvider vm.NodesConfigProvider
-	gasSchedule         map[string]map[string]uint64
+	gasSchedule         core.GasScheduleNotifier
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
 	systemSCConfig      *config.SystemSmartContractsConfig
@@ -43,7 +44,7 @@ func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
 	economics *economics.EconomicsData,
 	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	nodesConfigProvider vm.NodesConfigProvider,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
@@ -75,6 +76,9 @@ func NewVMContainerFactory(
 	}
 	if check.IfNil(chanceComputer) {
 		return nil, vm.ErrNilChanceComputer
+	}
+	if check.IfNil(gasSchedule) {
+		return nil, vm.ErrNilGasSchedule
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
@@ -132,7 +136,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
 		SystemEI:            systemEI,
 		SigVerifier:         vmf.messageSigVerifier,
-		GasMap:              vmf.gasSchedule,
+		GasSchedule:         vmf.gasSchedule,
 		NodesConfigProvider: vmf.nodesConfigProvider,
 		Hasher:              vmf.hasher,
 		Marshalizer:         vmf.marshalizer,
@@ -159,12 +163,14 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		SystemEI:        systemEI,
 		SystemContracts: vmf.systemContracts,
 		VmType:          factory.SystemVirtualMachine,
-		GasSchedule:     vmf.gasSchedule,
+		GasMap:          vmf.gasSchedule.LatestGasSchedule(),
 	}
 	systemVM, err := systemVMProcess.NewSystemVM(argsNewSystemVM)
 	if err != nil {
 		return nil, err
 	}
+
+	vmf.gasSchedule.RegisterNotifyHandler(systemVM)
 
 	return systemVM, nil
 }

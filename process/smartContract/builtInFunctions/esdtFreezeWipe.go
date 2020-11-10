@@ -41,6 +41,10 @@ func NewESDTFreezeWipeFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtFreezeWipe) SetNewGasConfig(_ *process.GasCost) {
+}
+
 // ProcessBuiltinFunction resolves ESDT transfer function call
 func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,

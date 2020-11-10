@@ -38,7 +38,7 @@ func TestDelegation_Upgrade(t *testing.T) {
 	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
 
 	context.ScCodeMetadata.Upgradeable = true
-	context.GasLimit = 40000000
+	context.GasLimit = 400000000
 
 	err := context.DeploySC(delegationWasmPathA, delegationInitParams)
 	require.Nil(t, err)
@@ -105,12 +105,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15518713, int(context.LastConsumedFee))
+	require.Equal(t, 6924763, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15077713, int(context.LastConsumedFee))
+	require.Equal(t, 6483763, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
@@ -209,7 +209,7 @@ func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
 	delegationProcessManyTimes(t, true, false, 100, 1)
 }
 
-func TestDelegationProcessManyTimeCompile(t *testing.T) {
+func TestDelegationProcessManyAotInProcess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -270,12 +270,9 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 
 	for j := 0; j < numRun; j++ {
 		start := time.Now()
-		for i := 0; i < txPerBenchmark*2; i++ {
+		for i := 0; i < txPerBenchmark; i++ {
 			testAddress := testAddresses[i]
-			nonce := uint64(j)
-			if i < txPerBenchmark {
-				nonce *= 2
-			}
+			nonce := uint64(j * 2)
 			tx = &transactionData.Transaction{
 				Nonce:    nonce,
 				Value:    big.NewInt(0).Set(value),
@@ -293,7 +290,30 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 		}
 
 		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process %d stake on delegation %s \n", 2*txPerBenchmark, elapsedTime.String())
+		fmt.Printf("time elapsed to process %d stake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+
+		start = time.Now()
+		for i := txPerBenchmark; i < txPerBenchmark*2; i++ {
+			testAddress := testAddresses[i]
+			nonce := uint64(j)
+			tx = &transactionData.Transaction{
+				Nonce:    nonce,
+				Value:    big.NewInt(0).Set(value),
+				SndAddr:  testAddress,
+				RcvAddr:  scAddress,
+				Data:     []byte("stake"),
+				GasPrice: gasPrice,
+				GasLimit: gasLimit,
+			}
+
+			returnCode, _ := testContext.TxProcessor.ProcessTransaction(tx)
+			if returnCode != vmcommon.Ok {
+				fmt.Printf("return code %s \n", returnCode.String())
+			}
+		}
+
+		elapsedTime = time.Since(start)
+		fmt.Printf("time elapsed to process %d stake to waiting list %s \n", txPerBenchmark, elapsedTime.String())
 
 		start = time.Now()
 		for i := 0; i < txPerBenchmark; i++ {
@@ -314,6 +334,11 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 			}
 		}
 
+		elapsedTime = time.Since(start)
+		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		_, _ = testContext.Accounts.Commit()
+
+		start = time.Now()
 		tx = &transactionData.Transaction{
 			Nonce:    ownerNonce,
 			Value:    big.NewInt(0),
@@ -331,9 +356,8 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 		}
 
 		elapsedTime = time.Since(start)
-		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		fmt.Printf("time elapsed to process getFullWaitingList %s \n", elapsedTime.String())
 		_, _ = testContext.Accounts.Commit()
-
 	}
 }
 

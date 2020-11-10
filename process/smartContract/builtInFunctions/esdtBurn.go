@@ -3,6 +3,7 @@ package builtInFunctions
 import (
 	"bytes"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -20,6 +21,7 @@ type esdtBurn struct {
 	marshalizer  marshal.Marshalizer
 	keyPrefix    []byte
 	pauseHandler process.ESDTPauseHandler
+	mutExecution sync.RWMutex
 }
 
 // NewESDTBurnFunc returns the esdt burn built-in function component
@@ -45,11 +47,21 @@ func NewESDTBurnFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtBurn) SetNewGasConfig(gasCost *process.GasCost) {
+	e.mutExecution.Lock()
+	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
+	e.mutExecution.Unlock()
+}
+
 // ProcessBuiltinFunction resolves ESDT burn function call
 func (e *esdtBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	e.mutExecution.RLock()
+	defer e.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}

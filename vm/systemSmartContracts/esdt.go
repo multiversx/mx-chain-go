@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -41,6 +42,7 @@ type esdt struct {
 	hasher              hashing.Hasher
 	enabledEpoch        uint32
 	flagEnabled         atomic.Flag
+	mutExecution        sync.RWMutex
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -93,6 +95,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input
 func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	e.mutExecution.RLock()
+	defer e.mutExecution.RUnlock()
+
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
@@ -793,6 +798,13 @@ func (e *esdt) saveESDTConfig(esdtConfig *ESDTConfig) error {
 func (e *esdt) EpochConfirmed(epoch uint32) {
 	e.flagEnabled.Toggle(epoch >= e.enabledEpoch)
 	log.Debug("esdt contract", "enabled", e.flagEnabled.IsSet())
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (e *esdt) SetNewGasCost(gasCost vm.GasCost) {
+	e.mutExecution.Lock()
+	e.gasCost = gasCost
+	e.mutExecution.Unlock()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

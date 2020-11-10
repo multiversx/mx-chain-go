@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -15,13 +16,14 @@ import (
 var _ process.BuiltinFunction = (*saveKeyValueStorage)(nil)
 
 type saveKeyValueStorage struct {
-	gasConfig   BaseOperationCost
-	funcGasCost uint64
+	gasConfig    process.BaseOperationCost
+	funcGasCost  uint64
+	mutExecution sync.RWMutex
 }
 
 // NewSaveKeyValueStorageFunc returns the save key-value storage built in function
 func NewSaveKeyValueStorageFunc(
-	gasConfig BaseOperationCost,
+	gasConfig process.BaseOperationCost,
 	funcGasCost uint64,
 ) (*saveKeyValueStorage, error) {
 	s := &saveKeyValueStorage{
@@ -32,11 +34,22 @@ func NewSaveKeyValueStorageFunc(
 	return s, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (k *saveKeyValueStorage) SetNewGasConfig(gasCost *process.GasCost) {
+	k.mutExecution.Lock()
+	k.funcGasCost = gasCost.BuiltInCost.SaveKeyValue
+	k.gasConfig = gasCost.BaseOperationCost
+	k.mutExecution.Unlock()
+}
+
 // ProcessBuiltinFunction will save the value for the selected key
 func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	input *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	k.mutExecution.RLock()
+	defer k.mutExecution.RUnlock()
+
 	err := checkArgumentsForSaveKeyValue(acntDst, input)
 	if err != nil {
 		return nil, err

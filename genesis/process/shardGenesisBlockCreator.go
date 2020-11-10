@@ -228,13 +228,17 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 
 func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               arg.GasMap,
+		GasSchedule:          arg.GasSchedule,
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Marshalizer,
 		Accounts:             arg.Accounts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +259,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
 		arg.VirtualMachineConfig,
 		math.MaxUint64,
-		arg.GasMap,
+		arg.GasSchedule,
 		argsHook,
 		arg.GeneralConfig.SCDeployEnableEpoch,
 		arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
@@ -340,7 +344,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		EconomicsFee:                   genesisFeeHandler,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasHandler,
-		GasSchedule:                    arg.GasMap,
+		GasSchedule:                    arg.GasSchedule,
 		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxInterim,

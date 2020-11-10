@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -25,6 +26,7 @@ type esdtTransfer struct {
 	keyPrefix      []byte
 	pauseHandler   process.ESDTPauseHandler
 	payableHandler process.PayableHandler
+	mutExecution   sync.RWMutex
 }
 
 // NewESDTTransferFunc returns the esdt transfer built-in function component
@@ -51,11 +53,21 @@ func NewESDTTransferFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	e.mutExecution.Lock()
+	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.mutExecution.Unlock()
+}
+
 // ProcessBuiltinFunction resolves ESDT transfer function calls
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	e.mutExecution.RLock()
+	defer e.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}

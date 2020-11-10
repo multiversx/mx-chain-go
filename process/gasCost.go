@@ -1,4 +1,4 @@
-package builtInFunctions
+package process
 
 // BaseOperationCost defines cost for base operation cost
 type BaseOperationCost struct {

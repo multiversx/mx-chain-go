@@ -17,7 +17,7 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	t.Parallel()
 
 	funcGasCost := uint64(1)
-	gasConfig := BaseOperationCost{
+	gasConfig := process.BaseOperationCost{
 		StorePerByte:      1,
 		ReleasePerByte:    1,
 		DataCopyPerByte:   1,
@@ -73,7 +73,7 @@ func TestSaveKeyValue_ProcessBuiltinFunctionMultipleKeys(t *testing.T) {
 	t.Parallel()
 
 	funcGasCost := uint64(1)
-	gasConfig := BaseOperationCost{
+	gasConfig := process.BaseOperationCost{
 		StorePerByte:    1,
 		ReleasePerByte:  1,
 		DataCopyPerByte: 1,
