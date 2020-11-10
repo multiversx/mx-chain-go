@@ -570,7 +570,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	}
 
 	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
-	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{})
+	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
 	assert.Equal(t, rwdInfo.address, pubkey)

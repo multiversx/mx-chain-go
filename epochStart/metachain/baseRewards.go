@@ -39,6 +39,7 @@ type BaseRewardsCreatorArgs struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	DelegationSystemSCEnableEpoch uint32
 	UserAccountsDB                state.AccountsAdapter
+	RewardsFix1EpochEnable        uint32
 }
 
 type baseRewardsCreator struct {
@@ -61,6 +62,7 @@ type baseRewardsCreator struct {
 	delegationSystemSCEnableEpoch uint32
 	userAccountsDB                state.AccountsAdapter
 	mutRewardsData                sync.RWMutex
+	rewardsFix1EnableEpoch        uint32
 }
 
 func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, error) {
@@ -101,6 +103,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		delegationSystemSCEnableEpoch:      args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
+		rewardsFix1EnableEpoch:             args.RewardsFix1EpochEnable,
 	}
 
 	return brc, nil

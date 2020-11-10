@@ -72,7 +72,9 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
-	miniBlocks, err := rc.prepareRewardsData(metaBlock, validatorsInfo)
+	miniBlocks := rc.initializeRewardsMiniBlocks()
+
+	err := rc.prepareRewardsData(metaBlock, validatorsInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +101,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 		return nil, err
 	}
 
-	return rc.finalizeMiniblocks(miniBlocks), nil
+	return rc.finalizeMiniBlocks(miniBlocks), nil
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
@@ -113,7 +115,7 @@ func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 		return err
 	}
 
-	return rc.verifyCreatedRewardMiniblocksWithMetaBlock(metaBlock, createdMiniBlocks)
+	return rc.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock, createdMiniBlocks)
 }
 
 func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
@@ -412,7 +414,7 @@ func computeNodesPowerInShard(
 // participated at creation/validation
 func computeNodePowerInShard(nodeInfo *state.ValidatorInfo, nodeTopUp *big.Int) *big.Int {
 	// if node was offline, it had no power, so the rewards should go to the others
-	if nodeInfo.LeaderSuccess == 0 && nodeInfo.ValidatorFailure == 0 {
+	if nodeInfo.LeaderSuccess == 0 && nodeInfo.ValidatorSuccess == 0 {
 		return big.NewInt(0)
 	}
 
@@ -444,6 +446,8 @@ func (rc *rewardsCreatorV2) getTopUpForAllEligibleNodes(
 		for i, nodeInfo := range nodeListInfo {
 			validatorsTopUp[shardID][i], err = rc.stakingDataProvider.GetNodeStakedTopUp(nodeInfo.GetPublicKey())
 			if err != nil {
+				validatorsTopUp[shardID][i] = big.NewInt(0)
+
 				log.Error("getTopUpForAllEligible",
 					"error", err.Error(),
 					"blsKey", nodeInfo.GetPublicKey())
@@ -458,16 +462,15 @@ func (rc *rewardsCreatorV2) getTopUpForAllEligibleNodes(
 func (rc *rewardsCreatorV2) prepareRewardsData(
 	metaBlock *block.MetaBlock,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) (block.MiniBlockSlice, error) {
+) error {
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 	eligibleNodesKeys := rc.getEligibleNodesKeyMap(validatorsInfo)
 	err := rc.prepareStakingData(eligibleNodesKeys)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	miniBlocks := rc.initializeRewardsMiniBlocks()
-	return miniBlocks, nil
+	return nil
 }
 

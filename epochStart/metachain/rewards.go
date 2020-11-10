@@ -86,7 +86,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	miniBlocks block.MiniBlockSlice,
 	protocolSustainabilityRwdTx *rewardTx.RewardTx,
 ) error {
-	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, protocolSustainabilityRwdTx)
+	rwdAddrValidatorInfo := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, protocolSustainabilityRwdTx, metaBlock.Epoch)
 	for _, rwdInfo := range rwdAddrValidatorInfo {
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
 		if err != nil {
@@ -121,6 +121,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	protocolSustainabilityRwd *rewardTx.RewardTx,
+	epoch uint32,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
@@ -130,7 +131,12 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rewardsPerBlockPerNodeForShard := rc.mapBaseRewardsPerBlockPerValidator[validatorInfo.ShardId]
 			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
 
-			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
+			isFix1Enabled := rc.isRewardsFix1Enabled(epoch)
+			if isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
+				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
+				continue
+			}
+			if !isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
@@ -170,4 +176,8 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 // IsInterfaceNil return true if underlying object is nil
 func (rc *rewardsCreator) IsInterfaceNil() bool {
 	return rc == nil
+}
+
+func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
+	return epoch > rc.rewardsFix1EnableEpoch
 }

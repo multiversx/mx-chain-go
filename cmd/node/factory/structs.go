@@ -2019,6 +2019,7 @@ func newMetaBlockProcessor(
 			ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 			NodesConfigProvider:           nodesCoordinator,
 			UserAccountsDB:                stateComponents.AccountsAdapter,
+			RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 			//StakingDataProvider:           stakingDataProvider,
 			//RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
 			//RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),

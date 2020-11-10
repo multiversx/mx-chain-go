@@ -8,7 +8,7 @@ type StakingDataProviderStub struct {
 	PrepareStakingDataCalled              func(keys map[uint32][][]byte) error
 	GetTotalStakeEligibleNodesCalled      func() *big.Int
 	GetTotalTopUpStakeEligibleNodesCalled func() *big.Int
-	GetNodeStakingStatsCalled             func(blsKey []byte) (*big.Int, error)
+	GetNodeStakedTopUpCalled              func(blsKey []byte) (*big.Int, error)
 }
 
 // GetTotalStakeEligibleNodes -
@@ -29,8 +29,8 @@ func (sdps *StakingDataProviderStub) GetTotalTopUpStakeEligibleNodes() *big.Int 
 
 // GetNodeStakingStats -
 func (sdps *StakingDataProviderStub) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
-	if sdps.GetNodeStakingStatsCalled != nil {
-		return sdps.GetNodeStakingStatsCalled(blsKey)
+	if sdps.GetNodeStakedTopUpCalled != nil {
+		return sdps.GetNodeStakedTopUpCalled(blsKey)
 	}
 	return big.NewInt(0), nil
 }

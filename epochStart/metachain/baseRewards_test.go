@@ -1148,7 +1148,7 @@ func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockMiniBlockN
 
 func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDNotFound(t *testing.T) {
 	mbSlice := createDefaultMiniBlocksSlice()
-	for i := range mbSlice{
+	for i := range mbSlice {
 		mbSlice[i].ReceiverShardID = 0
 	}
 
@@ -1185,6 +1185,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
 		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
 		UserAccountsDB:                userAccountsDB,
+		RewardsFix1EpochEnable:        0,
 	}
 }
 
