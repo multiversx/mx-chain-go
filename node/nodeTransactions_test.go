@@ -12,7 +12,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/assert"
@@ -173,6 +175,86 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
+}
+
+func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerFake{}
+	txHash := hex.EncodeToString([]byte("txHash"))
+	tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	scResultHash := []byte("scHash")
+	scResult := &smartContractResult.SmartContractResult{
+		OriginalTxHash: []byte("txHash"),
+	}
+
+	resultHashesByTxHash := &dblookupext.ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
+			{
+				Epoch:           0,
+				ScResultsHashes: [][]byte{scResultHash},
+			},
+		},
+	}
+
+	chainStorer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.TransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(tx)
+					},
+				}
+			case dataRetriever.UnsignedTransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(scResult)
+					},
+				}
+			default:
+				return nil
+			}
+		},
+	}
+	historyRepo := &testscommon.HistoryRepositoryStub{
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+			return &dblookupext.MiniblockMetadata{}, nil
+		},
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return resultHashesByTxHash, nil
+		},
+	}
+
+	n, _ := NewNode(
+		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		WithInternalMarshalizer(marshalizer, 0),
+		WithDataStore(chainStorer),
+		WithHistoryRepository(historyRepo),
+		WithDataPool(testscommon.NewPoolsHolderMock()),
+		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+	)
+
+	expectedTx := &transaction.ApiTransactionResult{
+		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
+		Nonce:         tx.Nonce,
+		Receiver:      hex.EncodeToString(tx.RcvAddr),
+		Sender:        hex.EncodeToString(tx.SndAddr),
+		Status:        transaction.TxStatusSuccess,
+		MiniBlockType: block.TxBlock.String(),
+		Type:          "normal",
+		Value:         "<nil>",
+		SmartContractResults: []*transaction.ApiSmartContractResult{
+			{
+				Hash:           hex.EncodeToString(scResultHash),
+				OriginalTxHash: txHash,
+			},
+		},
+	}
+
+	apiTx, err := n.GetTransaction(txHash, true)
+	require.Nil(t, err)
+	require.Equal(t, expectedTx, apiTx)
 }
 
 func TestNode_lookupHistoricalTransaction(t *testing.T) {

@@ -108,8 +108,8 @@ func (hr *historyRepository) RecordBlock(
 	blockHeaderHash []byte,
 	blockHeader data.HeaderHandler,
 	blockBody data.BodyHandler,
-	scrResultsPool map[string]data.TransactionHandler,
-	receiptsPool map[string]data.TransactionHandler,
+	scrResultsFromPool map[string]data.TransactionHandler,
+	receiptsFromPool map[string]data.TransactionHandler,
 ) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
@@ -139,7 +139,7 @@ func (hr *historyRepository) RecordBlock(
 		}
 	}
 
-	err = hr.eventsHashesByTxHashIndex.saveEventsHashes(epoch, scrResultsPool, receiptsPool)
+	err = hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
 	if err != nil {
 		return err
 	}
@@ -421,8 +421,8 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 	}
 }
 
-// GetEventsHashesByTxHash will return events hashes by transaction hash
-func (hr *historyRepository) GetEventsHashesByTxHash(txHash []byte, epoch uint32) (*EventsHashesByTxHash, error) {
+// GetResultsHashesByTxHash will return results hashes by transaction hash
+func (hr *historyRepository) GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
 	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxHash(txHash, epoch)
 }
 

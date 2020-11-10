@@ -42,8 +42,8 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 	historyRepo := &testscommon.HistoryRepositoryStub{
-		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.EventsHashesByTxHash, error) {
-			return &dblookupext.EventsHashesByTxHash{
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return &dblookupext.ResultsHashesByTxHash{
 				ReceiptsHash: receiptHash,
 			}, nil
 		},
@@ -66,7 +66,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		SndAddr: n.addressPubkeyConverter.Encode(rec.SndAddr),
 	}
 
-	n.putEventsInTransaction(txHash, tx, epoch)
+	n.putResultsInTransaction(txHash, tx, epoch)
 	require.Equal(t, expectedRecAPI, tx.Receipt)
 }
 
@@ -114,13 +114,13 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 	historyRepo := &testscommon.HistoryRepositoryStub{
-		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.EventsHashesByTxHash, error) {
-			return &dblookupext.EventsHashesByTxHash{
+		GetEventsHashesByTxHashCalled: func(hash []byte, e uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return &dblookupext.ResultsHashesByTxHash{
 				ReceiptsHash: nil,
-				ScrHashesEpoch: []*dblookupext.ScrHashesAndEpoch{
+				ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
 					{
-						Epoch:                      epoch,
-						SmartContractResultsHashes: [][]byte{scrHash1, scrHash2},
+						Epoch:           epoch,
+						ScResultsHashes: [][]byte{scrHash1, scrHash2},
 					},
 				},
 			}, nil
@@ -133,7 +133,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
 	)
 
-	expectedSCRS := []*transaction.SmartContractResultApi{
+	expectedSCRS := []*transaction.ApiSmartContractResult{
 		{
 			Hash:           hex.EncodeToString(scrHash1),
 			Nonce:          scr1.Nonce,
@@ -160,6 +160,6 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	tx := &transaction.ApiTransactionResult{}
-	n.putEventsInTransaction(txHash, tx, epoch)
-	require.Equal(t, expectedSCRS, tx.ScResults)
+	n.putResultsInTransaction(txHash, tx, epoch)
+	require.Equal(t, expectedSCRS, tx.SmartContractResults)
 }

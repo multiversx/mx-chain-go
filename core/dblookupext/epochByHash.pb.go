@@ -227,7 +227,7 @@ func (m *EpochByHash) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: EpochByHash: wiretype end group for non-group")
+			return fmt.Errorf("proto: EpochByHash: wiretype end groupSmartContractResults for non-groupSmartContractResults")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: EpochByHash: illegal tag %d (wire type %d)", fieldNum, wire)
@@ -358,5 +358,5 @@ func skipEpochByHash(dAtA []byte) (n int, err error) {
 var (
 	ErrInvalidLengthEpochByHash        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowEpochByHash          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupEpochByHash = fmt.Errorf("proto: unexpected end of group")
+	ErrUnexpectedEndOfGroupEpochByHash = fmt.Errorf("proto: unexpected end of groupSmartContractResults")
 )

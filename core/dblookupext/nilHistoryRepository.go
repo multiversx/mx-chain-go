@@ -36,8 +36,8 @@ func (nhr *nilHistoryRepository) IsEnabled() bool {
 	return false
 }
 
-// GetEventsHashesByTxHash -
-func (nhr *nilHistoryRepository) GetEventsHashesByTxHash(_ []byte, _ uint32) (*EventsHashesByTxHash, error) {
+// GetResultsHashesByTxHash -
+func (nhr *nilHistoryRepository) GetResultsHashesByTxHash(_ []byte, _ uint32) (*ResultsHashesByTxHash, error) {
 	return nil, nil
 }
 

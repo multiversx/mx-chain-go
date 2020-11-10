@@ -10,25 +10,24 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
-func (n *Node) putEventsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
-	eventsHashes, err := n.historyRepository.GetEventsHashesByTxHash(hash, epoch)
+func (n *Node) putResultsInTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {
+	resultsHashes, err := n.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
 		return
 	}
 
-	if len(eventsHashes.ReceiptsHash) > 0 {
-		// if transaction hash a receipt after receipt is added we can return
-		n.putReceiptInTransaction(tx, eventsHashes.ReceiptsHash, epoch)
+	if len(resultsHashes.ReceiptsHash) > 0 {
+		n.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch)
 		return
 	}
 
-	n.putSmartContractResultsInTransaction(tx, eventsHashes.ScrHashesEpoch)
+	n.putSmartContractResultsInTransaction(tx, resultsHashes.ScResultsHashesAndEpoch)
 }
 
 func (n *Node) putReceiptInTransaction(tx *transaction.ApiTransactionResult, recHash []byte, epoch uint32) {
 	rec, err := n.getReceiptFromStorage(recHash, epoch)
 	if err != nil {
-		log.Warn("nodeTransactionEvents:putReceiptInTransaction() cannot get receipt from storage",
+		log.Warn("nodeTransactionEvents.putReceiptInTransaction() cannot get receipt from storage",
 			"hash", hex.EncodeToString(recHash))
 		return
 	}
@@ -63,16 +62,19 @@ func (n *Node) adaptReceipt(rcpt *receipt.Receipt) *transaction.ReceiptApi {
 
 func (n *Node) putSmartContractResultsInTransaction(
 	tx *transaction.ApiTransactionResult,
-	scrHashesEpoch []*dblookupext.ScrHashesAndEpoch,
+	scrHashesEpoch []*dblookupext.ScResultsHashesAndEpoch,
 ) {
 	for _, scrHashesE := range scrHashesEpoch {
-		for _, scrHash := range scrHashesE.SmartContractResultsHashes {
+		for _, scrHash := range scrHashesE.ScResultsHashes {
 			scr, err := n.getScrFromStorage(scrHash, scrHashesE.Epoch)
 			if err != nil {
+				log.Warn("putSmartContractResultsInTransaction cannot get result from storage",
+					"hash", hex.EncodeToString(scrHash),
+					"error", err.Error())
 				continue
 			}
 
-			tx.ScResults = append(tx.ScResults, n.adaptSmartContractResult(scrHash, scr))
+			tx.SmartContractResults = append(tx.SmartContractResults, n.adaptSmartContractResult(scrHash, scr))
 		}
 	}
 }
@@ -93,8 +95,8 @@ func (n *Node) getScrFromStorage(hash []byte, epoch uint32) (*smartContractResul
 	return scr, nil
 }
 
-func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.SmartContractResultApi {
-	apiSCR := &transaction.SmartContractResultApi{
+func (n *Node) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	apiSCR := &transaction.ApiSmartContractResult{
 		Hash:           hex.EncodeToString(scrHash),
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,

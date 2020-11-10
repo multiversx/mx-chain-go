@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetEventsHashesByTxHashShouldErr(t *testing.T) {
+func TestGetResultsHashesByTxHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
@@ -26,7 +26,7 @@ func TestGetEventsHashesByTxHashShouldErr(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestSaveAndGetEventsSCRSHashesByTxHash(t *testing.T) {
+func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 	t.Parallel()
 
 	epoch := uint32(0)
@@ -47,7 +47,7 @@ func TestSaveAndGetEventsSCRSHashesByTxHash(t *testing.T) {
 		},
 		"wrongTx": &transaction.Transaction{},
 	}
-	err := eventsHashesIndex.saveEventsHashes(epoch, scrResults1, nil)
+	err := eventsHashesIndex.saveResultsHashes(epoch, scrResults1, nil)
 	require.Nil(t, err)
 
 	scrHash3 := []byte("scrHash3")
@@ -60,19 +60,19 @@ func TestSaveAndGetEventsSCRSHashesByTxHash(t *testing.T) {
 			OriginalTxHash: originalTxHash,
 		},
 	}
-	err = eventsHashesIndex.saveEventsHashes(epoch, scrResults2, nil)
+	err = eventsHashesIndex.saveResultsHashes(epoch, scrResults2, nil)
 	require.Nil(t, err)
 
-	expectedEvents := &EventsHashesByTxHash{
+	expectedEvents := &ResultsHashesByTxHash{
 		ReceiptsHash: nil,
-		ScrHashesEpoch: []*ScrHashesAndEpoch{
+		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
 			{
-				Epoch:                      epoch,
-				SmartContractResultsHashes: [][]byte{scrHash1, scrHash2},
+				Epoch:           epoch,
+				ScResultsHashes: [][]byte{scrHash1, scrHash2},
 			},
 			{
-				Epoch:                      epoch,
-				SmartContractResultsHashes: [][]byte{scrHash3, scrHash4},
+				Epoch:           epoch,
+				ScResultsHashes: [][]byte{scrHash3, scrHash4},
 			},
 		},
 	}
@@ -82,7 +82,7 @@ func TestSaveAndGetEventsSCRSHashesByTxHash(t *testing.T) {
 	require.Equal(t, expectedEvents, eventsHashes)
 }
 
-func TestSaveAndGetEventsReceiptsHashesByTxHash(t *testing.T) {
+func TestSaveAndGetResultsReceiptsHashesByTxHash(t *testing.T) {
 	epoch := uint32(0)
 	marshalizerMock := &mock.MarshalizerMock{}
 	storerMock := genericmocks.NewStorerMock("EventsHashesByTxHash", epoch)
@@ -98,15 +98,81 @@ func TestSaveAndGetEventsReceiptsHashesByTxHash(t *testing.T) {
 		"wrongTx": &transaction.Transaction{},
 	}
 
-	err := eventsHashesIndex.saveEventsHashes(epoch, nil, receipts)
+	err := eventsHashesIndex.saveResultsHashes(epoch, nil, receipts)
 	require.Nil(t, err)
 
-	expectedEvents := &EventsHashesByTxHash{
-		ReceiptsHash:   recHash1,
-		ScrHashesEpoch: nil,
+	expectedEvents := &ResultsHashesByTxHash{
+		ReceiptsHash:            recHash1,
+		ScResultsHashesAndEpoch: nil,
 	}
 
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash(txWithReceiptHash, epoch)
 	require.Nil(t, err)
 	require.Equal(t, expectedEvents, eventsHashes)
+}
+
+func TestGroupSmartContractResults(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	marshalizerMock := &mock.MarshalizerMock{}
+	storerMock := genericmocks.NewStorerMock("EventsHashesByTxHash", epoch)
+
+	eventsHashesIndex := newEventsHashesByTxHash(storerMock, marshalizerMock)
+
+	originalTxHash := []byte("txHash")
+	scrHash1 := []byte("scrHash1")
+	scrHash2 := []byte("scrHash2")
+	scrResults1 := map[string]data.TransactionHandler{
+		string(scrHash1): &smartContractResult.SmartContractResult{
+			OriginalTxHash: originalTxHash,
+		},
+		string(scrHash2): &smartContractResult.SmartContractResult{
+			OriginalTxHash: originalTxHash,
+		},
+		"wrongTx": &transaction.Transaction{},
+	}
+	err := eventsHashesIndex.saveResultsHashes(epoch, scrResults1, nil)
+	require.Nil(t, err)
+
+	expectedResultHashes1 := &ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
+			{
+				Epoch:           epoch,
+				ScResultsHashes: [][]byte{scrHash1, scrHash2},
+			},
+		},
+	}
+	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash(originalTxHash, epoch)
+	require.Nil(t, err)
+	require.Equal(t, expectedResultHashes1, eventsHashes)
+
+	scrHash3 := []byte("scrHash3")
+	scrHash4 := []byte("scrHash4")
+	scrResults2 := map[string]data.TransactionHandler{
+		string(scrHash3): &smartContractResult.SmartContractResult{
+			OriginalTxHash: originalTxHash,
+		},
+		string(scrHash4): &smartContractResult.SmartContractResult{
+			OriginalTxHash: originalTxHash,
+		},
+	}
+	err = eventsHashesIndex.saveResultsHashes(epoch, scrResults2, nil)
+	require.Nil(t, err)
+
+	expectedResultHashes2 := &ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
+			{
+				Epoch:           epoch,
+				ScResultsHashes: [][]byte{scrHash1, scrHash2},
+			},
+			{
+				Epoch:           epoch,
+				ScResultsHashes: [][]byte{scrHash3, scrHash4},
+			},
+		},
+	}
+	eventsHashes, err = eventsHashesIndex.getEventsHashesByTxHash(originalTxHash, epoch)
+	require.Nil(t, err)
+	require.Equal(t, expectedResultHashes2, eventsHashes)
 }

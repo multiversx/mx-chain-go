@@ -36,7 +36,7 @@ type FacadeHandler interface {
 	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
-	GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -405,7 +405,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	withEvents, err := getQueryParamWithEvents(c)
+	withResults, err := getQueryParamWithResults(c)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -418,7 +418,7 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := facade.GetTransaction(txhash, withEvents)
+	tx, err := facade.GetTransaction(txhash, withResults)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -509,11 +509,11 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 	)
 }
 
-func getQueryParamWithEvents(c *gin.Context) (bool, error) {
-	withEventsStr := c.Request.URL.Query().Get("withEvents")
-	if withEventsStr == "" {
+func getQueryParamWithResults(c *gin.Context) (bool, error) {
+	withResultsStr := c.Request.URL.Query().Get("withResults")
+	if withResultsStr == "" {
 		return false, nil
 	}
 
-	return strconv.ParseBool(withEventsStr)
+	return strconv.ParseBool(withResultsStr)
 }

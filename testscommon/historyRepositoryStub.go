@@ -13,7 +13,7 @@ type HistoryRepositoryStub struct {
 	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
 	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
 	GetEpochByHashCalled               func(hash []byte) (uint32, error)
-	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.EventsHashesByTxHash, error)
+	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
 	IsEnabledCalled                    func() bool
 }
 
@@ -59,8 +59,8 @@ func (hp *HistoryRepositoryStub) IsEnabled() bool {
 	return true
 }
 
-// GetEventsHashesByTxHash -
-func (hp *HistoryRepositoryStub) GetEventsHashesByTxHash(hash []byte, epoch uint32) (*dblookupext.EventsHashesByTxHash, error) {
+// GetResultsHashesByTxHash -
+func (hp *HistoryRepositoryStub) GetResultsHashesByTxHash(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 	if hp.GetEventsHashesByTxHashCalled != nil {
 		return hp.GetEventsHashesByTxHashCalled(hash, epoch)
 	}

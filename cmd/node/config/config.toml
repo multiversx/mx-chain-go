@@ -691,12 +691,12 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
-    [DbLookupExtensions.EventsHashesByTxHashStorageConfig.Cache]
-        Name = "DbLookupExtensions.EventsHashesByTxHashStorage"
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
         Capacity = 20000
         Type = "LRU"
-    [DbLookupExtensions.EventsHashesByTxHashStorageConfig.DB]
-        FilePath = "DbLookupExtensions_EventsHashesByTx"
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ResultsHashesByTx"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000

@@ -40,7 +40,7 @@ type NodeHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address

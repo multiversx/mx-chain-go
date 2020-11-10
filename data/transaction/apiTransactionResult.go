@@ -39,7 +39,7 @@ type ApiTransactionResult struct {
 	MiniBlockType                     string                    `json:"miniblockType,omitempty"`
 	MiniBlockHash                     string                    `json:"miniblockHash,omitempty"`
 	Receipt                           *ReceiptApi               `json:"receipt,omitempty"`
-	ScResults                         []*SmartContractResultApi `json:"scResults,omitempty"`
+	SmartContractResults              []*ApiSmartContractResult `json:"smartContractResults,omitempty"`
 	Status                            TxStatus                  `json:"status,omitempty"`
 }
 
@@ -47,13 +47,13 @@ type ApiTransactionResult struct {
 type SimulationResults struct {
 	Status     TxStatus                           `json:"status,omitempty"`
 	FailReason string                             `json:"failReason,omitempty"`
-	ScResults  map[string]*SmartContractResultApi `json:"scResults,omitempty"`
+	ScResults  map[string]*ApiSmartContractResult `json:"scResults,omitempty"`
 	Receipts   map[string]*ReceiptApi             `json:"receipts,omitempty"`
 	Hash       string                             `json:"hash,omitempty"`
 }
 
-// SmartContractResultApi represents a smart contract result with changed fields' types in order to make it friendly for API's json
-type SmartContractResultApi struct {
+// ApiSmartContractResult represents a smart contract result with changed fields' types in order to make it friendly for API's json
+type ApiSmartContractResult struct {
 	Hash           string            `json:"hash,omitempty"`
 	Nonce          uint64            `json:"nonce"`
 	Value          *big.Int          `json:"value"`

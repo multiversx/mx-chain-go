@@ -510,7 +510,7 @@ func (m *MiniblockMetadata) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: MiniblockMetadata: wiretype end group for non-group")
+			return fmt.Errorf("proto: MiniblockMetadata: wiretype end groupSmartContractResults for non-groupSmartContractResults")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: MiniblockMetadata: illegal tag %d (wire type %d)", fieldNum, wire)
@@ -944,5 +944,5 @@ func skipMiniblockMetadata(dAtA []byte) (n int, err error) {
 var (
 	ErrInvalidLengthMiniblockMetadata        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowMiniblockMetadata          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupMiniblockMetadata = fmt.Errorf("proto: unexpected end of group")
+	ErrUnexpectedEndOfGroupMiniblockMetadata = fmt.Errorf("proto: unexpected end of groupSmartContractResults")
 )

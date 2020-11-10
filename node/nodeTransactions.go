@@ -15,7 +15,7 @@ import (
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
 // will return the transaction in a format which can be respected by all types of transactions (normal, reward or unsigned)
-func (n *Node) GetTransaction(txHash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
+func (n *Node) GetTransaction(txHash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	hash, err := hex.DecodeString(txHash)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (n *Node) GetTransaction(txHash string, withEvents bool) (*transaction.ApiT
 	}
 
 	if n.historyRepository.IsEnabled() {
-		return n.lookupHistoricalTransaction(hash, withEvents)
+		return n.lookupHistoricalTransaction(hash, withResults)
 	}
 
 	return n.getTransactionFromStorage(hash)
@@ -52,7 +52,7 @@ func (n *Node) optionallyGetTransactionFromPool(hash []byte) (*transaction.ApiTr
 	return tx, nil
 }
 
-func (n *Node) lookupHistoricalTransaction(hash []byte, withEvents bool) (*transaction.ApiTransactionResult, error) {
+func (n *Node) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := n.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
@@ -88,8 +88,8 @@ func (n *Node) lookupHistoricalTransaction(hash []byte, withEvents bool) (*trans
 		SelfShard:            n.shardCoordinator.SelfId(),
 	}).ComputeStatusWhenInStorageKnowingMiniblock()
 
-	if withEvents {
-		n.putEventsInTransaction(hash, tx, miniblockMetadata.Epoch)
+	if withResults {
+		n.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
 	}
 
 	return tx, nil
