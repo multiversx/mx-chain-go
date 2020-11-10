@@ -30,7 +30,7 @@ func NewGasScheduleNotifier(
 	epochNotifier core.EpochNotifier,
 ) (*gasScheduleNotifier, error) {
 	if len(gasScheduleConfig.GasScheduleByEpochs) == 0 {
-		return nil, core.ErrInvalidGasScheduleConfigs
+		return nil, core.ErrInvalidGasScheduleConfig
 	}
 	if check.IfNil(epochNotifier) {
 		return nil, core.ErrNilEpochStartNotifier

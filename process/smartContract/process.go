@@ -134,7 +134,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
-	if args.GasSchedule == nil || args.GasSchedule.LatestGasSchedule() == nil {
+	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return nil, process.ErrNilGasSchedule
 	}
 	if check.IfNil(args.BuiltInFunctions) {

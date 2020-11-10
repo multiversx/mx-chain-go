@@ -45,8 +45,7 @@ type stakingAuctionSC struct {
 	marshalizer        marshal.Marshalizer
 	flagStake          atomic.Flag
 	flagAuction        atomic.Flag
-
-	mutExecution sync.Mutex
+	mutExecution       sync.RWMutex
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -135,8 +134,8 @@ func NewStakingAuctionSmartContract(
 
 // Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	s.mutExecution.Lock()
-	defer s.mutExecution.Unlock()
+	s.mutExecution.RLock()
+	defer s.mutExecution.RUnlock()
 
 	err := CheckIfNil(args)
 	if err != nil {

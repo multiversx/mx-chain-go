@@ -83,5 +83,5 @@ var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
 // ErrNilFeeConfig signals that a nil fee config is provided
 var ErrNilFeeConfig = errors.New("nil fee config")
 
-// ErrInvalidGasScheduleConfigs signals that invalid gas schedule config was provided
-var ErrInvalidGasScheduleConfigs = errors.New("invalid gas schedule config")
+// ErrInvalidGasScheduleConfig signals that invalid gas schedule config was provided
+var ErrInvalidGasScheduleConfig = errors.New("invalid gas schedule config")

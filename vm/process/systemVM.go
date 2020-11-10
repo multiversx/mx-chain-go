@@ -23,7 +23,7 @@ type ArgsNewSystemVM struct {
 	SystemEI        vm.ContextHandler
 	SystemContracts vm.SystemSCContainer
 	VmType          []byte
-	GasSchedule     map[string]map[string]uint64
+	GasMap          map[string]map[string]uint64
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
@@ -37,11 +37,11 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
-	if args.GasSchedule == nil {
+	if args.GasMap == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasSchedule[core.ElrondAPICost]
+	apiCosts := args.GasMap[core.ElrondAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}

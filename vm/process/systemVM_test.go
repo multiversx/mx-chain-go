@@ -13,15 +13,15 @@ import (
 )
 
 func createMockArguments() ArgsNewSystemVM {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
-	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
-	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+	gasMap := make(map[string]map[string]uint64)
+	gasMap[core.ElrondAPICost] = make(map[string]uint64)
+	gasMap[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasMap[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
 	args := ArgsNewSystemVM{
 		SystemEI:        &mock.SystemEIStub{},
 		SystemContracts: &mock.SystemSCContainerStub{},
 		VmType:          factory.SystemVirtualMachine,
-		GasSchedule:     gasSchedule,
+		GasMap:          gasMap,
 	}
 	return args
 }
@@ -63,7 +63,7 @@ func TestNewSystemVM_NilGasSchedule(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArguments()
-	args.GasSchedule = nil
+	args.GasMap = nil
 	sVM, err := NewSystemVM(args)
 
 	assert.Nil(t, sVM)
@@ -74,13 +74,13 @@ func TestNewSystemVM_NoApiCost(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArguments()
-	args.GasSchedule = make(map[string]map[string]uint64)
+	args.GasMap = make(map[string]map[string]uint64)
 	sVM, err := NewSystemVM(args)
 
 	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilGasSchedule, err)
 
-	args.GasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	args.GasMap[core.ElrondAPICost] = make(map[string]uint64)
 	sVM, err = NewSystemVM(args)
 
 	assert.Nil(t, sVM)

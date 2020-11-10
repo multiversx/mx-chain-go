@@ -9,6 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
@@ -40,7 +41,7 @@ func NewVMContainerFactory(
 	deployEnableEpoch uint32,
 	aheadOfTimeGasUsageEnableEpoch uint32,
 ) (*vmContainerFactory, error) {
-	if gasSchedule == nil {
+	if check.IfNil(gasSchedule) {
 		return nil, process.ErrNilGasSchedule
 	}
 
