@@ -78,7 +78,7 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 			return nil
 		}
 		if isErrAliasAlreadyExists(responseBody) {
-			log.Debug("alias already exists", "response", fmt.Sprintf("%v", responseBody))
+			log.Debug("alias already exists", "response", responseBody)
 			return nil
 		}
 	}
