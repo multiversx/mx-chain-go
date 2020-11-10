@@ -86,20 +86,21 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 	}
 
 	brc := &baseRewardsCreator{
-		currTxs:                       currTxsCache,
-		shardCoordinator:              args.ShardCoordinator,
-		pubkeyConverter:               args.PubkeyConverter,
-		rewardsStorage:                args.RewardsStorage,
-		hasher:                        args.Hasher,
-		marshalizer:                   args.Marshalizer,
-		miniBlockStorage:              args.MiniBlockStorage,
-		dataPool:                      args.DataPool,
-		protocolSustainabilityAddress: address,
-		nodesConfigProvider:           args.NodesConfigProvider,
-		accumulatedRewards:            big.NewInt(0),
-		protocolSustainability:        big.NewInt(0),
-		delegationSystemSCEnableEpoch: args.DelegationSystemSCEnableEpoch,
-		userAccountsDB:                args.UserAccountsDB,
+		currTxs:                            currTxsCache,
+		shardCoordinator:                   args.ShardCoordinator,
+		pubkeyConverter:                    args.PubkeyConverter,
+		rewardsStorage:                     args.RewardsStorage,
+		hasher:                             args.Hasher,
+		marshalizer:                        args.Marshalizer,
+		miniBlockStorage:                   args.MiniBlockStorage,
+		dataPool:                           args.DataPool,
+		protocolSustainabilityAddress:      address,
+		nodesConfigProvider:                args.NodesConfigProvider,
+		accumulatedRewards:                 big.NewInt(0),
+		protocolSustainability:             big.NewInt(0),
+		delegationSystemSCEnableEpoch:      args.DelegationSystemSCEnableEpoch,
+		userAccountsDB:                     args.UserAccountsDB,
+		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
 	}
 
 	return brc, nil
@@ -431,7 +432,7 @@ func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSusta
 	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 }
 
-func (brc *baseRewardsCreator) finalizeMiniblocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
+func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
 	for shId := uint32(0); shId <= brc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
 			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
@@ -449,11 +450,9 @@ func (brc *baseRewardsCreator) finalizeMiniblocks(miniBlocks block.MiniBlockSlic
 
 func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {
 	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
-	accumulatedBaseRewards := big.NewInt(0)
 	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
 		consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(i)))
 		brc.mapBaseRewardsPerBlockPerValidator[i] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
-		accumulatedBaseRewards.Add(accumulatedBaseRewards, brc.mapBaseRewardsPerBlockPerValidator[i])
 		log.Debug("baseRewardsPerBlockPerValidator", "shardID", i, "value", brc.mapBaseRewardsPerBlockPerValidator[i].String())
 	}
 
@@ -462,7 +461,7 @@ func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode
 	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
-func (brc *baseRewardsCreator) verifyCreatedRewardMiniblocksWithMetaBlock(metaBlock *block.MetaBlock, createdMiniBlocks block.MiniBlockSlice) error {
+func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock *block.MetaBlock, createdMiniBlocks block.MiniBlockSlice) error {
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.MiniBlockHeaders {
 		if miniBlockHdr.Type != block.RewardsBlock {
@@ -514,7 +513,6 @@ func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockS
 }
 
 func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
-	transactionTopic := factory.RewardsTransactionTopic +
-		shardC.CommunicationIdentifier(destShId)
+	transactionTopic := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(destShId)
 	return transactionTopic
 }

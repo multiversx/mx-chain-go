@@ -77,7 +77,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return nil, err
 	}
 
-	return rc.finalizeMiniblocks(miniBlocks), nil
+	return rc.finalizeMiniBlocks(miniBlocks), nil
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
@@ -164,7 +164,7 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return err
 	}
 
-	return rc.verifyCreatedRewardMiniblocksWithMetaBlock(metaBlock, createdMiniBlocks)
+	return rc.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock, createdMiniBlocks)
 }
 
 // IsInterfaceNil return true if underlying object is nil
