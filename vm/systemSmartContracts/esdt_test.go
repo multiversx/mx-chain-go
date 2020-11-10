@@ -157,11 +157,11 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments[0] = []byte("01234567891")
+	vmInput.Arguments = append(vmInput.Arguments, []byte("ticker"))
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)
-
+	tokenID := eei.output[0]
 	assert.Equal(t, vmcommon.Ok, output)
 
 	vmInput.Arguments[0] = []byte("01234567891&*@")
@@ -174,7 +174,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, []byte("01234567891"), eei.output[0])
+	assert.Equal(t, tokenID, eei.output[0])
 }
 
 func TestEsdt_ExecuteNilArgsShouldErr(t *testing.T) {
@@ -234,46 +234,6 @@ func TestEsdt_ExecuteWrongFunctionCall(t *testing.T) {
 	}
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
-}
-
-func TestEsdt_ExecuteIssueProtected(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForESDT()
-	args.ESDTSCConfig.OwnerAddress = "addr"
-	e, _ := NewESDTSmartContract(args)
-
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr:     []byte("address"),
-			Arguments:      nil,
-			CallValue:      big.NewInt(0),
-			CallType:       0,
-			GasPrice:       0,
-			GasProvided:    0,
-			OriginalTxHash: nil,
-			CurrentTxHash:  nil,
-		},
-		RecipientAddr: []byte("addr"),
-		Function:      "issueProtected",
-	}
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-
-	vmInput.CallerAddr = e.ownerAddress
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
-
-	vmInput.Arguments = [][]byte{[]byte("name"), []byte("1000")}
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
-
-	vmInput.Arguments = [][]byte{[]byte("addr"), []byte("name"), []byte("1000")}
-	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
-	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
-	output = e.Execute(vmInput)
-
-	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {

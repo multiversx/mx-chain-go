@@ -119,9 +119,6 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
-// ErrTokenAlreadyRegistered signals that token was already registered
-var ErrTokenAlreadyRegistered = errors.New("token was already registered")
-
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
@@ -169,6 +166,12 @@ var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nod
 
 // ErrTokenNameNotHumanReadable signals that token name is not human readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
+
+// ErrTickerNameNotValid signals that ticker name is not valid
+var ErrTickerNameNotValid = errors.New("token name is not valid")
+
+// ErrCouldNotCreateNewIdentifier signals that token identifier could not be created
+var ErrCouldNotCreateNewIdentifier = errors.New("token identifier could not be created")
 
 // ErrBLSPublicKeyAlreadyJailed signals that bls public key was already jailed
 var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
