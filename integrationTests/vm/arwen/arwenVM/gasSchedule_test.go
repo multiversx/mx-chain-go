@@ -34,13 +34,29 @@ func Benchmark_TestStore100(b *testing.B) {
 }
 
 func Benchmark_TestStorageBigIntNew(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/cApiTest2.wasm", 0, "bigIntNewTest", nil, b.N, nil)
+	runWASMVMBenchmark(b, "../testdata/misc/cApiTest.wasm", 0, "bigIntNewTest", nil, b.N, nil)
+}
+
+func Benchmark_TestBigIntGetUnSignedBytes(b *testing.B) {
+	runWASMVMBenchmark(b, "../testdata/misc/cApiTest.wasm", 0, "bigIntGetUnsignedBytesTest", nil, b.N, nil)
+}
+
+func Benchmark_TestBigIntAdd(b *testing.B) {
+	runWASMVMBenchmark(b, "../testdata/misc/cApiTest.wasm", 0, "bigIntAddTest", nil, b.N, nil)
+}
+
+func Benchmark_TestBigIntMul(b *testing.B) {
+	runWASMVMBenchmark(b, "../testdata/misc/cApiTest.wasm", 0, "bigIntMulTest", nil, b.N, nil)
+}
+
+func Benchmark_TestBigIntShr(b *testing.B) {
+	runWASMVMBenchmark(b, "../testdata/misc/cApiTest.wasm", 0, "bigIntShrTest", nil, b.N, nil)
 }
 
 func Benchmark_TestStorageRust(b *testing.B) {
-	buff := make([]byte, 10)
+	buff := make([]byte, 1000)
 	_, _ = rand.Read(buff)
-	arguments := [][]byte{buff, big.NewInt(10).Bytes()}
+	arguments := [][]byte{buff, big.NewInt(1000).Bytes()}
 	runWASMVMBenchmark(b, "../testdata/misc/str-repeat.wasm", 0, "repeat", arguments, b.N, nil)
 }
 
@@ -114,7 +130,7 @@ func runWASMVMBenchmark(
 		SndAddr:   alice,
 		GasPrice:  0,
 		GasLimit:  gasLimit,
-		Data:      []byte(function),
+		Data:      []byte(txData),
 		Signature: nil,
 	}
 
