@@ -471,7 +471,7 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	if len(args.Arguments) <= 0 {
+	if len(args.Arguments) < 2 {
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -553,7 +553,7 @@ func (d *delegation) removeNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return returnCode
 	}
 
-	if len(args.Arguments) <= 0 {
+	if len(args.Arguments) < 1 {
 		d.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
