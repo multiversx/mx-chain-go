@@ -250,7 +250,7 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
 	}
 
-	return nil, vm.ErrCouldNotCreateNewIdentifier
+	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {

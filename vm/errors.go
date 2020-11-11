@@ -168,10 +168,10 @@ var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nod
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
 
 // ErrTickerNameNotValid signals that ticker name is not valid
-var ErrTickerNameNotValid = errors.New("token name is not valid")
+var ErrTickerNameNotValid = errors.New("ticker name is not valid")
 
-// ErrCouldNotCreateNewIdentifier signals that token identifier could not be created
-var ErrCouldNotCreateNewIdentifier = errors.New("token identifier could not be created")
+// ErrCouldNotCreateNewTokenIdentifier signals that token identifier could not be created
+var ErrCouldNotCreateNewTokenIdentifier = errors.New("token identifier could not be created")
 
 // ErrBLSPublicKeyAlreadyJailed signals that bls public key was already jailed
 var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
