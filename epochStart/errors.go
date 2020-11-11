@@ -269,8 +269,8 @@ var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point inva
 // ErrInvalidTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
 var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
 
-// ErrInvalidLeaderPercentage signals that the percentage for leader out of accumulated fees is invalid
-var ErrInvalidLeaderPercentage = errors.New("leader percentage is invalid")
-
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
 var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
+
+// ErrInvalidRewardsCreatorProxyConfig signals that the rewards creator proxy has an invalid configuration
+var ErrInvalidRewardsCreatorProxyConfig = errors.New("rewards creator proxy has an invalid configuration")

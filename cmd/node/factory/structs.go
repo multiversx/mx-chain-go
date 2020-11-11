@@ -2000,14 +2000,14 @@ func newMetaBlockProcessor(
 	}
 
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
-	//stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
-	//if err != nil {
-	//	return nil, err
-	//}
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
+	if err != nil {
+		return nil, err
+	}
 
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
-	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
+	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
 			ShardCoordinator:              shardCoordinator,
 			PubkeyConverter:               stateComponents.AddressPubkeyConverter,
@@ -2020,14 +2020,17 @@ func newMetaBlockProcessor(
 			NodesConfigProvider:           nodesCoordinator,
 			UserAccountsDB:                stateComponents.AccountsAdapter,
 			RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
-			//StakingDataProvider:           stakingDataProvider,
-			//RewardsTopUpFactor:            economicsData.RewardsTopUpFactor(),
-			//RewardsTopUpGradientPoint:     economicsData.RewardsTopUpGradientPoint(),
-			//LeaderPercentage:              economicsData.LeaderPercentage(),
-			//EconomicsDataProvider:         economicsDataProvider,
+			DelegationSystemSCEnableEpoch: systemSCConfig.DelegationSystemSCConfig.EnabledEpoch,
 		},
+
+		StakingDataProvider:   stakingDataProvider,
+		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
+		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
+		EconomicsDataProvider: economicsDataProvider,
+		EpochEnableV2:         systemSCConfig.DelegationSystemSCConfig.EnabledEpoch,
 	}
-	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
+
+	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
