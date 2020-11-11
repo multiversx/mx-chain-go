@@ -50,7 +50,7 @@ func Benchmark_TestBigIntMul(b *testing.B) {
 }
 
 func Benchmark_TestBigIntMul25(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/c-api-tests/output/cApiTest.wasm", 0, "bigIntMul25Test", nil, b.N, nil)
+	runWASMVMBenchmark(b, "../testdata/c-api-tests/bigInt/output/cApiTest.wasm", 0, "bigIntMul25Test", nil, b.N, nil)
 }
 
 func Benchmark_TestBigIntMul32(b *testing.B) {
