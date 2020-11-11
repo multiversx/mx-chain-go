@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 var _ process.EpochStartRewardsCreator = (*rewardsCreatorV2)(nil)
@@ -247,8 +248,8 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
 	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
-	nbBlocksBigInt := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
-	baseRewardsPerBlock := big.NewInt(0).Div(baseRewards, nbBlocksBigInt)
+	nbBlocks := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
+	baseRewardsPerBlock := big.NewInt(0).Div(baseRewards, nbBlocks)
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 
 	accumulatedDust := big.NewInt(0)
@@ -295,6 +296,16 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 	for shardID, nodesPowerList := range nodesPower {
 		topUpRewardsPerNode[shardID] = make([]*big.Int, len(nodesPowerList))
 		for i, nodePower := range nodesPowerList {
+			if totalPowerInShard[shardID].Cmp(big.NewInt(0)) == 0 {
+				// avoid division by zero
+				log.Warn("rewardsCreatorV2.computeTopUpRewardsPerNode",
+					"error", "shardPower zero",
+					"shardID", shardID)
+				topUpRewardsPerNode[shardID][i] = big.NewInt(0)
+
+				continue
+			}
+
 			topUpRewardsPerNode[shardID][i] = big.NewInt(0).Mul(nodePower, topUpRewardPerShard[shardID])
 			topUpRewardsPerNode[shardID][i].Div(topUpRewardsPerNode[shardID][i], totalPowerInShard[shardID])
 			accumulatedTopUpRewards.Add(accumulatedTopUpRewards, topUpRewardsPerNode[shardID][i])
@@ -310,12 +321,17 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 //     p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
 //     pi is the mathematical constant pi = 3.1415...
 func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Int {
+	zero := big.NewInt(0)
+	if totalToDistribute.Cmp(zero) <= 0 || totalTopUpEligible.Cmp(zero) <= 0 {
+		return zero
+	}
+
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
 	k := core.GetPercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
 	// p is the cumulative eligible stake where rewards per day reach 1/2 of k (constant)
 	// x/p - argument for atan
 	totalTopUpEligibleFloat := new(big.Float).SetInt(totalTopUpEligible)
-	topUpGradientPointFloat :=new(big.Float).SetInt(rc.topUpGradientPoint)
+	topUpGradientPointFloat := new(big.Float).SetInt(rc.topUpGradientPoint)
 
 	floatArg, _ := big.NewFloat(0).Quo(totalTopUpEligibleFloat, topUpGradientPointFloat).Float64()
 	// atan(x/p)
@@ -324,7 +340,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 	res2 := new(big.Float).SetInt(big.NewInt(0).Mul(k, big.NewInt(2)))
 	res2 = new(big.Float).Quo(res2, big.NewFloat(math.Pi))
 	// topUpReward:= (2*k/pi)*atan(x/p)
-	topUpRewards, _:= new(big.Float).Mul(big.NewFloat(res1), res2).Int(nil)
+	topUpRewards, _ := new(big.Float).Mul(big.NewFloat(res1), res2).Int(nil)
 
 	return topUpRewards
 }
@@ -336,6 +352,17 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerShard(
 	stakeTopUpPerNode map[uint32][]*big.Int,
 ) map[uint32]*big.Int {
 	blocksPerShard := rc.economicsDataProvider.NumberOfBlocksPerShard()
+
+	if len(blocksPerShard) == 0 {
+		log.Warn("rewardsCreatorV2.computeTopUpRewardsPerShard",
+			"error", "empty blocksPerShard")
+		blocksPerShard = make(map[uint32]uint64)
+		shardMap := createShardsMap(rc.shardCoordinator)
+		for shardID := range shardMap {
+			// initialize the rewards per shard
+			blocksPerShard[shardID] = 0
+		}
+	}
 	shardsTopUp := computeTopUpPerShard(stakeTopUpPerNode)
 	totalPower, shardPower := computeShardsPower(shardsTopUp, blocksPerShard)
 
@@ -472,4 +499,13 @@ func (rc *rewardsCreatorV2) prepareRewardsData(
 	}
 
 	return nil
+}
+
+func createShardsMap(shardCoordinator sharding.Coordinator) map[uint32]struct{} {
+	shardsMap := make(map[uint32]struct{}, shardCoordinator.NumberOfShards())
+	for shardID := uint32(0); shardID < shardCoordinator.NumberOfShards(); shardID++ {
+		shardsMap[shardID] = struct{}{}
+	}
+	shardsMap[core.MetachainShardId] = struct{}{}
+	return shardsMap
 }
