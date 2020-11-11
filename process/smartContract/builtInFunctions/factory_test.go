@@ -18,6 +18,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
+		Accounts:             &mock.AccountsStub{},
 	}
 
 	return args
@@ -48,6 +49,7 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["SaveUserName"] = value
 	gasMap["SaveKeyValue"] = value
 	gasMap["ESDTTransfer"] = value
+	gasMap["ESDTBurn"] = value
 
 	return gasMap
 }
@@ -70,5 +72,5 @@ func TestCreateBuiltInFunctionContainer_Errors(t *testing.T) {
 	args = createMockArguments()
 	container, err = CreateBuiltInFunctionContainer(args)
 	assert.Nil(t, err)
-	assert.Equal(t, container.Len(), 5)
+	assert.Equal(t, container.Len(), 11)
 }

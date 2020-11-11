@@ -48,14 +48,14 @@ func NewMiniBlockProvider(arg ArgMiniBlockProvider) (*miniBlockProvider, error) 
 }
 
 // GetMiniBlocks method returns a list of deserialized mini blocks from a given hash list either from data pool or from storage
-func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
-	miniBlocksAndHashes := make([]*process.MiniblockAndHash, 0)
+func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+	miniBlocksAndHashes := make([]*block.MiniblockAndHash, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
 	for _, hash := range hashes {
 		miniblock := mbp.getMiniblockFromPool(hash)
 		if miniblock != nil {
-			miniBlockAndHash := &process.MiniblockAndHash{
+			miniBlockAndHash := &block.MiniblockAndHash{
 				Miniblock: miniblock,
 				Hash:      hash,
 			}
@@ -65,7 +65,7 @@ func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) ([]*process.Miniblo
 
 		miniblock = mbp.getMiniBlockFromStorer(hash)
 		if miniblock != nil {
-			miniBlockAndHash := &process.MiniblockAndHash{
+			miniBlockAndHash := &block.MiniblockAndHash{
 				Miniblock: miniblock,
 				Hash:      hash,
 			}
@@ -80,8 +80,8 @@ func (mbp *miniBlockProvider) GetMiniBlocks(hashes [][]byte) ([]*process.Miniblo
 }
 
 // GetMiniBlocksFromPool method returns a list of deserialized mini blocks from a given hash list from data pool
-func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
-	miniBlocksAndHashes := make([]*process.MiniblockAndHash, 0)
+func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+	miniBlocksAndHashes := make([]*block.MiniblockAndHash, 0)
 	missingMiniBlocksHashes := make([][]byte, 0)
 
 	for i := 0; i < len(hashes); i++ {
@@ -91,7 +91,7 @@ func (mbp *miniBlockProvider) GetMiniBlocksFromPool(hashes [][]byte) ([]*process
 			continue
 		}
 
-		miniBlockAndHash := &process.MiniblockAndHash{
+		miniBlockAndHash := &block.MiniblockAndHash{
 			Miniblock: miniblock,
 			Hash:      hashes[i],
 		}

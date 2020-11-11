@@ -1,6 +1,7 @@
 package appStatusPolling_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -67,7 +68,8 @@ func TestAppStatusPolling_Poll_TestNumOfConnectedAddressesCalled(t *testing.T) {
 	})
 	assert.Nil(t, err)
 
-	asp.Poll()
+	ctx := context.Background()
+	asp.Poll(ctx)
 
 	select {
 	case <-chDone:

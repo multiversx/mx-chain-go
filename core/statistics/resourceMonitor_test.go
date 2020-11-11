@@ -13,7 +13,7 @@ import (
 func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor := stats.NewResourceMonitor()
+	resourceMonitor := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
 
 	assert.NotNil(t, resourceMonitor)
 }
@@ -21,9 +21,9 @@ func TestResourceMonitor_NewResourceMonitorShouldPass(t *testing.T) {
 func TestResourceMonitor_GenerateStatisticsShouldPass(t *testing.T) {
 	t.Parallel()
 
-	resourceMonitor := stats.NewResourceMonitor()
+	resourceMonitor := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
 
-	statistics := resourceMonitor.GenerateStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	statistics := resourceMonitor.GenerateStatistics()
 
 	assert.NotNil(t, statistics)
 }
@@ -38,7 +38,7 @@ func TestResourceMonitor_SaveStatisticsShouldNotPanic(t *testing.T) {
 		}
 	}()
 
-	resourceMonitor := stats.NewResourceMonitor()
+	resourceMonitor := stats.NewResourceMonitor(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
 
-	resourceMonitor.SaveStatistics(&config.Config{AccountsTrieStorage: config.StorageConfig{DB: config.DBConfig{}}}, &mock.PathManagerStub{}, "")
+	resourceMonitor.SaveStatistics()
 }

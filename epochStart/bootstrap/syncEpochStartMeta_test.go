@@ -97,21 +97,29 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 
 func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 	return ArgsNewEpochStartMetaSyncer{
-		RequestHandler:    &mock.RequestHandlerStub{},
-		Messenger:         &mock.MessengerStub{},
-		Marshalizer:       &mock.MarshalizerMock{},
-		TxSignMarshalizer: &mock.MarshalizerMock{},
-		ShardCoordinator:  mock.NewMultiShardsCoordinatorMock(2),
-		KeyGen:            &mock.KeyGenMock{},
-		BlockKeyGen:       &mock.KeyGenMock{},
-		Hasher:            &mock.HasherMock{},
-		Signer:            &mock.SignerStub{},
-		BlockSigner:       &mock.SignerStub{},
-		ChainID:           []byte("chain-ID"),
-		EconomicsData:     &economics.EconomicsData{},
-		WhitelistHandler:  &mock.WhiteListHandlerStub{},
-		AddressPubkeyConv: mock.NewPubkeyConverterMock(32),
-		NonceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		CoreComponentsHolder: &mock.CoreComponentsMock{
+			IntMarsh:            &mock.MarshalizerMock{},
+			Marsh:               &mock.MarshalizerMock{},
+			Hash:                &mock.HasherMock{},
+			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			PathHdl:             &mock.PathManagerStub{},
+			ChainIdCalled: func() string {
+				return "chain-ID"
+			},
+		},
+		CryptoComponentsHolder: &mock.CryptoComponentsMock{
+			PubKey:   &mock.PublicKeyStub{},
+			BlockSig: &mock.SignerStub{},
+			TxSig:    &mock.SignerStub{},
+			BlKeyGen: &mock.KeyGenMock{},
+			TxKeyGen: &mock.KeyGenMock{},
+		},
+		RequestHandler:   &mock.RequestHandlerStub{},
+		Messenger:        &mock.MessengerStub{},
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
+		EconomicsData:    &economics.EconomicsData{},
+		WhitelistHandler: &mock.WhiteListHandlerStub{},
 		StartInEpochConfig: config.EpochStartConfig{
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,

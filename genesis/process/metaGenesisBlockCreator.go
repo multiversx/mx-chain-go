@@ -72,7 +72,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	if err != nil {
 		return nil, nil, err
 	}
-	prevHash := arg.Hasher.Compute(arg.GenesisString)
+	prevHash := arg.Core.Hasher().Compute(arg.GenesisString)
 
 	header := &block.MetaBlock{
 		RootHash:               rootHash,
@@ -84,7 +84,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 		DeveloperFees:          big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
 		PubKeysBitmap:          []byte{1},
-		ChainID:                []byte(arg.ChainID),
+		ChainID:                []byte(arg.Core.ChainID()),
 		SoftwareVersion:        []byte(""),
 		TimeStamp:              arg.GenesisTime,
 		Round:                  round,
@@ -107,7 +107,7 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	}
 	header.SetValidatorStatsRootHash(validatorRootHash)
 
-	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, header)
+	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), header)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,8 +128,8 @@ func createMetaGenesisAfterHardFork(
 
 	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
 		ImportHandler:     arg.importHandler,
-		Marshalizer:       arg.Marshalizer,
-		Hasher:            arg.Hasher,
+		Marshalizer:       arg.Core.InternalMarshalizer(),
+		Hasher:            arg.Core.Hasher(),
 		ShardCoordinator:  arg.ShardCoordinator,
 		ValidatorAccounts: tmpArg.ValidatorAccounts,
 	}
@@ -139,7 +139,7 @@ func createMetaGenesisAfterHardFork(
 	}
 
 	hdrHandler, _, err := metaBlockCreator.CreateNewBlock(
-		arg.ChainID,
+		arg.Core.ChainID(),
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
 		arg.HardForkConfig.StartEpoch,
@@ -159,7 +159,7 @@ func createMetaGenesisAfterHardFork(
 		return nil, nil, err
 	}
 
-	err = saveGenesisMetaToStorage(arg.Store, arg.Marshalizer, metaHdr)
+	err = saveGenesisMetaToStorage(arg.Data.StorageService(), arg.Core.InternalMarshalizer(), metaHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,12 +207,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.PubkeyConv,
-		StorageService:   arg.Store,
-		BlockChain:       arg.Blkc,
+		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
+		StorageService:   arg.Data.StorageService(),
+		BlockChain:       arg.Data.Blockchain(),
 		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Marshalizer,
-		Uint64Converter:  arg.Uint64ByteSliceConverter,
+		Marshalizer:      arg.Core.InternalMarshalizer(),
+		Uint64Converter:  arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions: builtInFuncs,
 	}
 
@@ -229,8 +229,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		pubKeyVerifier,
 		arg.GasMap,
 		arg.InitialNodesSetup,
-		arg.Hasher,
-		arg.Marshalizer,
+		arg.Core.Hasher(),
+		arg.Core.InternalMarshalizer(),
 		&arg.SystemSCConfig,
 		arg.ValidatorAccounts,
 		&disabled.Rater{},
@@ -247,11 +247,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
 		arg.ShardCoordinator,
-		arg.Marshalizer,
-		arg.Hasher,
-		arg.PubkeyConv,
-		arg.Store,
-		arg.DataPool,
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
+		arg.Core.AddressPubKeyConverter(),
+		arg.Data.StorageService(),
+		arg.Data.Datapool(),
 	)
 	if err != nil {
 		return nil, err
@@ -273,7 +273,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  arg.PubkeyConv,
+		PubkeyConverter:  arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator: arg.ShardCoordinator,
 		BuiltInFuncNames: builtInFuncs.Keys(),
 		ArgumentParser:   parsers.NewCallArgsParser(),
@@ -293,11 +293,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:                    vmContainer,
 		ArgsParser:                     argsParser,
-		Hasher:                         arg.Hasher,
-		Marshalizer:                    arg.Marshalizer,
+		Hasher:                         arg.Core.Hasher(),
+		Marshalizer:                    arg.Core.InternalMarshalizer(),
 		AccountsDB:                     arg.Accounts,
 		BlockChainHook:                 virtualMachineFactory.BlockChainHookImpl(),
-		PubkeyConv:                     arg.PubkeyConv,
+		PubkeyConv:                     arg.Core.AddressPubKeyConverter(),
 		Coordinator:                    arg.ShardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   genesisFeeHandler,
@@ -319,10 +319,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	}
 
 	txProcessor, err := processTransaction.NewMetaTxProcessor(
-		arg.Hasher,
-		arg.Marshalizer,
+		arg.Core.Hasher(),
+		arg.Core.InternalMarshalizer(),
 		arg.Accounts,
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		arg.ShardCoordinator,
 		scProcessor,
 		txTypeHandler,
@@ -339,10 +339,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
 		arg.ShardCoordinator,
-		arg.Store,
-		arg.Marshalizer,
-		arg.Hasher,
-		arg.DataPool,
+		arg.Data.StorageService(),
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
+		arg.Data.Datapool(),
 		arg.Accounts,
 		disabledRequestHandler,
 		txProcessor,
@@ -350,7 +350,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		arg.Economics,
 		gasHandler,
 		disabledBlockTracker,
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
 	)
@@ -364,11 +364,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
-		arg.Hasher,
-		arg.Marshalizer,
+		arg.Core.Hasher(),
+		arg.Core.InternalMarshalizer(),
 		arg.ShardCoordinator,
 		arg.Accounts,
-		arg.DataPool.MiniBlocks(),
+		arg.Data.Datapool().MiniBlocks(),
 		disabledRequestHandler,
 		preProcContainer,
 		interimProcContainer,
@@ -385,7 +385,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		vmContainer,
 		arg.Economics,
 		virtualMachineFactory.BlockChainHookImpl(),
-		arg.Blkc,
+		arg.Data.Blockchain(),
 	)
 	if err != nil {
 		return nil, err
@@ -418,7 +418,7 @@ func deploySystemSmartContracts(
 	tx := &transaction.Transaction{
 		Nonce:     0,
 		Value:     big.NewInt(0),
-		RcvAddr:   make([]byte, arg.PubkeyConv.Len()),
+		RcvAddr:   make([]byte, arg.Core.AddressPubKeyConverter().Len()),
 		GasPrice:  0,
 		GasLimit:  math.MaxUint64,
 		Data:      []byte(deployTxData),

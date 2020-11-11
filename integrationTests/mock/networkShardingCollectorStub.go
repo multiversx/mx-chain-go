@@ -9,22 +9,37 @@ type NetworkShardingCollectorStub struct {
 	UpdatePeerIdPublicKeyCalled  func(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardIdCalled func(pk []byte, shardId uint32)
 	UpdatePeerIdShardIdCalled    func(pid core.PeerID, shardId uint32)
+	GetPeerInfoCalled            func(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIdSubTypeCalled    func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 }
 
 // UpdatePeerIdPublicKey -
 func (nscs *NetworkShardingCollectorStub) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
-	nscs.UpdatePeerIdPublicKeyCalled(pid, pk)
+	if nscs.UpdatePeerIdPublicKeyCalled != nil {
+		nscs.UpdatePeerIdPublicKeyCalled(pid, pk)
+	}
 }
 
 // UpdatePublicKeyShardId -
 func (nscs *NetworkShardingCollectorStub) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	nscs.UpdatePublicKeyShardIdCalled(pk, shardId)
+	if nscs.UpdatePublicKeyShardIdCalled != nil {
+		nscs.UpdatePublicKeyShardIdCalled(pk, shardId)
+	}
 }
 
 // UpdatePeerIdShardId -
 func (nscs *NetworkShardingCollectorStub) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
-	nscs.UpdatePeerIdShardIdCalled(pid, shardId)
+	if nscs.UpdatePeerIdShardIdCalled != nil {
+		nscs.UpdatePeerIdShardIdCalled(pid, shardId)
+	}
+}
+
+// GetPeerInfo -
+func (nscs *NetworkShardingCollectorStub) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
+	if nscs.GetPeerInfoCalled != nil {
+		return nscs.GetPeerInfoCalled(pid)
+	}
+	return core.P2PPeerInfo{}
 }
 
 // UpdatePeerIdSubType

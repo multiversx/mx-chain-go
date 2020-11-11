@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -34,6 +35,7 @@ type ArgsNewGovernanceContract struct {
 	GovernanceSCAddress []byte
 	StakingSCAddress    []byte
 	AuctionSCAddress    []byte
+	EpochNotifier       vm.EpochNotifier
 }
 
 type governanceContract struct {
@@ -47,7 +49,8 @@ type governanceContract struct {
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	governanceConfig    config.GovernanceSystemSCConfig
-	disabled            bool
+	enabledEpoch        uint32
+	flagEnabled         atomic.Flag
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -61,13 +64,16 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.Hasher) {
 		return nil, vm.ErrNilHasher
 	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, vm.ErrNilEpochNotifier
+	}
 
-	baseProposalCost, ok := big.NewInt(0).SetString(args.GovernanceConfig.ProposalCost, conversionBase)
-	if !ok || baseProposalCost.Cmp(big.NewInt(0)) < 0 {
+	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.ProposalCost, conversionBase)
+	if !okConvert || baseProposalCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	return &governanceContract{
+	g := &governanceContract{
 		eei:                 args.Eei,
 		gasCost:             args.GasCost,
 		baseProposalCost:    baseProposalCost,
@@ -78,8 +84,11 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
-		disabled:            args.GovernanceConfig.Disabled,
-	}, nil
+		enabledEpoch:        args.GovernanceConfig.EnabledEpoch,
+	}
+	args.EpochNotifier.RegisterNotifyHandler(g)
+
+	return g, nil
 }
 
 // Execute calls one of the functions from the governance smart contract and runs the code according to the input
@@ -92,7 +101,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if g.disabled {
+	if !g.flagEnabled.IsSet() {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
@@ -152,23 +161,23 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	numNodes, ok := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !ok || numNodes.Cmp(big.NewInt(0)) < 0 {
+	numNodes, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !okConvert || numNodes.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig first argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minQuorum, ok := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
-	if !ok || minQuorum.Cmp(big.NewInt(0)) < 0 {
+	minQuorum, okConvert := big.NewInt(0).SetString(string(args.Arguments[1]), conversionBase)
+	if !okConvert || minQuorum.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig second argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minVeto, ok := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
-	if !ok || minVeto.Cmp(big.NewInt(0)) < 0 {
+	minVeto, okConvert := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
+	if !okConvert || minVeto.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig third argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minPass, ok := big.NewInt(0).SetString(string(args.Arguments[3]), conversionBase)
-	if !ok || minPass.Cmp(big.NewInt(0)) < 0 {
+	minPass, okConvert := big.NewInt(0).SetString(string(args.Arguments[3]), conversionBase)
+	if !okConvert || minPass.Cmp(big.NewInt(0)) < 0 {
 		g.eei.AddReturnMessage("changeConfig fourth argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
@@ -291,15 +300,15 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 }
 
 func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteNonce, ok := big.NewInt(0).SetString(string(argStart), conversionBase)
-	if !ok {
+	startVoteNonce, okConvert := big.NewInt(0).SetString(string(argStart), conversionBase)
+	if !okConvert {
 		return 0, 0, vm.ErrInvalidStartEndVoteNonce
 	}
 	if !startVoteNonce.IsUint64() {
 		return 0, 0, vm.ErrInvalidStartEndVoteNonce
 	}
-	endVoteNonce, ok := big.NewInt(0).SetString(string(argEnd), conversionBase)
-	if !ok {
+	endVoteNonce, okConvert := big.NewInt(0).SetString(string(argEnd), conversionBase)
+	if !okConvert {
 		return 0, 0, vm.ErrInvalidStartEndVoteNonce
 	}
 	if !endVoteNonce.IsUint64() {
@@ -449,8 +458,8 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 
-	bigIntEpochToHardFork, ok := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !ok || !bigIntEpochToHardFork.IsUint64() {
+	bigIntEpochToHardFork, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
+	if !okConvert || !bigIntEpochToHardFork.IsUint64() {
 		g.eei.AddReturnMessage("invalid argument for epoch")
 		return vmcommon.UserError
 	}
@@ -493,7 +502,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 
 	err = g.saveGeneralProposal(args.Arguments[0], generalProposal)
 	if err != nil {
-		log.Warn("save general proposal", err, "error")
+		log.Warn("save general proposal", "error", err)
 		g.eei.AddReturnMessage("saveGeneralProposal" + err.Error())
 		return vmcommon.UserError
 	}
@@ -893,6 +902,12 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 	}
 
 	return nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (g *governanceContract) EpochConfirmed(epoch uint32) {
+	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
+	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -2,6 +2,7 @@ package interceptedBulkTx
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -35,7 +36,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		_ = n.Messenger.Close()
 	}()
 
-	_ = n.Messenger.Bootstrap()
+	_ = n.Messenger.Bootstrap(0)
 
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
@@ -114,4 +115,38 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 		n.DataPool.Transactions(),
 		n.ShardCoordinator,
 	)
+}
+
+func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	var nrOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+	nodeAddr := "0"
+
+	node := integrationTests.NewTestProcessorNode(nrOfShards, shardID, txSignPrivKeyShardId, nodeAddr)
+
+	defer func() {
+		_ = node.Messenger.Close()
+	}()
+
+	tx := &transaction.Transaction{
+		Nonce:    node.OwnAccount.Nonce,
+		Value:    big.NewInt(1),
+		SndAddr:  node.OwnAccount.Address,
+		RcvAddr:  integrationTests.CreateRandomBytes(32),
+		GasPrice: integrationTests.MinTxGasPrice,
+		GasLimit: integrationTests.MinTxGasLimit,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
+	}
+
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+
+	err := node.Node.ValidateTransaction(tx)
+	assert.True(t, errors.Is(err, process.ErrAccountNotFound))
 }

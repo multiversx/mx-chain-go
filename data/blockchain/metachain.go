@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ data.ChainHandler = (*metaChain)(nil)
@@ -18,12 +17,16 @@ type metaChain struct {
 }
 
 // NewMetaChain will initialize a new metachain instance
-func NewMetaChain() *metaChain {
+func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
+	if check.IfNil(appStatusHandler) {
+		return nil, ErrNilAppStatusHandler
+	}
+
 	return &metaChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler: statusHandler.NewNilStatusHandler(),
+			appStatusHandler: appStatusHandler,
 		},
-	}
+	}, nil
 }
 
 // SetGenesisHeader returns the genesis block header pointer

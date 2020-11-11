@@ -104,6 +104,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilPubkeyConverter signals that nil address converter was provided
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -247,3 +253,6 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilCurrentNetworkEpochSetter signals that a nil current network epoch setter has been provided
 var ErrNilCurrentNetworkEpochSetter = errors.New("nil current network epoch setter")
+
+// ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
+var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")

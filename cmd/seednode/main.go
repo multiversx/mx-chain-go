@@ -25,8 +25,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-const defaultLogsPath = "logs"
-const filePathPlaceholder = "[path]"
+const (
+	defaultLogsPath     = "logs"
+	logFilePrefix       = "elrond-seed"
+	filePathPlaceholder = "[path]"
+)
 
 var (
 	seedNodeHelpTemplate = `NAME:
@@ -146,7 +149,7 @@ func startNode(ctx *cli.Context) error {
 	var fileLogging factory.FileLoggingHandler
 	if withLogFile {
 		workingDir := getWorkingDir(log)
-		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath)
+		fileLogging, err = logging.NewFileLogging(workingDir, defaultLogsPath, logFilePrefix)
 		if err != nil {
 			return fmt.Errorf("%w creating a log file", err)
 		}
@@ -188,7 +191,7 @@ func startNode(ctx *cli.Context) error {
 		return err
 	}
 
-	err = messenger.Bootstrap()
+	err = messenger.Bootstrap(0)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	numMetachainNodes := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -71,7 +71,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodePrice, vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -88,7 +88,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -106,7 +106,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -129,7 +129,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinator(
 		nodesPerShard,
@@ -186,7 +186,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodePrice, vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.AuctionSCAddress, txData, 1)
 	}
 
 	time.Sleep(time.Second)
@@ -208,7 +208,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -227,7 +227,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, 1)
 	}
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -253,7 +253,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	metaConsensusGroupSize := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorAndTxKeys(
 		nodesPerShard,
@@ -310,7 +310,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	var txData string
 	for _, node := range nodes {
 		txData = "changeRewardAddress" + "@" + hex.EncodeToString(rewardAccount.Address)
-		integrationTests.CreateAndSendTransaction(node, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
 	}
 
 	nbBlocksToProduce := roundsPerEpoch * 3

@@ -26,16 +26,18 @@ type fileLogging struct {
 	currentFile       *os.File
 	workingDir        string
 	defaultLogsPath   string
+	logFilePrefix     string
 	cancelFunc        func()
 	mutIsClosed       sync.Mutex
 	isClosed          bool
 }
 
 // NewFileLogging creates a file log watcher used to break the log file into multiple smaller files
-func NewFileLogging(workingDir string, defaultLogsPath string) (*fileLogging, error) {
+func NewFileLogging(workingDir string, defaultLogsPath string, logFilePrefix string) (*fileLogging, error) {
 	fl := &fileLogging{
 		workingDir:        workingDir,
 		defaultLogsPath:   defaultLogsPath,
+		logFilePrefix:     logFilePrefix,
 		chLifeSpanChanged: make(chan time.Duration),
 		isClosed:          false,
 	}
@@ -59,7 +61,7 @@ func (fl *fileLogging) createFile() (*os.File, error) {
 
 	return core.CreateFile(
 		core.ArgCreateFileArgument{
-			Prefix:        "elrond-go",
+			Prefix:        fl.logFilePrefix,
 			Directory:     logDirectory,
 			FileExtension: "log",
 		},

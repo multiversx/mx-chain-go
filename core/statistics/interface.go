@@ -36,3 +36,18 @@ type ShardStatistic interface {
 	TotalProcessedTxCount() *big.Int
 	IsInterfaceNil() bool
 }
+
+// SoftwareVersionChecker holds the actions needed to be handled by a components which will check the software version
+type SoftwareVersionChecker interface {
+	StartCheckSoftwareVersion()
+	IsInterfaceNil() bool
+	Close() error
+}
+
+type ResourceMonitorHandler interface {
+	GenerateStatistics() []interface{}
+	SaveStatistics()
+	StartMonitoring()
+	Close() error
+	IsInterfaceNil() bool
+}

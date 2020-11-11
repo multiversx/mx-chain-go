@@ -23,8 +23,9 @@ func TestNewInterceptedMiniblockDataFactory_NilArgumentsShouldErr(t *testing.T) 
 func TestNewInterceptedMiniblockDataFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.ProtoMarshalizer = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.IntMarsh = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imdf, err := NewInterceptedMiniblockDataFactory(arg)
 	assert.True(t, check.IfNil(imdf))
@@ -34,8 +35,9 @@ func TestNewInterceptedMiniblockDataFactory_NilMarshalizerShouldErr(t *testing.T
 func TestNewInterceptedMiniblockDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.Hasher = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.Hash = nil
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imdf, err := NewInterceptedMiniblockDataFactory(arg)
 	assert.True(t, check.IfNil(imdf))
@@ -45,7 +47,8 @@ func TestNewInterceptedMiniblockDataFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewInterceptedMiniblockDataFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComp, cryptoComp := createMockComponentHolders()
+	arg := createMockArgument(coreComp, cryptoComp)
 	arg.ShardCoordinator = nil
 
 	imdf, err := NewInterceptedMiniblockDataFactory(arg)
@@ -56,7 +59,8 @@ func TestNewInterceptedMiniblockDataFactory_NilShardCoordinatorShouldErr(t *test
 func TestInterceptedMiniblockDataFactory_ShouldWorkAndCreate(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComp, cryptoComp := createMockComponentHolders()
+	arg := createMockArgument(coreComp, cryptoComp)
 
 	imdf, err := NewInterceptedMiniblockDataFactory(arg)
 	assert.False(t, check.IfNil(imdf))

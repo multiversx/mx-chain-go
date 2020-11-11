@@ -59,6 +59,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,
 	}
+	alarmScheduler := &mock.AlarmSchedulerStub{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -72,6 +73,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			InterceptorsContainer:      interceptorsContainer,
 			MaxDelayCacheSize:          1,
 			MaxValidatorDelayCacheSize: 1,
+			AlarmScheduler:             alarmScheduler,
 		},
 	}
 }

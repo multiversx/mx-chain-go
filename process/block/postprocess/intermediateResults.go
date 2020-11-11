@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sort"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
@@ -213,7 +215,11 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return err
 		}
 
-		log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value)
+		if log.GetLevel() == logger.LogTrace {
+			//spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
+			log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value,
+				"dump", spew.Sdump(addScr))
+		}
 
 		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 		if err != nil {

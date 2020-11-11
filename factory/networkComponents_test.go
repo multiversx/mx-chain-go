@@ -1,10 +1,12 @@
-package factory
+package factory_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	errErd "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/stretchr/testify/require"
@@ -13,53 +15,37 @@ import (
 func TestNewNetworkComponentsFactory_NilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(
-		config.P2PConfig{},
-		config.Config{},
-		nil,
-		&mock.MarshalizerMock{},
-		&libp2p.LocalSyncTimer{},
-	)
+	args := getNetworkArgs()
+	args.StatusHandler = nil
+	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
-	require.Equal(t, ErrNilStatusHandler, err)
+	require.Equal(t, errErd.ErrNilStatusHandler, err)
 }
 
 func TestNewNetworkComponentsFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	ncf, err := NewNetworkComponentsFactory(
-		config.P2PConfig{},
-		config.Config{},
-		&mock.AppStatusHandlerMock{},
-		nil,
-		&libp2p.LocalSyncTimer{},
-	)
+	args := getNetworkArgs()
+	args.Marshalizer = nil
+	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.Nil(t, ncf)
-	require.True(t, errors.Is(err, ErrNilMarshalizer))
+	require.True(t, errors.Is(err, errErd.ErrNilMarshalizer))
 }
 
 func TestNewNetworkComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
-
-	ncf, err := NewNetworkComponentsFactory(
-		config.P2PConfig{},
-		config.Config{},
-		&mock.AppStatusHandlerMock{},
-		&mock.MarshalizerMock{},
-		&libp2p.LocalSyncTimer{},
-	)
+	args := getNetworkArgs()
+	ncf, err := factory.NewNetworkComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ncf)
 }
 
 func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
-	ncf, _ := NewNetworkComponentsFactory(
-		config.P2PConfig{},
-		config.Config{},
-		&mock.AppStatusHandlerMock{},
-		&mock.MarshalizerMock{},
-		&libp2p.LocalSyncTimer{},
-	)
+	args := getNetworkArgs()
+	args.MainConfig = config.Config{}
+	args.P2pConfig = config.P2PConfig{}
+
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
 
 	nc, err := ncf.Create()
 	require.Error(t, err)
@@ -67,6 +53,27 @@ func TestNetworkComponentsFactory_Create_ShouldErrDueToBadConfig(t *testing.T) {
 }
 
 func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
+	args := getNetworkArgs()
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
+	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+
+	nc, err := ncf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, nc)
+}
+
+// ------------ Test NetworkComponents --------------------
+func TestNetworkComponents_Close_ShouldWork(t *testing.T) {
+	args := getNetworkArgs()
+	ncf, _ := factory.NewNetworkComponentsFactory(args)
+
+	nc, _ := ncf.Create()
+
+	err := nc.Close()
+	require.NoError(t, err)
+}
+
+func getNetworkArgs() factory.NetworkComponentsFactoryArgs {
 	p2pConfig := config.P2PConfig{
 		Node: config.NodeConfig{
 			Port: "0",
@@ -90,25 +97,42 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 			Type:                    "NilListSharder",
 		},
 	}
-	ncf, _ := NewNetworkComponentsFactory(
-		p2pConfig,
-		config.Config{
-			Debug: config.DebugConfig{
-				Antiflood: config.AntifloodDebugConfig{
-					Enabled:                    true,
-					CacheSize:                  100,
-					IntervalAutoPrintInSeconds: 1,
-				},
+
+	mainConfig := config.Config{
+		PeerHonesty: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 5000,
+			Shards:   16,
+		},
+		Debug: config.DebugConfig{
+			Antiflood: config.AntifloodDebugConfig{
+				Enabled:                    true,
+				CacheSize:                  100,
+				IntervalAutoPrintInSeconds: 1,
 			},
 		},
-		&mock.AppStatusHandlerMock{},
-		&mock.MarshalizerMock{},
-		&libp2p.LocalSyncTimer{},
-	)
+	}
 
-	ncf.SetListenAddress(libp2p.ListenLocalhostAddrWithIp4AndTcp)
+	appStatusHandler := &mock.AppStatusHandlerMock{}
 
-	nc, err := ncf.Create()
-	require.NoError(t, err)
-	require.NotNil(t, nc)
+	return factory.NetworkComponentsFactoryArgs{
+		P2pConfig:     p2pConfig,
+		MainConfig:    mainConfig,
+		StatusHandler: appStatusHandler,
+		Marshalizer:   &mock.MarshalizerMock{},
+		RatingsConfig: config.RatingsConfig{
+			General:    config.General{},
+			ShardChain: config.ShardChain{},
+			MetaChain:  config.MetaChain{},
+			PeerHonesty: config.PeerHonestyConfig{
+				DecayCoefficient:             0.9779,
+				DecayUpdateIntervalInSeconds: 10,
+				MaxScore:                     100,
+				MinScore:                     -100,
+				BadPeerThreshold:             -80,
+				UnitValue:                    1.0,
+			},
+		},
+		Syncer: &libp2p.LocalSyncTimer{},
+	}
 }

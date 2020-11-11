@@ -1,4 +1,4 @@
-package node
+package node_test
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
@@ -22,7 +23,7 @@ import (
 func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	n, _ := NewNode()
+	n, _ := node.NewNode()
 	_, err := n.GetTransaction("zzz")
 	assert.Error(t, err)
 }
@@ -54,9 +55,9 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
-	require.Equal(t, transaction.TxStatusReceived, actualA.Status)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualB.Status)
-	require.Equal(t, transaction.TxStatusReceived, actualC.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
+	require.Equal(t, transaction.TxStatusPending, actualB.Status)
+	require.Equal(t, transaction.TxStatusPending, actualC.Status)
 
 	// Reward transactions
 
@@ -66,7 +67,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusPending, actualD.Status)
 
 	// Unsigned transactions
 
@@ -90,9 +91,9 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
-	require.Equal(t, transaction.TxStatusReceived, actualE.Status)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualF.Status)
-	require.Equal(t, transaction.TxStatusReceived, actualG.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
+	require.Equal(t, transaction.TxStatusPending, actualF.Status)
+	require.Equal(t, transaction.TxStatusPending, actualG.Status)
 }
 
 func TestNode_GetTransaction_FromStorage(t *testing.T) {
@@ -103,14 +104,15 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	// Normal transactions
 
 	// Cross-shard, we are source
+	internalMarshalizer := n.GetCoreComponents().InternalMarshalizer()
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
 	// Cross-shard, we are destination
 	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, internalMarshalizer)
 	// Intra-shard
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, internalMarshalizer)
 
 	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
 	require.Nil(t, err)
@@ -122,31 +124,31 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualB.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualC.Status)
 
 	// Reward transactions
 
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
-	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
+	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
-	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
 
 	// Unsigned transactions
 
 	// Cross-shard, we are source
 	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, internalMarshalizer)
 	// Cross-shard, we are destination
 	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, internalMarshalizer)
 	// Intra-shard
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, internalMarshalizer)
 
 	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
 	require.Nil(t, err)
@@ -158,17 +160,18 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
-	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualF.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
 	require.NotNil(t, err)
 	require.Nil(t, tx)
@@ -182,41 +185,42 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	// Normal transactions
 
 	// Cross-shard, we are source
+	internalMarshalizer := n.GetCoreComponents().InternalMarshalizer()
 	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 2, 42)
 
 	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
 	require.Nil(t, err)
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, 42, int(actualA.Epoch))
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualA.Status)
+	require.Equal(t, transaction.TxStatusPending, actualA.Status)
 
 	// Cross-shard, we are destination
 	txB := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 2, 1, 42)
 
 	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
 	require.Nil(t, err)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, 42, int(actualB.Epoch))
-	require.Equal(t, transaction.TxStatusExecuted, actualB.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualB.Status)
 
 	// Intra-shard
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 1, 42)
 
 	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
 	require.Nil(t, err)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
 	require.Equal(t, 42, int(actualC.Epoch))
-	require.Equal(t, transaction.TxStatusExecuted, actualC.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualC.Status)
 
 	// Invalid transaction
 	txInvalid := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.internalMarshalizer)
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42)
 
 	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")))
@@ -229,20 +233,20 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	// Reward transactions
 
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
-	chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, n.internalMarshalizer)
+	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42)
 
 	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualD.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualD.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
 
 	// Unsigned transactions
 
 	// Cross-shard, we are source
 	txE := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 2, 42)
 
 	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
@@ -250,11 +254,11 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualE.Epoch))
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualE.Type)
-	require.Equal(t, transaction.TxStatusPartiallyExecuted, actualE.Status)
+	require.Equal(t, transaction.TxStatusPending, actualE.Status)
 
 	// Cross-shard, we are destination
 	txF := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 2, 1, 42)
 
 	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
@@ -262,11 +266,11 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualF.Epoch))
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualF.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualF.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualF.Status)
 
 	// Intra-shard
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
-	chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, n.internalMarshalizer)
+	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 1, 42)
 
 	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
@@ -274,19 +278,20 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, 42, int(actualG.Epoch))
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
 	require.Equal(t, string(transaction.TxTypeUnsigned), actualG.Type)
-	require.Equal(t, transaction.TxStatusExecuted, actualG.Status)
+	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	require.Nil(t, tx)
+	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Contains(t, err.Error(), "fooError")
-	require.Nil(t, tx)
 
 	// Badly serialized transaction
-	chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
+	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return &dblookupext.MiniblockMetadata{}, nil
 	}
@@ -311,7 +316,7 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtDestinationInMetaHash:  []byte{12},
 	}
 
-	PutMiniblockFieldsInTransaction(tx, metadata)
+	node.PutMiniblockFieldsInTransaction(tx, metadata)
 
 	require.Equal(t, 42, int(tx.Epoch))
 	require.Equal(t, 4321, int(tx.Round))
@@ -326,7 +331,7 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 	require.Equal(t, "0c", tx.NotarizedAtDestinationInMetaHash)
 }
 
-func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
+func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*node.Node, *genericmocks.ChainStorerMock, *testscommon.PoolsHolderMock, *testscommon.HistoryRepositoryStub) {
 	chainStorer := genericmocks.NewChainStorerMock(epoch)
 	dataPool := testscommon.NewPoolsHolderMock()
 	marshalizer := &mock.MarshalizerFake{}
@@ -337,13 +342,20 @@ func createNode(t *testing.T, epoch uint32, withDbLookupExt bool) (*Node, *gener
 		},
 	}
 
-	n, err := NewNode(
-		WithDataPool(dataPool),
-		WithDataStore(chainStorer),
-		WithInternalMarshalizer(marshalizer, 0),
-		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		WithShardCoordinator(createShardCoordinator()),
-		WithHistoryRepository(historyRepo),
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = chainStorer
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = createShardCoordinator()
+	processComponents.HistoryRepositoryInternal = historyRepo
+
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	require.Nil(t, err)

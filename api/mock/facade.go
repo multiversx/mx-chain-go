@@ -19,7 +19,7 @@ import (
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
+	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
@@ -28,6 +28,7 @@ type Facade struct {
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
+	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                   func(query *process.SCQuery) (*vm.VMOutputApi, error)
 	StatusMetricsHandler                    func() external.StatusMetricsHandler
@@ -78,7 +79,7 @@ func (f *Facade) PprofEnabled() bool {
 }
 
 // TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
+func (f *Facade) TpsBenchmark() statistics.TPSBenchmark {
 	if f.TpsBenchmarkHandler != nil {
 		return f.TpsBenchmarkHandler()
 	}
@@ -145,6 +146,11 @@ func (f *Facade) ValidateTransaction(tx *transaction.Transaction) error {
 	return f.ValidateTransactionHandler(tx)
 }
 
+// ValidateTransactionForSimulation -
+func (f *Facade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	return f.ValidateTransactionForSimulationHandler(tx)
+}
+
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
 func (f *Facade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return f.ValidatorStatisticsHandler()
@@ -206,6 +212,11 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	}
 
 	return 0
+}
+
+// Close -
+func (f *Facade) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

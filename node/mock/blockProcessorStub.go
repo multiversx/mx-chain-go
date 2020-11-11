@@ -24,6 +24,7 @@ type BlockProcessorStub struct {
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) data.HeaderHandler
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, prevHeader data.HeaderHandler)
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	RevertIndexedBlockCalled         func(header data.HeaderHandler)
 }
 
 // RestoreLastNotarizedHrdsToGenesis -
@@ -100,6 +101,11 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) data.
 func (bps *BlockProcessorStub) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBlockTracker) {
 }
 
+// Close -
+func (bps *BlockProcessorStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
@@ -112,4 +118,11 @@ func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler) err
 	}
 
 	return nil
+}
+
+// RevertIndexedBlock -
+func (bps *BlockProcessorStub) RevertIndexedBlock(header data.HeaderHandler) {
+	if bps.RevertIndexedBlockCalled != nil {
+		bps.RevertIndexedBlockCalled(header)
+	}
 }

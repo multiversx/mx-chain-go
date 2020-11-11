@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundSignature struct {
@@ -19,6 +18,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	appStatusHandler core.AppStatusHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -29,23 +29,13 @@ func NewSubroundSignature(
 
 	srSignature := subroundSignature{
 		Subround:         baseSubround,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		appStatusHandler: appStatusHandler,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
 	srSignature.Extend = extend
 
 	return &srSignature, nil
-}
-
-// SetAppStatusHandler method set appStatusHandler
-func (sr *subroundSignature) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
 }
 
 func checkNewSubroundSignatureParams(
@@ -206,7 +196,15 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey())
 
 	threshold := sr.Threshold(sr.Current())
-	areSignaturesCollected, numSigs := sr.signaturesCollected(threshold)
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
+		threshold = sr.FallbackThreshold(sr.Current())
+		log.Warn("subroundSignature.doSignatureConsensusCheck: fallback validation has been applied",
+			"minimum number of signatures required", threshold,
+			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
+		)
+	}
+
+	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 	isTimeOut := sr.remainingTime() <= 0
 
@@ -234,9 +232,14 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
-// signaturesCollected method checks if the signatures received from the nodes, belonging to the current
+// areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
 // jobDone group, are more than the necessary given threshold
-func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
+func (sr *subroundSignature) areSignaturesCollected(threshold int) (bool, int) {
+	n := sr.getNumOfSignaturesCollected()
+	return n >= threshold, n
+}
+
+func (sr *subroundSignature) getNumOfSignaturesCollected() int {
 	n := 0
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
@@ -244,7 +247,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 
 		isSignJobDone, err := sr.JobDone(node, sr.Current())
 		if err != nil {
-			log.Debug("signaturesCollected.JobDone",
+			log.Debug("getNumOfSignaturesCollected.JobDone",
 				"node", node,
 				"subround", sr.Name(),
 				"error", err.Error())
@@ -256,7 +259,7 @@ func (sr *subroundSignature) signaturesCollected(threshold int) (bool, int) {
 		}
 	}
 
-	return n >= threshold, n
+	return n
 }
 
 func (sr *subroundSignature) waitAllSignatures() {

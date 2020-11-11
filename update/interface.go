@@ -189,6 +189,7 @@ type SigVerifier interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	MetaEpoch() uint32
+	ForceEpochStart()
 	IsInterfaceNil() bool
 }
 
@@ -235,8 +236,6 @@ type GenesisNodesSetupHandler interface {
 	InitialNodesInfo() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler)
 	GetStartTime() int64
 	GetRoundDuration() uint64
-	GetChainId() string
-	GetMinTransactionVersion() uint32
 	GetShardConsensusGroupSize() uint32
 	GetMetaConsensusGroupSize() uint32
 	MinNumberOfShardNodes() uint32
