@@ -164,12 +164,12 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 ) (map[string]*rewardInfoData, *big.Int) {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
-	accumulatedDust := big.NewInt(0)
+	accumulatedUnassigned := big.NewInt(0)
 
 	for shardID, shardValidatorsInfo := range validatorsInfo {
 		for i, validatorInfo := range shardValidatorsInfo {
 			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
-				accumulatedDust.Add(accumulatedDust, rewardsPerNode[shardID][i])
+				accumulatedUnassigned.Add(accumulatedUnassigned, rewardsPerNode[shardID][i])
 				continue
 			}
 
@@ -188,7 +188,7 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 		}
 	}
 
-	return rwdAddrValidatorInfo, accumulatedDust
+	return rwdAddrValidatorInfo, accumulatedUnassigned
 }
 
 // IsInterfaceNil return true if underlying object is nil
@@ -220,23 +220,6 @@ func (rc *rewardsCreatorV2) getEligibleNodesKeyMap(
 	}
 
 	return eligibleNodesKeys
-}
-
-func (rc *rewardsCreatorV2) getEligibleNodesStakeTopUp(eligibleNodesKeys map[uint32][][]byte) (map[uint32][]*big.Int, error) {
-	stakeTopUpPerNode := make(map[uint32][]*big.Int)
-
-	for shardID, shardKeys := range eligibleNodesKeys {
-		stakeTopUpPerNode[shardID] = make([]*big.Int, len(shardKeys))
-		for i, key := range shardKeys {
-			topUp, err := rc.stakingDataProvider.GetNodeStakedTopUp(key)
-			if err != nil {
-				return nil, err
-			}
-			stakeTopUpPerNode[shardID][i] = topUp
-		}
-	}
-
-	return stakeTopUpPerNode, nil
 }
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
@@ -295,14 +278,16 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 	// topUpRewardPerNodeInShardX = nodePowerInShardX*topUpRewardsShardX/totalPowerInShardX
 	for shardID, nodesPowerList := range nodesPower {
 		topUpRewardsPerNode[shardID] = make([]*big.Int, len(nodesPowerList))
+		if totalPowerInShard[shardID].Cmp(big.NewInt(0)) == 0 {
+			log.Warn("rewardsCreatorV2.computeTopUpRewardsPerNode",
+				"error", "shardPower zero",
+				"shardID", shardID)
+		}
+
 		for i, nodePower := range nodesPowerList {
 			if totalPowerInShard[shardID].Cmp(big.NewInt(0)) == 0 {
 				// avoid division by zero
-				log.Warn("rewardsCreatorV2.computeTopUpRewardsPerNode",
-					"error", "shardPower zero",
-					"shardID", shardID)
 				topUpRewardsPerNode[shardID][i] = big.NewInt(0)
-
 				continue
 			}
 
@@ -475,7 +460,7 @@ func (rc *rewardsCreatorV2) getTopUpForAllEligibleNodes(
 			if err != nil {
 				validatorsTopUp[shardID][i] = big.NewInt(0)
 
-				log.Error("getTopUpForAllEligible",
+				log.Warn("rewardsCreatorV2.getTopUpForAllEligible",
 					"error", err.Error(),
 					"blsKey", nodeInfo.GetPublicKey())
 				continue

@@ -32,10 +32,12 @@ func (es *epochEconomicsStatistics) SetNumberOfBlocks(nbBlocks uint64) {
 func (es *epochEconomicsStatistics) SetNumberOfBlocksPerShard(blocksPerShard map[uint32]uint64) {
 	es.mutEconomicsStatistics.Lock()
 	defer es.mutEconomicsStatistics.Unlock()
+	es.numberOfBlocks = 0
 
 	es.numberOfBlocksPerShard = make(map[uint32]uint64)
 	for k, v := range blocksPerShard {
 		es.numberOfBlocksPerShard[k] = v
+		es.numberOfBlocks += v
 	}
 }
 
