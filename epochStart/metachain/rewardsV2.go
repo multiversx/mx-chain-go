@@ -245,8 +245,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	// totalTopUpEligible is the cumulative top-up stake value for eligible nodes
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
-	topUpRewardsFloat := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
-	topUpRewards, _ := topUpRewardsFloat.Int(nil)
+	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
 	nbBlocksBigInt := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
 	baseRewardsPerBlock := big.NewInt(0).Div(baseRewards, nbBlocksBigInt)
@@ -310,20 +309,24 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 //     x is the cumulative top-up stake value for eligible nodes
 //     p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
 //     pi is the mathematical constant pi = 3.1415...
-func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Float {
+func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Int {
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
 	k := core.GetPercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
 	// p is the cumulative eligible stake where rewards per day reach 1/2 of k (constant)
 	// x/p - argument for atan
-	arg := big.NewInt(0).Div(totalTopUpEligible, rc.topUpGradientPoint)
-	floatArg, _ := new(big.Float).SetInt(arg).Float64()
+	totalTopUpEligibleFloat := new(big.Float).SetInt(totalTopUpEligible)
+	topUpGradientPointFloat :=new(big.Float).SetInt(rc.topUpGradientPoint)
+
+	floatArg, _ := big.NewFloat(0).Quo(totalTopUpEligibleFloat, topUpGradientPointFloat).Float64()
 	// atan(x/p)
 	res1 := math.Atan(floatArg)
 	// 2*k/pi
 	res2 := new(big.Float).SetInt(big.NewInt(0).Mul(k, big.NewInt(2)))
 	res2 = new(big.Float).Quo(res2, big.NewFloat(math.Pi))
 	// topUpReward:= (2*k/pi)*atan(x/p)
-	return new(big.Float).Mul(big.NewFloat(res1), res2)
+	topUpRewards, _:= new(big.Float).Mul(big.NewFloat(res1), res2).Int(nil)
+
+	return topUpRewards
 }
 
 // top-Up rewards are distributed to shard nodes, depending on the top-up ratio and the number of blocks
@@ -336,7 +339,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerShard(
 	shardsTopUp := computeTopUpPerShard(stakeTopUpPerNode)
 	totalPower, shardPower := computeShardsPower(shardsTopUp, blocksPerShard)
 
-	return computeTopUpRewardsPerShard(shardPower, totalPower, topUpRewards)
+	return computeRewardsForPowerPerShard(shardPower, totalPower, topUpRewards)
 }
 
 func computeShardsPower(
@@ -348,7 +351,7 @@ func computeShardsPower(
 	// shardXPower = shardXTopUp * shardXProducedBlocks
 	for shardID, nbBlocks := range blocksPerShard {
 		shardPower[shardID] = big.NewInt(0).Mul(big.NewInt(int64(nbBlocks)), shardsTopUp[shardID])
-		_ = totalPower.Add(totalPower, shardPower[shardID])
+		totalPower.Add(totalPower, shardPower[shardID])
 	}
 	return totalPower, shardPower
 }
@@ -358,13 +361,13 @@ func computeTopUpPerShard(stakeTopUpPerNode map[uint32][]*big.Int) map[uint32]*b
 	for shardID, nodesTopUpList := range stakeTopUpPerNode {
 		shardsTopUp[shardID] = big.NewInt(0)
 		for _, nodeTopUp := range nodesTopUpList {
-			_ = shardsTopUp[shardID].Add(shardsTopUp[shardID], nodeTopUp)
+			shardsTopUp[shardID].Add(shardsTopUp[shardID], nodeTopUp)
 		}
 	}
 	return shardsTopUp
 }
 
-func computeTopUpRewardsPerShard(
+func computeRewardsForPowerPerShard(
 	shardPower map[uint32]*big.Int,
 	totalPower *big.Int,
 	topUpRewards *big.Int,
@@ -381,11 +384,8 @@ func computeTopUpRewardsPerShard(
 
 	// shardXTopUpRewards = shardXPower/totalPower * topUpRewards
 	for shardID, power := range shardPower {
-		ratioShardPower := new(big.Float).SetInt(power)
-		_ = ratioShardPower.Quo(ratioShardPower, new(big.Float).SetInt(totalPower))
-		rewardsTopUpPerShard[shardID], _ = big.NewFloat(0).
-			Mul(ratioShardPower, new(big.Float).SetInt(topUpRewards)).
-			Int(nil)
+		rewardsTopUpPerShard[shardID] = big.NewInt(0).Mul(power, topUpRewards)
+		rewardsTopUpPerShard[shardID].Div(rewardsTopUpPerShard[shardID], totalPower)
 	}
 
 	return rewardsTopUpPerShard
@@ -473,4 +473,3 @@ func (rc *rewardsCreatorV2) prepareRewardsData(
 
 	return nil
 }
-
