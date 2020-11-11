@@ -214,7 +214,7 @@ func TestDelegationProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -222,7 +222,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -242,7 +242,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../gasScheduleV2.toml")
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
 	defer testContext.Close()
 
