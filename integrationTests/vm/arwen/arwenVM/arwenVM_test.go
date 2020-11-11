@@ -157,7 +157,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm")
+	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/output/cpucalculate.wasm")
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
@@ -184,12 +184,12 @@ func TestWASMMetering(t *testing.T) {
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	aliceInitialBalance := uint64(3000)
+	aliceInitialBalance := uint64(3000000)
 	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(500)
+	gasLimit = uint64(500000)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
@@ -198,7 +198,7 @@ func TestWASMMetering(t *testing.T) {
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte("_main"),
+		Data:      []byte("cpuCalculate"),
 		Signature: nil,
 	}
 
@@ -206,7 +206,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	expectedBalance := big.NewInt(2615)
+	expectedBalance := big.NewInt(2998094)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -220,7 +220,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 370, int(consumedGasValue))
+	require.Equal(t, 1891, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
