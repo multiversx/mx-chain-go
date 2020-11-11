@@ -203,7 +203,7 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 		if indexTemplate != nil {
 			err := ei.elasticClient.CheckAndCreateTemplate(index, indexTemplate)
 			if err != nil {
-				log.Error("cehck and create template", "err", err)
+				log.Error("check and create template", "err", err)
 				return err
 			}
 		}
@@ -217,7 +217,7 @@ func (ei *elasticProcessor) createIndexes() error {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
 		if err != nil {
-			log.Error("cehck and create index", "err", err)
+			log.Error("check and create index", "err", err)
 			return err
 		}
 	}
@@ -230,7 +230,7 @@ func (ei *elasticProcessor) createAliases() error {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
 		if err != nil {
-			log.Error("cehck and create alias", "err", err)
+			log.Error("check and create alias", "err", err)
 			return err
 		}
 	}
