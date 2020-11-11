@@ -24,6 +24,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -291,9 +292,9 @@ func deployAndExecuteERC20WithBigInt(
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	for batch := 0; batch < numRun; batch++ {
 		start := time.Now()
@@ -301,9 +302,9 @@ func deployAndExecuteERC20WithBigInt(
 		for i := 0; i < numTransferInBatch; i++ {
 			tx = vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
 
-			_, err = testContext.TxProcessor.ProcessTransaction(tx)
+			returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
-			require.Nil(t, testContext.GetLatestError())
+			require.Equal(t, returnCode, vmcommon.Ok)
 			aliceNonce++
 		}
 
