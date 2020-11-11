@@ -430,7 +430,9 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 	t.Parallel()
 
-	blsKey := []byte("blsKey1")
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	blsKey3 := []byte("blsKey3")
 	signature := []byte("sig1")
 	callValue := big.NewInt(130)
 	vmInputArgs := make([][]byte, 0)
@@ -472,17 +474,17 @@ func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
 
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
-	vmInput.Arguments = append(vmInputArgs, [][]byte{blsKey, blsKey}...)
+	vmInput.Arguments = append(vmInputArgs, [][]byte{blsKey1, blsKey1}...)
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrDuplicatesFoundInArguments.Error()))
 
-	vmInput.Arguments = append(vmInputArgs, blsKey)
+	vmInput.Arguments = append(vmInputArgs, [][]byte{blsKey1, blsKey2, blsKey3}...)
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "arguments must be of pair length - BLSKey and signedMessage"))
 
-	vmInput.Arguments = append(vmInput.Arguments, signature)
+	vmInput.Arguments = append(vmInputArgs, [][]byte{blsKey1, signature}...)
 	eei.gasRemaining = 10
 	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
 	output = d.Execute(vmInput)
@@ -494,7 +496,7 @@ func TestDelegationSystemSC_ExecuteAddNodesUserErrors(t *testing.T) {
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidBLSKeys.Error()))
-	assert.Equal(t, blsKey, eei.output[0])
+	assert.Equal(t, blsKey1, eei.output[0])
 	assert.Equal(t, []byte{invalidKey}, eei.output[1])
 }
 
@@ -3352,9 +3354,6 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	maxDelegationCap := big.NewInt(200)
 	serviceFee := uint64(10000)
 	initialOwnerFunds := big.NewInt(500)
-	automaticActivation := false
-	withDelegationCap := true
-	changeableServiceFee := true
 	createdNonce := uint64(100)
 	unBondPeriod := uint64(144000)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
@@ -3362,9 +3361,9 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 		ServiceFee:           serviceFee,
 		MaxDelegationCap:     maxDelegationCap,
 		InitialOwnerFunds:    initialOwnerFunds,
-		AutomaticActivation:  automaticActivation,
-		WithDelegationCap:    withDelegationCap,
-		ChangeableServiceFee: changeableServiceFee,
+		AutomaticActivation:  false,
+		WithDelegationCap:    true,
+		ChangeableServiceFee: true,
 		CreatedNonce:         createdNonce,
 		UnBondPeriod:         unBondPeriod,
 	})

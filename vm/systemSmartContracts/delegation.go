@@ -240,8 +240,13 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
+	withDelegationCap := true
+	if maxDelegationCap.Cmp(zero) == 0 {
+		withDelegationCap = false
+	}
+
 	initialOwnerFunds := big.NewInt(0).Set(args.CallValue)
-	if initialOwnerFunds.Cmp(maxDelegationCap) > 0 {
+	if initialOwnerFunds.Cmp(maxDelegationCap) > 0 && withDelegationCap {
 		d.eei.AddReturnMessage("call value is higher than max delegation cap")
 		return vmcommon.UserError
 	}
@@ -255,15 +260,12 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		MaxDelegationCap:     maxDelegationCap,
 		InitialOwnerFunds:    initialOwnerFunds,
 		AutomaticActivation:  false,
-		WithDelegationCap:    true,
+		WithDelegationCap:    withDelegationCap,
 		ChangeableServiceFee: true,
 		CreatedNonce:         d.eei.BlockChainHook().CurrentNonce(),
 		UnBondPeriod:         d.unBondPeriod,
 	}
 
-	if dConfig.MaxDelegationCap.Cmp(zero) == 0 {
-		dConfig.WithDelegationCap = false
-	}
 	err := d.saveDelegationContractConfig(dConfig)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
