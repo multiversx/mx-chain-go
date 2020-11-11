@@ -1651,6 +1651,7 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithChainID(tpn.ChainID),
 		node.WithMinTransactionVersion(tpn.MinTransactionVersion),
 		node.WithHistoryRepository(tpn.HistoryRepository),
+		node.WithIndexer(indexer.NewNilIndexer()),
 		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
 		node.WithWhiteListHandler(tpn.WhiteListHandler),
 	)

@@ -63,11 +63,15 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
+
 	//unStake 3 nodes
 	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-3], "unStaked")
 
 	//remove nodes should fail because they are not unBonded
 	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake-3])
@@ -348,7 +352,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstDelegators, delegationScAddress, firstDelegatorsValue)
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastDelegators, delegationScAddress, lastDelegatorsValue)
 
-	// stake 3 nodes
+	// stake 5 nodes
 	txData = txDataForFunc("stakeNodes", blsKeys)
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
@@ -379,6 +383,74 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
 }
 
+func TestDelegationUnJail(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(10000) // 10%
+	totalNumNodes := 5
+	numDelegators := 4
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+
+	// add 5 nodes to the delegation contract
+	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
+	txData := addNodesTxData(blsKeys, sigs)
+	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// 4 delegators fill the delegation cap
+	delegators := getAddresses(numDelegators)
+	firstDelegators := delegators[:2]
+	firstDelegatorsValue := big.NewInt(1500)
+	lastDelegators := delegators[2:]
+	lastDelegatorsValue := big.NewInt(500)
+	processMultipleTransactions(t, tpn, firstDelegators, delegationScAddress, "delegate", firstDelegatorsValue)
+	processMultipleTransactions(t, tpn, lastDelegators, delegationScAddress, "delegate", lastDelegatorsValue)
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstDelegators, delegationScAddress, firstDelegatorsValue)
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastDelegators, delegationScAddress, lastDelegatorsValue)
+
+	// stake 5 nodes
+	txData = txDataForFunc("stakeNodes", blsKeys)
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// jail 2 bls keys
+	txData = txDataForFunc("jail", blsKeys[:2])
+	returnedCode, err = processTransaction(tpn, vm.JailingAddress, vm.StakingSCAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:2], "jailed")
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[2:], "staked")
+
+	// unJail blsKeys
+	txData = txDataForFunc("unJailNodes", blsKeys[:2])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(20))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:2], "staked")
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[2:], "staked")
+}
+
+func checkNodesStatus(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	destAddr []byte,
+	blsKeys [][]byte,
+	expectedStatus string,
+) {
+	for i := range blsKeys {
+		txData := txDataForFunc("getBLSKeyStatus", [][]byte{blsKeys[i]})
+		nodeStatus := viewFuncSingleResult(t, tpn, txData, destAddr)
+		assert.Equal(t, expectedStatus, string(nodeStatus))
+	}
+}
+
 func checkDelegatorReward(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
@@ -387,7 +459,7 @@ func checkDelegatorReward(
 	expectedRewards int64,
 ) {
 	txData := "getClaimableRewards@" + hex.EncodeToString(delegAddr)
-	delegRewards := delegationViewFuncSingleResult(t, tpn, txData, delegScAddr)
+	delegRewards := viewFuncSingleResult(t, tpn, txData, delegScAddr)
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), delegRewards)
 
 }
@@ -402,7 +474,7 @@ func checkRewardData(
 	expectedServiceFee *big.Int,
 ) {
 	txData := "getRewardData@" + hex.EncodeToString([]byte{epoch})
-	epoch0RewardData := delegationViewFuncMultipleResults(t, tpn, txData, delegScAddr)
+	epoch0RewardData := viewFuncMultipleResults(t, tpn, txData, delegScAddr)
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), epoch0RewardData[0])
 	assert.Equal(t, big.NewInt(expectedTotalActive).Bytes(), epoch0RewardData[1])
 	assert.Equal(t, expectedServiceFee.Bytes(), epoch0RewardData[2])
@@ -444,7 +516,7 @@ func verifyDelegatorsStake(
 ) {
 	for i := range addresses {
 		txData := txDataForFunc(funcName, [][]byte{addresses[i]})
-		delegActiveStake := delegationViewFuncSingleResult(t, tpn, txData, delegationAddr)
+		delegActiveStake := viewFuncSingleResult(t, tpn, txData, delegationAddr)
 		assert.Equal(t, expectedRes, big.NewInt(0).SetBytes(delegActiveStake))
 	}
 }
@@ -484,7 +556,7 @@ func deployNewSc(
 	return []byte{}
 }
 
-func delegationViewFuncSingleResult(
+func viewFuncSingleResult(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
 	txData string,
@@ -498,7 +570,7 @@ func delegationViewFuncSingleResult(
 	return res
 }
 
-func delegationViewFuncMultipleResults(
+func viewFuncMultipleResults(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
 	txData string,

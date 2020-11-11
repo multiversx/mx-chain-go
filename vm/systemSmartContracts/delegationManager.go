@@ -99,9 +99,11 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	return d, nil
 }
 
-// Execute  calls one of the functions from the delegation manager contract and runs the code according to the input
+// Execute calls one of the functions from the delegation manager contract and runs the code according to the input
 func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if CheckIfNil(args) != nil {
+	err := CheckIfNil(args)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
@@ -129,7 +131,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 
 func (d *delegationManager) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage("callValue must be 0")
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
 
@@ -224,6 +226,7 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 
 	return vmcommon.Ok
 }
+
 func (d *delegationManager) checkConfigChangeInput(args *vmcommon.ContractCallInput) error {
 	if args.CallValue.Cmp(zero) != 0 {
 		return vm.ErrCallValueMustBeZero
@@ -377,7 +380,7 @@ func (d *delegationManager) saveDelegationContractList(list *DelegationContractL
 	return nil
 }
 
-// EpochConfirmed  is called whenever a new epoch is confirmed
+// EpochConfirmed is called whenever a new epoch is confirmed
 func (d *delegationManager) EpochConfirmed(epoch uint32) {
 	d.delegationMgrEnabled.Toggle(epoch >= d.enableDelegationMgrEpoch)
 	log.Debug("delegationManager", "enabled", d.delegationMgrEnabled.IsSet())

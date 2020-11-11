@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
@@ -1053,6 +1054,7 @@ func TestStartConsensus_NilSyncTimer(t *testing.T) {
 		node.WithBlockChain(chainHandler),
 		node.WithRounder(&mock.RounderMock{}),
 		node.WithGenesisTime(time.Now().Local()),
+		node.WithIndexer(&mock.IndexerMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1135,6 +1137,7 @@ func TestStartConsensus_ShardBootstrapperNilAccounts(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithDataStore(&mock.ChainStorerMock{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(&mock.IndexerMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1185,6 +1188,7 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(&mock.IndexerMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1232,6 +1236,7 @@ func TestStartConsensus_MetaBootstrapperNilPoolHolder(t *testing.T) {
 		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{}),
 		node.WithPendingMiniBlocksHandler(&mock.PendingMiniBlocksHandlerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(&mock.IndexerMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1261,6 +1266,7 @@ func TestStartConsensus_MetaBootstrapperWrongNumberShards(t *testing.T) {
 		node.WithDataPool(testscommon.NewPoolsHolderStub()),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(&mock.IndexerMock{}),
 	)
 
 	err := n.StartConsensus()
@@ -1345,6 +1351,7 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInternalMarshalizer(&mock.MarshalizerMock{}, 0),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(indexer.NewNilIndexer()),
 	)
 
 	err := n.StartConsensus()
@@ -1428,6 +1435,7 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		node.WithUint64ByteSliceConverter(mock.NewNonceHashConverterMock()),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
+		node.WithIndexer(indexer.NewNilIndexer()),
 	)
 
 	err := n.StartConsensus()
@@ -1544,6 +1552,7 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		node.WithInterceptorsContainer(&mock.InterceptorsContainerStub{}),
 		node.WithWatchdogTimer(&mock.WatchdogMock{}),
 		node.WithPeerSignatureHandler(&mock.PeerSignatureHandler{}),
+		node.WithIndexer(indexer.NewNilIndexer()),
 	)
 
 	err := n.StartConsensus()

@@ -48,6 +48,12 @@ type sendMultipleTxsResponse struct {
 	Code  string                      `json:"code"`
 }
 
+type simulateTxResponse struct {
+	Data  interface{} `json:"data"`
+	Error string      `json:"error"`
+	Code  string      `json:"code"`
+}
+
 type sendSingleTxResponseData struct {
 	TxHash string `json:"txHash"`
 }
@@ -555,6 +561,216 @@ func TestComputeTransactionGasLimit(t *testing.T) {
 	assert.Equal(t, expectedGasLimit, txCostResp.Data.Cost)
 }
 
+func TestSimulateTransaction_BadRequestShouldErr(t *testing.T) {
+	t.Parallel()
+
+	facade := mock.Facade{}
+	ws := startNodeServer(&facade)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer([]byte("invalid bytes")))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+}
+
+func TestSimulateTransaction_CreateErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	processTxWasCalled := false
+
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+			processTxWasCalled = true
+			return &tr.SimulationResults{
+				Status:     "ok",
+				FailReason: "no reason",
+				ScResults:  nil,
+				Receipts:   nil,
+				Hash:       "hash",
+			}, nil
+		},
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*tr.Transaction, []byte, error) {
+			return nil, nil, expectedErr
+		},
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+			return nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.False(t, processTxWasCalled)
+	assert.Contains(t, simulateResponse.Error, expectedErr.Error())
+}
+
+func TestSimulateTransaction_ValidateErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	processTxWasCalled := false
+
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+			processTxWasCalled = true
+			return &tr.SimulationResults{
+				Status:     "ok",
+				FailReason: "no reason",
+				ScResults:  nil,
+				Receipts:   nil,
+				Hash:       "hash",
+			}, nil
+		},
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*tr.Transaction, []byte, error) {
+			return &tr.Transaction{}, []byte("hash"), nil
+		},
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+			return expectedErr
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.False(t, processTxWasCalled)
+	assert.Contains(t, simulateResponse.Error, expectedErr.Error())
+}
+
+func TestSimulateTransaction_ProcessErrorsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	facade := mock.Facade{
+		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+			return nil, expectedErr
+		},
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*tr.Transaction, []byte, error) {
+			return &tr.Transaction{}, []byte("hash"), nil
+		},
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+			return nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.Code)
+	assert.Contains(t, simulateResponse.Error, expectedErr.Error())
+}
+
+func TestSimulateTransaction(t *testing.T) {
+	t.Parallel()
+
+	processTxWasCalled := false
+
+	facade := mock.Facade{
+		SimulateTransactionExecutionHandler: func(tx *tr.Transaction) (*tr.SimulationResults, error) {
+			processTxWasCalled = true
+			return &tr.SimulationResults{
+				Status:     "ok",
+				FailReason: "no reason",
+				ScResults:  nil,
+				Receipts:   nil,
+				Hash:       "hash",
+			}, nil
+		},
+		CreateTransactionHandler: func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64, gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*tr.Transaction, []byte, error) {
+			return &tr.Transaction{}, []byte("hash"), nil
+		},
+		ValidateTransactionForSimulationHandler: func(tx *tr.Transaction) error {
+			return nil
+		},
+	}
+	ws := startNodeServer(&facade)
+
+	tx := transaction.SendTxRequest{
+		Sender:    "sender1",
+		Receiver:  "receiver1",
+		Value:     "100",
+		Data:      make([]byte, 0),
+		Nonce:     0,
+		GasPrice:  0,
+		GasLimit:  0,
+		Signature: "",
+	}
+	jsonBytes, _ := json.Marshal(tx)
+
+	req, _ := http.NewRequest("POST", "/transaction/simulate", bytes.NewBuffer(jsonBytes))
+
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	simulateResponse := simulateTxResponse{}
+	loadResponse(resp.Body, &simulateResponse)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.True(t, processTxWasCalled)
+	assert.Equal(t, string(shared.ReturnCodeSuccess), simulateResponse.Code)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -603,6 +819,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/cost", Open: true},
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
+					{Name: "/simulate", Open: true},
 				},
 			},
 		},

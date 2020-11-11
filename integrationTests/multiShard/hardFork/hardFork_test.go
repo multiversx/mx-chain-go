@@ -195,8 +195,8 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		for _, node := range nodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
 		}
 
 		for _, player := range players {
@@ -326,8 +326,8 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, consensusNodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(consensusNodes)
 		for _, node := range consensusNodes {
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
-			integrationTests.CreateAndSendTransaction(node, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, allNodes, sendValue, receiverAddress1, "", integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, allNodes, sendValue, receiverAddress2, "", integrationTests.AdditionalGasLimit)
 		}
 
 		for _, player := range players {

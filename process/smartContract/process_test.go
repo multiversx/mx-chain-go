@@ -2091,14 +2091,14 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 		GasRemaining: maxGasToRemain,
 	}
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, uint64(maxGasToRemain), vmOutput.GasRemaining)
+	assert.Equal(t, maxGasToRemain, vmOutput.GasRemaining)
 
 	callType = vmcommon.AsynchronousCall
 	vmOutput = &vmcommon.VMOutput{
 		GasRemaining: maxGasToRemain + 1,
 	}
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
 
 	callType = vmcommon.DirectCall
 	vmOutput = &vmcommon.VMOutput{
@@ -2143,7 +2143,7 @@ func TestScProcessor_penalizeUserIfNeededShouldWorkOnFlagActivation(t *testing.T
 
 	sc.EpochConfirmed(0)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
-	assert.Equal(t, uint64(maxGasToRemain+1), vmOutput.GasRemaining)
+	assert.Equal(t, maxGasToRemain+1, vmOutput.GasRemaining)
 
 	sc.EpochConfirmed(1)
 	sc.penalizeUserIfNeeded(&transaction.Transaction{}, []byte("txHash"), callType, gasProvided, vmOutput)
