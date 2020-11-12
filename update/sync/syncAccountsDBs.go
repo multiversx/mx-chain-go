@@ -66,6 +66,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 	wg := sync.WaitGroup{}
 	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
 
+	// TODO: might think of a way to stop waiting at a signal
 	chDone := make(chan bool)
 	go func() {
 		wg.Wait()

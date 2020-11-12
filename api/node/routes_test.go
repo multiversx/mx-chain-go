@@ -179,7 +179,7 @@ func TestStatistics_ReturnsSuccessfully(t *testing.T) {
 	benchmark, _ := statistics.NewTPSBenchmark(nrOfShards, roundTime)
 
 	facade := mock.Facade{}
-	facade.TpsBenchmarkHandler = func() *statistics.TpsBenchmark {
+	facade.TpsBenchmarkHandler = func() statistics.TPSBenchmark {
 		return benchmark
 	}
 

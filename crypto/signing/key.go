@@ -1,7 +1,7 @@
 package signing
 
 import (
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
@@ -53,7 +53,7 @@ func (kg *keyGenerator) GeneratePair() (crypto.PrivateKey, crypto.PublicKey) {
 
 // PrivateKeyFromByteArray generates a private key given a byte array
 func (kg *keyGenerator) PrivateKeyFromByteArray(b []byte) (crypto.PrivateKey, error) {
-	if b == nil {
+	if len(b) == 0 {
 		return nil, crypto.ErrInvalidParam
 	}
 	sc := kg.suite.CreateScalar()

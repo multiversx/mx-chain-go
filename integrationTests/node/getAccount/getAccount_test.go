@@ -15,9 +15,15 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	trieStorage, _ := integrationTests.CreateTrieStorageManager()
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
+
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
@@ -43,11 +49,16 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	_ = accDB.SaveAccount(account)
 	_, _ = accDB.Commit()
 
-	n, _ := node.NewNode(
-		node.WithAccountsAdapter(accDB),
-		node.WithAddressPubkeyConverter(integrationTests.TestAddressPubkeyConverter),
-	)
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
 
+	stateComponents := integrationTests.GetDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
+	)
 	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(addressBytes)
 	recovAccnt, err := n.GetAccount(encodedAddress)
 

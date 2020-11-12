@@ -9,10 +9,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/node"
 )
 
-var _ node.Accumulator = (*timeAccumulator)(nil)
+var _ core.Accumulator = (*timeAccumulator)(nil)
 
 const minimumAlowedTime = time.Millisecond * 10
 
@@ -117,8 +116,9 @@ func (ta *timeAccumulator) doEviction() bool {
 }
 
 // Close stops the time accumulator's eviction loop and closes the output chan
-func (ta *timeAccumulator) Close() {
+func (ta *timeAccumulator) Close() error {
 	ta.cancel()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

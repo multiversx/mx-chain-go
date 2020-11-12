@@ -56,6 +56,7 @@ type CommonMessengerArgs struct {
 	InterceptorsContainer      process.InterceptorsContainer
 	MaxDelayCacheSize          uint32
 	MaxValidatorDelayCacheSize uint32
+	AlarmScheduler             core.TimersScheduler
 }
 
 func checkCommonMessengerNilParameters(
@@ -84,6 +85,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.HeadersSubscriber) {
 		return spos.ErrNilHeadersSubscriber
+	}
+	if check.IfNil(args.AlarmScheduler) {
+		return spos.ErrNilAlarmScheduler
 	}
 	if args.MaxDelayCacheSize == 0 || args.MaxValidatorDelayCacheSize == 0 {
 		return spos.ErrInvalidCacheSize
@@ -124,7 +128,7 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte) err
 	}
 
 	if len(miniBlocks) > 0 {
-		log.Debug("sent miniblocks",
+		log.Debug("commonMessenger.BroadcastMiniBlocks",
 			"num minblocks", len(miniBlocks),
 		)
 	}
@@ -155,7 +159,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	}
 
 	if txs > 0 {
-		log.Debug("sent transactions",
+		log.Debug("commonMessenger.BroadcastTransactions",
 			"num txs", txs,
 		)
 	}
@@ -174,7 +178,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	if len(miniBlocks) > 0 {
 		err := cm.BroadcastMiniBlocks(miniBlocks)
 		if err != nil {
-			log.Warn("broadcast.BroadcastMiniBlocks", "error", err.Error())
+			log.Warn("commonMessenger.BroadcastBlockData: broadcast miniblocks", "error", err.Error())
 		}
 	}
 
@@ -183,7 +187,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions)
 		if err != nil {
-			log.Warn("broadcast.BroadcastTransactions", "error", err.Error())
+			log.Warn("commonMessenger.BroadcastBlockData: broadcast transactions", "error", err.Error())
 		}
 	}
 }

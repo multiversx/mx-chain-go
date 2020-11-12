@@ -106,6 +106,7 @@ type HeadersPoolSubscriber interface {
 type PeerHonestyHandler interface {
 	ChangeScore(pk string, topic string, units int)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // InterceptorSubscriber can subscribe for notifications when data is received by an interceptor

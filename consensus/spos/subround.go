@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.SubroundHandler = (*Subround)(nil)
@@ -51,6 +50,7 @@ func NewSubround(
 	container ConsensusCoreHandler,
 	chainID []byte,
 	currentPid core.PeerID,
+	appStatusHandler core.AppStatusHandler,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
@@ -58,6 +58,7 @@ func NewSubround(
 		executeStoredMessages,
 		container,
 		chainID,
+		appStatusHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -78,7 +79,7 @@ func NewSubround(
 		Job:                          nil,
 		Check:                        nil,
 		Extend:                       nil,
-		appStatusHandler:             statusHandler.NewNilStatusHandler(),
+		appStatusHandler:             appStatusHandler,
 		currentPid:                   currentPid,
 	}
 
@@ -91,6 +92,7 @@ func checkNewSubroundParams(
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
 	chainID []byte,
+	appStatusHandler core.AppStatusHandler,
 ) error {
 	err := ValidateConsensusCore(container)
 	if err != nil {
@@ -107,6 +109,9 @@ func checkNewSubroundParams(
 	}
 	if len(chainID) == 0 {
 		return ErrInvalidChainID
+	}
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -186,16 +191,6 @@ func (sr *Subround) ChainID() []byte {
 // CurrentPid returns the current p2p peer ID
 func (sr *Subround) CurrentPid() core.PeerID {
 	return sr.currentPid
-}
-
-// SetAppStatusHandler method sets appStatusHandler
-func (sr *Subround) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-	sr.appStatusHandler = ash
-
-	return nil
 }
 
 // AppStatusHandler method returns the appStatusHandler instance

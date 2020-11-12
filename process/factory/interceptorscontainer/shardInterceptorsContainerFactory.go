@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -17,52 +16,40 @@ var _ process.InterceptorsContainerFactory = (*shardInterceptorsContainerFactory
 // shardInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type shardInterceptorsContainerFactory struct {
 	*baseInterceptorsContainerFactory
-	keyGen       crypto.KeyGenerator
-	singleSigner crypto.SingleSigner
 }
 
 // NewShardInterceptorsContainerFactory is responsible for creating a new interceptors factory object
 func NewShardInterceptorsContainerFactory(
 	args ShardInterceptorsContainerFactoryArgs,
 ) (*shardInterceptorsContainerFactory, error) {
-	if args.SizeCheckDelta > 0 {
-		args.ProtoMarshalizer = marshal.NewSizeCheckUnmarshalizer(args.ProtoMarshalizer, args.SizeCheckDelta)
-	}
 	err := checkBaseParams(
+		args.CoreComponents,
+		args.CryptoComponents,
 		args.ShardCoordinator,
 		args.Accounts,
-		args.ProtoMarshalizer,
-		args.TxSignMarshalizer,
-		args.Hasher,
 		args.Store,
 		args.DataPool,
 		args.Messenger,
-		args.MultiSigner,
 		args.NodesCoordinator,
 		args.BlockBlackList,
 		args.AntifloodHandler,
 		args.WhiteListHandler,
 		args.WhiteListerVerifiedTxs,
-		args.AddressPubkeyConverter,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	if check.IfNil(args.KeyGen) {
-		return nil, process.ErrNilKeyGen
+	if args.SizeCheckDelta > 0 {
+		intMarshalizer := marshal.NewSizeCheckUnmarshalizer(args.CoreComponents.InternalMarshalizer(), args.SizeCheckDelta)
+		err = args.CoreComponents.SetInternalMarshalizer(intMarshalizer)
+		if err != nil {
+			return nil, err
+		}
 	}
-	if check.IfNil(args.SingleSigner) {
-		return nil, process.ErrNilSingleSigner
-	}
+
 	if check.IfNil(args.TxFeeHandler) {
 		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.BlockSignKeyGen) {
-		return nil, process.ErrNilKeyGen
-	}
-	if check.IfNil(args.BlockSingleSigner) {
-		return nil, process.ErrNilSingleSigner
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return nil, process.ErrNilHeaderSigVerifier
@@ -76,25 +63,12 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if len(args.ChainID) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
-	if args.MinTransactionVersion == 0 {
-		return nil, process.ErrInvalidTransactionVersion
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:        args.ProtoMarshalizer,
-		TxSignMarshalizer:       args.TxSignMarshalizer,
-		Hasher:                  args.Hasher,
+		CoreComponents:          args.CoreComponents,
+		CryptoComponents:        args.CryptoComponents,
 		ShardCoordinator:        args.ShardCoordinator,
-		MultiSigVerifier:        args.MultiSigner,
 		NodesCoordinator:        args.NodesCoordinator,
-		KeyGen:                  args.KeyGen,
-		BlockKeyGen:             args.BlockSignKeyGen,
-		Signer:                  args.SingleSigner,
-		BlockSigner:             args.BlockSingleSigner,
-		AddressPubkeyConv:       args.AddressPubkeyConverter,
 		FeeHandler:              args.TxFeeHandler,
 		HeaderSigVerifier:       args.HeaderSigVerifier,
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
@@ -102,8 +76,6 @@ func NewShardInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              args.ArgumentsParser,
-		ChainID:                 args.ChainID,
-		MinTransactionVersion:   args.MinTransactionVersion,
 	}
 
 	container := containers.NewInterceptorsContainer()
@@ -113,9 +85,6 @@ func NewShardInterceptorsContainerFactory(
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
 		store:                  args.Store,
-		marshalizer:            args.ProtoMarshalizer,
-		hasher:                 args.Hasher,
-		multiSigner:            args.MultiSigner,
 		dataPool:               args.DataPool,
 		nodesCoordinator:       args.NodesCoordinator,
 		argInterceptorFactory:  argInterceptorFactory,
@@ -124,13 +93,10 @@ func NewShardInterceptorsContainerFactory(
 		antifloodHandler:       args.AntifloodHandler,
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		addressPubkeyConverter: args.AddressPubkeyConverter,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
 		baseInterceptorsContainerFactory: base,
-		keyGen:                           args.KeyGen,
-		singleSigner:                     args.SingleSigner,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)

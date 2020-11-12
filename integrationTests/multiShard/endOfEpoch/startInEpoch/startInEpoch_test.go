@@ -51,7 +51,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	numMetachainNodes := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,
@@ -175,38 +175,43 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	nodeToJoinLate := integrationTests.NewTestProcessorNode(uint32(numOfShards), shardID, shardID, "")
 	messenger := integrationTests.CreateMessengerWithKadDht(integrationTests.GetConnectableAddress(advertiser))
-	_ = messenger.Bootstrap()
+	_ = messenger.Bootstrap(0)
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 
 	rounder := &mock.RounderMock{IndexField: int64(round)}
+	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.BlockSig = &mock.SignerMock{}
+	cryptoComponents.TxSig = &mock.SignerMock{}
+	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
+	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents.IntMarsh = integrationTests.TestMarshalizer
+	coreComponents.TxMarsh = integrationTests.TestMarshalizer
+	coreComponents.Hash = integrationTests.TestHasher
+	coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
+	coreComponents.UInt64ByteSliceConv = uint64Converter
+	coreComponents.PathHdl = &mock.PathManagerStub{}
+	coreComponents.ChainIdCalled = func() string {
+		return string(integrationTests.ChainID)
+	}
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		PublicKey:                  nodeToJoinLate.NodeKeys.Pk,
-		Marshalizer:                integrationTests.TestMarshalizer,
-		TxSignMarshalizer:          integrationTests.TestTxSignMarshalizer,
-		Hasher:                     integrationTests.TestHasher,
+		CryptoComponentsHolder:     cryptoComponents,
+		CoreComponentsHolder:       coreComponents,
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              integrationTests.CreateEconomicsData(),
-		SingleSigner:               &mock.SignerMock{},
-		BlockSingleSigner:          &mock.SignerMock{},
-		KeyGen:                     &mock.KeyGenMock{},
-		BlockKeyGen:                &mock.KeyGenMock{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		GenesisNodesConfig:         nodesConfig,
-		PathManager:                &mock.PathManagerStub{},
-		WorkingDir:                 "test_directory",
-		DefaultDBPath:              "test_db",
-		DefaultEpochString:         "test_epoch",
-		DefaultShardString:         "test_shard",
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
-		Uint64Converter:            uint64Converter,
 		NodeShuffler:               &mock.NodeShufflerMock{},
 		Rounder:                    rounder,
-		AddressPubkeyConverter:     integrationTests.TestAddressPubkeyConverter,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
