@@ -62,13 +62,14 @@ const noSignPolicy = pubsub.MessageSignaturePolicy(0) //should be used only in t
 // https://github.com/libp2p/go-libp2p-pubsub/pull/189/commits will be part of a new release
 var messageHeader = 64 * 1024 //64kB
 var maxSendBuffSize = (1 << 20) - messageHeader
-
 var log = logger.GetOrCreate("p2p/libp2p")
 
 var _ p2p.Messenger = (*networkMessenger)(nil)
 var externalPackages = []string{"dht", "nat", "basichost", "pubsub"}
 
 func init() {
+	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
+
 	for _, external := range externalPackages {
 		_ = logger.GetOrCreate(fmt.Sprintf("external/%s", external))
 	}
@@ -87,6 +88,7 @@ type networkMessenger struct {
 	peerDiscoverer      p2p.PeerDiscoverer
 	sharder             p2p.CommonSharder
 	peerShardResolver   p2p.PeerShardResolver
+	mutPeerResolver     sync.RWMutex
 	mutTopics           sync.RWMutex
 	processors          map[string]p2p.MessageProcessor
 	topics              map[string]*pubsub.Topic
@@ -245,8 +247,6 @@ func (netMes *networkMessenger) createPubSub(withMessageSigning bool) error {
 		optsPS = append(optsPS, pubsub.WithMessageSignaturePolicy(noSignPolicy))
 	}
 
-	pubsub.TimeCacheDuration = pubsubTimeCacheDuration
-
 	var err error
 	netMes.pb, err = pubsub.NewGossipSub(netMes.ctx, netMes.p2pHost, optsPS...)
 	if err != nil {
@@ -376,7 +376,12 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 	go func() {
 		for {
 			cmw.CheckConnectionsBlocking()
-			time.Sleep(durationCheckConnections)
+			select {
+			case <-time.After(durationCheckConnections):
+			case <-netMes.ctx.Done():
+				log.Debug("createConnectionMonitor's internal go routine is stopping...")
+				return
+			}
 		}
 	}()
 
@@ -431,6 +436,9 @@ func (netMes *networkMessenger) printLogsStats() {
 		log.Debug("network connection metrics",
 			"connections/s", connsPerSec,
 			"disconnections/s", disconnsPerSec,
+			"connections", conns,
+			"disconnections", disconns,
+			"time", timeBetweenPeerPrints,
 		)
 	}
 }
@@ -505,6 +513,22 @@ func (netMes *networkMessenger) Close() error {
 			"error", err)
 	}
 
+	log.Debug("closing network messenger's peers on channel...")
+	errPoc := netMes.poc.Close()
+	if errPoc != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "peersOnChannel",
+			"error", errPoc)
+	}
+
+	log.Debug("closing network messenger's connection monitor...")
+	errConnMonitor := netMes.connMonitor.Close()
+	if errConnMonitor != nil {
+		log.Warn("networkMessenger.Close",
+			"component", "connMonitor",
+			"error", errConnMonitor)
+	}
+
 	log.Debug("closing network messenger's components through the context...")
 	netMes.cancelFunc()
 
@@ -514,6 +538,15 @@ func (netMes *networkMessenger) Close() error {
 		err = errDebugger
 		log.Warn("networkMessenger.Close",
 			"component", "debugger",
+			"error", err)
+	}
+
+	log.Debug("closing network messenger's peerstore...")
+	errPeerStore := netMes.p2pHost.Peerstore().Close()
+	if errPeerStore != nil {
+		err = errPeerStore
+		log.Warn("networkMessenger.Close",
+			"component", "peerstore",
 			"error", err)
 	}
 
@@ -558,8 +591,13 @@ func (netMes *networkMessenger) ConnectToPeer(address string) error {
 }
 
 // Bootstrap will start the peer discovery mechanism
-func (netMes *networkMessenger) Bootstrap() error {
-	return netMes.peerDiscoverer.Bootstrap()
+func (netMes *networkMessenger) Bootstrap(numSecondsToWait uint32) error {
+	err := netMes.peerDiscoverer.Bootstrap()
+	if err == nil {
+		log.Info(fmt.Sprintf("waiting %d seconds for network discovery...", numSecondsToWait))
+		time.Sleep(time.Duration(numSecondsToWait) * time.Second)
+	}
+	return err
 }
 
 // IsConnected returns true if current node is connected to provided peer
@@ -1053,7 +1091,9 @@ func (netMes *networkMessenger) SetPeerShardResolver(peerShardResolver p2p.PeerS
 		return err
 	}
 
+	netMes.mutPeerResolver.Lock()
 	netMes.peerShardResolver = peerShardResolver
+	netMes.mutPeerResolver.Unlock()
 
 	return nil
 }
@@ -1076,6 +1116,10 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 		NumObserversOnShard:  make(map[uint32]int),
 		NumValidatorsOnShard: make(map[uint32]int),
 	}
+
+	netMes.mutPeerResolver.RLock()
+	defer netMes.mutPeerResolver.RUnlock()
+
 	selfPeerInfo := netMes.peerShardResolver.GetPeerInfo(netMes.ID())
 	connPeerInfo.SelfShardID = selfPeerInfo.ShardID
 

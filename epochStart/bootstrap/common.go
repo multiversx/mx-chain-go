@@ -10,9 +10,6 @@ import (
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
 
 func checkArguments(args ArgsEpochStartBootstrap) error {
-	if check.IfNil(args.PathManager) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
-	}
 	if check.IfNil(args.GenesisShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardCoordinator)
 	}
@@ -22,29 +19,38 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.EconomicsData) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEconomicsData)
 	}
-	if check.IfNil(args.PublicKey) {
+	if check.IfNil(args.CoreComponentsHolder) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilCoreComponentsHolder)
+	}
+	if check.IfNil(args.CryptoComponentsHolder) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilCryptoComponentsHolder)
+	}
+	if check.IfNil(args.CryptoComponentsHolder.PublicKey()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubKey)
 	}
-	if check.IfNil(args.Hasher) {
+	if check.IfNil(args.CoreComponentsHolder.Hasher()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
 	}
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(args.CoreComponentsHolder.InternalMarshalizer()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilMarshalizer)
 	}
-	if check.IfNil(args.BlockKeyGen) {
+	if check.IfNil(args.CryptoComponentsHolder.BlockSignKeyGen()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilBlockKeyGen)
 	}
-	if check.IfNil(args.KeyGen) {
+	if check.IfNil(args.CryptoComponentsHolder.TxSignKeyGen()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilKeyGen)
 	}
-	if check.IfNil(args.SingleSigner) {
+	if check.IfNil(args.CryptoComponentsHolder.TxSingleSigner()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilSingleSigner)
 	}
-	if check.IfNil(args.BlockSingleSigner) {
+	if check.IfNil(args.CryptoComponentsHolder.BlockSigner()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilBlockSingleSigner)
 	}
-	if check.IfNil(args.TxSignMarshalizer) {
+	if check.IfNil(args.CoreComponentsHolder.TxMarshalizer()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilTxSignMarshalizer)
+	}
+	if check.IfNil(args.CoreComponentsHolder.PathHandler()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPathManager)
 	}
 	if args.GenesisNodesConfig == nil {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilGenesisNodesConfig)
@@ -52,20 +58,8 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.Rater) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRater)
 	}
-	if len(args.DefaultDBPath) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultDBPath)
-	}
-	if check.IfNil(args.AddressPubkeyConverter) {
+	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubkeyConverter)
-	}
-	if len(args.DefaultEpochString) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultEpochString)
-	}
-	if len(args.DefaultShardString) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidDefaultShardString)
-	}
-	if len(args.WorkingDir) == 0 {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidWorkingDir)
 	}
 	if check.IfNil(args.Rounder) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRounder)
@@ -76,7 +70,7 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.LatestStorageDataProvider) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilLatestStorageDataProvider)
 	}
-	if check.IfNil(args.Uint64Converter) {
+	if check.IfNil(args.CoreComponentsHolder.Uint64ByteSliceConverter()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilUint64Converter)
 	}
 	if check.IfNil(args.NodeShuffler) {

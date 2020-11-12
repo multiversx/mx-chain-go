@@ -11,13 +11,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
@@ -27,10 +25,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	factoryInterceptors "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/factory"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -77,29 +72,17 @@ type ComponentsNeededForBootstrap struct {
 type epochStartBootstrap struct {
 	// should come via arguments
 	destinationShardAsObserver uint32
-	publicKey                  crypto.PublicKey
-	marshalizer                marshal.Marshalizer
-	txSignMarshalizer          marshal.Marshalizer
-	hasher                     hashing.Hasher
+	coreComponentsHolder       process.CoreComponentsHolder
+	cryptoComponentsHolder     process.CryptoComponentsHolder
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              *economics.EconomicsData
-	singleSigner               crypto.SingleSigner
-	blockSingleSigner          crypto.SingleSigner
-	keyGen                     crypto.KeyGenerator
-	blockKeyGen                crypto.KeyGenerator
+	economicsData              process.EconomicsHandler
 	shardCoordinator           sharding.Coordinator
 	genesisNodesConfig         sharding.GenesisNodesSetupHandler
 	genesisShardCoordinator    sharding.Coordinator
-	pathManager                storage.PathManagerHandler
-	workingDir                 string
-	defaultDBPath              string
-	defaultEpochString         string
-	defaultShardString         string
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
-	uint64Converter            typeConverters.Uint64ByteSliceConverter
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
@@ -145,32 +128,19 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
+	CoreComponentsHolder       process.CoreComponentsHolder
+	CryptoComponentsHolder     process.CryptoComponentsHolder
 	DestinationShardAsObserver uint32
-	WorkingDir                 string
-	DefaultDBPath              string
-	DefaultEpochString         string
-	DefaultShardString         string
-	PublicKey                  crypto.PublicKey
-	Marshalizer                marshal.Marshalizer
-	TxSignMarshalizer          marshal.Marshalizer
-	Hasher                     hashing.Hasher
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              *economics.EconomicsData
-	SingleSigner               crypto.SingleSigner
-	BlockSingleSigner          crypto.SingleSigner
-	KeyGen                     crypto.KeyGenerator
-	BlockKeyGen                crypto.KeyGenerator
+	EconomicsData              process.EconomicsHandler
 	GenesisNodesConfig         sharding.GenesisNodesSetupHandler
 	GenesisShardCoordinator    sharding.Coordinator
-	PathManager                storage.PathManagerHandler
 	StorageUnitOpener          storage.UnitOpenerHandler
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
-	Uint64Converter            typeConverters.Uint64ByteSliceConverter
 	NodeShuffler               sharding.NodesShuffler
 	Rounder                    epochStart.Rounder
-	AddressPubkeyConverter     core.PubkeyConverter
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -184,34 +154,21 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider := &epochStartBootstrap{
-		publicKey:                  args.PublicKey,
-		marshalizer:                args.Marshalizer,
-		txSignMarshalizer:          args.TxSignMarshalizer,
-		hasher:                     args.Hasher,
+		coreComponentsHolder:       args.CoreComponentsHolder,
+		cryptoComponentsHolder:     args.CryptoComponentsHolder,
 		messenger:                  args.Messenger,
 		generalConfig:              args.GeneralConfig,
 		economicsData:              args.EconomicsData,
 		genesisNodesConfig:         args.GenesisNodesConfig,
 		genesisShardCoordinator:    args.GenesisShardCoordinator,
-		workingDir:                 args.WorkingDir,
-		pathManager:                args.PathManager,
-		defaultEpochString:         args.DefaultEpochString,
-		defaultDBPath:              args.DefaultDBPath,
-		defaultShardString:         args.DefaultShardString,
-		keyGen:                     args.KeyGen,
-		blockKeyGen:                args.BlockKeyGen,
-		singleSigner:               args.SingleSigner,
-		blockSingleSigner:          args.BlockSingleSigner,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
-		uint64Converter:            args.Uint64Converter,
 		nodeShuffler:               args.NodeShuffler,
 		rounder:                    args.Rounder,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
-		addressPubkeyConverter:     args.AddressPubkeyConverter,
-		statusHandler:              args.StatusHandler,
 		shuffledOut:                false,
+		statusHandler:              args.StatusHandler,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
@@ -278,7 +235,7 @@ func (e *epochStartBootstrap) prepareEpochZero() (Parameters, error) {
 }
 
 func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
-	ownPubKey, err := e.publicKey.ToByteArray()
+	ownPubKey, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
 		return false
 	}
@@ -454,21 +411,13 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
+		CoreComponentsHolder:    e.coreComponentsHolder,
+		CryptoComponentsHolder:  e.cryptoComponentsHolder,
 		RequestHandler:          e.requestHandler,
 		Messenger:               e.messenger,
-		Marshalizer:             e.marshalizer,
-		TxSignMarshalizer:       e.txSignMarshalizer,
 		ShardCoordinator:        e.shardCoordinator,
-		Hasher:                  e.hasher,
-		ChainID:                 []byte(e.genesisNodesConfig.GetChainId()),
 		EconomicsData:           e.economicsData,
-		KeyGen:                  e.keyGen,
-		BlockKeyGen:             e.blockKeyGen,
-		Signer:                  e.singleSigner,
-		BlockSigner:             e.blockSingleSigner,
 		WhitelistHandler:        e.whiteListHandler,
-		AddressPubkeyConv:       e.addressPubkeyConverter,
-		NonceConverter:          e.uint64Converter,
 		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
@@ -484,24 +433,15 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
+		CoreComponents:          e.coreComponentsHolder,
+		CryptoComponents:        e.cryptoComponentsHolder,
 		Config:                  e.generalConfig,
 		ShardCoordinator:        e.shardCoordinator,
-		ProtoMarshalizer:        e.marshalizer,
-		TxSignMarshalizer:       e.txSignMarshalizer,
-		Hasher:                  e.hasher,
 		Messenger:               e.messenger,
 		DataPool:                e.dataPool,
-		SingleSigner:            e.singleSigner,
-		BlockSingleSigner:       e.blockSingleSigner,
-		KeyGen:                  e.keyGen,
-		BlockKeyGen:             e.blockKeyGen,
 		WhiteListHandler:        e.whiteListHandler,
 		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		AddressPubkeyConv:       e.addressPubkeyConverter,
-		NonceConverter:          e.uint64Converter,
-		ChainID:                 []byte(e.genesisNodesConfig.GetChainId()),
 		ArgumentsParser:         e.argumentsParser,
-		MinTransactionVersion:   e.genesisNodesConfig.GetMinTransactionVersion(),
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 	}
 
@@ -513,7 +453,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
-		Marshalizer:    e.marshalizer,
+		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
@@ -524,7 +464,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.marshalizer,
+		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
@@ -587,7 +527,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
 
-	pubKeyBytes, err := e.publicKey.ToByteArray()
+	pubKeyBytes, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -658,12 +598,12 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) error {
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
 		DataPool:           e.dataPool,
-		Marshalizer:        e.marshalizer,
+		Marshalizer:        e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler:     e.requestHandler,
 		ChanceComputer:     e.rater,
 		GenesisNodesConfig: e.genesisNodesConfig,
 		NodeShuffler:       e.nodeShuffler,
-		Hasher:             e.hasher,
+		Hasher:             e.coreComponentsHolder.Hasher(),
 		PubKey:             pubKey,
 		ShardIdAsObserver:  shardId,
 	}
@@ -706,11 +646,11 @@ func (e *epochStartBootstrap) requestAndProcessForMeta() error {
 	storageHandlerComponent, err := NewMetaStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
-		e.pathManager,
-		e.marshalizer,
-		e.hasher,
+		e.coreComponentsHolder.PathHandler(),
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
 		e.epochStartMeta.Epoch,
-		e.uint64Converter,
+		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 	)
 	if err != nil {
 		return err
@@ -807,11 +747,11 @@ func (e *epochStartBootstrap) requestAndProcessForShard() error {
 	storageHandlerComponent, err := NewShardStorageHandler(
 		e.generalConfig,
 		e.shardCoordinator,
-		e.pathManager,
-		e.marshalizer,
-		e.hasher,
+		e.coreComponentsHolder.PathHandler(),
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
 		e.baseData.lastEpoch,
-		e.uint64Converter,
+		e.coreComponentsHolder.Uint64ByteSliceConverter(),
 	)
 	if err != nil {
 		return err
@@ -833,8 +773,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.hasher,
-			Marshalizer:          e.marshalizer,
+			Hasher:               e.coreComponentsHolder.Hasher(),
+			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:       e.requestHandler,
 			WaitTime:             trieSyncWaitTime,
@@ -863,9 +803,9 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
 		SnapshotDbCfg:            e.generalConfig.TrieSnapshotDB,
-		Marshalizer:              e.marshalizer,
-		Hasher:                   e.hasher,
-		PathManager:              e.pathManager,
+		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                   e.coreComponentsHolder.Hasher(),
+		PathManager:              e.coreComponentsHolder.PathHandler(),
 		TrieStorageManagerConfig: e.generalConfig.TrieStorageManagerConfig,
 	}
 	trieFactory, err := factory.NewTrieFactory(trieFactoryArgs)
@@ -905,8 +845,8 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
-			Hasher:               e.hasher,
-			Marshalizer:          e.marshalizer,
+			Hasher:               e.coreComponentsHolder.Hasher(),
+			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
 			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:       e.requestHandler,
 			WaitTime:             trieSyncWaitTime,
@@ -929,7 +869,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(e.marshalizer)
+	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
@@ -940,7 +880,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		ShardCoordinator:           e.shardCoordinator,
 		Messenger:                  e.messenger,
 		Store:                      storageService,
-		Marshalizer:                e.marshalizer,
+		Marshalizer:                e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                  e.dataPool,
 		Uint64ByteSliceConverter:   uint64ByteSlice.NewBigEndianConverter(),
 		NumConcurrentResolvingJobs: 10,
@@ -998,6 +938,29 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	}
 
 	return receivedShardID
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (e *epochStartBootstrap) Close() error {
+	if e.trieContainer != nil {
+		log.Debug("closing all dataTries....")
+		dataTries := e.trieContainer.GetAll()
+		for _, trie := range dataTries {
+			err := trie.ClosePersister()
+			log.LogIfError(err)
+		}
+	}
+
+	//TODO: protect the trieStorageManager map with mutex
+	if e.trieStorageManagers != nil {
+		log.Debug("closing all trieStorageManagers....")
+		for _, tsm := range e.trieStorageManagers {
+			err := tsm.Close()
+			log.LogIfError(err)
+		}
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

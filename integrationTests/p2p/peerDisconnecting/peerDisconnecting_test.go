@@ -87,9 +87,9 @@ func testPeerDisconnectionWithOneAdvertiser(t *testing.T, p2pConfig config.P2PCo
 	_ = netw.LinkAll()
 
 	//Step 3. Call bootstrap on all peers
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	for _, p := range peers {
-		_ = p.Bootstrap()
+		_ = p.Bootstrap(0)
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)
 

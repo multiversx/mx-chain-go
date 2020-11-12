@@ -3,10 +3,13 @@ package blockchain
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
+
+var log = logger.GetOrCreate("data/blockchain")
 
 type baseBlockChain struct {
 	mut                    sync.RWMutex
@@ -15,18 +18,6 @@ type baseBlockChain struct {
 	genesisHeaderHash      []byte
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
-}
-
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (bbc *baseBlockChain) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-
-	bbc.mut.Lock()
-	bbc.appStatusHandler = ash
-	bbc.mut.Unlock()
-	return nil
 }
 
 // GetGenesisHeader returns the genesis block header pointer

@@ -130,6 +130,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		}
 	}()
 
+	// TODO: might think of a way to stop waiting at a signal
 	wg.Wait()
 
 	return errFound

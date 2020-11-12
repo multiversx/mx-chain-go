@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -36,9 +37,7 @@ func TestGetParentDirAndLastEpoch_ShouldWork(t *testing.T) {
 	lastDirectories := []string{"WrongEpoch_10", "Epoch_1", fmt.Sprintf("Epoch_%d", lastEpoch)}
 
 	args := getLatestDataProviderArgs()
-	args.ChainID = chainID
-	args.DefaultDBPath = defaultDbPath
-	args.WorkingDir = workingDir
+	args.ParentDir = filepath.Join(workingDir, defaultDbPath, chainID)
 	args.DirectoryReader = &mock.DirectoryReaderStub{
 		ListDirectoriesAsStringCalled: func(directoryPath string) ([]string, error) {
 			return lastDirectories, nil
@@ -97,7 +96,7 @@ func TestLatestDataProvider_Get(t *testing.T) {
 	shardID := uint32(0)
 	defaultPath := "db"
 	args := getLatestDataProviderArgs()
-	args.DefaultDBPath = defaultPath
+	args.ParentDir = defaultPath
 	lastEpoch := uint32(1)
 	args.DirectoryReader = &mock.DirectoryReaderStub{
 		ListDirectoriesAsStringCalled: func(directoryPath string) ([]string, error) {
@@ -146,13 +145,9 @@ func TestLatestDataProvider_Get(t *testing.T) {
 func getLatestDataProviderArgs() ArgsLatestDataProvider {
 	return ArgsLatestDataProvider{
 		GeneralConfig:         config.Config{},
-		Marshalizer:           &mock.MarshalizerMock{},
-		Hasher:                &mock.HasherMock{},
 		BootstrapDataProvider: &mock.BootStrapDataProviderStub{},
 		DirectoryReader:       &mock.DirectoryReaderStub{},
-		WorkingDir:            "",
-		ChainID:               "",
-		DefaultDBPath:         "db",
+		ParentDir:             "db",
 		DefaultEpochString:    "Epoch",
 		DefaultShardString:    "Shard",
 	}

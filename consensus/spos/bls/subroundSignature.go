@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 type subroundSignature struct {
@@ -19,6 +18,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	appStatusHandler core.AppStatusHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -29,23 +29,13 @@ func NewSubroundSignature(
 
 	srSignature := subroundSignature{
 		Subround:         baseSubround,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
+		appStatusHandler: appStatusHandler,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
 	srSignature.Extend = extend
 
 	return &srSignature, nil
-}
-
-// SetAppStatusHandler method set appStatusHandler
-func (sr *subroundSignature) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
-		return spos.ErrNilAppStatusHandler
-	}
-
-	sr.appStatusHandler = ash
-	return nil
 }
 
 func checkNewSubroundSignatureParams(

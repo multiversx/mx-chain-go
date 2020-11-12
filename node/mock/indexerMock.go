@@ -1,10 +1,11 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -14,8 +15,13 @@ type IndexerMock struct {
 }
 
 // SaveBlock -
-func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string) {
+func (im *IndexerMock) SaveBlock(_ data.BodyHandler, _ data.HeaderHandler, _ map[string]data.TransactionHandler, _ []uint64, _ []string, _ []byte) {
 	panic("implement me")
+}
+
+// Close will do nothing
+func (im *IndexerMock) Close() error {
+	return nil
 }
 
 // SetTxLogsProcessor will do nothing
@@ -27,19 +33,27 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 	panic("implement me")
 }
 
-// SaveRoundsInfos -
-func (im *IndexerMock) SaveRoundsInfos(_ []indexer.RoundInfo) {
+// SaveRoundsInfo -
+func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
 	panic("implement me")
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexer.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
 
 }
 
 // SaveValidatorsPubKeys -
 func (im *IndexerMock) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
 	panic("implement me")
+}
+
+// RevertIndexedBlock -
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// SaveAccounts -
+func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

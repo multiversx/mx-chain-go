@@ -53,6 +53,12 @@ var ErrNilHasher = errors.New("nil Hasher")
 // ErrNilShardCoordinator signals that an operation has been attempted to or with a nil shard coordinator
 var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 
+// ErrNilCoreComponents signals that an operation has been attempted with nil core components
+var ErrNilCoreComponents = errors.New("nil core components")
+
+// ErrNilCryptoComponents signals that an operation has been attempted with nil crypto components
+var ErrNilCryptoComponents = errors.New("nil crypto components")
+
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 

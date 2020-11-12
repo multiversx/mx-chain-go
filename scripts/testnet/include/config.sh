@@ -59,6 +59,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/gasSchedule.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
   cp $NODEDIR/config/genesisSmartContracts.json ./node/config
+  cp -r $NODEDIR/config/elasticIndexTemplates ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
 

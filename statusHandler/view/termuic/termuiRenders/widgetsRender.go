@@ -104,9 +104,9 @@ func (wr *WidgetsRender) setGrid() {
 }
 
 //RefreshData method is used to prepare data that are displayed on container
-func (wr *WidgetsRender) RefreshData() {
+func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 	wr.prepareInstanceInfo()
-	wr.prepareChainInfo()
+	wr.prepareChainInfo(numMillisecondsRefreshTime)
 	wr.prepareBlockInfo()
 	wr.prepareListWithLogsForDisplay()
 	wr.prepareLoads()
@@ -193,7 +193,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	wr.instanceInfo.Rows = rows
 }
 
-func (wr *WidgetsRender) prepareChainInfo() {
+func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	//10 rows and one column
 	numRows := 10
 	rows := make([][]string, numRows)
@@ -206,10 +206,10 @@ func (wr *WidgetsRender) prepareChainInfo() {
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
-		remainingTime := wr.presenter.CalculateTimeToSynchronize()
+		remainingTime := wr.presenter.CalculateTimeToSynchronize(numMillisecondsRefreshTime)
 		remainingTimeMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
 
-		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed()
+		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
 	default:
 		syncingStr = statusSynchronized

@@ -188,6 +188,8 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		EpochHandler:        &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:    &mock.AppStatusHandlerStub{},
+		Indexer:             &mock.IndexerMock{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -253,6 +255,18 @@ func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
 
 	assert.Nil(t, bs)
 	assert.Equal(t, process.ErrNilStore, err)
+}
+
+func TestNewShardBootstrap_NilAppStatusHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.AppStatusHandler = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.Nil(t, bs)
+	assert.Equal(t, process.ErrNilAppStatusHandler, err)
 }
 
 func TestNewShardBootstrap_NilBlockchainShouldErr(t *testing.T) {
@@ -430,10 +444,10 @@ func TestBootstrap_SyncBlockShouldCallForkChoice(t *testing.T) {
 	store.AddStorer(dataRetriever.MiniBlockUnit, blockBodyUnit)
 	args.Store = store
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	_ = blkc.SetGenesisHeader(&block.Header{})
 	_ = blkc.SetCurrentBlockHeader(&hdr)
 	args.ChainHandler = blkc
@@ -1162,10 +1176,10 @@ func TestShardGetBlockFromPoolShouldReturnBlock(t *testing.T) {
 
 	args := CreateShardBootstrapMockArguments()
 
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 	args.Rounder = initRounder()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return mbsAndHashes, nil
 		},
 	}
@@ -1590,15 +1604,14 @@ func TestBootstrap_GetTxBodyHavingHashReturnsFromCacherShouldWork(t *testing.T) 
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1630,8 +1643,7 @@ func TestBootstrap_GetTxBodyHavingHashNotFoundInCacherOrStorageShouldRetEmptySli
 		},
 	}
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
 	args.ChainHandler = blkc
@@ -1652,16 +1664,16 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 	mbh := []byte("requested hash")
 	requestedHash := make([][]byte, 0)
 	requestedHash = append(requestedHash, mbh)
-	mbsAndHashes := make([]*process.MiniblockAndHash, 0)
+	mbsAndHashes := make([]*block.MiniblockAndHash, 0)
 
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {},
 	})
+
 	args.ChainHandler = blkc
 	args.Store = createFullStore()
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
+		GetMiniBlocksCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			for _, hash := range hashes {
 				if bytes.Equal(hash, mbh) {
 					return mbsAndHashes, nil
@@ -1743,38 +1755,6 @@ func TestBootstrap_NotifySyncStateListenersShouldNotify(t *testing.T) {
 	assert.Equal(t, 3, calls)
 }
 
-func TestShardBootstrap_SetStatusHandlerNilHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-
-	pools := testscommon.NewPoolsHolderStub()
-	pools.HeadersCalled = func() dataRetriever.HeadersPool {
-		sds := &mock.HeadersCacherStub{}
-
-		sds.AddCalled = func(headerHash []byte, header data.HeaderHandler) {
-			assert.Fail(t, "should have not reached this point")
-		}
-
-		sds.RegisterHandlerCalled = func(func(header data.HeaderHandler, key []byte)) {
-		}
-
-		return sds
-	}
-	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
-		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-
-		return cs
-	}
-	args.PoolsHolder = pools
-
-	bs, _ := sync.NewShardBootstrap(args)
-	err := bs.SetStatusHandler(nil)
-
-	assert.Equal(t, process.ErrNilAppStatusHandler, err)
-}
-
 func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing.T) {
 	t.Parallel()
 
@@ -1848,8 +1828,8 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		},
 	}
 	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
-		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*process.MiniblockAndHash, [][]byte) {
-			return make([]*process.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
+		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+			return make([]*block.MiniblockAndHash, 0), [][]byte{[]byte("hash")}
 		},
 	}
 

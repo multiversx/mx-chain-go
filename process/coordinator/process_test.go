@@ -1709,7 +1709,7 @@ func TestTransactionCoordinator_IsDataPreparedForProcessing(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
+func TestTransactionCoordinator_SaveTxsToStorage(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("tx_hash1")
@@ -1731,7 +1731,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	err = tc.SaveBlockDataToStorage(nil)
+	err = tc.SaveTxsToStorage(nil)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
@@ -1740,14 +1740,14 @@ func TestTransactionCoordinator_SaveBlockDataToStorage(t *testing.T) {
 
 	tc.RequestBlockTransactions(body)
 
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Nil(t, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
@@ -1782,7 +1782,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Nil(t, err)
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
 	assert.Equal(t, 1, nrTxs)
@@ -1792,7 +1792,7 @@ func TestTransactionCoordinator_RestoreBlockDataFromStorage(t *testing.T) {
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Equal(t, process.ErrMissingTransaction, err)
 
 	nrTxs, err = tc.RestoreBlockDataFromStorage(body)
@@ -2477,7 +2477,7 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	assert.Equal(t, process.ErrReceiptsHashMissmatch, err)
 }
 
-func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(t *testing.T) {
+func TestTransactionCoordinator_SaveTxsToStorageSaveIntermediateTxsErrors(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("tx_hash1")
@@ -2520,11 +2520,11 @@ func TestTransactionCoordinator_SaveBlockDataToStorageSaveIntermediateTxsErrors(
 
 	tc.RequestBlockTransactions(body)
 
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Equal(t, retError, err)
 }
 
-func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *testing.T) {
+func TestTransactionCoordinator_SaveTxsToStorageCallsSaveIntermediate(t *testing.T) {
 	t.Parallel()
 
 	txHash := []byte("tx_hash1")
@@ -2568,7 +2568,7 @@ func TestTransactionCoordinator_SaveBlockDataToStorageCallsSaveIntermediate(t *t
 
 	tc.RequestBlockTransactions(body)
 
-	err = tc.SaveBlockDataToStorage(body)
+	err = tc.SaveTxsToStorage(body)
 	assert.Nil(t, err)
 
 	assert.True(t, intermediateTxWereSaved)

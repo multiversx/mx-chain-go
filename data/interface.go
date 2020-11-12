@@ -190,6 +190,7 @@ type DBRemoveCacher interface {
 	Evict([]byte) (ModifiedHashes, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
@@ -212,6 +213,7 @@ type StorageManager interface {
 	EnterSnapshotMode()
 	ExitSnapshotMode()
 	GetSnapshotDbBatchDelay() int
+	Close() error
 	IsInterfaceNil() bool
 }
 

@@ -12,6 +12,7 @@ type NodeApiResolver struct {
 	scQueryService       SCQueryService
 	statusMetricsHandler StatusMetricsHandler
 	txCostHandler        TransactionCostHandler
+	vmContainer          process.VirtualMachinesContainer
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
@@ -19,6 +20,16 @@ func NewNodeApiResolver(
 	scQueryService SCQueryService,
 	statusMetricsHandler StatusMetricsHandler,
 	txCostHandler TransactionCostHandler,
+) (*NodeApiResolver, error) {
+	return NewNodeApiResolverWithContainer(scQueryService, statusMetricsHandler, txCostHandler, nil)
+}
+
+// NewNodeApiResolver creates a new NodeApiResolver instance
+func NewNodeApiResolverWithContainer(
+	scQueryService SCQueryService,
+	statusMetricsHandler StatusMetricsHandler,
+	txCostHandler TransactionCostHandler,
+	vmContainer process.VirtualMachinesContainer,
 ) (*NodeApiResolver, error) {
 	if check.IfNil(scQueryService) {
 		return nil, ErrNilSCQueryService
@@ -34,6 +45,7 @@ func NewNodeApiResolver(
 		scQueryService:       scQueryService,
 		statusMetricsHandler: statusMetricsHandler,
 		txCostHandler:        txCostHandler,
+		vmContainer:          vmContainer,
 	}, nil
 }
 
@@ -50,6 +62,14 @@ func (nar *NodeApiResolver) StatusMetrics() StatusMetricsHandler {
 //ComputeTransactionGasLimit will calculate how many gas a transaction will consume
 func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
 	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
+}
+
+// Close closes all underlying components
+func (nar *NodeApiResolver) Close() error {
+	if !check.IfNil(nar.vmContainer) {
+		return nar.vmContainer.Close()
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
