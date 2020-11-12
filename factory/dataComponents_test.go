@@ -121,12 +121,13 @@ func getDataArgs() factory.DataComponentsFactoryArgs {
 	testEconomics.SetMinGasPrice(200000000000)
 
 	return factory.DataComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		EconomicsData:      testEconomics.EconomicsData,
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
-		Core:               getCoreComponents(),
-		PathManager:        &mock.PathManagerStub{},
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		CurrentEpoch:       0,
+		Config:                        testscommon.GetGeneralConfig(),
+		EconomicsData:                 testEconomics.EconomicsData,
+		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
+		Core:                          getCoreComponents(),
+		PathManager:                   &mock.PathManagerStub{},
+		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
+		CurrentEpoch:                  0,
+		CreateTrieEpochRootHashStorer: false,
 	}
 }

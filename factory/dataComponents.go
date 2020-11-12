@@ -18,23 +18,25 @@ import (
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
-	Config             config.Config
-	EconomicsData      *economics.EconomicsData
-	ShardCoordinator   sharding.Coordinator
-	Core               *CoreComponents
-	PathManager        storage.PathManagerHandler
-	EpochStartNotifier EpochStartNotifier
-	CurrentEpoch       uint32
+	Config                        config.Config
+	EconomicsData                 *economics.EconomicsData
+	ShardCoordinator              sharding.Coordinator
+	Core                          *CoreComponents
+	PathManager                   storage.PathManagerHandler
+	EpochStartNotifier            EpochStartNotifier
+	CurrentEpoch                  uint32
+	CreateTrieEpochRootHashStorer bool
 }
 
 type dataComponentsFactory struct {
-	config             config.Config
-	economicsData      *economics.EconomicsData
-	shardCoordinator   sharding.Coordinator
-	core               *CoreComponents
-	pathManager        storage.PathManagerHandler
-	epochStartNotifier EpochStartNotifier
-	currentEpoch       uint32
+	config                        config.Config
+	economicsData                 *economics.EconomicsData
+	shardCoordinator              sharding.Coordinator
+	core                          *CoreComponents
+	pathManager                   storage.PathManagerHandler
+	epochStartNotifier            EpochStartNotifier
+	currentEpoch                  uint32
+	createTrieEpochRootHashStorer bool
 }
 
 // NewDataComponentsFactory will return a new instance of dataComponentsFactory
@@ -56,13 +58,14 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	}
 
 	return &dataComponentsFactory{
-		config:             args.Config,
-		economicsData:      args.EconomicsData,
-		shardCoordinator:   args.ShardCoordinator,
-		core:               args.Core,
-		pathManager:        args.PathManager,
-		epochStartNotifier: args.EpochStartNotifier,
-		currentEpoch:       args.CurrentEpoch,
+		config:                        args.Config,
+		economicsData:                 args.EconomicsData,
+		shardCoordinator:              args.ShardCoordinator,
+		core:                          args.Core,
+		pathManager:                   args.PathManager,
+		epochStartNotifier:            args.EpochStartNotifier,
+		currentEpoch:                  args.CurrentEpoch,
+		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 	}, nil
 }
 
@@ -127,6 +130,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 		dcf.pathManager,
 		dcf.epochStartNotifier,
 		dcf.currentEpoch,
+		dcf.createTrieEpochRootHashStorer,
 	)
 	if err != nil {
 		return nil, err

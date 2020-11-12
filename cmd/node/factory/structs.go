@@ -906,6 +906,7 @@ func newStorageResolver(
 		pathManager,
 		manualEpochStartNotifier,
 		currentEpoch,
+		false,
 	)
 	if err != nil {
 		return nil, err

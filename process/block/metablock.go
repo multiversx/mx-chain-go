@@ -1349,6 +1349,12 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveTxBlockToStorage(header, body)
 		go mp.validatorInfoCreator.SaveValidatorInfoBlocksToStorage(header, body)
+		go func() {
+			err := mp.commitTrieEpochRootHashIfNeeded(header)
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", header.Epoch, "error", err)
+			}
+		}()
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {

@@ -226,7 +226,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		shardC,
 		&mock.PathManagerStub{},
 		notifier.NewEpochStartSubscriptionHandler(),
-		0)
+		0,
+		false,
+	)
 	assert.NoError(t, err)
 	storageServiceShard, err := storageFactory.CreateForMeta()
 	assert.NoError(t, err)
