@@ -773,11 +773,12 @@ func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents 
 	}
 
 	dataArgs := mainFactory.DataComponentsFactoryArgs{
-		Config:             *configs.GeneralConfig,
-		ShardCoordinator:   managedBootstrapComponents.ShardCoordinator(),
-		Core:               managedCoreComponents,
-		EpochStartNotifier: managedCoreComponents.EpochStartNotifierWithConfirm(),
-		CurrentEpoch:       storerEpoch,
+		Config:                        *configs.GeneralConfig,
+		ShardCoordinator:              managedBootstrapComponents.ShardCoordinator(),
+		Core:                          managedCoreComponents,
+		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
+		CurrentEpoch:                  storerEpoch,
+		CreateTrieEpochRootHashStorer: configs.FlagsConfig.ImportDbSaveTrieEpochRootHash,
 	}
 
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)

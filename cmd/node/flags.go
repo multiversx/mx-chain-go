@@ -280,6 +280,11 @@ var (
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+	// importDbSaveEpochRootHash defines a flag for optional import DB trie exporting
+	importDbSaveEpochRootHash = cli.BoolFlag{
+		Name:  "import-db-save-epoch-root-hash",
+		Usage: "This flag, if set, will export the trie snapshots at every new epoch",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -323,6 +328,7 @@ func getFlags() []cli.Flag {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		importDbSaveEpochRootHash,
 	}
 }
 
@@ -373,6 +379,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
 	flagsConfig.IsInImportMode = isInImportMode
 	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
+	flagsConfig.ImportDbSaveTrieEpochRootHash = ctx.GlobalBool(importDbSaveEpochRootHash.Name) && isInImportMode
 
 	cfgs.FlagsConfig = flagsConfig
 

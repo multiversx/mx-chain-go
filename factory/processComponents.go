@@ -985,6 +985,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		pathManager,
 		manualEpochStartNotifier,
 		pcf.startEpochNum,
+		false,
 	)
 	if err != nil {
 		return nil, err
