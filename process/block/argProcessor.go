@@ -4,7 +4,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -12,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -50,7 +50,7 @@ type ArgBaseProcessor struct {
 	BlockTracker            process.BlockTracker
 	StateCheckpointModulus  uint
 	BlockSizeThrottler      process.BlockSizeThrottler
-	Indexer                 indexer.Indexer
+	OutportHandler          outport.OutportHandler
 	TpsBenchmark            statistics.TPSBenchmark
 	Version                 string
 	HistoryRepository       dblookupext.HistoryRepository

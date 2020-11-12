@@ -231,7 +231,7 @@ func (bts *BlockTrackerStub) RegisterSelfNotarizedHeadersHandler(handler func(sh
 }
 
 // RegisterFinalMetachainHeadersHandler -
-func (bts *BlockTrackerStub)  RegisterFinalMetachainHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)){
+func (bts *BlockTrackerStub) RegisterFinalMetachainHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterFinalMetachainHeadersHandlerCalled != nil {
 		bts.RegisterFinalMetachainHeadersHandlerCalled(handler)
 	}

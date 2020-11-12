@@ -53,19 +53,18 @@ func (im *IndexerMock) IsNilIndexer() bool {
 	return false
 }
 
-func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler){
+func (im *IndexerMock) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 
 }
 
-func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler){
+func (im *IndexerMock) SaveAccounts(_ []state.UserAccountHandler) {
 
 }
 
-func (im *IndexerMock) 	Close() error{
+func (im *IndexerMock) Close() error {
 	return nil
 }
 
-
-func (im *IndexerMock) 	SaveRoundsInfo(_ []workItems.RoundInfo){
+func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
 
 }

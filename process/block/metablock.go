@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -100,7 +101,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		dataPool:                arguments.DataComponents.Datapool(),
 		blockChain:              arguments.DataComponents.Blockchain(),
 		stateCheckpointModulus:  arguments.StateCheckpointModulus,
-		indexer:                 arguments.Indexer,
+		outportHandler:          arguments.OutportHandler,
 		tpsBenchmark:            arguments.TpsBenchmark,
 		genesisNonce:            genesisHdr.GetNonce(),
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
@@ -512,13 +513,13 @@ func (mp *metaProcessor) indexBlock(
 	notarizedHeadersHashes []string,
 	rewardsTxs map[string]data.TransactionHandler,
 ) {
-	if mp.indexer.IsNilIndexer() {
+	if !mp.outportHandler.HasDrivers() {
 		return
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
-	mp.indexer.UpdateTPS(mp.tpsBenchmark)
+	mp.outportHandler.UpdateTPS(mp.tpsBenchmark)
 
 	txPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scPool := mp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
@@ -568,16 +569,23 @@ func (mp *metaProcessor) indexBlock(
 		return
 	}
 
-	mp.indexer.SaveBlock(body, metaBlock, txPool, signersIndexes, notarizedHeadersHashes, headerHash)
+	mp.outportHandler.SaveBlock(types.ArgsSaveBlocks{
+		Body:                   body,
+		Header:                 metaBlock,
+		TxsFromPool:            txPool,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeadersHashes,
+		HeaderHash:             headerHash,
+	})
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
-	indexRoundInfo(mp.indexer, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
+	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, signersIndexes)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
 		return
 	}
 
-	indexValidatorsRating(mp.indexer, mp.validatorStatisticsProcessor, metaBlock)
+	indexValidatorsRating(mp.outportHandler, mp.validatorStatisticsProcessor, metaBlock)
 }
 
 // RestoreBlockIntoPools restores the block into associated pools
@@ -1349,7 +1357,7 @@ func (mp *metaProcessor) ApplyProcessedMiniBlocks(_ *processedMb.ProcessedMiniBl
 
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
 func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
-	if mp.indexer.IsNilIndexer() {
+	if !mp.outportHandler.HasDrivers() {
 		return
 	}
 	if !header.IsStartOfEpochBlock() {

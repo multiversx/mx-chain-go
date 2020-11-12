@@ -5,13 +5,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -39,7 +39,7 @@ type ArgBaseBootstrapper struct {
 	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler    core.AppStatusHandler
-	Indexer             indexer.Indexer
+	OutportHandler      outport.OutportHandler
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

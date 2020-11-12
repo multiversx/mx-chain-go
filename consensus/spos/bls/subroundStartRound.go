@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
 // subroundStartRound defines the data needed by the subround StartRound
@@ -20,7 +20,7 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	indexer indexer.Indexer
+	outportHandler outport.OutportHandler
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -43,7 +43,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
-		indexer:                       indexer.NewNilIndexer(),
+		outportHandler:                outport.NewNilOutport(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -68,9 +68,9 @@ func checkNewSubroundStartRoundParams(
 	return err
 }
 
-// SetIndexer method set indexer
-func (sr *subroundStartRound) SetIndexer(indexer indexer.Indexer) {
-	sr.indexer = indexer
+// SetOutportHandler method set outport handler
+func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHandler) {
+	sr.outportHandler = outportHandler
 }
 
 // doStartRoundJob method does the job of the subround StartRound
@@ -186,7 +186,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
-	if check.IfNil(sr.indexer) {
+	if check.IfNil(sr.outportHandler) || !sr.outportHandler.HasDrivers() {
 		return
 	}
 
@@ -221,7 +221,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.Rounder().Index()
 
-	roundInfo := workItems.RoundInfo{
+	roundInfo := types.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -229,7 +229,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.indexer.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+	sr.outportHandler.SaveRoundsInfo([]types.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

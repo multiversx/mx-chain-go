@@ -1159,7 +1159,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	dataComponents.DataPool = poolsHolderStub
-	arguments := CreateMockArguments(coreComponents, dataComponents )
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	rounder := &mock.RounderMock{}
 	arguments.Rounder = rounder
 

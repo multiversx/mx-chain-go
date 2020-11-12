@@ -152,8 +152,8 @@ var ErrNilEconomicsData = errors.New("nil economics data provided")
 // ErrNilEconomicsHandler signals that a nil economics handler has been provided
 var ErrNilEconomicsHandler = errors.New("nil economics handler")
 
-// ErrNilElasticIndexer signals that a nil elastic search indexer was provided
-var ErrNilElasticIndexer = errors.New("nil elastic search indexer")
+// ErrNilOutportHandler signals that a nil outport handler has been provided
+var ErrNilOutportHandler = errors.New("nil outport handler")
 
 // ErrNilElasticOptions signals that nil elastic options have been provided
 var ErrNilElasticOptions = errors.New("nil elastic options")
@@ -461,7 +461,7 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
-// ErrNewBootstrapDataProvider signals a new epochStartBootstrap creation has failed
+// ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
 // ErrBootstrap signals the bootstrapping process has failed

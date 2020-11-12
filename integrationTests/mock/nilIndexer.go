@@ -46,20 +46,18 @@ func (ni *NilIndexer) IsNilIndexer() bool {
 	return true
 }
 
-
-func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler){
-
-}
-
-func (ni *NilIndexer) SaveAccounts(_ []state.UserAccountHandler){
+func (ni *NilIndexer) RevertIndexedBlock(_ data.HeaderHandler, _ data.BodyHandler) {
 
 }
 
-func (ni *NilIndexer) Close() error{
+func (ni *NilIndexer) SaveAccounts(_ []state.UserAccountHandler) {
+
+}
+
+func (ni *NilIndexer) Close() error {
 	return nil
 }
 
-
-func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo){
+func (ni *NilIndexer) SaveRoundsInfo(_ []workItems.RoundInfo) {
 
 }
