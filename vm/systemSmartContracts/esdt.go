@@ -138,8 +138,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.claim(args)
 	case "configChange":
 		return e.configChange(args)
-	case "esdtControlChanges":
-		return e.esdtControlChanges(args)
+	case "controlChanges":
+		return e.controlChanges(args)
 	case "transferOwnership":
 		return e.transferOwnership(args)
 	case "getAllESDTTokens":
@@ -733,7 +733,7 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 	return vmcommon.Ok
 }
 
-func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 2 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
