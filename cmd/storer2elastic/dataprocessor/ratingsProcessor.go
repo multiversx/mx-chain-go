@@ -7,14 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 )
@@ -28,7 +28,7 @@ type RatingProcessorArgs struct {
 	GeneralConfig            config.Config
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
-	ElasticIndexer           indexer.Indexer
+	OutportHandler           outport.OutportHandler
 	RatingsConfig            config.RatingsConfig
 }
 
@@ -39,7 +39,7 @@ type ratingsProcessor struct {
 	dbPathWithChainID        string
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
-	elasticIndexer           indexer.Indexer
+	outportHandler           outport.OutportHandler
 	peerAdapter              state.AccountsAdapter
 	genesisNodesConfig       sharding.GenesisNodesSetupHandler
 	ratingsConfig            config.RatingsConfig
@@ -59,8 +59,8 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(args.ElasticIndexer) {
-		return nil, ErrNilElasticIndexer
+	if check.IfNil(args.OutportHandler) {
+		return nil, ErrNilOutportHandler
 	}
 	if check.IfNil(args.GenesisNodesConfig) {
 		return nil, ErrNilGenesisNodesSetup
@@ -72,7 +72,7 @@ func NewRatingsProcessor(args RatingProcessorArgs) (*ratingsProcessor, error) {
 		generalConfig:            args.GeneralConfig,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
-		elasticIndexer:           args.ElasticIndexer,
+		outportHandler:           args.OutportHandler,
 		dbPathWithChainID:        args.DbPathWithChainID,
 		genesisNodesConfig:       args.GenesisNodesConfig,
 		ratingsConfig:            args.RatingsConfig,
@@ -111,10 +111,10 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	return nil
 }
 
-func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]workItems.ValidatorRatingInfo) {
+func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[uint32][]types.ValidatorRatingInfo) {
 	for shardID, validators := range validatorsRatingData {
 		index := fmt.Sprintf("%d_%d", shardID, epoch)
-		rp.elasticIndexer.SaveValidatorsRating(index, validators)
+		rp.outportHandler.SaveValidatorsRating(index, validators)
 		log.Info("indexed validators rating", "shard ID", shardID, "num peers", len(validators))
 	}
 }
@@ -172,8 +172,8 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]byte) (map[uint32][]workItems.ValidatorRatingInfo, error) {
-	validatorsRatingInfo := make(map[uint32][]workItems.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]byte) (map[uint32][]types.ValidatorRatingInfo, error) {
+	validatorsRatingInfo := make(map[uint32][]types.ValidatorRatingInfo)
 	for _, pa := range leaves {
 		peerAccount, err := unmarshalPeer(pa, rp.marshalizer)
 		if err != nil {
@@ -181,7 +181,7 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]by
 		}
 
 		validatorsRatingInfo[peerAccount.GetShardId()] = append(validatorsRatingInfo[peerAccount.GetShardId()],
-			workItems.ValidatorRatingInfo{
+			types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(peerAccount.GetBLSPublicKey()),
 				Rating:    float32(peerAccount.GetRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -190,13 +190,13 @@ func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]by
 	return validatorsRatingInfo, nil
 }
 
-func (rp *ratingsProcessor) getGenesisRating() map[uint32][]workItems.ValidatorRatingInfo {
-	ratingsForGenesis := make(map[uint32][]workItems.ValidatorRatingInfo)
+func (rp *ratingsProcessor) getGenesisRating() map[uint32][]types.ValidatorRatingInfo {
+	ratingsForGenesis := make(map[uint32][]types.ValidatorRatingInfo)
 
 	eligible, waiting := rp.genesisNodesConfig.InitialNodesInfo()
 	for shardID, nodesInShard := range eligible {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], workItems.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})
@@ -204,7 +204,7 @@ func (rp *ratingsProcessor) getGenesisRating() map[uint32][]workItems.ValidatorR
 	}
 	for shardID, nodesInShard := range waiting {
 		for _, node := range nodesInShard {
-			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], workItems.ValidatorRatingInfo{
+			ratingsForGenesis[shardID] = append(ratingsForGenesis[shardID], types.ValidatorRatingInfo{
 				PublicKey: rp.validatorPubKeyConverter.Encode(node.PubKeyBytes()),
 				Rating:    float32(node.GetInitialRating()) * 100 / float32(rp.ratingsConfig.General.MaxRating),
 			})

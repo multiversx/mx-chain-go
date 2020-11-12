@@ -1,11 +1,11 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -17,8 +17,8 @@ type ElasticProcessorStub struct {
 	RemoveMiniblocksCalled           func(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocksCalled             func(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
 	SaveTransactionsCalled           func(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
-	SaveValidatorsRatingCalled       func(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error
-	SaveRoundsInfoCalled             func(infos []workItems.RoundInfo) error
+	SaveValidatorsRatingCalled       func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
+	SaveRoundsInfoCalled             func(infos []types.RoundInfo) error
 	SaveShardValidatorsPubKeysCalled func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessorCalled         func(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveAccountsCalled               func(acc []state.UserAccountHandler) error
@@ -73,7 +73,7 @@ func (eim *ElasticProcessorStub) SaveTransactions(body *block.Body, header data.
 }
 
 // SaveValidatorsRating -
-func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
+func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
 	if eim.SaveValidatorsRatingCalled != nil {
 		return eim.SaveValidatorsRatingCalled(index, validatorsRatingInfo)
 	}
@@ -81,7 +81,7 @@ func (eim *ElasticProcessorStub) SaveValidatorsRating(index string, validatorsRa
 }
 
 // SaveRoundsInfo -
-func (eim *ElasticProcessorStub) SaveRoundsInfo(info []workItems.RoundInfo) error {
+func (eim *ElasticProcessorStub) SaveRoundsInfo(info []types.RoundInfo) error {
 	if eim.SaveRoundsInfoCalled != nil {
 		return eim.SaveRoundsInfoCalled(info)
 	}

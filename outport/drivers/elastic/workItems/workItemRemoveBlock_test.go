@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic/workItems"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/require"
 )
 

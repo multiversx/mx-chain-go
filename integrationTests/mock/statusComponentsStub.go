@@ -9,7 +9,7 @@ import (
 // StatusComponentsStub -
 type StatusComponentsStub struct {
 	TPSBench             statistics.TPSBenchmark
-	Indexer              outport.DriverHandler
+	OutportHandler       outport.OutportHandler
 	SoftwareVersionCheck statistics.SoftwareVersionChecker
 	AppStatusHandler     core.AppStatusHandler
 }
@@ -35,8 +35,8 @@ func (scs *StatusComponentsStub) TpsBenchmark() statistics.TPSBenchmark {
 }
 
 // OutportDriver -
-func (scs *StatusComponentsStub) OutportDriver() outport.DriverHandler {
-	return scs.Indexer
+func (scs *StatusComponentsStub) OutportDriver() outport.OutportHandler {
+	return scs.OutportHandler
 }
 
 // SoftwareVersionChecker -

@@ -546,8 +546,8 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	indexer := &mock.IndexerMock{}
-	fct.SetIndexer(indexer)
+	outportHandler := &mock.OutportStub{}
+	fct.SetOutportHandler(outportHandler)
 
-	assert.Equal(t, indexer, fct.Indexer())
+	assert.Equal(t, outportHandler, fct.Indexer())
 }

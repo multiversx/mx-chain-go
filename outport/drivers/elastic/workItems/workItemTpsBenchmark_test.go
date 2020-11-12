@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic/workItems"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/require"
 )
 

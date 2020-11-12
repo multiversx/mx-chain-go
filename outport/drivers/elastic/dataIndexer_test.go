@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	mock2 "github.com/ElrondNetwork/elrond-go/outport/mock"
 	"math/big"
 	"testing"
 	"time"
@@ -43,8 +44,8 @@ func NewDataIndexerArguments() ArgDataIndexer {
 	return ArgDataIndexer{
 		Marshalizer:      &mock.MarshalizerMock{},
 		Options:          &Options{},
-		DataDispatcher:   &mock.DispatcherMock{},
-		ElasticProcessor: &mock.ElasticProcessorStub{},
+		DataDispatcher:   &mock2.DispatcherMock{},
+		ElasticProcessor: &mock2.ElasticProcessorStub{},
 		ShardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
@@ -90,7 +91,7 @@ func TestDataIndexer_UpdateTPS(t *testing.T) {
 
 	called := false
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},
@@ -123,7 +124,7 @@ func TestDataIndexer_SaveBlock(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},
@@ -145,7 +146,7 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},
@@ -163,7 +164,7 @@ func TestDataIndexer_SaveValidatorsPubKeys(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},
@@ -184,7 +185,7 @@ func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},
@@ -201,7 +202,7 @@ func TestDataIndexer_RevertIndexedBlock(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.DataDispatcher = &mock.DispatcherMock{
+	arguments.DataDispatcher = &mock2.DispatcherMock{
 		AddCalled: func(item workItems.WorkItemHandler) {
 			called = true
 		},

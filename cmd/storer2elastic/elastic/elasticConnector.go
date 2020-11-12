@@ -7,11 +7,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/databasereader/disabled"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
+	driversFacotry "github.com/ElrondNetwork/elrond-go/outport/drivers/factory"
+	"github.com/ElrondNetwork/elrond-go/outport/factory"
 )
 
 // ConnectorFactoryArgs holds the data needed for creating a new elastic search connector factory
@@ -56,25 +58,28 @@ func NewConnectorFactory(args ConnectorFactoryArgs) (*elasticSearchConnectorFact
 }
 
 // Create will create and return a new indexer database handler
-func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
-	indexerFactoryArgs := &factory.ArgsIndexerFactory{
-		Url:                      escf.elasticConfig.URL,
-		IndexerCacheSize:         100,
-		UserName:                 escf.elasticConfig.Username,
-		Password:                 escf.elasticConfig.Password,
-		Marshalizer:              escf.marshalizer,
-		Hasher:                   escf.hasher,
-		AddressPubkeyConverter:   escf.addressPubKeyConverter,
-		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
-		NodesCoordinator:         disabled.NewNodesCoordinator(),
-		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
-		Options: &indexer.Options{
-			UseKibana: false,
+func (escf *elasticSearchConnectorFactory) Create() (outport.OutportHandler, error) {
+	argsOutportFactory := &factory.ArgsOutportFactory{
+		ArgsElasticDriver: &driversFacotry.ArgsElasticDriverFactory{
+			Url:                      escf.elasticConfig.URL,
+			IndexerCacheSize:         100,
+			UserName:                 escf.elasticConfig.Username,
+			Password:                 escf.elasticConfig.Password,
+			Marshalizer:              escf.marshalizer,
+			Hasher:                   escf.hasher,
+			AddressPubkeyConverter:   escf.addressPubKeyConverter,
+			ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
+
+			Options: &elastic.Options{
+				UseKibana: false,
+			},
+			EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 		},
-		EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
+		NodesCoordinator:   disabled.NewNodesCoordinator(),
+		EpochStartNotifier: &bootstrapDisabled.EpochStartNotifier{},
 	}
 
-	return factory.NewIndexer(indexerFactoryArgs)
+	return factory.CreateOutport(argsOutportFactory)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

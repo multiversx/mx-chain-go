@@ -2,8 +2,8 @@ package dataprocessor
 
 import "errors"
 
-// ErrNilElasticIndexer signals that a nil elastic indexer has been provided
-var ErrNilElasticIndexer = errors.New("nil elastic indexer")
+// ErrNilOutportHandler signals that a nil outport handler has been provided
+var ErrNilOutportHandler = errors.New("nil outport handler")
 
 // ErrNilDatabaseReader signals that a nil databse reader has been provided
 var ErrNilDatabaseReader = errors.New("nil database reader")
