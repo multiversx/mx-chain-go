@@ -1,3 +1,4 @@
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. delegation.proto
 package systemSmartContracts
 
 import (
@@ -240,12 +241,9 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	withDelegationCap := true
-	if maxDelegationCap.Cmp(zero) == 0 {
-		withDelegationCap = false
-	}
-
 	initialOwnerFunds := big.NewInt(0).Set(args.CallValue)
+	withDelegationCap := maxDelegationCap.Cmp(zero) != 0
+
 	if initialOwnerFunds.Cmp(maxDelegationCap) > 0 && withDelegationCap {
 		d.eei.AddReturnMessage("call value is higher than max delegation cap")
 		return vmcommon.UserError
@@ -254,13 +252,11 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	ownerAddress = args.CallerAddr
 	d.eei.SetStorage([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	d.eei.SetStorage([]byte(ownerKey), ownerAddress)
+	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(serviceFee).Bytes())
 	dConfig := &DelegationConfig{
-		OwnerAddress:         ownerAddress,
-		ServiceFee:           serviceFee,
 		MaxDelegationCap:     maxDelegationCap,
 		InitialOwnerFunds:    initialOwnerFunds,
 		AutomaticActivation:  false,
-		WithDelegationCap:    withDelegationCap,
 		ChangeableServiceFee: true,
 		CreatedNonce:         d.eei.BlockChainHook().CurrentNonce(),
 		UnBondPeriod:         d.unBondPeriod,
@@ -405,9 +401,14 @@ func (d *delegation) setAutomaticActivation(args *vmcommon.ContractCallInput) vm
 }
 
 func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	dConfig, returnCode := d.basicArgCheckForConfigChanges(args)
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.FunctionWrongSignature
 	}
 
 	newServiceFeeBigInt, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
@@ -422,12 +423,7 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	dConfig.ServiceFee = newServiceFee
-	err := d.saveDelegationContractConfig(dConfig)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(newServiceFee).Bytes())
 
 	return vmcommon.Ok
 }
@@ -456,7 +452,6 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 	}
 
 	dConfig.MaxDelegationCap = newTotalDelegationCap
-	dConfig.WithDelegationCap = dConfig.MaxDelegationCap.Cmp(zero) != 0
 
 	err = d.saveDelegationContractConfig(dConfig)
 	if err != nil {
@@ -862,7 +857,8 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	newTotalActive := big.NewInt(0).Add(globalFund.TotalActive, args.CallValue)
-	if dConfig.WithDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
+	withDelegationCap := dConfig.MaxDelegationCap.Cmp(zero) != 0
+	if withDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
 		d.eei.AddReturnMessage("total delegation cap reached, no more space to accept")
 		return vmcommon.UserError
 	}
@@ -1670,7 +1666,7 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	withDelegationCap := "false"
-	if delegationConfig.WithDelegationCap {
+	if delegationConfig.MaxDelegationCap.Cmp(zero) != 0 {
 		withDelegationCap = "true"
 	}
 
@@ -1679,8 +1675,11 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 		changeableServiceFee = "true"
 	}
 
-	d.eei.Finish(delegationConfig.OwnerAddress)
-	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.ServiceFee).Bytes())
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	serviceFee := d.eei.GetStorage([]byte(serviceFeeKey))
+
+	d.eei.Finish(ownerAddress)
+	d.eei.Finish(serviceFee)
 	d.eei.Finish(delegationConfig.MaxDelegationCap.Bytes())
 	d.eei.Finish(delegationConfig.InitialOwnerFunds.Bytes())
 	d.eei.Finish([]byte(automaticActivation))
@@ -1849,7 +1848,6 @@ func (d *delegation) saveDelegationContractConfig(dConfig *DelegationConfig) err
 	}
 
 	d.eei.SetStorage([]byte(delegationConfigKey), marshaledData)
-	d.eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(dConfig.ServiceFee).Bytes())
 	return nil
 }
 
@@ -1921,7 +1919,7 @@ func (d *delegation) getFund(key []byte) (*Fund, error) {
 }
 
 func (d *delegation) createAndSaveNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, error) {
-	fundKey, fund := d.createNextFund(address, value, fundType)
+	fundKey, fund := d.createNextKeyFund(address, value, fundType)
 	err := d.saveFund(fundKey, fund)
 	if err != nil {
 		return nil, err
@@ -1946,13 +1944,13 @@ func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 	return nil
 }
 
-func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
-	nextKey := big.NewInt(1).Bytes()
+func (d *delegation) createNextKeyFund(address []byte, value *big.Int, fundType uint32) ([]byte, *Fund) {
+	nextKey := big.NewInt(1)
 	lastKey := d.eei.GetStorage([]byte(lastFundKey))
 	if len(lastKey) > len(fundKeyPrefix) {
 		lastIndex := big.NewInt(0).SetBytes(lastKey[len(fundKeyPrefix):])
 		lastIndex.Add(lastIndex, big.NewInt(1))
-		nextKey = lastIndex.Bytes()
+		nextKey = lastIndex
 	}
 
 	fund := &Fund{
@@ -1962,7 +1960,7 @@ func (d *delegation) createNextFund(address []byte, value *big.Int, fundType uin
 		Type:    fundType,
 	}
 
-	fundKey := append([]byte(fundKeyPrefix), nextKey...)
+	fundKey := append([]byte(fundKeyPrefix), nextKey.Bytes()...)
 	return fundKey, fund
 }
 

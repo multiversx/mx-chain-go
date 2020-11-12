@@ -360,7 +360,7 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ownerAddr := []byte("owner")
+	ownerAddr := []byte("ownerAddr")
 	maxDelegationCap := []byte{250}
 	serviceFee := []byte{10}
 	createdNonce := uint64(150)
@@ -384,17 +384,20 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{maxDelegationCap, serviceFee})
 	vmInput.CallValue = callValue
 	vmInput.RecipientAddr = createNewAddress(vm.FirstDelegationSCAddress)
+	vmInput.CallerAddr = ownerAddr
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
+	retrievedOwnerAddress := d.eei.GetStorage([]byte(ownerKey))
+	retrievedServiceFee := d.eei.GetStorage([]byte(serviceFeeKey))
+
 	dConf, err := d.getDelegationContractConfig()
 	assert.Nil(t, err)
-	assert.Equal(t, ownerAddr, dConf.OwnerAddress)
+	assert.Equal(t, ownerAddr, retrievedOwnerAddress)
 	assert.Equal(t, big.NewInt(250), dConf.MaxDelegationCap)
-	assert.Equal(t, big.NewInt(10).Uint64(), dConf.ServiceFee)
+	assert.Equal(t, []byte{10}, retrievedServiceFee)
 	assert.Equal(t, createdNonce, dConf.CreatedNonce)
 	assert.Equal(t, big.NewInt(20).Uint64(), dConf.UnBondPeriod)
-	assert.True(t, dConf.WithDelegationCap)
 
 	dStatus, err := d.getDelegationStatus()
 	assert.Nil(t, err)
@@ -1466,8 +1469,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		WithDelegationCap: true,
-		MaxDelegationCap:  big.NewInt(100),
+		MaxDelegationCap: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
 		TotalActive: big.NewInt(100),
@@ -1862,16 +1864,9 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 
 	vmInput.Arguments = [][]byte{newServiceFee, []byte("wrong arg")}
 	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments"))
 
-	vmInput.Arguments = [][]byte{newServiceFee}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-
-	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	vmInput.Arguments = [][]byte{[]byte("service fee")}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -1913,8 +1908,8 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	dConfig, _ := d.getDelegationContractConfig()
-	assert.Equal(t, uint64(70), dConfig.ServiceFee)
+	retrievedServiceFee := d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{70}, retrievedServiceFee)
 }
 
 func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing.T) {
@@ -2019,7 +2014,6 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 
 	dConfig, _ := d.getDelegationContractConfig()
 	assert.Equal(t, big.NewInt(1500), dConfig.MaxDelegationCap)
-	assert.Equal(t, true, dConfig.WithDelegationCap)
 }
 
 func TestDelegation_getSuccessAndUnSuccessKeysAllUnSuccess(t *testing.T) {
@@ -3357,16 +3351,15 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	createdNonce := uint64(100)
 	unBondPeriod := uint64(144000)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		OwnerAddress:         ownerAddress,
-		ServiceFee:           serviceFee,
 		MaxDelegationCap:     maxDelegationCap,
 		InitialOwnerFunds:    initialOwnerFunds,
 		AutomaticActivation:  false,
-		WithDelegationCap:    true,
 		ChangeableServiceFee: true,
 		CreatedNonce:         createdNonce,
 		UnBondPeriod:         unBondPeriod,
 	})
+	eei.SetStorage([]byte(ownerKey), ownerAddress)
+	eei.SetStorage([]byte(serviceFeeKey), big.NewInt(0).SetUint64(serviceFee).Bytes())
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
