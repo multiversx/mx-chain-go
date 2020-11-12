@@ -354,7 +354,7 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "call value is higher than max delegation cap"))
+	assert.True(t, strings.Contains(eei.returnMessage, "total delegation cap reached, no more space to accept"))
 }
 
 func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
