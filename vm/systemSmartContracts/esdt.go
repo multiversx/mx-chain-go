@@ -771,10 +771,10 @@ func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 	return nil
 }
 
-func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenName)
+func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
+	marshalledData := e.eei.GetStorage(tokenIdentifier)
 	if len(marshalledData) == 0 {
-		return nil, vm.ErrNoTokenWithGivenName
+		return nil, vm.ErrNoTickerWithGivenName
 	}
 
 	token := &ESDTData{}

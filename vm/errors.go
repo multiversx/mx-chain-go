@@ -176,7 +176,7 @@ var ErrCouldNotCreateNewTokenIdentifier = errors.New("token identifier could not
 // ErrBLSPublicKeyAlreadyJailed signals that bls public key was already jailed
 var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
 
-// ErrInvalidEndOfEpochAccessAddress signals that end of epoch access address is invalid
+// ErrInvalidEndOfEpochAccessAddress signals that end of epoch access address is invalidgetExistingToken
 var ErrInvalidEndOfEpochAccessAddress = errors.New("invalid end of epoch access address")
 
 // ErrNilChanceComputer signals that nil chance computer has been provided
@@ -185,8 +185,8 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
-// ErrNoTokenWithGivenName signals that token does not exists with given name
-var ErrNoTokenWithGivenName = errors.New("no token with given name")
+// ErrNoTickerWithGivenName signals that token does not exists with given name
+var ErrNoTickerWithGivenName = errors.New("no token with given name")
 
 // ErrInvalidNumOfArguments signals that invalid number of arguments has been provided
 var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
