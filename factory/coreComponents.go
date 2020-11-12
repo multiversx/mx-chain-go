@@ -158,6 +158,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	if ccf.config.GeneralSettings.StartInEpochEnabled {
+		log.Debug("start in epoch is enabled")
 		delayedStartInterval := 2 * time.Second
 		time.Sleep(delayedStartInterval)
 	}

@@ -275,10 +275,16 @@ var (
 			"and re-process everything",
 		Value: "",
 	}
+
 	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
 	importDbNoSigCheck = cli.BoolFlag{
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
+	}
+
+	fullArchive = cli.BoolFlag{
+		Name:  "full-archive",
+		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
 	}
 )
 
@@ -320,6 +326,7 @@ func getFlags() []cli.Flag {
 		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
+		fullArchive,
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
@@ -367,12 +374,45 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 
+	if ctx.IsSet(fullArchive.Name) {
+		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(startInEpoch.Name) {
+		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+	if ctx.IsSet(keepOldEpochsData.Name) {
+		cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
+	}
+	if ctx.IsSet(numEpochsToSave.Name) {
+		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
+	}
+
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
 	isInImportMode := len(importDbDirectoryValue) > 0
 	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
 	flagsConfig.IsInImportMode = isInImportMode
 	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
+	flagsConfig.ImportDbDirectory = importDbDirectoryValue
+
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	if cfgs.GeneralConfig.StoragePruning.FullArchive {
+		log.Debug("full archive node is enabled")
+		if cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
+			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
+			cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+		}
+		if cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData {
+			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
+			cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+		}
+		if !cfgs.GeneralConfig.StoragePruning.Enabled {
+			log.Warn("StoragePruning is overridden by FullArchive and set to true")
+			cfgs.GeneralConfig.StoragePruning.Enabled = true
+		}
+		log.Warn("NumEpochsToKeep is overridden by FullArchive")
+		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+	}
 
 	cfgs.FlagsConfig = flagsConfig
 

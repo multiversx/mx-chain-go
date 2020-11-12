@@ -127,13 +127,18 @@ func (ms *MessengerStub) ConnectedPeersOnTopic(_ string) []core.PeerID {
 	return nil
 }
 
+// ConnectedFullHistoryPeersOnTopic -
+func (m *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return []core.PeerID{"peer0"}
+}
+
 // UnregisterAllMessageProcessors -
 func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 	return nil
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(_ string) error {
+func (ms *MessengerStub) UnregisterMessageProcessor(_ string, _ string) error {
 	return nil
 }
 

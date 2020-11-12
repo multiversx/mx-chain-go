@@ -107,9 +107,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	if check.IfNil(hcf.networkComponents.NetworkMessenger()) {
 		return nil, errors.ErrNilMessenger
 	}
-	if hcf.networkComponents.NetworkMessenger().HasTopicValidator(core.HeartbeatTopic) {
-		return nil, heartbeat.ErrValidatorAlreadySet
-	}
+
 	if !hcf.networkComponents.NetworkMessenger().HasTopic(core.HeartbeatTopic) {
 		err = hcf.networkComponents.NetworkMessenger().CreateTopic(core.HeartbeatTopic, true)
 		if err != nil {
@@ -126,6 +124,11 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		return nil, err
 	}
 
+	peerSubType := core.RegularPeer
+	if hcf.config.StoragePruning.FullArchive {
+		peerSubType = core.FullHistoryObserver
+	}
+
 	argSender := heartbeatProcess.ArgHeartbeatSender{
 		PeerMessenger:        hcf.networkComponents.NetworkMessenger(),
 		PeerSignatureHandler: hcf.cryptoComponents.PeerSignatureHandler(),
@@ -140,6 +143,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
 		HardforkTrigger:      hcf.hardforkTrigger,
 		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
+		PeerSubType:          peerSubType,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -204,7 +208,7 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 	log.Debug("heartbeat's monitor component has been instantiated")
 
 	err = hcf.networkComponents.NetworkMessenger().RegisterMessageProcessor(
-		core.HeartbeatTopic, hbc.monitor,
+		core.HeartbeatTopic, core.DefaultInterceptorsIdentifier, hbc.monitor,
 	)
 	if err != nil {
 		return nil, err

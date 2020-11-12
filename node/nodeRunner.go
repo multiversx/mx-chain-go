@@ -500,7 +500,7 @@ func waitForSignal(sigs chan os.Signal, log logger.Logger, chanStopNodeProcess c
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
-		log.Warn("force closing the node", "error", "closeAllComponents did not finished on time")
+		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
 		return fmt.Errorf("Did NOT close all components gracefully")
 	}
 
@@ -745,6 +745,7 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 		ChanGracefullyClose:       managedCoreComponents.ChanStopNodeProcess(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
+		StorageResolverImportPath: configs.FlagsConfig.ImportDbDirectory,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
+	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -204,6 +205,9 @@ func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *
 		},
 		HasTopicCalled: func(name string) bool {
 			return true
+		},
+		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+			return errorsErd.ErrValidatorAlreadySet
 		},
 	}
 	args.NetworkComponents = networkComponents
@@ -420,6 +424,7 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},
+		PeerHonesty:     &mock.PeerHonestyHandlerStub{},
 	}
 }
 

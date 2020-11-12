@@ -11,6 +11,7 @@ type NetworkComponentsMock struct {
 	InputAntiFlood  factory.P2PAntifloodHandler
 	OutputAntiFlood factory.P2PAntifloodHandler
 	PeerBlackList   process.PeerBlackListCacher
+	PeerHonesty     factory.PeerHonestyHandler
 }
 
 // PubKeyCacher -
@@ -20,7 +21,7 @@ func (ncm *NetworkComponentsMock) PubKeyCacher() process.TimeCacher {
 
 // PeerHonestyHandler -
 func (ncm *NetworkComponentsMock) PeerHonestyHandler() factory.PeerHonestyHandler {
-	panic("implement me")
+	return ncm.PeerHonesty
 }
 
 // Create -

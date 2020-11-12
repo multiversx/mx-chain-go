@@ -7,9 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
+	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -136,6 +139,27 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	epochStartMetaBlockInterceptor, err := interceptors.NewEpochStartMetaBlockInterceptor(
+		interceptors.ArgsEpochStartMetaBlockInterceptor{
+			Marshalizer:               bcf.coreComponents.InternalMarshalizer(),
+			Hasher:                    bcf.coreComponents.Hasher(),
+			NumConnectedPeersProvider: bcf.networkComponents.NetworkMessenger(),
+			ConsensusPercentage:       core.ConsensusPercentageForInterceptedEpochStartMetaBlocks,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: use this where it is needed
+	currentNetworkEpochProvider, err := epochproviders.NewCurrentNetworkEpochProvider(
+		epochproviders.ArgsCurrentNetworkProvider{
+			RequestHandler:                 &disabled.RequestHandler{},
+			Messenger:                      bcf.networkComponents.NetworkMessenger(),
+			EpochStartMetaBlockInterceptor: epochStartMetaBlockInterceptor,
+			NumActivePersisters:            int(bcf.config.StoragePruning.NumActivePersisters),
+		},
+	)
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
@@ -153,6 +177,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		CurrentNetworkEpochSetter:  currentNetworkEpochProvider,
 	}
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
