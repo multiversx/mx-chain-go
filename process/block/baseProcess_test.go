@@ -1162,7 +1162,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	dataComponents.DataPool = poolsHolderStub
-	arguments := CreateMockArguments(coreComponents, dataComponents )
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	rounder := &mock.RounderMock{}
 	arguments.Rounder = rounder
 
@@ -1242,9 +1242,10 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldNotErr(t *t
 
 	epoch := uint32(37)
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
 	store := dataRetriever.NewChainStorer()
-	arguments.Store = store
+	dataComponents.Storage = store
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
@@ -1257,10 +1258,10 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededDisabledStorerShouldNotErr
 
 	epoch := uint32(37)
 
-	arguments := CreateMockArguments()
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, &storageUnit.NilStorer{})
-	arguments.Store = store
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.Storage.AddStorer(dataRetriever.TrieEpochRootHashUnit, &storageUnit.NilStorer{})
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
@@ -1273,8 +1274,8 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededCannotFindUserAccountState
 
 	epoch := uint32(37)
 
-	arguments := CreateMockArguments()
-	arguments.Uint64Converter = uint64ByteSlice.NewBigEndianConverter()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -1290,8 +1291,22 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	epoch := uint32(37)
 	rootHash := []byte("root-hash")
 
-	arguments := CreateMockArguments()
-	arguments.Uint64Converter = uint64ByteSlice.NewBigEndianConverter()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+		&mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
+				require.NoError(t, err)
+				require.Equal(t, epoch, uint32(restoredEpoch))
+				return nil
+			},
+		},
+	)
+	dataComponents.Storage = store
+
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &mock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
@@ -1300,18 +1315,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 		},
 	}
 
-	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
-		&mock.StorerStub{
-			PutCalled: func(key, data []byte) error {
-				restoredEpoch, err := arguments.Uint64Converter.ToUint64(key)
-				require.NoError(t, err)
-				require.Equal(t, epoch, uint32(restoredEpoch))
-				return nil
-			},
-		},
-	)
-	arguments.Store = store
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
