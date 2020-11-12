@@ -1437,7 +1437,13 @@ func TestDelegationSystemSC_ExecuteDelegateWrongInit(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
+	expectedErr := fmt.Errorf("%w delegation status", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{})
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	expectedErr = fmt.Errorf("%w delegation contract config", vm.ErrDataNotFoundUnderKey)
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})

@@ -262,15 +262,10 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	dStatus := &DelegationContractStatus{
-		Delegators:    [][]byte{ownerAddress},
+		Delegators:    [][]byte{},
 		StakedKeys:    make([]*NodesData, 0),
 		NotStakedKeys: make([]*NodesData, 0),
 		UnStakedKeys:  make([]*NodesData, 0),
-	}
-	err = d.saveDelegationStatus(dStatus)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
 	}
 
 	globalFund := &GlobalFundData{
@@ -288,13 +283,14 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		return vmcommon.UserError
 	}
 
-	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr)
+	return d.delegateUser(initialOwnerFunds, ownerAddress, args.RecipientAddr, dStatus)
 }
 
 func (d *delegation) delegateUser(
 	callValue *big.Int,
 	callerAddr []byte,
 	recipientAddr []byte,
+	dStatus *DelegationContractStatus,
 ) vmcommon.ReturnCode {
 	dConfig, err := d.getDelegationContractConfig()
 	if err != nil {
@@ -343,7 +339,7 @@ func (d *delegation) delegateUser(
 		delegator.ActiveFund = fundKey
 		d.addNewFundToGlobalData(globalFund, fundKey, active)
 		if isNew {
-			err = d.addNewDelegatorToList(callerAddr)
+			err = d.addNewDelegatorToList(dStatus, callerAddr)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
 				return vmcommon.UserError
@@ -899,15 +895,16 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.OutOfGas
 	}
 
-	return d.delegateUser(args.CallValue, args.CallerAddr, args.RecipientAddr)
-}
-
-func (d *delegation) addNewDelegatorToList(address []byte) error {
 	dStatus, err := d.getDelegationStatus()
 	if err != nil {
-		return err
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
 	}
 
+	return d.delegateUser(args.CallValue, args.CallerAddr, args.RecipientAddr, dStatus)
+}
+
+func (d *delegation) addNewDelegatorToList(dStatus *DelegationContractStatus, address []byte) error {
 	dStatus.Delegators = append(dStatus.Delegators, address)
 
 	return d.saveDelegationStatus(dStatus)
