@@ -83,7 +83,7 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 	return big.NewInt(0).Set(sdp.totalEligibleTopUpStake)
 }
 
-// GetOwnerStakingStats returns the owner of provided bls key staking stats for the current epoch
+// GetNodeStakedTopUp returns the node's top up value
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
 	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
@@ -91,12 +91,12 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 		return nil, err
 	}
 
-	ownerStats, ok := sdp.cache[owner]
+	ownerInfo, ok := sdp.cache[owner]
 	if !ok {
 		return nil, errors.New("owner has no eligible nodes in epoch")
 	}
 
-	topUpPerNode := big.NewInt(0).Div(ownerStats.eligibleTopUpStake, big.NewInt(0).SetInt64(int64(ownerStats.numEligible)))
+	topUpPerNode := big.NewInt(0).Div(ownerInfo.eligibleTopUpStake, big.NewInt(0).SetInt64(int64(ownerInfo.numEligible)))
 
 	return topUpPerNode, nil
 }
@@ -201,12 +201,7 @@ func (sdp *stakingDataProvider) getValidatorData(validatorAddress string) (*owne
 }
 
 func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress string) (*ownerStats, error) {
-	topUpValue, err := sdp.getTopUpValue(validatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	totalStakedValue, err := sdp.getTotalStaked(validatorAddress)
+	topUpValue, totalStakedValue, err := sdp.getTopUpValueAndTotalStaked(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -224,10 +219,10 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 	return ownerData, nil
 }
 
-func (sdp *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int, error) {
+func (sdp *stakingDataProvider) getTopUpValueAndTotalStaked(validatorAddress string) (*big.Int, *big.Int, error) {
 	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -237,63 +232,32 @@ func (sdp *stakingDataProvider) getTopUpValue(validatorAddress string) (*big.Int
 			GasProvided: math.MaxUint64,
 		},
 		RecipientAddr: vm.AuctionSCAddress,
-		Function:      "getTopUp",
+		Function:      "getTopUpTotalStaked",
 	}
 
 	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+		return nil, nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
 	}
 	topUpBytes := vmOutput.ReturnData
-	if len(topUpBytes) != 1 {
-		return nil, fmt.Errorf("%w, getTopUp function should have returned exactly one value: the top up value", epochStart.ErrExecutingSystemScCode)
+	if len(topUpBytes) != 2 {
+		return nil, nil, fmt.Errorf("%w, getTopUp function should have returned exactly two values: the top up value and total staked values", epochStart.ErrExecutingSystemScCode)
 	}
 
 	topUpValue, ok := big.NewInt(0).SetString(string(topUpBytes[0]), conversionBase)
 	if !ok {
-		return nil, fmt.Errorf("%w, error: topUp string returned is not a number", epochStart.ErrExecutingSystemScCode)
+		return nil, nil, fmt.Errorf("%w, error: topUp string returned is not a number", epochStart.ErrExecutingSystemScCode)
 	}
 
-	return topUpValue, nil
-}
-
-func (sdp *stakingDataProvider) getTotalStaked(validatorAddress string) (*big.Int, error) {
-	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr:  validatorAddressBytes,
-			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
-		},
-		RecipientAddr: vm.AuctionSCAddress,
-		Function:      "getTotalStaked",
-	}
-
-	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
-	if err != nil {
-		return nil, err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
-	}
-	totalStakedBytes := vmOutput.ReturnData
-	if len(totalStakedBytes) != 1 {
-		return nil, fmt.Errorf("%w, getTotalStaked function should have returned exactly one value: the total staked value", epochStart.ErrExecutingSystemScCode)
-	}
-
-	totalStakedValue, ok := big.NewInt(0).SetString(string(totalStakedBytes[0]), conversionBase)
+	totalStakedValue, ok := big.NewInt(0).SetString(string(topUpBytes[1]), conversionBase)
 	if !ok {
-		return nil, fmt.Errorf("%w, error: totalStaked string returned is not a number", epochStart.ErrExecutingSystemScCode)
+		return nil, nil, fmt.Errorf("%w, error: totalStaked string returned is not a number", epochStart.ErrExecutingSystemScCode)
 	}
 
-	return totalStakedValue, nil
+	return topUpValue, totalStakedValue, nil
 }
 
 // IsInterfaceNil return true if underlying object is nil
