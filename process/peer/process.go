@@ -514,6 +514,10 @@ func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.P
 }
 
 func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
+	if !vs.flagJailedEnabled.IsSet() {
+		return
+	}
+
 	if validatorAccount.GetList() != string(core.InactiveList) {
 		return
 	}
