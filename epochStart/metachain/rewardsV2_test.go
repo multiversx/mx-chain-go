@@ -964,7 +964,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 
 	// now verification
 	metaBlock.MiniBlockHeaders = make([]block.MiniBlockHeader, len(miniBlocks))
-	for i, mb := range miniBlocks{
+	for i, mb := range miniBlocks {
 		mbHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, mb)
 		require.Nil(t, err)
 		metaBlock.MiniBlockHeaders[i] = block.MiniBlockHeader{
@@ -1052,6 +1052,7 @@ func createDefaultValidatorInfo(
 				ValidatorSuccess:           nbBlocksSelected - leaderSuccess,
 				NumSelectedInSuccessBlocks: nbBlocksSelected,
 				AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
+				List:                       string(core.EligibleList),
 			}
 		}
 	}
