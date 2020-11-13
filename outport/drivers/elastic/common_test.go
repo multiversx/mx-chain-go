@@ -9,19 +9,19 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
 func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProcessor {
 	return commonProcessor{
-		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		addressPubkeyConverter:   testscommon.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: testscommon.NewPubkeyConverterMock(32),
 		gasPerDataByte:           gasPerDataByte,
 		minGasLimit:              minGasLimit,
 	}
