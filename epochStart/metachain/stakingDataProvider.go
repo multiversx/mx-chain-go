@@ -23,10 +23,11 @@ type ownerStats struct {
 	totalStaked        *big.Int
 	eligibleBaseStake  *big.Int
 	eligibleTopUpStake *big.Int
+	topUpPerNode       *big.Int
 }
 
 type stakingDataProvider struct {
-	mutStakingData          sync.Mutex
+	mutStakingData          sync.RWMutex
 	cache                   map[string]*ownerStats
 	systemVM                vmcommon.VMExecutionHandler
 	totalEligibleStake      *big.Int
@@ -73,6 +74,9 @@ func (sdp *stakingDataProvider) Clean() {
 // GetTotalStakeEligibleNodes returns the total stake backing the current epoch eligible nodes
 // This value is populated by a previous call to PrepareStakingData (done for epoch start)
 func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
+	sdp.mutStakingData.RLock()
+	defer sdp.mutStakingData.RUnlock()
+
 	return big.NewInt(0).Set(sdp.totalEligibleStake)
 }
 
@@ -80,10 +84,13 @@ func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
 //current epoch eligible nodes
 // This value is populated by a previous call to PrepareStakingData (done for epoch start)
 func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
+	sdp.mutStakingData.RLock()
+	defer sdp.mutStakingData.RUnlock()
+
 	return big.NewInt(0).Set(sdp.totalEligibleTopUpStake)
 }
 
-// GetOwnerStakingStats returns the owner of provided bls key staking stats for the current epoch
+// GetNodeStakedTopUp returns the owner of provided bls key staking stats for the current epoch
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
 	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
 	if err != nil {
@@ -96,9 +103,7 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 		return nil, errors.New("owner has no eligible nodes in epoch")
 	}
 
-	topUpPerNode := big.NewInt(0).Div(ownerStats.eligibleTopUpStake, big.NewInt(0).SetInt64(int64(ownerStats.numEligible)))
-
-	return topUpPerNode, nil
+	return ownerStats.topUpPerNode, nil
 }
 
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
@@ -136,6 +141,8 @@ func (sdp *stakingDataProvider) processStakingData() {
 
 		totalEligibleStake.Add(totalEligibleStake, ownerEligibleStake)
 		totalEligibleTopUpStake.Add(totalEligibleTopUpStake, owner.eligibleTopUpStake)
+
+		owner.topUpPerNode = big.NewInt(0).Div(owner.eligibleTopUpStake, ownerEligibleNodes)
 	}
 
 	sdp.totalEligibleTopUpStake = totalEligibleTopUpStake

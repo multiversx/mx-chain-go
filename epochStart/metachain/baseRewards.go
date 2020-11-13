@@ -43,26 +43,24 @@ type BaseRewardsCreatorArgs struct {
 }
 
 type baseRewardsCreator struct {
-	currTxs                       dataRetriever.TransactionCacher
-	shardCoordinator              sharding.Coordinator
-	pubkeyConverter               core.PubkeyConverter
-	rewardsStorage                storage.Storer
-	miniBlockStorage              storage.Storer
-	protocolSustainabilityAddress []byte
-	nodesConfigProvider           epochStart.NodesConfigProvider
-
+	currTxs                            dataRetriever.TransactionCacher
+	shardCoordinator                   sharding.Coordinator
+	pubkeyConverter                    core.PubkeyConverter
+	rewardsStorage                     storage.Storer
+	miniBlockStorage                   storage.Storer
+	protocolSustainabilityAddress      []byte
+	nodesConfigProvider                epochStart.NodesConfigProvider
 	hasher                             hashing.Hasher
 	marshalizer                        marshal.Marshalizer
 	dataPool                           dataRetriever.PoolsHolder
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
-	protocolSustainability             *big.Int
-
-	flagDelegationSystemSCEnabled atomic.Flag
-	delegationSystemSCEnableEpoch uint32
-	userAccountsDB                state.AccountsAdapter
-	mutRewardsData                sync.RWMutex
-	rewardsFix1EnableEpoch        uint32
+	protocolSustainabilityValue        *big.Int
+	flagDelegationSystemSCEnabled      atomic.Flag
+	delegationSystemSCEnableEpoch      uint32
+	userAccountsDB                     state.AccountsAdapter
+	mutRewardsData                     sync.RWMutex
+	rewardsFix1EnableEpoch             uint32
 }
 
 func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, error) {
@@ -99,7 +97,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		protocolSustainabilityAddress:      address,
 		nodesConfigProvider:                args.NodesConfigProvider,
 		accumulatedRewards:                 big.NewInt(0),
-		protocolSustainability:             big.NewInt(0),
+		protocolSustainabilityValue:        big.NewInt(0),
 		delegationSystemSCEnableEpoch:      args.DelegationSystemSCEnableEpoch,
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
@@ -114,7 +112,7 @@ func (brc *baseRewardsCreator) GetProtocolSustainabilityRewards() *big.Int {
 	brc.mutRewardsData.RLock()
 	defer brc.mutRewardsData.RUnlock()
 
-	return brc.protocolSustainability
+	return brc.protocolSustainabilityValue
 }
 
 // GetLocalTxCache returns the local tx cache which holds all the rewards
@@ -147,7 +145,7 @@ func (brc *baseRewardsCreator) CreateMarshalizedData(body *block.Body) map[strin
 		for _, txHash := range miniBlock.TxHashes {
 			rwdTx, err := brc.currTxs.GetTx(txHash)
 			if err != nil {
-				log.Warn("rewardsCreator.CreateMarshalizedData.GetTx", "hash", txHash, "error", err)
+				log.Error("rewardsCreator.CreateMarshalizedData.GetTx", "hash", txHash, "error", err)
 				continue
 			}
 
@@ -281,11 +279,6 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlo
 	}
 }
 
-// IsInterfaceNil returns true if the underlying object is nil
-func (brc *baseRewardsCreator) IsInterfaceNil() bool {
-	return brc == nil
-}
-
 func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.ShardCoordinator) {
 		return epochStart.ErrNilShardCoordinator
@@ -326,7 +319,7 @@ func (brc *baseRewardsCreator) clean() {
 	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	brc.currTxs.Clean()
 	brc.accumulatedRewards = big.NewInt(0)
-	brc.protocolSustainability = big.NewInt(0)
+	brc.protocolSustainabilityValue = big.NewInt(0)
 }
 
 func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
@@ -394,11 +387,12 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 func (brc *baseRewardsCreator) initializeRewardsMiniBlocks() block.MiniBlockSlice {
 	miniBlocks := make(block.MiniBlockSlice, brc.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
-		miniBlocks[i] = &block.MiniBlock{}
-		miniBlocks[i].SenderShardID = core.MetachainShardId
-		miniBlocks[i].ReceiverShardID = i
-		miniBlocks[i].Type = block.RewardsBlock
-		miniBlocks[i].TxHashes = make([][]byte, 0)
+		miniBlocks[i] = &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: i,
+			Type:            block.RewardsBlock,
+			TxHashes:        make([][]byte, 0),
+		}
 	}
 	miniBlocks[brc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
 	return miniBlocks
@@ -416,7 +410,7 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 
 	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
-	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 
 	return nil
 }
@@ -432,7 +426,7 @@ func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSusta
 	}
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
 
-	brc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
+	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 }
 
 func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
@@ -518,4 +512,9 @@ func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockS
 func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32) string {
 	transactionTopic := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(destShId)
 	return transactionTopic
+}
+
+// IsInterfaceNil returns true if the underlying object is nil
+func (brc *baseRewardsCreator) IsInterfaceNil() bool {
+	return brc == nil
 }

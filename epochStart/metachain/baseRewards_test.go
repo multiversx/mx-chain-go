@@ -162,14 +162,14 @@ func TestBaseRewardsCreator_clean(t *testing.T) {
 	require.Nil(t, err)
 
 	rwd.accumulatedRewards = big.NewInt(1000)
-	rwd.protocolSustainability = big.NewInt(100)
+	rwd.protocolSustainabilityValue = big.NewInt(100)
 	rwd.mapBaseRewardsPerBlockPerValidator[0] = big.NewInt(10)
 	txHash := []byte("txHash")
 	rwd.currTxs.AddTx(txHash, &rewardTx.RewardTx{})
 
 	rwd.clean()
 	require.Equal(t, big.NewInt(0), rwd.accumulatedRewards)
-	require.Equal(t, big.NewInt(0), rwd.protocolSustainability)
+	require.Equal(t, big.NewInt(0), rwd.protocolSustainabilityValue)
 	require.Equal(t, 0, len(rwd.mapBaseRewardsPerBlockPerValidator))
 	tx, err := rwd.currTxs.GetTx(txHash)
 	require.Nil(t, tx)
