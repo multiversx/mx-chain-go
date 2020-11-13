@@ -6,13 +6,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -76,13 +76,26 @@ func TestCreateBody(t *testing.T) {
 
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 			return block.MiniBlockSlice{mb1, mb2}, nil
 		},
 	}
 	args.TxCoordinator = &mock.TransactionCoordinatorMock{
 		CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
 			return block.MiniBlockSlice{mb3, mb4}
+		},
+	}
+
+	metaBlock := &block.MetaBlock{Round: 2}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
 		},
 	}
 
@@ -143,7 +156,7 @@ func TestCreateNewBlock(t *testing.T) {
 	mb2 := &block.MiniBlock{SenderShardID: 3, ReceiverShardID: 4, TxHashes: [][]byte{hashTx2}}
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 			return block.MiniBlockSlice{mb1}, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
@@ -156,12 +169,17 @@ func TestCreateNewBlock(t *testing.T) {
 		},
 	}
 
-	meta := &block.MetaBlock{}
-	metaHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, meta)
-
+	metaBlock := &block.MetaBlock{Round: 2}
+	metaHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, metaBlock)
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1},
+	}
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
-			return &block.MetaBlock{}
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
 		},
 	}
 
@@ -207,3 +225,5 @@ func TestCreateNewBlock(t *testing.T) {
 	assert.Equal(t, expectedBody, body)
 	assert.Equal(t, expectedHeader, header)
 }
+
+//TODO: Add an unit test for method getPendingTxsInCorrectOrder

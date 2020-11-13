@@ -14,9 +14,6 @@ var ErrInvalidFolderName = errors.New("invalid folder name")
 // ErrNilStorage signals that storage is nil
 var ErrNilStorage = errors.New("nil storage")
 
-// ErrNilDataTrieContainer signals that data trie container is nil
-var ErrNilDataTrieContainer = errors.New("nil data trie container")
-
 // ErrNotSynced signals that syncing has not been finished yet
 var ErrNotSynced = errors.New("not synced")
 
@@ -95,8 +92,8 @@ var ErrNilMiniBlocksSyncHandler = errors.New("nil miniblocks sync handler")
 // ErrNilTransactionsSyncHandler signals that nil transactions sync handler was provided
 var ErrNilTransactionsSyncHandler = errors.New("nil transaction sync handler")
 
-// ErrWrongUnfinishedMetaHdrsMap signals that wrong unfinished meta headers map was provided
-var ErrWrongUnfinishedMetaHdrsMap = errors.New("wrong unfinished meta headers map")
+// ErrWrongUnFinishedMetaHdrsMap signals that wrong unFinished meta headers map was provided
+var ErrWrongUnFinishedMetaHdrsMap = errors.New("wrong unFinished meta headers map")
 
 // ErrNilAccounts signals that nil accounts was provided
 var ErrNilAccounts = errors.New("nil accounts")
@@ -221,8 +218,8 @@ var ErrNilTimeCache = errors.New("nil time cache")
 // ErrNilHardforkStorer signals that a nil hardfork storer has been provided
 var ErrNilHardforkStorer = errors.New("nil hardfork storer")
 
-// ErrExpectedOneMetablock signals that exactly one metablock should have been used
-var ErrExpectedOneMetablock = errors.New("expected one metablock")
+// ErrExpectedOneStartOfEpochMetaBlock signals that exactly one start of epoch metaBlock should have been used
+var ErrExpectedOneStartOfEpochMetaBlock = errors.New("expected one start of epoch metaBlock")
 
 // ErrImportingData signals that an import error occurred
 var ErrImportingData = errors.New("error importing data")
@@ -238,3 +235,21 @@ var ErrEmptyExportFolderPath = errors.New("empty export folder path")
 
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrWrongImportedMiniBlocksMap signals that wrong imported miniBlocks map was provided
+var ErrWrongImportedMiniBlocksMap = errors.New("wrong imported miniBlocks map was provided")
+
+// ErrWrongImportedTransactionsMap signals that wrong imported transactions map was provided
+var ErrWrongImportedTransactionsMap = errors.New("wrong imported transactions map was provided")
+
+// ErrMiniBlockNotFoundInImportedMap signals that the given miniBlock was not found in imported map
+var ErrMiniBlockNotFoundInImportedMap = errors.New("miniBlock was not found in imported map")
+
+// ErrTransactionNotFoundInImportedMap signals that the given transaction was not found in imported map
+var ErrTransactionNotFoundInImportedMap = errors.New("transaction was not found in imported map")
+
+// ErrNilEpochStartMetaBlock signals that a nil epoch start metaBlock was provided
+var ErrNilEpochStartMetaBlock = errors.New("nil epoch start metaBlock was provided")
+
+//ErrNilUnFinishedMetaBlocksMap signals that a nil unFinished metaBlocks map was provided
+var ErrNilUnFinishedMetaBlocksMap = errors.New("nil unFinished metaBlocks map was provided")

@@ -145,11 +145,14 @@ func (s *shardBlockCreator) CreateNewBlock(
 }
 
 func (s *shardBlockCreator) createBody() (*block.Body, error) {
-	mapTxs := s.importHandler.GetTransactions()
+	txsInfo, err := s.getPendingTxsInCorrectOrder()
+	if err != nil {
+		return nil, err
+	}
 
 	s.txCoordinator.CreateBlockStarted()
 
-	dstMeMiniBlocks, err := s.pendingTxProcessor.ProcessTransactionsDstMe(mapTxs)
+	dstMeMiniBlocks, err := s.pendingTxProcessor.ProcessTransactionsDstMe(txsInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +162,45 @@ func (s *shardBlockCreator) createBody() (*block.Body, error) {
 	return &block.Body{
 		MiniBlocks: append(dstMeMiniBlocks, postProcessMiniBlocks...),
 	}, nil
+}
+
+func (s *shardBlockCreator) getPendingTxsInCorrectOrder() ([]*update.TxInfo, error) {
+	hardForkMetaBlock := s.importHandler.GetHardForkMetaBlock()
+	unFinishedMetaBlocks := s.importHandler.GetUnFinishedMetaBlocks()
+	pendingMiniBlocks, err := update.GetPendingMiniBlocks(hardForkMetaBlock, unFinishedMetaBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	importedMiniBlocksMap := s.importHandler.GetMiniBlocks()
+	if len(importedMiniBlocksMap) != len(pendingMiniBlocks) {
+		return nil, update.ErrWrongImportedMiniBlocksMap
+	}
+
+	importedTransactionsMap := s.importHandler.GetTransactions()
+	txsInfo := make([]*update.TxInfo, 0, len(importedTransactionsMap))
+
+	for _, pendingMiniBlock := range pendingMiniBlocks {
+		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.Hash)]
+		if !miniBlockFound {
+			return nil, update.ErrMiniBlockNotFoundInImportedMap
+		}
+
+		for _, txHash := range miniBlock.TxHashes {
+			tx, transactionFound := importedTransactionsMap[string(txHash)]
+			if !transactionFound {
+				return nil, update.ErrTransactionNotFoundInImportedMap
+			}
+
+			txsInfo = append(txsInfo, &update.TxInfo{TxHash: txHash, Tx: tx})
+		}
+	}
+
+	if len(importedTransactionsMap) != len(txsInfo) {
+		return nil, update.ErrWrongImportedTransactionsMap
+	}
+
+	return txsInfo, nil
 }
 
 func (s *shardBlockCreator) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {

@@ -203,12 +203,18 @@ func TestExportAll(t *testing.T) {
 		_ = os.RemoveAll(testPath)
 	}()
 
-	metaBlock := &block.MetaBlock{Round: 1, ChainID: []byte("chainId")}
+	metaBlock := &block.MetaBlock{Round: 2, ChainID: []byte("chainId")}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1, ChainID: []byte("chainId")},
+	}
 	miniBlock := &block.MiniBlock{}
 	tx := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100), SndAddr: []byte("snd"), RcvAddr: []byte("rcv")}
 	stateSyncer := &mock.SyncStateStub{
 		GetEpochStartMetaBlockCalled: func() (block *block.MetaBlock, err error) {
 			return metaBlock, nil
+		},
+		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+			return unFinishedMetaBlocks, nil
 		},
 		GetAllMiniBlocksCalled: func() (m map[string]*block.MiniBlock, err error) {
 			mbs := make(map[string]*block.MiniBlock)
@@ -228,7 +234,8 @@ func TestExportAll(t *testing.T) {
 
 	transactionsWereWrote := false
 	miniblocksWereWrote := false
-	metablockWasWrote := false
+	epochStartMetablockWasWrote := false
+	unFinishedMetablocksWereWrote := false
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
 			switch identifier {
@@ -236,8 +243,11 @@ func TestExportAll(t *testing.T) {
 				transactionsWereWrote = true
 			case MiniBlocksIdentifier:
 				miniblocksWereWrote = true
-			case MetaBlockIdentifier:
-				metablockWasWrote = true
+			case EpochStartMetaBlockIdentifier:
+				epochStartMetablockWasWrote = true
+			case UnFinishedMetaBlocksIdentifier:
+				unFinishedMetablocksWereWrote = true
+
 			}
 
 			return nil
@@ -264,7 +274,8 @@ func TestExportAll(t *testing.T) {
 
 	assert.True(t, transactionsWereWrote)
 	assert.True(t, miniblocksWereWrote)
-	assert.True(t, metablockWasWrote)
+	assert.True(t, epochStartMetablockWasWrote)
+	assert.True(t, unFinishedMetablocksWereWrote)
 }
 
 func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
@@ -389,3 +400,5 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	require.Equal(t, string(val10.PublicKey), initialNodes[4].PubKey) // ccc
 	require.Equal(t, string(val11.PublicKey), initialNodes[5].PubKey) // ddd
 }
+
+//TODO: Add two unit tests, one for method importUnFinishedMetaBlocks and one for method exportUnFinishedMetaBlocks
