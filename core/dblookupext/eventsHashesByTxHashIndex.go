@@ -56,14 +56,8 @@ func (eht *eventsHashesByTxHash) groupTransactionOutcomesByTransactionHash(
 		}
 
 		originalTxHash := string(rec.TxHash)
-		if eventsHashes, ok := resultsHashesMap[originalTxHash]; ok {
-			// append receipt hash in already create event
-			eventsHashes.ReceiptsHash = []byte(receiptHash)
-		} else {
-			// create a new event for this hash
-			resultsHashesMap[originalTxHash] = &ResultsHashesByTxHash{
-				ReceiptsHash: []byte(receiptHash),
-			}
+		resultsHashesMap[originalTxHash] = &ResultsHashesByTxHash{
+			ReceiptsHash: []byte(receiptHash),
 		}
 	}
 
@@ -84,27 +78,25 @@ func (eht *eventsHashesByTxHash) groupSmartContractResults(
 
 		originalTxHash := string(scrResult.OriginalTxHash)
 
-		if resultsHashes, ok := resultsHashesMap[originalTxHash]; ok {
-			resultsScHashes := resultsHashes.ScResultsHashesAndEpoch[0]
-			resultsScHashes.ScResultsHashes = append(resultsScHashes.ScResultsHashes, []byte(scrHash))
-		} else {
+		if _, ok := resultsHashesMap[originalTxHash]; !ok {
 			resultsHashesMap[originalTxHash] = &ResultsHashesByTxHash{
 				ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
 					{
-						ScResultsHashes: [][]byte{[]byte(scrHash)},
-						Epoch:           epoch,
+						Epoch: epoch,
 					},
 				},
 			}
 		}
+		scResultsHashesAndEpoch := resultsHashesMap[originalTxHash].ScResultsHashesAndEpoch[0]
+		scResultsHashesAndEpoch.ScResultsHashes = append(scResultsHashesAndEpoch.ScResultsHashes, []byte(scrHash))
 	}
 
-	results := eht.mergeRecordsFromStorageIfExits(resultsHashesMap)
+	results := eht.mergeRecordsFromStorageIfExists(resultsHashesMap)
 
 	return results
 }
 
-func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExits(
+func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
 	records map[string]*ResultsHashesByTxHash,
 ) map[string]*ResultsHashesByTxHash {
 	for originalTxHash, results := range records {

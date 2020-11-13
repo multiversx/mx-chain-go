@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -63,23 +64,13 @@ func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {
 	err = eventsHashesIndex.saveResultsHashes(epoch, scrResults2, nil)
 	require.Nil(t, err)
 
-	expectedEvents := &ResultsHashesByTxHash{
-		ReceiptsHash: nil,
-		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
-			{
-				Epoch:           epoch,
-				ScResultsHashes: [][]byte{scrHash1, scrHash2},
-			},
-			{
-				Epoch:           epoch,
-				ScResultsHashes: [][]byte{scrHash3, scrHash4},
-			},
-		},
-	}
-
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash(originalTxHash, epoch)
 	require.Nil(t, err)
-	require.Equal(t, expectedEvents, eventsHashes)
+	require.Equal(t, eventsHashes.ScResultsHashesAndEpoch[0].Epoch, epoch)
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash1))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash2))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[1].ScResultsHashes, scrHash3))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[1].ScResultsHashes, scrHash4))
 }
 
 func TestSaveAndGetResultsReceiptsHashesByTxHash(t *testing.T) {
@@ -135,17 +126,11 @@ func TestGroupSmartContractResults(t *testing.T) {
 	err := eventsHashesIndex.saveResultsHashes(epoch, scrResults1, nil)
 	require.Nil(t, err)
 
-	expectedResultHashes1 := &ResultsHashesByTxHash{
-		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
-			{
-				Epoch:           epoch,
-				ScResultsHashes: [][]byte{scrHash1, scrHash2},
-			},
-		},
-	}
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash(originalTxHash, epoch)
 	require.Nil(t, err)
-	require.Equal(t, expectedResultHashes1, eventsHashes)
+	require.Equal(t, eventsHashes.ScResultsHashesAndEpoch[0].Epoch, epoch)
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash1))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash2))
 
 	scrHash3 := []byte("scrHash3")
 	scrHash4 := []byte("scrHash4")
@@ -160,19 +145,20 @@ func TestGroupSmartContractResults(t *testing.T) {
 	err = eventsHashesIndex.saveResultsHashes(epoch, scrResults2, nil)
 	require.Nil(t, err)
 
-	expectedResultHashes2 := &ResultsHashesByTxHash{
-		ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
-			{
-				Epoch:           epoch,
-				ScResultsHashes: [][]byte{scrHash1, scrHash2},
-			},
-			{
-				Epoch:           epoch,
-				ScResultsHashes: [][]byte{scrHash3, scrHash4},
-			},
-		},
-	}
 	eventsHashes, err = eventsHashesIndex.getEventsHashesByTxHash(originalTxHash, epoch)
 	require.Nil(t, err)
-	require.Equal(t, expectedResultHashes2, eventsHashes)
+	require.Equal(t, eventsHashes.ScResultsHashesAndEpoch[0].Epoch, epoch)
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash1))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[0].ScResultsHashes, scrHash2))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[1].ScResultsHashes, scrHash3))
+	require.True(t, contains(eventsHashes.ScResultsHashesAndEpoch[1].ScResultsHashes, scrHash4))
+}
+
+func contains(s [][]byte, e []byte) bool {
+	for _, a := range s {
+		if bytes.Equal(a, e) {
+			return true
+		}
+	}
+	return false
 }

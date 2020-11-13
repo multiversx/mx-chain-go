@@ -74,7 +74,7 @@ func (m *ScResultsHashesAndEpoch) GetScResultsHashes() [][]byte {
 	return nil
 }
 
-// EventsHashesByTxHash is used to store smart contract results hashes and receipt hash for a transaction hash
+// ResultsHashesByTxHash is used to store smart contract results hashes and receipt hash for a transaction hash
 type ResultsHashesByTxHash struct {
 	ReceiptsHash            []byte                     `protobuf:"bytes,1,opt,name=ReceiptsHash,proto3" json:"ReceiptsHash,omitempty"`
 	ScResultsHashesAndEpoch []*ScResultsHashesAndEpoch `protobuf:"bytes,2,rep,name=ScResultsHashesAndEpoch,proto3" json:"ScResultsHashesAndEpoch,omitempty"`
@@ -438,7 +438,7 @@ func (m *ScResultsHashesAndEpoch) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ScResultsHashesAndEpoch: wiretype end groupSmartContractResults for non-groupSmartContractResults")
+			return fmt.Errorf("proto: ScResultsHashesAndEpoch: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ScResultsHashesAndEpoch: illegal tag %d (wire type %d)", fieldNum, wire)
@@ -542,7 +542,7 @@ func (m *ResultsHashesByTxHash) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: ResultsHashesByTxHash: wiretype end groupSmartContractResults for non-groupSmartContractResults")
+			return fmt.Errorf("proto: ResultsHashesByTxHash: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: ResultsHashesByTxHash: illegal tag %d (wire type %d)", fieldNum, wire)
@@ -722,5 +722,5 @@ func skipResultsHashesByTxHash(dAtA []byte) (n int, err error) {
 var (
 	ErrInvalidLengthResultsHashesByTxHash        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowResultsHashesByTxHash          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupResultsHashesByTxHash = fmt.Errorf("proto: unexpected end of groupSmartContractResults")
+	ErrUnexpectedEndOfGroupResultsHashesByTxHash = fmt.Errorf("proto: unexpected end of group")
 )
