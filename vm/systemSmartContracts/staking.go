@@ -378,7 +378,8 @@ func (r *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		r.eei.AddReturnMessage("cannot unJail a key that is not registered")
 		return vmcommon.UserError
 	}
-	if !stakedData.Jailed && !r.eei.CanUnJail(args.Arguments[0]) {
+	isInactiveWithBadRating := r.eei.IsBadRating(args.Arguments[0]) && !r.eei.IsValidator(args.Arguments[0])
+	if !stakedData.Jailed && !r.eei.CanUnJail(args.Arguments[0]) && !isInactiveWithBadRating {
 		r.eei.AddReturnMessage("cannot unJail a node which is not jailed")
 		return vmcommon.UserError
 	}

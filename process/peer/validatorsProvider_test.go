@@ -210,6 +210,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
 		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		chanceComputer:               arg.ChanceComputer,
 	}
 
 	vsp.updateCache()
@@ -229,6 +230,7 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
+		chanceComputer:               arg.ChanceComputer,
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -286,6 +288,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		refreshCache:                 nil,
 		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
+		chanceComputer:               arg.ChanceComputer,
 	}
 
 	vsp.updateCache()
@@ -405,6 +408,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		pubkeyConverter:              pubKeyConverter,
 		lock:                         sync.RWMutex{},
+		chanceComputer:               arg.ChanceComputer,
 	}
 
 	cache := vsp.createNewCache(0, validatorsMap)
@@ -483,6 +487,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		lock:                         sync.RWMutex{},
+		chanceComputer:               arg.ChanceComputer,
 	}
 
 	cache := vsp.createNewCache(0, validatorsMap)
