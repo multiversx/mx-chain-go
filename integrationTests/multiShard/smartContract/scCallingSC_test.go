@@ -14,6 +14,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -22,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -588,9 +588,10 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		big.NewInt(0),
 		scAddress,
 		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
-		150000,
+		1500000,
 	)
 
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)

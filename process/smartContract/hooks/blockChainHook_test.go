@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -14,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -411,7 +411,7 @@ func TestBlockChainHookImpl_IsPayablePayable(t *testing.T) {
 	args.Accounts = &mock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 			acc := &mock.AccountWrapMock{}
-			acc.SetCodeMetadata([]byte{0, vmcommon.METADATA_PAYABLE})
+			acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayable})
 			return acc, nil
 		},
 	}

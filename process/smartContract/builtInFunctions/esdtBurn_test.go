@@ -4,12 +4,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,7 +83,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	esdtKey := append(burnFunc.keyPrefix, key...)
 	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
@@ -93,7 +93,7 @@ func TestESDTBurn_ProcessBuiltInFunctionSenderBurns(t *testing.T) {
 	}
 	esdtToken = &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err = burnFunc.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Equal(t, err, process.ErrESDTTokenIsPaused)
