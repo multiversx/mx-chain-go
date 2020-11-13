@@ -23,6 +23,8 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
+	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
+
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)

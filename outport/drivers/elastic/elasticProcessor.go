@@ -16,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -88,19 +89,19 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 		return ErrNilDatabaseClient
 	}
 	if check.IfNil(arguments.Marshalizer) {
-		return core.ErrNilMarshalizer
+		return outport.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.Hasher) {
-		return core.ErrNilHasher
+		return outport.ErrNilHasher
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return ErrNilPubkeyConverter
+		return outport.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return ErrNilPubkeyConverter
+		return outport.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.AccountsDB) {
-		return ErrNilAccountsDB
+		return outport.ErrNilAccountsDB
 	}
 	if arguments.Options == nil {
 		return ErrNilOptions

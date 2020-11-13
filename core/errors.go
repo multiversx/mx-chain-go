@@ -19,9 +19,6 @@ var ErrInvalidValue = errors.New("invalid value provided")
 // ErrNilInputData signals that a nil data has been provided
 var ErrNilInputData = errors.New("nil input data")
 
-//ErrNilUrl signals that the provided url is empty
-var ErrNilUrl = errors.New("url is empty")
-
 // ErrPemFileIsInvalid signals that a pem file is invalid
 var ErrPemFileIsInvalid = errors.New("pem file is invalid")
 
@@ -79,6 +76,3 @@ var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is inv
 
 // ErrFileLoggingProcessIsClosed signals that the file logging process is closed
 var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
-
-// ErrNilFeeConfig signals that a nil fee config is provided
-var ErrNilFeeConfig = errors.New("nil fee config")

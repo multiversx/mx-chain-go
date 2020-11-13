@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic/workItems"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,7 @@ func generateTxs(numTxs int) map[string]data.TransactionHandler {
 func TestItemBlock_SaveNilHeaderShouldRetNil(t *testing.T) {
 	itemBlock := workItems.NewItemBlock(
 		&mock.ElasticProcessorStub{},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -64,7 +65,7 @@ func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {
 				return localErr
 			},
 		},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -97,7 +98,7 @@ func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{},
 		&dataBlock.Header{},
 		nil,
@@ -120,7 +121,7 @@ func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -144,7 +145,7 @@ func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 				return localErr
 			},
 		},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},
@@ -177,7 +178,7 @@ func TestItemBlock_SaveShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		&mock.MarshalizerMock{},
+		&testscommon.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
 		},

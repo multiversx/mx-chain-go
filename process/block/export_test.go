@@ -110,7 +110,7 @@ func NewShardProcessorEmptyWith3shards(
 			},
 			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
 			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			Indexer:                 &mock.IndexerMock{},
+			OutportHandler:          &mock.OutportStub{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			Version:                 "softwareVersion",
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},

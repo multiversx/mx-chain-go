@@ -327,7 +327,7 @@ func CreateMockArguments(
 			},
 			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			Indexer:                 &mock.IndexerMock{},
+			OutportHandler:          &mock.OutportStub{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			Version:                 "softwareVersion",
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},

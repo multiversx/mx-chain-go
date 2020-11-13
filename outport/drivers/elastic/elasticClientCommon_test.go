@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

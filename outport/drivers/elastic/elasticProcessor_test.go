@@ -13,13 +13,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -51,10 +51,10 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 
 func createMockElasticProcessorArgs() ArgElasticProcessor {
 	return ArgElasticProcessor{
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		Hasher:                   &mock.HasherMock{},
-		Marshalizer:              &mock.MarshalizerMock{},
+		AddressPubkeyConverter:   testscommon.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: testscommon.NewPubkeyConverterMock(32),
+		Hasher:                   &testscommon.HasherMock{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
 		DBClient:                 &mock.DatabaseWriterStub{},
 		Options:                  &Options{},
 		IsInImportDBMode:         false,
@@ -468,8 +468,8 @@ func TestUpdateMiniBlock(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
+		Marshalizer:    &testscommon.MarshalizerMock{},
+		Hasher:         &testscommon.HasherMock{},
 		IndexTemplates: indexTemplates,
 		IndexPolicies:  indexPolicies,
 	}
@@ -506,8 +506,8 @@ func TestSaveRoundsInfo(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
+		Marshalizer:    &testscommon.MarshalizerMock{},
+		Hasher:         &testscommon.HasherMock{},
 		IndexTemplates: indexTemplates,
 		IndexPolicies:  indexPolicies,
 	}
@@ -537,15 +537,15 @@ func TestUpdateTransaction(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		IsInImportDBMode:         false,
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		AddressPubkeyConverter:   testscommon.NewPubkeyConverterMock(32),
 		AccountsDB:               &mock.AccountsStub{},
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		ValidatorPubkeyConverter: testscommon.NewPubkeyConverterMock(96),
 		Options: &Options{
 			UseKibana:        false,
 			IndexerCacheSize: 10000,
@@ -674,8 +674,8 @@ func TestGetMultiple(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
+		Marshalizer:    &testscommon.MarshalizerMock{},
+		Hasher:         &testscommon.HasherMock{},
 		IndexTemplates: indexTemplates,
 		IndexPolicies:  indexPolicies,
 	}
@@ -702,10 +702,10 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		AddressPubkeyConverter:   &testscommon.PubkeyConverterMock{},
+		ValidatorPubkeyConverter: &testscommon.PubkeyConverterMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 	}
@@ -763,10 +763,10 @@ func TestDoBulkRequestLimit(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		AddressPubkeyConverter:   &testscommon.PubkeyConverterMock{},
+		ValidatorPubkeyConverter: &testscommon.PubkeyConverterMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 	}

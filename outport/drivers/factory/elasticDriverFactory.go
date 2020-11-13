@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -119,22 +120,25 @@ func checkDataIndexerParams(arguments *ArgsElasticDriverFactory) error {
 		return elastic.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", elastic.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", outport.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", elastic.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", outport.ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
-		return core.ErrNilUrl
+		return outport.ErrNilUrl
 	}
 	if check.IfNil(arguments.Marshalizer) {
-		return core.ErrNilMarshalizer
+		return outport.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.Hasher) {
-		return core.ErrNilHasher
+		return outport.ErrNilHasher
 	}
 	if arguments.FeeConfig == nil {
-		return core.ErrNilFeeConfig
+		return outport.ErrNilFeeConfig
+	}
+	if check.IfNil(arguments.AccountsDB) {
+		return outport.ErrNilAccountsDB
 	}
 
 	return nil

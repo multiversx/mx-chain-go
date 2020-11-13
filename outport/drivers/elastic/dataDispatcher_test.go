@@ -3,13 +3,13 @@ package elastic
 import (
 	"errors"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic/workItems"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/stretchr/testify/require"
 )

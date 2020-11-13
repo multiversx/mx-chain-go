@@ -8,14 +8,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,10 +124,10 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 	}
 
 	txDbProc := newTxDatabaseProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.PubkeyConverterMock{},
-		&mock.PubkeyConverterMock{},
+		&testscommon.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.PubkeyConverterMock{},
+		&testscommon.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
 		&mock.ShardCoordinatorMock{},
@@ -141,10 +142,10 @@ func TestPrepareTxLog(t *testing.T) {
 	t.Parallel()
 
 	txDbProc := newTxDatabaseProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.PubkeyConverterMock{},
-		&mock.PubkeyConverterMock{},
+		&testscommon.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.PubkeyConverterMock{},
+		&testscommon.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
 		&mock.ShardCoordinatorMock{},
@@ -232,10 +233,10 @@ func TestRelayedTransactions(t *testing.T) {
 	}
 
 	txDbProc := newTxDatabaseProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.PubkeyConverterMock{},
-		&mock.PubkeyConverterMock{},
+		&testscommon.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.PubkeyConverterMock{},
+		&testscommon.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
 		&mock.ShardCoordinatorMock{},
@@ -261,10 +262,10 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 	}
 
 	txDbProc := newTxDatabaseProcessor(
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&mock.PubkeyConverterMock{},
-		&mock.PubkeyConverterMock{},
+		&testscommon.HasherMock{},
+		&testscommon.MarshalizerMock{},
+		&testscommon.PubkeyConverterMock{},
+		&testscommon.PubkeyConverterMock{},
 		&config.FeeSettings{},
 		false,
 		&mock.ShardCoordinatorMock{},
@@ -442,10 +443,10 @@ func TestAlteredAddresses(t *testing.T) {
 
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
-			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+			addressPubkeyConverter: testscommon.NewPubkeyConverterMock(32),
 		},
-		marshalizer: &mock.MarshalizerMock{},
-		hasher:      &mock.HasherMock{},
+		marshalizer: &testscommon.MarshalizerMock{},
+		hasher:      &testscommon.HasherMock{},
 		shardCoordinator: &mock.ShardCoordinatorMock{
 			ComputeIdCalled: func(address []byte) uint32 {
 				switch string(address) {

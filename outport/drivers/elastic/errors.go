@@ -13,9 +13,6 @@ var ErrNoElasticUrlProvided = errors.New("no elastic url provided")
 // ErrCouldNotCreatePolicy -
 var ErrCouldNotCreatePolicy = errors.New("could not create policy")
 
-// ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
-var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
-
 // ErrNilDataDispatcher signals that an operation has been attempted to or with a nil data dispatcher implementation
 var ErrNilDataDispatcher = errors.New("nil data dispatcher")
 
@@ -30,9 +27,6 @@ var ErrNilOptions = errors.New("nil options")
 
 // ErrNegativeCacheSize signals that a invalid cache size has been provided
 var ErrNegativeCacheSize = errors.New("negative cache size")
-
-// ErrNilAccountsDB signals that a nil accounts database has been provided
-var ErrNilAccountsDB = errors.New("nil accounts db")
 
 // ErrEmptyEnabledIndexes signals that an empty slice of enables indexes has been provided
 var ErrEmptyEnabledIndexes = errors.New("empty enabled indexes slice")

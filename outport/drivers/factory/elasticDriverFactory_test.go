@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
+	"github.com/ElrondNetwork/elrond-go/outport/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,11 +23,11 @@ func createMockIndexerFactoryArgs() *ArgsElasticDriverFactory {
 		Url:                      ts.URL,
 		UserName:                 "",
 		Password:                 "",
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		TemplatesPath:            "../testdata",
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		AddressPubkeyConverter:   &testscommon.PubkeyConverterMock{},
+		ValidatorPubkeyConverter: &testscommon.PubkeyConverterMock{},
+		TemplatesPath:            "../elastic/testdata",
 		Options:                  &elastic.Options{},
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
@@ -58,7 +59,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.AddressPubkeyConverter = nil
 				return args
 			},
-			exError: elastic.ErrNilPubkeyConverter,
+			exError: outport.ErrNilPubkeyConverter,
 		},
 		{
 			name: "NilValidatorPubkeyConverter",
@@ -67,7 +68,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.ValidatorPubkeyConverter = nil
 				return args
 			},
-			exError: elastic.ErrNilPubkeyConverter,
+			exError: outport.ErrNilPubkeyConverter,
 		},
 		{
 			name: "NilMarshalizer",
@@ -76,7 +77,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.Marshalizer = nil
 				return args
 			},
-			exError: core.ErrNilMarshalizer,
+			exError: outport.ErrNilMarshalizer,
 		},
 		{
 			name: "NilHasher",
@@ -85,7 +86,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.Hasher = nil
 				return args
 			},
-			exError: core.ErrNilHasher,
+			exError: outport.ErrNilHasher,
 		},
 		{
 			name: "NilAccountsDB",
@@ -94,7 +95,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.AccountsDB = nil
 				return args
 			},
-			exError: elastic.ErrNilAccountsDB,
+			exError: outport.ErrNilAccountsDB,
 		},
 		{
 			name: "EmptyUrl",
@@ -103,7 +104,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.Url = ""
 				return args
 			},
-			exError: core.ErrNilUrl,
+			exError: outport.ErrNilUrl,
 		},
 		{
 			name: "NilFeeConfig",
@@ -112,7 +113,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.FeeConfig = nil
 				return args
 			},
-			exError: core.ErrNilFeeConfig,
+			exError: outport.ErrNilFeeConfig,
 		},
 		{
 			name: "All arguments ok",
