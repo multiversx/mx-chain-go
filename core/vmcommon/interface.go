@@ -1,8 +1,6 @@
 package vmcommon
 
-import (
-	"math/big"
-)
+import "math/big"
 
 // FunctionNames (alias) is a map of function names
 type FunctionNames = map[string]struct{}
@@ -14,12 +12,12 @@ type BlockchainHook interface {
 	// Returning an empty address lets the VM decide what the new address should be.
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 
-	// Should yield the storage value for a certain account and index.
+	// GetStorageData should yield the storage value for a certain account and index.
 	// Should return an empty byte array if the key is missing from the account storage,
 	// or if account does not exist.
 	GetStorageData(accountAddress []byte, index []byte) ([]byte, error)
 
-	// Returns the hash of the block with the asked nonce if available
+	// GetBlockhash returns the hash of the block with the asked nonce if available
 	GetBlockhash(nonce uint64) ([]byte, error)
 
 	// LastNonce returns the nonce from from the last committed block
@@ -84,6 +82,9 @@ type BlockchainHook interface {
 
 	// ClearCompiledCodes clears the cache and storage of compiled codes
 	ClearCompiledCodes()
+
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
 }
 
 // UserAccountHandler defines a user account
@@ -98,5 +99,39 @@ type UserAccountHandler interface {
 	GetDeveloperReward() *big.Int
 	GetOwnerAddress() []byte
 	GetUserName() []byte
+	IsInterfaceNil() bool
+}
+
+// VMExecutionHandler interface for any Elrond VM endpoint
+type VMExecutionHandler interface {
+	// RunSmartContractCreate computes how a smart contract creation should be performed
+	RunSmartContractCreate(input *ContractCreateInput) (*VMOutput, error)
+
+	// RunSmartContractCall computes the result of a smart contract call and how the system must change after the execution
+	RunSmartContractCall(input *ContractCallInput) (*VMOutput, error)
+
+	// GasScheduleChange sets a new gas schedule for the VM
+	GasScheduleChange(newGasSchedule map[string]map[string]uint64)
+
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// CryptoHook interface for VM krypto functions
+type CryptoHook interface {
+	// Sha256 cryptographic function
+	Sha256(data []byte) ([]byte, error)
+
+	// Keccak256 cryptographic function
+	Keccak256(data []byte) ([]byte, error)
+
+	// Ripemd160 cryptographic function
+	Ripemd160(data []byte) ([]byte, error)
+
+	// Ecrecover calculates the corresponding Ethereum address for the public key which created the given signature
+	// https://ewasm.readthedocs.io/en/mkdocs/system_contracts/
+	Ecrecover(hash []byte, recoveryID []byte, r []byte, s []byte) ([]byte, error)
+
+	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

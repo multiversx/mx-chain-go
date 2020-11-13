@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 )
 
 // VMExecutionHandlerStub -
@@ -42,4 +42,9 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	}
 
 	return vm.RunSmartContractCallCalled(input)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
+	return vm == nil
 }

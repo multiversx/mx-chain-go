@@ -6,7 +6,7 @@ package smartContractResult
 import (
 	bytes "bytes"
 	fmt "fmt"
-	github_com_ElrondNetwork_elrond_vm_common "github.com/ElrondNetwork/elrond-go/core/vm-common"
+	github_com_ElrondNetwork_elrond_vm_common "github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"

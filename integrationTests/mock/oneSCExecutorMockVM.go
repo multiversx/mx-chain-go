@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"strings"
 
-	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -357,4 +357,9 @@ func makeOutputAccountsMap(accounts ...*vmcommon.OutputAccount) map[string]*vmco
 		accountsMap[string(account.Address)] = account
 	}
 	return accountsMap
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vm *OneSCExecutorMockVM) IsInterfaceNil() bool {
+	return vm == nil
 }

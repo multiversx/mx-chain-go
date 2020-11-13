@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	transactionData "github.com/ElrondNetwork/elrond-go/data/transaction"

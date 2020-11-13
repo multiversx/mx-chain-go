@@ -1,6 +1,6 @@
 package mock
 
-import vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
+import "github.com/ElrondNetwork/elrond-go/core/vmcommon"
 
 // VMContainerMock -
 type VMContainerMock struct {
