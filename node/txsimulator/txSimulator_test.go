@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
@@ -13,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 

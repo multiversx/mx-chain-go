@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"testing"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 

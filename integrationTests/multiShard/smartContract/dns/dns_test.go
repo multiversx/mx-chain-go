@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
@@ -17,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

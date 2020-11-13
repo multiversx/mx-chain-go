@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1010,7 +1010,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 	t.Parallel()
 
 	mbPool := testscommon.NewPoolsHolderMock().MiniBlocks()
-	tc, err := NewTransactionCoordinator(
+	tc, _ := NewTransactionCoordinator(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		mock.NewMultiShardsCoordinatorMock(5),

@@ -14,9 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const minArgsLenToChangeValidatorKey = 4

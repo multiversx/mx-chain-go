@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -36,8 +38,6 @@ import (
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 

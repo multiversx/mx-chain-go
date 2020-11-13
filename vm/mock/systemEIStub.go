@@ -3,9 +3,9 @@ package mock
 import (
 	"math/big"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemEIStub -

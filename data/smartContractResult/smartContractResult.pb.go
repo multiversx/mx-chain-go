@@ -6,8 +6,8 @@ package smartContractResult
 import (
 	bytes "bytes"
 	fmt "fmt"
+	github_com_ElrondNetwork_elrond_vm_common "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	github_com_ElrondNetwork_elrond_go_data "github.com/ElrondNetwork/elrond-go/data"
-	github_com_ElrondNetwork_elrond_vm_common "github.com/ElrondNetwork/elrond-vm-common"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
@@ -42,7 +42,7 @@ type SmartContractResult struct {
 	OriginalTxHash []byte                                             `protobuf:"bytes,10,opt,name=OriginalTxHash,proto3" json:"originalTxHash"`
 	GasLimit       uint64                                             `protobuf:"varint,11,opt,name=GasLimit,proto3" json:"gasLimit"`
 	GasPrice       uint64                                             `protobuf:"varint,12,opt,name=GasPrice,proto3" json:"gasPrice"`
-	CallType       github_com_ElrondNetwork_elrond_vm_common.CallType `protobuf:"varint,13,opt,name=CallType,proto3,casttype=github.com/ElrondNetwork/elrond-vm-common.CallType" json:"callType"`
+	CallType       github_com_ElrondNetwork_elrond_vm_common.CallType `protobuf:"varint,13,opt,name=CallType,proto3,casttype=github.com/ElrondNetwork/elrond-go/core/vm-common.CallType" json:"callType"`
 	CodeMetadata   []byte                                             `protobuf:"bytes,14,opt,name=CodeMetadata,proto3" json:"codeMetadata,omitempty"`
 	ReturnMessage  []byte                                             `protobuf:"bytes,15,opt,name=ReturnMessage,proto3" json:"returnMessage,omitempty"`
 	OriginalSender []byte                                             `protobuf:"bytes,16,opt,name=OriginalSender,proto3" json:"originalSender,omitempty"`

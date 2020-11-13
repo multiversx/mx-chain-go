@@ -2,9 +2,9 @@ package external
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // NodeApiResolver can resolve API requests

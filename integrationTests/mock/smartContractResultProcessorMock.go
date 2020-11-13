@@ -1,8 +1,8 @@
 package mock
 
 import (
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SmartContractResultsProcessorMock -

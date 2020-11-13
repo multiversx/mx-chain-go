@@ -5,11 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BuiltinFunction = (*esdtFreezeWipe)(nil)

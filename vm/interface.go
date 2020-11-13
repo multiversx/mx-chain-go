@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 )
 
 // SystemSmartContract interface defines the function a system smart contract should have

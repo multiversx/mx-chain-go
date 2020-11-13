@@ -1,7 +1,7 @@
 package mock
 
 import (
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 )
 
 // BlockChainHookStub -

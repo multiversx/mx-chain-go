@@ -1,8 +1,8 @@
 package txsimulator
 
 import (
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TransactionProcessor defines the operations needed do be done by a transaction processor

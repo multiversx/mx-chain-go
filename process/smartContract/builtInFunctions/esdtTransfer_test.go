@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,18 +170,18 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 	esdtKey := append(transferFunc.keyPrefix, key...)
 	esdtToken := &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
 
 	esdtToken = &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	esdtToken = &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
-	accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err = transferFunc.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Equal(t, err, process.ErrESDTIsFrozenForAccount)
@@ -192,12 +192,12 @@ func TestESDTTransfer_SndDstFrozen(t *testing.T) {
 
 	esdtToken = &esdt.ESDigitalToken{Value: big.NewInt(100), Properties: esdtNotFrozen.ToBytes()}
 	marshaledData, _ = marshalizer.Marshal(esdtToken)
-	accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accDst.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	systemAccount, _ := state.NewUserAccount(core.SystemAccountAddress)
 	esdtGlobal := ESDTGlobalMetadata{Paused: true}
 	pauseKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(key))
-	systemAccount.DataTrieTracker().SaveKeyValue(pauseKey, esdtGlobal.ToBytes())
+	_ = systemAccount.DataTrieTracker().SaveKeyValue(pauseKey, esdtGlobal.ToBytes())
 
 	accountStub.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
 		if bytes.Equal(address, core.SystemAccountAddress) {

@@ -3,8 +3,8 @@ package transaction
 import (
 	"math/big"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ApiTransactionResult is the data transfer object which will be returned on the get transaction by hash endpoint

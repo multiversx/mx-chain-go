@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/core/vm-common"
 )
 
 // VMExecutionHandlerStub -

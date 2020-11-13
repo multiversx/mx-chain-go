@@ -13,7 +13,9 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	dataTransaction "github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
@@ -34,8 +36,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 

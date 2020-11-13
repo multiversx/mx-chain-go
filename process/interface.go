@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -17,8 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine

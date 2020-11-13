@@ -3,8 +3,8 @@ package mock
 import (
 	"fmt"
 
+	vmcommon "github.com/ElrondNetwork/elrond-go/core/vm-common"
 	"github.com/ElrondNetwork/elrond-go/data"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // TxLogProcessorMock -
