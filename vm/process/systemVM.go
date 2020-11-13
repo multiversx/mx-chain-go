@@ -5,8 +5,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type systemVM struct {
@@ -169,4 +169,9 @@ func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64
 	input.GasProvided -= gasToDeduct
 
 	return gasToLock, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *systemVM) IsInterfaceNil() bool {
+	return s == nil
 }
