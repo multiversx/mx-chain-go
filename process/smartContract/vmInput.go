@@ -86,6 +86,7 @@ func (sc *scProcessor) createVMCallInput(
 		vmCallInput.PrevTxHash = scr.PrevTxHash
 	} else {
 		vmCallInput.OriginalTxHash = txHash
+		vmCallInput.PrevTxHash = txHash
 	}
 
 	err = sc.initializeVMInputFromTx(&vmCallInput.VMInput, tx)
