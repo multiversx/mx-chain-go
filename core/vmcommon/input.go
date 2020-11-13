@@ -71,6 +71,9 @@ type VMInput struct {
 	// CurrentTxHash
 	CurrentTxHash []byte
 
+	// PrevTxHash
+	PrevTxHash []byte
+
 	// ESDTValue is the value (amount of tokens) transferred by the transaction.
 	// Before reaching the VM this value is subtracted from sender balance (CallerAddr)
 	// and to added to the smart contract balance.
