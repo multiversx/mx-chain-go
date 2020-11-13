@@ -588,9 +588,10 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		big.NewInt(0),
 		scAddress,
 		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
-		150000,
+		1500000,
 	)
 
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
