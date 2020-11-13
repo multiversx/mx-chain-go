@@ -385,6 +385,7 @@ func computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
+// DisplayRatings will print the ratings
 func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
@@ -504,12 +505,23 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 		return false
 	}
 
+	return vs.isValidatorWithLowRating(validatorAccount)
+}
+
+func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.PeerAccountHandler) bool {
 	minChance := vs.rater.GetChance(0)
-	if vs.rater.GetChance(validatorAccount.GetTempRating()) >= minChance {
-		return false
+	return vs.rater.GetChance(validatorAccount.GetTempRating()) < minChance
+}
+
+func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
+	if validatorAccount.GetList() != string(core.InactiveList) {
+		return
+	}
+	if !vs.isValidatorWithLowRating(validatorAccount) {
+		return
 	}
 
-	return true
+	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(core.JailedList), validatorAccount.GetIndexInList())
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
@@ -612,7 +624,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		}
 
 		pa.SetTempRating(newTempRating)
-
+		vs.jailValidatorIfBadRatingAndInactive(pa)
 		err = vs.peerAdapter.SaveAccount(pa)
 		if err != nil {
 			return err
@@ -760,6 +772,8 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
+		vs.jailValidatorIfBadRatingAndInactive(leaderPeerAcc)
+
 		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)
 		swInner.Stop("SetTempRating")
 		if err != nil {
@@ -798,7 +812,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
 		validatorPeerAccount.SetTempRating(newRating)
-
+		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err := vs.peerAdapter.SaveAccount(validatorPeerAccount)
 		if err != nil {
 			return err
@@ -1149,6 +1163,7 @@ func (vs *validatorStatistics) decreaseAll(
 		}
 
 		validatorPeerAccount.SetTempRating(currentTempRating)
+		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err = vs.peerAdapter.SaveAccount(validatorPeerAccount)
 		if err != nil {
 			return err
