@@ -235,7 +235,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
 	nbBlocks := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
-	if zero.Cmp(nbBlocks) <= 0 {
+	if nbBlocks.Cmp(zero) <= 0 {
 		baseRewardsPerBlock = big.NewInt(0)
 	} else {
 		baseRewardsPerBlock = big.NewInt(0).Div(baseRewards, nbBlocks)
