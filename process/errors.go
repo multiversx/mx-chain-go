@@ -907,3 +907,6 @@ var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after buil
 
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
+// ErrNilChanceComputer signals that nil chance computer has been provided
+var ErrNilChanceComputer = errors.New("nil chance computer")

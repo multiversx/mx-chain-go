@@ -30,6 +30,7 @@ type validatorsProvider struct {
 	pubkeyConverter              core.PubkeyConverter
 	maxRating                    uint32
 	currentEpoch                 uint32
+	chanceComputer               sharding.ChanceComputer
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
@@ -41,6 +42,7 @@ type ArgValidatorsProvider struct {
 	PubKeyConverter                   core.PubkeyConverter
 	StartEpoch                        uint32
 	MaxRating                         uint32
+	ChanceComputer                    sharding.ChanceComputer
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible of keeping account of
@@ -66,6 +68,9 @@ func NewValidatorsProvider(
 	if args.CacheRefreshIntervalDurationInSec <= 0 {
 		return nil, process.ErrInvalidCacheRefreshIntervalInSec
 	}
+	if check.IfNil(args.ChanceComputer) {
+		return nil, process.ErrNilChanceComputer
+	}
 
 	currentContext, cancelfunc := context.WithCancel(context.Background())
 
@@ -80,6 +85,7 @@ func NewValidatorsProvider(
 		maxRating:                    args.MaxRating,
 		pubkeyConverter:              args.PubKeyConverter,
 		currentEpoch:                 args.StartEpoch,
+		chanceComputer:               args.ChanceComputer,
 	}
 
 	go validatorsProvider.startRefreshProcess(currentContext)
@@ -216,6 +222,15 @@ func (vp *validatorsProvider) createNewCache(
 	return newCache
 }
 
+func (vp *validatorsProvider) getValidatorStatus(vInfo *state.ValidatorInfo) string {
+	minChance := vp.chanceComputer.GetChance(0)
+	if vp.chanceComputer.GetChance(vInfo.TempRating) < minChance {
+		return string(core.JailedList)
+	}
+
+	return vInfo.List
+}
+
 func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*state.ValidatorApiResponse {
 	newCache := make(map[string]*state.ValidatorApiResponse)
 	for _, validatorInfosInShard := range allNodes {
@@ -236,7 +251,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 				Rating:                             float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
 				TempRating:                         float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
 				ShardId:                            validatorInfo.ShardId,
-				ValidatorStatus:                    validatorInfo.List,
+				ValidatorStatus:                    vp.getValidatorStatus(validatorInfo),
 			}
 		}
 	}

@@ -388,6 +388,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		ValidatorStatistics:               validatorStatisticsProcessor,
 		MaxRating:                         args.maxRating,
 		PubKeyConverter:                   args.validatorPubkeyConverter,
+		ChanceComputer:                    args.nodesCoordinator,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)

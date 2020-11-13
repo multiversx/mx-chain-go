@@ -656,5 +656,6 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 		},
 		MaxRating:       100,
 		PubKeyConverter: mock.NewPubkeyConverterMock(32),
+		ChanceComputer:  &mock.NodesCoordinatorMock{},
 	}
 }

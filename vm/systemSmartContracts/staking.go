@@ -1331,7 +1331,7 @@ func (r *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 		return returnCode
 	}
 
-	if stakedData.Jailed || r.eei.CanUnJail(args.Arguments[0]) {
+	if stakedData.Jailed || r.eei.CanUnJail(args.Arguments[0]) || r.eei.IsBadRating(args.Arguments[0]) {
 		r.eei.Finish([]byte("jailed"))
 		return vmcommon.Ok
 	}
