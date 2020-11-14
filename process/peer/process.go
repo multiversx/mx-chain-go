@@ -75,7 +75,6 @@ type validatorStatistics struct {
 	jailedEnableEpoch               uint32
 	belowSignedThresholdEnableEpoch uint32
 	flagJailedEnabled               atomic.Flag
-	flagInactiveToJailEnabled       atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -216,7 +215,8 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
-		isNodeJailed := vs.flagInactiveToJailEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
@@ -687,7 +687,11 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
 	validator *state.ValidatorInfo,
 ) {
-	if !vs.flagInactiveToJailEnabled.IsSet() {
+	if !vs.flagJailedEnabled.IsSet() {
+		return
+	}
+
+	if validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList) {
 		return
 	}
 
@@ -696,7 +700,7 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 		return
 	}
 
-	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
+	if vs.isValidatorWithLowRating(peerAccount) {
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 	}
 }
@@ -841,12 +845,13 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		return process.ErrInvalidMetaHeader
 	}
 
+	var currentHeader data.HeaderHandler
 	for _, h := range metaHeader.ShardInfo {
 		if h.Nonce == vs.genesisNonce {
 			continue
 		}
 
-		currentHeader, ok := cacheMap[string(h.HeaderHash)]
+		currentHeader, ok = cacheMap[string(h.HeaderHash)]
 		if !ok {
 			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
 				process.ErrMissingHeader,
@@ -1146,9 +1151,9 @@ func (vs *validatorStatistics) decreaseAll(
 	ratingDifference := uint32(0)
 
 	for i, validator := range shardValidators {
-		validatorPeerAccount, err := vs.loadPeerAccount(validator)
-		if err != nil {
-			return err
+		validatorPeerAccount, errLoad := vs.loadPeerAccount(validator)
+		if errLoad != nil {
+			return errLoad
 		}
 		validatorPeerAccount.DecreaseLeaderSuccessRate(leaderAppearances)
 		validatorPeerAccount.DecreaseValidatorSuccessRate(consensusGroupAppearances)
@@ -1215,7 +1220,5 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
-	vs.flagInactiveToJailEnabled.Toggle(epoch == vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
-	log.Debug("validatorStatistics: inactiveToJail", "enabled", vs.flagInactiveToJailEnabled.IsSet())
 }
