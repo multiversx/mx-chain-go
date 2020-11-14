@@ -41,7 +41,7 @@ type ArgsNewRewardsCreator struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	// this fixes the situation where a node has 0 proposed blocks and 0 validator failures
 	// but does not receive rewards.
-	RewardsFix1EpochEnable        uint32
+	RewardsFix1EpochEnable uint32
 }
 
 type rewardsCreator struct {
@@ -559,5 +559,5 @@ func (rc *rewardsCreator) RemoveBlockDataFromPools(metaBlock *block.MetaBlock, b
 }
 
 func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
-	return epoch > rc.rewardsFix1EnableEpoch
+	return epoch > rc.rewardsFix1EnableEpoch+10
 }

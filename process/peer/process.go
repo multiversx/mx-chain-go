@@ -642,8 +642,10 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 			"validatorIgnored", validator.ValidatorIgnoredSignatures,
 			"new tempRating", newTempRating,
 			"old tempRating", validator.TempRating,
+			"rating", validator.Rating,
+			"num selected in success blocks", validator.NumSelectedInSuccessBlocks,
+			"rating modifier", validator.RatingModifier,
 		)
-
 		validator.TempRating = newTempRating
 	}
 
