@@ -218,6 +218,7 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
 		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
+			log.Debug("Node is jailed at first block after start of epoch", "pubKey", pubKey)
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
 			peerAcc.SetListAndIndex(shardID, string(core.LeavingList), uint32(index))
@@ -525,6 +526,7 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 		return
 	}
 
+	log.Debug("Node is jailed at as it is inactive and with bad rating", "pubKey", validatorAccount.GetBLSPublicKey())
 	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(core.JailedList), validatorAccount.GetIndexInList())
 }
 
@@ -698,11 +700,13 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 	}
 
 	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
+		log.Debug("Node is jailed at start of epoch as list is jailed", "pubKey", peerAccount.GetBLSPublicKey())
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 		return
 	}
 
 	if vs.isValidatorWithLowRating(peerAccount) {
+		log.Debug("Node is jailed at start of epoch as bad rating", "pubKey", peerAccount.GetBLSPublicKey())
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 	}
 }
