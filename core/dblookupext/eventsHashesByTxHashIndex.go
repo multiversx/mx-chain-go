@@ -24,7 +24,9 @@ func newEventsHashesByTxHash(storer storage.Storer, marshalizer marshal.Marshali
 
 func (eht *eventsHashesByTxHash) saveResultsHashes(epoch uint32, scResults, receipts map[string]data.TransactionHandler) error {
 	resultsHashes := eht.groupTransactionOutcomesByTransactionHash(epoch, scResults, receipts)
-	for txHash, resultHashes := range resultsHashes {
+	results := eht.mergeRecordsFromStorageIfExists(resultsHashes)
+
+	for txHash, resultHashes := range results {
 		resultHashesBytes, err := eht.marshalizer.Marshal(resultHashes)
 		if err != nil {
 			continue
@@ -91,9 +93,7 @@ func (eht *eventsHashesByTxHash) groupSmartContractResults(
 		scResultsHashesAndEpoch.ScResultsHashes = append(scResultsHashesAndEpoch.ScResultsHashes, []byte(scrHash))
 	}
 
-	results := eht.mergeRecordsFromStorageIfExists(resultsHashesMap)
-
-	return results
+	return resultsHashesMap
 }
 
 func (eht *eventsHashesByTxHash) mergeRecordsFromStorageIfExists(
