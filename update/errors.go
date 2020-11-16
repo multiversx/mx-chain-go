@@ -253,3 +253,6 @@ var ErrNilEpochStartMetaBlock = errors.New("nil epoch start metaBlock was provid
 
 //ErrNilUnFinishedMetaBlocksMap signals that a nil unFinished metaBlocks map was provided
 var ErrNilUnFinishedMetaBlocksMap = errors.New("nil unFinished metaBlocks map was provided")
+
+//ErrDuplicatedMiniBlocksFound signals that duplicated miniBlocks were found
+var ErrDuplicatedMiniBlocksFound = errors.New("duplicated miniBlocks were found")

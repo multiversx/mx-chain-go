@@ -7,6 +7,7 @@ import (
 
 // TxInfo defines the structure which hold the tx info
 type TxInfo struct {
+	MbHash []byte
 	TxHash []byte
 	Tx     data.TransactionHandler
 }
@@ -25,10 +26,10 @@ func GetPendingMiniBlocks(
 	}
 
 	pendingMiniBlocks := make([]block.MiniBlockHeader, 0)
-	nonceToHashMap := CreateNonceToHashMap(unFinishedMetaBlocksMap)
+	nonceToHashMap := createNonceToHashMap(unFinishedMetaBlocksMap)
 
 	for _, shardData := range epochStartMetaBlock.EpochStart.LastFinalizedHeaders {
-		computedPending, err := ComputePendingMiniBlocksFromUnFinished(
+		computedPendingMiniBlocks, err := computePendingMiniBlocksFromUnFinishedMetaBlocks(
 			shardData,
 			unFinishedMetaBlocksMap,
 			nonceToHashMap,
@@ -38,25 +39,14 @@ func GetPendingMiniBlocks(
 			return nil, err
 		}
 
-		pendingMiniBlocks = append(pendingMiniBlocks, computedPending...)
+		pendingMiniBlocks = append(pendingMiniBlocks, computedPendingMiniBlocks...)
 	}
-
-	//TODO: These pendingMiniBlocks are already added in method ComputePendingMiniBlocksFromUnFinished called above
-	//when nonce == epochStartMetaBlockNonce in "for" done there, by calling method GetAllMiniBlocksWithDst inside it.
-	//The below commented code should be removed, otherwise it would duplicate these miniblocks
-	//(especially the rewards miniblocks) which would be executed twice!
-	//for _, mbHdr := range epochStartMetaBlock.MiniBlockHeaders {
-	//	if mbHdr.SenderShardID != core.MetachainShardId || mbHdr.Type == block.PeerBlock {
-	//		continue
-	//	}
-	//	pendingMiniBlocks = append(pendingMiniBlocks, mbHdr)
-	//}
 
 	return pendingMiniBlocks, nil
 }
 
-// CreateNonceToHashMap creates a map of nonce to hash from all the given metaBlocks
-func CreateNonceToHashMap(unFinishedMetaBlocks map[string]*block.MetaBlock) map[uint64]string {
+// createNonceToHashMap creates a map of nonce to hash from all the given metaBlocks
+func createNonceToHashMap(unFinishedMetaBlocks map[string]*block.MetaBlock) map[uint64]string {
 	nonceToHashMap := make(map[uint64]string, len(unFinishedMetaBlocks))
 	for metaBlockHash, metaBlock := range unFinishedMetaBlocks {
 		nonceToHashMap[metaBlock.GetNonce()] = metaBlockHash
@@ -65,8 +55,8 @@ func CreateNonceToHashMap(unFinishedMetaBlocks map[string]*block.MetaBlock) map[
 	return nonceToHashMap
 }
 
-// ComputePendingMiniBlocksFromUnFinished computes all the pending miniBlocks from unFinished metaBlocks
-func ComputePendingMiniBlocksFromUnFinished(
+// computePendingMiniBlocksFromUnFinishedMetaBlocks computes all the pending miniBlocks from unFinished metaBlocks
+func computePendingMiniBlocksFromUnFinishedMetaBlocks(
 	epochStartShardData block.EpochStartShardData,
 	unFinishedMetaBlocks map[string]*block.MetaBlock,
 	nonceToHashMap map[uint64]string,
@@ -92,15 +82,15 @@ func ComputePendingMiniBlocksFromUnFinished(
 			return nil, ErrWrongUnFinishedMetaHdrsMap
 		}
 
-		pendingMiniBlocksFromMetaBlock := GetAllMiniBlocksWithDst(metaBlock, epochStartShardData.ShardID)
+		pendingMiniBlocksFromMetaBlock := getAllMiniBlocksWithDst(metaBlock, epochStartShardData.ShardID)
 		pendingMiniBlocks = append(pendingMiniBlocks, pendingMiniBlocksFromMetaBlock...)
 	}
 
 	return pendingMiniBlocks, nil
 }
 
-// GetAllMiniBlocksWithDst returns all miniBlock headers with the given destination from the given metaBlock
-func GetAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []block.MiniBlockHeader {
+// getAllMiniBlocksWithDst returns all miniBlock headers with the given destination from the given metaBlock
+func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []block.MiniBlockHeader {
 	mbHdrs := make([]block.MiniBlockHeader, 0)
 	for i := 0; i < len(metaBlock.ShardInfo); i++ {
 		if metaBlock.ShardInfo[i].ShardID == destShardID {
