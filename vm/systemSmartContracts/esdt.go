@@ -13,10 +13,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
+const numOfRetriesForIdentifier = 50
+const tickerSeparator = "/"
+const tickerRandomSequenceLength = 3
+const minLengthForTickerName = 3
+const maxLengthForTickerName = 10
 const minLengthForTokenName = 10
 const maxLengthForTokenName = 20
 const configKeyPrefix = "esdtConfig"
@@ -114,8 +120,6 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	switch args.Function {
 	case "issue":
 		return e.issue(args)
-	case "issueProtected":
-		return e.issueProtected(args)
 	case core.BuiltInFunctionESDTBurn:
 		return e.burn(args)
 	case "mint":
@@ -134,8 +138,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.claim(args)
 	case "configChange":
 		return e.configChange(args)
-	case "esdtControlChanges":
-		return e.esdtControlChanges(args)
+	case "controlChanges":
+		return e.controlChanges(args)
 	case "transferOwnership":
 		return e.transferOwnership(args)
 	case "getAllESDTTokens":
@@ -163,45 +167,8 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
-func (e *esdt) issueProtected(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, e.ownerAddress) {
-		e.eei.AddReturnMessage("issueProtected can be called by whitelisted address only")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) < 3 {
-		e.eei.AddReturnMessage("not enough arguments")
-		return vmcommon.FunctionWrongSignature
-	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid owner address length")
-		return vmcommon.FunctionWrongSignature
-	}
-	err := e.eei.UseGas(e.gasCost.MetaChainSystemSCsCost.ESDTIssue)
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.OutOfGas
-	}
-	esdtConfig, err := e.getESDTConfig()
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(esdtConfig.BaseIssuingCost) != 0 {
-		e.eei.AddReturnMessage("callValue not equals with baseIssuingCost")
-		return vmcommon.OutOfFunds
-	}
-
-	err = e.issueToken(args.Arguments[0], args.Arguments[1:])
-	if err != nil {
-		e.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 2 {
+	if len(args.Arguments) < 3 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -215,7 +182,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < int(esdtConfig.MinTokenNameLength) ||
+	if len(args.Arguments[0]) < minLengthForTickerName ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
@@ -234,6 +201,23 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	return vmcommon.Ok
 }
 
+func isTickerValid(tickerName []byte) bool {
+	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
+		return false
+	}
+
+	for _, ch := range tickerName {
+		isBigCharacter := ch >= 'A' && ch <= 'Z'
+		isNumber := ch >= '0' && ch <= '9'
+		isReadable := isBigCharacter || isNumber
+		if !isReadable {
+			return false
+		}
+	}
+
+	return true
+}
+
 func isTokenNameHumanReadable(tokenName []byte) bool {
 	for _, ch := range tokenName {
 		isSmallCharacter := ch >= 'a' && ch <= 'z'
@@ -247,45 +231,75 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 	return true
 }
 
+func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
+	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
+	newRandom := sha256.Sha256{}.Compute(string(newRandomBase))
+	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
+
+	tickerPrefix := append(ticker, []byte(tickerSeparator)...)
+	newRandomAsBigInt := big.NewInt(0).SetBytes(newRandomForTicker)
+
+	one := big.NewInt(1)
+	for i := 0; i < numOfRetriesForIdentifier; i++ {
+		encoded := hex.EncodeToString(newRandomAsBigInt.Bytes())
+		newIdentifier := append(tickerPrefix, []byte(encoded)...)
+		data := e.eei.GetStorage(newIdentifier)
+		if len(data) == 0 {
+			return newIdentifier, nil
+		}
+		newRandomAsBigInt.Add(newRandomAsBigInt, one)
+	}
+
+	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+}
+
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 	tokenName := arguments[0]
-	initialSupply := big.NewInt(0).SetBytes(arguments[1])
+	if !isTokenNameHumanReadable(tokenName) {
+		return vm.ErrTokenNameNotHumanReadable
+	}
+
+	tickerName := arguments[1]
+	if !isTickerValid(tickerName) {
+		return vm.ErrTickerNameNotValid
+	}
+
+	initialSupply := big.NewInt(0).SetBytes(arguments[2])
 	if initialSupply.Cmp(big.NewInt(0)) <= 0 {
 		return vm.ErrNegativeOrZeroInitialSupply
 	}
 
-	data := e.eei.GetStorage(tokenName)
-	if len(data) > 0 {
-		return vm.ErrTokenAlreadyRegistered
-	}
-
-	if !isTokenNameHumanReadable(tokenName) {
-		return vm.ErrTokenNameNotHumanReadable
+	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
+	if err != nil {
+		return err
 	}
 
 	newESDTToken := &ESDTData{
 		OwnerAddress: owner,
 		TokenName:    tokenName,
+		TickerName:   tickerName,
 		MintedValue:  initialSupply,
 		BurntValue:   big.NewInt(0),
 		Upgradable:   true,
 	}
-	err := upgradeProperties(newESDTToken, arguments[2:])
+	err = upgradeProperties(newESDTToken, arguments[3:])
 	if err != nil {
 		return err
 	}
-	err = e.saveToken(newESDTToken)
+	err = e.saveToken(tokenIdentifier, newESDTToken)
 	if err != nil {
 		return err
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(initialSupply.Bytes())
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
 	err = e.eei.Transfer(owner, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		return err
 	}
 
-	e.addToIssuedTokens(string(tokenName))
+	e.addToIssuedTokens(string(tokenIdentifier))
+
+	e.eei.Finish(tokenIdentifier)
 
 	return nil
 }
@@ -369,7 +383,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	token.BurntValue.Add(token.BurntValue, burntValue)
 
-	err = e.saveToken(token)
+	err = e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -404,7 +418,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	token.MintedValue.Add(token.MintedValue, mintValue)
-	err := e.saveToken(token)
+	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -419,7 +433,7 @@ func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		destination = args.Arguments[2]
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(token.TokenName) + "@" + hex.EncodeToString(mintValue.Bytes())
+	esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(mintValue.Bytes())
 	err = e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
@@ -443,7 +457,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
@@ -471,7 +485,7 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(token.TokenName)
+	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(args.Arguments[0])
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
@@ -504,13 +518,13 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 	}
 
 	token.IsPaused = !token.IsPaused
-	err := e.saveToken(token)
+	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(token.TokenName)
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
 
 	return vmcommon.Ok
@@ -710,7 +724,7 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	token.OwnerAddress = args.Arguments[1]
-	err := e.saveToken(token)
+	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -719,7 +733,7 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 	return vmcommon.Ok
 }
 
-func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (e *esdt) controlChanges(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 2 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
@@ -738,7 +752,7 @@ func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.Ret
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	err = e.saveToken(token)
+	err = e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -747,20 +761,20 @@ func (e *esdt) esdtControlChanges(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (e *esdt) saveToken(token *ESDTData) error {
+func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 	marshaledData, err := e.marshalizer.Marshal(token)
 	if err != nil {
 		return err
 	}
 
-	e.eei.SetStorage(token.TokenName, marshaledData)
+	e.eei.SetStorage(identifier, marshaledData)
 	return nil
 }
 
-func (e *esdt) getExistingToken(tokenName []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenName)
+func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
+	marshalledData := e.eei.GetStorage(tokenIdentifier)
 	if len(marshalledData) == 0 {
-		return nil, vm.ErrNoTokenWithGivenName
+		return nil, vm.ErrNoTickerWithGivenName
 	}
 
 	token := &ESDTData{}

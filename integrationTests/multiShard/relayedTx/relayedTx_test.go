@@ -187,11 +187,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
 	///////////------- send token issue
-	tokenName := "robertWhyNot"
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
-	txData := "issue" + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte("RBT")) + "@" + hex.EncodeToString(initalSupply.Bytes())
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
@@ -203,11 +202,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenName, initalSupply)
+	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
 
 	/////////------ send tx to players
 	valueToTopUp := big.NewInt(100000000)
-	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
+	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
 	for _, player := range players {
 		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), player.Address, txData, integrationTests.AdditionalGasLimit)
 	}
@@ -220,7 +220,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenName)) + "@" + hex.EncodeToString(sendValue.Bytes())
+	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(sendValue.Bytes())
 	transferTokenESDTGas := uint64(1)
 	transferTokenBaseGas := tokenIssuer.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
 	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas
@@ -246,11 +246,38 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	time.Sleep(time.Second)
 	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
 	finalBalance.Mul(finalBalance, sendValue)
-	checkAddressHasESDTTokens(t, receiverAddress1, nodes, tokenName, finalBalance)
-	checkAddressHasESDTTokens(t, receiverAddress2, nodes, tokenName, finalBalance)
+	checkAddressHasESDTTokens(t, receiverAddress1, nodes, tokenIdenfitifer, finalBalance)
+	checkAddressHasESDTTokens(t, receiverAddress2, nodes, tokenIdenfitifer, finalBalance)
 
 	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
+}
+
+func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
+			continue
+		}
+
+		scQuery := &process.SCQuery{
+			ScAddress:  vm.ESDTSCAddress,
+			FuncName:   "getAllESDTTokens",
+			CallerAddr: vm.ESDTSCAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		}
+		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		if err != nil || vmOutput == nil || vmOutput.ReturnCode != vmcommon.Ok {
+			return nil
+		}
+		if len(vmOutput.ReturnData) == 0 {
+			return nil
+		}
+
+		return vmOutput.ReturnData[0]
+	}
+
+	return nil
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
