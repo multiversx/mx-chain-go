@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -147,110 +148,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		big.NewInt(0).SetUint64(expectedBalance))
 }
 
-func Benchmark_VmDeployWithFibbonacciAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", "_main", b.N, 32, nil)
-}
-
-func Benchmark_VmDeployWithCPUCalculateAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm", "_main", b.N, 8000, nil)
-}
-
-func Benchmark_VmDeployWithStringConcatAndExecute(b *testing.B) {
-	runWASMVMBenchmark(b, "../testdata/misc/stringconcat_arwen/stringconcat_arwen.wasm", "_main", b.N, 10000, nil)
-}
-
-func Benchmark_TestStore100WithGasSchedule(b *testing.B) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
-	runWASMVMBenchmark(b, "../testdata/storage100/output/storage100.wasm", "store100", b.N, 0, gasSchedule)
-}
-
-func runWASMVMBenchmark(
-	tb testing.TB,
-	fileSC string,
-	function string,
-	numRun int,
-	testingValue uint64,
-	gasSchedule map[string]map[string]uint64,
-) {
-	ownerAddressBytes := []byte("12345678901234567890123456789012")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(0xfffffffffffffff)
-	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
-	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
-	transferOnCalls := big.NewInt(1)
-
-	scCode := arwen.GetSCCode(fileSC)
-
-	tx := &transaction.Transaction{
-		Nonce:     ownerNonce,
-		Value:     new(big.Int).Set(transferOnCalls),
-		RcvAddr:   vm.CreateEmptyAddress(),
-		SndAddr:   ownerAddressBytes,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      []byte(arwen.CreateDeployTxData(scCode)),
-		Signature: nil,
-	}
-
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
-	defer testContext.Close()
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(tb, err)
-	require.Nil(tb, testContext.GetLatestError())
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(tb, err)
-
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(10000000000))
-
-	tx = &transaction.Transaction{
-		Nonce:     aliceNonce,
-		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
-		RcvAddr:   scAddress,
-		SndAddr:   alice,
-		GasPrice:  0,
-		GasLimit:  gasLimit,
-		Data:      []byte(function),
-		Signature: nil,
-	}
-
-	startTime := time.Now()
-	for i := 0; i < numRun; i++ {
-		tx.Nonce = aliceNonce
-
-		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
-
-		aliceNonce++
-	}
-	log.Info("elapsed time to process", "time", time.Since(startTime))
-}
-
-func TestGasModel(t *testing.T) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
-
-	totalOp := uint64(0)
-	for _, opCodeClass := range gasSchedule {
-		for _, opCode := range opCodeClass {
-			totalOp += opCode
-		}
-	}
-	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
-	fmt.Println("FIBONNACI 32 ")
-	runWASMVMBenchmark(t, "../testdata/misc/fib_arwen/output/fib_arwen.wasm", "_main", 10, 32, gasSchedule)
-	fmt.Println("CPUCALCULATE 8000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm", "_main", 1000, 8000, gasSchedule)
-	fmt.Println("STRINGCONCAT 1000 ")
-	runWASMVMBenchmark(t, "../testdata/misc/stringconcat_arwen/stringconcat_arwen.wasm", "_main", 100, 10000, gasSchedule)
-	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
-}
-
 func TestWASMMetering(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
@@ -260,7 +157,7 @@ func TestWASMMetering(t *testing.T) {
 	gasLimit := uint64(0xffffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
-	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/cpucalculate_arwen.wasm")
+	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/output/cpucalculate.wasm")
 
 	tx := &transaction.Transaction{
 		Nonce:     ownerNonce,
@@ -287,12 +184,12 @@ func TestWASMMetering(t *testing.T) {
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	aliceInitialBalance := uint64(3000)
+	aliceInitialBalance := uint64(3000000)
 	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).SetUint64(aliceInitialBalance))
 
 	testingValue := uint64(15)
 
-	gasLimit = uint64(500)
+	gasLimit = uint64(500000)
 
 	tx = &transaction.Transaction{
 		Nonce:     aliceNonce,
@@ -301,7 +198,7 @@ func TestWASMMetering(t *testing.T) {
 		SndAddr:   alice,
 		GasPrice:  gasPrice,
 		GasLimit:  gasLimit,
-		Data:      []byte("_main"),
+		Data:      []byte("cpuCalculate"),
 		Signature: nil,
 	}
 
@@ -309,7 +206,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	expectedBalance := big.NewInt(2615)
+	expectedBalance := big.NewInt(2998094)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -323,14 +220,14 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 370, int(consumedGasValue))
+	require.Equal(t, 1891, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
@@ -340,7 +237,7 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
@@ -395,9 +292,9 @@ func deployAndExecuteERC20WithBigInt(
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, returnCode, vmcommon.Ok)
 
 	for batch := 0; batch < numRun; batch++ {
 		start := time.Now()
@@ -405,9 +302,9 @@ func deployAndExecuteERC20WithBigInt(
 		for i := 0; i < numTransferInBatch; i++ {
 			tx = vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
 
-			_, err = testContext.TxProcessor.ProcessTransaction(tx)
+			returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 			require.Nil(t, err)
-			require.Nil(t, testContext.GetLatestError())
+			require.Equal(t, returnCode, vmcommon.Ok)
 			aliceNonce++
 		}
 

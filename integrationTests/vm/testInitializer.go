@@ -69,6 +69,11 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 	return smartContract.GetLatestTestError(vmTestContext.ScProcessor)
 }
 
+// GetGasRemaining -
+func (vmTestContext *VMTestContext) GetGasRemaining() uint64 {
+	return smartContract.GetGasRemaining(vmTestContext.ScProcessor)
+}
+
 type accountFactory struct {
 }
 
@@ -366,10 +371,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: blockChainHook.GetBuiltInFunctions(),
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EpochNotifier:    forking.NewGenericEpochNotifier(),
+		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:               blockChainHook.GetBuiltInFunctions(),
+		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
+		EpochNotifier:                  forking.NewGenericEpochNotifier(),
+		PenalizedTooMuchGasEnableEpoch: 100,
 	}
 
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewSCProcessor)

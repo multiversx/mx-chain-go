@@ -55,7 +55,7 @@ var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // GasSchedulePath --
-var GasSchedulePath = "../gasSchedule.toml"
+var GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
 
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})

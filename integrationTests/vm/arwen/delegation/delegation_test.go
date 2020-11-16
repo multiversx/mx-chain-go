@@ -105,12 +105,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 6924763, int(context.LastConsumedFee))
+	require.Equal(t, 15627613, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 6483763, int(context.LastConsumedFee))
+	require.Equal(t, 15186613, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
@@ -206,7 +206,7 @@ func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, true, false, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, false, 100, 1)
 }
 
 func TestDelegationProcessManyAotInProcess(t *testing.T) {
@@ -214,7 +214,15 @@ func TestDelegationProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, false, false, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 2, 1)
+}
+
+func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -222,19 +230,19 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, false, true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, true, 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
 	gasPrice := uint64(1)
 	gasLimit := uint64(10000000000)
 
-	scCode := arwen.GetSCCode("../testdata/delegation/delegation_v0_5_1_full.wasm")
+	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
 	defer testContext.Close()
 
@@ -291,6 +299,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 
 		elapsedTime := time.Since(start)
 		fmt.Printf("time elapsed to process %d stake on delegation %s \n", txPerBenchmark, elapsedTime.String())
+		printGasConsumed(testContext, "stake to active", gasLimit)
 
 		start = time.Now()
 		for i := txPerBenchmark; i < txPerBenchmark*2; i++ {
@@ -314,6 +323,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 
 		elapsedTime = time.Since(start)
 		fmt.Printf("time elapsed to process %d stake to waiting list %s \n", txPerBenchmark, elapsedTime.String())
+		printGasConsumed(testContext, "stake to waiting", gasLimit)
 
 		start = time.Now()
 		for i := 0; i < txPerBenchmark; i++ {
@@ -337,6 +347,7 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 		elapsedTime = time.Since(start)
 		fmt.Printf("time elapsed to process %d unStake on delegation %s \n", txPerBenchmark, elapsedTime.String())
 		_, _ = testContext.Accounts.Commit()
+		printGasConsumed(testContext, "unStake from waiting", gasLimit)
 
 		start = time.Now()
 		tx = &transactionData.Transaction{
@@ -358,7 +369,14 @@ func delegationProcessManyTimes(t *testing.T, warmInstance bool, outOfProcess bo
 		elapsedTime = time.Since(start)
 		fmt.Printf("time elapsed to process getFullWaitingList %s \n", elapsedTime.String())
 		_, _ = testContext.Accounts.Commit()
+
+		printGasConsumed(testContext, "getFullWaitingList", gasLimit)
 	}
+}
+
+func printGasConsumed(testContext vm.VMTestContext, functionName string, gasLimit uint64) {
+	gasRemaining := testContext.GetGasRemaining()
+	fmt.Printf("%s was executed, consumed %d gas\n", functionName, gasLimit-gasRemaining)
 }
 
 func createTestAddresses(numAddresses uint64) [][]byte {

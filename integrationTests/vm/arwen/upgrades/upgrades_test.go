@@ -114,6 +114,7 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	context.ScAddress = parentAddress
 
 	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm")
+	context.GasLimit = 21700000000
 	err = context.ExecuteSC(owner, "upgradeChild@"+childUpgradedCode)
 	require.Nil(t, err)
 
