@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -812,13 +813,44 @@ func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	userAccount, err := state.NewUserAccount([]byte("userAddress"))
 	require.Nil(t, err)
 
-	userAccount.SetDataTrie(&mock.TrieStub{})
-	userAccount.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte("delegation"))
+	userAccount.SetDataTrie(&mock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
+				return []byte("delegation"), nil
+			}
+			return nil, fmt.Errorf("not found")
+		},
+	})
+
+}
+
+func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.UserAccountsDB = &mock.AccountsStub{
+		GetExistingAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return &mock.UserAccountStub{
+				DataTrieTrackerCalled: func() state.DataTrieTracker {
+					return  &mock.DataTrieTrackerStub{
+						RetrieveValueCalled: func(key []byte) ([]byte, error) {
+							if bytes.Equal(key, []byte("delegation")){
+								return []byte("value"), nil
+							}
+							return nil, fmt.Errorf("error")
+						},
+					}
+				},
+			}, nil
+		},
+	}
+	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
-	err = rwd.userAccountsDB.SaveAccount(userAccount)
-	isDelegationSCAddress = rwd.isSystemDelegationSC(userAccount.AddressBytes())
-	// TODO: fix this test to return true
-	//require.True(t, isDelegationSCAddress)
+	require.NotNil(t, rwd)
+
+	isDelegationSCAddress := rwd.isSystemDelegationSC([]byte("userAddress"))
+
+	require.True(t, isDelegationSCAddress)
 }
 
 func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *testing.T) {
