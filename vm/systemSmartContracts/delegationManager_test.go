@@ -398,8 +398,10 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	delegationSc := systemSc.(*delegation)
 	eei.scAddress = createNewAddress(vm.FirstDelegationSCAddress)
 	dContractConfig, _ := delegationSc.getDelegationContractConfig()
-	assert.Equal(t, vmInput.CallerAddr, dContractConfig.OwnerAddress)
-	assert.Equal(t, uint64(10), dContractConfig.ServiceFee)
+	retrievedOwnerAddress := eei.GetStorage([]byte(ownerKey))
+	retrievedServiceFee := eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, vmInput.CallerAddr, retrievedOwnerAddress)
+	assert.Equal(t, []byte{10}, retrievedServiceFee)
 	assert.Equal(t, big.NewInt(250), dContractConfig.MaxDelegationCap)
 }
 
