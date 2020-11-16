@@ -153,16 +153,16 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments = [][]byte{[]byte("name"), []byte("1000")}
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments[0] = []byte("01234567891")
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(100).Bytes())
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)
-
 	assert.Equal(t, vmcommon.Ok, output)
+	tokenID := eei.output[0]
 
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
@@ -174,7 +174,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, []byte("01234567891"), eei.output[0])
+	assert.Equal(t, tokenID, eei.output[0])
 }
 
 func TestEsdt_ExecuteNilArgsShouldErr(t *testing.T) {
@@ -234,46 +234,6 @@ func TestEsdt_ExecuteWrongFunctionCall(t *testing.T) {
 	}
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
-}
-
-func TestEsdt_ExecuteIssueProtected(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForESDT()
-	args.ESDTSCConfig.OwnerAddress = "addr"
-	e, _ := NewESDTSmartContract(args)
-
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr:     []byte("address"),
-			Arguments:      nil,
-			CallValue:      big.NewInt(0),
-			CallType:       0,
-			GasPrice:       0,
-			GasProvided:    0,
-			OriginalTxHash: nil,
-			CurrentTxHash:  nil,
-		},
-		RecipientAddr: []byte("addr"),
-		Function:      "issueProtected",
-	}
-	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-
-	vmInput.CallerAddr = e.ownerAddress
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
-
-	vmInput.Arguments = [][]byte{[]byte("name"), []byte("1000")}
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
-
-	vmInput.Arguments = [][]byte{[]byte("addr"), []byte("name"), []byte("1000")}
-	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
-	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
-	output = e.Execute(vmInput)
-
-	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteBurnWrongNumOfArgsShouldFail(t *testing.T) {
@@ -356,7 +316,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldFail(t *testing.T) {
@@ -519,7 +479,7 @@ func TestEsdt_ExecuteMintOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
@@ -905,7 +865,7 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
@@ -1163,7 +1123,7 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
@@ -1405,7 +1365,7 @@ func TestEsdt_ExecutePauseOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
@@ -1770,7 +1730,7 @@ func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T)
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
@@ -1911,7 +1871,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongNumOfArgumentsShouldFail(t *testing.
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
@@ -1931,7 +1891,7 @@ func TestEsdt_ExecuteEsdtControlChangesWrongCallValueShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
 	vmInput.CallValue = big.NewInt(1)
 
 	output := e.Execute(vmInput)
@@ -1953,7 +1913,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotEnoughGasShouldFail(t *testing.T) {
 	args.GasCost.MetaChainSystemSCsCost.ESDTOperations = 10
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.OutOfGas, output)
@@ -1973,11 +1933,11 @@ func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
@@ -2002,7 +1962,7 @@ func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -2032,7 +1992,7 @@ func TestEsdt_ExecuteEsdtControlChangesNonUpgradableTokenShouldFail(t *testing.T
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte("burnable")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -2065,13 +2025,13 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"), []byte(burnable)})
+	vmInput := getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"), []byte(burnable)})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
 
-	vmInput = getDefaultVmInputForFunc("esdtControlChanges", [][]byte{[]byte("esdtToken"),
+	vmInput = getDefaultVmInputForFunc("controlChanges", [][]byte{[]byte("esdtToken"),
 		[]byte(burnable), []byte("true"),
 		[]byte(mintable), []byte("true"),
 		[]byte(canPause), []byte("true"),
