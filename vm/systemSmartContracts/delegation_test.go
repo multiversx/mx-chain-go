@@ -1566,14 +1566,14 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShoul
 	expectedErr := fmt.Errorf("%w getFund %s", vm.ErrDataNotFoundUnderKey, string(fundKey))
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(50),
 	})
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid value to undelegate"))
 
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(11),
 	})
 	vmInput.Arguments = [][]byte{{10}}
@@ -1606,7 +1606,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		UnStakedFunds:    [][]byte{},
 		UnClaimedRewards: big.NewInt(0),
 	})
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
@@ -1664,7 +1664,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		UnStakedFunds:    [][]byte{},
 		UnClaimedRewards: big.NewInt(0),
 	})
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
@@ -1786,13 +1786,13 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
 		UnStakedFunds: [][]byte{fundKey1, fundKey2},
 	})
-	_ = d.saveFund(fundKey1, &Fund{
+	_ = d.saveKeyFund(fundKey1, &Fund{
 		Value:   big.NewInt(60),
 		Address: vmInput.CallerAddr,
 		Nonce:   10,
 		Type:    unStaked,
 	})
-	_ = d.saveFund(fundKey2, &Fund{
+	_ = d.saveKeyFund(fundKey2, &Fund{
 		Value:   big.NewInt(80),
 		Address: vmInput.CallerAddr,
 		Nonce:   50,
@@ -2203,7 +2203,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 		UnClaimedRewards:  big.NewInt(0),
 	})
 
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(1000),
 	})
 
@@ -2372,7 +2372,7 @@ func TestDelegation_ExecuteGetClaimableRewards(t *testing.T) {
 		UnClaimedRewards:  big.NewInt(0),
 	})
 
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: big.NewInt(1000),
 	})
 
@@ -2776,7 +2776,7 @@ func TestDelegation_ExecuteGetUserActiveStake(t *testing.T) {
 		ActiveFund: fundKey,
 	})
 
-	_ = d.saveFund(fundKey, &Fund{
+	_ = d.saveKeyFund(fundKey, &Fund{
 		Value: fundValue,
 	})
 
@@ -2875,11 +2875,11 @@ func TestDelegation_ExecuteGetUserUnStakedValue(t *testing.T) {
 		UnStakedFunds: [][]byte{fundKey1, fundKey2},
 	})
 
-	_ = d.saveFund(fundKey1, &Fund{
+	_ = d.saveKeyFund(fundKey1, &Fund{
 		Value: fundValue,
 	})
 
-	_ = d.saveFund(fundKey2, &Fund{
+	_ = d.saveKeyFund(fundKey2, &Fund{
 		Value: fundValue,
 	})
 
@@ -2992,12 +2992,12 @@ func TestDelegation_ExecuteGetUserUnBondable(t *testing.T) {
 		UnStakedFunds: [][]byte{fundKey1, fundKey2},
 	})
 
-	_ = d.saveFund(fundKey1, &Fund{
+	_ = d.saveKeyFund(fundKey1, &Fund{
 		Value: fundValue,
 		Nonce: 400,
 	})
 
-	_ = d.saveFund(fundKey2, &Fund{
+	_ = d.saveKeyFund(fundKey2, &Fund{
 		Value: fundValue,
 		Nonce: 495,
 	})
@@ -3429,7 +3429,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroDoesNotPanic(t *te
 	}
 
 	rewards := big.NewInt(1000)
-	_ = d.saveFund(fundKey, &Fund{Value: big.NewInt(1)})
+	_ = d.saveKeyFund(fundKey, &Fund{Value: big.NewInt(1)})
 	_ = d.saveRewardData(1, &RewardComputationData{
 		TotalActive:         big.NewInt(0),
 		RewardsToDistribute: rewards,
@@ -3468,7 +3468,7 @@ func TestDelegation_computeAndUpdateRewardsWithTotalActiveZeroSendsAllRewardsToO
 	}
 
 	rewards := big.NewInt(1000)
-	_ = d.saveFund(fundKey, &Fund{Value: big.NewInt(1)})
+	_ = d.saveKeyFund(fundKey, &Fund{Value: big.NewInt(1)})
 	_ = d.saveRewardData(1, &RewardComputationData{
 		TotalActive:         big.NewInt(0),
 		RewardsToDistribute: rewards,
