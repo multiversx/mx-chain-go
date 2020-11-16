@@ -1494,7 +1494,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1520,13 +1520,13 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 	}
 
 	tx.Value = big.NewInt(int64(5))
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.BalanceDelta = nil
 	outacc1.Nonce++
 	tx.Value = big.NewInt(0)
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outacc1.Nonce++
@@ -1535,7 +1535,7 @@ func TestScProcessor_processSCOutputAccounts(t *testing.T) {
 
 	currentBalance := testAcc.Balance.Uint64()
 	vmOutBalance := outacc1.BalanceDelta.Uint64()
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 	require.Equal(t, currentBalance+vmOutBalance, testAcc.Balance.Uint64())
 }
@@ -1554,7 +1554,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	tx := &transaction.Transaction{Value: big.NewInt(0)}
 	outputAccounts := make([]*vmcommon.OutputAccount, 0)
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 
 	outaddress := []byte("newsmartcontract")
@@ -1568,7 +1568,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 		return shardCoordinator.SelfId() + 1
 	}
 
-	_, err = sc.processSCOutputAccounts(outputAccounts, tx, []byte("hash"))
+	_, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
 }
 
@@ -1613,7 +1613,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	tx.GasLimit = 15
 	txHash := []byte("txHash")
 
-	scTxs, err := sc.processSCOutputAccounts(outputAccounts, tx, txHash)
+	scTxs, err := sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, len(outputAccounts), len(scTxs))
 }

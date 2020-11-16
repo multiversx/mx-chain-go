@@ -583,7 +583,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		scTxs := sc.createSmartContractResults(outAcc, tx, txHash)
+		scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
 		scrResults = append(scrResults, scTxs...)
 	}
 
@@ -599,7 +599,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	if isSCCall {
 		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
 		var newSCRTxs []data.TransactionHandler
-		newSCRTxs, err = sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
+		newSCRTxs, err = sc.processSCOutputAccounts(vmOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
 			return 0, err
 		}
@@ -1102,7 +1102,7 @@ func (sc *scProcessor) processVMOutput(
 	)
 
 	outPutAccounts := process.SortVMOutputInsideData(vmOutput)
-	scrTxs, err := sc.processSCOutputAccounts(outPutAccounts, tx, txHash)
+	scrTxs, err := sc.processSCOutputAccounts(vmOutput, callType, outPutAccounts, tx, txHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1315,12 +1315,25 @@ func createBaseSCR(
 	return result
 }
 
+func addVMOutputResultsToSCR(vmOutput *vmcommon.VMOutput, result *smartContractResult.SmartContractResult) {
+	result.CallType = vmcommon.AsynchronousCallBack
+	result.GasLimit = vmOutput.GasRemaining
+	result.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
+
+	for _, retData := range vmOutput.ReturnData {
+		result.Data = append(result.Data, []byte("@"+hex.EncodeToString(retData))...)
+	}
+}
+
 func (sc *scProcessor) createSmartContractResults(
+	vmOutput *vmcommon.VMOutput,
+	callType vmcommon.CallType,
 	outAcc *vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
 ) []data.TransactionHandler {
-	if len(outAcc.OutputTransfers) == 0 {
+	lenOutTransfers := len(outAcc.OutputTransfers)
+	if lenOutTransfers == 0 {
 		if !sc.flagDeploy.IsSet() {
 			result := createBaseSCR(outAcc, tx, txHash)
 			result.Code = outAcc.Code
@@ -1329,6 +1342,12 @@ func (sc *scProcessor) createSmartContractResults(
 				result.OriginalSender = tx.GetSndAddr()
 			}
 
+			return []data.TransactionHandler{result}
+		}
+
+		if callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
+			result := createBaseSCR(outAcc, tx, txHash)
+			addVMOutputResultsToSCR(vmOutput, result)
 			return []data.TransactionHandler{result}
 		}
 
@@ -1343,9 +1362,10 @@ func (sc *scProcessor) createSmartContractResults(
 		return []data.TransactionHandler{result}
 	}
 
+	var result *smartContractResult.SmartContractResult
 	scResults := make([]data.TransactionHandler, 0, len(outAcc.OutputTransfers))
-	for _, outPutTransfer := range outAcc.OutputTransfers {
-		result := createBaseSCR(outAcc, tx, txHash)
+	for i, outPutTransfer := range outAcc.OutputTransfers {
+		result = createBaseSCR(outAcc, tx, txHash)
 
 		if outPutTransfer.Value != nil {
 			result.Value.Set(outPutTransfer.Value)
@@ -1356,6 +1376,12 @@ func (sc *scProcessor) createSmartContractResults(
 		setOriginalTxHash(result, txHash, tx)
 		if result.Value.Cmp(zero) > 0 {
 			result.OriginalSender = tx.GetSndAddr()
+		}
+
+		isAsyncTransferBackToSender := callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr())
+		isLastOutTransfer := i == lenOutTransfers-1
+		if isLastOutTransfer && isAsyncTransferBackToSender {
+			addVMOutputResultsToSCR(vmOutput, result)
 		}
 
 		scResults = append(scResults, result)
@@ -1376,20 +1402,22 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 		vmOutput.GasRefund = big.NewInt(0)
 	}
 
+	gasRefund := core.SafeMul(vmOutput.GasRemaining, tx.GetGasPrice())
+	gasRemaining := uint64(0)
 	storageFreeRefund := big.NewInt(0)
 	// backward compatibility - there should be no refund as the storage pay was already distributed among validators
 	// this would only create additional inflation
+	// backward compatibility - direct smart contract results were created with gasLimit - there is no need for them
 	if !sc.flagDeploy.IsSet() {
 		storageFreeRefund = big.NewInt(0).Mul(vmOutput.GasRefund, big.NewInt(0).SetUint64(sc.economicsFee.MinGasPrice()))
+		gasRemaining = vmOutput.GasRemaining
 	}
-	gasRefund := core.SafeMul(vmOutput.GasRemaining, tx.GetGasPrice())
 
 	rcvAddress := tx.GetSndAddr()
 	if callType == vmcommon.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
 	}
 
-	gasRemaining := vmOutput.GasRemaining
 	var refundGasToRelayerSCR *smartContractResult.SmartContractResult
 	relayedSCR, isRelayed := isRelayedTx(tx)
 	if isRelayed && callType != vmcommon.AsynchronousCall && gasRefund.Cmp(zero) > 0 {
@@ -1421,17 +1449,15 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	scTx.GasLimit = gasRemaining
 	scTx.GasPrice = tx.GetGasPrice()
 	scTx.ReturnMessage = []byte(vmOutput.ReturnMessage)
+	scTx.CallType = vmcommon.DirectCall
 	setOriginalTxHash(scTx, txHash, tx)
+	scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
 
-	if callType == vmcommon.AsynchronousCall {
-		scTx.CallType = vmcommon.AsynchronousCallBack
-		scTx.Data = []byte("@" + core.ConvertToEvenHex(int(vmOutput.ReturnCode)))
-	} else {
-		scTx.Data = []byte("@" + hex.EncodeToString([]byte(vmOutput.ReturnCode.String())))
-	}
-
-	for _, retData := range vmOutput.ReturnData {
-		scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
+	// when asynchronous call - the callback is created by combining the last output transfer with the returnData
+	if callType != vmcommon.AsynchronousCall {
+		for _, retData := range vmOutput.ReturnData {
+			scTx.Data = append(scTx.Data, []byte("@"+hex.EncodeToString(retData))...)
+		}
 	}
 
 	log.Trace("createSCRForSender ", "data", string(scTx.Data), "snd", scTx.SndAddr, "rcv", scTx.RcvAddr)
@@ -1440,6 +1466,8 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 
 // save account changes in state from vmOutput - protected by VM - every output can be treated as is.
 func (sc *scProcessor) processSCOutputAccounts(
+	vmOutput *vmcommon.VMOutput,
+	callType vmcommon.CallType,
 	outputAccounts []*vmcommon.OutputAccount,
 	tx data.TransactionHandler,
 	txHash []byte,
@@ -1455,7 +1483,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			return nil, err
 		}
 
-		newScrs := sc.createSmartContractResults(outAcc, tx, txHash)
+		newScrs := sc.createSmartContractResults(vmOutput, callType, outAcc, tx, txHash)
 		scResults = append(scResults, newScrs...)
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
