@@ -330,7 +330,7 @@ func (d *delegation) delegateUser(
 
 	if len(delegator.ActiveFund) == 0 {
 		var fundKey []byte
-		fundKey, err = d.createAndSaveNexKeyFund(callerAddr, callValue, active)
+		fundKey, err = d.createAndSaveNextKeyFund(callerAddr, callValue, active)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -918,7 +918,7 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 
 	fund.Value.Add(fund.Value, value)
 
-	return d.saveKeyFund(key, fund)
+	return d.saveFund(key, fund)
 }
 
 func (d *delegation) resolveUnStakedUnBondResponse(
@@ -1065,13 +1065,13 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	globalFund.TotalUnStakedFromNodes.Add(globalFund.TotalUnStakedFromNodes, unStakeFromNodes)
 	activeFund.Value.Sub(activeFund.Value, actualUserUnStake)
-	err = d.saveKeyFund(delegator.ActiveFund, activeFund)
+	err = d.saveFund(delegator.ActiveFund, activeFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	unStakedFundKey, err := d.createAndSaveNexKeyFund(args.CallerAddr, actualUserUnStake, unStaked)
+	unStakedFundKey, err := d.createAndSaveNextKeyFund(args.CallerAddr, actualUserUnStake, unStaked)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1417,7 +1417,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		if totalUnBonded.Cmp(actualUserUnBond) > 0 {
 			unBondedFromThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
 			fund.Value.Sub(fund.Value, unBondedFromThisFund)
-			err = d.saveKeyFund(fundKey, fund)
+			err = d.saveFund(fundKey, fund)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
 				return vmcommon.UserError
@@ -1887,9 +1887,9 @@ func (d *delegation) getFund(key []byte) (*Fund, error) {
 	return dFund, nil
 }
 
-func (d *delegation) createAndSaveNexKeyFund(address []byte, value *big.Int, fundType uint32) ([]byte, error) {
+func (d *delegation) createAndSaveNextKeyFund(address []byte, value *big.Int, fundType uint32) ([]byte, error) {
 	fundKey, fund := d.createNextKeyFund(address, value, fundType)
-	err := d.saveKeyFund(fundKey, fund)
+	err := d.saveFund(fundKey, fund)
 	if err != nil {
 		return nil, err
 	}
@@ -1898,7 +1898,7 @@ func (d *delegation) createAndSaveNexKeyFund(address []byte, value *big.Int, fun
 	return fundKey, nil
 }
 
-func (d *delegation) saveKeyFund(key []byte, dFund *Fund) error {
+func (d *delegation) saveFund(key []byte, dFund *Fund) error {
 	if dFund.Value.Cmp(zero) == 0 {
 		d.eei.SetStorage(key, nil)
 		return nil
