@@ -114,7 +114,7 @@ func Benchmark_TestCryptoDoNothing(b *testing.B) {
 }
 
 func Benchmark_TestStorageRust(b *testing.B) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasSchedule.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	buff := make([]byte, 100)
 	_, _ = rand.Read(buff)
 	arguments := [][]byte{buff, big.NewInt(100).Bytes()}
@@ -122,7 +122,7 @@ func Benchmark_TestStorageRust(b *testing.B) {
 }
 
 func TestGasModel(t *testing.T) {
-	gasSchedule, _ := core.LoadGasScheduleConfig("../gasScheduleV2.toml")
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 
 	totalOp := uint64(0)
 	for _, opCodeClass := range gasSchedule {
