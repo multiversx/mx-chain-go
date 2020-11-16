@@ -122,14 +122,14 @@ func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[u
 func (rp *ratingsProcessor) createPeerAdapter() error {
 	pathTemplateForPruningStorer := filepath.Join(
 		rp.dbPathWithChainID,
-		fmt.Sprintf("%s_%s", "Epoch", core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
+		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
+		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
 		rp.dbPathWithChainID,
 		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
+		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
 	if err != nil {
