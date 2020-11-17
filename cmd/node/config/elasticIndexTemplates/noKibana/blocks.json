@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["tps-*"],
+  "index_patterns": ["blocks-*"],
   "settings": {
     "number_of_shards": 3,
     "number_of_replicas": 0,

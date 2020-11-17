@@ -215,7 +215,8 @@ func (vs *validatorStatistics) saveUpdatesForList(
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
-		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && peerAcc.GetUnStakedEpoch() == core.DefaultUnstakedEpoch
+		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
+		isNodeJailed := vs.flagJailedEnabled.IsSet() && peerType == core.InactiveList && isNodeWithLowRating
 		if isNodeJailed {
 			peerAcc.SetListAndIndex(shardID, string(core.JailedList), uint32(index))
 		} else if isNodeLeaving {
@@ -384,6 +385,7 @@ func computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
+// DisplayRatings will print the ratings
 func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
@@ -503,12 +505,27 @@ func (vs *validatorStatistics) IsLowRating(blsKey []byte) bool {
 		return false
 	}
 
+	return vs.isValidatorWithLowRating(validatorAccount)
+}
+
+func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.PeerAccountHandler) bool {
 	minChance := vs.rater.GetChance(0)
-	if vs.rater.GetChance(validatorAccount.GetTempRating()) >= minChance {
-		return false
+	return vs.rater.GetChance(validatorAccount.GetTempRating()) < minChance
+}
+
+func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
+	if !vs.flagJailedEnabled.IsSet() {
+		return
 	}
 
-	return true
+	if validatorAccount.GetList() != string(core.InactiveList) {
+		return
+	}
+	if !vs.isValidatorWithLowRating(validatorAccount) {
+		return
+	}
+
+	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(core.JailedList), validatorAccount.GetIndexInList())
 }
 
 func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandler, error) {
@@ -611,7 +628,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		}
 
 		pa.SetTempRating(newTempRating)
-
+		vs.jailValidatorIfBadRatingAndInactive(pa)
 		err = vs.peerAdapter.SaveAccount(pa)
 		if err != nil {
 			return err
@@ -674,12 +691,16 @@ func (vs *validatorStatistics) setToJailedIfNeeded(
 		return
 	}
 
+	if validator.List == string(core.WaitingList) || validator.List == string(core.EligibleList) {
+		return
+	}
+
 	if validator.List == string(core.JailedList) && peerAccount.GetList() != string(core.JailedList) {
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 		return
 	}
 
-	if peerAccount.GetUnStakedEpoch() == core.DefaultUnstakedEpoch && peerAccount.GetList() == string(core.InactiveList) {
+	if vs.isValidatorWithLowRating(peerAccount) {
 		peerAccount.SetListAndIndex(validator.ShardId, string(core.JailedList), validator.Index)
 	}
 }
@@ -759,6 +780,8 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("SetTempRating")
 		leaderPeerAcc.SetTempRating(newRating)
+		vs.jailValidatorIfBadRatingAndInactive(leaderPeerAcc)
+
 		err = vs.peerAdapter.SaveAccount(leaderPeerAcc)
 		swInner.Stop("SetTempRating")
 		if err != nil {
@@ -797,7 +820,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 
 		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
 		validatorPeerAccount.SetTempRating(newRating)
-
+		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err := vs.peerAdapter.SaveAccount(validatorPeerAccount)
 		if err != nil {
 			return err
@@ -822,12 +845,13 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		return process.ErrInvalidMetaHeader
 	}
 
+	var currentHeader data.HeaderHandler
 	for _, h := range metaHeader.ShardInfo {
 		if h.Nonce == vs.genesisNonce {
 			continue
 		}
 
-		currentHeader, ok := cacheMap[string(h.HeaderHash)]
+		currentHeader, ok = cacheMap[string(h.HeaderHash)]
 		if !ok {
 			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
 				process.ErrMissingHeader,
@@ -1127,9 +1151,9 @@ func (vs *validatorStatistics) decreaseAll(
 	ratingDifference := uint32(0)
 
 	for i, validator := range shardValidators {
-		validatorPeerAccount, err := vs.loadPeerAccount(validator)
-		if err != nil {
-			return err
+		validatorPeerAccount, errLoad := vs.loadPeerAccount(validator)
+		if errLoad != nil {
+			return errLoad
 		}
 		validatorPeerAccount.DecreaseLeaderSuccessRate(leaderAppearances)
 		validatorPeerAccount.DecreaseValidatorSuccessRate(consensusGroupAppearances)
@@ -1148,6 +1172,7 @@ func (vs *validatorStatistics) decreaseAll(
 		}
 
 		validatorPeerAccount.SetTempRating(currentTempRating)
+		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err = vs.peerAdapter.SaveAccount(validatorPeerAccount)
 		if err != nil {
 			return err
