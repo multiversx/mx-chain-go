@@ -10,20 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
-// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
-type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
-	GetProtocolSustainabilityRewards() *big.Int
-	GetLocalTxCache() epochStart.TransactionCacher
-	CreateMarshalizedData(body *block.Body) map[string][][]byte
-	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
-	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
-	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
-	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
-	IsInterfaceNil() bool
-}
-
 type configuredRewardsCreator string
 
 const (
@@ -42,7 +28,7 @@ type RewardsCreatorProxyArgs struct {
 }
 
 type rewardsCreatorProxy struct {
-	rc            EpochStartRewardsCreator
+	rc            epochStart.EpochStartRewardsCreator
 	epochEnableV2 uint32
 	configuredRC  configuredRewardsCreator
 	args          *RewardsCreatorProxyArgs
@@ -131,17 +117,16 @@ func (rcp *rewardsCreatorProxy) changeRewardCreatorIfNeeded(epoch uint32) error 
 	rcp.mutRc.Lock()
 	defer rcp.mutRc.Unlock()
 
-	switch rcp.configuredRC {
-	case rCreatorV1:
-		if epoch > rcp.epochEnableV2 {
+	if epoch > rcp.epochEnableV2 {
+		if rcp.configuredRC != rCreatorV2 {
 			return rcp.switchToRewardsCreatorV2()
 		}
-	case rCreatorV2:
-		if epoch <= rcp.epochEnableV2 {
-			return rcp.switchToRewardsCreatorV1()
-		}
-	default:
-		return epochStart.ErrInvalidRewardsCreatorProxyConfig
+
+		return nil
+	}
+
+	if rcp.configuredRC != rCreatorV1 {
+		return rcp.switchToRewardsCreatorV1()
 	}
 
 	return nil

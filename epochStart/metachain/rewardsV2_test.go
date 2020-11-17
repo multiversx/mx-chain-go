@@ -152,7 +152,7 @@ func TestNewEpochStartRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *test
 	require.NotNil(t, rwd)
 
 	rwd.accumulatedRewards = big.NewInt(10)
-	rwd.protocolSustainability = big.NewInt(10)
+	rwd.protocolSustainabilityValue = big.NewInt(10)
 	rwd.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	rwd.mapBaseRewardsPerBlockPerValidator[0] = big.NewInt(10)
 	rwd.mapBaseRewardsPerBlockPerValidator[1] = big.NewInt(10)
@@ -167,7 +167,7 @@ func TestNewEpochStartRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *test
 	err = rwd.prepareRewardsData(metaBlk, valInfo)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), rwd.accumulatedRewards)
-	require.Equal(t, big.NewInt(0), rwd.protocolSustainability)
+	require.Equal(t, big.NewInt(0), rwd.protocolSustainabilityValue)
 	require.Equal(t, 0, len(rwd.mapBaseRewardsPerBlockPerValidator))
 }
 
@@ -964,7 +964,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 
 	// now verification
 	metaBlock.MiniBlockHeaders = make([]block.MiniBlockHeader, len(miniBlocks))
-	for i, mb := range miniBlocks{
+	for i, mb := range miniBlocks {
 		mbHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, mb)
 		require.Nil(t, err)
 		metaBlock.MiniBlockHeaders[i] = block.MiniBlockHeader{
@@ -1052,6 +1052,7 @@ func createDefaultValidatorInfo(
 				ValidatorSuccess:           nbBlocksSelected - leaderSuccess,
 				NumSelectedInSuccessBlocks: nbBlocksSelected,
 				AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
+				List:                       string(core.EligibleList),
 			}
 		}
 	}

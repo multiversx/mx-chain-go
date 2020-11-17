@@ -145,6 +145,11 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
 
+	if big.NewInt(0).Cmp(totalRewardsToBeDistributed)>0{
+		totalRewardsToBeDistributed = big.NewInt(0)
+		remainingToBeDistributed = big.NewInt(0)
+	}
+
 	e.economicsDataNotified.SetRewardsToBeDistributed(totalRewardsToBeDistributed)
 	e.economicsDataNotified.SetRewardsToBeDistributedForBlocks(remainingToBeDistributed)
 

@@ -24,13 +24,13 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:             &mock.HasherMock{},
-		Marshalizer:        &mock.MarshalizerMock{},
-		Store:              createMetaStore(),
-		ShardCoordinator:   shardCoordinator,
-		RewardsHandler:     &mock.RewardsHandlerStub{},
-		RoundTime:          &mock.RoundTimeDurationHandler{},
-		GenesisTotalSupply: big.NewInt(2000000),
+		Hasher:                &mock.HasherMock{},
+		Marshalizer:           &mock.MarshalizerMock{},
+		Store:                 createMetaStore(),
+		ShardCoordinator:      shardCoordinator,
+		RewardsHandler:        &mock.RewardsHandlerStub{},
+		RoundTime:             &mock.RoundTimeDurationHandler{},
+		GenesisTotalSupply:    big.NewInt(2000000),
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 	}
 	return argsNewEpochEconomics
