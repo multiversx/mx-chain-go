@@ -166,8 +166,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unJail(args)
 	case "getTotalStaked":
 		return s.getTotalStaked(args)
-	case "getTopUp":
-		return s.getTopUp(args)
+	case "getTopUpTotalStaked":
+		return s.getTopUpTotalStaked(args)
 	case "getBlsKeysStatus":
 		return s.getBlsKeysStatus(args)
 	case "unStakeTokens":
@@ -1630,7 +1630,7 @@ func (s *stakingAuctionSC) getTotalStaked(args *vmcommon.ContractCallInput) vmco
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) getTopUp(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (s *stakingAuctionSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagEnableTopUp.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
@@ -1655,12 +1655,14 @@ func (s *stakingAuctionSC) getTopUp(args *vmcommon.ContractCallInput) vmcommon.R
 		s.eei.AddReturnMessage("caller not registered in staking/auction sc")
 		return vmcommon.UserError
 	}
-	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
+	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
+	topUp.Sub(topUp, registrationData.LockedStake)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
 		s.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")
 		return vmcommon.UserError
 	}
 
+	s.eei.Finish([]byte(topUp.String()))
 	s.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
 	return vmcommon.Ok
 }
