@@ -8,13 +8,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type configuredRewardsCreator string
 
+var _ process.EpochStartRewardsCreator = (*rewardsCreatorProxy)(nil)
+
 const (
 	rCreatorV1 configuredRewardsCreator = "rewardsCreatorV1"
-	rCreatorV2                          = "rewardsCreatorV2"
+	rCreatorV2 configuredRewardsCreator = "rewardsCreatorV2"
 )
 
 // RewardsCreatorProxyArgs holds the proxy arguments
@@ -36,23 +39,28 @@ type rewardsCreatorProxy struct {
 }
 
 func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy, error) {
-	argsV1 := ArgsNewRewardsCreator{
-		BaseRewardsCreatorArgs: args.BaseRewardsCreatorArgs,
+	var err error
+
+	rcProxy := &rewardsCreatorProxy{
+		epochEnableV2: args.EpochEnableV2,
+		configuredRC:  rCreatorV1,
+		args:          &args,
 	}
 
-	rcV1, err := NewEpochStartRewardsCreator(argsV1)
+	rcProxy.rc, err = rcProxy.createRewardsCreatorV1()
+	if err != nil {
+		return nil, err
+	}
+
+	// test creation of v2 rewards creator
+	_, err = rcProxy.createRewardsCreatorV2()
 	if err != nil {
 		return nil, err
 	}
 
 	log.Info("rewardsCreatorProxy", "configured", rCreatorV1)
 
-	return &rewardsCreatorProxy{
-		rc:            rcV1,
-		configuredRC:  rCreatorV1,
-		epochEnableV2: args.EpochEnableV2,
-		args:          &args,
-	}, nil
+	return rcProxy, nil
 }
 
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
@@ -98,7 +106,7 @@ func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock *block.MetaBlock,
 	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
 }
 
-// // RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
+// RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
 }
@@ -134,11 +142,7 @@ func (rcp *rewardsCreatorProxy) changeRewardCreatorIfNeeded(epoch uint32) error 
 
 // to be called under locked mutex
 func (rcp *rewardsCreatorProxy) switchToRewardsCreatorV1() error {
-	argsV1 := ArgsNewRewardsCreator{
-		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
-	}
-
-	rcV1, err := NewEpochStartRewardsCreator(argsV1)
+	rcV1, err := rcp.createRewardsCreatorV1()
 	if err != nil {
 		return err
 	}
@@ -153,6 +157,20 @@ func (rcp *rewardsCreatorProxy) switchToRewardsCreatorV1() error {
 
 // to be called under locked mutex
 func (rcp *rewardsCreatorProxy) switchToRewardsCreatorV2() error {
+	rcV2, err := rcp.createRewardsCreatorV2()
+	if err != nil {
+		return err
+	}
+
+	rcp.rc = rcV2
+	rcp.configuredRC = rCreatorV2
+
+	log.Info("rewardsCreatorProxy.switchToRewardsCreatorV2")
+
+	return nil
+}
+
+func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (*rewardsCreatorV2, error) {
 	argsV2 := RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
 		StakingDataProvider:    rcp.args.StakingDataProvider,
@@ -161,13 +179,13 @@ func (rcp *rewardsCreatorProxy) switchToRewardsCreatorV2() error {
 		TopUpGradientPoint:     rcp.args.TopUpGradientPoint,
 	}
 
-	rcV2, err := NewEpochStartRewardsCreatorV2(argsV2)
-	if err != nil {
-		return err
+	return NewEpochStartRewardsCreatorV2(argsV2)
+}
+
+func (rcp *rewardsCreatorProxy) createRewardsCreatorV1() (*rewardsCreator, error) {
+	argsV1 := ArgsNewRewardsCreator{
+		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
 	}
-	rcp.rc = rcV2
 
-	log.Info("rewardsCreatorProxy.switchToRewardsCreatorV2")
-
-	return nil
+	return NewEpochStartRewardsCreator(argsV1)
 }
