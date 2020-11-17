@@ -285,7 +285,7 @@ func (cc *consensusComponents) Close() error {
 func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyHandler, error) {
 	wd := ccf.coreComponents.Watchdog()
 	if ccf.statusComponents.OutportHandler().HasDrivers() {
-		log.Warn("node is running with a outport driver with drivers. Chronology watchdog will be turned off as " +
+		log.Warn("node is running with an outport with attached drivers. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
 		wd = &watchdog.DisabledWatchdog{}
 	}

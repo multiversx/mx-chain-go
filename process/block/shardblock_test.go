@@ -1917,7 +1917,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
-	arguments.OutportHandler = &mock.OutportStub{
+	arguments.OutportHandler = &testscommon.OutportStub{
 		SaveBlockCalled: func(args types.ArgsSaveBlocks) {
 			saveBlockCalledMutex.Lock()
 			saveBlockCalled = args.TxsFromPool

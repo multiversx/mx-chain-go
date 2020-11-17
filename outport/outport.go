@@ -3,119 +3,127 @@ package outport
 import (
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/outport/drivers"
 	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
-type proxy struct {
+type outport struct {
 	mutex   sync.RWMutex
-	drivers []drivers.Driver
+	drivers []Driver
 }
 
+var log = logger.GetOrCreate("outport")
+
 // NewOutport will create a new instance of proxy
-func NewOutport() *proxy {
-	return &proxy{
-		drivers: make([]drivers.Driver, 0),
+func NewOutport() *outport {
+	return &outport{
+		drivers: make([]Driver, 0),
 		mutex:   sync.RWMutex{},
 	}
 }
 
-// SaveBlock --
-func (o *proxy) SaveBlock(args types.ArgsSaveBlocks) {
+// SaveBlock will save block for every driver
+func (o *outport) SaveBlock(args types.ArgsSaveBlocks) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.SaveBlock(args)
+	for _, driver := range o.drivers {
+		driver.SaveBlock(args)
 	}
 }
 
-// RevertBlock -
-func (o *proxy) RevertBlock(header data.HeaderHandler, body data.BodyHandler) {
+// RevertBlock will revert block for every driver
+func (o *outport) RevertBlock(header data.HeaderHandler, body data.BodyHandler) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.RevertBlock(header, body)
+	for _, driver := range o.drivers {
+		driver.RevertBlock(header, body)
 	}
 }
 
-// SaveRoundsInfo -
-func (o *proxy) SaveRoundsInfo(roundsInfos []types.RoundInfo) {
+// SaveRoundsInfo will save rounds information for every driver
+func (o *outport) SaveRoundsInfo(roundsInfos []types.RoundInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.SaveRoundsInfo(roundsInfos)
+	for _, driver := range o.drivers {
+		driver.SaveRoundsInfo(roundsInfos)
 	}
 }
 
-// UpdateTPS -
-func (o *proxy) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
-
-	for _, indexer := range o.drivers {
-		indexer.UpdateTPS(tpsBenchmark)
-	}
-}
-
-// SaveValidatorsPubKeys -
-func (o *proxy) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
+// UpdateTPS will update tps for every driver
+func (o *outport) UpdateTPS(tpsBenchmark statistics.TPSBenchmark) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+	for _, driver := range o.drivers {
+		driver.UpdateTPS(tpsBenchmark)
 	}
 }
 
-// SaveValidatorsRating -
-func (o *proxy) SaveValidatorsRating(indexID string, infoRating []types.ValidatorRatingInfo) {
+// SaveValidatorsPubKeys will save validators public keys for every driver
+func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.SaveValidatorsRating(indexID, infoRating)
+	for _, driver := range o.drivers {
+		driver.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 
-// SaveAccounts -
-func (o *proxy) SaveAccounts(acc []state.UserAccountHandler) {
+// SaveValidatorsRating will save validators rating for every driver
+func (o *outport) SaveValidatorsRating(indexID string, infoRating []types.ValidatorRatingInfo) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		indexer.SaveAccounts(acc)
+	for _, driver := range o.drivers {
+		driver.SaveValidatorsRating(indexID, infoRating)
 	}
 }
 
-// Close -
-func (o *proxy) Close() error {
+// SaveAccounts will save accounts  for every driver
+func (o *outport) SaveAccounts(acc []state.UserAccountHandler) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
-	for _, indexer := range o.drivers {
-		_ = indexer.Close()
+	for _, driver := range o.drivers {
+		driver.SaveAccounts(acc)
 	}
-
-	return nil
 }
 
-// HasDrivers -
-func (o *proxy) HasDrivers() bool {
+// Close will close all the drivers that are in outport
+func (o *outport) Close() error {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+
+	var err error
+	for _, driver := range o.drivers {
+		errClose := driver.Close()
+		if errClose != nil {
+			log.Error("cannot close driver", "error", errClose.Error())
+			err = errClose
+		}
+
+	}
+
+	return err
+}
+
+// HasDrivers returns true if there is at least one driver in the outport
+func (o *outport) HasDrivers() bool {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	return len(o.drivers) != 0
 }
 
-// SubscribeDriver -
-func (o *proxy) SubscribeDriver(driver drivers.Driver) error {
+// SubscribeDriver can subscribe a driver to the outport
+func (o *outport) SubscribeDriver(driver Driver) error {
 	if check.IfNil(driver) {
 		return ErrNilDriver
 	}
@@ -127,7 +135,7 @@ func (o *proxy) SubscribeDriver(driver drivers.Driver) error {
 	return nil
 }
 
-// IsInterfaceNil -
-func (o *proxy) IsInterfaceNil() bool {
+// IsInterfaceNil returns true if there is no value under the interface
+func (o *outport) IsInterfaceNil() bool {
 	return o == nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/outport/drivers"
 	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -39,7 +38,7 @@ type ArgsElasticDriverFactory struct {
 }
 
 // NewElasticClient will create a new instance of elastic client
-func NewElasticClient(args *ArgsElasticDriverFactory) (drivers.Driver, error) {
+func NewElasticClient(args *ArgsElasticDriverFactory) (outport.Driver, error) {
 	err := checkDataIndexerParams(args)
 	if err != nil {
 		return nil, err
@@ -116,6 +115,9 @@ func createElasticProcessor(args *ArgsElasticDriverFactory) (elastic.ElasticProc
 }
 
 func checkDataIndexerParams(arguments *ArgsElasticDriverFactory) error {
+	if arguments == nil {
+		return outport.ErrNilArgsElasticDriverFactory
+	}
 	if arguments.IndexerCacheSize < 0 {
 		return elastic.ErrNegativeCacheSize
 	}

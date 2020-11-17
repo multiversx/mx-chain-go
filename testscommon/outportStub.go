@@ -1,10 +1,10 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/outport/drivers"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/outport/types"
 )
 
@@ -73,6 +73,6 @@ func (as *OutportStub) SaveRoundsInfo(_ []types.RoundInfo) {
 }
 
 // SubscribeDriver -
-func (as *OutportStub) SubscribeDriver(_ drivers.Driver) error {
+func (as *OutportStub) SubscribeDriver(_ outport.Driver) error {
 	return nil
 }

@@ -44,6 +44,13 @@ func TestNewIndexerFactory(t *testing.T) {
 		exError  error
 	}{
 		{
+			name: "NilArgsElasticDriverFactory",
+			argsFunc: func() *ArgsElasticDriverFactory {
+				return nil
+			},
+			exError: outport.ErrNilArgsElasticDriverFactory,
+		},
+		{
 			name: "InvalidCacheSize",
 			argsFunc: func() *ArgsElasticDriverFactory {
 				args := createMockIndexerFactoryArgs()

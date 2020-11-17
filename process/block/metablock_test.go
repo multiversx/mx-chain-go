@@ -93,7 +93,7 @@ func createMockMetaArguments(
 			},
 			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			OutportHandler:          &mock.OutportStub{},
+			OutportHandler:          &testscommon.OutportStub{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},

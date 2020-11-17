@@ -1,16 +1,97 @@
 package factory
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	driversFacotry "github.com/ElrondNetwork/elrond-go/outport/drivers/factory"
 	"github.com/ElrondNetwork/elrond-go/outport/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func createMockArgsOutportHandler() *ArgsOutportFactory {
+	return &ArgsOutportFactory{
+		ArgsElasticDriver: &driversFacotry.ArgsElasticDriverFactory{
+			ShardCoordinator: &mock.ShardCoordinatorMock{},
+		},
+		EpochStartNotifier: &mock.EpochStartNotifierStub{},
+		NodesCoordinator:   &mock.NodesCoordinatorMock{},
+	}
+}
+
+func TestNewIndexerFactory(t *testing.T) {
+	tests := []struct {
+		name     string
+		argsFunc func() *ArgsOutportFactory
+		exError  error
+	}{
+		{
+			name: "NilArgsOutportHandler",
+			argsFunc: func() *ArgsOutportFactory {
+				return nil
+			},
+			exError: outport.ErrNilArgsOutportFactory,
+		},
+		{
+			name: "NilArgsElasticDriver",
+			argsFunc: func() *ArgsOutportFactory {
+				args := createMockArgsOutportHandler()
+				args.ArgsElasticDriver = nil
+				return args
+			},
+			exError: outport.ErrNilArgsElasticDriverFactory,
+		},
+		{
+			name: "NilShardCoordinator",
+			argsFunc: func() *ArgsOutportFactory {
+				args := createMockArgsOutportHandler()
+				args.ArgsElasticDriver.ShardCoordinator = nil
+				return args
+			},
+			exError: outport.ErrNilShardCoordinator,
+		},
+
+		{
+			name: "NilEpochStartNotifier",
+			argsFunc: func() *ArgsOutportFactory {
+				args := createMockArgsOutportHandler()
+				args.EpochStartNotifier = nil
+				return args
+			},
+			exError: outport.ErrNilEpochStartNotifier,
+		},
+		{
+			name: "NilNodesCoordinator",
+			argsFunc: func() *ArgsOutportFactory {
+				args := createMockArgsOutportHandler()
+				args.NodesCoordinator = nil
+				return args
+			},
+			exError: outport.ErrNilNodesCoordinator,
+		},
+		{
+			name: "AllOkShouldWork",
+			argsFunc: func() *ArgsOutportFactory {
+				args := createMockArgsOutportHandler()
+				return args
+			},
+			exError: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CreateOutport(tt.argsFunc())
+			require.True(t, errors.Is(err, tt.exError))
+		})
+	}
+}
 
 func TestOutportFactory_EpochStartEventHandler(t *testing.T) {
 	getEligibleValidatorsCalled := false

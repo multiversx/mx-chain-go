@@ -176,9 +176,6 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 		return err
 	}
 
-	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
-	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
-	// not all data was indexed
 	dp.outportHandler.SaveBlock(types.ArgsSaveBlocks{
 		Body:                   newBody,
 		Header:                 data.Header,

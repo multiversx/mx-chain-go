@@ -118,8 +118,8 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 	return fct.appStatusHandler
 }
 
-// Indexer gets the indexer object
-func (fct *factory) Indexer() outport.OutportHandler {
+// Outport gets the outport object
+func (fct *factory) Outport() outport.OutportHandler {
 	return fct.outportHandler
 }
 
