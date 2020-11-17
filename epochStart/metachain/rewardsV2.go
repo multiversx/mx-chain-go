@@ -15,6 +15,15 @@ import (
 
 var _ process.EpochStartRewardsCreator = (*rewardsCreatorV2)(nil)
 
+type nodeRewardsData struct {
+	baseReward   *big.Int
+	topUpReward  *big.Int
+	fullRewards  *big.Int
+	topUpStake   *big.Int
+	powerInShard *big.Int
+	valInfo      *state.ValidatorInfo
+}
+
 type RewardsCreatorArgsV2 struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
@@ -85,12 +94,10 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 		return nil, err
 	}
 
-	rewardsPerNode, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo)
+	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo)
 	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode.String())
 
-	dust, err := rc.addValidatorRewardsToMiniBlocks(
-		validatorsInfo, metaBlock, miniBlocks, rewardsPerNode,
-	)
+	dust, err := rc.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -120,12 +127,11 @@ func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 }
 
 func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	metaBlock *block.MetaBlock,
 	miniBlocks block.MiniBlockSlice,
-	rewardsPerNode map[uint32][]*big.Int,
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
 ) (*big.Int, error) {
-	rwdAddrValidatorInfo, accumulatedDust := rc.computeValidatorInfoPerRewardAddress(validatorsInfo, rewardsPerNode)
+	rwdAddrValidatorInfo, accumulatedDust := rc.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 
 	for _, rwdInfo := range rwdAddrValidatorInfo {
 		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
@@ -159,32 +165,31 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 }
 
 func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
-	rewardsPerNode map[uint32][]*big.Int,
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
 ) (map[string]*rewardInfoData, *big.Int) {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 	accumulatedUnassigned := big.NewInt(0)
 
-	for shardID, shardValidatorsInfo := range validatorsInfo {
-		for i, validatorInfo := range shardValidatorsInfo {
-			if validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
-				accumulatedUnassigned.Add(accumulatedUnassigned, rewardsPerNode[shardID][i])
+	for _, nodeInfoList := range nodesRewardInfo {
+		for _, nodeInfo := range nodeInfoList {
+			if nodeInfo.valInfo.LeaderSuccess == 0 && nodeInfo.valInfo.ValidatorSuccess == 0 {
+				accumulatedUnassigned.Add(accumulatedUnassigned, nodeInfo.fullRewards)
 				continue
 			}
 
-			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
+			rwdInfo, ok := rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
 					accumulatedFees: big.NewInt(0),
 					protocolRewards: big.NewInt(0),
-					address:         string(validatorInfo.RewardAddress),
+					address:         string(nodeInfo.valInfo.RewardAddress),
 				}
-				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
+				rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)] = rwdInfo
 			}
 
-			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.AccumulatedFees)
-			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, rewardsPerNode[shardID][i])
+			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, nodeInfo.valInfo.AccumulatedFees)
+			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, nodeInfo.fullRewards)
 		}
 	}
 
@@ -226,9 +231,12 @@ func (rc *rewardsCreatorV2) getEligibleNodesKeyMap(
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) (map[uint32][]*big.Int, *big.Int) {
+) (map[uint32][]*nodeRewardsData, *big.Int) {
 
 	var baseRewardsPerBlock *big.Int
+
+	nodesRewardInfo := rc.initNodesRewardsInfo(validatorsInfo)
+
 	// totalTopUpEligible is the cumulative top-up stake value for eligible nodes
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
@@ -244,68 +252,85 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
 
 	accumulatedDust := big.NewInt(0)
-	baseRewardsPerNode, dust := rc.computeBaseRewardsPerNode(validatorsInfo, baseRewards)
+	dust := rc.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)
 	accumulatedDust.Add(accumulatedDust, dust)
-	topUpRewardsPerNode, dust := rc.computeTopUpRewardsPerNode(topUpRewards, validatorsInfo)
+	dust = rc.computeTopUpRewardsPerNode(nodesRewardInfo, topUpRewards)
 	accumulatedDust.Add(accumulatedDust, dust)
+	aggregateBaseAndTopUpRewardsPerNode(nodesRewardInfo)
 
-	return aggregateBaseAndTopUpRewardsPerNode(baseRewardsPerNode, topUpRewardsPerNode), accumulatedDust
+	return nodesRewardInfo, accumulatedDust
 }
 
-func (rc *rewardsCreatorV2) computeBaseRewardsPerNode(
+func (rc *rewardsCreatorV2) initNodesRewardsInfo(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-	baseRewards *big.Int,
-) (map[uint32][]*big.Int, *big.Int) {
-	baseRewardsPerNode := make(map[uint32][]*big.Int)
-	accumulatedRewards := big.NewInt(0)
+) map[uint32][]*nodeRewardsData {
+	nodesRewardsInfo := make(map[uint32][]*nodeRewardsData)
 
 	for shardID, valInfoList := range validatorsInfo {
-		baseRewardsPerNode[shardID] = make([]*big.Int, len(valInfoList))
-		for i, valInfo := range valInfoList {
-			baseRewardsPerNode[shardID][i] = big.NewInt(0).Mul(
-				rc.mapBaseRewardsPerBlockPerValidator[shardID],
-				big.NewInt(int64(valInfo.NumSelectedInSuccessBlocks)))
-			accumulatedRewards.Add(accumulatedRewards, baseRewardsPerNode[shardID][i])
+		nodesRewardsInfo[shardID] = make([]*nodeRewardsData, 0, len(valInfoList))
+		for _, valInfo := range valInfoList {
+			if valInfo.List == string(core.EligibleList) {
+				rewardsInfo := &nodeRewardsData{
+					baseReward:   big.NewInt(0),
+					topUpReward:  big.NewInt(0),
+					fullRewards:  big.NewInt(0),
+					topUpStake:   big.NewInt(0),
+					powerInShard: big.NewInt(0),
+					valInfo:      valInfo,
+				}
+				nodesRewardsInfo[shardID] = append(nodesRewardsInfo[shardID], rewardsInfo)
+			}
 		}
 	}
 
-	return baseRewardsPerNode, big.NewInt(0).Sub(baseRewards, accumulatedRewards)
+	return nodesRewardsInfo
+}
+
+func (rc *rewardsCreatorV2) computeBaseRewardsPerNode(
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
+	baseRewards *big.Int,
+) *big.Int {
+	accumulatedRewards := big.NewInt(0)
+
+	for shardID, nodeRewardsInfoList := range nodesRewardInfo {
+		for _, nodeRewardsInfo := range nodeRewardsInfoList {
+			nodeRewardsInfo.baseReward = big.NewInt(0).Mul(
+				rc.mapBaseRewardsPerBlockPerValidator[shardID],
+				big.NewInt(int64(nodeRewardsInfo.valInfo.NumSelectedInSuccessBlocks)))
+			accumulatedRewards.Add(accumulatedRewards, nodeRewardsInfo.baseReward)
+		}
+	}
+
+	return big.NewInt(0).Sub(baseRewards, accumulatedRewards)
 }
 
 func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
 	topUpRewards *big.Int,
-	nodesInfo map[uint32][]*state.ValidatorInfo,
-) (map[uint32][]*big.Int, *big.Int) {
+) *big.Int {
 
-	topUpRewardsPerNode := make(map[uint32][]*big.Int)
 	accumulatedTopUpRewards := big.NewInt(0)
-	topUpPerNode := rc.getTopUpForAllEligibleNodes(nodesInfo)
-	topUpRewardPerShard := rc.computeTopUpRewardsPerShard(topUpRewards, topUpPerNode)
-	totalPowerInShard, nodesPower := computeNodesPowerInShard(nodesInfo, topUpPerNode)
+	rc.getTopUpForAllEligibleNodes(nodesRewardInfo)
+	topUpRewardPerShard := rc.computeTopUpRewardsPerShard(topUpRewards, nodesRewardInfo)
+	totalPowerInShard := computeNodesPowerInShard(nodesRewardInfo)
 
 	// topUpRewardPerNodeInShardX = nodePowerInShardX*topUpRewardsShardX/totalPowerInShardX
-	for shardID, nodesPowerList := range nodesPower {
-		topUpRewardsPerNode[shardID] = make([]*big.Int, len(nodesPowerList))
+	for shardID, nodeInfoList := range nodesRewardInfo {
 		if totalPowerInShard[shardID].Cmp(zero) == 0 {
 			log.Warn("rewardsCreatorV2.computeTopUpRewardsPerNode",
 				"error", "shardPower zero",
 				"shardID", shardID)
+			continue
 		}
 
-		for i, nodePower := range nodesPowerList {
-			if totalPowerInShard[shardID].Cmp(zero) == 0 {
-				// avoid division by zero
-				topUpRewardsPerNode[shardID][i] = big.NewInt(0)
-				continue
-			}
-
-			topUpRewardsPerNode[shardID][i] = big.NewInt(0).Mul(nodePower, topUpRewardPerShard[shardID])
-			topUpRewardsPerNode[shardID][i].Div(topUpRewardsPerNode[shardID][i], totalPowerInShard[shardID])
-			accumulatedTopUpRewards.Add(accumulatedTopUpRewards, topUpRewardsPerNode[shardID][i])
+		for _, nodeInfo := range nodeInfoList {
+			nodeInfo.topUpReward = big.NewInt(0).Mul(nodeInfo.powerInShard, topUpRewardPerShard[shardID])
+			nodeInfo.topUpReward.Div(nodeInfo.topUpReward, totalPowerInShard[shardID])
+			accumulatedTopUpRewards.Add(accumulatedTopUpRewards, nodeInfo.topUpReward)
 		}
 	}
 
-	return topUpRewardsPerNode, big.NewInt(0).Sub(topUpRewards, accumulatedTopUpRewards)
+	return big.NewInt(0).Sub(topUpRewards, accumulatedTopUpRewards)
 }
 
 //      (2*k/pi)*atan(x/p), where:
@@ -341,7 +366,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 // ratio in the shard, with respect to the entire network
 func (rc *rewardsCreatorV2) computeTopUpRewardsPerShard(
 	topUpRewards *big.Int,
-	stakeTopUpPerNode map[uint32][]*big.Int,
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
 ) map[uint32]*big.Int {
 	blocksPerShard := rc.economicsDataProvider.NumberOfBlocksPerShard()
 
@@ -355,7 +380,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerShard(
 			blocksPerShard[shardID] = 0
 		}
 	}
-	shardsTopUp := computeTopUpPerShard(stakeTopUpPerNode)
+	shardsTopUp := computeTopUpPerShard(nodesRewardInfo)
 	totalPower, shardPower := computeShardsPower(shardsTopUp, blocksPerShard)
 
 	return computeRewardsForPowerPerShard(shardPower, totalPower, topUpRewards)
@@ -375,12 +400,12 @@ func computeShardsPower(
 	return totalPower, shardPower
 }
 
-func computeTopUpPerShard(stakeTopUpPerNode map[uint32][]*big.Int) map[uint32]*big.Int {
+func computeTopUpPerShard(nodesRewardInfo map[uint32][]*nodeRewardsData) map[uint32]*big.Int {
 	shardsTopUp := make(map[uint32]*big.Int)
-	for shardID, nodesTopUpList := range stakeTopUpPerNode {
+	for shardID, nodeRewardInfoList := range nodesRewardInfo {
 		shardsTopUp[shardID] = big.NewInt(0)
-		for _, nodeTopUp := range nodesTopUpList {
-			shardsTopUp[shardID].Add(shardsTopUp[shardID], nodeTopUp)
+		for _, nodeInfo := range nodeRewardInfoList {
+			shardsTopUp[shardID].Add(shardsTopUp[shardID], nodeInfo.topUpStake)
 		}
 	}
 	return shardsTopUp
@@ -411,22 +436,19 @@ func computeRewardsForPowerPerShard(
 }
 
 func computeNodesPowerInShard(
-	nodesInfo map[uint32][]*state.ValidatorInfo,
-	nodesTopUp map[uint32][]*big.Int,
-) (map[uint32]*big.Int, map[uint32][]*big.Int) {
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
+) map[uint32]*big.Int {
 	totalShardNodesPower := make(map[uint32]*big.Int)
-	nodesPower := make(map[uint32][]*big.Int)
 
-	for shardID, nodeList := range nodesInfo {
-		nodesPower[shardID] = make([]*big.Int, len(nodeList))
+	for shardID, nodeInfoList := range nodesRewardInfo {
 		totalShardNodesPower[shardID] = big.NewInt(0)
-		for i, nodeInfo := range nodeList {
-			nodesPower[shardID][i] = computeNodePowerInShard(nodeInfo, nodesTopUp[shardID][i])
-			totalShardNodesPower[shardID].Add(totalShardNodesPower[shardID], nodesPower[shardID][i])
+		for _, nodeInfo := range nodeInfoList {
+			nodeInfo.powerInShard = computeNodePowerInShard(nodeInfo.valInfo, nodeInfo.topUpStake)
+			totalShardNodesPower[shardID].Add(totalShardNodesPower[shardID], nodeInfo.powerInShard)
 		}
 	}
 
-	return totalShardNodesPower, nodesPower
+	return totalShardNodesPower
 }
 
 // power in epoch is computed as nbBlocks*nodeTopUp, where nbBlocks represents the number of blocks the node
@@ -441,41 +463,33 @@ func computeNodePowerInShard(nodeInfo *state.ValidatorInfo, nodeTopUp *big.Int) 
 	return big.NewInt(0).Mul(nbBlocks, nodeTopUp)
 }
 
-func aggregateBaseAndTopUpRewardsPerNode(baseRewards, topUpRewards map[uint32][]*big.Int) map[uint32][]*big.Int {
-	fullRewards := make(map[uint32][]*big.Int)
-	for shardID, rewardList := range topUpRewards {
-		fullRewards[shardID] = make([]*big.Int, len(rewardList))
-		for i, topUpReward := range rewardList {
-			fullRewards[shardID][i] = big.NewInt(0).Add(
-				baseRewards[shardID][i],
-				topUpReward)
+func aggregateBaseAndTopUpRewardsPerNode(nodesRewardInfo map[uint32][]*nodeRewardsData) {
+	for _, nodeInfoList := range nodesRewardInfo {
+		for _, nodeInfo := range nodeInfoList {
+			nodeInfo.fullRewards = big.NewInt(0).Add(
+				nodeInfo.baseReward,
+				nodeInfo.topUpReward)
 		}
 	}
-
-	return fullRewards
 }
 
 func (rc *rewardsCreatorV2) getTopUpForAllEligibleNodes(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) map[uint32][]*big.Int {
+	nodesRewardInfo map[uint32][]*nodeRewardsData,
+) {
 	var err error
-	validatorsTopUp := make(map[uint32][]*big.Int)
-	for shardID, nodeListInfo := range validatorsInfo {
-		validatorsTopUp[shardID] = make([]*big.Int, len(nodeListInfo))
-		for i, nodeInfo := range nodeListInfo {
-			validatorsTopUp[shardID][i], err = rc.stakingDataProvider.GetNodeStakedTopUp(nodeInfo.GetPublicKey())
+	for _, nodeRewardList := range nodesRewardInfo {
+		for _, nodeInfo := range nodeRewardList {
+			nodeInfo.topUpStake, err = rc.stakingDataProvider.GetNodeStakedTopUp(nodeInfo.valInfo.GetPublicKey())
 			if err != nil {
-				validatorsTopUp[shardID][i] = big.NewInt(0)
+				nodeInfo.topUpStake = big.NewInt(0)
 
 				log.Warn("rewardsCreatorV2.getTopUpForAllEligible",
 					"error", err.Error(),
-					"blsKey", nodeInfo.GetPublicKey())
+					"blsKey", nodeInfo.valInfo.GetPublicKey())
 				continue
 			}
 		}
 	}
-
-	return validatorsTopUp
 }
 
 func (rc *rewardsCreatorV2) prepareRewardsData(
