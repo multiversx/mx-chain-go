@@ -82,6 +82,16 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
+	economicsData := metaBlock.EpochStart.Economics
+	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
+		"totalToDistribute", economicsData.TotalToDistribute,
+		"rewardsForProtocolSustainability", economicsData.RewardsForProtocolSustainability,
+		"rewardsPerBlock", economicsData.RewardsPerBlock,
+		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
+		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),
+		"numberOfBlocksPerShard", rc.economicsDataProvider.NumberOfBlocksPerShard(),
+	)
+
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
 	err := rc.prepareRewardsData(metaBlock, validatorsInfo)
@@ -157,6 +167,12 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
 			continue
 		}
+
+		log.Debug("rewardsCreatorV2.addValidatorRewardsToMiniBlocks",
+			"epoch", rwdTx.GetEpoch(),
+			"destination", rwdTx.GetRcvAddr(),
+			"value", rwdTx.GetValue().String())
+
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}

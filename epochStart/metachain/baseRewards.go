@@ -426,6 +426,11 @@ func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSusta
 	}
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
 
+	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards",
+		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
+		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
+		"value", protocolSustainabilityRwdTx.GetValue().String())
+
 	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 }
 
