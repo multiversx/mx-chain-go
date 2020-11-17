@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -20,34 +21,35 @@ import (
 
 // CoreComponentsMock -
 type CoreComponentsMock struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	VmMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	mutStatus                   sync.RWMutex
-	PathHdl                     storage.PathManagerHandler
-	WatchdogTimer               core.WatchdogTimer
-	AlarmSch                    core.TimersScheduler
-	NtpSyncTimer                ntp.SyncTimer
-	GenesisBlockTime            time.Time
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	mutIntMarshalizer           sync.RWMutex
-	RoundHandler                consensus.Rounder
-	EconomicsHandler            process.EconomicsHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	Shuffler                    sharding.NodesShuffler
-	EpochChangeNotifier         factory.EpochNotifier
-	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
-	ChanStopProcess             chan endProcess.ArgEndProcess
-	StartTime                   time.Time
+	IntMarsh                      marshal.Marshalizer
+	TxMarsh                       marshal.Marshalizer
+	VmMarsh                       marshal.Marshalizer
+	Hash                          hashing.Hasher
+	UInt64ByteSliceConv           typeConverters.Uint64ByteSliceConverter
+	AddrPubKeyConv                core.PubkeyConverter
+	ValPubKeyConv                 core.PubkeyConverter
+	StatusHdlUtils                nodeFactory.StatusHandlersUtils
+	AppStatusHdl                  core.AppStatusHandler
+	mutStatus                     sync.RWMutex
+	PathHdl                       storage.PathManagerHandler
+	WatchdogTimer                 core.WatchdogTimer
+	AlarmSch                      core.TimersScheduler
+	NtpSyncTimer                  ntp.SyncTimer
+	GenesisBlockTime              time.Time
+	ChainIdCalled                 func() string
+	MinTransactionVersionCalled   func() uint32
+	mutIntMarshalizer             sync.RWMutex
+	RoundHandler                  consensus.Rounder
+	EconomicsHandler              process.EconomicsHandler
+	RatingsConfig                 process.RatingsInfoHandler
+	RatingHandler                 sharding.PeerAccountListAndRatingHandler
+	NodesConfig                   sharding.GenesisNodesSetupHandler
+	Shuffler                      sharding.NodesShuffler
+	EpochChangeNotifier           factory.EpochNotifier
+	EpochNotifierWithConfirm      factory.EpochStartNotifierWithConfirm
+	ChanStopProcess               chan endProcess.ArgEndProcess
+	StartTime                     time.Time
+	ManualEpochStartNotifierField dataRetriever.ManualEpochStartNotifier
 }
 
 // InternalMarshalizer -
@@ -197,6 +199,11 @@ func (ccm *CoreComponentsMock) EpochStartNotifierWithConfirm() factory.EpochStar
 // ChanStopNodeProcess -
 func (ccm *CoreComponentsMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return ccm.ChanStopProcess
+}
+
+// ManualEpochStartNotifier -
+func (ccm *CoreComponentsMock) ManualEpochStartNotifier() dataRetriever.ManualEpochStartNotifier {
+	return ccm.ManualEpochStartNotifierField
 }
 
 // IsInterfaceNil -

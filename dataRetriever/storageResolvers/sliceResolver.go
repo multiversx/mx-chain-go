@@ -130,6 +130,11 @@ func (sliceRes *sliceResolver) RequestDataFromHashArray(hashes [][]byte, _ uint3
 	return errFetch
 }
 
+// Close will try to close the associated opened storers
+func (sliceRes *sliceResolver) Close() error {
+	return sliceRes.storage.Close()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sliceRes *sliceResolver) IsInterfaceNil() bool {
 	return sliceRes == nil

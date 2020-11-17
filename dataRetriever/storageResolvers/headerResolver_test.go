@@ -349,3 +349,26 @@ func TestHeaderResolver_RequestDataFromEpochShouldWork(t *testing.T) {
 	assert.True(t, newEpochCalled)
 	assert.True(t, sendCalled)
 }
+
+func TestHeaderResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHeaderResolverArg()
+	closeCalled := 0
+	arg.HdrStorage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	arg.HeadersNoncesStorage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	hdRes, _ := NewHeaderResolver(arg)
+
+	assert.Nil(t, hdRes.Close())
+	assert.Equal(t, 2, closeCalled)
+}

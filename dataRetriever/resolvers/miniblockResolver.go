@@ -235,6 +235,11 @@ func (mbRes *miniblockResolver) SetResolverDebugHandler(handler dataRetriever.Re
 	return mbRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
+// Close returns nil
+func (mbRes *miniblockResolver) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mbRes *miniblockResolver) IsInterfaceNil() bool {
 	return mbRes == nil

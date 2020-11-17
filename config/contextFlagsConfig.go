@@ -25,8 +25,16 @@ type ContextFlagsConfig struct {
 	ValidatorKeyIndex                int
 	EnableRestAPIServerDebugMode     bool
 	Version                          string
-	IsInImportMode                   bool
-	ImportDbNoSigCheckFlag           bool
 	ElasticSearchTemplatesPath       string
-	ImportDbSaveTrieEpochRootHash    bool
+	ImportDB                         ImportDbConfig
+}
+
+// ImportDbConfig will hold the import-db parameters
+type ImportDbConfig struct {
+	IsImportDBMode                bool
+	ImportDBStartInEpoch          uint32
+	ImportDBTargetShardID         uint32
+	ImportDBWorkingDir            string
+	ImportDbNoSigCheckFlag        bool
+	ImportDbSaveTrieEpochRootHash bool
 }

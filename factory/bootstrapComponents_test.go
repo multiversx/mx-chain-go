@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -82,8 +83,8 @@ func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 	bc, err := bcf.Create()
 
-	require.NotNil(t, bc)
 	require.Nil(t, err)
+	require.NotNil(t, bc)
 }
 
 func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *testing.T) {
@@ -133,6 +134,11 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 				DestinationShardAsObserver: "0",
 			},
 		},
+		ImportDbConfig: config.ImportDbConfig{
+			IsImportDBMode: false,
+		},
+		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
+		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 	}
 }
 

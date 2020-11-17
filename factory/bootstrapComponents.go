@@ -7,6 +7,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
@@ -19,21 +21,27 @@ import (
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config            config.Config
-	PrefConfig        config.Preferences
-	WorkingDir        string
-	CoreComponents    CoreComponentsHolder
-	CryptoComponents  CryptoComponentsHolder
-	NetworkComponents NetworkComponentsHolder
+	Config                   config.Config
+	PrefConfig               config.Preferences
+	ImportDbConfig           config.ImportDbConfig
+	WorkingDir               string
+	CoreComponents           CoreComponentsHolder
+	CryptoComponents         CryptoComponentsHolder
+	NetworkComponents        NetworkComponentsHolder
+	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 type bootstrapComponentsFactory struct {
-	config            config.Config
-	prefConfig        config.Preferences
-	workingDir        string
-	coreComponents    CoreComponentsHolder
-	cryptoComponents  CryptoComponentsHolder
-	networkComponents NetworkComponentsHolder
+	config                   config.Config
+	prefConfig               config.Preferences
+	importDbConfig           config.ImportDbConfig
+	workingDir               string
+	coreComponents           CoreComponentsHolder
+	cryptoComponents         CryptoComponentsHolder
+	networkComponents        NetworkComponentsHolder
+	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose      chan endProcess.ArgEndProcess
 }
 
 type bootstrapParamsHolder struct {
@@ -64,12 +72,15 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	}
 
 	return &bootstrapComponentsFactory{
-		config:            args.Config,
-		prefConfig:        args.PrefConfig,
-		workingDir:        args.WorkingDir,
-		coreComponents:    args.CoreComponents,
-		cryptoComponents:  args.CryptoComponents,
-		networkComponents: args.NetworkComponents,
+		config:                   args.Config,
+		prefConfig:               args.PrefConfig,
+		importDbConfig:           args.ImportDbConfig,
+		workingDir:               args.WorkingDir,
+		coreComponents:           args.CoreComponents,
+		cryptoComponents:         args.CryptoComponents,
+		networkComponents:        args.NetworkComponents,
+		manualEpochStartNotifier: args.ManualEpochStartNotifier,
+		chanGracefullyClose:      args.ChanGracefullyClose,
 	}, nil
 }
 
@@ -153,6 +164,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		ImportDbConfig:             bcf.importDbConfig,
+		ManualEpochStartNotifier:   bcf.manualEpochStartNotifier,
+		ChanGracefullyClose:        bcf.chanGracefullyClose,
 	}
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)

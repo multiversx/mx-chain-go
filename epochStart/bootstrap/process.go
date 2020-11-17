@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie/factory"
@@ -21,6 +22,7 @@ import (
 	factoryDataPool "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer"
+	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -91,6 +93,7 @@ type epochStartBootstrap struct {
 
 	// created components
 	requestHandler            process.RequestHandler
+	resolvers                 dataRetriever.ResolversContainer
 	interceptorContainer      process.InterceptorsContainer
 	dataPool                  dataRetriever.PoolsHolder
 	miniBlocksSyncer          epochStart.PendingMiniBlocksSyncHandler
@@ -102,6 +105,10 @@ type epochStartBootstrap struct {
 	storageOpenerHandler      storage.UnitOpenerHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	argumentsParser           process.ArgumentsParser
+	importDbConfig            config.ImportDbConfig
+	manualEpochStartNotifier  dataRetriever.ManualEpochStartNotifier
+	chanGracefullyClose       chan endProcess.ArgEndProcess
+	chainID                   string
 
 	// gathered data
 	epochStartMeta     *block.MetaBlock
@@ -144,6 +151,9 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
+	ImportDbConfig             config.ImportDbConfig
+	ManualEpochStartNotifier   dataRetriever.ManualEpochStartNotifier
+	ChanGracefullyClose        chan endProcess.ArgEndProcess
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -172,6 +182,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
+		importDbConfig:             args.ImportDbConfig,
+		manualEpochStartNotifier:   args.ManualEpochStartNotifier,
+		chanGracefullyClose:        args.ChanGracefullyClose,
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -356,7 +369,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
 	}
 
-	err = e.prepareComponentsToSyncFromNetwork()
+	err = e.prepareComponentsToSync()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -374,11 +387,19 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	params, err := e.requestAndProcessing()
+	e.closeResolvers()
 	if err != nil {
 		return Parameters{}, err
 	}
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) closeResolvers() {
+	errNotCritical := e.resolvers.Close()
+	if errNotCritical != nil {
+		log.Warn("non critical error while closing bootstrap resolvers", "error", errNotCritical)
+	}
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
@@ -399,7 +420,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 	return float64(roundsSinceEpochStart) < epochEndPlusGracePeriod
 }
 
-func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
+func (e *epochStartBootstrap) prepareComponentsToSync() error {
 	err := e.createTriesComponentsForShardId(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -869,11 +890,108 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {
+	err := e.createResolvers()
+	if err != nil {
+		return err
+	}
+
+	finder, err := containers.NewResolversFinder(e.resolvers, e.shardCoordinator)
+	if err != nil {
+		return err
+	}
+
+	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
+	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
+		finder,
+		requestedItemsHandler,
+		e.whiteListHandler,
+		maxToRequest,
+		core.MetachainShardId,
+		timeBetweenRequests,
+	)
+	return err
+}
+
+func (e *epochStartBootstrap) createResolvers() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
 
+	if e.importDbConfig.IsImportDBMode {
+		return e.createStorageResolvers(dataPacker)
+	}
+
+	return e.createNetworkResolvers(dataPacker)
+}
+
+func (e *epochStartBootstrap) createStorageResolvers(dataPacker dataRetriever.DataPacker) error {
+	store, err := e.createStoreForStorageResolvers()
+	if err != nil {
+		return err
+	}
+
+	resolversContainerFactoryArgs := storageResolversContainers.FactoryArgs{
+		ShardCoordinator:         e.shardCoordinator,
+		Messenger:                e.messenger,
+		Store:                    store,
+		Marshalizer:              e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter: e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		DataPacker:               dataPacker,
+		ManualEpochStartNotifier: e.manualEpochStartNotifier,
+		ChanGracefullyClose:      e.chanGracefullyClose,
+	}
+
+	var resolversContainerFactory dataRetriever.ResolversContainerFactory
+	if e.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
+		resolversContainerFactory, err = storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
+	} else {
+		resolversContainerFactory, err = storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	e.resolvers, err = resolversContainerFactory.Create()
+
+	return err
+}
+
+func (e *epochStartBootstrap) createStoreForStorageResolvers() (dataRetriever.StorageService, error) {
+	importDbShardCoordinator, err := sharding.NewMultiShardCoordinator(e.importDbConfig.ImportDBTargetShardID, e.shardCoordinator.NumberOfShards())
+	e.manualEpochStartNotifier.NewEpoch(e.importDbConfig.ImportDBTargetShardID + 1)
+
+	pathManager, err := storageFactory.CreatePathManager(e.importDbConfig.ImportDBWorkingDir, e.chainID)
+	if err != nil {
+		return nil, err
+	}
+
+	msesn, err := NewManualStorerEpochStartNotifier(e.manualEpochStartNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
+		&e.generalConfig,
+		importDbShardCoordinator,
+		pathManager,
+		msesn,
+		e.importDbConfig.ImportDBTargetShardID,
+		e.importDbConfig.ImportDbSaveTrieEpochRootHash,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if e.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
+		return storageServiceCreator.CreateForMeta()
+	} else {
+		return storageServiceCreator.CreateForMeta()
+	}
+}
+
+func (e *epochStartBootstrap) createNetworkResolvers(dataPacker dataRetriever.DataPacker) error {
 	storageService := disabled.NewChainStorer()
 
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
@@ -895,31 +1013,12 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	container, err := resolverFactory.Create()
+	e.resolvers, err = resolverFactory.Create()
 	if err != nil {
 		return err
 	}
 
-	err = resolverFactory.AddShardTrieNodeResolvers(container)
-	if err != nil {
-		return err
-	}
-
-	finder, err := containers.NewResolversFinder(container, e.shardCoordinator)
-	if err != nil {
-		return err
-	}
-
-	requestedItemsHandler := timecache.NewTimeCache(timeBetweenRequests)
-	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
-		finder,
-		requestedItemsHandler,
-		e.whiteListHandler,
-		maxToRequest,
-		core.MetachainShardId,
-		timeBetweenRequests,
-	)
-	return err
+	return resolverFactory.AddShardTrieNodeResolvers(e.resolvers)
 }
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {

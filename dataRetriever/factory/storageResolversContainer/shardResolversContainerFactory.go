@@ -1,6 +1,8 @@
 package storageResolversContainers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -25,10 +27,15 @@ func NewShardResolversContainerFactory(
 		messenger:                args.Messenger,
 		store:                    args.Store,
 		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 		dataPacker:               args.DataPacker,
 		manualEpochStartNotifier: args.ManualEpochStartNotifier,
 		chanGracefullyClose:      args.ChanGracefullyClose,
+		generalConfig:            args.GeneralConfig,
+		shardIDForTries:          args.ShardIDForTries,
+		chainID:                  args.ChainID,
+		workingDir:               args.WorkingDirectory,
 	}
 
 	err := base.checkParams()
@@ -154,7 +161,21 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	resolver := storageResolvers.NewTrieNodeResolver()
+	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(srcf.generalConfig.AccountsTrieStorage)
+	if err != nil {
+		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
+	}
+	arg := storageResolvers.ArgTrieResolver{
+		Messenger:                srcf.messenger,
+		ResponseTopicName:        identifierTrieNodes,
+		Marshalizer:              srcf.marshalizer,
+		TrieDataGetter:           userAccountsDataTrie,
+		TrieStorageManager:       storageManager,
+		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      srcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+	resolver := storageResolvers.NewTrieNodeResolver(arg)
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)

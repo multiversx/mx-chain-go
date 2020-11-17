@@ -247,6 +247,11 @@ func (txRes *TxResolver) SetResolverDebugHandler(handler dataRetriever.ResolverD
 	return txRes.TopicResolverSender.SetResolverDebugHandler(handler)
 }
 
+// Close returns nil
+func (txRes *TxResolver) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txRes *TxResolver) IsInterfaceNil() bool {
 	return txRes == nil

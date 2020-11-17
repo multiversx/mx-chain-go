@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"path/filepath"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -26,8 +25,8 @@ import (
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/fallback"
@@ -51,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -141,6 +139,7 @@ type ProcessComponentsFactoryArgs struct {
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
 	StorageResolverImportPath string
 	ChanGracefullyClose       chan endProcess.ArgEndProcess
+	ManualEpochStartNotifier  dataRetriever.ManualEpochStartNotifier
 }
 
 type processComponentsFactory struct {
@@ -184,6 +183,7 @@ type processComponentsFactory struct {
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
 	storageResolverImportPath string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
+	manualEpochStartNotifier  dataRetriever.ManualEpochStartNotifier
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -233,6 +233,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:             args.EpochNotifier,
 		storageResolverImportPath: args.StorageResolverImportPath,
 		chanGracefullyClose:       args.ChanGracefullyClose,
+		manualEpochStartNotifier:  args.ManualEpochStartNotifier,
 	}, nil
 }
 
@@ -973,17 +974,21 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := createPathManager(pcf.storageResolverImportPath, pcf.coreData.ChainID())
+	pathManager, err := storageFactory.CreatePathManager(pcf.storageResolverImportPath, pcf.coreData.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	msesn, err := bootstrap.NewManualStorerEpochStartNotifier(pcf.manualEpochStartNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		&pcf.config,
 		pcf.shardCoordinator,
 		pathManager,
-		manualEpochStartNotifier,
+		msesn,
 		pcf.startEpochNum,
 		false,
 	)
@@ -997,11 +1002,9 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 			return nil, errStore
 		}
 
-		manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
-
 		return pcf.createStorageResolversForMeta(
 			store,
-			manualEpochStartNotifier,
+			pcf.manualEpochStartNotifier,
 		)
 	}
 
@@ -1010,35 +1013,10 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		return nil, err
 	}
 
-	manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
-
 	return pcf.createStorageResolversForShard(
 		store,
-		manualEpochStartNotifier,
+		pcf.manualEpochStartNotifier,
 	)
-}
-
-func createPathManager(
-	storageResolverImportPath string,
-	chainID string,
-) (storage.PathManagerHandler, error) {
-	pathTemplateForPruningStorer := filepath.Join(
-		storageResolverImportPath,
-		core.DefaultDBPath,
-		chainID,
-		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		storageResolverImportPath,
-		core.DefaultDBPath,
-		chainID,
-		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
 }
 
 func (pcf *processComponentsFactory) createStorageResolversForMeta(
@@ -1327,6 +1305,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
+	}
+	if check.IfNil(args.ManualEpochStartNotifier) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManualEpochStartNotifier)
 	}
 
 	return nil

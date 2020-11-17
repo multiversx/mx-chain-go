@@ -122,6 +122,17 @@ func (hdrRes *headerResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 	return nil
 }
 
+// Close will try to close the associated opened storers
+func (hdrRes *headerResolver) Close() error {
+	errNonces := hdrRes.hdrNoncesStorage.Close()
+	errHeaders := hdrRes.hdrStorage.Close()
+	if errNonces != nil {
+		return errNonces
+	}
+
+	return errHeaders
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hdrRes *headerResolver) IsInterfaceNil() bool {
 	return hdrRes == nil

@@ -177,12 +177,13 @@ func getProcessArgs(
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		Version:                 "v1.0.0",
-		Indexer:                 &mock.IndexerMock{},
-		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
-		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
-		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		Version:                  "v1.0.0",
+		Indexer:                  &mock.IndexerMock{},
+		TpsBenchmark:             &testscommon.TpsBenchmarkMock{},
+		HistoryRepo:              &testscommon.HistoryRepositoryStub{},
+		EpochNotifier:            &mock.EpochNotifierStub{},
+		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
+		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 	}
 }
 

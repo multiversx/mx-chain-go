@@ -109,6 +109,7 @@ type Resolver interface {
 	SetResolverDebugHandler(handler ResolverDebugHandler) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -155,6 +156,7 @@ type ResolversContainer interface {
 	Len() int
 	ResolverKeys() string
 	Iterate(handler func(key string, resolver Resolver) bool)
+	Close() error
 	IsInterfaceNil() bool
 }
 
