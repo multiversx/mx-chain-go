@@ -151,7 +151,7 @@
     SHA256          = 600
     Keccak256       = 600
     Ripemd160       = 600
-    VerifyBLS       = 1000
+    VerifyBLS       = 5000000
     VerifyEd25519   = 200000
     VerifySecp256k1 = 1000
 
