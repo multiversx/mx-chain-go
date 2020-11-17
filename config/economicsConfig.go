@@ -20,6 +20,8 @@ type RewardsSettings struct {
 	DeveloperPercentage              float64
 	ProtocolSustainabilityPercentage float64
 	ProtocolSustainabilityAddress    string
+	TopUpGradientPoint               string
+	TopUpFactor                      float64
 }
 
 // FeeSettings will hold economics fee settings

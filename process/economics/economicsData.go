@@ -36,6 +36,8 @@ type EconomicsData struct {
 	mutYearSettings                  sync.RWMutex
 	flagPenalizedTooMuchGas          atomic.Flag
 	penalizedTooMuchGasEnableEpoch   uint32
+	topUpGradientPoint               *big.Int
+	topUpFactor                      float64
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics data
@@ -64,6 +66,11 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*EconomicsData, error) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
+	topUpGradientPoint, ok := big.NewInt(0).SetString(args.Economics.RewardsSettings.TopUpGradientPoint, 10)
+	if !ok {
+		return nil, process.ErrInvalidRewardsTopUpGradientPoint
+	}
+
 	ed := &EconomicsData{
 		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
 		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
@@ -78,6 +85,8 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*EconomicsData, error) {
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               data.genesisTotalSupply,
 		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
+		topUpGradientPoint:               topUpGradientPoint,
+		topUpFactor:                      args.Economics.RewardsSettings.TopUpFactor,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -147,7 +156,8 @@ func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.ProtocolSustainabilityPercentage) ||
-		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
+		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) ||
+		isPercentageInvalid(economics.RewardsSettings.TopUpFactor) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -278,6 +288,16 @@ func (ed *EconomicsData) ProtocolSustainabilityPercentage() float64 {
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (ed *EconomicsData) ProtocolSustainabilityAddress() string {
 	return ed.protocolSustainabilityAddress
+}
+
+// RewardsTopUpGradientPoint returns the rewards top-up gradient point
+func (ed *EconomicsData) RewardsTopUpGradientPoint() *big.Int {
+	return big.NewInt(0).Set(ed.topUpGradientPoint)
+}
+
+// RewardsTopUpFactor returns the rewards top-up factor
+func (ed *EconomicsData) RewardsTopUpFactor() float64 {
+	return ed.topUpFactor
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

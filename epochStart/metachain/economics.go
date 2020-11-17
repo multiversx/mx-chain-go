@@ -24,28 +24,30 @@ const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	store              dataRetriever.StorageService
-	shardCoordinator   sharding.Coordinator
-	rewardsHandler     process.RewardsHandler
-	roundTime          process.RoundTimeDurationHandler
-	genesisEpoch       uint32
-	genesisNonce       uint64
-	genesisTotalSupply *big.Int
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	store                 dataRetriever.StorageService
+	shardCoordinator      sharding.Coordinator
+	rewardsHandler        process.RewardsHandler
+	roundTime             process.RoundTimeDurationHandler
+	genesisEpoch          uint32
+	genesisNonce          uint64
+	genesisTotalSupply    *big.Int
+	economicsDataNotified epochStart.EpochEconomicsDataProvider
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
 type ArgsNewEpochEconomics struct {
-	Marshalizer        marshal.Marshalizer
-	Hasher             hashing.Hasher
-	Store              dataRetriever.StorageService
-	ShardCoordinator   sharding.Coordinator
-	RewardsHandler     process.RewardsHandler
-	RoundTime          process.RoundTimeDurationHandler
-	GenesisEpoch       uint32
-	GenesisNonce       uint64
-	GenesisTotalSupply *big.Int
+	Marshalizer           marshal.Marshalizer
+	Hasher                hashing.Hasher
+	Store                 dataRetriever.StorageService
+	ShardCoordinator      sharding.Coordinator
+	RewardsHandler        process.RewardsHandler
+	RoundTime             process.RoundTimeDurationHandler
+	GenesisEpoch          uint32
+	GenesisNonce          uint64
+	GenesisTotalSupply    *big.Int
+	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -68,20 +70,24 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	if check.IfNil(args.RoundTime) {
 		return nil, process.ErrNilRounder
 	}
+	if check.IfNil(args.EconomicsDataNotified) {
+		return nil, epochStart.ErrNilEconomicsDataProvider
+	}
 	if args.GenesisTotalSupply == nil {
 		return nil, epochStart.ErrNilGenesisTotalSupply
 	}
 
 	e := &economics{
-		marshalizer:        args.Marshalizer,
-		hasher:             args.Hasher,
-		store:              args.Store,
-		shardCoordinator:   args.ShardCoordinator,
-		rewardsHandler:     args.RewardsHandler,
-		roundTime:          args.RoundTime,
-		genesisEpoch:       args.GenesisEpoch,
-		genesisNonce:       args.GenesisNonce,
-		genesisTotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
+		marshalizer:           args.Marshalizer,
+		hasher:                args.Hasher,
+		store:                 args.Store,
+		shardCoordinator:      args.ShardCoordinator,
+		rewardsHandler:        args.RewardsHandler,
+		roundTime:             args.RoundTime,
+		genesisEpoch:          args.GenesisEpoch,
+		genesisNonce:          args.GenesisNonce,
+		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
+		economicsDataNotified: args.EconomicsDataNotified,
 	}
 
 	return e, nil
@@ -130,11 +136,22 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
+	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.DevFeesInEpoch)
 	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
-	e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
+	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
+	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
 	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed)
+	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForProtocolSustainability)
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
+
+	if big.NewInt(0).Cmp(totalRewardsToBeDistributed)>0{
+		totalRewardsToBeDistributed = big.NewInt(0)
+		remainingToBeDistributed = big.NewInt(0)
+	}
+
+	e.economicsDataNotified.SetRewardsToBeDistributed(totalRewardsToBeDistributed)
+	e.economicsDataNotified.SetRewardsToBeDistributedForBlocks(remainingToBeDistributed)
 
 	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
 	if err != nil {
@@ -263,10 +280,11 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	rwdPerBlock *big.Int,
 	accumulatedFees *big.Int,
 	blocksInEpoch uint64,
-) {
+) *big.Int {
 	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFees, e.rewardsHandler.LeaderPercentage())
 	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
+	return rewardsForLeaders
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
@@ -301,10 +319,17 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	mapEndNonce map[uint32]uint64,
 ) uint64 {
 	totalNumBlocks := uint64(0)
+	var blocksInShard uint64
+	blocksPerShard := make(map[uint32]uint64)
 	for shardId := uint32(0); shardId < e.shardCoordinator.NumberOfShards(); shardId++ {
-		totalNumBlocks += mapEndNonce[shardId] - mapStartNonce[shardId]
+		blocksInShard = mapEndNonce[shardId] - mapStartNonce[shardId]
+		blocksPerShard[shardId] = blocksInShard
+		totalNumBlocks += blocksInShard
 	}
-	totalNumBlocks += mapEndNonce[core.MetachainShardId] - mapStartNonce[core.MetachainShardId]
+	blocksInShard = mapEndNonce[core.MetachainShardId] - mapStartNonce[core.MetachainShardId]
+	blocksPerShard[core.MetachainShardId] = blocksInShard
+	totalNumBlocks += blocksInShard
+	e.economicsDataNotified.SetNumberOfBlocks(totalNumBlocks)
 
 	return core.MaxUint64(1, totalNumBlocks)
 }

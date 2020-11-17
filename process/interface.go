@@ -532,6 +532,8 @@ type RewardsHandler interface {
 	ProtocolSustainabilityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
+	RewardsTopUpGradientPoint() *big.Int
+	RewardsTopUpFactor() float64
 	IsInterfaceNil() bool
 }
 

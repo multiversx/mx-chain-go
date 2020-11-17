@@ -907,3 +907,6 @@ var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after buil
 
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the top up gradient point is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("rewards top up gradient point is invalid")

@@ -259,3 +259,18 @@ var ErrNilStakingDataProvider = errors.New("nil staking data provider")
 
 // ErrNilDataTrie signals that a nil data trie was provided
 var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
+
+// ErrInvalidTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
+var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
+
+// ErrNilEconomicsDataProvider signals that the economics data provider is nil
+var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
+
+// ErrInvalidRewardsCreatorProxyConfig signals that the rewards creator proxy has an invalid configuration
+var ErrInvalidRewardsCreatorProxyConfig = errors.New("rewards creator proxy has an invalid configuration")

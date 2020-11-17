@@ -2,6 +2,7 @@ package epochStart
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -147,7 +148,37 @@ type TransactionCacher interface {
 
 // StakingDataProvider is able to provide staking data from the system smart contracts
 type StakingDataProvider interface {
-	PrepareDataForBlsKey(blsKey []byte) error
+	GetTotalStakeEligibleNodes() *big.Int
+	GetTotalTopUpStakeEligibleNodes() *big.Int
+	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
+	PrepareStakingData(keys map[uint32][][]byte) error
 	Clean()
+	IsInterfaceNil() bool
+}
+
+// EpochEconomicsDataProvider provides end of epoch economics data
+type EpochEconomicsDataProvider interface {
+	SetNumberOfBlocks(nbBlocks uint64)
+	SetNumberOfBlocksPerShard(blocksPerShard map[uint32]uint64)
+	SetRewardsToBeDistributed(rewards *big.Int)
+	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	NumberOfBlocks() uint64
+	NumberOfBlocksPerShard() map[uint32]uint64
+	RewardsToBeDistributed() *big.Int
+	RewardsToBeDistributedForBlocks() *big.Int
+	IsInterfaceNil() bool
+}
+
+// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type EpochStartRewardsCreator interface {
+	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	GetProtocolSustainabilityRewards() *big.Int
+	GetLocalTxCache() TransactionCacher
+	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
+	SaveTxBlockToStorage(metaBlock *block.MetaBlock, body *block.Body)
+	DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body)
+	RemoveBlockDataFromPools(metaBlock *block.MetaBlock, body *block.Body)
 	IsInterfaceNil() bool
 }
