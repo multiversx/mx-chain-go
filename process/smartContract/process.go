@@ -583,9 +583,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	builtInFuncGasUsed := vmInput.GasProvided - vmOutput.GasRemaining
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
-	var scTxs []data.TransactionHandler
 	for _, outAcc := range outputAccounts {
-		createdAsyncCallback, scTxs = sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
+		if !createdAsyncCallback {
+			createdAsyncCallback = tmpCreatedAsyncCallback
+		}
 		scrResults = append(scrResults, scTxs...)
 	}
 
@@ -601,10 +603,15 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	if isSCCall {
 		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
 		var newSCRTxs []data.TransactionHandler
-		createdAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(vmOutput, vmInput.CallType, outPutAccounts, tx, txHash)
+		tmpCreatedAsyncCallback := false
+		tmpCreatedAsyncCallback, newSCRTxs, err = sc.processSCOutputAccounts(newVMOutput, vmInput.CallType, outPutAccounts, tx, txHash)
 		if err != nil {
 			return 0, err
 		}
+		if !createdAsyncCallback {
+			createdAsyncCallback = tmpCreatedAsyncCallback
+		}
+
 		scrResults = append(scrResults, newSCRTxs...)
 	}
 
@@ -1415,9 +1422,10 @@ func (sc *scProcessor) createSmartContractResults(
 			result.OriginalSender = tx.GetSndAddr()
 		}
 
-		isAsyncTransferBackToSender := callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr())
+		isAsyncTransferBackToSender := callType == vmcommon.AsynchronousCall &&
+			bytes.Equal(outAcc.Address, tx.GetSndAddr())
 		isLastOutTransfer := i == lenOutTransfers-1
-		if isLastOutTransfer && isAsyncTransferBackToSender {
+		if isLastOutTransfer && isAsyncTransferBackToSender && sc.isTransferWithNoDataOrBuiltInCall(outputTransfer.Data) {
 			addVMOutputResultsToSCR(vmOutput, result)
 			createdAsyncCallBack = true
 		}
@@ -1426,6 +1434,23 @@ func (sc *scProcessor) createSmartContractResults(
 	}
 
 	return createdAsyncCallBack, scResults
+}
+
+func (sc *scProcessor) isTransferWithNoDataOrBuiltInCall(data []byte) bool {
+	if len(data) == 0 {
+		return true
+	}
+	function, _, err := sc.argsParser.ParseCallData(string(data))
+	if err != nil {
+		return false
+	}
+
+	_, err = sc.builtInFunctions.Get(function)
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
@@ -1520,14 +1545,17 @@ func (sc *scProcessor) processSCOutputAccounts(
 	sumOfAllDiff.Sub(sumOfAllDiff, tx.GetValue())
 
 	createdAsyncCallback := false
-	var newScrs []data.TransactionHandler
 	for _, outAcc := range outputAccounts {
 		acc, err := sc.getAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return false, nil, err
 		}
 
-		createdAsyncCallback, newScrs = sc.createSmartContractResults(vmOutput, callType, outAcc, tx, txHash)
+		tmpCreatedAsyncCallback, newScrs := sc.createSmartContractResults(vmOutput, callType, outAcc, tx, txHash)
+		if !createdAsyncCallback {
+			createdAsyncCallback = tmpCreatedAsyncCallback
+		}
+
 		scResults = append(scResults, newScrs...)
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
