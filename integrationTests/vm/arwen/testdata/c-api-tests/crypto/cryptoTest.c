@@ -27,6 +27,20 @@ void* memset(void *dest, int c, unsigned long n)
     return dest;
 }
 
+void *memcpy(void *dest, const void *src, unsigned long n);
+void *memcpy(void *dest, const void *src, unsigned long n)
+{
+    char *csrc = (char *)src;
+    char *cdest = (char *)dest;
+
+    for (int i = 0; i < n; i++)
+    {
+        cdest[i] = csrc[i];
+    }
+
+    return dest;
+}
+
 void init() 
 {
     
@@ -68,11 +82,11 @@ void ripemd160Test()
 void verifyBLSTest()
 {
     int i;
-    byte key[BlsPublicKeyLength] = {1};
-    byte sig[BlsSignatureLength] = {2};
-    byte msg[MSG_LENGTH] = {3};
+    byte key[BlsPublicKeyLength] = {217, 252, 244, 255, 1, 41, 110, 111, 166, 208, 181, 81, 50, 9, 172, 190, 241, 118, 98, 215, 66, 229, 23, 33, 193, 166, 177, 213, 162, 23, 133, 181, 203, 57, 100, 9, 233, 20, 161, 66, 225, 103, 96, 222, 87, 160, 15, 14, 31, 86, 218, 46, 33, 184, 105, 139, 26, 236, 237, 186, 149, 155, 101, 25, 57, 90, 253, 129, 91, 112, 212, 120, 44, 81, 13, 225, 172, 182, 64, 177, 136, 36, 138, 209, 67, 147, 217, 96, 207, 4, 103, 105, 16, 140, 248, 5};
+    byte sig[BlsSignatureLength] = {42, 35, 229, 124, 111, 19, 105, 97, 112, 164, 38, 139, 110, 247, 241, 202, 84, 129, 39, 237, 236, 245, 85, 7, 129, 134, 253, 78, 242, 95, 207, 163, 163, 228, 54, 2, 64, 223, 140, 147, 104, 177, 100, 211, 93, 190, 188, 22};
+    byte msg[32] = {127, 124, 180, 2, 210, 197, 15, 86, 173, 174, 69, 88, 57, 240, 162, 45, 225, 106, 36, 155, 195, 94, 235, 118, 98, 161, 148, 106, 156, 104, 38, 152};
 
-    for (i = 0; i < LIMIT; i++)
+    for (i = 0; i < 100; i++)
     {
         verifyBLS(key, msg, MSG_LENGTH, sig);
     }
