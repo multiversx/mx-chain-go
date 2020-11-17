@@ -107,7 +107,13 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 			if numCall == 4 {
 				return &vmcommon.VMOutput{
 					ReturnCode: vmcommon.Ok,
-					ReturnData: [][]byte{[]byte("not a number")},
+					ReturnData: [][]byte{[]byte("not a number"), []byte("1")},
+				}, nil
+			}
+			if numCall == 5 {
+				return &vmcommon.VMOutput{
+					ReturnCode: vmcommon.Ok,
+					ReturnData: [][]byte{[]byte("1"), []byte("not a number")},
 				}, nil
 			}
 
@@ -126,12 +132,17 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the top up value"))
+	assert.True(t, strings.Contains(err.Error(), "getTopUp function should have returned exactly two values"))
 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
+
+	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	assert.NotNil(t, err)
+	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
+	assert.True(t, strings.Contains(err.Error(), "totalStaked string returned is not a number"))
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
@@ -167,7 +178,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
-	assert.Equal(t, 3, numRunContractCalls)
+	assert.Equal(t, 2, numRunContractCalls)
 	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
@@ -191,7 +202,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 	err = sdp.loadDataForBlsKey([]byte("bls key2"))
 	assert.Nil(t, err)
 
-	assert.Equal(t, 4, numRunContractCalls)
+	assert.Equal(t, 3, numRunContractCalls)
 	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
@@ -232,21 +243,14 @@ func createStakingDataProviderWithMockArgs(
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{[]byte(hex.EncodeToString(owner))},
 				}, nil
-			case "getTopUp":
+			case "getTopUpTotalStaked":
 				assert.Equal(t, owner, input.VMInput.CallerAddr)
 				assert.Equal(t, vm.AuctionSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(topUpVal.String())},
+					ReturnData: [][]byte{[]byte(topUpVal.String()), []byte(stakingVal.String())},
 				}, nil
 
-			case "getTotalStaked":
-				assert.Equal(t, owner, input.VMInput.CallerAddr)
-				assert.Equal(t, vm.AuctionSCAddress, input.RecipientAddr)
-
-				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(stakingVal.String())},
-				}, nil
 			}
 
 			return nil, errors.New("unexpected call")
@@ -277,7 +281,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 
 		userAccount, _ := account.(state.UserAccountHandler)
 		for _, storeUpdate := range outputAccount.StorageUpdates {
-			userAccount.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			_ = userAccount.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		}
 
 		err := accountsDB.SaveAccount(account)

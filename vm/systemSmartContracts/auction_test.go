@@ -3553,7 +3553,7 @@ func TestStakingAuctionSC_GetTopUpNotEnabledShouldError(t *testing.T) {
 	assert.Equal(t, "invalid method to call", vmOutput.ReturnMessage)
 }
 
-func TestStakingAuctionSC_GetTopUpWithValueShouldError(t *testing.T) {
+func TestStakingAuctionSC_GetTopUpTotalStakedWithValueShouldError(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -3566,12 +3566,12 @@ func TestStakingAuctionSC_GetTopUpWithValueShouldError(t *testing.T) {
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUp", sc, caller, nil, big.NewInt(1), vmcommon.UserError)
+	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(1), vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
 
-func TestStakingAuctionSC_GetTopUpInsufficientGasShouldError(t *testing.T) {
+func TestStakingAuctionSC_GetTopUpTotalStakedInsufficientGasShouldError(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -3585,12 +3585,12 @@ func TestStakingAuctionSC_GetTopUpInsufficientGasShouldError(t *testing.T) {
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUp", sc, caller, nil, big.NewInt(0), vmcommon.OutOfGas)
+	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.OutOfGas)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, vm.InsufficientGasLimit, vmOutput.ReturnMessage)
 }
 
-func TestStakingAuctionSC_GetTopUpCallerDoesNotExistShouldError(t *testing.T) {
+func TestStakingAuctionSC_GetTopUpTotalStakedCallerDoesNotExistShouldError(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -3603,12 +3603,12 @@ func TestStakingAuctionSC_GetTopUpCallerDoesNotExistShouldError(t *testing.T) {
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUp", sc, caller, nil, big.NewInt(0), vmcommon.UserError)
+	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "caller not registered in staking/auction sc", vmOutput.ReturnMessage)
 }
 
-func TestStakingAuctionSC_GetTopUpShouldWork(t *testing.T) {
+func TestStakingAuctionSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -3639,9 +3639,11 @@ func TestStakingAuctionSC_GetTopUpShouldWork(t *testing.T) {
 		},
 	)
 
-	callFunctionAndCheckResult(t, "getTopUp", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
+	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
 	vmOutput := eei.CreateVMOutput()
-	assert.Equal(t, totalStake.Sub(totalStake, lockedStake).String(), string(vmOutput.ReturnData[0]))
+	topUp := big.NewInt(0).Set(totalStake)
+	assert.Equal(t, topUp.Sub(topUp, lockedStake).String(), string(vmOutput.ReturnData[0]))
+	assert.Equal(t, totalStake.String(), string(vmOutput.ReturnData[1]))
 }
 
 func TestMarshalingBetweenAuctionV1AndAuctionV2(t *testing.T) {
