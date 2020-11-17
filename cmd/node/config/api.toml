@@ -40,10 +40,10 @@
         { Name = "/:address/key/:key", Open = true },
 
         # /address/:address/allesdttokens will return the list of esdt tokens for a given account
-        { Name = "/:address/allesdttokens", Open = true },
+        { Name = "/:address/esdt-all", Open = true },
 
         # /address/:address/esdtbalance/:tokenName will return the balance of an esdt token for a given account
-        { Name = "/:address/esdtbalance/:tokenName", Open = true }
+        { Name = "/:address/esdt/:tokenName", Open = true }
 	]
 
 [APIPackages.hardfork]

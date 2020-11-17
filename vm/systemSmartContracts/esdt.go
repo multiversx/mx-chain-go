@@ -19,7 +19,7 @@ import (
 )
 
 const numOfRetriesForIdentifier = 50
-const tickerSeparator = "/"
+const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
