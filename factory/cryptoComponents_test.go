@@ -14,7 +14,7 @@ func TestNewCryptoComponentsFactory_NiNodesConfigShouldErr(t *testing.T) {
 
 	args := getCryptoArgs()
 	args.NodesConfig = nil
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, false)
 	require.Nil(t, ccf)
 	require.Equal(t, factory.ErrNilNodesConfig, err)
 }
@@ -24,7 +24,7 @@ func TestNewCryptoComponentsFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 
 	args := getCryptoArgs()
 	args.ShardCoordinator = nil
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, false)
 	require.Nil(t, ccf)
 	require.Equal(t, factory.ErrNilShardCoordinator, err)
 }
@@ -34,7 +34,7 @@ func TestNewCryptoComponentsFactory_NilKeyGenShouldErr(t *testing.T) {
 
 	args := getCryptoArgs()
 	args.KeyGen = nil
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, false)
 	require.Nil(t, ccf)
 	require.Equal(t, factory.ErrNilKeyGen, err)
 }
@@ -44,7 +44,7 @@ func TestNewCryptoComponentsFactory_NilPrivateKeyShouldErr(t *testing.T) {
 
 	args := getCryptoArgs()
 	args.PrivKey = nil
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, false)
 	require.Nil(t, ccf)
 	require.Equal(t, factory.ErrNilPrivateKey, err)
 }
@@ -53,17 +53,16 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, false)
 	require.NoError(t, err)
 	require.NotNil(t, ccf)
 }
 
-func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
+func TestNewCryptoComponentsFactory_InImportDBModeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	args.UseDisabledSigVerifier = true
-	ccf, err := factory.NewCryptoComponentsFactory(args)
+	ccf, err := factory.NewCryptoComponentsFactory(args, true)
 	require.NoError(t, err)
 	require.NotNil(t, ccf)
 }
@@ -73,7 +72,7 @@ func TestCryptoComponentsFactory_CreateShouldErrDueToBadConfig(t *testing.T) {
 
 	args := getCryptoArgs()
 	args.Config = config.Config{}
-	ccf, _ := factory.NewCryptoComponentsFactory(args)
+	ccf, _ := factory.NewCryptoComponentsFactory(args, false)
 
 	cc, err := ccf.Create()
 	require.Error(t, err)
@@ -84,19 +83,7 @@ func TestCryptoComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	args := getCryptoArgs()
-	ccf, _ := factory.NewCryptoComponentsFactory(args)
-
-	cc, err := ccf.Create()
-	require.NoError(t, err)
-	require.NotNil(t, cc)
-}
-
-func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
-	t.Parallel()
-
-	args := getCryptoArgs()
-	args.UseDisabledSigVerifier = true
-	ccf, _ := factory.NewCryptoComponentsFactory(args)
+	ccf, _ := factory.NewCryptoComponentsFactory(args, false)
 
 	cc, err := ccf.Create()
 	require.NoError(t, err)
