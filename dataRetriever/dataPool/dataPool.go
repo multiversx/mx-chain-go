@@ -17,6 +17,7 @@ type dataPool struct {
 	peerChangesBlocks    storage.Cacher
 	trieNodes            storage.Cacher
 	currBlockTxs         dataRetriever.TransactionCacher
+	smartContracts       storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -29,6 +30,7 @@ func NewDataPool(
 	peerChangesBlocks storage.Cacher,
 	trieNodes storage.Cacher,
 	currBlockTxs dataRetriever.TransactionCacher,
+	smartContracts storage.Cacher,
 ) (*dataPool, error) {
 
 	if check.IfNil(transactions) {
@@ -55,6 +57,9 @@ func NewDataPool(
 	if check.IfNil(trieNodes) {
 		return nil, dataRetriever.ErrNilTrieNodesPool
 	}
+	if check.IfNil(smartContracts) {
+		return nil, dataRetriever.ErrNilSmartContractsPool
+	}
 
 	return &dataPool{
 		transactions:         transactions,
@@ -65,6 +70,7 @@ func NewDataPool(
 		peerChangesBlocks:    peerChangesBlocks,
 		trieNodes:            trieNodes,
 		currBlockTxs:         currBlockTxs,
+		smartContracts:       smartContracts,
 	}, nil
 }
 
@@ -106,6 +112,11 @@ func (dp *dataPool) PeerChangesBlocks() storage.Cacher {
 // TrieNodes returns the holder for trie nodes
 func (dp *dataPool) TrieNodes() storage.Cacher {
 	return dp.trieNodes
+}
+
+// SmartContracts returns the holder for smart contracts
+func (dp *dataPool) SmartContracts() storage.Cacher {
+	return dp.smartContracts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

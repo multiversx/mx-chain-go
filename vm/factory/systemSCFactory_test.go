@@ -3,6 +3,7 @@ package factory
 import (
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -12,14 +13,14 @@ import (
 )
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
-
+	gasMap := arwenConfig.MakeGasMapForTests()
+	gasMap = defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
 		Economics:           &mock.EconomicsHandlerStub{},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
-		GasMap:              gasSchedule,
+		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		Hasher:              &mock.HasherMock{},

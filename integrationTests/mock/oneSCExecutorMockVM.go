@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var errNilValue = errors.New("nil value provided")
@@ -157,6 +157,10 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 	default:
 		return vm.unavailableFunc(input)
 	}
+}
+
+// GasScheduleChange -
+func (vm *OneSCExecutorMockVM) GasScheduleChange(_ map[string]map[string]uint64) {
 }
 
 func (vm *OneSCExecutorMockVM) processAddFunc(input *vmcommon.ContractCallInput, value *big.Int) (*vmcommon.VMOutput, error) {
@@ -353,4 +357,9 @@ func makeOutputAccountsMap(accounts ...*vmcommon.OutputAccount) map[string]*vmco
 		accountsMap[string(account.Address)] = account
 	}
 	return accountsMap
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vm *OneSCExecutorMockVM) IsInterfaceNil() bool {
+	return vm == nil
 }

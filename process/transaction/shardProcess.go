@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -18,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("process/transaction")
@@ -40,11 +40,13 @@ type txProcessor struct {
 	signMarshalizer                marshal.Marshalizer
 	flagRelayedTx                  atomic.Flag
 	flagPenalizedTooMuchGas        atomic.Flag
+	flagMetaProtection             atomic.Flag
 	relayedTxEnableEpoch           uint32
 	penalizedTooMuchGasEnableEpoch uint32
+	metaProtectionEnableEpoch      uint32
 }
 
-// ArgsNewTxProcessor defines defines the arguments needed for new tx processor
+// ArgsNewTxProcessor defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
 	Accounts                       state.AccountsAdapter
 	Hasher                         hashing.Hasher
@@ -62,6 +64,7 @@ type ArgsNewTxProcessor struct {
 	ScrForwarder                   process.IntermediateTransactionHandler
 	RelayedTxEnableEpoch           uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	MetaProtectionEnableEpoch      uint32
 	EpochNotifier                  process.EpochNotifier
 }
 
@@ -134,6 +137,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		signMarshalizer:                args.SignMarshalizer,
 		relayedTxEnableEpoch:           args.RelayedTxEnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
+		metaProtectionEnableEpoch:      args.MetaProtectionEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(txProc)
@@ -360,6 +364,13 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	// it is not allowed to send transactions to metachain if those are not of type smart contract
 	if len(tx.GetData()) == 0 {
 		return process.ErrInvalidMetaTransaction
+	}
+
+	if txProc.flagMetaProtection.IsSet() {
+		// additional check
+		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
+			return process.ErrInvalidMetaTransaction
+		}
 	}
 
 	return nil
@@ -826,6 +837,9 @@ func (txProc *txProcessor) EpochConfirmed(epoch uint32) {
 
 	txProc.flagPenalizedTooMuchGas.Toggle(epoch >= txProc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("txProcessor: penalized too much gas", "enabled", txProc.flagPenalizedTooMuchGas.IsSet())
+
+	txProc.flagMetaProtection.Toggle(epoch >= txProc.metaProtectionEnableEpoch)
+	log.Debug("txProcessor: meta protection", "enabled", txProc.flagMetaProtection.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

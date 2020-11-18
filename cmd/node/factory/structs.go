@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion"
@@ -69,12 +70,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 const (
@@ -134,7 +135,7 @@ type processComponentsFactoryArgs struct {
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             *economics.EconomicsData
 	nodesConfig               *sharding.NodesSetup
-	gasSchedule               map[string]map[string]uint64
+	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
@@ -184,7 +185,7 @@ func NewProcessComponentsFactoryArgs(
 	smartContractParser genesis.InitialSmartContractParser,
 	economicsData *economics.EconomicsData,
 	nodesConfig *sharding.NodesSetup,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	rounder consensus.Rounder,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1298,7 +1299,7 @@ func generateGenesisHeadersAndApplyInitialBalances(args *processComponentsFactor
 		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
 		ValidatorAccounts:        stateComponents.PeerAccounts,
-		GasMap:                   args.gasSchedule,
+		GasSchedule:              args.gasSchedule,
 		VirtualMachineConfig:     genesisVmConfig,
 		TxLogsProcessor:          args.txLogsProcessor,
 		HardForkConfig:           args.mainConfig.Hardfork,
@@ -1421,6 +1422,8 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
+			processArgs.mainConfig,
+			processArgs.workingDir,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1455,7 +1458,8 @@ func newBlockProcessor(
 			processArgs.historyRepo,
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
-			processArgs.mainConfig.GeneralSettings,
+			processArgs.mainConfig,
+			processArgs.workingDir,
 			processArgs.rater,
 		)
 	}
@@ -1476,7 +1480,7 @@ func newShardBlockProcessor(
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	stateCheckpointModulus uint,
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
@@ -1490,6 +1494,8 @@ func newShardBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	generalConfig config.Config,
+	workingDir string,
 ) (process.BlockProcessor, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -1499,25 +1505,34 @@ func newShardBlockProcessor(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     core.InternalMarshalizer,
 		Accounts:        stateComponents.AccountsAdapter,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           stateComponents.AccountsAdapter,
+		PubkeyConv:         stateComponents.AddressPubkeyConverter,
+		StorageService:     data.Store,
+		BlockChain:         data.Blkc,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        core.InternalMarshalizer,
+		Uint64Converter:    core.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           data.Datapool,
+		CompiledSCPool:     data.Datapool.SmartContracts(),
+		ConfigSCStorage:    generalConfig.SmartContractsStorage,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachine.Execution,
@@ -1525,6 +1540,7 @@ func newShardBlockProcessor(
 		gasSchedule,
 		argsHook,
 		config.GeneralSettings.SCDeployEnableEpoch,
+		config.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -1647,6 +1663,7 @@ func newShardBlockProcessor(
 		ScrForwarder:                   scForwarder,
 		RelayedTxEnableEpoch:           config.GeneralSettings.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:      config.GeneralSettings.MetaProtectionEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
@@ -1786,7 +1803,7 @@ func newMetaBlockProcessor(
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
 	stateCheckpointModulus uint,
 	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 	minSizeInBytes uint32,
 	maxSizeInBytes uint32,
 	ratingsData process.RatingsInfoHandler,
@@ -1799,20 +1816,26 @@ func newMetaBlockProcessor(
 	historyRepository dblookupext.HistoryRepository,
 	epochNotifier process.EpochNotifier,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	generalSettingsConfig config.GeneralSettingsConfig,
+	generalConfig config.Config,
+	workingDir string,
 	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         stateComponents.AccountsAdapter,
-		PubkeyConv:       stateComponents.AddressPubkeyConverter,
-		StorageService:   data.Store,
-		BlockChain:       data.Blkc,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      core.InternalMarshalizer,
-		Uint64Converter:  core.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
+		Accounts:           stateComponents.AccountsAdapter,
+		PubkeyConv:         stateComponents.AddressPubkeyConverter,
+		StorageService:     data.Store,
+		BlockChain:         data.Blkc,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        core.InternalMarshalizer,
+		Uint64Converter:    core.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs, // no built-in functions for meta.
+		DataPool:           data.Datapool,
+		CompiledSCPool:     data.Datapool.SmartContracts(),
+		ConfigSCStorage:    generalConfig.SmartContractsStorage,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(
 		argsHook,
@@ -1903,9 +1926,9 @@ func newMetaBlockProcessor(
 		GasSchedule:                    gasSchedule,
 		BuiltInFunctions:               vmFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                txLogsProcessor,
-		DeployEnableEpoch:              generalSettingsConfig.SCDeployEnableEpoch,
-		BuiltinEnableEpoch:             generalSettingsConfig.BuiltInFunctionsEnableEpoch,
-		PenalizedTooMuchGasEnableEpoch: generalSettingsConfig.PenalizedTooMuchGasEnableEpoch,
+		DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
+		BuiltinEnableEpoch:             generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
+		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
 	}
@@ -1914,21 +1937,34 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	transactionProcessor, err := transaction.NewMetaTxProcessor(
-		core.Hasher,
-		core.InternalMarshalizer,
-		stateComponents.AccountsAdapter,
-		stateComponents.AddressPubkeyConverter,
-		shardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		economicsData,
-	)
+	argsNewMetaTxProcessor := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         stateComponents.AccountsAdapter,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     economicsData,
+		ESDTEnableEpoch:  systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	transactionProcessor, err := transaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
 		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
-	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessorArgs)
+	err = createMetaTxSimulatorProcessor(
+		argsNewScProcessor,
+		shardCoordinator,
+		data,
+		core,
+		stateComponents,
+		txTypeHandler,
+		txSimulatorProcessorArgs,
+		epochNotifier,
+		systemSCConfig,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2121,8 +2157,8 @@ func newMetaBlockProcessor(
 		StakingSCAddress:                       vm.StakingSCAddress,
 		ChanceComputer:                         nodesCoordinator,
 		EpochNotifier:                          epochNotifier,
-		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
+		SwitchJailWaitingEnableEpoch:           generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: generalConfig.GeneralSettings.SwitchHysteresisForMinNodesEnableEpoch,
 		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
@@ -2236,6 +2272,8 @@ func createMetaTxSimulatorProcessor(
 	stateComponents *mainFactory.StateComponents,
 	txTypeHandler process.TxTypeHandler,
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+	epochNotifier process.EpochNotifier,
+	systemSCConfig *config.SystemSmartContractsConfig,
 ) error {
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
 		shardCoordinator,
@@ -2278,16 +2316,19 @@ func createMetaTxSimulatorProcessor(
 		return err
 	}
 
-	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(
-		core.Hasher,
-		core.InternalMarshalizer,
-		accountsWrapper,
-		stateComponents.AddressPubkeyConverter,
-		shardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		&processDisabled.FeeHandler{},
-	)
+	argsNewMetaTx := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		Accounts:         accountsWrapper,
+		PubkeyConv:       stateComponents.AddressPubkeyConverter,
+		ShardCoordinator: shardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     &processDisabled.FeeHandler{},
+		ESDTEnableEpoch:  systemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	txSimulatorProcessorArgs.TransactionProcessor, err = transaction.NewMetaTxProcessor(argsNewMetaTx)
 	if err != nil {
 		return err
 	}
@@ -2448,7 +2489,7 @@ func CreateLatestStorageDataProvider(
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := storageFactory.NewDirectoryReader()
 
-	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
 		Marshalizer:           marshalizer,
 		Hasher:                hasher,
@@ -2460,7 +2501,7 @@ func CreateLatestStorageDataProvider(
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
 	}
-	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 
 // CreateUnitOpener will create a new unit opener handler

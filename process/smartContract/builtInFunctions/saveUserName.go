@@ -3,12 +3,13 @@ package builtInFunctions
 import (
 	"encoding/hex"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BuiltinFunction = (*saveUserName)(nil)
@@ -17,6 +18,7 @@ type saveUserName struct {
 	gasCost         uint64
 	mapDnsAddresses map[string]struct{}
 	enableChange    bool
+	mutExecution    sync.RWMutex
 }
 
 // NewSaveUserNameFunc returns a username built in function implementation
@@ -41,11 +43,21 @@ func NewSaveUserNameFunc(
 	return s, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (s *saveUserName) SetNewGasConfig(gasCost *process.GasCost) {
+	s.mutExecution.Lock()
+	s.gasCost = gasCost.BuiltInCost.SaveUserName
+	s.mutExecution.Unlock()
+}
+
 // ProcessBuiltinFunction sets the username to the account if it is allowed
 func (s *saveUserName) ProcessBuiltinFunction(
 	_, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	s.mutExecution.RLock()
+	defer s.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}

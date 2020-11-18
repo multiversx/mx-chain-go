@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -20,8 +22,6 @@ import (
 	txproc "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -564,7 +564,7 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 
-	acntDst.CodeMetadata = []byte{0, vmcommon.METADATA_PAYABLE}
+	acntDst.CodeMetadata = []byte{0, vmcommon.MetadataPayable}
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 	adb.SaveAccountCalled = func(account state.AccountHandler) error {
@@ -1031,7 +1031,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 
 	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(46)
+	acntSrc.Balance = big.NewInt(100000000)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &mock.SCProcessorMock{
@@ -1059,7 +1059,17 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, uint64(1), acntSrc.Nonce)
-	assert.Equal(t, uint64(45), acntSrc.Balance.Uint64())
+	assert.Equal(t, uint64(99999999), acntSrc.Balance.Uint64())
+
+	tx.Data = []byte("something")
+	tx.Nonce = tx.Nonce + 1
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, err, process.ErrFailedTransaction)
+
+	tx.Nonce = tx.Nonce + 1
+	tx.GasLimit = 10_000_000
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
 }
 
 func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *testing.T) {

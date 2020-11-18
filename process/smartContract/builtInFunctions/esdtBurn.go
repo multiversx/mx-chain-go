@@ -3,14 +3,15 @@ package builtInFunctions
 import (
 	"bytes"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BuiltinFunction = (*esdtBurn)(nil)
@@ -20,6 +21,7 @@ type esdtBurn struct {
 	marshalizer  marshal.Marshalizer
 	keyPrefix    []byte
 	pauseHandler process.ESDTPauseHandler
+	mutExecution sync.RWMutex
 }
 
 // NewESDTBurnFunc returns the esdt burn built-in function component
@@ -38,11 +40,18 @@ func NewESDTBurnFunc(
 	e := &esdtBurn{
 		funcGasCost:  funcGasCost,
 		marshalizer:  marshalizer,
-		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:    []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pauseHandler: pauseHandler,
 	}
 
 	return e, nil
+}
+
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtBurn) SetNewGasConfig(gasCost *process.GasCost) {
+	e.mutExecution.Lock()
+	e.funcGasCost = gasCost.BuiltInCost.ESDTBurn
+	e.mutExecution.Unlock()
 }
 
 // ProcessBuiltinFunction resolves ESDT burn function call
@@ -50,6 +59,9 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	acntSnd, _ state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	e.mutExecution.RLock()
+	defer e.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -83,11 +95,13 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
-	addOutPutTransferToVMOutput(
-		core.BuiltInFunctionESDTBurn,
-		vmInput.Arguments,
-		vmInput.RecipientAddr,
-		vmOutput)
+	if core.IsSmartContractAddress(vmInput.CallerAddr) {
+		addOutPutTransferToVMOutput(
+			core.BuiltInFunctionESDTBurn,
+			vmInput.Arguments,
+			vmInput.RecipientAddr,
+			vmOutput)
+	}
 
 	return vmOutput, nil
 }

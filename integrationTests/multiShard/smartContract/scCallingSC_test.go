@@ -14,6 +14,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -22,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -249,9 +249,9 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	numShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
+	numShards := 1
+	nodesPerShard := 5
+	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -282,7 +282,6 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
-	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"../../vm/arwen/testdata/counter/counter.wasm",
@@ -293,6 +292,9 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		nodes,
 		nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1,
 	)
+	nodes[0].OwnAccount.Nonce += 1
+
+	time.Sleep(time.Second)
 
 	round := uint64(0)
 	nonce := uint64(0)
@@ -304,17 +306,17 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nonce++
 
 	// make smart contract call to shard 1 which will do in shard 0
+	numTxsPerNode := 10
 	for _, node := range nodes {
 		txData := "increment"
-		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+		for i := 0; i < numTxsPerNode; i++ {
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, 50000)
 		}
 	}
 
 	time.Sleep(time.Second)
 
-	numRoundsToPropagateMultiShard := 15
-	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
+	for i := 0; i < 5; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
@@ -331,6 +333,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 		numCalled := vm.GetIntValueFromSC(nil, node.AccntState, firstSCAddress, "get", nil)
 		require.NotNil(t, numCalled)
+		require.Equal(t, numCalled.Uint64(), uint64(len(nodes)*numTxsPerNode)+1)
 	}
 
 	account := getAccountFromAddrBytes(nodes[0].AccntState, nodes[0].OwnAccount.Address)
@@ -588,9 +591,10 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		big.NewInt(0),
 		scAddress,
 		"callBuiltin@"+hex.EncodeToString(receiver.OwnAccount.Address),
-		150000,
+		1500000,
 	)
 
+	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
 
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
