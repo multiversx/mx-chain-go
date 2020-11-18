@@ -80,10 +80,6 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 		lengthOldValue := uint64(len(oldValue))
 		if lengthOldValue < length {
 			lengthChange = length - lengthOldValue
-		} else {
-			releaseLength := lengthOldValue - length
-			refundValue := big.NewInt(0).Mul(big.NewInt(0).SetUint64(releaseLength), big.NewInt(0).SetUint64(k.gasConfig.ReleasePerByte))
-			vmOutput.GasRefund.Add(vmOutput.GasRefund, refundValue)
 		}
 
 		useGas += k.gasConfig.StorePerByte * lengthChange

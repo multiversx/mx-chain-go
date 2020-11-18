@@ -28,7 +28,7 @@ func (sc *SCProcessorMock) IsPayable(address []byte) (bool, error) {
 }
 
 // ProcessIfError -
-func (sc *SCProcessorMock) ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error {
+func (sc *SCProcessorMock) ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, _ uint64) error {
 	if sc.ProcessIfErrorCalled != nil {
 		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, returnMessage, snapshot)
 	}

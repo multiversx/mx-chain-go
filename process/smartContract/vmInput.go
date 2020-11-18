@@ -73,12 +73,15 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, err
 	}
 
+	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(callType, arguments)
+
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = vmcommon.VMInput{}
 	vmCallInput.CallType = callType
 	vmCallInput.RecipientAddr = tx.GetRcvAddr()
 	vmCallInput.Function = function
 	vmCallInput.CurrentTxHash = txHash
+	vmCallInput.GasLocked = gasLocked
 
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
@@ -94,9 +97,24 @@ func (sc *scProcessor) createVMCallInput(
 		return nil, err
 	}
 
-	vmCallInput.VMInput.Arguments = arguments
+	vmCallInput.VMInput.Arguments = finalArguments
 
 	return vmCallInput, nil
+}
+
+func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vmcommon.CallType, arguments [][]byte) ([][]byte, uint64) {
+	if callType != vmcommon.AsynchronousCall {
+		return arguments, 0
+	}
+
+	lenArgs := len(arguments)
+	lastArg := arguments[lenArgs-1]
+	gasLocked := big.NewInt(0).SetBytes(lastArg).Uint64()
+
+	argsWithoutGasLocked := make([][]byte, lenArgs-1)
+	copy(argsWithoutGasLocked, arguments[:lenArgs-1])
+
+	return argsWithoutGasLocked, gasLocked
 }
 
 func determineCallType(tx data.TransactionHandler) vmcommon.CallType {

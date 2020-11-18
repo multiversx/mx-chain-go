@@ -219,7 +219,7 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 			return err
 		}
 
-		err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, txError.Error(), nil, snapshot)
+		err = txProc.scProcessor.ProcessIfError(acntSnd, txHash, tx, txError.Error(), nil, snapshot, 0)
 		if err != nil {
 			return err
 		}

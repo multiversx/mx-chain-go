@@ -1061,7 +1061,7 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, _ := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
-			OutOfProcessEnabled: true,
+			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
 		maxGasLimitPerBlock,
@@ -1706,7 +1706,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 20000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)

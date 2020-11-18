@@ -23,7 +23,7 @@ type ArgsNewSystemVM struct {
 	SystemEI        vm.ContextHandler
 	SystemContracts vm.SystemSCContainer
 	VmType          []byte
-	GasMap          map[string]map[string]uint64
+	GasSchedule     core.GasScheduleNotifier
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
@@ -37,11 +37,11 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
-	if args.GasMap == nil {
+	if args.GasSchedule == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	apiCosts := args.GasMap[core.ElrondAPICost]
+	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
 	if apiCosts == nil {
 		return nil, vm.ErrNilGasSchedule
 	}
@@ -58,6 +58,8 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	if sVm.asyncCallStepCost == 0 || sVm.asyncCallbackGasLock == 0 {
 		return nil, vm.ErrNilGasSchedule
 	}
+
+	args.GasSchedule.RegisterNotifyHandler(sVm)
 
 	return sVm, nil
 }
@@ -114,15 +116,8 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		}, nil
 	}
 
-	lockedGas, err := s.handleAsyncStepGas(input)
-	if err != nil {
-		return &vmcommon.VMOutput{
-			ReturnCode:    vmcommon.UserError,
-			ReturnMessage: err.Error(),
-			GasRemaining:  lockedGas,
-		}, nil
-	}
-
+	lockedGas := input.GasLocked
+	input.GasProvided -= lockedGas
 	returnCode := contract.Execute(input)
 
 	vmOutput := s.systemEI.CreateVMOutput()
@@ -144,31 +139,6 @@ func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
 
 	s.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
 	s.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
-}
-
-func (s *systemVM) handleAsyncStepGas(input *vmcommon.ContractCallInput) (uint64, error) {
-	if input.CallType != vmcommon.AsynchronousCall {
-		return 0, nil
-	}
-
-	s.mutGasLock.RLock()
-	defer s.mutGasLock.RUnlock()
-	// gasToLock is the amount of gas to set aside for the callback, to avoid it
-	// being used by executing built-in functions; this amount will be restored
-	// to the caller, so that there is sufficient gas for the async callback
-	gasToLock := s.asyncCallStepCost + s.asyncCallbackGasLock
-
-	// gasToDeduct also contains an extra asyncCallStepCost, apart from
-	// gasToLock; asyncCallStepCost will be deducted, but not refunded, just as
-	// Arwen does when executing an async call
-	gasToDeduct := s.asyncCallStepCost + gasToLock
-	if input.GasProvided <= gasToDeduct {
-		return 0, vm.ErrNotEnoughGas
-	}
-
-	input.GasProvided -= gasToDeduct
-
-	return gasToLock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
