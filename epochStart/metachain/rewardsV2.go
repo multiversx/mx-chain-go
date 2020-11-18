@@ -87,6 +87,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 		"totalToDistribute", economicsData.TotalToDistribute,
 		"rewardsForProtocolSustainability", economicsData.RewardsForProtocolSustainability,
 		"rewardsPerBlock", economicsData.RewardsPerBlock,
+		"devFeesInEpoch", metaBlock.DevFeesInEpoch,
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
 		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),
 		"numberOfBlocksPerShard", rc.economicsDataProvider.NumberOfBlocksPerShard(),
@@ -158,6 +159,8 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 			mbId = rc.shardCoordinator.NumberOfShards()
 
 			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
+				log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
+					"move to protocol vault", rwdTx.GetValue())
 				accumulatedDust.Add(accumulatedDust, rwdTx.GetValue())
 				continue
 			}
