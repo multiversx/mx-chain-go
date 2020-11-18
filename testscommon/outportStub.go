@@ -10,8 +10,10 @@ import (
 
 // OutportStub is a mock implementation fot the OutportHandler interface
 type OutportStub struct {
-	SaveBlockCalled  func(args types.ArgsSaveBlocks)
-	HasDriversCalled func() bool
+	SaveBlockCalled             func(args types.ArgsSaveBlocks)
+	SaveValidatorsRatingCalled  func(e string, k []types.ValidatorRatingInfo)
+	SaveValidatorsPubKeysCalled func(k map[uint32][][]byte, e uint32)
+	HasDriversCalled            func() bool
 }
 
 // SaveBlock -
@@ -22,8 +24,10 @@ func (as *OutportStub) SaveBlock(args types.ArgsSaveBlocks) {
 }
 
 // SaveValidatorsRating --
-func (as *OutportStub) SaveValidatorsRating(_ string, _ []types.ValidatorRatingInfo) {
-
+func (as *OutportStub) SaveValidatorsRating(e string, k []types.ValidatorRatingInfo) {
+	if as.SaveValidatorsRatingCalled != nil {
+		as.SaveValidatorsRatingCalled(e, k)
+	}
 }
 
 // SaveMetaBlock -
@@ -35,8 +39,10 @@ func (as *OutportStub) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveValidatorsPubKeys -
-func (as *OutportStub) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) {
-	panic("implement me")
+func (as *OutportStub) SaveValidatorsPubKeys(k map[uint32][][]byte, e uint32) {
+	if as.SaveValidatorsPubKeysCalled != nil {
+		as.SaveValidatorsPubKeysCalled(k, e)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

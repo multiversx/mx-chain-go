@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,7 +151,7 @@ func TestDataProcessor_Index(t *testing.T) {
 
 func getDataProcessorArgs() dataprocessor.ArgsDataProcessor {
 	return dataprocessor.ArgsDataProcessor{
-		OutportHandler: &mock.OutportStub{},
+		OutportHandler: &testscommon.OutportStub{},
 		DataReplayer:   &mock.DataReplayerStub{},
 		GenesisNodesSetup: &mock.GenesisNodesSetupHandlerStub{
 			InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
