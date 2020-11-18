@@ -121,7 +121,6 @@ type CoreComponentsHolder interface {
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
-	ManualEpochStartNotifier() dataRetriever.ManualEpochStartNotifier
 	IsInterfaceNil() bool
 }
 

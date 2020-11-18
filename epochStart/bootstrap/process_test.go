@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
@@ -142,9 +141,6 @@ func createMockEpochStartBootstrapArgs(
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
-		ManualEpochStartNotifier:   &mock.EpochNotifierStub{},
-		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 100),
-		ImportDbConfig:             config.ImportDbConfig{},
 	}
 }
 

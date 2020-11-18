@@ -175,7 +175,10 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 		ChanGracefullyClose:      srcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver := storageResolvers.NewTrieNodeResolver(arg)
+	resolver, err := storageResolvers.NewTrieNodeResolver(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating user accounts trie node resolver", err)
+	}
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)

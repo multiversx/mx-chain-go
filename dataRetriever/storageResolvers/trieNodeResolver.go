@@ -3,6 +3,7 @@ package storageResolvers
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -33,8 +34,26 @@ type trieNodeResolver struct {
 }
 
 // NewTrieNodeResolver returns a new trie node resolver instance. It uses trie snapshots in order to get older data
-func NewTrieNodeResolver(arg ArgTrieResolver) *trieNodeResolver {
-	//TODO (JLS, this PR) add checks
+func NewTrieNodeResolver(arg ArgTrieResolver) (*trieNodeResolver, error) {
+	if check.IfNil(arg.Messenger) {
+		return nil, dataRetriever.ErrNilMessenger
+	}
+	if check.IfNil(arg.ManualEpochStartNotifier) {
+		return nil, dataRetriever.ErrNilManualEpochStartNotifier
+	}
+	if arg.ChanGracefullyClose == nil {
+		return nil, dataRetriever.ErrNilGracefullyCloseChannel
+	}
+	if check.IfNil(arg.TrieStorageManager) {
+		return nil, dataRetriever.ErrNilTrieStorageManager
+	}
+	if check.IfNil(arg.TrieDataGetter) {
+		return nil, dataRetriever.ErrNilTrieDataGetter
+	}
+	if check.IfNil(arg.Marshalizer) {
+		return nil, dataRetriever.ErrNilMarshalizer
+	}
+
 	return &trieNodeResolver{
 		storageResolver: &storageResolver{
 			messenger:                arg.Messenger,
@@ -46,7 +65,7 @@ func NewTrieNodeResolver(arg ArgTrieResolver) *trieNodeResolver {
 		trieStorageManager: arg.TrieStorageManager,
 		trieDataGetter:     arg.TrieDataGetter,
 		marshalizer:        arg.Marshalizer,
-	}
+	}, nil
 }
 
 // RequestDataFromHash tries to fetch the required trie node and send it to self

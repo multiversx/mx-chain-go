@@ -442,7 +442,7 @@ type Configs struct {
 	ExternalConfig                   *ExternalConfig
 	P2pConfig                        *P2PConfig
 	FlagsConfig                      *ContextFlagsConfig
-	ImportDbConfig                   ImportDbConfig
+	ImportDbConfig                   *ImportDbConfig
 	ConfigurationFileName            string
 	ConfigurationEconomicsFileName   string
 	ConfigurationRatingsFileName     string

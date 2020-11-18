@@ -193,3 +193,6 @@ var ErrNilGracefullyCloseChannel = errors.New("nil gracefully close channel")
 
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
+
+// ErrNilTrieStorageManager signals that a nil trie storage manager has been provided
+var ErrNilTrieStorageManager = errors.New("nil trie storage manager")

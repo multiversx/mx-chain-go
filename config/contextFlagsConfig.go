@@ -26,7 +26,6 @@ type ContextFlagsConfig struct {
 	EnableRestAPIServerDebugMode     bool
 	Version                          string
 	ElasticSearchTemplatesPath       string
-	ImportDB                         ImportDbConfig
 }
 
 // ImportDbConfig will hold the import-db parameters

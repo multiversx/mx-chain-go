@@ -200,7 +200,10 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 		ChanGracefullyClose:      mrcf.chanGracefullyClose,
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
-	resolver := storageResolvers.NewTrieNodeResolver(arg)
+	resolver, err := storageResolvers.NewTrieNodeResolver(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating user accounts trie node resolver", err)
+	}
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
@@ -221,7 +224,10 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 
-	resolver = storageResolvers.NewTrieNodeResolver(arg)
+	resolver, err = storageResolvers.NewTrieNodeResolver(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating peer accounts trie node resolver", err)
+	}
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)

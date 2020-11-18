@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 )
 
@@ -91,12 +90,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.HeaderIntegrityVerifier) {
 		return epochStart.ErrNilHeaderIntegrityVerifier
-	}
-	if check.IfNil(args.ManualEpochStartNotifier) {
-		return dataRetriever.ErrNilManualEpochStartNotifier
-	}
-	if args.ChanGracefullyClose == nil {
-		return dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
 	return nil

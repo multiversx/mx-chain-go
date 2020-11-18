@@ -25,8 +25,8 @@ import (
 	storageResolversContainers "github.com/ElrondNetwork/elrond-go/dataRetriever/factory/storageResolversContainer"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
+	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	errErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/fallback"
@@ -100,6 +100,7 @@ type processComponents struct {
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
+	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
@@ -137,13 +138,12 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo               dblookupext.HistoryRepository
 	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
-	StorageResolverImportPath string
 	ChanGracefullyClose       chan endProcess.ArgEndProcess
-	ManualEpochStartNotifier  dataRetriever.ManualEpochStartNotifier
 }
 
 type processComponentsFactory struct {
 	config                    config.Config
+	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
@@ -181,9 +181,7 @@ type processComponentsFactory struct {
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
-	storageResolverImportPath string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
-	manualEpochStartNotifier  dataRetriever.ManualEpochStartNotifier
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -195,6 +193,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 	return &processComponentsFactory{
 		config:                    args.Config,
+		importDBConfig:            args.ImportDBConfig,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
@@ -231,9 +230,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		epochNotifier:             args.EpochNotifier,
-		storageResolverImportPath: args.StorageResolverImportPath,
 		chanGracefullyClose:       args.ChanGracefullyClose,
-		manualEpochStartNotifier:  args.ManualEpochStartNotifier,
 	}, nil
 }
 
@@ -877,8 +874,8 @@ func (pcf *processComponentsFactory) newBlockTracker(
 
 // -- Resolvers container Factory begin
 func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
-	if len(pcf.storageResolverImportPath) > 0 {
-		log.Debug("starting with storage resolvers", "path", pcf.storageResolverImportPath)
+	if pcf.importDBConfig.IsImportDBMode {
+		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
 		return pcf.newStorageResolver()
 	}
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
@@ -974,21 +971,24 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := storageFactory.CreatePathManager(pcf.storageResolverImportPath, pcf.coreData.ChainID())
+	pathManager, err := storageFactory.CreatePathManager(pcf.importDBConfig.ImportDBWorkingDir, pcf.coreData.ChainID())
 	if err != nil {
 		return nil, err
 	}
 
-	msesn, err := bootstrap.NewManualStorerEpochStartNotifier(pcf.manualEpochStartNotifier)
-	if err != nil {
-		return nil, err
-	}
+	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	defer func() {
+		//we need to call this after we wired all the notified components
+		if pcf.importDBConfig.IsImportDBMode {
+			manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
+		}
+	}()
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		&pcf.config,
 		pcf.shardCoordinator,
 		pathManager,
-		msesn,
+		manualEpochStartNotifier,
 		pcf.startEpochNum,
 		false,
 	)
@@ -1004,7 +1004,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 		return pcf.createStorageResolversForMeta(
 			store,
-			pcf.manualEpochStartNotifier,
+			manualEpochStartNotifier,
 		)
 	}
 
@@ -1015,7 +1015,7 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 
 	return pcf.createStorageResolversForShard(
 		store,
-		pcf.manualEpochStartNotifier,
+		manualEpochStartNotifier,
 	)
 }
 
@@ -1064,6 +1064,11 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.chanGracefullyClose,
+		Hasher:                   pcf.coreData.Hasher(),
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		ChainID:                  pcf.coreData.ChainID(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1305,9 +1310,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilEpochNotifier)
-	}
-	if check.IfNil(args.ManualEpochStartNotifier) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilManualEpochStartNotifier)
 	}
 
 	return nil

@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test CryptoComponents --------------------
+// ------------ Test BootstrapComponents --------------------
 func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second)
@@ -34,7 +33,6 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCryptoComponents,
 		managedNetworkComponents,
 		make(chan endProcess.ArgEndProcess),
-		notifier.NewManualEpochStartNotifier(),
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedBootstrapComponents)

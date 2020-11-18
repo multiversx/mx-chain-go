@@ -336,6 +336,7 @@ func getFlags() []cli.Flag {
 		importDbDirectory,
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
+		importDbStartInEpoch,
 	}
 }
 
@@ -381,7 +382,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	flagsConfig.ImportDB = config.ImportDbConfig{
+	importDBConfigs := &config.ImportDbConfig{
 		IsImportDBMode:                len(importDbDirectoryValue) > 0,
 		ImportDBWorkingDir:            importDbDirectoryValue,
 		ImportDbNoSigCheckFlag:        ctx.GlobalBool(importDbNoSigCheck.Name),
@@ -389,6 +390,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 		ImportDBStartInEpoch:          uint32(ctx.GlobalUint64(importDbStartInEpoch.Name)),
 	}
 	cfgs.FlagsConfig = flagsConfig
+	cfgs.ImportDbConfig = importDBConfigs
 	err := applyCompatibleConfigs(log, cfgs)
 	if err != nil {
 		return err
@@ -419,7 +421,7 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 }
 
 func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
-	importDbFlags := configs.FlagsConfig.ImportDB
+	importDbFlags := configs.ImportDbConfig
 	generalConfigs := configs.GeneralConfig
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
@@ -431,30 +433,35 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		if err != nil {
 			return err
 		}
-		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
-			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
-			"p2p.ThresholdMinConnectedPeers", 0,
-			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
-			"heartbeat sender", "off",
-			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
-			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
-			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
-		)
+
 		if importDbFlags.ImportDBStartInEpoch == 0 {
 			generalConfigs.GeneralSettings.StartInEpochEnabled = false
 		}
+
 		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
+		generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart = 0
+		generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid = 1
 		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
-		generalConfigs.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
-		generalConfigs.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
-		generalConfigs.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
 		alterStorageConfigsForDBImport(generalConfigs)
+
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
+			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
+			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
+			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
+			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
+			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
+			"kad dht discoverer", "off",
+			"EpochStartConfig.MinNumConnectedPeersToStart", generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart,
+			"EpochStartConfig.MinNumOfPeersToConsiderBlockValid", generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid,
+		)
 	}
 
 	return nil

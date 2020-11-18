@@ -137,8 +137,7 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
 		},
-		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
+		ChanGracefullyClose: make(chan endProcess.ArgEndProcess),
 	}
 }
 

@@ -11,7 +11,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -459,18 +458,6 @@ func (mcc *managedCoreComponents) ChanStopNodeProcess() chan endProcess.ArgEndPr
 	}
 
 	return mcc.coreComponents.chanStopNodeProcess
-}
-
-// ManualEpochStartNotifier returns the manual epoch start notifier used mainly in import-db process
-func (mcc *managedCoreComponents) ManualEpochStartNotifier() dataRetriever.ManualEpochStartNotifier {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.manualEpochStartNotifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

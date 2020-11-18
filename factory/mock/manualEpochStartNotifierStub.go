@@ -1,9 +1,19 @@
 package mock
 
+import "github.com/ElrondNetwork/elrond-go/epochStart"
+
 // ManualEpochStartNotifierStub -
 type ManualEpochStartNotifierStub struct {
-	NewEpochCalled     func(epoch uint32)
-	CurrentEpochCalled func() uint32
+	NewEpochCalled        func(epoch uint32)
+	CurrentEpochCalled    func() uint32
+	RegisterHandlerCalled func(handler epochStart.ActionHandler)
+}
+
+// RegisterHandler -
+func (mesns *ManualEpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
+	if mesns.RegisterHandlerCalled != nil {
+		mesns.RegisterHandlerCalled(handler)
+	}
 }
 
 // NewEpoch -

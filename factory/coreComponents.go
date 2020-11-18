@@ -17,7 +17,6 @@ import (
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -83,7 +82,6 @@ type coreComponents struct {
 	epochNotifier                 EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
-	manualEpochStartNotifier      dataRetriever.ManualEpochStartNotifier
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -242,11 +240,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		true,
 	)
 
-	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
-	if ccf.importDbConfig.IsImportDBMode {
-		manualEpochStartNotifier.NewEpoch(ccf.importDbConfig.ImportDBStartInEpoch)
-	}
-
 	return &coreComponents{
 		hasher:                        hasher,
 		internalMarshalizer:           internalMarshalizer,
@@ -272,7 +265,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
-		manualEpochStartNotifier:      manualEpochStartNotifier,
 	}, nil
 }
 

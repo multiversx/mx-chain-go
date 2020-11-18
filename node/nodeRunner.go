@@ -123,7 +123,6 @@ func (nr *NodeRunner) Start() error {
 			managedCryptoComponents,
 			managedNetworkComponents,
 			chanStopNodeProcess1,
-			managedCoreComponents.ManualEpochStartNotifier(),
 		)
 		if err != nil {
 			return err
@@ -187,7 +186,7 @@ func (nr *NodeRunner) Start() error {
 			managedStateComponents,
 			nodesCoordinator,
 			flagsConfig.ElasticSearchTemplatesPath,
-			flagsConfig.ImportDB.IsImportDBMode,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
@@ -714,6 +713,7 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                    *configs.GeneralConfig,
+		ImportDBConfig:            *configs.ImportDbConfig,
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
 		GasSchedule:               gasSchedule,
@@ -752,7 +752,6 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 		ChanGracefullyClose:       managedCoreComponents.ChanStopNodeProcess(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
-		ManualEpochStartNotifier:  managedCoreComponents.ManualEpochStartNotifier(),
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -786,7 +785,7 @@ func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents 
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
-		CreateTrieEpochRootHashStorer: configs.FlagsConfig.ImportDB.ImportDbSaveTrieEpochRootHash,
+		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 	}
 
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
@@ -846,19 +845,17 @@ func CreateManagedBootstrapComponents(
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-		Config:                   *cfgs.GeneralConfig,
-		PrefConfig:               *cfgs.PreferencesConfig,
-		ImportDbConfig:           cfgs.ImportDbConfig,
-		WorkingDir:               cfgs.FlagsConfig.WorkingDir,
-		CoreComponents:           managedCoreComponents,
-		CryptoComponents:         managedCryptoComponents,
-		NetworkComponents:        managedNetworkComponents,
-		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      chanStopNodeProcess,
+		Config:              *cfgs.GeneralConfig,
+		PrefConfig:          *cfgs.PreferencesConfig,
+		ImportDbConfig:      *cfgs.ImportDbConfig,
+		WorkingDir:          cfgs.FlagsConfig.WorkingDir,
+		CoreComponents:      managedCoreComponents,
+		CryptoComponents:    managedCryptoComponents,
+		NetworkComponents:   managedNetworkComponents,
+		ChanGracefullyClose: chanStopNodeProcess,
 	}
 
 	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -893,6 +890,9 @@ func CreateManagedNetworkComponents(
 		Syncer:               managedCoreComponents.SyncTimer(),
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
+	if cfgs.ImportDbConfig.IsImportDBMode {
+		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+	}
 
 	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
 	if err != nil {
@@ -926,6 +926,7 @@ func CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *cfgs.GeneralConfig,
+		ImportDbConfig:        *cfgs.ImportDbConfig,
 		RatingsConfig:         *cfgs.RatingsConfig,
 		EconomicsConfig:       *cfgs.EconomicsConfig,
 		NodesFilename:         cfgs.FlagsConfig.NodesFileName,
@@ -964,8 +965,8 @@ func CreateManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               cfgs.FlagsConfig.ImportDB.ImportDbNoSigCheckFlag,
-		IsInImportMode:                       cfgs.FlagsConfig.ImportDB.IsImportDBMode,
+		UseDisabledSigVerifier:               cfgs.ImportDbConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       cfgs.ImportDbConfig.IsImportDBMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

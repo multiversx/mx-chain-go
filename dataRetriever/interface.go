@@ -41,6 +41,8 @@ func (ut UnitType) String() string {
 		return "StatusMetricsUnit"
 	case ReceiptsUnit:
 		return "ReceiptsUnit"
+	case TrieEpochRootHashUnit:
+		return "TrieEpochRootHashUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {
