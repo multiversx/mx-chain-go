@@ -30,6 +30,7 @@ type stakingSC struct {
 	eei                      vm.SystemEI
 	unBondPeriod             uint64
 	stakeAccessAddr          []byte //TODO add a viewAddress field and use it on all system SC view functions
+	governanceSCAddr         []byte
 	jailAccessAddr           []byte
 	endOfEpochAccessAddr     []byte
 	numRoundsWithoutBleed    uint64
@@ -53,6 +54,7 @@ type ArgsNewStakingSmartContract struct {
 	MinNumNodes          uint64
 	Eei                  vm.SystemEI
 	StakingAccessAddr    []byte
+	GovernanceSCAddress  []byte
 	JailAccessAddr       []byte
 	EndOfEpochAccessAddr []byte
 	GasCost              vm.GasCost
@@ -69,6 +71,9 @@ func NewStakingSmartContract(
 	}
 	if len(args.StakingAccessAddr) < 1 {
 		return nil, vm.ErrInvalidStakingAccessAddress
+	}
+	if len(args.GovernanceSCAddress) < 1 {
+		return nil, vm.ErrInvalidGovernanceSCAddress
 	}
 	if len(args.JailAccessAddr) < 1 {
 		return nil, vm.ErrInvalidJailAccessAddress
@@ -99,6 +104,7 @@ func NewStakingSmartContract(
 		eei:                      args.Eei,
 		unBondPeriod:             args.StakingSCConfig.UnBondPeriod,
 		stakeAccessAddr:          args.StakingAccessAddr,
+		governanceSCAddr:         args.GovernanceSCAddress,
 		jailAccessAddr:           args.JailAccessAddr,
 		numRoundsWithoutBleed:    args.StakingSCConfig.NumRoundsWithoutBleed,
 		bleedPercentagePerRound:  args.StakingSCConfig.BleedPercentagePerRound,
@@ -663,6 +669,14 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	currentNonce := r.eei.BlockChainHook().CurrentNonce()
 	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < r.unBondPeriod {
 		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))
+		return vmcommon.UserError
+	}
+
+	governanceLockKey := append([]byte(validatorLockPrefix), args.CallerAddr...)
+	lock := r.eei.GetStorageFromAddress(r.governanceSCAddr, governanceLockKey)
+	lockNonce := big.NewInt(0).SetBytes(lock)
+	if currentNonce < lockNonce.Uint64() {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible because funds are locked by the governance contract until nonce: %s", lockNonce.String()))
 		return vmcommon.UserError
 	}
 

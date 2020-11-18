@@ -98,6 +98,9 @@ var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract a
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
 
+// ErrInvalidGovernanceSCAddress signals that invalid staking access address was provided
+var ErrInvalidGovernanceSCAddress = errors.New("invalid governance smart contract address")
+
 // ErrInvalidJailAccessAddress signals that invalid jailing access address was provided
 var ErrInvalidJailAccessAddress = errors.New("invalid jailing access address")
 
