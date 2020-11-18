@@ -164,6 +164,8 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
+const StakingV2Epoch = 1000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -713,6 +715,8 @@ func CreateEconomicsData() *economics.EconomicsData {
 				LeaderPercentage:              0.1,
 				DeveloperPercentage:           0.1,
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				TopUpFactor:                   0.25,
+				TopUpGradientPoint:            "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1258,7 +1262,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       1000000,
+				StakingV2Epoch:                       StakingV2Epoch,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -1472,14 +1476,16 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
+		economicsDataProvider := metachain.NewEpochEconomicsStatistics()
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			Store:              tpn.Storage,
-			ShardCoordinator:   tpn.ShardCoordinator,
-			RewardsHandler:     tpn.EconomicsData,
-			RoundTime:          tpn.Rounder,
-			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			Store:                 tpn.Storage,
+			ShardCoordinator:      tpn.ShardCoordinator,
+			RewardsHandler:        tpn.EconomicsData,
+			RoundTime:             tpn.Rounder,
+			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
+			EconomicsDataNotified: economicsDataProvider,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1487,27 +1493,33 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		if errGet != nil {
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
-		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM)
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000")
 		if errRsp != nil {
 			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
 		}
 
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
-		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:              tpn.ShardCoordinator,
-			PubkeyConverter:               TestAddressPubkeyConverter,
-			RewardsStorage:                rewardsStorage,
-			MiniBlockStorage:              miniBlockStorage,
-			Hasher:                        TestHasher,
-			Marshalizer:                   TestMarshalizer,
-			DataPool:                      tpn.DataPool,
-			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-			NodesConfigProvider:           tpn.NodesCoordinator,
-			UserAccountsDB:                tpn.AccntState,
-			StakingDataProvider:           stakingDataProvider,
+		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
+			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
+				ShardCoordinator:              tpn.ShardCoordinator,
+				PubkeyConverter:               TestAddressPubkeyConverter,
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        TestHasher,
+				Marshalizer:                   TestMarshalizer,
+				DataPool:                      tpn.DataPool,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				NodesConfigProvider:           tpn.NodesCoordinator,
+				UserAccountsDB:                tpn.AccntState,
+			},
+			StakingDataProvider:   stakingDataProvider,
+			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
+			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			EconomicsDataProvider: economicsDataProvider,
+			EpochEnableV2:         StakingV2Epoch,
 		}
-		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
+		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 
 		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
 			ShardCoordinator: tpn.ShardCoordinator,
@@ -1530,7 +1542,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			ChanceComputer:          tpn.NodesCoordinator,
 			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
-			StakingV2EnableEpoch:    1000000,
+			StakingV2EnableEpoch:    StakingV2Epoch,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor

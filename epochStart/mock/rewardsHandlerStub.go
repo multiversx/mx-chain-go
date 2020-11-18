@@ -1,5 +1,7 @@
 package mock
 
+import "math/big"
+
 // RewardsHandlerStub -
 type RewardsHandlerStub struct {
 	LeaderPercentageCalled                 func() float64
@@ -7,6 +9,8 @@ type RewardsHandlerStub struct {
 	ProtocolSustainabilityAddressCalled    func() string
 	MinInflationRateCalled                 func() float64
 	MaxInflationRateCalled                 func(year uint32) float64
+	RewardsTopUpGradientPointCalled        func() *big.Int
+	RewardsTopUpFactorCalled               func() float64
 }
 
 // LeaderPercentage -
@@ -52,6 +56,16 @@ func (r *RewardsHandlerStub) MaxInflationRate(year uint32) float64 {
 	}
 
 	return 1000000
+}
+
+// RewardsTopUpGradientPoint -
+func (r *RewardsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	return r.RewardsTopUpGradientPointCalled()
+}
+
+// RewardsTopUpFactor -
+func (r *RewardsHandlerStub) RewardsTopUpFactor() float64 {
+	return r.RewardsTopUpFactorCalled()
 }
 
 // IsInterfaceNil -

@@ -24,13 +24,14 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 
 	argsNewEpochEconomics := ArgsNewEpochEconomics{
-		Hasher:             &mock.HasherMock{},
-		Marshalizer:        &mock.MarshalizerMock{},
-		Store:              createMetaStore(),
-		ShardCoordinator:   shardCoordinator,
-		RewardsHandler:     &mock.RewardsHandlerStub{},
-		RoundTime:          &mock.RoundTimeDurationHandler{},
-		GenesisTotalSupply: big.NewInt(2000000),
+		Hasher:                &mock.HasherMock{},
+		Marshalizer:           &mock.MarshalizerMock{},
+		Store:                 createMetaStore(),
+		ShardCoordinator:      shardCoordinator,
+		RewardsHandler:        &mock.RewardsHandlerStub{},
+		RoundTime:             &mock.RoundTimeDurationHandler{},
+		GenesisTotalSupply:    big.NewInt(2000000),
+		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 	}
 	return argsNewEpochEconomics
 }
@@ -526,7 +527,6 @@ func TestComputeEndOfEpochEconomics(t *testing.T) {
 
 		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler)
 	}
-
 }
 
 func createArgsForComputeEndOfEpochEconomics(
@@ -549,6 +549,12 @@ func createArgsForComputeEndOfEpochEconomics(
 		},
 		LeaderPercentageCalled: func() float64 {
 			return 0.1
+		},
+		RewardsTopUpFactorCalled: func() float64 {
+			return 0.25
+		},
+		RewardsTopUpGradientPointCalled: func() *big.Int {
+			return big.NewInt(0).Div(args.GenesisTotalSupply, big.NewInt(10))
 		},
 	}
 	args.RoundTime = &mock.RoundTimeDurationHandler{
@@ -656,12 +662,13 @@ func denomination(value *big.Int) string {
 
 func getArguments() ArgsNewEpochEconomics {
 	return ArgsNewEpochEconomics{
-		Marshalizer:        &mock.MarshalizerMock{},
-		Hasher:             mock.HasherMock{},
-		Store:              &mock.ChainStorerStub{},
-		ShardCoordinator:   mock.NewMultipleShardsCoordinatorMock(),
-		RewardsHandler:     &mock.RewardsHandlerStub{},
-		RoundTime:          &mock.RoundTimeDurationHandler{},
-		GenesisTotalSupply: big.NewInt(200000000),
+		Marshalizer:           &mock.MarshalizerMock{},
+		Hasher:                mock.HasherMock{},
+		Store:                 &mock.ChainStorerStub{},
+		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
+		RewardsHandler:        &mock.RewardsHandlerStub{},
+		RoundTime:             &mock.RoundTimeDurationHandler{},
+		GenesisTotalSupply:    big.NewInt(200000000),
+		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 	}
 }

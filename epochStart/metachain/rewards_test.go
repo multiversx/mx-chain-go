@@ -1,7 +1,6 @@
 package metachain
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 
@@ -10,16 +9,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/data/state/factory"
-	"github.com/ElrondNetwork/elrond-go/data/trie"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
@@ -116,17 +112,6 @@ func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *tes
 	assert.NotNil(t, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilStakingDataProvider(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.StakingDataProvider = nil
-
-	rwd, err := NewEpochStartRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilStakingDataProvider, err)
-}
-
 func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -137,61 +122,12 @@ func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//TODO fix this test
-func TestRewardsCreator_CreateRewardsMiniBlocksComputeErrorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	//cleanWasCalled := false
-	numComputeRewards := 0
-	expectedErr := errors.New("expected error")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		CleanCalled: func() {
-			//cleanWasCalled = true
-		},
-		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
-			numComputeRewards++
-			return expectedErr
-		},
-	}
-	rwd, _ := NewEpochStartRewardsCreator(args)
-
-	mb := &block.MetaBlock{
-		EpochStart:     getDefaultEpochStart(),
-		DevFeesInEpoch: big.NewInt(0),
-	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
-	_, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
-	assert.Nil(t, err)
-	//assert.Equal(t, expectedErr, err)
-	//assert.Nil(t, bdy)
-	//assert.True(t, cleanWasCalled)
-	//assert.Equal(t, 1, numComputeRewards)
-}
-
 func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	cleanWasCalled := false
-	numComputeRewards := 0
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		CleanCalled: func() {
-			cleanWasCalled = true
-		},
-		PrepareDataForBlsKeyCalled: func(blsKey []byte) error {
-			numComputeRewards++
-			return nil
-		},
-	}
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, err := NewEpochStartRewardsCreator(args)
+	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -208,8 +144,6 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
-	assert.True(t, cleanWasCalled)
-	assert.Equal(t, 1, numComputeRewards)
 }
 
 func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
@@ -590,7 +524,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
@@ -635,8 +569,8 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
-	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{})
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
+	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
 	assert.Equal(t, rwdInfo.address, pubkey)
@@ -763,21 +697,7 @@ func getDefaultEpochStart() block.EpochStart {
 }
 
 func getRewardsArguments() ArgsNewRewardsCreator {
-	hasher := sha256.Sha256{}
-	marshalizer := &marshal.GogoProtoMarshalizer{}
-	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(createMemUnit())
-	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
 	return ArgsNewRewardsCreator{
-		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
-		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
-		RewardsStorage:                &mock.StorerStub{},
-		MiniBlockStorage:              &mock.StorerStub{},
-		Hasher:                        &mock.HasherMock{},
-		Marshalizer:                   &mock.MarshalizerMock{},
-		DataPool:                      testscommon.NewPoolsHolderStub(),
-		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
-		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
-		UserAccountsDB:                userAccountsDB,
-		StakingDataProvider:           &mock.StakingDataProviderStub{},
+		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 	}
 }

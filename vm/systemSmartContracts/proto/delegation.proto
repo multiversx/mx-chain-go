@@ -21,15 +21,12 @@ message DelegationContractList {
 }
 
 message DelegationConfig {
-  bytes  OwnerAddress         = 1 [(gogoproto.jsontag) = "OwnerAddress"];
-  uint64 ServiceFee           = 2 [(gogoproto.jsontag) = "ServiceFee"];
-  bytes  MaxDelegationCap     = 3 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bytes  InitialOwnerFunds    = 4 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-  bool   AutomaticActivation  = 5 [(gogoproto.jsontag) = "AutomaticActivation"];
-  bool   WithDelegationCap    = 6 [(gogoproto.jsontag) = "WithDelegationCap"];
-  bool   ChangeableServiceFee = 7 [(gogoproto.jsontag) = "ChangeableServiceFee"];
-  uint64 CreatedNonce         = 8 [(gogoproto.jsontag) = "CreatedNonce"];
-  uint64 UnBondPeriod         = 9 [(gogoproto.jsontag) = "UnBondPeriod"];
+  bytes  MaxDelegationCap     = 1 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  InitialOwnerFunds    = 2 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bool   AutomaticActivation  = 3 [(gogoproto.jsontag) = "AutomaticActivation"];
+  bool   ChangeableServiceFee = 4 [(gogoproto.jsontag) = "ChangeableServiceFee"];
+  uint64 CreatedNonce         = 5 [(gogoproto.jsontag) = "CreatedNonce"];
+  uint64 UnBondPeriod         = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
 }
 
 message DelegationContractStatus {
