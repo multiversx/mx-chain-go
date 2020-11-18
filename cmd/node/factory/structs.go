@@ -2090,7 +2090,7 @@ func newMetaBlockProcessor(
 		DataPool:                      data.Datapool,
 		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           nodesCoordinator,
-		RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+		RewardsFix1EpochEnable:        generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {
