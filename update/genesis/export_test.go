@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -401,4 +402,45 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	require.Equal(t, string(val11.PublicKey), initialNodes[5].PubKey) // ddd
 }
 
-//TODO: Add two unit tests, one for method importUnFinishedMetaBlocks and one for method exportUnFinishedMetaBlocks
+func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1, ChainID: []byte("chainId")},
+	}
+	stateSyncer := &mock.SyncStateStub{
+		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+			return unFinishedMetaBlocks, nil
+		},
+	}
+
+	unFinishedMetablocksWereWrote := false
+	hs := &mock.HardforkStorerStub{
+		WriteCalled: func(identifier string, key []byte, value []byte) error {
+			if strings.Compare(identifier, UnFinishedMetaBlocksIdentifier) == 0 {
+				unFinishedMetablocksWereWrote = true
+			}
+			return nil
+		},
+	}
+
+	args := ArgsNewStateExporter{
+		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+		Marshalizer:              &mock.MarshalizerMock{},
+		StateSyncer:              stateSyncer,
+		HardforkStorer:           hs,
+		Hasher:                   &mock.HasherMock{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+		ExportFolder:             "test",
+		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
+	}
+
+	stateExporter, _ := NewStateExporter(args)
+	require.False(t, check.IfNil(stateExporter))
+
+	err := stateExporter.exportUnFinishedMetaBlocks()
+	require.Nil(t, err)
+
+	assert.True(t, unFinishedMetablocksWereWrote)
+}
