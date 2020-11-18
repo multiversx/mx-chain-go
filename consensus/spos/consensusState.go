@@ -24,10 +24,11 @@ type ConsensusState struct {
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
 
-	RoundIndex     int64
-	RoundTimeStamp time.Time
-	RoundCanceled  bool
-	ExtendedCalled bool
+	RoundIndex                  int64
+	RoundTimeStamp              time.Time
+	RoundCanceled               bool
+	ExtendedCalled              bool
+	WaitingAllSignaturesTimeOut bool
 
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
@@ -65,6 +66,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
+	cns.WaitingAllSignaturesTimeOut = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
