@@ -83,6 +83,10 @@ func (bn *branchNode) setHasher(hasher hashing.Hasher) {
 }
 
 func (bn *branchNode) getCollapsed() (node, error) {
+	return bn.getCollapsedBn()
+}
+
+func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getCollapsed error %w", err)
@@ -278,14 +282,13 @@ func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, 
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
-		var collapsed node
-		collapsed, err = bn.getCollapsed()
+		var collapsedBn *branchNode
+		collapsedBn, err = bn.getCollapsedBn()
 		if err != nil {
 			return err
 		}
-		if n, ok := collapsed.(*branchNode); ok {
-			*bn = *n
-		}
+
+		*bn = *collapsedBn
 	}
 	return nil
 }
@@ -753,6 +756,13 @@ func (bn *branchNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHold
 			return err
 		}
 	}
+
+	collapsedBn, err := bn.getCollapsedBn()
+	if err != nil {
+		return err
+	}
+
+	*bn = *collapsedBn
 
 	return nil
 }

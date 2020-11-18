@@ -441,7 +441,13 @@ func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, er
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return dstAccount.DataTrie().GetAllLeaves()
+	leavesChannel := dstAccount.DataTrie().GetAllLeavesOnChannel()
+	leavesMap := make(map[string][]byte)
+	for leaf := range leavesChannel {
+		leavesMap[string(leaf.Key())] = leaf.Value()
+	}
+
+	return leavesMap, nil
 }
 
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {

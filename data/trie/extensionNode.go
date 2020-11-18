@@ -67,6 +67,10 @@ func (en *extensionNode) setHasher(hasher hashing.Hasher) {
 }
 
 func (en *extensionNode) getCollapsed() (node, error) {
+	return en.getCollapsedEn()
+}
+
+func (en *extensionNode) getCollapsedEn() (*extensionNode, error) {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getCollapsed error %w", err)
@@ -190,14 +194,13 @@ func (en *extensionNode) commit(force bool, level byte, maxTrieLevelInMemory uin
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse extension node on commit")
 
-		var collapsed node
-		collapsed, err = en.getCollapsed()
+		var collapsedEn *extensionNode
+		collapsedEn, err = en.getCollapsedEn()
 		if err != nil {
 			return err
 		}
-		if n, ok := collapsed.(*extensionNode); ok {
-			*en = *n
-		}
+
+		*en = *collapsedEn
 	}
 	return nil
 }
@@ -610,6 +613,13 @@ func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueH
 	if err != nil {
 		return err
 	}
+
+	collapsedEn, err := en.getCollapsedEn()
+	if err != nil {
+		return err
+	}
+
+	*en = *collapsedEn
 
 	return nil
 }

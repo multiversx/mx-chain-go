@@ -217,6 +217,7 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
+	// TODO use GetAllLeavesOnChannel here
 	leaves, err := trie.GetAllLeaves()
 	if err != nil {
 		return err

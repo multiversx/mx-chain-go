@@ -586,6 +586,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 }
 
 // GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
+// TODO remove this function after GetAllLeavesOnChannel is fully functional
 func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
 	tr.mutOperation.RLock()
 	defer tr.mutOperation.RUnlock()

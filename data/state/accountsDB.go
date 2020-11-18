@@ -772,17 +772,14 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, 
 		return nil, err
 	}
 
-	leafs, err := recreatedTrie.GetAllLeaves()
-	if err != nil {
-		return nil, err
-	}
+	leavesChannel := recreatedTrie.GetAllLeavesOnChannel()
 
 	allTries := make(map[string]data.Trie)
 	allTries[string(rootHash)] = recreatedTrie
 
-	for _, leaf := range leafs {
+	for leaf := range leavesChannel {
 		account := &userAccount{}
-		err = adb.marshalizer.Unmarshal(account, leaf)
+		err = adb.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue

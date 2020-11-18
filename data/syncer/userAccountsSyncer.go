@@ -169,15 +169,12 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) 
 }
 
 func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie) ([][]byte, error) {
-	leafs, err := mainTrie.GetAllLeaves()
-	if err != nil {
-		return nil, err
-	}
+	leavesChannel := mainTrie.GetAllLeavesOnChannel()
 
 	rootHashes := make([][]byte, 0)
-	for _, leaf := range leafs {
+	for leaf := range leavesChannel {
 		account := state.NewEmptyUserAccount()
-		err = u.marshalizer.Unmarshal(account, leaf)
+		err := u.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
