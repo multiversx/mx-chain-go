@@ -1248,10 +1248,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				ProposalCost:     "500",
-				NumNodes:         100,
-				MinQuorum:        50,
-				MinPassThreshold: 50,
-				MinVetoThreshold: 50,
+				MinQuorum:        "50",
+				MinPassThreshold: "50",
+				MinVetoThreshold: "50",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     "1000",
