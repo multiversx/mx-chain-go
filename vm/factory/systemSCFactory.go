@@ -126,6 +126,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 		StakingSCConfig:      scf.systemSCConfig.StakingSystemSCConfig,
 		Eei:                  scf.systemEI,
 		StakingAccessAddr:    vm.AuctionSCAddress,
+		GovernanceSCAddress:  vm.GovernanceSCAddress,
 		JailAccessAddr:       vm.JailingAddress,
 		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
 		GasCost:              scf.gasCost,
