@@ -1407,17 +1407,17 @@ func (sc *scProcessor) createSmartContractResults(
 			result.OriginalSender = tx.GetSndAddr()
 		}
 
-		if result.CallType == vmcommon.AsynchronousCall {
-			lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
-			result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
-		}
-
 		isAsyncTransferBackToSender := callType == vmcommon.AsynchronousCall &&
 			bytes.Equal(outAcc.Address, tx.GetSndAddr())
 		isLastOutTransfer := i == lenOutTransfers-1
 		if isLastOutTransfer && isAsyncTransferBackToSender && sc.isTransferWithNoDataOrBuiltInCall(outputTransfer.Data) {
 			addVMOutputResultsToSCR(vmOutput, result)
 			createdAsyncCallBack = true
+		}
+
+		if result.CallType == vmcommon.AsynchronousCall {
+			lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
+			result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
 		}
 
 		scResults = append(scResults, result)
