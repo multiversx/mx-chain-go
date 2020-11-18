@@ -538,7 +538,7 @@ func TestGetESDTTokens_NilContextShouldError(t *testing.T) {
 
 	ws := startNodeServer(nil)
 
-	req, _ := http.NewRequest("GET", "/address/some/esdt-all", nil)
+	req, _ := http.NewRequest("GET", "/address/some/esdt", nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 	response := shared.GenericAPIResponse{}
@@ -561,7 +561,7 @@ func TestGetESDTTokens_NodeFailsShouldError(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt-all", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -585,7 +585,7 @@ func TestGetESDTTokens_ShouldWork(t *testing.T) {
 
 	ws := startNodeServer(&facade)
 
-	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt-all", testAddress), nil)
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/address/%s/esdt", testAddress), nil)
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
@@ -604,7 +604,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/balance", Open: true},
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
-					{Name: "/:address/esdt-all", Open: true},
+					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdt/:tokenName", Open: true},
 				},
 			},

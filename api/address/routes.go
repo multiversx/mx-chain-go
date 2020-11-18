@@ -18,7 +18,7 @@ const (
 	getBalancePath  = "/:address/balance"
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
-	getESDTTokens   = "/:address/esdt-all"
+	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenName"
 )
 
