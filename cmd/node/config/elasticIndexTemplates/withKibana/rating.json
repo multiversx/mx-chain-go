@@ -5,5 +5,16 @@
     "number_of_replicas": 0,
     "opendistro.index_state_management.policy_id": "rating_policy",
     "opendistro.index_state_management.rollover_alias": "rating"
+  },
+  "mappings": {
+    "properties": {
+      "validatorsRating": {
+        "properties": {
+          "rating": {
+            "type": "float"
+          }
+        }
+      }
+    }
   }
 }
