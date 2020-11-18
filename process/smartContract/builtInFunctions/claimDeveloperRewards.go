@@ -71,7 +71,7 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 	}
 	if vmInput.CallType == vmcommon.AsynchronousCall {
 		outTransfer.GasLocked = vmInput.GasLocked
-		outTransfer.GasLocked = vmInput.GasProvided - c.gasCost
+		outTransfer.GasLimit = vmInput.GasProvided - c.gasCost
 		outTransfer.CallType = vmcommon.AsynchronousCallBack
 		vmOutput.GasRemaining = 0
 	}

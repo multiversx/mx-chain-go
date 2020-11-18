@@ -116,13 +116,9 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		}, nil
 	}
 
-	lockedGas := input.GasLocked
-	input.GasProvided -= lockedGas
 	returnCode := contract.Execute(input)
-
 	vmOutput := s.systemEI.CreateVMOutput()
 	vmOutput.ReturnCode = returnCode
-	vmOutput.GasRemaining += lockedGas
 
 	return vmOutput, nil
 }

@@ -65,7 +65,7 @@ func (sc *scProcessor) createVMCallInput(
 	callType := determineCallType(tx)
 	txData := string(tx.GetData())
 	if !builtInFuncCall {
-		txData = string(prependCallbackToTxDataIfAsyncCall(tx.GetData(), callType))
+		txData = string(prependCallbackToTxDataIfAsyncCallBack(tx.GetData(), callType))
 	}
 
 	function, arguments, err := sc.argsParser.ParseCallData(txData)
@@ -98,6 +98,7 @@ func (sc *scProcessor) createVMCallInput(
 	}
 
 	vmCallInput.VMInput.Arguments = finalArguments
+	vmCallInput.GasProvided = vmCallInput.GasProvided - gasLocked
 
 	return vmCallInput, nil
 }
@@ -126,7 +127,7 @@ func determineCallType(tx data.TransactionHandler) vmcommon.CallType {
 	return vmcommon.DirectCall
 }
 
-func prependCallbackToTxDataIfAsyncCall(txData []byte, callType vmcommon.CallType) []byte {
+func prependCallbackToTxDataIfAsyncCallBack(txData []byte, callType vmcommon.CallType) []byte {
 	if callType == vmcommon.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
 	}

@@ -338,12 +338,12 @@ func (sc *scProcessor) executeSmartContractCall(
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
-
 	if vmOutput == nil {
 		err = process.ErrNilVMOutput
 		log.Debug("run smart contract call error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
+	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !sc.flagDeploy.IsSet() {
@@ -566,12 +566,13 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, process.ErrBuiltInFunctionsAreDisabled.Error(), snapshot)
 	}
 
-	vmOutput, lockedGas, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
+	vmOutput, err := sc.resolveBuiltInFunctions(acntSnd, acntDst, vmInput)
 	if err != nil {
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
 
+	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
@@ -615,7 +616,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		scrResults = append(scrResults, newSCRTxs...)
 	}
 
-	scrForSender, scrForRelayer, err := sc.processSCRForSender(tx, txHash, vmInput, newVMOutput, lockedGas)
+	scrForSender, scrForRelayer, err := sc.processSCRForSender(tx, txHash, vmInput, newVMOutput)
 	if err != nil {
 		return 0, err
 	}
@@ -638,10 +639,8 @@ func (sc *scProcessor) processSCRForSender(
 	txHash []byte,
 	vmInput *vmcommon.ContractCallInput,
 	vmOutput *vmcommon.VMOutput,
-	lockedGas uint64,
 ) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult, error) {
 	sc.penalizeUserIfNeeded(tx, txHash, vmInput.CallType, vmInput.GasProvided, vmOutput)
-	vmOutput.GasRemaining += lockedGas
 	scrForSender, scrForRelayer := sc.createSCRForSenderAndRelayer(
 		vmOutput,
 		tx,
@@ -666,17 +665,16 @@ func (sc *scProcessor) processSCRForSender(
 func (sc *scProcessor) resolveBuiltInFunctions(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
-) (*vmcommon.VMOutput, uint64, error) {
+) (*vmcommon.VMOutput, error) {
 
 	vmOutput := &vmcommon.VMOutput{
 		ReturnCode: vmcommon.UserError,
 	}
 
-	vmOutput.GasRemaining = vmInput.GasLocked
 	builtIn, err := sc.builtInFunctions.Get(vmInput.Function)
 	if err != nil {
 		vmOutput.ReturnMessage = err.Error()
-		return vmOutput, vmInput.GasLocked, nil
+		return vmOutput, nil
 	}
 
 	vmOutput, err = builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
@@ -684,16 +682,16 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
-			GasRemaining:  vmInput.GasLocked,
+			GasRemaining:  0,
 		}
 	}
 
 	err = sc.saveAccounts(acntSnd, acntDst)
 	if err != nil {
-		return nil, vmInput.GasLocked, err
+		return nil, err
 	}
 
-	return vmOutput, vmInput.GasLocked, nil
+	return vmOutput, nil
 }
 
 func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
@@ -713,13 +711,13 @@ func (sc *scProcessor) treatExecutionAfterBuiltInFunc(
 		ReturnCode: vmcommon.UserError,
 	}
 	if err != nil {
-		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, 0)
+		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	err = sc.checkUpgradePermission(acntDst, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
-		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, 0)
+		return true, userErrorVmOutput, sc.ProcessIfError(acntSnd, vmInput.CurrentTxHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
 	newVMOutput, err := sc.executeSmartContractCall(newVMInput, tx, newVMInput.CurrentTxHash, snapshot, acntSnd, acntDst)
@@ -758,7 +756,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCall(outAcc.OutputTransfers[0].Data, callType)
+	txData := prependCallbackToTxDataIfAsyncCallBack(outAcc.OutputTransfers[0].Data, callType)
 
 	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
 	if err != nil {
@@ -773,6 +771,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			CallType:       callType,
 			GasPrice:       vmInput.GasPrice,
 			GasProvided:    vmOutput.GasRemaining,
+			GasLocked:      vmInput.GasLocked,
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
 		},
@@ -780,6 +779,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		Function:          function,
 		AllowInitFunction: false,
 	}
+	newVMInput.GasProvided -= vmInput.GasLocked
 
 	fillWithESDTValue(vmInput, newVMInput)
 
@@ -815,7 +815,15 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) bool
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
-func (sc *scProcessor) ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+func (sc *scProcessor) ProcessIfError(
+	acntSnd state.UserAccountHandler,
+	txHash []byte,
+	tx data.TransactionHandler,
+	returnCode string,
+	returnMessage []byte,
+	snapshot int,
+	gasLocked uint64,
+) error {
 	err := sc.accounts.RevertToSnapshot(snapshot)
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
@@ -1002,6 +1010,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		log.Debug("run smart contract call error", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
+	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
@@ -1163,8 +1172,11 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 	if !sc.flagPenalizedTooMuchGas.IsSet() {
 		return
 	}
+	if callType == vmcommon.AsynchronousCall {
+		return
+	}
 
-	isTooMuchProvided := callType != vmcommon.AsynchronousCall && isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
+	isTooMuchProvided := isTooMuchGasProvided(gasProvided, vmOutput.GasRemaining)
 	if !isTooMuchProvided {
 		return
 	}
@@ -1416,6 +1428,7 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		if result.CallType == vmcommon.AsynchronousCall {
+			result.GasLimit += outputTransfer.GasLocked
 			lastArgAsGasLocked := "@" + hex.EncodeToString(big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes())
 			result.Data = append(result.Data, []byte(lastArgAsGasLocked)...)
 		}
