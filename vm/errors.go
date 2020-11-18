@@ -141,10 +141,10 @@ var ErrInvalidStartEndVoteNonce = errors.New("invalid start/end vote nonce")
 var ErrEmptyStorage = errors.New("storage is nil for given key")
 
 // ErrVotedForAnExpiredProposal signals that voting was done for an expired proposal
-var ErrVotedForAnExpiredProposal = errors.New("voted for an expired proposal")
+var ErrVotedForAnExpiredProposal = errors.New("voting is over for this proposal")
 
-// ErrVotedForAProposalThatNotBeginsYet signals that voting was done for a proposal that not begins yet
-var ErrVotedForAProposalThatNotBeginsYet = errors.New("voted for a proposal that not begins yet")
+// ErrVotingNotStartedForProposal signals that voting was done for a proposal that not begins yet
+var ErrVotingNotStartedForProposal = errors.New("voting has not yet started for this proposal")
 
 // ErrNilPublicKey signals that nil public key has been provided
 var ErrNilPublicKey = errors.New("nil public key")
@@ -220,3 +220,6 @@ var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
 
 // ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
 var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")
+
+// ErrProposalNotFound signals that the storage is empty for given key
+var ErrProposalNotFound = errors.New("proposal was not found in storage")
