@@ -1408,7 +1408,7 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		if result.CallType == vmcommon.AsynchronousCall {
-			lastArgAsGasLocked := big.NewInt(0).SetUint64(outPutTransfer.GasLocked).Bytes()
+			lastArgAsGasLocked := big.NewInt(0).SetUint64(outputTransfer.GasLocked).Bytes()
 			result.Data = append(result.Data, []byte("@")...)
 			result.Data = append(result.Data, lastArgAsGasLocked...)
 		}
