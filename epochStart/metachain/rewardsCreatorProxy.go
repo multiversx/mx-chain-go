@@ -106,7 +106,7 @@ func (rcp *rewardsCreatorProxy) SaveTxBlockToStorage(metaBlock *block.MetaBlock,
 	rcp.rc.SaveTxBlockToStorage(metaBlock, body)
 }
 
-// RemoveBlockDataFromPools proxies the same method of the configured rewardsCreator instance
+// DeleteTxsFromStorage proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) DeleteTxsFromStorage(metaBlock *block.MetaBlock, body *block.Body) {
 	rcp.rc.DeleteTxsFromStorage(metaBlock, body)
 }
