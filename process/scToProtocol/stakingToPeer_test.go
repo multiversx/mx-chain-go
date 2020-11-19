@@ -644,7 +644,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	stp.unJailRating = 500
 	stp.jailRating = 10
 
-	stakingData := systemSmartContracts.StakedDataV2{
+	stakingData := systemSmartContracts.StakedDataV2_0{
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: 0,
