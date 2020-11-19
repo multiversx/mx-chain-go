@@ -236,6 +236,9 @@ var ErrEmptyExportFolderPath = errors.New("empty export folder path")
 // ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
 var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
 
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
 // ErrWrongImportedMiniBlocksMap signals that wrong imported miniBlocks map was provided
 var ErrWrongImportedMiniBlocksMap = errors.New("wrong imported miniBlocks map was provided")
 
