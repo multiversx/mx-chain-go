@@ -230,3 +230,8 @@ func SetPayableHandler(container process.BuiltInFunctionContainer, payableHandle
 
 	return esdtTransferFunc.setPayableHandler(payableHandler)
 }
+
+// IsInterfaceNil returns true if underlying object is nil
+func (b *builtInFuncFactory) IsInterfaceNil() bool {
+	return b == nil
+}
