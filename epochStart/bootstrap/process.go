@@ -823,6 +823,11 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
+	err = e.tryCloseExisting(factory.UserAccountTrie)
+	if err != nil {
+		return err
+	}
+
 	e.trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
@@ -836,9 +841,33 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
+	err = e.tryCloseExisting(factory.PeerAccountTrie)
+	if err != nil {
+		return err
+	}
+
 	e.trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
 	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
 
+	return nil
+}
+
+func (e *epochStartBootstrap) tryCloseExisting(trieType string) error {
+	var err error
+	existingTrie := e.trieContainer.Get([]byte(trieType))
+	if existingTrie != nil {
+		err = existingTrie.ClosePersister()
+		if err != nil {
+			return err
+		}
+	}
+	existinStorageManager := e.trieStorageManagers[trieType]
+	if existinStorageManager != nil {
+		err = existinStorageManager.Close()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
