@@ -17,18 +17,6 @@ var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard st
 // ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
 
-// ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
-var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force start of epoch before passing of enough rounds")
-
-// ErrForceEpochStartCanBeCalledOnlyOnNewRound signals that force start of epoch was called on wrong round
-var ErrForceEpochStartCanBeCalledOnlyOnNewRound = errors.New("invalid time to call force start of epoch, possible only on new round")
-
-// ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
-var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")
-
-// ErrSavedRoundIsHigherThanInput signals that input round was wrong
-var ErrSavedRoundIsHigherThanInput = errors.New("saved round is higher than input round")
-
 // ErrWrongTypeAssertion signals wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
@@ -247,6 +235,45 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
+
+// ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
+var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
+
+// ErrNilLocalTxCache signals that nil local tx cache has been provided
+var ErrNilLocalTxCache = errors.New("nil local tx cache")
+
+// ErrSystemDelegationCall signals that delegation system sc returned with error
+var ErrSystemDelegationCall = errors.New("delegation system sc call returned with error")
+
+// ErrExecutingSystemScCode signals that an error occurred while executing system SC code
+var ErrExecutingSystemScCode = errors.New("error executing system SC code")
+
+// ErrNilValue signals that a nil value was retrieved
+var ErrNilValue = errors.New("nil value")
+
+// ErrNilSystemVmInstance signals that a nil system VM instance was provided
+var ErrNilSystemVmInstance = errors.New("nil system VM instance")
+
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
+// ErrNilDataTrie signals that a nil data trie was provided
+var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
+
+// ErrInvalidTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
+var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
+
+// ErrNilEconomicsDataProvider signals that the economics data provider is nil
+var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
+
+// ErrInvalidRewardsCreatorProxyConfig signals that the rewards creator proxy has an invalid configuration
+var ErrInvalidRewardsCreatorProxyConfig = errors.New("rewards creator proxy has an invalid configuration")
 
 // ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
 var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")

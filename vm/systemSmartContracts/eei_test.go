@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -18,72 +19,72 @@ import (
 func TestNewVMContext_NilBlockChainHook(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(
+	vmCtx, err := NewVMContext(
 		nil,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
-	assert.Nil(t, vmContext)
+	assert.Nil(t, vmCtx)
 	assert.Equal(t, vm.ErrNilBlockchainHook, err)
 }
 
 func TestNewVMContext_NilCryptoHook(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(
+	vmCtx, err := NewVMContext(
 		&mock.BlockChainHookStub{},
 		nil,
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
-	assert.Nil(t, vmContext)
+	assert.Nil(t, vmCtx)
 	assert.Equal(t, vm.ErrNilCryptoHook, err)
 }
 
 func TestNewVMContext(t *testing.T) {
 	t.Parallel()
 
-	vmContext, err := NewVMContext(
+	vmCtx, err := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
-	assert.NotNil(t, vmContext)
+	assert.NotNil(t, vmCtx)
 	assert.Nil(t, err)
 }
 
 func TestVmContext_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
-	assert.False(t, vmContext.IsInterfaceNil())
+	assert.False(t, check.IfNil(vmCtx))
 
-	vmContext = nil
-	assert.True(t, vmContext.IsInterfaceNil())
+	vmCtx = nil
+	assert.True(t, check.IfNil(vmCtx))
 }
 
 func TestVmContext_CleanCache(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
-	vmContext.CleanCache()
+	vmCtx.CleanCache()
 
-	vmOutput := vmContext.CreateVMOutput()
+	vmOutput := vmCtx.CreateVMOutput()
 	assert.Equal(t, 0, len(vmOutput.OutputAccounts))
 }
 
@@ -103,28 +104,28 @@ func TestVmContext_GetBalance(t *testing.T) {
 	},
 	}
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
-	res := vmContext.GetBalance(addr)
+	res := vmCtx.GetBalance(addr)
 	assert.Equal(t, res.Uint64(), balance.Uint64())
 }
 
 func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
-	vmOutput := vmContext.CreateVMOutput()
+	vmOutput := vmCtx.CreateVMOutput()
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, 0, len(vmOutput.ReturnData))
 	assert.Equal(t, 0, len(vmOutput.OutputAccounts))
@@ -138,7 +139,7 @@ func TestVmContext_CreateVMOutput_Empty(t *testing.T) {
 func TestVmContext_SetStorage(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
@@ -146,16 +147,16 @@ func TestVmContext_SetStorage(t *testing.T) {
 		&mock.RaterMock{})
 
 	addr := "smartcontract"
-	vmContext.SetSCAddress([]byte(addr))
+	vmCtx.SetSCAddress([]byte(addr))
 
 	key := []byte("key")
 	data := []byte("data")
-	vmContext.SetStorage(key, data)
+	vmCtx.SetStorage(key, data)
 
-	res := vmContext.GetStorage(key)
+	res := vmCtx.GetStorage(key)
 	assert.True(t, bytes.Equal(data, res))
 
-	vmOutput := vmContext.CreateVMOutput()
+	vmOutput := vmCtx.CreateVMOutput()
 	assert.Equal(t, 1, len(vmOutput.OutputAccounts))
 
 	assert.True(t, bytes.Equal(vmOutput.OutputAccounts[addr].StorageUpdates[string(key)].Data, data))
@@ -164,7 +165,7 @@ func TestVmContext_SetStorage(t *testing.T) {
 func TestVmContext_Transfer(t *testing.T) {
 	t.Parallel()
 
-	vmContext, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
@@ -176,23 +177,23 @@ func TestVmContext_Transfer(t *testing.T) {
 	value := big.NewInt(999)
 	input := []byte("input")
 
-	err := vmContext.Transfer(destination, sender, value, input, 0)
+	err := vmCtx.Transfer(destination, sender, value, input, 0)
 	assert.Nil(t, err)
 
-	balance := vmContext.GetBalance(destination)
+	balance := vmCtx.GetBalance(destination)
 	assert.Equal(t, value.Uint64(), balance.Uint64())
 
-	balance = vmContext.GetBalance(sender)
+	balance = vmCtx.GetBalance(sender)
 	assert.Equal(t, value.Int64(), -1*balance.Int64())
 
-	vmOutput := vmContext.CreateVMOutput()
+	vmOutput := vmCtx.CreateVMOutput()
 	assert.Equal(t, 2, len(vmOutput.OutputAccounts))
 }
 
 func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	vmc, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
@@ -203,13 +204,13 @@ func TestVmContext_IsValidatorNonexistentAccountShouldRetFalse(t *testing.T) {
 		},
 		&mock.RaterMock{})
 
-	assert.False(t, vmc.IsValidator([]byte("bls key")))
+	assert.False(t, vmCtx.IsValidator([]byte("bls key")))
 }
 
 func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 	t.Parallel()
 
-	vmc, _ := NewVMContext(
+	vmCtx, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
@@ -220,7 +221,7 @@ func TestVmContext_IsValidatorInvalidAccountTypeShouldRetFalse(t *testing.T) {
 		},
 		&mock.RaterMock{})
 
-	assert.False(t, vmc.IsValidator([]byte("bls key")))
+	assert.False(t, vmCtx.IsValidator([]byte("bls key")))
 }
 
 func TestVmContext_IsValidator(t *testing.T) {
@@ -256,7 +257,7 @@ func TestVmContext_IsValidator(t *testing.T) {
 
 	for _, tio := range testData {
 		blsKey := []byte("bls key")
-		vmc, _ := NewVMContext(
+		vmCtx, _ := NewVMContext(
 			&mock.BlockChainHookStub{},
 			hooks.NewVMCryptoHook(),
 			&mock.ArgumentParserMock{},
@@ -272,6 +273,6 @@ func TestVmContext_IsValidator(t *testing.T) {
 			},
 			&mock.RaterMock{})
 
-		assert.Equal(t, tio.expectedResult, vmc.IsValidator(blsKey))
+		assert.Equal(t, tio.expectedResult, vmCtx.IsValidator(blsKey))
 	}
 }

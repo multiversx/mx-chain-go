@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -621,4 +622,15 @@ func CreateMoveBalanceTx(
 		GasPrice: 1,
 		GasLimit: gasLimit,
 	}
+}
+
+// GetNodeIndex -
+func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
 }

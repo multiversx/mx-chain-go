@@ -41,7 +41,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   0,
+				StakingV2Epoch:                       1,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -49,6 +49,18 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MaxNumberOfNodesForStake:             100,
 				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "10",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  10000,
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "10",
+				MinCreationDeposit: "10",
+				EnabledEpoch:       0,
 			},
 		},
 		EpochNotifier: &mock.EpochNotifierStub{},
@@ -95,7 +107,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 4, container.Len())
+	assert.Equal(t, 6, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {

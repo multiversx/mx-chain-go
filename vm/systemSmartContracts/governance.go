@@ -796,7 +796,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 		return 0, nil
 	}
 
-	auctionData := &AuctionData{}
+	auctionData := &AuctionDataV2{}
 	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
 	if err != nil {
 		return 0, err
@@ -809,7 +809,7 @@ func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
 			continue
 		}
 
-		nodeData := &StakedDataV2{}
+		nodeData := &StakedDataV2_0{}
 		err = g.marshalizer.Unmarshal(nodeData, marshaledData)
 		if err != nil {
 			return 0, err
@@ -908,6 +908,11 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 func (g *governanceContract) EpochConfirmed(epoch uint32) {
 	g.flagEnabled.Toggle(epoch >= g.enabledEpoch)
 	log.Debug("governance contract", "enabled", g.flagEnabled.IsSet())
+}
+
+// CanUseContract returns true if contract is enabled
+func (g *governanceContract) CanUseContract() bool {
+	return true
 }
 
 // IsInterfaceNil returns true if underlying object is nil

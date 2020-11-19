@@ -53,6 +53,9 @@ var ErrInvalidNodePrice = errors.New("invalid node price")
 // ErrInvalidMinStepValue signals that an invalid min step value was provided
 var ErrInvalidMinStepValue = errors.New("invalid min step value")
 
+// ErrInvalidMinUnstakeTokensValue signals that an invalid min unstake tokens value was provided
+var ErrInvalidMinUnstakeTokensValue = errors.New("invalid min unstake tokens value")
+
 // ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
 var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
 
@@ -109,6 +112,9 @@ var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
 
 // ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
 var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
+
+// ErrInvalidMinCreationDeposit signals that invalid min creation deposit has been provided
+var ErrInvalidMinCreationDeposit = errors.New("invalid min creation deposit")
 
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
@@ -182,6 +188,15 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrInvalidAddress signals that invalid address has been provided
+var ErrInvalidAddress = errors.New("invalid address")
+
+// ErrDataNotFoundUnderKey signals that data was not found under requested key
+var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key")
+
+// ErrInvalidBLSKeys signals that invalid bls keys has been provided
+var ErrInvalidBLSKeys = errors.New("invalid bls keys")
+
 // ErrNoTokenWithGivenName signals that token does not exists with given name
 var ErrNoTokenWithGivenName = errors.New("no token with given name")
 
@@ -190,3 +205,18 @@ var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
 
 // ErrInvalidArgument signals that invalid argument has been provided
 var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrDuplicatesFoundInArguments signals that duplicates were found in arguments
+var ErrDuplicatesFoundInArguments = errors.New("duplicates found in arguments")
+
+// ErrInvalidCaller signals that the functions was called by a not authorized user
+var ErrInvalidCaller = errors.New("the function was called by a not authorized user")
+
+// ErrCallValueMustBeZero signals that call value must be zero
+var ErrCallValueMustBeZero = errors.New("call value must be zero")
+
+// ErrInvalidDelegationSCConfig signals that invalid delegation sc config has been provided
+var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
+
+// ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
+var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")

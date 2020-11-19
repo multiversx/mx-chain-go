@@ -28,7 +28,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type AuctionData struct {
+type AuctionDataV1 struct {
 	RegisterNonce   uint64        `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
 	Epoch           uint32        `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch"`
 	RewardAddress   []byte        `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress"`
@@ -39,15 +39,15 @@ type AuctionData struct {
 	NumRegistered   uint32        `protobuf:"varint,8,opt,name=NumRegistered,proto3" json:"NumRegistered"`
 }
 
-func (m *AuctionData) Reset()      { *m = AuctionData{} }
-func (*AuctionData) ProtoMessage() {}
-func (*AuctionData) Descriptor() ([]byte, []int) {
+func (m *AuctionDataV1) Reset()      { *m = AuctionDataV1{} }
+func (*AuctionDataV1) ProtoMessage() {}
+func (*AuctionDataV1) Descriptor() ([]byte, []int) {
 	return fileDescriptor_622f477c3a3f2896, []int{0}
 }
-func (m *AuctionData) XXX_Unmarshal(b []byte) error {
+func (m *AuctionDataV1) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *AuctionData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *AuctionDataV1) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
 	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
@@ -55,72 +55,230 @@ func (m *AuctionData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) 
 	}
 	return b[:n], nil
 }
-func (m *AuctionData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_AuctionData.Merge(m, src)
+func (m *AuctionDataV1) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuctionDataV1.Merge(m, src)
 }
-func (m *AuctionData) XXX_Size() int {
+func (m *AuctionDataV1) XXX_Size() int {
 	return m.Size()
 }
-func (m *AuctionData) XXX_DiscardUnknown() {
-	xxx_messageInfo_AuctionData.DiscardUnknown(m)
+func (m *AuctionDataV1) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuctionDataV1.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_AuctionData proto.InternalMessageInfo
+var xxx_messageInfo_AuctionDataV1 proto.InternalMessageInfo
 
-func (m *AuctionData) GetRegisterNonce() uint64 {
+func (m *AuctionDataV1) GetRegisterNonce() uint64 {
 	if m != nil {
 		return m.RegisterNonce
 	}
 	return 0
 }
 
-func (m *AuctionData) GetEpoch() uint32 {
+func (m *AuctionDataV1) GetEpoch() uint32 {
 	if m != nil {
 		return m.Epoch
 	}
 	return 0
 }
 
-func (m *AuctionData) GetRewardAddress() []byte {
+func (m *AuctionDataV1) GetRewardAddress() []byte {
 	if m != nil {
 		return m.RewardAddress
 	}
 	return nil
 }
 
-func (m *AuctionData) GetTotalStakeValue() *math_big.Int {
+func (m *AuctionDataV1) GetTotalStakeValue() *math_big.Int {
 	if m != nil {
 		return m.TotalStakeValue
 	}
 	return nil
 }
 
-func (m *AuctionData) GetLockedStake() *math_big.Int {
+func (m *AuctionDataV1) GetLockedStake() *math_big.Int {
 	if m != nil {
 		return m.LockedStake
 	}
 	return nil
 }
 
-func (m *AuctionData) GetMaxStakePerNode() *math_big.Int {
+func (m *AuctionDataV1) GetMaxStakePerNode() *math_big.Int {
 	if m != nil {
 		return m.MaxStakePerNode
 	}
 	return nil
 }
 
-func (m *AuctionData) GetBlsPubKeys() [][]byte {
+func (m *AuctionDataV1) GetBlsPubKeys() [][]byte {
 	if m != nil {
 		return m.BlsPubKeys
 	}
 	return nil
 }
 
-func (m *AuctionData) GetNumRegistered() uint32 {
+func (m *AuctionDataV1) GetNumRegistered() uint32 {
 	if m != nil {
 		return m.NumRegistered
 	}
 	return 0
+}
+
+type UnstakedValue struct {
+	UnstakedNonce uint64        `protobuf:"varint,1,opt,name=UnstakedNonce,proto3" json:"UnstakedNonce"`
+	UnstakedValue *math_big.Int `protobuf:"bytes,2,opt,name=UnstakedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"UnstakedValue"`
+}
+
+func (m *UnstakedValue) Reset()      { *m = UnstakedValue{} }
+func (*UnstakedValue) ProtoMessage() {}
+func (*UnstakedValue) Descriptor() ([]byte, []int) {
+	return fileDescriptor_622f477c3a3f2896, []int{1}
+}
+func (m *UnstakedValue) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *UnstakedValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *UnstakedValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UnstakedValue.Merge(m, src)
+}
+func (m *UnstakedValue) XXX_Size() int {
+	return m.Size()
+}
+func (m *UnstakedValue) XXX_DiscardUnknown() {
+	xxx_messageInfo_UnstakedValue.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UnstakedValue proto.InternalMessageInfo
+
+func (m *UnstakedValue) GetUnstakedNonce() uint64 {
+	if m != nil {
+		return m.UnstakedNonce
+	}
+	return 0
+}
+
+func (m *UnstakedValue) GetUnstakedValue() *math_big.Int {
+	if m != nil {
+		return m.UnstakedValue
+	}
+	return nil
+}
+
+type AuctionDataV2 struct {
+	RegisterNonce   uint64           `protobuf:"varint,1,opt,name=RegisterNonce,proto3" json:"RegisterNonce"`
+	Epoch           uint32           `protobuf:"varint,2,opt,name=Epoch,proto3" json:"Epoch"`
+	RewardAddress   []byte           `protobuf:"bytes,3,opt,name=RewardAddress,proto3" json:"RewardAddress"`
+	TotalStakeValue *math_big.Int    `protobuf:"bytes,4,opt,name=TotalStakeValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalStakeValue"`
+	LockedStake     *math_big.Int    `protobuf:"bytes,5,opt,name=LockedStake,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"LockedStake"`
+	MaxStakePerNode *math_big.Int    `protobuf:"bytes,6,opt,name=MaxStakePerNode,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MaxStakePerNode"`
+	BlsPubKeys      [][]byte         `protobuf:"bytes,7,rep,name=BlsPubKeys,proto3" json:"BlsPubKeys"`
+	NumRegistered   uint32           `protobuf:"varint,8,opt,name=NumRegistered,proto3" json:"NumRegistered"`
+	UnstakedInfo    []*UnstakedValue `protobuf:"bytes,9,rep,name=UnstakedInfo,proto3" json:"UnstakedInfo"`
+	TotalUnstaked   *math_big.Int    `protobuf:"bytes,10,opt,name=TotalUnstaked,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalUnstaked"`
+}
+
+func (m *AuctionDataV2) Reset()      { *m = AuctionDataV2{} }
+func (*AuctionDataV2) ProtoMessage() {}
+func (*AuctionDataV2) Descriptor() ([]byte, []int) {
+	return fileDescriptor_622f477c3a3f2896, []int{2}
+}
+func (m *AuctionDataV2) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *AuctionDataV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *AuctionDataV2) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_AuctionDataV2.Merge(m, src)
+}
+func (m *AuctionDataV2) XXX_Size() int {
+	return m.Size()
+}
+func (m *AuctionDataV2) XXX_DiscardUnknown() {
+	xxx_messageInfo_AuctionDataV2.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_AuctionDataV2 proto.InternalMessageInfo
+
+func (m *AuctionDataV2) GetRegisterNonce() uint64 {
+	if m != nil {
+		return m.RegisterNonce
+	}
+	return 0
+}
+
+func (m *AuctionDataV2) GetEpoch() uint32 {
+	if m != nil {
+		return m.Epoch
+	}
+	return 0
+}
+
+func (m *AuctionDataV2) GetRewardAddress() []byte {
+	if m != nil {
+		return m.RewardAddress
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetTotalStakeValue() *math_big.Int {
+	if m != nil {
+		return m.TotalStakeValue
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetLockedStake() *math_big.Int {
+	if m != nil {
+		return m.LockedStake
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetMaxStakePerNode() *math_big.Int {
+	if m != nil {
+		return m.MaxStakePerNode
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetBlsPubKeys() [][]byte {
+	if m != nil {
+		return m.BlsPubKeys
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetNumRegistered() uint32 {
+	if m != nil {
+		return m.NumRegistered
+	}
+	return 0
+}
+
+func (m *AuctionDataV2) GetUnstakedInfo() []*UnstakedValue {
+	if m != nil {
+		return m.UnstakedInfo
+	}
+	return nil
+}
+
+func (m *AuctionDataV2) GetTotalUnstaked() *math_big.Int {
+	if m != nil {
+		return m.TotalUnstaked
+	}
+	return nil
 }
 
 type AuctionConfig struct {
@@ -135,7 +293,7 @@ type AuctionConfig struct {
 func (m *AuctionConfig) Reset()      { *m = AuctionConfig{} }
 func (*AuctionConfig) ProtoMessage() {}
 func (*AuctionConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_622f477c3a3f2896, []int{1}
+	return fileDescriptor_622f477c3a3f2896, []int{3}
 }
 func (m *AuctionConfig) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -203,60 +361,68 @@ func (m *AuctionConfig) GetUnJailPrice() *math_big.Int {
 }
 
 func init() {
-	proto.RegisterType((*AuctionData)(nil), "proto.AuctionData")
+	proto.RegisterType((*AuctionDataV1)(nil), "proto.AuctionDataV1")
+	proto.RegisterType((*UnstakedValue)(nil), "proto.UnstakedValue")
+	proto.RegisterType((*AuctionDataV2)(nil), "proto.AuctionDataV2")
 	proto.RegisterType((*AuctionConfig)(nil), "proto.AuctionConfig")
 }
 
 func init() { proto.RegisterFile("auction.proto", fileDescriptor_622f477c3a3f2896) }
 
 var fileDescriptor_622f477c3a3f2896 = []byte{
-	// 566 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x31, 0x6f, 0xd3, 0x4e,
-	0x1c, 0xf5, 0xb5, 0x4d, 0xda, 0x5e, 0xe3, 0xff, 0x5f, 0x58, 0x0c, 0x16, 0xc3, 0x5d, 0xd4, 0x29,
-	0x4b, 0x93, 0x81, 0x81, 0x81, 0x29, 0x0e, 0x1d, 0x0a, 0x34, 0x8a, 0xdc, 0x52, 0x21, 0xb6, 0x8b,
-	0x7d, 0x75, 0x4c, 0x6c, 0x9f, 0x65, 0x9f, 0x29, 0x91, 0x18, 0x10, 0x12, 0x13, 0x0b, 0x1f, 0x03,
-	0xf1, 0x49, 0x18, 0x33, 0x66, 0x32, 0xc4, 0x59, 0x90, 0xa7, 0x7e, 0x04, 0xe4, 0x73, 0xd2, 0x9c,
-	0x33, 0x7b, 0xf2, 0xbd, 0xf7, 0xd3, 0xbd, 0xdf, 0xfd, 0xde, 0xbd, 0x33, 0x54, 0x49, 0x62, 0x71,
-	0x97, 0x05, 0xdd, 0x30, 0x62, 0x9c, 0x69, 0x0d, 0xf1, 0x79, 0x72, 0xe6, 0xb8, 0x7c, 0x92, 0x8c,
-	0xbb, 0x16, 0xf3, 0x7b, 0x0e, 0x73, 0x58, 0x4f, 0xd0, 0xe3, 0xe4, 0x56, 0x20, 0x01, 0xc4, 0xaa,
-	0xdc, 0x75, 0xfa, 0xad, 0x01, 0x4f, 0xfa, 0xa5, 0xce, 0x0b, 0xc2, 0x89, 0xf6, 0x0c, 0xaa, 0x26,
-	0x75, 0xdc, 0x98, 0xd3, 0x68, 0xc8, 0x02, 0x8b, 0xea, 0xa0, 0x0d, 0x3a, 0x07, 0xc6, 0xa3, 0x3c,
-	0xc5, 0xd5, 0x82, 0x59, 0x85, 0x1a, 0x86, 0x8d, 0xf3, 0x90, 0x59, 0x13, 0x7d, 0xaf, 0x0d, 0x3a,
-	0xaa, 0x71, 0x9c, 0xa7, 0xb8, 0x24, 0xcc, 0xf2, 0x53, 0x2a, 0xdf, 0x91, 0xc8, 0xee, 0xdb, 0x76,
-	0x44, 0xe3, 0x58, 0xdf, 0x6f, 0x83, 0x4e, 0x6b, 0xa3, 0x2c, 0x15, 0xcc, 0x2a, 0xd4, 0xbe, 0x00,
-	0xf8, 0xff, 0x35, 0xe3, 0xc4, 0xbb, 0xe2, 0x64, 0x4a, 0x6f, 0x88, 0x97, 0x50, 0xfd, 0x40, 0xec,
-	0x7d, 0x9b, 0xa7, 0x78, 0xb7, 0xf4, 0xf3, 0x37, 0xee, 0xfb, 0x84, 0x4f, 0x7a, 0x63, 0xd7, 0xe9,
-	0x5e, 0x04, 0xfc, 0xb9, 0xe4, 0xc7, 0xb9, 0x17, 0xb1, 0xc0, 0x1e, 0x52, 0x7e, 0xc7, 0xa2, 0x69,
-	0x8f, 0x0a, 0x74, 0xe6, 0xb0, 0x9e, 0x4d, 0x38, 0xe9, 0x1a, 0xae, 0x73, 0x11, 0xf0, 0x01, 0x29,
-	0x46, 0x32, 0x77, 0x55, 0xb5, 0x0f, 0xf0, 0xe4, 0x35, 0xb3, 0xa6, 0xd4, 0x16, 0x9c, 0xde, 0x10,
-	0xfd, 0xaf, 0xf3, 0x14, 0xcb, 0x74, 0x3d, 0xbd, 0x65, 0x45, 0x31, 0xfc, 0x25, 0xf9, 0x28, 0xc0,
-	0xa8, 0xf0, 0xda, 0xa6, 0x7a, 0x73, 0x3b, 0xfc, 0x4e, 0xa9, 0xa6, 0xe1, 0x77, 0x54, 0xb5, 0x2e,
-	0x84, 0x86, 0x17, 0x8f, 0x92, 0xf1, 0x2b, 0x3a, 0x8b, 0xf5, 0xc3, 0xf6, 0x7e, 0xa7, 0x65, 0xfc,
-	0x97, 0xa7, 0x58, 0x62, 0x4d, 0x69, 0x5d, 0x5c, 0xf5, 0x30, 0xf1, 0x37, 0xf9, 0xa0, 0xb6, 0x7e,
-	0x24, 0x32, 0x21, 0xae, 0xba, 0x52, 0x30, 0xab, 0xf0, 0xf4, 0x6b, 0x03, 0xaa, 0xeb, 0x34, 0x0e,
-	0x58, 0x70, 0xeb, 0x3a, 0x5a, 0x07, 0x1e, 0x0d, 0x13, 0xbf, 0x38, 0x45, 0x2c, 0xa2, 0xa8, 0x1a,
-	0xad, 0x3c, 0xc5, 0x0f, 0x9c, 0xf9, 0xb0, 0xd2, 0x3e, 0x41, 0xf5, 0xd2, 0x0d, 0xa4, 0x8c, 0xec,
-	0x09, 0x9b, 0x6e, 0x8a, 0xa6, 0x95, 0x42, 0x3d, 0x26, 0x55, 0x35, 0x8b, 0x7c, 0x94, 0x91, 0x49,
-	0xc2, 0xd0, 0x9b, 0xad, 0xb3, 0x2d, 0xf2, 0x21, 0xd1, 0x35, 0xe5, 0x43, 0x52, 0xd4, 0xde, 0xc3,
-	0x43, 0x71, 0x10, 0x1a, 0xae, 0xdf, 0xc4, 0x28, 0x4f, 0xf1, 0x86, 0xaa, 0xa7, 0xdf, 0x46, 0x4d,
-	0x0b, 0xe1, 0x71, 0x61, 0xf5, 0x28, 0x72, 0xad, 0xcd, 0x0b, 0x30, 0xf3, 0x14, 0x6f, 0xc9, 0x7a,
-	0xfa, 0x6d, 0xf5, 0x0a, 0x57, 0xdf, 0x04, 0x2f, 0x89, 0xeb, 0x95, 0x3d, 0x9b, 0x5b, 0x57, 0x25,
-	0xba, 0x26, 0x57, 0x25, 0x45, 0x63, 0x38, 0x5f, 0x22, 0x65, 0xb1, 0x44, 0xca, 0xfd, 0x12, 0x81,
-	0xcf, 0x19, 0x02, 0x3f, 0x32, 0x04, 0x7e, 0x65, 0x08, 0xcc, 0x33, 0x04, 0x16, 0x19, 0x02, 0x7f,
-	0x32, 0x04, 0xfe, 0x66, 0x48, 0xb9, 0xcf, 0x10, 0xf8, 0xbe, 0x42, 0xca, 0x7c, 0x85, 0x94, 0xc5,
-	0x0a, 0x29, 0xef, 0x1e, 0xc7, 0xb3, 0x98, 0x53, 0xff, 0xca, 0x27, 0x11, 0x1f, 0xb0, 0x80, 0x47,
-	0xc4, 0xe2, 0xf1, 0xb8, 0x29, 0x7e, 0xb6, 0x4f, 0xff, 0x05, 0x00, 0x00, 0xff, 0xff, 0x07, 0xb3,
-	0x2a, 0x5b, 0xb3, 0x05, 0x00, 0x00,
+	// 663 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x55, 0x3f, 0x6f, 0xd3, 0x40,
+	0x1c, 0xcd, 0xd1, 0x26, 0x6d, 0xaf, 0x09, 0x7f, 0xac, 0x0e, 0x16, 0xc3, 0x39, 0xca, 0x94, 0xa5,
+	0x8e, 0x28, 0x43, 0x07, 0xa6, 0xba, 0x74, 0x68, 0xa1, 0x51, 0xe4, 0xfe, 0x11, 0x62, 0xbb, 0xd8,
+	0x57, 0xd7, 0xd4, 0xf6, 0x59, 0xf6, 0x99, 0x52, 0x89, 0x01, 0x21, 0x31, 0x22, 0xf1, 0x31, 0x10,
+	0x1f, 0x04, 0x31, 0x76, 0xa3, 0x93, 0xa1, 0xee, 0x82, 0x3c, 0xf5, 0x23, 0x20, 0x9f, 0xeb, 0xfa,
+	0x2e, 0xac, 0x96, 0x58, 0x3a, 0xd9, 0xef, 0xfd, 0x72, 0xef, 0x77, 0xf7, 0xbb, 0xf7, 0x62, 0xd8,
+	0xc3, 0x89, 0xc5, 0x5c, 0x1a, 0xe8, 0x61, 0x44, 0x19, 0x55, 0xda, 0xfc, 0xf1, 0x78, 0xd5, 0x71,
+	0xd9, 0x71, 0x32, 0xd5, 0x2d, 0xea, 0x8f, 0x1c, 0xea, 0xd0, 0x11, 0xa7, 0xa7, 0xc9, 0x11, 0x47,
+	0x1c, 0xf0, 0xb7, 0x72, 0xd5, 0xe0, 0x73, 0x1b, 0xf6, 0x36, 0x4a, 0x9d, 0xe7, 0x98, 0xe1, 0xc3,
+	0x27, 0xca, 0x3a, 0xec, 0x99, 0xc4, 0x71, 0x63, 0x46, 0xa2, 0x31, 0x0d, 0x2c, 0xa2, 0x82, 0x3e,
+	0x18, 0xce, 0x1b, 0x8f, 0xf2, 0x54, 0x93, 0x0b, 0xa6, 0x0c, 0x15, 0x0d, 0xb6, 0xb7, 0x42, 0x6a,
+	0x1d, 0xab, 0xf7, 0xfa, 0x60, 0xd8, 0x33, 0x96, 0xf2, 0x54, 0x2b, 0x09, 0xb3, 0x7c, 0x94, 0xca,
+	0xa7, 0x38, 0xb2, 0x37, 0x6c, 0x3b, 0x22, 0x71, 0xac, 0xce, 0xf5, 0xc1, 0xb0, 0x5b, 0x29, 0x0b,
+	0x05, 0x53, 0x86, 0xca, 0x47, 0x00, 0x1f, 0xec, 0x53, 0x86, 0xbd, 0x3d, 0x86, 0x4f, 0xc8, 0x21,
+	0xf6, 0x12, 0xa2, 0xce, 0xf3, 0xb5, 0xaf, 0xf2, 0x54, 0x9b, 0x2d, 0x7d, 0xfb, 0xa5, 0x6d, 0xf8,
+	0x98, 0x1d, 0x8f, 0xa6, 0xae, 0xa3, 0x6f, 0x07, 0xec, 0x99, 0x30, 0x91, 0x2d, 0x2f, 0xa2, 0x81,
+	0x3d, 0x26, 0xec, 0x94, 0x46, 0x27, 0x23, 0xc2, 0xd1, 0xaa, 0x43, 0x47, 0x36, 0x66, 0x58, 0x37,
+	0x5c, 0x67, 0x3b, 0x60, 0x9b, 0xb8, 0x38, 0x92, 0x39, 0xab, 0xaa, 0xbc, 0x85, 0xcb, 0x2f, 0xa9,
+	0x75, 0x42, 0x6c, 0xce, 0xa9, 0x6d, 0xde, 0x7f, 0x3f, 0x4f, 0x35, 0x91, 0x6e, 0xa6, 0xb7, 0xa8,
+	0xc8, 0x0f, 0xbf, 0x8b, 0xdf, 0x71, 0x30, 0x29, 0x66, 0x6d, 0x13, 0xb5, 0x53, 0x1f, 0x7e, 0xa6,
+	0xd4, 0xd0, 0xe1, 0x67, 0x54, 0x15, 0x1d, 0x42, 0xc3, 0x8b, 0x27, 0xc9, 0xf4, 0x05, 0x39, 0x8b,
+	0xd5, 0x85, 0xfe, 0xdc, 0xb0, 0x6b, 0xdc, 0xcf, 0x53, 0x4d, 0x60, 0x4d, 0xe1, 0xbd, 0xb8, 0xea,
+	0x71, 0xe2, 0x57, 0xfe, 0x20, 0xb6, 0xba, 0xc8, 0x3d, 0xc1, 0xaf, 0x5a, 0x2a, 0x98, 0x32, 0x1c,
+	0x7c, 0x07, 0xb0, 0x77, 0x10, 0xc4, 0x45, 0x6f, 0xbb, 0x9c, 0xfb, 0x7a, 0x4d, 0xfc, 0xe3, 0x47,
+	0xa9, 0x60, 0xca, 0x50, 0x79, 0x3f, 0xa3, 0xc4, 0x7d, 0xd9, 0x35, 0x0e, 0xc5, 0x85, 0x0d, 0x1a,
+	0x46, 0xd6, 0x1c, 0xfc, 0xec, 0xc8, 0xc1, 0x5a, 0xbb, 0x0b, 0xd6, 0x5d, 0xb0, 0xfe, 0x5f, 0xb0,
+	0x94, 0x1d, 0xd8, 0xad, 0x0c, 0xba, 0x1d, 0x1c, 0x51, 0x75, 0xa9, 0x3f, 0x37, 0x5c, 0x5e, 0x5b,
+	0x29, 0x3f, 0x03, 0xba, 0xe4, 0x5d, 0xe3, 0x61, 0x9e, 0x6a, 0xd2, 0xaf, 0x4d, 0x09, 0x15, 0xc9,
+	0xe2, 0x97, 0x58, 0x91, 0x2a, 0xac, 0x93, 0x25, 0x15, 0x1a, 0x4a, 0x96, 0xa4, 0x39, 0xf8, 0x54,
+	0x7f, 0xb2, 0x36, 0x69, 0x70, 0xe4, 0x3a, 0xca, 0x10, 0x2e, 0x8e, 0x13, 0xbf, 0x98, 0x67, 0xcc,
+	0x43, 0xd5, 0x33, 0xba, 0x79, 0xaa, 0xdd, 0x72, 0xe6, 0xed, 0x5b, 0xb1, 0xf3, 0x5d, 0x37, 0x10,
+	0xdc, 0x2e, 0xfc, 0x27, 0x48, 0x85, 0x86, 0x76, 0x2e, 0x69, 0x16, 0x4e, 0x2f, 0xcd, 0x9f, 0x84,
+	0xa1, 0x77, 0x76, 0x93, 0x52, 0xee, 0x74, 0x81, 0x6e, 0xc8, 0xe9, 0x82, 0xa2, 0xf2, 0x06, 0x2e,
+	0xf0, 0x8d, 0x90, 0xf0, 0x26, 0xdd, 0x93, 0x3c, 0xd5, 0x2a, 0xaa, 0x99, 0x7e, 0x95, 0x9a, 0x12,
+	0xc2, 0xa5, 0x62, 0xd4, 0x93, 0xc8, 0xb5, 0xaa, 0x2c, 0x9b, 0x79, 0xaa, 0xd5, 0x64, 0x33, 0xfd,
+	0x6a, 0xbd, 0x62, 0xaa, 0x07, 0xc1, 0x0e, 0x76, 0xbd, 0xb2, 0x67, 0xa7, 0x9e, 0xaa, 0x40, 0x37,
+	0x34, 0x55, 0x41, 0xd1, 0x18, 0x9f, 0x5f, 0xa2, 0xd6, 0xc5, 0x25, 0x6a, 0x5d, 0x5f, 0x22, 0xf0,
+	0x21, 0x43, 0xe0, 0x6b, 0x86, 0xc0, 0x8f, 0x0c, 0x81, 0xf3, 0x0c, 0x81, 0x8b, 0x0c, 0x81, 0xdf,
+	0x19, 0x02, 0x7f, 0x32, 0xd4, 0xba, 0xce, 0x10, 0xf8, 0x72, 0x85, 0x5a, 0xe7, 0x57, 0xa8, 0x75,
+	0x71, 0x85, 0x5a, 0xaf, 0x57, 0xe2, 0xb3, 0x98, 0x11, 0x7f, 0xcf, 0xc7, 0x11, 0xdb, 0xa4, 0x01,
+	0x8b, 0xb0, 0xc5, 0xe2, 0x69, 0x87, 0x47, 0xf1, 0xe9, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0x01,
+	0xe3, 0x2d, 0x14, 0xd8, 0x09, 0x00, 0x00,
 }
 
-func (this *AuctionData) Equal(that interface{}) bool {
+func (this *AuctionDataV1) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*AuctionData)
+	that1, ok := that.(*AuctionDataV1)
 	if !ok {
-		that2, ok := that.(AuctionData)
+		that2, ok := that.(AuctionDataV1)
 		if ok {
 			that1 = &that2
 		} else {
@@ -305,6 +471,109 @@ func (this *AuctionData) Equal(that interface{}) bool {
 	}
 	if this.NumRegistered != that1.NumRegistered {
 		return false
+	}
+	return true
+}
+func (this *UnstakedValue) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*UnstakedValue)
+	if !ok {
+		that2, ok := that.(UnstakedValue)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.UnstakedNonce != that1.UnstakedNonce {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.UnstakedValue, that1.UnstakedValue) {
+			return false
+		}
+	}
+	return true
+}
+func (this *AuctionDataV2) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*AuctionDataV2)
+	if !ok {
+		that2, ok := that.(AuctionDataV2)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.RegisterNonce != that1.RegisterNonce {
+		return false
+	}
+	if this.Epoch != that1.Epoch {
+		return false
+	}
+	if !bytes.Equal(this.RewardAddress, that1.RewardAddress) {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalStakeValue, that1.TotalStakeValue) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.LockedStake, that1.LockedStake) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.MaxStakePerNode, that1.MaxStakePerNode) {
+			return false
+		}
+	}
+	if len(this.BlsPubKeys) != len(that1.BlsPubKeys) {
+		return false
+	}
+	for i := range this.BlsPubKeys {
+		if !bytes.Equal(this.BlsPubKeys[i], that1.BlsPubKeys[i]) {
+			return false
+		}
+	}
+	if this.NumRegistered != that1.NumRegistered {
+		return false
+	}
+	if len(this.UnstakedInfo) != len(that1.UnstakedInfo) {
+		return false
+	}
+	for i := range this.UnstakedInfo {
+		if !this.UnstakedInfo[i].Equal(that1.UnstakedInfo[i]) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.TotalUnstaked, that1.TotalUnstaked) {
+			return false
+		}
 	}
 	return true
 }
@@ -362,12 +631,12 @@ func (this *AuctionConfig) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *AuctionData) GoString() string {
+func (this *AuctionDataV1) GoString() string {
 	if this == nil {
 		return "nil"
 	}
 	s := make([]string, 0, 12)
-	s = append(s, "&systemSmartContracts.AuctionData{")
+	s = append(s, "&systemSmartContracts.AuctionDataV1{")
 	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
 	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
 	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
@@ -376,6 +645,38 @@ func (this *AuctionData) GoString() string {
 	s = append(s, "MaxStakePerNode: "+fmt.Sprintf("%#v", this.MaxStakePerNode)+",\n")
 	s = append(s, "BlsPubKeys: "+fmt.Sprintf("%#v", this.BlsPubKeys)+",\n")
 	s = append(s, "NumRegistered: "+fmt.Sprintf("%#v", this.NumRegistered)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *UnstakedValue) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&systemSmartContracts.UnstakedValue{")
+	s = append(s, "UnstakedNonce: "+fmt.Sprintf("%#v", this.UnstakedNonce)+",\n")
+	s = append(s, "UnstakedValue: "+fmt.Sprintf("%#v", this.UnstakedValue)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AuctionDataV2) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 14)
+	s = append(s, "&systemSmartContracts.AuctionDataV2{")
+	s = append(s, "RegisterNonce: "+fmt.Sprintf("%#v", this.RegisterNonce)+",\n")
+	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
+	s = append(s, "RewardAddress: "+fmt.Sprintf("%#v", this.RewardAddress)+",\n")
+	s = append(s, "TotalStakeValue: "+fmt.Sprintf("%#v", this.TotalStakeValue)+",\n")
+	s = append(s, "LockedStake: "+fmt.Sprintf("%#v", this.LockedStake)+",\n")
+	s = append(s, "MaxStakePerNode: "+fmt.Sprintf("%#v", this.MaxStakePerNode)+",\n")
+	s = append(s, "BlsPubKeys: "+fmt.Sprintf("%#v", this.BlsPubKeys)+",\n")
+	s = append(s, "NumRegistered: "+fmt.Sprintf("%#v", this.NumRegistered)+",\n")
+	if this.UnstakedInfo != nil {
+		s = append(s, "UnstakedInfo: "+fmt.Sprintf("%#v", this.UnstakedInfo)+",\n")
+	}
+	s = append(s, "TotalUnstaked: "+fmt.Sprintf("%#v", this.TotalUnstaked)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -402,7 +703,7 @@ func valueToGoStringAuction(v interface{}, typ string) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
-func (m *AuctionData) Marshal() (dAtA []byte, err error) {
+func (m *AuctionDataV1) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -412,16 +713,167 @@ func (m *AuctionData) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *AuctionData) MarshalTo(dAtA []byte) (int, error) {
+func (m *AuctionDataV1) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *AuctionData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *AuctionDataV1) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
+	if m.NumRegistered != 0 {
+		i = encodeVarintAuction(dAtA, i, uint64(m.NumRegistered))
+		i--
+		dAtA[i] = 0x40
+	}
+	if len(m.BlsPubKeys) > 0 {
+		for iNdEx := len(m.BlsPubKeys) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BlsPubKeys[iNdEx])
+			copy(dAtA[i:], m.BlsPubKeys[iNdEx])
+			i = encodeVarintAuction(dAtA, i, uint64(len(m.BlsPubKeys[iNdEx])))
+			i--
+			dAtA[i] = 0x3a
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.MaxStakePerNode)
+		i -= size
+		if _, err := __caster.MarshalTo(m.MaxStakePerNode, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintAuction(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x32
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.LockedStake)
+		i -= size
+		if _, err := __caster.MarshalTo(m.LockedStake, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintAuction(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2a
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalStakeValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalStakeValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintAuction(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	if len(m.RewardAddress) > 0 {
+		i -= len(m.RewardAddress)
+		copy(dAtA[i:], m.RewardAddress)
+		i = encodeVarintAuction(dAtA, i, uint64(len(m.RewardAddress)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.Epoch != 0 {
+		i = encodeVarintAuction(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.RegisterNonce != 0 {
+		i = encodeVarintAuction(dAtA, i, uint64(m.RegisterNonce))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *UnstakedValue) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnstakedValue) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *UnstakedValue) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.UnstakedValue)
+		i -= size
+		if _, err := __caster.MarshalTo(m.UnstakedValue, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintAuction(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if m.UnstakedNonce != 0 {
+		i = encodeVarintAuction(dAtA, i, uint64(m.UnstakedNonce))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *AuctionDataV2) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AuctionDataV2) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AuctionDataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.TotalUnstaked)
+		i -= size
+		if _, err := __caster.MarshalTo(m.TotalUnstaked, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintAuction(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x52
+	if len(m.UnstakedInfo) > 0 {
+		for iNdEx := len(m.UnstakedInfo) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.UnstakedInfo[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintAuction(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
 	if m.NumRegistered != 0 {
 		i = encodeVarintAuction(dAtA, i, uint64(m.NumRegistered))
 		i--
@@ -583,7 +1035,7 @@ func encodeVarintAuction(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *AuctionData) Size() (n int) {
+func (m *AuctionDataV1) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -622,6 +1074,77 @@ func (m *AuctionData) Size() (n int) {
 	}
 	if m.NumRegistered != 0 {
 		n += 1 + sovAuction(uint64(m.NumRegistered))
+	}
+	return n
+}
+
+func (m *UnstakedValue) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.UnstakedNonce != 0 {
+		n += 1 + sovAuction(uint64(m.UnstakedNonce))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.UnstakedValue)
+		n += 1 + l + sovAuction(uint64(l))
+	}
+	return n
+}
+
+func (m *AuctionDataV2) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.RegisterNonce != 0 {
+		n += 1 + sovAuction(uint64(m.RegisterNonce))
+	}
+	if m.Epoch != 0 {
+		n += 1 + sovAuction(uint64(m.Epoch))
+	}
+	l = len(m.RewardAddress)
+	if l > 0 {
+		n += 1 + l + sovAuction(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalStakeValue)
+		n += 1 + l + sovAuction(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.LockedStake)
+		n += 1 + l + sovAuction(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.MaxStakePerNode)
+		n += 1 + l + sovAuction(uint64(l))
+	}
+	if len(m.BlsPubKeys) > 0 {
+		for _, b := range m.BlsPubKeys {
+			l = len(b)
+			n += 1 + l + sovAuction(uint64(l))
+		}
+	}
+	if m.NumRegistered != 0 {
+		n += 1 + sovAuction(uint64(m.NumRegistered))
+	}
+	if len(m.UnstakedInfo) > 0 {
+		for _, e := range m.UnstakedInfo {
+			l = e.Size()
+			n += 1 + l + sovAuction(uint64(l))
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.TotalUnstaked)
+		n += 1 + l + sovAuction(uint64(l))
 	}
 	return n
 }
@@ -669,11 +1192,11 @@ func sovAuction(x uint64) (n int) {
 func sozAuction(x uint64) (n int) {
 	return sovAuction(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (this *AuctionData) String() string {
+func (this *AuctionDataV1) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&AuctionData{`,
+	s := strings.Join([]string{`&AuctionDataV1{`,
 		`RegisterNonce:` + fmt.Sprintf("%v", this.RegisterNonce) + `,`,
 		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
 		`RewardAddress:` + fmt.Sprintf("%v", this.RewardAddress) + `,`,
@@ -682,6 +1205,41 @@ func (this *AuctionData) String() string {
 		`MaxStakePerNode:` + fmt.Sprintf("%v", this.MaxStakePerNode) + `,`,
 		`BlsPubKeys:` + fmt.Sprintf("%v", this.BlsPubKeys) + `,`,
 		`NumRegistered:` + fmt.Sprintf("%v", this.NumRegistered) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *UnstakedValue) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&UnstakedValue{`,
+		`UnstakedNonce:` + fmt.Sprintf("%v", this.UnstakedNonce) + `,`,
+		`UnstakedValue:` + fmt.Sprintf("%v", this.UnstakedValue) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AuctionDataV2) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForUnstakedInfo := "[]*UnstakedValue{"
+	for _, f := range this.UnstakedInfo {
+		repeatedStringForUnstakedInfo += strings.Replace(f.String(), "UnstakedValue", "UnstakedValue", 1) + ","
+	}
+	repeatedStringForUnstakedInfo += "}"
+	s := strings.Join([]string{`&AuctionDataV2{`,
+		`RegisterNonce:` + fmt.Sprintf("%v", this.RegisterNonce) + `,`,
+		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
+		`RewardAddress:` + fmt.Sprintf("%v", this.RewardAddress) + `,`,
+		`TotalStakeValue:` + fmt.Sprintf("%v", this.TotalStakeValue) + `,`,
+		`LockedStake:` + fmt.Sprintf("%v", this.LockedStake) + `,`,
+		`MaxStakePerNode:` + fmt.Sprintf("%v", this.MaxStakePerNode) + `,`,
+		`BlsPubKeys:` + fmt.Sprintf("%v", this.BlsPubKeys) + `,`,
+		`NumRegistered:` + fmt.Sprintf("%v", this.NumRegistered) + `,`,
+		`UnstakedInfo:` + repeatedStringForUnstakedInfo + `,`,
+		`TotalUnstaked:` + fmt.Sprintf("%v", this.TotalUnstaked) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -709,7 +1267,7 @@ func valueToStringAuction(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *AuctionData) Unmarshal(dAtA []byte) error {
+func (m *AuctionDataV1) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -732,10 +1290,10 @@ func (m *AuctionData) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: AuctionData: wiretype end group for non-group")
+			return fmt.Errorf("proto: AuctionDataV1: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: AuctionData: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: AuctionDataV1: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -975,6 +1533,478 @@ func (m *AuctionData) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAuction(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *UnstakedValue) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAuction
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnstakedValue: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnstakedValue: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnstakedNonce", wireType)
+			}
+			m.UnstakedNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.UnstakedNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnstakedValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.UnstakedValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAuction(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AuctionDataV2) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAuction
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AuctionDataV2: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AuctionDataV2: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegisterNonce", wireType)
+			}
+			m.RegisterNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RegisterNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Epoch |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RewardAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RewardAddress = append(m.RewardAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.RewardAddress == nil {
+				m.RewardAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalStakeValue", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalStakeValue = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LockedStake", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.LockedStake = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MaxStakePerNode", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.MaxStakePerNode = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BlsPubKeys", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BlsPubKeys = append(m.BlsPubKeys, make([]byte, postIndex-iNdEx))
+			copy(m.BlsPubKeys[len(m.BlsPubKeys)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumRegistered", wireType)
+			}
+			m.NumRegistered = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumRegistered |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field UnstakedInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.UnstakedInfo = append(m.UnstakedInfo, &UnstakedValue{})
+			if err := m.UnstakedInfo[len(m.UnstakedInfo)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TotalUnstaked", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuction
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthAuction
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthAuction
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.TotalUnstaked = tmp
+				}
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipAuction(dAtA[iNdEx:])

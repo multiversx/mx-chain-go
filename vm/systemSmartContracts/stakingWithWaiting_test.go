@@ -35,11 +35,11 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
-	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return stakingSC, nil
+		return stakingSc, nil
 	}})
 
 	args.StakingSCConfig = argsStaking.StakingSCConfig
@@ -70,12 +70,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	marshaledData := eei.GetStorage(stakerPubKey)
-	stakedData := &StakedDataV2{}
+	stakedData := &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
 	marshaledData = eei.GetStorage(blsKey2)
-	stakedData = &StakedDataV2{}
+	stakedData = &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 }
@@ -102,11 +102,11 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
-	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return stakingSC, nil
+		return stakingSc, nil
 	}})
 
 	args.StakingSCConfig = argsStaking.StakingSCConfig
@@ -148,7 +148,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 
 	eei.SetSCAddress(args.StakingSCAddress)
 	marshaledData := eei.GetStorage(stakerPubKey)
-	stakedData := &StakedDataV2{}
+	stakedData := &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
@@ -185,11 +185,11 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	argsStaking.StakingSCConfig.MaxNumberOfNodesForStake = 1
-	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("addr"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return stakingSC, nil
+		return stakingSc, nil
 	}})
 
 	args.StakingSCConfig = argsStaking.StakingSCConfig
@@ -219,12 +219,12 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData := eei.GetStorageFromAddress(args.StakingSCAddress, stakerPubKey)
-	stakedData := &StakedDataV2{}
+	stakedData := &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
-	stakedData = &StakedDataV2{}
+	stakedData = &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Staked)
 
@@ -236,7 +236,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey3)
-	stakedData = &StakedDataV2{}
+	stakedData = &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.True(t, stakedData.Waiting)
@@ -248,7 +248,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	marshaledData = eei.GetStorageFromAddress(args.StakingSCAddress, blsKey2)
-	stakedData = &StakedDataV2{}
+	stakedData = &StakedDataV2_0{}
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.False(t, stakedData.Staked)
 	assert.False(t, stakedData.Waiting)

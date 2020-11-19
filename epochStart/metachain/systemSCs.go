@@ -33,6 +33,8 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
+	DelegationEnableEpoch                  uint32
+	StakingV2EnableEpoch                   uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
@@ -40,27 +42,29 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 }
 
 type systemSCProcessor struct {
-	systemVM                vmcommon.VMExecutionHandler
-	userAccountsDB          state.AccountsAdapter
-	marshalizer             marshal.Marshalizer
-	peerAccountsDB          state.AccountsAdapter
-	chanceComputer          sharding.ChanceComputer
-	startRating             uint32
-	validatorInfoCreator    epochStart.ValidatorInfoCreator
-	genesisNodesConfig      sharding.GenesisNodesSetupHandler
-	endOfEpochCallerAddress []byte
-	stakingSCAddress        []byte
-	switchEnableEpoch       uint32
-	hystNodesEnableEpoch    uint32
-	maxNodesEnableConfig    []config.MaxNodesChangeConfig
-	maxNodes                uint32
-
-	flagSwitchEnabled         atomic.Flag
+	systemVM                  vmcommon.VMExecutionHandler
+	userAccountsDB            state.AccountsAdapter
+	marshalizer               marshal.Marshalizer
+	peerAccountsDB            state.AccountsAdapter
+	chanceComputer            sharding.ChanceComputer
+	startRating               uint32
+	validatorInfoCreator      epochStart.ValidatorInfoCreator
+	genesisNodesConfig        sharding.GenesisNodesSetupHandler
+	endOfEpochCallerAddress   []byte
+	stakingSCAddress          []byte
+	switchEnableEpoch         uint32
+	hystNodesEnableEpoch      uint32
+	delegationEnableEpoch     uint32
+	stakingV2EnableEpoch      uint32
+	maxNodesEnableConfig      []config.MaxNodesChangeConfig
+	maxNodes                  uint32
+	flagSwitchJailedWaiting   atomic.Flag
 	flagHystNodesEnabled      atomic.Flag
+	flagDelegationEnabled     atomic.Flag
+	flagStakingV2Enabled      atomic.Flag
 	flagChangeMaxNodesEnabled atomic.Flag
-
-	mapNumSwitchedPerShard   map[uint32]uint32
-	mapNumSwitchablePerShard map[uint32]uint32
+	mapNumSwitchedPerShard    map[uint32]uint32
+	mapNumSwitchablePerShard  map[uint32]uint32
 }
 
 type validatorList []*state.ValidatorInfo
@@ -131,6 +135,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		mapNumSwitchablePerShard: make(map[uint32]uint32),
 		switchEnableEpoch:        args.SwitchJailWaitingEnableEpoch,
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
+		delegationEnableEpoch:    args.DelegationEnableEpoch,
+		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -159,7 +165,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
-	if s.flagSwitchEnabled.IsSet() {
+	if s.flagDelegationEnabled.IsSet() {
+		err := s.initDelegationSystemSC()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagSwitchJailedWaiting.IsSet() {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
@@ -169,6 +182,83 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		if err != nil {
 			return err
 		}
+	}
+
+	if s.flagStakingV2Enabled.IsSet() {
+		err := s.updateOwnersForBlsKeys()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.Type != block.RewardsBlock {
+			continue
+		}
+		if miniBlock.ReceiverShardID != core.MetachainShardId {
+			continue
+		}
+		return miniBlock
+	}
+	return nil
+}
+
+// ProcessDelegationRewards will process the rewards which are directed towards the delegation system smart contracts
+func (s *systemSCProcessor) ProcessDelegationRewards(
+	miniBlocks block.MiniBlockSlice,
+	txCache epochStart.TransactionCacher,
+) error {
+	if txCache == nil {
+		return epochStart.ErrNilLocalTxCache
+	}
+
+	rwdMb := getRewardsMiniBlockForMeta(miniBlocks)
+	if rwdMb == nil {
+		return nil
+	}
+
+	for _, txHash := range rwdMb.TxHashes {
+		rwdTx, err := txCache.GetTx(txHash)
+		if err != nil {
+			return err
+		}
+
+		err = s.executeRewardTx(rwdTx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  nil,
+			CallValue:  rwdTx.GetValue(),
+		},
+		RecipientAddr: rwdTx.GetRcvAddr(),
+		Function:      "updateRewards",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrSystemDelegationCall
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -286,7 +376,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	var stakingData systemSmartContracts.StakedDataV2
+	var stakingData systemSmartContracts.StakedDataV2_0
 	err = s.marshalizer.Unmarshal(&stakingData, activeStorageUpdate.Data)
 	if err != nil {
 		return nil, err
@@ -380,8 +470,8 @@ func switchJailedWithNewValidatorInMap(
 	}
 }
 
-func (s *systemSCProcessor) getExistingAccount(address []byte) (state.UserAccountHandler, error) {
-	acnt, err := s.userAccountsDB.GetExistingAccount(address)
+func (s *systemSCProcessor) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	acnt, err := s.userAccountsDB.LoadAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +491,7 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
-		acc, err := s.getExistingAccount(outAcc.Address)
+		acc, err := s.getUserAccount(outAcc.Address)
 		if err != nil {
 			return err
 		}
@@ -409,6 +499,13 @@ func (s *systemSCProcessor) processSCOutputAccounts(
 		storageUpdates := process.GetSortedStorageUpdates(outAcc)
 		for _, storeUpdate := range storageUpdates {
 			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return err
+			}
+		}
+
+		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
+			err = acc.AddToBalance(outAcc.BalanceDelta)
 			if err != nil {
 				return err
 			}
@@ -522,6 +619,146 @@ func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
 	return nil
 }
 
+func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
+	sw := core.NewStopWatch()
+	sw.Start("systemSCProcessor")
+	defer func() {
+		sw.Stop("systemSCProcessor")
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
+	}()
+
+	userAuctionAccount, err := s.getAuctionSystemAccount()
+	if err != nil {
+		return err
+	}
+
+	auctionAccounts, err := s.getValidAuctionUserAccountsKeys(userAuctionAccount)
+	if err != nil {
+		return err
+	}
+
+	err = s.callUpdateStakingV2(auctionAccounts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler, error) {
+	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.AuctionSCAddress)
+	if err != nil {
+		return nil, fmt.Errorf("%w when loading auction account", err)
+	}
+
+	userAuctionAccount, ok := auctionAccount.(state.UserAccountHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w when loading auction account", epochStart.ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(userAuctionAccount.DataTrie()) {
+		return nil, epochStart.ErrNilDataTrie
+	}
+
+	return userAuctionAccount, nil
+}
+
+func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount state.UserAccountHandler) ([][]byte, error) {
+	auctionAccounts := make([][]byte, 0)
+	chLeaves := userAuctionAccount.DataTrie().GetAllLeavesOnChannel()
+	for leaf := range chLeaves {
+		auctionData := &systemSmartContracts.AuctionDataV2{}
+		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.AuctionSCAddress...))
+		if errTrim != nil {
+			return nil, fmt.Errorf("%w for auction key %s", errTrim, hex.EncodeToString(leaf.Key()))
+		}
+
+		err := s.marshalizer.Unmarshal(auctionData, value)
+		dataIsNotValid := err != nil || len(auctionData.BlsPubKeys) == 0
+		if dataIsNotValid {
+			continue
+		}
+		auctionAccounts = append(auctionAccounts, leaf.Key())
+	}
+
+	return auctionAccounts, nil
+}
+
+func (s *systemSCProcessor) callUpdateStakingV2(auctionAccounts [][]byte) error {
+	for _, auctionAccountKey := range auctionAccounts {
+		vmInput := &vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: vm.AuctionSCAddress,
+				CallValue:  big.NewInt(0),
+				Arguments:  [][]byte{auctionAccountKey},
+			},
+			RecipientAddr: vm.AuctionSCAddress,
+			Function:      "updateStakingV2",
+		}
+		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+		if errRun != nil {
+			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(auctionAccountKey))
+		}
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(auctionAccountKey))
+		}
+
+		err := s.processSCOutputAccounts(vmOutput)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) initDelegationSystemSC() error {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.DelegationManagerSCAddress,
+			Arguments:  [][]byte{},
+			CallValue:  big.NewInt(0),
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrCouldNotInitDelegationSystemSC
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc, err := s.getUserAccount(vm.DelegationManagerSCAddress)
+	if err != nil {
+		return err
+	}
+
+	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
+	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
+	delegationMgrAcc.SetCode(vmInput.ContractCodeMetadata)
+
+	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -529,7 +766,8 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
-	s.flagSwitchEnabled.Toggle(epoch >= s.switchEnableEpoch)
+	s.flagSwitchJailedWaiting.Toggle(epoch >= s.switchEnableEpoch)
+	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchJailedWaiting.IsSet())
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
@@ -544,7 +782,14 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
 	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
-		"enabled", s.flagHystNodesEnabled.IsSet())
+		"enabled", epoch >= s.hystNodesEnableEpoch)
+
+	// only toggle on exact epoch as init should be called only once
+	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
+	log.Debug("systemProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
+
+	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
+	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemProcessor:change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,

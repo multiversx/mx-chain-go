@@ -2026,37 +2026,61 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:        core.InternalMarshalizer,
-		Hasher:             core.Hasher,
-		Store:              data.Store,
-		ShardCoordinator:   shardCoordinator,
-		RewardsHandler:     economicsData,
-		RoundTime:          rounder,
-		GenesisNonce:       genesisHdr.GetNonce(),
-		GenesisEpoch:       genesisHdr.GetEpoch(),
-		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
+		Marshalizer:           core.InternalMarshalizer,
+		Hasher:                core.Hasher,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		RewardsHandler:        economicsData,
+		RoundTime:             rounder,
+		GenesisNonce:          genesisHdr.GetNonce(),
+		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
 		return nil, err
 	}
 
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
+	if err != nil {
+		return nil, err
+	}
+
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
-	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               stateComponents.AddressPubkeyConverter,
-		RewardsStorage:                rewardsStorage,
-		MiniBlockStorage:              miniBlockStorage,
-		Hasher:                        core.Hasher,
-		Marshalizer:                   core.InternalMarshalizer,
-		DataPool:                      data.Datapool,
-		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
-		NodesConfigProvider:           nodesCoordinator,
-		RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
+		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
+			ShardCoordinator:              shardCoordinator,
+			PubkeyConverter:               stateComponents.AddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        core.Hasher,
+			Marshalizer:                   core.InternalMarshalizer,
+			DataPool:                      data.Datapool,
+			ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
+			NodesConfigProvider:           nodesCoordinator,
+			UserAccountsDB:                stateComponents.AccountsAdapter,
+			RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+			DelegationSystemSCEnableEpoch: systemSCConfig.DelegationSystemSCConfig.EnabledEpoch,
+		},
+
+		StakingDataProvider:   stakingDataProvider,
+		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
+		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
+		EconomicsDataProvider: economicsDataProvider,
+		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
-	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
+
+	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -2106,10 +2130,6 @@ func newMetaBlockProcessor(
 		EpochNotifier:           epochNotifier,
 	}
 
-	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
-	if err != nil {
-		return nil, err
-	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                               systemVM,
 		UserAccountsDB:                         stateComponents.AccountsAdapter,
@@ -2123,6 +2143,8 @@ func newMetaBlockProcessor(
 		EpochNotifier:                          epochNotifier,
 		SwitchJailWaitingEnableEpoch:           generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
+		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
+		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		GenesisNodesConfig:                     nodesSetup,
 		MaxNodesEnableConfig:                   generalSettingsConfig.MaxNodesChangeEnableEpoch,
 	}

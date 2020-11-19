@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "systemSmartContracts";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message DelegationManagement {
+  uint32 NumOfContracts     = 1 [(gogoproto.jsontag) = "NumOfContracts"];
+  bytes  LastAddress        = 2 [(gogoproto.jsontag) = "LastAddress"];
+  uint64 MinServiceFee      = 3 [(gogoproto.jsontag) = "MinServiceFee"];
+  uint64 MaxServiceFee      = 4 [(gogoproto.jsontag) = "MaxServiceFee"];
+  bytes  BaseIssueingCost   = 5 [(gogoproto.jsontag) = "BaseIssueingCost", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  MinDeposit         = 6 [(gogoproto.jsontag) = "MinDeposit", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message DelegationContractList {
+  repeated bytes Addresses = 1 [(gogoproto.jsontag) = "Addresses"];
+}
+
+message DelegationConfig {
+  bytes  MaxDelegationCap     = 1 [(gogoproto.jsontag) = "MaxDelegationCap", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  InitialOwnerFunds    = 2 [(gogoproto.jsontag) = "InitialOwnerFunds", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bool   AutomaticActivation  = 3 [(gogoproto.jsontag) = "AutomaticActivation"];
+  bool   ChangeableServiceFee = 4 [(gogoproto.jsontag) = "ChangeableServiceFee"];
+  uint64 CreatedNonce         = 5 [(gogoproto.jsontag) = "CreatedNonce"];
+  uint64 UnBondPeriod         = 6 [(gogoproto.jsontag) = "UnBondPeriod"];
+}
+
+message DelegationContractStatus {
+  repeated bytes     Delegators    = 1 [(gogoproto.jsontag) = "Delegators"];
+  repeated NodesData StakedKeys    = 2 [(gogoproto.jsontag) = "StakedKeys"];
+  repeated NodesData NotStakedKeys = 3 [(gogoproto.jsontag) = "NotStakedKeys"];
+  repeated NodesData UnStakedKeys  = 4 [(gogoproto.jsontag) = "UnStakedKeys"];
+}
+
+message Fund {
+  bytes  Value   = 1 [(gogoproto.jsontag) = "Value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  Address = 2 [(gogoproto.jsontag) = "Address"];
+  uint64 Nonce   = 3 [(gogoproto.jsontag) = "Nonce"];
+  uint32 Type    = 4 [(gogoproto.jsontag) = "Type"];
+}
+
+message DelegatorData {
+  bytes          ActiveFund        = 1 [(gogoproto.jsontag) = "ActiveFund"];
+  repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
+  uint32         RewardsCheckpoint = 3 [(gogoproto.jsontag) = "RewardsCheckpoint"];
+  bytes          UnClaimedRewards  = 4 [(gogoproto.jsontag) = "UnClaimedRewards", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+
+}
+
+message GlobalFundData {
+  repeated bytes ActiveFunds       = 1 [(gogoproto.jsontag) = "ActiveFunds"];
+  repeated bytes UnStakedFunds     = 2 [(gogoproto.jsontag) = "UnStakedFunds"];
+
+  bytes TotalUnStakedFromNodes = 3 [(gogoproto.jsontag) = "TotalUnStakedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalUnBondedFromNodes = 4 [(gogoproto.jsontag) = "TotalUnBondedFromNodes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalActive            = 5 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes TotalUnStaked          = 6 [(gogoproto.jsontag) = "TotalUnStaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
+message NodesData {
+  bytes BLSKey    = 1 [(gogoproto.jsontag) = "BLSKey"];
+  bytes SignedMsg = 2 [(gogoproto.jsontag) = "SignedMsg"];
+}
+
+message RewardComputationData {
+  bytes  RewardsToDistribute = 1 [(gogoproto.jsontag) = "RewardsToDistribute", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  bytes  TotalActive         = 2 [(gogoproto.jsontag) = "TotalActive", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+  uint64 ServiceFee          = 3 [(gogoproto.jsontag) = "ServiceFee"];
+}

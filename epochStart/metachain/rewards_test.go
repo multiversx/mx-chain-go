@@ -4,8 +4,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/vm"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -15,8 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
@@ -127,7 +126,8 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, err := NewEpochStartRewardsCreator(args)
+	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -524,7 +524,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	err := rwdc.addValidatorRewardsToMiniBlocks(valInfo, mb, miniBlocks, &rewardTx.RewardTx{})
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
@@ -569,7 +569,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 		},
 	}
 
-	rwdc.fillRewardsPerBlockPerNode(&mb.EpochStart.Economics)
+	rwdc.fillBaseRewardsPerBlockPerNode(mb.EpochStart.Economics.RewardsPerBlock)
 	rwdInfoData := rwdc.computeValidatorInfoPerRewardAddress(valInfo, &rewardTx.RewardTx{}, 0)
 	assert.Equal(t, 1, len(rwdInfoData))
 	rwdInfo := rwdInfoData[pubkey]
@@ -646,7 +646,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
-	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(10150)
+	metaBlk.EpochStart.Economics.TotalToDistribute = big.NewInt(20250)
 	valInfo := make(map[uint32][]*state.ValidatorInfo)
 	valInfo[0] = []*state.ValidatorInfo{
 		{
@@ -656,11 +656,25 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 			NumSelectedInSuccessBlocks: 1,
 			LeaderSuccess:              1,
 		},
+		{
+			RewardAddress:              vm.FirstDelegationSCAddress,
+			ShardId:                    0,
+			AccumulatedFees:            big.NewInt(100),
+			NumSelectedInSuccessBlocks: 1,
+			LeaderSuccess:              1,
+		},
 	}
+
+	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
+	userAcc, _ := acc.(state.UserAccountHandler)
+	userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
+	_ = args.UserAccountsDB.SaveAccount(userAcc)
+
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo)
 	assert.Nil(t, err)
-	assert.Equal(t, len(miniBlocks), 1)
+	assert.Equal(t, len(miniBlocks), 2)
 	assert.Equal(t, len(miniBlocks[0].TxHashes), 1)
+	assert.Equal(t, len(miniBlocks[1].TxHashes), 1)
 
 	expectedProtocolSustainabilityValue := big.NewInt(0).Add(metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, metaBlk.EpochStart.Economics.RewardsPerBlock)
 	expectedProtocolSustainabilityValue.Add(expectedProtocolSustainabilityValue, big.NewInt(100))
@@ -684,15 +698,6 @@ func getDefaultEpochStart() block.EpochStart {
 
 func getRewardsArguments() ArgsNewRewardsCreator {
 	return ArgsNewRewardsCreator{
-		ShardCoordinator:              mock.NewMultiShardsCoordinatorMock(2),
-		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
-		RewardsStorage:                &mock.StorerStub{},
-		MiniBlockStorage:              &mock.StorerStub{},
-		Hasher:                        &mock.HasherMock{},
-		Marshalizer:                   &mock.MarshalizerMock{},
-		DataPool:                      testscommon.NewPoolsHolderStub(),
-		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
-		NodesConfigProvider:           &mock.NodesCoordinatorStub{},
-		RewardsFix1EpochEnable:        0,
+		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 	}
 }

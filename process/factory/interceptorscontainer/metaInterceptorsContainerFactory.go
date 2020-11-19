@@ -305,7 +305,6 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-
 		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
 		if err != nil {
 			return err
