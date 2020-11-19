@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -138,7 +137,6 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo               dblookupext.HistoryRepository
 	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
-	ChanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 type processComponentsFactory struct {
@@ -181,7 +179,6 @@ type processComponentsFactory struct {
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
-	chanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -230,7 +227,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		epochNotifier:             args.EpochNotifier,
-		chanGracefullyClose:       args.ChanGracefullyClose,
 	}, nil
 }
 
@@ -971,7 +967,12 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := storageFactory.CreatePathManager(pcf.importDBConfig.ImportDBWorkingDir, pcf.coreData.ChainID())
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: pcf.importDBConfig.ImportDBWorkingDir,
+			ChainID:    pcf.coreData.ChainID(),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1036,7 +1037,7 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.chanGracefullyClose,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1063,7 +1064,7 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.chanGracefullyClose,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		Hasher:                   pcf.coreData.Hasher(),
 		GeneralConfig:            pcf.config,
 		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,

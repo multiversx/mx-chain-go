@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
@@ -137,7 +136,6 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 		ImportDbConfig: config.ImportDbConfig{
 			IsImportDBMode: false,
 		},
-		ChanGracefullyClose: make(chan endProcess.ArgEndProcess),
 	}
 }
 

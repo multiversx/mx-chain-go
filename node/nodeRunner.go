@@ -122,7 +122,6 @@ func (nr *NodeRunner) Start() error {
 			managedCoreComponents,
 			managedCryptoComponents,
 			managedNetworkComponents,
-			chanStopNodeProcess1,
 		)
 		if err != nil {
 			return err
@@ -750,7 +749,6 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
-		ChanGracefullyClose:       managedCoreComponents.ChanStopNodeProcess(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
@@ -844,18 +842,16 @@ func CreateManagedBootstrapComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
-	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-		Config:              *cfgs.GeneralConfig,
-		PrefConfig:          *cfgs.PreferencesConfig,
-		ImportDbConfig:      *cfgs.ImportDbConfig,
-		WorkingDir:          cfgs.FlagsConfig.WorkingDir,
-		CoreComponents:      managedCoreComponents,
-		CryptoComponents:    managedCryptoComponents,
-		NetworkComponents:   managedNetworkComponents,
-		ChanGracefullyClose: chanStopNodeProcess,
+		Config:            *cfgs.GeneralConfig,
+		PrefConfig:        *cfgs.PreferencesConfig,
+		ImportDbConfig:    *cfgs.ImportDbConfig,
+		WorkingDir:        cfgs.FlagsConfig.WorkingDir,
+		CoreComponents:    managedCoreComponents,
+		CryptoComponents:  managedCryptoComponents,
+		NetworkComponents: managedNetworkComponents,
 	}
 
 	bootstrapComponentsFactory, err := mainFactory.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

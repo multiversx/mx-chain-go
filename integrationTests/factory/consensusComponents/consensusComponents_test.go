@@ -35,7 +35,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
-		make(chan endProcess.ArgEndProcess),
 	)
 	require.Nil(t, err)
 	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)

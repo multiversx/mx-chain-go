@@ -8,20 +8,27 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 )
 
+// ArgCreatePathManager is used to pass the strings to the path manager factory function
+type ArgCreatePathManager struct {
+	WorkingDir string
+	ChainID    string
+}
+
 // CreatePathManager crates a path manager from provided working directory and chain ID
-func CreatePathManager(workingDir string, chainID string) (*pathmanager.PathManager, error) {
+func CreatePathManager(arg ArgCreatePathManager) (*pathmanager.PathManager, error) {
+	return CreatePathManagerFromSinglePathString(filepath.Join(arg.WorkingDir, core.DefaultDBPath, arg.ChainID))
+}
+
+// CreatePathManagerFromSinglePathString crates a path manager from provided path string
+func CreatePathManagerFromSinglePathString(dbPathWithChainID string) (*pathmanager.PathManager, error) {
 	pathTemplateForPruningStorer := filepath.Join(
-		workingDir,
-		core.DefaultDBPath,
-		chainID,
+		dbPathWithChainID,
 		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
 		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 
 	pathTemplateForStaticStorer := filepath.Join(
-		workingDir,
-		core.DefaultDBPath,
-		chainID,
+		dbPathWithChainID,
 		core.DefaultStaticDbString,
 		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)

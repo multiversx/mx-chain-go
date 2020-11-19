@@ -191,7 +191,12 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
 	trieStorageConfig config.StorageConfig,
 ) (data.StorageManager, dataRetriever.TrieDataGetter, error) {
-	pathManager, err := storageFactory.CreatePathManager(brcf.workingDir, brcf.chainID)
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: brcf.workingDir,
+			ChainID:    brcf.chainID,
+		},
+	)
 	if err != nil {
 		return nil, nil, err
 	}
