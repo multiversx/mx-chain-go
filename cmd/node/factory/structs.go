@@ -2095,7 +2095,7 @@ func newMetaBlockProcessor(
 		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
 		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
 		EconomicsDataProvider: economicsDataProvider,
-		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		EpochEnableV2:         10000000,
 	}
 
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
