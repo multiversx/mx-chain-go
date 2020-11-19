@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/factory"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,6 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCryptoComponents,
 		managedNetworkComponents,
 		make(chan endProcess.ArgEndProcess),
-		notifier.NewManualEpochStartNotifier(),
 	)
 	require.Nil(t, err)
 	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
