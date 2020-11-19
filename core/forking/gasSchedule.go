@@ -23,23 +23,26 @@ type gasScheduleNotifier struct {
 	handlers          []core.GasScheduleSubscribeHandler
 }
 
+// ArgsNewGasScheduleNotifier defines the gas schedule notifier arguments
+type ArgsNewGasScheduleNotifier struct {
+	GasScheduleConfig config.GasScheduleConfig
+	ConfigDir         string
+	EpochNotifier     core.EpochNotifier
+}
+
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
-func NewGasScheduleNotifier(
-	gasScheduleConfig config.GasScheduleConfig,
-	configDir string,
-	epochNotifier core.EpochNotifier,
-) (*gasScheduleNotifier, error) {
-	if len(gasScheduleConfig.GasScheduleByEpochs) == 0 {
+func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifier, error) {
+	if len(args.GasScheduleConfig.GasScheduleByEpochs) == 0 {
 		return nil, core.ErrInvalidGasScheduleConfig
 	}
-	if check.IfNil(epochNotifier) {
+	if check.IfNil(args.EpochNotifier) {
 		return nil, core.ErrNilEpochStartNotifier
 	}
 
 	g := &gasScheduleNotifier{
-		gasScheduleConfig: gasScheduleConfig,
+		gasScheduleConfig: args.GasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
-		configDir:         configDir,
+		configDir:         args.ConfigDir,
 	}
 
 	for _, gasScheduleConf := range g.gasScheduleConfig.GasScheduleByEpochs {
@@ -53,12 +56,12 @@ func NewGasScheduleNotifier(
 		return g.gasScheduleConfig.GasScheduleByEpochs[i].StartEpoch < g.gasScheduleConfig.GasScheduleByEpochs[j].StartEpoch
 	})
 	var err error
-	g.lastGasSchedule, err = core.LoadGasScheduleConfig(filepath.Join(g.configDir, gasScheduleConfig.GasScheduleByEpochs[0].FileName))
+	g.lastGasSchedule, err = core.LoadGasScheduleConfig(filepath.Join(g.configDir, args.GasScheduleConfig.GasScheduleByEpochs[0].FileName))
 	if err != nil {
 		return nil, err
 	}
 
-	epochNotifier.RegisterNotifyHandler(g)
+	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil
 }
