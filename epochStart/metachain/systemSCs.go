@@ -280,9 +280,20 @@ func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 // updates the configuration of the system SC if the flags permit
 func (s *systemSCProcessor) updateSystemSCConfigMaxNodes() error {
 	maxNumberOfNodes := s.maxNodes
-	err := s.setMaxNumberOfNodes(maxNumberOfNodes)
+	prevMaxNumberOfNodes, err := s.setMaxNumberOfNodes(maxNumberOfNodes)
+	if err != nil {
+		return err
+	}
 
-	return err
+	if maxNumberOfNodes < prevMaxNumberOfNodes {
+		return epochStart.ErrInvalidMaxNumberOfNodes
+	}
+
+	err = s.stakeNodesFromWaitingList(maxNumberOfNodes - prevMaxNumberOfNodes)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *systemSCProcessor) computeNumWaitingPerShard(validatorInfos map[uint32][]*state.ValidatorInfo) error {
@@ -592,7 +603,7 @@ func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
 	return nil
 }
 
-func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
+func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) (uint32, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: s.endOfEpochCallerAddress,
@@ -605,7 +616,7 @@ func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
 
 	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	log.Debug("setMaxNumberOfNodes called with",
@@ -613,15 +624,19 @@ func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
 		"returnMessage", vmOutput.ReturnMessage)
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return epochStart.ErrInvalidMaxNumberOfNodes
+		return 0, epochStart.ErrInvalidMaxNumberOfNodes
+	}
+	if len(vmOutput.ReturnData) != 1 {
+		return 0, epochStart.ErrInvalidSystemSCReturn
 	}
 
 	err = s.processSCOutputAccounts(vmOutput)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	prevMaxNumNodes := big.NewInt(0).SetBytes(vmOutput.ReturnData[0]).Uint64()
+	return uint32(prevMaxNumNodes), nil
 }
 
 func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
@@ -764,6 +779,14 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 	return nil
 }
 
+func (s *systemSCProcessor) stakeNodesFromWaitingList(nodesToStake uint32) error {
+	if nodesToStake == 0 {
+		return nil
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (s *systemSCProcessor) IsInterfaceNil() bool {
 	return s == nil
@@ -780,7 +803,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
 		if epoch >= maxNodesConfig.EpochEnable {
 			// to cover also rollbacks, we always set the maxNodes and set the Enabled flag
-			s.flagChangeMaxNodesEnabled.Toggle(true)
+			s.flagChangeMaxNodesEnabled.Toggle(epoch == maxNodesConfig.EpochEnable)
 			s.maxNodes = maxNodesConfig.MaxNumNodes
 		}
 	}
