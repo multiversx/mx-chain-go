@@ -56,6 +56,14 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 
+	economicsData := metaBlock.EpochStart.Economics
+	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",
+		"totalToDistribute", economicsData.TotalToDistribute,
+		"rewardsForProtocolSustainability", economicsData.RewardsForProtocolSustainability,
+		"rewardsPerBlock", economicsData.RewardsPerBlock,
+		"devFeesInEpoch", metaBlock.DevFeesInEpoch,
+	)
+
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
 	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
@@ -63,13 +71,13 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 		return nil, err
 	}
 
-	rc.fillBaseRewardsPerBlockPerNode(metaBlock.EpochStart.Economics.RewardsPerBlock)
+	rc.fillBaseRewardsPerBlockPerNode(economicsData.RewardsPerBlock)
 	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protocolSustainabilityRwdTx)
 	if err != nil {
 		return nil, err
 	}
 
-	totalWithoutDevelopers := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, metaBlock.DevFeesInEpoch)
+	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx, difference)
@@ -103,6 +111,8 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 			mbId = rc.shardCoordinator.NumberOfShards()
 
 			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
+				log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
+					"move to protocol vault", rwdTx.GetValue())
 				protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.GetValue())
 				continue
 			}
@@ -113,6 +123,12 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 			continue
 		}
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
+
+		log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks",
+			"epoch", rwdTx.GetEpoch(),
+			"destination", rwdTx.GetRcvAddr(),
+			"value", rwdTx.GetValue().String())
+
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
 	}
 

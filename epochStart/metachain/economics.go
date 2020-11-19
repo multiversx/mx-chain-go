@@ -145,7 +145,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
 
-	if big.NewInt(0).Cmp(totalRewardsToBeDistributed)>0{
+	if big.NewInt(0).Cmp(totalRewardsToBeDistributed) > 0 {
 		totalRewardsToBeDistributed = big.NewInt(0)
 		remainingToBeDistributed = big.NewInt(0)
 	}
@@ -330,6 +330,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	blocksPerShard[core.MetachainShardId] = blocksInShard
 	totalNumBlocks += blocksInShard
 	e.economicsDataNotified.SetNumberOfBlocks(totalNumBlocks)
+	e.economicsDataNotified.SetNumberOfBlocksPerShard(blocksPerShard)
 
 	return core.MaxUint64(1, totalNumBlocks)
 }
