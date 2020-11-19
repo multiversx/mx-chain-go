@@ -47,6 +47,10 @@ const gracePeriodInPercentage = float64(0.25)
 const roundGracePeriod = 25
 const numConcurrentTrieSyncers = 50
 
+// thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
+// the same meta block in order to consider it correct
+const thresholdForConsideringMetaBlockCorrect = 67
+
 // Parameters defines the DTO for the result produced by the bootstrap component
 type Parameters struct {
 	Epoch       uint32
@@ -410,6 +414,20 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	epochStartConfig := e.generalConfig.EpochStartConfig
+	metablockProcessor, err := NewEpochStartMetaBlockProcessor(
+		e.messenger,
+		e.requestHandler,
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		thresholdForConsideringMetaBlockCorrect,
+		epochStartConfig.MinNumConnectedPeersToStart,
+		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+	)
+	if err != nil {
+		return err
+	}
+
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
@@ -418,8 +436,9 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		ShardCoordinator:        e.shardCoordinator,
 		EconomicsData:           e.economicsData,
 		WhitelistHandler:        e.whiteListHandler,
-		StartInEpochConfig:      e.generalConfig.EpochStartConfig,
+		StartInEpochConfig:      epochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		MetaBlockProcessor:      metablockProcessor,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
