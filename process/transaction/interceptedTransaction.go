@@ -26,6 +26,7 @@ type InterceptedTransaction struct {
 	protoMarshalizer       marshal.Marshalizer
 	signMarshalizer        marshal.Marshalizer
 	hasher                 hashing.Hasher
+	txSignHasher           hashing.Hasher
 	keyGen                 crypto.KeyGenerator
 	singleSigner           crypto.SingleSigner
 	pubkeyConv             core.PubkeyConverter
@@ -34,11 +35,13 @@ type InterceptedTransaction struct {
 	feeHandler             process.FeeHandler
 	whiteListerVerifiedTxs process.WhiteListHandler
 	argsParser             process.ArgumentsParser
+	txVersionChecker       process.TxVersionCheckerHandler
 	chainID                []byte
 	minTransactionVersion  uint32
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool
+	enableSignedTxWithHash bool
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -55,7 +58,9 @@ func NewInterceptedTransaction(
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	argsParser process.ArgumentsParser,
 	chainID []byte,
-	minTxVersion uint32,
+	enableSignedTxWithHash bool,
+	txSignHasher hashing.Hasher,
+	txVersionChecker process.TxVersionCheckerHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -94,8 +99,11 @@ func NewInterceptedTransaction(
 	if len(chainID) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if minTxVersion == 0 {
-		return nil, process.ErrInvalidTransactionVersion
+	if check.IfNil(txSignHasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(txVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
 	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
@@ -116,7 +124,9 @@ func NewInterceptedTransaction(
 		whiteListerVerifiedTxs: whiteListerVerifiedTxs,
 		argsParser:             argsParser,
 		chainID:                chainID,
-		minTransactionVersion:  minTxVersion,
+		enableSignedTxWithHash: enableSignedTxWithHash,
+		txVersionChecker:       txVersionChecker,
+		txSignHasher:           txSignHasher,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -230,8 +240,9 @@ func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
 
 // integrity checks for not nil fields and negative value
 func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error {
-	if tx.Version < inTx.minTransactionVersion {
-		return process.ErrInvalidTransactionVersion
+	err := inTx.txVersionChecker.CheckTxVersion(tx)
+	if err != nil {
+		return err
 	}
 	if !bytes.Equal(tx.ChainID, inTx.chainID) {
 		return process.ErrInvalidChainID
@@ -273,12 +284,17 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 		return err
 	}
 
-	err = inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, tx.Signature)
-	if err != nil {
-		return err
+	if !inTx.txVersionChecker.IsSignedWithHash(tx) {
+		return inTx.singleSigner.Verify(senderPubKey, buffCopiedTx, tx.Signature)
 	}
 
-	return nil
+	if !inTx.enableSignedTxWithHash {
+		return process.ErrTransactionSignedWithHashIsNotEnabled
+	}
+
+	txHash := inTx.txSignHasher.Compute(string(buffCopiedTx))
+
+	return inTx.singleSigner.Verify(senderPubKey, txHash, tx.Signature)
 }
 
 // ReceiverShardId returns the receiver shard id

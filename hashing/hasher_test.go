@@ -33,7 +33,6 @@ func Suite(t *testing.T, h hashing.Hasher) {
 	testCalculateHash(t, h)
 	testCalculateEmptyHash(t, h)
 	testNilReturn(t, h)
-
 }
 
 func testNilInterface(t *testing.T, h hashing.Hasher) {
@@ -62,6 +61,7 @@ func testCalculateEmptyHash(t *testing.T, h hashing.Hasher) {
 	h2 := h.EmptyHash()
 
 	assert.Equal(t, h1, h2)
+	assert.Equal(t, h.Size(), len(h1))
 }
 
 func testNilReturn(t *testing.T, h hashing.Hasher) {
