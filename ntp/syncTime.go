@@ -201,6 +201,11 @@ func (s *syncTime) sync() {
 		"num clock offsets", len(clockOffsets),
 		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
 		"clock offset harmonic mean", clockOffsetHarmonicMean)
+
+	if clockOffsetHarmonicMean < -time.Second || clockOffsetHarmonicMean > time.Second {
+		log.Warn("syncTime.sync: clock offset is out of expected bounds",
+			"clock offset harmonic mean", clockOffsetHarmonicMean)
+	}
 }
 
 func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
