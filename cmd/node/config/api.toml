@@ -39,10 +39,10 @@
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
-        # /address/:address/allesdttokens will return the list of esdt tokens for a given account
-        { Name = "/:address/esdt-all", Open = true },
+        # /address/:address/esdt will return the list of esdt tokens for a given account
+        { Name = "/:address/esdt", Open = true },
 
-        # /address/:address/esdtbalance/:tokenName will return the balance of an esdt token for a given account
+        # /address/:address/esdt/:tokenName will return data of an esdt token for a given account
         { Name = "/:address/esdt/:tokenName", Open = true }
 	]
 
