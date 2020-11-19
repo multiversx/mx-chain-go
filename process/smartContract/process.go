@@ -770,7 +770,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			CallValue:      big.NewInt(0),
 			CallType:       callType,
 			GasPrice:       vmInput.GasPrice,
-			GasProvided:    vmOutput.GasRemaining,
+			GasProvided:    vmOutput.GasRemaining - vmInput.GasLocked,
 			GasLocked:      vmInput.GasLocked,
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
@@ -779,7 +779,6 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		Function:          function,
 		AllowInitFunction: false,
 	}
-	newVMInput.GasProvided -= vmInput.GasLocked
 
 	fillWithESDTValue(vmInput, newVMInput)
 

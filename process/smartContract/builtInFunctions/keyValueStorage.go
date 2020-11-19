@@ -78,8 +78,9 @@ func (k *saveKeyValueStorage) ProcessBuiltinFunction(
 
 		lengthChange := uint64(0)
 		lengthOldValue := uint64(len(oldValue))
-		if lengthOldValue < length {
-			lengthChange = length - lengthOldValue
+		lengthNewValue := uint64(len(value))
+		if lengthOldValue < lengthNewValue {
+			lengthChange = lengthNewValue - lengthOldValue
 		}
 
 		useGas += k.gasConfig.StorePerByte * lengthChange

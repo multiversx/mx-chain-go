@@ -37,7 +37,7 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
-	if args.GasSchedule == nil {
+	if check.IfNil(args.GasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
 
@@ -46,22 +46,22 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	sVm := &systemVM{
+	s := &systemVM{
 		systemEI:             args.SystemEI,
 		systemContracts:      args.SystemContracts,
 		vmType:               make([]byte, len(args.VmType)),
 		asyncCallStepCost:    apiCosts[core.AsyncCallStepField],
 		asyncCallbackGasLock: apiCosts[core.AsyncCallbackGasLockField],
 	}
-	copy(sVm.vmType, args.VmType)
+	copy(s.vmType, args.VmType)
 
-	if sVm.asyncCallStepCost == 0 || sVm.asyncCallbackGasLock == 0 {
+	if s.asyncCallStepCost == 0 || s.asyncCallbackGasLock == 0 {
 		return nil, vm.ErrNilGasSchedule
 	}
 
-	args.GasSchedule.RegisterNotifyHandler(sVm)
+	args.GasSchedule.RegisterNotifyHandler(s)
 
-	return sVm, nil
+	return s, nil
 }
 
 // RunSmartContractCreate creates and saves a new smart contract to the trie

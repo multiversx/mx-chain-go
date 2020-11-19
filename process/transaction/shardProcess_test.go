@@ -1035,7 +1035,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, nil)
 	scProcessorMock := &mock.SCProcessorMock{
-		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error {
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
 			return acntSnd.AddToBalance(tx.GetValue())
 		},
 	}

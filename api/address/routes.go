@@ -18,7 +18,7 @@ const (
 	getBalancePath  = "/:address/balance"
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
-	getESDTTokens   = "/:address/esdt-all"
+	getESDTTokens   = "/:address/esdt"
 	getESDTBalance  = "/:address/esdt/:tokenName"
 )
 
@@ -41,6 +41,12 @@ type accountResponse struct {
 	Code     string `json:"code"`
 	CodeHash []byte `json:"codeHash"`
 	RootHash []byte `json:"rootHash"`
+}
+
+type esdtTokenData struct {
+	TokenName  string `json:"tokenName"`
+	Balance    string `json:"balance"`
+	Properties string `json:"properties"`
 }
 
 // Routes defines address related routes
@@ -301,10 +307,16 @@ func GetESDTBalance(c *gin.Context) {
 		return
 	}
 
+	tokenData := esdtTokenData{
+		TokenName:  tokenName,
+		Balance:    balance,
+		Properties: freeze,
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"tokenName": tokenName, "balance": balance, "frozen": freeze},
+			Data:  gin.H{"tokenData": tokenData},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

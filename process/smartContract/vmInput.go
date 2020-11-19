@@ -107,8 +107,11 @@ func (sc *scProcessor) getAsyncCallGasLockFromTxData(callType vmcommon.CallType,
 	if callType != vmcommon.AsynchronousCall {
 		return arguments, 0
 	}
-
 	lenArgs := len(arguments)
+	if lenArgs == 0 {
+		return arguments, 0
+	}
+
 	lastArg := arguments[lenArgs-1]
 	gasLocked := big.NewInt(0).SetBytes(lastArg).Uint64()
 
