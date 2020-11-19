@@ -70,7 +70,10 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		CallType: vmcommon.DirectCall,
 	}
 	if vmInput.CallType == vmcommon.AsynchronousCall {
+		outTransfer.GasLocked = vmInput.GasLocked
+		outTransfer.GasLimit = vmOutput.GasRemaining
 		outTransfer.CallType = vmcommon.AsynchronousCallBack
+		vmOutput.GasRemaining = 0
 	}
 	outputAcc := &vmcommon.OutputAccount{
 		Address:         vmInput.CallerAddr,

@@ -1213,7 +1213,12 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(generalConfig.GasSchedule, gasScheduleConfigurationFolderName, epochNotifier)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: generalConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
 		return err
 	}

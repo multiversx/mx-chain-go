@@ -128,6 +128,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				string(vmInput.Arguments[2]),
 				callArgs,
 				vmInput.RecipientAddr,
+				vmInput.GasLocked,
 				vmOutput)
 		}
 
@@ -140,6 +141,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
+			vmInput.GasLocked,
 			vmOutput)
 	}
 
@@ -150,6 +152,7 @@ func addOutPutTransferToVMOutput(
 	function string,
 	arguments [][]byte,
 	recipient []byte,
+	gasLocked uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	esdtTransferTxData := function
@@ -157,16 +160,18 @@ func addOutPutTransferToVMOutput(
 		esdtTransferTxData += "@" + hex.EncodeToString(arg)
 	}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:    big.NewInt(0),
-		GasLimit: 0,
-		Data:     []byte(esdtTransferTxData),
-		CallType: vmcommon.AsynchronousCall,
+		Value:     big.NewInt(0),
+		GasLimit:  vmOutput.GasRemaining,
+		GasLocked: gasLocked,
+		Data:      []byte(esdtTransferTxData),
+		CallType:  vmcommon.AsynchronousCall,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 	vmOutput.OutputAccounts[string(recipient)] = &vmcommon.OutputAccount{
 		Address:         recipient,
 		OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 	}
+	vmOutput.GasRemaining = 0
 }
 
 func addToESDTBalance(

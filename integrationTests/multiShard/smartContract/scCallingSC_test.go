@@ -512,10 +512,11 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		vmOutput.GasRemaining = vmInput.GasProvided / 2
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
-			Value:    big.NewInt(0),
-			GasLimit: 200000,
-			Data:     []byte("testfunc@01"),
-			CallType: vmcommon.AsynchronousCall,
+			Value:     big.NewInt(0),
+			GasLimit:  200000,
+			GasLocked: vmInput.GasLocked,
+			Data:      []byte("testfunc@01"),
+			CallType:  vmcommon.AsynchronousCall,
 		}
 		vmOutput.OutputAccounts[string(vmInput.RecipientAddr)] = &vmcommon.OutputAccount{
 			Address:         vmInput.RecipientAddr,
