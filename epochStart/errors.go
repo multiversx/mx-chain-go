@@ -274,3 +274,6 @@ var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provid
 
 // ErrInvalidRewardsCreatorProxyConfig signals that the rewards creator proxy has an invalid configuration
 var ErrInvalidRewardsCreatorProxyConfig = errors.New("rewards creator proxy has an invalid configuration")
+
+// ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
+var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")

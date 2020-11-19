@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -39,32 +40,36 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
+	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	EpochNotifier      process.EpochNotifier
 }
 
 type systemSCProcessor struct {
-	systemVM                 vmcommon.VMExecutionHandler
-	userAccountsDB           state.AccountsAdapter
-	marshalizer              marshal.Marshalizer
-	peerAccountsDB           state.AccountsAdapter
-	chanceComputer           sharding.ChanceComputer
-	startRating              uint32
-	validatorInfoCreator     epochStart.ValidatorInfoCreator
-	genesisNodesConfig       sharding.GenesisNodesSetupHandler
-	endOfEpochCallerAddress  []byte
-	stakingSCAddress         []byte
-	switchEnableEpoch        uint32
-	hystNodesEnableEpoch     uint32
-	delegationEnableEpoch    uint32
-	stakingV2EnableEpoch     uint32
-	flagSwitchJailedWaiting  atomic.Flag
-	flagHystNodesEnabled     atomic.Flag
-	flagDelegationEnabled    atomic.Flag
-	flagStakingV2Enabled     atomic.Flag
-	mapNumSwitchedPerShard   map[uint32]uint32
-	mapNumSwitchablePerShard map[uint32]uint32
+	systemVM                  vmcommon.VMExecutionHandler
+	userAccountsDB            state.AccountsAdapter
+	marshalizer               marshal.Marshalizer
+	peerAccountsDB            state.AccountsAdapter
+	chanceComputer            sharding.ChanceComputer
+	startRating               uint32
+	validatorInfoCreator      epochStart.ValidatorInfoCreator
+	genesisNodesConfig        sharding.GenesisNodesSetupHandler
+	endOfEpochCallerAddress   []byte
+	stakingSCAddress          []byte
+	switchEnableEpoch         uint32
+	hystNodesEnableEpoch      uint32
+	delegationEnableEpoch     uint32
+	stakingV2EnableEpoch      uint32
+	maxNodesEnableConfig      []config.MaxNodesChangeConfig
+	maxNodes                  uint32
+	flagSwitchJailedWaiting   atomic.Flag
+	flagHystNodesEnabled      atomic.Flag
+	flagDelegationEnabled     atomic.Flag
+	flagStakingV2Enabled      atomic.Flag
+	flagChangeMaxNodesEnabled atomic.Flag
+	mapNumSwitchedPerShard    map[uint32]uint32
+	mapNumSwitchablePerShard  map[uint32]uint32
 }
 
 type validatorList []*state.ValidatorInfo
@@ -139,6 +144,12 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
 	}
 
+	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
+	copy(s.maxNodesEnableConfig, args.MaxNodesEnableConfig)
+	sort.Slice(s.maxNodesEnableConfig, func(i, j int) bool {
+		return s.maxNodesEnableConfig[i].EpochEnable < s.maxNodesEnableConfig[j].EpochEnable
+	})
+
 	args.EpochNotifier.RegisterNotifyHandler(s)
 	return s, nil
 }
@@ -146,7 +157,14 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
 func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
 	if s.flagHystNodesEnabled.IsSet() {
-		err := s.updateSystemSCConfig()
+		err := s.updateSystemSCConfigMinNodes()
+		if err != nil {
+			return err
+		}
+	}
+
+	if s.flagChangeMaxNodesEnabled.IsSet() {
+		err := s.updateSystemSCConfigMaxNodes()
 		if err != nil {
 			return err
 		}
@@ -252,9 +270,17 @@ func (s *systemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler) error
 }
 
 // updates the configuration of the system SC if the flags permit
-func (s *systemSCProcessor) updateSystemSCConfig() error {
+func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 	minNumberOfNodesWithHysteresis := s.genesisNodesConfig.MinNumberOfNodesWithHysteresis()
 	err := s.setMinNumberOfNodes(minNumberOfNodesWithHysteresis)
+
+	return err
+}
+
+// updates the configuration of the system SC if the flags permit
+func (s *systemSCProcessor) updateSystemSCConfigMaxNodes() error {
+	maxNumberOfNodes := s.maxNodes
+	err := s.setMaxNumberOfNodes(maxNumberOfNodes)
 
 	return err
 }
@@ -566,6 +592,38 @@ func (s *systemSCProcessor) setMinNumberOfNodes(minNumNodes uint32) error {
 	return nil
 }
 
+func (s *systemSCProcessor) setMaxNumberOfNodes(maxNumNodes uint32) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{big.NewInt(int64(maxNumNodes)).Bytes()},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "updateConfigMaxNodes",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("setMaxNumberOfNodes called with",
+		"maxNumNodes", maxNumNodes,
+		"returnMessage", vmOutput.ReturnMessage)
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrInvalidMaxNumberOfNodes
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	sw := core.NewStopWatch()
 	sw.Start("systemSCProcessor")
@@ -718,13 +776,27 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
-	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
+
+	for _, maxNodesConfig := range s.maxNodesEnableConfig {
+		if epoch >= maxNodesConfig.EpochEnable {
+			// to cover also rollbacks, we always set the maxNodes and set the Enabled flag
+			s.flagChangeMaxNodesEnabled.Toggle(true)
+			s.maxNodes = maxNodesConfig.MaxNumNodes
+		}
+	}
+
+	log.Debug("systemSCProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", epoch >= s.hystNodesEnableEpoch)
 
 	// only toggle on exact epoch as init should be called only once
 	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
-	log.Debug("systemProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
+	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
 	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
-	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("systemSCProcessor:change of maximum number of nodes and/or shuffling percentage",
+		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
+		"epoch", epoch,
+		"maxNodes", s.maxNodes,
+	)
 }

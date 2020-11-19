@@ -200,6 +200,13 @@ type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
 }
 
+// ChangeMaxNodesConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
+type MaxNodesChangeConfig struct {
+	EpochEnable            uint32
+	MaxNumNodes            uint32
+	NodesToShufflePerShard uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
@@ -212,6 +219,7 @@ type GeneralSettingsConfig struct {
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
+	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 }
 

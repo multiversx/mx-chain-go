@@ -1473,7 +1473,7 @@ func Test_UnJailNotAllowedIfJailed(t *testing.T) {
 	doUnJail(t, stakingSmartContract, stakingAccessAddress, []byte("secondKey"), vmcommon.Ok)
 }
 
-func TestStakingSc_updateConfigMinNodes(t *testing.T) {
+func TestStakingSc_updateConfigMinNodesOK(t *testing.T) {
 	t.Parallel()
 
 	stakeValue := big.NewInt(100)
@@ -1489,7 +1489,7 @@ func TestStakingSc_updateConfigMinNodes(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 40
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 	stakingConfig := &StakingNodesConfig{
@@ -1508,7 +1508,7 @@ func TestStakingSc_updateConfigMinNodes(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, stakingConfig, originalStakeConfig)
 
-	newMinNodes := int64(100)
+	newMinNodes := int64(30)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "updateConfigMinNodes"
 	arguments.CallerAddr = args.EndOfEpochAccessAddr
@@ -1529,6 +1529,64 @@ func TestStakingSc_updateConfigMinNodes(t *testing.T) {
 	require.Equal(t, originalStakeConfig.StakedNodes, updatedStakeConfig.StakedNodes)
 	require.NotEqual(t, newMinNodes, originalStakeConfig.MinNumNodes)
 	require.Equal(t, newMinNodes, updatedStakeConfig.MinNumNodes)
+}
+
+func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 40
+	args.Eei = eei
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingConfig := &StakingNodesConfig{
+		MinNumNodes: 5,
+		MaxNumNodes: 40,
+		StakedNodes: 10,
+		JailedNodes: 2,
+	}
+	stakingSmartContract.setConfig(stakingConfig)
+
+	originalStakeConfigMarshalled := args.Eei.GetStorage([]byte(nodesConfigKey))
+	require.NotEqual(t, 0, originalStakeConfigMarshalled)
+
+	originalStakeConfig := &StakingNodesConfig{}
+	err := json.Unmarshal(originalStakeConfigMarshalled, originalStakeConfig)
+	require.Nil(t, err)
+	require.Equal(t, stakingConfig, originalStakeConfig)
+
+	newMaxNodes := int64(100)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "updateConfigMaxNodes"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{big.NewInt(0).SetInt64(newMaxNodes).Bytes()}
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	// check storage is updated
+	updatedStakeConfigMarshalled := args.Eei.GetStorage([]byte(nodesConfigKey))
+	require.NotEqual(t, 0, updatedStakeConfigMarshalled)
+
+	updatedStakeConfig := &StakingNodesConfig{}
+	err = json.Unmarshal(updatedStakeConfigMarshalled, updatedStakeConfig)
+	require.Nil(t, err)
+
+	require.Equal(t, originalStakeConfig.JailedNodes, updatedStakeConfig.JailedNodes)
+	require.Equal(t, originalStakeConfig.MinNumNodes, updatedStakeConfig.MinNumNodes)
+	require.Equal(t, originalStakeConfig.StakedNodes, updatedStakeConfig.StakedNodes)
+	require.NotEqual(t, newMaxNodes, originalStakeConfig.MaxNumNodes)
+	require.Equal(t, newMaxNodes, updatedStakeConfig.MaxNumNodes)
 }
 
 func TestStakingSC_SetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {

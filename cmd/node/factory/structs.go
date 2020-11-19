@@ -2146,6 +2146,7 @@ func newMetaBlockProcessor(
 		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		GenesisNodesConfig:                     nodesSetup,
+		MaxNodesEnableConfig:                   generalSettingsConfig.MaxNodesChangeEnableEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
