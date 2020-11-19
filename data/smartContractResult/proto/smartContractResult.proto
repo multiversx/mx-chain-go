@@ -18,7 +18,7 @@ message SmartContractResult  {
 	bytes    Code           = 7  [(gogoproto.jsontag) = "code,omitempty"];
 	bytes    Data           = 8  [(gogoproto.jsontag) = "data,omitempty"];
 	bytes    PrevTxHash     = 9  [(gogoproto.jsontag) = "prevTxHash"];
-	bytes    OriginalTxHash = 10  [(gogoproto.jsontag) = "originalTxHash"];
+	bytes    OriginalTxHash = 10 [(gogoproto.jsontag) = "originalTxHash"];
 	uint64   GasLimit       = 11 [(gogoproto.jsontag) = "gasLimit"];
 	uint64   GasPrice       = 12 [(gogoproto.jsontag) = "gasPrice"];
 	int64    CallType       = 13 [(gogoproto.jsontag) = "callType", (gogoproto.casttype) = "github.com/ElrondNetwork/elrond-go/core/vmcommon.CallType"];

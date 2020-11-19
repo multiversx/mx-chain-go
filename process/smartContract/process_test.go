@@ -2233,13 +2233,13 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	acntSnd := &mock.UserAccountStub{}
-	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
+	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	expectedError := "@" + hex.EncodeToString([]byte("string"))
 	assert.Equal(t, expectedError, string(scr.Data))
 
-	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"))
+	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, expectedError, string(scr.Data))
@@ -2249,7 +2249,8 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		[]byte("txHash"),
 		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall},
 		"string",
-		[]byte("msg"))
+		[]byte("msg"),
+		0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, "@04", string(scr.Data))
@@ -2261,7 +2262,8 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		[]byte("txHash"),
 		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall, GasPrice: 1, GasLimit: 100},
 		"string",
-		[]byte("msg"))
+		[]byte("msg"),
+		20)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
 	assert.Equal(t, "@04", string(scr.Data))
@@ -2274,9 +2276,51 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		[]byte("txHash"),
 		&smartContractResult.SmartContractResult{CallType: vmcommon.AsynchronousCall, GasPrice: 1, GasLimit: 100},
 		"string",
-		[]byte("msg"))
+		[]byte("msg"),
+		0)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
 	assert.Equal(t, "@04", string(scr.Data))
 	assert.Equal(t, uint64(0), scr.GasLimit)
+}
+
+func TestGasLockedInSmartContractProcessor(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	outaddress := []byte("newsmartcontract")
+	outacc1 := &vmcommon.OutputAccount{}
+	outacc1.Address = outaddress
+	outacc1.Nonce = 0
+	outacc1.Balance = big.NewInt(5)
+	outacc1.BalanceDelta = big.NewInt(15)
+	outTransfer := vmcommon.OutputTransfer{
+		Value:     big.NewInt(5),
+		CallType:  vmcommon.AsynchronousCall,
+		GasLocked: 100,
+		GasLimit:  100,
+		Data:      []byte("functionCall"),
+	}
+	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+	vmOutput := &vmcommon.VMOutput{
+		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
+	}
+	vmOutput.OutputAccounts[string(outaddress)] = outacc1
+
+	asyncCallback, results := sc.createSmartContractResults(vmOutput, vmcommon.DirectCall, outacc1, &transaction.Transaction{}, []byte("hash"))
+	require.False(t, asyncCallback)
+	require.Equal(t, 1, len(results))
+
+	scr := results[0].(*smartContractResult.SmartContractResult)
+	gasLocked := sc.getGasLockedFromSCR(scr)
+	require.Equal(t, gasLocked, outTransfer.GasLocked)
+
+	_, args, err := sc.argsParser.ParseCallData(string(scr.Data))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(args))
+
+	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(scr.CallType, args)
+	require.Equal(t, 0, len(finalArguments))
+	require.Equal(t, gasLocked, outTransfer.GasLocked)
 }

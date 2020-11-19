@@ -39,10 +39,11 @@ func NewGasScheduleNotifier(
 	g := &gasScheduleNotifier{
 		gasScheduleConfig: gasScheduleConfig,
 		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
+		configDir:         configDir,
 	}
 
 	for _, gasScheduleConf := range g.gasScheduleConfig.GasScheduleByEpochs {
-		_, err := core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConf.FileName))
+		_, err := core.LoadGasScheduleConfig(filepath.Join(g.configDir, gasScheduleConf.FileName))
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +53,7 @@ func NewGasScheduleNotifier(
 		return g.gasScheduleConfig.GasScheduleByEpochs[i].StartEpoch < g.gasScheduleConfig.GasScheduleByEpochs[j].StartEpoch
 	})
 	var err error
-	g.lastGasSchedule, err = core.LoadGasScheduleConfig(filepath.Join(configDir, gasScheduleConfig.GasScheduleByEpochs[0].FileName))
+	g.lastGasSchedule, err = core.LoadGasScheduleConfig(filepath.Join(g.configDir, gasScheduleConfig.GasScheduleByEpochs[0].FileName))
 	if err != nil {
 		return nil, err
 	}
