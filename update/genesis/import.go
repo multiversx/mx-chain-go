@@ -36,14 +36,15 @@ type ArgsNewStateImport struct {
 }
 
 type stateImport struct {
-	genesisHeaders    map[uint32]data.HeaderHandler
-	transactions      map[string]data.TransactionHandler
-	miniBlocks        map[string]*block.MiniBlock
-	importedMetaBlock *block.MetaBlock
-	tries             map[string]data.Trie
-	accountDBsMap     map[uint32]state.AccountsDBImporter
-	validatorDB       state.AccountsDBImporter
-	hardforkStorer    update.HardforkStorer
+	genesisHeaders               map[uint32]data.HeaderHandler
+	transactions                 map[string]data.TransactionHandler
+	miniBlocks                   map[string]*block.MiniBlock
+	importedEpochStartMetaBlock  *block.MetaBlock
+	importedUnFinishedMetaBlocks map[string]*block.MetaBlock
+	tries                        map[string]data.Trie
+	accountDBsMap                map[uint32]state.AccountsDBImporter
+	validatorDB                  state.AccountsDBImporter
+	hardforkStorer               update.HardforkStorer
 
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
@@ -68,18 +69,19 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	}
 
 	st := &stateImport{
-		genesisHeaders:      make(map[uint32]data.HeaderHandler),
-		transactions:        make(map[string]data.TransactionHandler),
-		miniBlocks:          make(map[string]*block.MiniBlock),
-		importedMetaBlock:   &block.MetaBlock{},
-		tries:               make(map[string]data.Trie),
-		hasher:              args.Hasher,
-		marshalizer:         args.Marshalizer,
-		accountDBsMap:       make(map[uint32]state.AccountsDBImporter),
-		trieStorageManagers: args.TrieStorageManagers,
-		storageConfig:       args.StorageConfig,
-		shardID:             args.ShardID,
-		hardforkStorer:      args.HardforkStorer,
+		genesisHeaders:               make(map[uint32]data.HeaderHandler),
+		transactions:                 make(map[string]data.TransactionHandler),
+		miniBlocks:                   make(map[string]*block.MiniBlock),
+		importedEpochStartMetaBlock:  &block.MetaBlock{},
+		importedUnFinishedMetaBlocks: make(map[string]*block.MetaBlock),
+		tries:                        make(map[string]data.Trie),
+		hasher:                       args.Hasher,
+		marshalizer:                  args.Marshalizer,
+		accountDBsMap:                make(map[uint32]state.AccountsDBImporter),
+		trieStorageManagers:          args.TrieStorageManagers,
+		storageConfig:                args.StorageConfig,
+		shardID:                      args.ShardID,
+		hardforkStorer:               args.HardforkStorer,
 	}
 
 	return st, nil
@@ -92,8 +94,10 @@ func (si *stateImport) ImportAll() error {
 	si.hardforkStorer.RangeKeys(func(identifier string, keys [][]byte) bool {
 		var err error
 		switch identifier {
-		case MetaBlockIdentifier:
-			err = si.importMetaBlock(identifier, keys)
+		case EpochStartMetaBlockIdentifier:
+			err = si.importEpochStartMetaBlock(identifier, keys)
+		case UnFinishedMetaBlocksIdentifier:
+			err = si.importUnFinishedMetaBlocks(identifier, keys)
 		case MiniBlocksIdentifier:
 			err = si.importMiniBlocks(identifier, keys)
 		case TransactionsIdentifier:
@@ -122,9 +126,9 @@ func (si *stateImport) ImportAll() error {
 	return err
 }
 
-func (si *stateImport) importMetaBlock(identifier string, keys [][]byte) error {
+func (si *stateImport) importEpochStartMetaBlock(identifier string, keys [][]byte) error {
 	if len(keys) != 1 {
-		return update.ErrExpectedOneMetablock
+		return update.ErrExpectedOneStartOfEpochMetaBlock
 	}
 	object, err := si.createElement(identifier, string(keys[0]))
 	if err != nil {
@@ -136,7 +140,37 @@ func (si *stateImport) importMetaBlock(identifier string, keys [][]byte) error {
 		return update.ErrWrongTypeAssertion
 	}
 
-	si.importedMetaBlock = metaBlock
+	si.importedEpochStartMetaBlock = metaBlock
+
+	return nil
+}
+
+func (si *stateImport) importUnFinishedMetaBlocks(identifier string, keys [][]byte) error {
+	var err error
+	var object interface{}
+	for _, key := range keys {
+		object, err = si.createElement(identifier, string(key))
+		if err != nil {
+			break
+		}
+
+		metaBlock, ok := object.(*block.MetaBlock)
+		if !ok {
+			return update.ErrWrongTypeAssertion
+		}
+
+		var hash []byte
+		hash, err = core.CalculateHash(si.marshalizer, si.hasher, metaBlock)
+		if err != nil {
+			break
+		}
+
+		si.importedUnFinishedMetaBlocks[string(hash)] = metaBlock
+	}
+
+	if err != nil {
+		return fmt.Errorf("%w identifier %s", err, UnFinishedMetaBlocksIdentifier)
+	}
 
 	return nil
 }
@@ -518,7 +552,12 @@ func (si *stateImport) GetTransactions() map[string]data.TransactionHandler {
 
 // GetHardForkMetaBlock returns the hardFork metablock
 func (si *stateImport) GetHardForkMetaBlock() *block.MetaBlock {
-	return si.importedMetaBlock
+	return si.importedEpochStartMetaBlock
+}
+
+// GetUnFinishedMetaBlocks returns all imported unFinished metablocks
+func (si *stateImport) GetUnFinishedMetaBlocks() map[string]*block.MetaBlock {
+	return si.importedUnFinishedMetaBlocks
 }
 
 // GetMiniBlocks returns all imported pending miniblocks
