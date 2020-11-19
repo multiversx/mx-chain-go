@@ -32,7 +32,6 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
-		make(chan endProcess.ArgEndProcess),
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedBootstrapComponents)

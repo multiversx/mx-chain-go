@@ -425,6 +425,9 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	generalConfigs := configs.GeneralConfig
 	p2pConfigs := configs.P2pConfig
 	prefsConfig := configs.PreferencesConfig
+
+	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
+	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
 	if importDbFlags.IsImportDBMode {
 		importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
 		var err error

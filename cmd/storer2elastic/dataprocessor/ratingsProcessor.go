@@ -119,7 +119,7 @@ func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[u
 }
 
 func (rp *ratingsProcessor) createPeerAdapter() error {
-	pathManager, err := storageFactory.CreatePathManager(rp.dbPathWithChainID, rp.dbPathWithChainID)
+	pathManager, err := storageFactory.CreatePathManagerFromSinglePathString(rp.dbPathWithChainID)
 	if err != nil {
 		return err
 	}

@@ -131,7 +131,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	pathHandler, err := storageFactory.CreatePathManager(ccf.workingDir, ccf.config.GeneralSettings.ChainID)
+	pathHandler, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: ccf.workingDir,
+			ChainID:    ccf.config.GeneralSettings.ChainID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
