@@ -35,6 +35,7 @@ type CoreComponents struct {
 	StatusHandler            core.AppStatusHandler
 	ChainID                  []byte
 	MinTransactionVersion    uint32
+	TxSignHasher             hashing.Hasher
 }
 
 // CryptoParams is a DTO for holding block signing parameters

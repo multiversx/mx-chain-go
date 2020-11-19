@@ -58,6 +58,11 @@ func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
 		return nil, fmt.Errorf("%w (tx sign): %s", ErrMarshalizerCreation, err.Error())
 	}
 
+	txSignHasher, err := factoryHasher.NewHasher(ccf.config.TxSignHasher.Type)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
+	}
+
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
 	return &CoreComponents{
@@ -69,5 +74,6 @@ func (ccf *CoreComponentsFactory) Create() (*CoreComponents, error) {
 		StatusHandler:            statusHandler.NewNilStatusHandler(),
 		ChainID:                  ccf.chainID,
 		MinTransactionVersion:    ccf.MinTransactionVersion,
+		TxSignHasher:             txSignHasher,
 	}, nil
 }
