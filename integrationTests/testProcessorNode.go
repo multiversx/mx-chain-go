@@ -20,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -42,6 +43,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -88,6 +90,9 @@ import (
 
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
+
+// TestTxSignHasher represents a sha3 legacy keccak 256 hasher
+var TestTxSignHasher = keccak.Keccak{}
 
 // TestMarshalizer represents the main marshalizer
 var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
@@ -151,8 +156,8 @@ const roundDuration = 5 * time.Second
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
 
-// MinTransactionVersion is the minimum transaction version used in integration testes, processing nodes
-var MinTransactionVersion = uint32(999)
+// MinTransactionVersion is the minimum transaction version used in integration tests, processing nodes
+var MinTransactionVersion = uint32(1)
 
 // SoftwareVersion is the software version identifier used in integration tests, processing nodes
 var SoftwareVersion = []byte("intT")
@@ -875,6 +880,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
+			TxSignHasher:            TestHasher,
+			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -937,6 +944,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			ArgumentsParser:         smartContract.NewArgumentParser(),
 			ChainID:                 tpn.ChainID,
 			MinTransactionVersion:   tpn.MinTransactionVersion,
+			TxSignHasher:            TestTxSignHasher,
+			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1657,6 +1666,9 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithIndexer(indexer.NewNilIndexer()),
 		node.WithWhiteListHandlerVerified(tpn.WhiteListerVerifiedTxs),
 		node.WithWhiteListHandler(tpn.WhiteListHandler),
+		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
+		node.WithTxSignHasher(TestTxSignHasher),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(tpn.MinTransactionVersion)),
 	)
 	log.LogIfError(err)
 
@@ -1690,6 +1702,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		hex.EncodeToString(tx.Signature),
 		string(tx.ChainID),
 		tx.Version,
+		tx.Options,
 	)
 	if err != nil {
 		return "", err
