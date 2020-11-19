@@ -105,7 +105,6 @@ func (tnr *trieNodeResolver) getSubTrie(hash []byte, remainingSpace uint64) ([][
 	serializedNodes, remainingSpace, err := tnr.trieDataGetter.GetSerializedNodes(hash, remainingSpace)
 	if err != nil {
 		tnr.signalGracefullyClose()
-
 		return nil, remainingSpace, err
 	}
 

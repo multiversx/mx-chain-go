@@ -85,7 +85,6 @@ func (hdrRes *headerResolver) RequestDataFromHash(hash []byte, _ uint32) error {
 	buff, err := hdrRes.hdrStorage.SearchFirst(hash)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -98,7 +97,6 @@ func (hdrRes *headerResolver) RequestDataFromNonce(nonce uint64, epoch uint32) e
 	hash, err := hdrRes.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
-
 		return err
 	}
 
@@ -110,7 +108,6 @@ func (hdrRes *headerResolver) RequestDataFromEpoch(identifier []byte) error {
 	buff, err := hdrRes.resolveHeaderFromEpoch(identifier)
 	if err != nil {
 		hdrRes.signalGracefullyClose()
-
 		return err
 	}
 
