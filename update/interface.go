@@ -14,7 +14,7 @@ import (
 // StateSyncer interface defines the methods needed to sync and get all states
 type StateSyncer interface {
 	GetEpochStartMetaBlock() (*block.MetaBlock, error)
-	GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error)
+	GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	SyncAllState(epoch uint32) error
 	GetAllTries() (map[string]data.Trie, error)
 	GetAllTransactions() (map[string]data.TransactionHandler, error)
@@ -93,6 +93,7 @@ type ImportHandler interface {
 	GetValidatorAccountsDB() state.AccountsAdapter
 	GetMiniBlocks() map[string]*block.MiniBlock
 	GetHardForkMetaBlock() *block.MetaBlock
+	GetUnFinishedMetaBlocks() map[string]*block.MetaBlock
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
 	IsInterfaceNil() bool
@@ -106,7 +107,7 @@ type HardForkBlockProcessor interface {
 
 // PendingTransactionProcessor defines the methods to process a transaction destination me
 type PendingTransactionProcessor interface {
-	ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	ProcessTransactionsDstMe(txsInfo []*TxInfo) (block.MiniBlockSlice, error)
 	RootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
@@ -115,7 +116,7 @@ type PendingTransactionProcessor interface {
 type HeaderSyncHandler interface {
 	SyncUnFinishedMetaHeaders(epoch uint32) error
 	GetEpochStartMetaBlock() (*block.MetaBlock, error)
-	GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error)
+	GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error)
 	IsInterfaceNil() bool
 }
 
