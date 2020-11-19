@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test CryptoComponents --------------------
+// ------------ Test BootstrapComponents --------------------
 func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second)
@@ -27,7 +27,12 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(
+		configs,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+	)
 	require.Nil(t, err)
 	require.NotNil(t, managedBootstrapComponents)
 

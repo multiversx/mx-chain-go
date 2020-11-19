@@ -21,6 +21,7 @@ import (
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	PrefConfig        config.Preferences
+	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
 	CoreComponents    CoreComponentsHolder
 	CryptoComponents  CryptoComponentsHolder
@@ -30,6 +31,7 @@ type BootstrapComponentsFactoryArgs struct {
 type bootstrapComponentsFactory struct {
 	config            config.Config
 	prefConfig        config.Preferences
+	importDbConfig    config.ImportDbConfig
 	workingDir        string
 	coreComponents    CoreComponentsHolder
 	cryptoComponents  CryptoComponentsHolder
@@ -66,6 +68,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
 		prefConfig:        args.PrefConfig,
+		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
 		coreComponents:    args.CoreComponents,
 		cryptoComponents:  args.CryptoComponents,

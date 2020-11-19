@@ -7,6 +7,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -285,6 +286,12 @@ var (
 		Name:  "import-db-save-epoch-root-hash",
 		Usage: "This flag, if set, will export the trie snapshots at every new epoch",
 	}
+	// importDbStartInEpoch defines a flag for an optional flag that can specify the start in epoch value when executing the import-db process
+	importDbStartInEpoch = cli.Uint64Flag{
+		Name:  "import-db-start-epoch",
+		Value: 0,
+		Usage: "This flag will specify the start in epoch value in import-db process",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -329,10 +336,11 @@ func getFlags() []cli.Flag {
 		importDbDirectory,
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
+		importDbStartInEpoch,
 	}
 }
 
-func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error {
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
@@ -374,14 +382,19 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	isInImportMode := len(importDbDirectoryValue) > 0
-	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
-	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
-	flagsConfig.IsInImportMode = isInImportMode
-	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
-	flagsConfig.ImportDbSaveTrieEpochRootHash = ctx.GlobalBool(importDbSaveEpochRootHash.Name) && isInImportMode
-
+	importDBConfigs := &config.ImportDbConfig{
+		IsImportDBMode:                len(importDbDirectoryValue) > 0,
+		ImportDBWorkingDir:            importDbDirectoryValue,
+		ImportDbNoSigCheckFlag:        ctx.GlobalBool(importDbNoSigCheck.Name),
+		ImportDbSaveTrieEpochRootHash: ctx.GlobalBool(importDbSaveEpochRootHash.Name),
+		ImportDBStartInEpoch:          uint32(ctx.GlobalUint64(importDbStartInEpoch.Name)),
+	}
 	cfgs.FlagsConfig = flagsConfig
+	cfgs.ImportDbConfig = importDBConfigs
+	err := applyCompatibleConfigs(log, cfgs)
+	if err != nil {
+		return err
+	}
 
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
@@ -389,6 +402,8 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 			flagsConfig.SessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
 		}
 	}
+
+	return nil
 }
 
 func getWorkingDir(workingDir string, log logger.Logger) string {
@@ -405,29 +420,54 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 	return workingDir
 }
 
-func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
-	if isInImportMode {
-		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
-			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
-			"p2p.ThresholdMinConnectedPeers", 0,
-			"no sig check", importDbNoSigCheckFlag,
-			"heartbeat sender", "off",
-		)
-		config.GeneralSettings.StartInEpochEnabled = false
-		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
-		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
-		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
-		p2pConfig.Node.ThresholdMinConnectedPeers = 0
-		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
-		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
-		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
+	importDbFlags := configs.ImportDbConfig
+	generalConfigs := configs.GeneralConfig
+	p2pConfigs := configs.P2pConfig
+	prefsConfig := configs.PreferencesConfig
 
-		alterStorageConfigsForDBImport(config)
+	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
+	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
+	if importDbFlags.IsImportDBMode {
+		importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+		var err error
+
+		importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+		if err != nil {
+			return err
+		}
+
+		if importDbFlags.ImportDBStartInEpoch == 0 {
+			generalConfigs.GeneralSettings.StartInEpochEnabled = false
+		}
+
+		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
+		generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart = 0
+		generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid = 1
+		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
+		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+
+		alterStorageConfigsForDBImport(generalConfigs)
+
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
+			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
+			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
+			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
+			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
+			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
+			"kad dht discoverer", "off",
+			"EpochStartConfig.MinNumConnectedPeersToStart", generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart,
+			"EpochStartConfig.MinNumOfPeersToConsiderBlockValid", generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid,
+		)
 	}
+
+	return nil
 }
 
 func alterStorageConfigsForDBImport(config *config.Config) {

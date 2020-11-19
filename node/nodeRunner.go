@@ -117,7 +117,12 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Debug("creating bootstrap components")
-		managedBootstrapComponents, err := CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+		managedBootstrapComponents, err := CreateManagedBootstrapComponents(
+			configs,
+			managedCoreComponents,
+			managedCryptoComponents,
+			managedNetworkComponents,
+		)
 		if err != nil {
 			return err
 		}
@@ -180,7 +185,7 @@ func (nr *NodeRunner) Start() error {
 			managedStateComponents,
 			nodesCoordinator,
 			flagsConfig.ElasticSearchTemplatesPath,
-			flagsConfig.IsInImportMode,
+			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
 			return err
@@ -707,6 +712,7 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 
 	processArgs := mainFactory.ProcessComponentsFactoryArgs{
 		Config:                    *configs.GeneralConfig,
+		ImportDBConfig:            *configs.ImportDbConfig,
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
 		GasSchedule:               gasSchedule,
@@ -743,7 +749,6 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
-		ChanGracefullyClose:       managedCoreComponents.ChanStopNodeProcess(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
@@ -778,7 +783,7 @@ func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents 
 		Core:                          managedCoreComponents,
 		EpochStartNotifier:            managedCoreComponents.EpochStartNotifierWithConfirm(),
 		CurrentEpoch:                  storerEpoch,
-		CreateTrieEpochRootHashStorer: configs.FlagsConfig.ImportDbSaveTrieEpochRootHash,
+		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 	}
 
 	dataComponentsFactory, err := mainFactory.NewDataComponentsFactory(dataArgs)
@@ -842,6 +847,7 @@ func CreateManagedBootstrapComponents(
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
 		Config:            *cfgs.GeneralConfig,
 		PrefConfig:        *cfgs.PreferencesConfig,
+		ImportDbConfig:    *cfgs.ImportDbConfig,
 		WorkingDir:        cfgs.FlagsConfig.WorkingDir,
 		CoreComponents:    managedCoreComponents,
 		CryptoComponents:  managedCryptoComponents,
@@ -880,6 +886,9 @@ func CreateManagedNetworkComponents(
 		Syncer:               managedCoreComponents.SyncTimer(),
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
+	if cfgs.ImportDbConfig.IsImportDBMode {
+		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
+	}
 
 	networkComponentsFactory, err := mainFactory.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
 	if err != nil {
@@ -913,6 +922,7 @@ func CreateManagedCoreComponents(
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
 		Config:                *cfgs.GeneralConfig,
+		ImportDbConfig:        *cfgs.ImportDbConfig,
 		RatingsConfig:         *cfgs.RatingsConfig,
 		EconomicsConfig:       *cfgs.EconomicsConfig,
 		NodesFilename:         cfgs.FlagsConfig.NodesFileName,
@@ -951,8 +961,8 @@ func CreateManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: cfgs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               cfgs.FlagsConfig.ImportDbNoSigCheckFlag,
-		IsInImportMode:                       cfgs.FlagsConfig.IsInImportMode,
+		UseDisabledSigVerifier:               cfgs.ImportDbConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       cfgs.ImportDbConfig.IsImportDBMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

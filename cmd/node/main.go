@@ -77,10 +77,15 @@ func main() {
 			return err
 		}
 
-		applyFlags(c, cfgs, log)
+		err = applyFlags(c, cfgs, log)
+		if err != nil {
+			return err
+		}
+
 		cfgs.FlagsConfig.Version = app.Version
 
-		nodeRunner, err := node.NewNodeRunner(cfgs, log)
+		var nodeRunner *node.NodeRunner
+		nodeRunner, err = node.NewNodeRunner(cfgs, log)
 		if err != nil {
 			return err
 		}
@@ -165,18 +170,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
-	}
-
-	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	if len(importDbDirectoryValue) > 0 {
-		importCheckpointRoundsModulus := uint(generalConfig.EpochStartConfig.RoundsPerEpoch)
-		log.Info("import DB directory is set, altering config values!",
-			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"import DB path", importDbDirectoryValue,
-		)
-		generalConfig.GeneralSettings.StartInEpochEnabled = false
-		generalConfig.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 	}
 
 	return &config.Configs{

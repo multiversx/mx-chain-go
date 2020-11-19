@@ -182,9 +182,6 @@ var ErrNilForkDetector = errors.New("fork detector is nil")
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil gas schedule")
 
-// ErrNilGenesisNodesSetup signals that a nil genesis nodes setup
-var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
-
 // ErrNilHasher is raised when a valid hasher is expected but nil used
 var ErrNilHasher = errors.New("nil hasher provided")
 
@@ -461,7 +458,7 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
-// ErrNewBootstrapDataProvider signals a new epochStartBootstrap creation has failed
+// ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
 // ErrBootstrap signals the bootstrapping process has failed
@@ -469,3 +466,6 @@ var ErrBootstrap = errors.New("bootstrap process has failed")
 
 // ErrNilDataPoolsHolder signals that a nil data pools holder was provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
+
+// ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
+var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")

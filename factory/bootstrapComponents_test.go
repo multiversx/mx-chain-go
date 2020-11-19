@@ -82,8 +82,8 @@ func TestBootstrapComponentsFactory_Create_ShouldWork(t *testing.T) {
 
 	bc, err := bcf.Create()
 
-	require.NotNil(t, bc)
 	require.Nil(t, err)
+	require.NotNil(t, bc)
 }
 
 func TestBootstrapComponentsFactory_Create_BootstrapDataProviderCreationFail(t *testing.T) {
@@ -132,6 +132,9 @@ func getBootStrapArgs() factory.BootstrapComponentsFactoryArgs {
 			Preferences: config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
 			},
+		},
+		ImportDbConfig: config.ImportDbConfig{
+			IsImportDBMode: false,
 		},
 	}
 }

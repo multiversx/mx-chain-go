@@ -42,6 +42,9 @@ func CreateDefaultConfig() *config.Configs {
 	externalConfig, _ := core.LoadExternalConfig(ExternalPath)
 	systemSCConfig, _ := core.LoadSystemSmartContractsConfig(SystemSCConfigPath)
 
+	p2pConfig.KadDhtPeerDiscovery.Enabled = false
+	prefsConfig.Preferences.DestinationShardAsObserver = "0"
+
 	configs := &config.Configs{}
 	configs.GeneralConfig = generalConfig
 	configs.RatingsConfig = ratingsConfig
@@ -60,6 +63,7 @@ func CreateDefaultConfig() *config.Configs {
 		SmartContractsFileName:           GenesisSmartContracts,
 		NodesFileName:                    NodesSetupPath,
 	}
+	configs.ImportDbConfig = &config.ImportDbConfig{}
 
 	return configs
 }

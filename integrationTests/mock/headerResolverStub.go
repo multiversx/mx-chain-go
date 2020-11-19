@@ -56,6 +56,7 @@ func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) er
 	if hrs.RequestDataFromHashCalled == nil {
 		return nil
 	}
+
 	return hrs.RequestDataFromHashCalled(hash, epoch)
 }
 
@@ -64,6 +65,7 @@ func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	if hrs.ProcessReceivedMessageCalled == nil {
 		return nil
 	}
+
 	return hrs.ProcessReceivedMessageCalled(message)
 }
 
@@ -72,6 +74,7 @@ func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) 
 	if hrs.RequestDataFromNonceCalled == nil {
 		return nil
 	}
+
 	return hrs.RequestDataFromNonceCalled(nonce, epoch)
 }
 

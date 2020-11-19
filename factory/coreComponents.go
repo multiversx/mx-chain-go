@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
@@ -30,7 +29,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
@@ -38,6 +37,7 @@ type CoreComponentsFactoryArgs struct {
 	Config                config.Config
 	RatingsConfig         config.RatingsConfig
 	EconomicsConfig       config.EconomicsConfig
+	ImportDbConfig        config.ImportDbConfig
 	NodesFilename         string
 	WorkingDirectory      string
 	ChanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -49,6 +49,7 @@ type coreComponentsFactory struct {
 	config                config.Config
 	ratingsConfig         config.RatingsConfig
 	economicsConfig       config.EconomicsConfig
+	importDbConfig        config.ImportDbConfig
 	nodesFilename         string
 	workingDir            string
 	chanStopNodeProcess   chan endProcess.ArgEndProcess
@@ -88,6 +89,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 	return &coreComponentsFactory{
 		config:                args.Config,
 		ratingsConfig:         args.RatingsConfig,
+		importDbConfig:        args.ImportDbConfig,
 		economicsConfig:       args.EconomicsConfig,
 		workingDir:            args.WorkingDirectory,
 		chanStopNodeProcess:   args.ChanStopNodeProcess,
@@ -129,8 +131,12 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for AddressPubkeyConverter", err)
 	}
 
-	pruningStorerPathTemplate, staticStorerPathTemplate := ccf.createStorerTemplatePaths()
-	pathHandler, err := pathmanager.NewPathManager(pruningStorerPathTemplate, staticStorerPathTemplate)
+	pathHandler, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: ccf.workingDir,
+			ChainID:    ccf.config.GeneralSettings.ChainID,
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -265,26 +271,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
 	}, nil
-}
-
-func (ccf *coreComponentsFactory) createStorerTemplatePaths() (string, string) {
-	pathTemplateForPruningStorer := filepath.Join(
-		ccf.workingDir,
-		core.DefaultDBPath,
-		ccf.config.GeneralSettings.ChainID,
-		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		ccf.workingDir,
-		core.DefaultDBPath,
-		ccf.config.GeneralSettings.ChainID,
-		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	return pathTemplateForPruningStorer, pathTemplateForStaticStorer
 }
 
 // Close closes all underlying components

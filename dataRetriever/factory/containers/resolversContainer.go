@@ -5,12 +5,14 @@ import (
 	"sort"
 	"strings"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/container"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 var _ dataRetriever.ResolversContainer = (*resolversContainer)(nil)
+var log = logger.GetOrCreate("dataretriever/factory/containers")
 
 // resolversContainer is a resolvers holder organized by type
 type resolversContainer struct {
@@ -140,6 +142,24 @@ func (rc *resolversContainer) Iterate(handler func(key string, resolver dataRetr
 			return
 		}
 	}
+}
+
+// Close will try to close each containing resolver if that resolver implements the Closer interface
+func (rc *resolversContainer) Close() error {
+	var foundErr error
+	rc.Iterate(func(key string, resolver dataRetriever.Resolver) bool {
+		log.Debug("closing resolver", "key", key)
+		err := resolver.Close()
+		if err != nil {
+			log.Warn("error closing resolver", "key", key, "error", err.Error())
+			foundErr = err
+			return true
+		}
+
+		return true
+	})
+
+	return foundErr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

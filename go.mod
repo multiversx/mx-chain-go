@@ -43,7 +43,7 @@ require (
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200519113804-d87ec0cfa476
-	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425
+	golang.org/x/tools v0.0.0-20191216052735-49a3e744a425 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 

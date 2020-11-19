@@ -1,8 +1,9 @@
 package storageResolversContainers
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
@@ -26,10 +27,15 @@ func NewMetaResolversContainerFactory(
 		messenger:                args.Messenger,
 		store:                    args.Store,
 		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 		dataPacker:               args.DataPacker,
 		manualEpochStartNotifier: args.ManualEpochStartNotifier,
 		chanGracefullyClose:      args.ChanGracefullyClose,
+		generalConfig:            args.GeneralConfig,
+		shardIDForTries:          args.ShardIDForTries,
+		chainID:                  args.ChainID,
+		workingDir:               args.WorkingDirectory,
 	}
 
 	err := base.checkParams()
@@ -89,28 +95,6 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	return mrcf.container, nil
-}
-
-// AddShardTrieNodeResolvers will add trie node resolvers to the existing container, needed for start in epoch
-func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container dataRetriever.ResolversContainer) error {
-	if check.IfNil(container) {
-		return dataRetriever.ErrNilResolverContainer
-	}
-
-	shardC := mrcf.shardCoordinator
-
-	keys := make([]string, 0)
-	resolversSlice := make([]dataRetriever.Resolver, 0)
-
-	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
-		resolver := storageResolvers.NewTrieNodeResolver()
-
-		resolversSlice = append(resolversSlice, resolver)
-		keys = append(keys, identifierTrieNodes)
-	}
-
-	return container.AddMultiple(keys, resolversSlice)
 }
 
 //------- Shard header resolvers
@@ -202,13 +186,48 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver := storageResolvers.NewTrieNodeResolver()
+	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(mrcf.generalConfig.AccountsTrieStorage)
+	if err != nil {
+		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
+	}
+	arg := storageResolvers.ArgTrieResolver{
+		Messenger:                mrcf.messenger,
+		ResponseTopicName:        identifierTrieNodes,
+		Marshalizer:              mrcf.marshalizer,
+		TrieDataGetter:           userAccountsDataTrie,
+		TrieStorageManager:       storageManager,
+		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      mrcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+	resolver, err := storageResolvers.NewTrieNodeResolver(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating user accounts trie node resolver", err)
+	}
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver = storageResolvers.NewTrieNodeResolver()
+	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(mrcf.generalConfig.PeerAccountsTrieStorage)
+	if err != nil {
+		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)
+	}
+	arg = storageResolvers.ArgTrieResolver{
+		Messenger:                mrcf.messenger,
+		ResponseTopicName:        identifierTrieNodes,
+		Marshalizer:              mrcf.marshalizer,
+		TrieDataGetter:           peerAccountsDataTrie,
+		TrieStorageManager:       storageManager,
+		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
+		ChanGracefullyClose:      mrcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
+	}
+
+	resolver, err = storageResolvers.NewTrieNodeResolver(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating peer accounts trie node resolver", err)
+	}
 
 	resolversSlice = append(resolversSlice, resolver)
 	keys = append(keys, identifierTrieNodes)

@@ -2,7 +2,6 @@ package dataprocessor
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -16,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 // RatingProcessorArgs holds the arguments needed for creating a new ratingsProcessor
@@ -120,18 +119,7 @@ func (rp *ratingsProcessor) indexRating(epoch uint32, validatorsRatingData map[u
 }
 
 func (rp *ratingsProcessor) createPeerAdapter() error {
-	pathTemplateForPruningStorer := filepath.Join(
-		rp.dbPathWithChainID,
-		fmt.Sprintf("%s_%s", "Epoch", core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		rp.dbPathWithChainID,
-		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
+	pathManager, err := storageFactory.CreatePathManagerFromSinglePathString(rp.dbPathWithChainID)
 	if err != nil {
 		return err
 	}
