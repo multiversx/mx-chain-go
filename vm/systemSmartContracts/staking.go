@@ -60,6 +60,13 @@ type ArgsNewStakingSmartContract struct {
 	EpochNotifier        vm.EpochNotifier
 }
 
+type waitingListReturnData struct {
+	blsKeys         [][]byte
+	stakedDataList  []*StakedDataV2_0
+	lastKey         []byte
+	afterLastjailed bool
+}
+
 // NewStakingSmartContract creates a staking smart contract
 func NewStakingSmartContract(
 	args ArgsNewStakingSmartContract,
@@ -1332,17 +1339,17 @@ func (r *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 		return vmcommon.UserError
 	}
 
-	_, stakedDataList, _, err := r.getFirstElementsFromWaitingList(math.MaxUint32)
+	waitingListData, err := r.getFirstElementsFromWaitingList(math.MaxUint32)
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(stakedDataList) == 0 {
+	if len(waitingListData.stakedDataList) == 0 {
 		r.eei.AddReturnMessage("no one in waitingList")
 		return vmcommon.UserError
 	}
 
-	for _, stakedData := range stakedDataList {
+	for _, stakedData := range waitingListData.stakedDataList {
 		r.eei.Finish([]byte(hex.EncodeToString(stakedData.RewardAddress)))
 		r.eei.Finish([]byte(strconv.Itoa(int(stakedData.RegisterNonce))))
 	}
@@ -1418,19 +1425,18 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 	}
 
 	numNodesToStake := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
-
-	blsKeysToStake, stakedDataList, lastKey, err := r.getFirstElementsFromWaitingList(uint32(numNodesToStake))
+	waitingListData, err := r.getFirstElementsFromWaitingList(uint32(numNodesToStake))
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(stakedDataList) == 0 {
+	if len(waitingListData.blsKeys) == 0 {
 		r.eei.AddReturnMessage("no nodes in queue")
 		return vmcommon.Ok
 	}
 
-	for i, blsKey := range blsKeysToStake {
-		stakedData := stakedDataList[i]
+	for i, blsKey := range waitingListData.blsKeys {
+		stakedData := waitingListData.stakedDataList[i]
 		r.activeStakingFor(stakedData)
 		err = r.saveStakingData(blsKey, stakedData)
 		if err != nil {
@@ -1446,7 +1452,7 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 		r.eei.Finish(blsKey)
 	}
 
-	err = r.updateWaitingListToNewFirstKey(lastKey)
+	err = r.updateWaitingListToNewFirstKey(waitingListData)
 	if err != nil {
 		r.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1455,7 +1461,7 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 	return vmcommon.Ok
 }
 
-func (r *stakingSC) updateWaitingListToNewFirstKey(firstKey []byte) error {
+func (r *stakingSC) updateWaitingListToNewFirstKey(waitingListData *waitingListReturnData) error {
 	waitingListHead, err := r.getWaitingListHead()
 	if err != nil {
 		return err
@@ -1463,21 +1469,33 @@ func (r *stakingSC) updateWaitingListToNewFirstKey(firstKey []byte) error {
 	if waitingListHead.Length == 0 {
 		return nil
 	}
-	if len(firstKey) == 0 {
+	if len(waitingListData.lastKey) == 0 {
 		r.eei.SetStorage([]byte(waitingListHeadKey), nil)
 		return nil
+	}
+	if waitingListData.afterLastjailed {
+		waitingListHead.LastJailedKey = nil
+	}
+
+	waitingListHead.Length = waitingListHead.Length - uint32(len(waitingListData.blsKeys))
+	waitingListHead.FirstKey = waitingListData.lastKey
+	err = r.saveWaitingListHead(waitingListHead)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (r *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) ([][]byte, []*StakedDataV2_0, []byte, error) {
+func (r *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingListReturnData, error) {
+	waitingListData := &waitingListReturnData{}
+
 	waitingListHead, err := r.getWaitingListHead()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	if waitingListHead.Length == 0 {
-		return nil, nil, nil, nil
+		return waitingListData, nil
 	}
 
 	blsKeysToStake := make([][]byte, 0)
@@ -1488,12 +1506,16 @@ func (r *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) ([][]byte, 
 	for len(nextKey) != 0 && index <= waitingListHead.Length && index <= numNodes {
 		element, errGet := r.getWaitingListElement(nextKey)
 		if errGet != nil {
-			return nil, nil, nil, errGet
+			return nil, errGet
+		}
+
+		if bytes.Equal(nextKey, waitingListHead.LastJailedKey) {
+			waitingListData.afterLastjailed = true
 		}
 
 		stakedData, errGet := r.getOrCreateRegisteredData(element.BLSPublicKey)
 		if errGet != nil {
-			return nil, nil, nil, errGet
+			return nil, errGet
 		}
 
 		blsKeysToStake = append(blsKeysToStake, element.BLSPublicKey)
@@ -1502,7 +1524,10 @@ func (r *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) ([][]byte, 
 		copy(nextKey, element.NextKey)
 	}
 
-	return blsKeysToStake, stakedDataList, nextKey, nil
+	waitingListData.blsKeys = blsKeysToStake
+	waitingListData.stakedDataList = stakedDataList
+	waitingListData.lastKey = nextKey
+	return waitingListData, nil
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
