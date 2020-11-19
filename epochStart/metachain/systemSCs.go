@@ -2,6 +2,8 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 
@@ -9,11 +11,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
@@ -780,17 +785,16 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 		}
 	}
 
-	log.Debug("systemSCProcessor: switch jail with waiting", "enabled", s.flagSwitchEnabled.IsSet())
-	log.Debug("systemProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
+	log.Debug("systemSCProcessor: consider also (minimum) hysteresis nodes for minimum number of nodes",
 		"enabled", epoch >= s.hystNodesEnableEpoch)
 
 	// only toggle on exact epoch as init should be called only once
 	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
-	log.Debug("systemProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
+	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
 	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
-	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
-	log.Debug("systemProcessor:change of maximum number of nodes and/or shuffling percentage",
+	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+	log.Debug("systemSCProcessor:change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),
 		"epoch", epoch,
 		"maxNodes", s.maxNodes,
