@@ -9,9 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"

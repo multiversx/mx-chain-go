@@ -3,14 +3,12 @@ package dataprocessor_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-
-	"github.com/ElrondNetwork/elrond-go/core"
-
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -120,17 +118,7 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_UnmarshalPeerErrorS
 	rp, _ := dataprocessor.NewRatingsProcessor(args)
 
 	metaBlock := &block.MetaBlock{Epoch: 5}
-
-	peerAdapter := &mock.AccountsStub{
-		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
-			ch <- keyValStorage.NewKeyValStorage([]byte(""), []byte("not peer accounts bytes"))
-			return ch, nil
-		},
-	}
-
-	rp.SetPeerAdapter(peerAdapter)
+	rp.SetPeerAdapter(&mock.AccountsStub{})
 
 	err := rp.IndexRatingsForEpochStartMetaBlock(metaBlock)
 	require.NoError(t, err)
@@ -159,19 +147,7 @@ func TestRatingsProcessor_IndexRatingsForGenesisMetaBlock_ShouldWork(t *testing.
 	rp, _ := dataprocessor.NewRatingsProcessor(args)
 
 	metaBlock := &block.MetaBlock{Nonce: 0, Epoch: 0}
-
-	acc, _ := state.NewPeerAccount([]byte("peer account"))
-	accBytes, _ := args.Marshalizer.Marshal(acc)
-	peerAdapter := &mock.AccountsStub{
-		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
-			ch := make(chan core.KeyValueHolder)
-
-			ch <- keyValStorage.NewKeyValStorage([]byte(""), accBytes)
-			return ch, nil
-		},
-	}
-
-	rp.SetPeerAdapter(peerAdapter)
+	rp.SetPeerAdapter(&mock.AccountsStub{})
 
 	err := rp.IndexRatingsForEpochStartMetaBlock(metaBlock)
 	require.NoError(t, err)
@@ -199,7 +175,11 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testi
 		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
 			ch := make(chan core.KeyValueHolder)
 
-			ch <- keyValStorage.NewKeyValStorage([]byte(""), accBytes)
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage([]byte(""), accBytes)
+				close(ch)
+			}()
+
 			return ch, nil
 		},
 	}

@@ -8,10 +8,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
-
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -1864,7 +1863,12 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
 			ch := make(chan core.KeyValueHolder)
-			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				close(ch)
+			}()
+
 			return ch, nil
 		}
 		return nil, expectedErr
@@ -1920,8 +1924,12 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
 			ch := make(chan core.KeyValueHolder, 2)
-			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+				close(ch)
+			}()
+
 			return ch, nil
 		}
 		return nil, expectedErr
@@ -1965,8 +1973,12 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
 			ch := make(chan core.KeyValueHolder, 2)
-			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+				close(ch)
+			}()
+
 			return ch, nil
 		}
 		return nil, expectedErr
@@ -2352,8 +2364,12 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	peerAdapter := getAccountsMock()
 	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		ch := make(chan core.KeyValueHolder, 2)
-		ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-		ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+		go func() {
+			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			close(ch)
+		}()
+
 		return ch, nil
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {

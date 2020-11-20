@@ -185,7 +185,7 @@ func (tsm *trieStorageManager) EnterPruningBufferingMode() {
 
 	tsm.pruningBlockingOps++
 
-	log.Trace("enter pruning buffering state", "operations that block pruning in progress", tsm.pruningBlockingOps)
+	log.Trace("enter pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }
 
 // ExitPruningBufferingMode decreases the counter that tracks how many operations
@@ -202,7 +202,7 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 		tsm.pruningBlockingOps--
 	}
 
-	log.Trace("exit pruning buffering state", "operations that block pruning in progress", tsm.pruningBlockingOps)
+	log.Trace("exit pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }
 
 // Prune removes the given hash from db
