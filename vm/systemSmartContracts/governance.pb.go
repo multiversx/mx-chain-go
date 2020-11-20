@@ -75,17 +75,18 @@ func (VoteValueType) EnumDescriptor() ([]byte, []int) {
 }
 
 type GeneralProposal struct {
-	IssuerAddress  []byte        `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
-	GitHubCommit   []byte        `protobuf:"bytes,2,opt,name=GitHubCommit,proto3" json:"GitHubCommit"`
-	StartVoteNonce uint64        `protobuf:"varint,3,opt,name=StartVoteNonce,proto3" json:"StartVoteNonce"`
-	EndVoteNonce   uint64        `protobuf:"varint,4,opt,name=EndVoteNonce,proto3" json:"EndVoteNonce"`
-	Yes            *math_big.Int `protobuf:"bytes,5,opt,name=Yes,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Yes"`
-	No             *math_big.Int `protobuf:"bytes,6,opt,name=No,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"No"`
-	Veto           *math_big.Int `protobuf:"bytes,7,opt,name=Veto,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Veto"`
-	Voted          bool          `protobuf:"varint,8,opt,name=Voted,proto3" json:"Voted"`
-	Votes          [][]byte      `protobuf:"bytes,9,rep,name=Votes,proto3" json:"Votes"`
-	TopReference   []byte        `protobuf:"bytes,10,opt,name=TopReference,proto3" json:"TopReference"`
-	Closed         bool          `protobuf:"varint,11,opt,name=Closed,proto3" json:"Closed"`
+	IssuerAddress  []byte   `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
+	GitHubCommit   []byte   `protobuf:"bytes,2,opt,name=GitHubCommit,proto3" json:"GitHubCommit"`
+	StartVoteNonce uint64   `protobuf:"varint,3,opt,name=StartVoteNonce,proto3" json:"StartVoteNonce"`
+	EndVoteNonce   uint64   `protobuf:"varint,4,opt,name=EndVoteNonce,proto3" json:"EndVoteNonce"`
+	Yes            int32    `protobuf:"varint,5,opt,name=Yes,proto3" json:"Yes"`
+	No             int32    `protobuf:"varint,6,opt,name=No,proto3" json:"No"`
+	Veto           int32    `protobuf:"varint,7,opt,name=Veto,proto3" json:"Veto"`
+	DontCare       int32    `protobuf:"varint,8,opt,name=DontCare,proto3" json:"DontCare"`
+	Voted          bool     `protobuf:"varint,9,opt,name=Voted,proto3" json:"Voted"`
+	Voters         [][]byte `protobuf:"bytes,10,rep,name=Voters,proto3" json:"Voters"`
+	TopReference   []byte   `protobuf:"bytes,11,opt,name=TopReference,proto3" json:"TopReference"`
+	Closed         bool     `protobuf:"varint,12,opt,name=Closed,proto3" json:"Closed"`
 }
 
 func (m *GeneralProposal) Reset()      { *m = GeneralProposal{} }
@@ -144,25 +145,32 @@ func (m *GeneralProposal) GetEndVoteNonce() uint64 {
 	return 0
 }
 
-func (m *GeneralProposal) GetYes() *math_big.Int {
+func (m *GeneralProposal) GetYes() int32 {
 	if m != nil {
 		return m.Yes
 	}
-	return nil
+	return 0
 }
 
-func (m *GeneralProposal) GetNo() *math_big.Int {
+func (m *GeneralProposal) GetNo() int32 {
 	if m != nil {
 		return m.No
 	}
-	return nil
+	return 0
 }
 
-func (m *GeneralProposal) GetVeto() *math_big.Int {
+func (m *GeneralProposal) GetVeto() int32 {
 	if m != nil {
 		return m.Veto
 	}
-	return nil
+	return 0
+}
+
+func (m *GeneralProposal) GetDontCare() int32 {
+	if m != nil {
+		return m.DontCare
+	}
+	return 0
 }
 
 func (m *GeneralProposal) GetVoted() bool {
@@ -172,9 +180,9 @@ func (m *GeneralProposal) GetVoted() bool {
 	return false
 }
 
-func (m *GeneralProposal) GetVotes() [][]byte {
+func (m *GeneralProposal) GetVoters() [][]byte {
 	if m != nil {
-		return m.Votes
+		return m.Voters
 	}
 	return nil
 }
@@ -296,10 +304,11 @@ func (m *HardForkProposal) GetProposalStatus() []byte {
 }
 
 type GovernanceConfig struct {
-	MinQuorum        *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinQuorum"`
-	MinPassThreshold *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinPassThreshold"`
-	MinVetoThreshold *math_big.Int `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinVetoThreshold"`
-	ProposalFee      *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"ProposalFee"`
+	NumNodes         int64         `protobuf:"varint,1,opt,name=NumNodes,proto3" json:"NumNodes"`
+	MinQuorum        int32         `protobuf:"varint,2,opt,name=MinQuorum,proto3" json:"MinQuorum"`
+	MinPassThreshold int32         `protobuf:"varint,3,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
+	MinVetoThreshold int32         `protobuf:"varint,4,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
+	ProposalFee      *math_big.Int `protobuf:"bytes,5,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"ProposalFee"`
 }
 
 func (m *GovernanceConfig) Reset()      { *m = GovernanceConfig{} }
@@ -330,25 +339,32 @@ func (m *GovernanceConfig) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GovernanceConfig proto.InternalMessageInfo
 
-func (m *GovernanceConfig) GetMinQuorum() *math_big.Int {
+func (m *GovernanceConfig) GetNumNodes() int64 {
+	if m != nil {
+		return m.NumNodes
+	}
+	return 0
+}
+
+func (m *GovernanceConfig) GetMinQuorum() int32 {
 	if m != nil {
 		return m.MinQuorum
 	}
-	return nil
+	return 0
 }
 
-func (m *GovernanceConfig) GetMinPassThreshold() *math_big.Int {
+func (m *GovernanceConfig) GetMinPassThreshold() int32 {
 	if m != nil {
 		return m.MinPassThreshold
 	}
-	return nil
+	return 0
 }
 
-func (m *GovernanceConfig) GetMinVetoThreshold() *math_big.Int {
+func (m *GovernanceConfig) GetMinVetoThreshold() int32 {
 	if m != nil {
 		return m.MinVetoThreshold
 	}
-	return nil
+	return 0
 }
 
 func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
@@ -429,19 +445,109 @@ func (m *VoteDetails) GetDelegatedTo() []byte {
 	return nil
 }
 
+type VoterData struct {
+	Address  []byte `protobuf:"bytes,1,opt,name=Address,proto3" json:"Address"`
+	NumNodes int32  `protobuf:"varint,2,opt,name=NumNodes,proto3" json:"NumNodes"`
+}
+
+func (m *VoterData) Reset()      { *m = VoterData{} }
+func (*VoterData) ProtoMessage() {}
+func (*VoterData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{5}
+}
+func (m *VoterData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VoterData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VoterData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VoterData.Merge(m, src)
+}
+func (m *VoterData) XXX_Size() int {
+	return m.Size()
+}
+func (m *VoterData) XXX_DiscardUnknown() {
+	xxx_messageInfo_VoterData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VoterData proto.InternalMessageInfo
+
+func (m *VoterData) GetAddress() []byte {
+	if m != nil {
+		return m.Address
+	}
+	return nil
+}
+
+func (m *VoterData) GetNumNodes() int32 {
+	if m != nil {
+		return m.NumNodes
+	}
+	return 0
+}
+
+type ValidatorData struct {
+	Delegators []*VoterData `protobuf:"bytes,1,rep,name=Delegators,proto3" json:"Delegators"`
+	NumNodes   int32        `protobuf:"varint,2,opt,name=NumNodes,proto3" json:"NumNodes"`
+}
+
+func (m *ValidatorData) Reset()      { *m = ValidatorData{} }
+func (*ValidatorData) ProtoMessage() {}
+func (*ValidatorData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{6}
+}
+func (m *ValidatorData) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ValidatorData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ValidatorData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ValidatorData.Merge(m, src)
+}
+func (m *ValidatorData) XXX_Size() int {
+	return m.Size()
+}
+func (m *ValidatorData) XXX_DiscardUnknown() {
+	xxx_messageInfo_ValidatorData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ValidatorData proto.InternalMessageInfo
+
+func (m *ValidatorData) GetDelegators() []*VoterData {
+	if m != nil {
+		return m.Delegators
+	}
+	return nil
+}
+
+func (m *ValidatorData) GetNumNodes() int32 {
+	if m != nil {
+		return m.NumNodes
+	}
+	return 0
+}
+
 type VoteData struct {
-	UsedPower *math_big.Int  `protobuf:"bytes,1,opt,name=UsedPower,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"UsedPower"`
-	TotalYes  *math_big.Int  `protobuf:"bytes,2,opt,name=TotalYes,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalYes"`
-	TotalNo   *math_big.Int  `protobuf:"bytes,3,opt,name=TotalNo,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalNo"`
-	TotalVeto *math_big.Int  `protobuf:"bytes,4,opt,name=TotalVeto,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalVeto"`
-	Claimed   bool           `protobuf:"varint,5,opt,name=Claimed,proto3" json:"Claimed"`
-	VoteItems []*VoteDetails `protobuf:"bytes,6,rep,name=VoteItems,proto3" json:"VoteItems"`
+	NumVotes  int32  `protobuf:"varint,1,opt,name=NumVotes,proto3" json:"VoteData"`
+	VoteValue string `protobuf:"bytes,2,opt,name=VoteValue,proto3" json:"VoteValue"`
 }
 
 func (m *VoteData) Reset()      { *m = VoteData{} }
 func (*VoteData) ProtoMessage() {}
 func (*VoteData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_e18a03da5266c714, []int{5}
+	return fileDescriptor_e18a03da5266c714, []int{7}
 }
 func (m *VoteData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -466,42 +572,275 @@ func (m *VoteData) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_VoteData proto.InternalMessageInfo
 
-func (m *VoteData) GetUsedPower() *math_big.Int {
+func (m *VoteData) GetNumVotes() int32 {
+	if m != nil {
+		return m.NumVotes
+	}
+	return 0
+}
+
+func (m *VoteData) GetVoteValue() string {
+	if m != nil {
+		return m.VoteValue
+	}
+	return ""
+}
+
+type GeneralProposalV2_0 struct {
+	IssuerAddress  []byte        `protobuf:"bytes,1,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
+	GitHubCommit   []byte        `protobuf:"bytes,2,opt,name=GitHubCommit,proto3" json:"GitHubCommit"`
+	StartVoteNonce uint64        `protobuf:"varint,3,opt,name=StartVoteNonce,proto3" json:"StartVoteNonce"`
+	EndVoteNonce   uint64        `protobuf:"varint,4,opt,name=EndVoteNonce,proto3" json:"EndVoteNonce"`
+	Yes            *math_big.Int `protobuf:"bytes,5,opt,name=Yes,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Yes"`
+	No             *math_big.Int `protobuf:"bytes,6,opt,name=No,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"No"`
+	Veto           *math_big.Int `protobuf:"bytes,7,opt,name=Veto,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"Veto"`
+	Voted          bool          `protobuf:"varint,8,opt,name=Voted,proto3" json:"Voted"`
+	Votes          [][]byte      `protobuf:"bytes,9,rep,name=Votes,proto3" json:"Votes"`
+	TopReference   []byte        `protobuf:"bytes,10,opt,name=TopReference,proto3" json:"TopReference"`
+	Closed         bool          `protobuf:"varint,11,opt,name=Closed,proto3" json:"Closed"`
+}
+
+func (m *GeneralProposalV2_0) Reset()      { *m = GeneralProposalV2_0{} }
+func (*GeneralProposalV2_0) ProtoMessage() {}
+func (*GeneralProposalV2_0) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{8}
+}
+func (m *GeneralProposalV2_0) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GeneralProposalV2_0) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *GeneralProposalV2_0) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GeneralProposalV2_0.Merge(m, src)
+}
+func (m *GeneralProposalV2_0) XXX_Size() int {
+	return m.Size()
+}
+func (m *GeneralProposalV2_0) XXX_DiscardUnknown() {
+	xxx_messageInfo_GeneralProposalV2_0.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GeneralProposalV2_0 proto.InternalMessageInfo
+
+func (m *GeneralProposalV2_0) GetIssuerAddress() []byte {
+	if m != nil {
+		return m.IssuerAddress
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetGitHubCommit() []byte {
+	if m != nil {
+		return m.GitHubCommit
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetStartVoteNonce() uint64 {
+	if m != nil {
+		return m.StartVoteNonce
+	}
+	return 0
+}
+
+func (m *GeneralProposalV2_0) GetEndVoteNonce() uint64 {
+	if m != nil {
+		return m.EndVoteNonce
+	}
+	return 0
+}
+
+func (m *GeneralProposalV2_0) GetYes() *math_big.Int {
+	if m != nil {
+		return m.Yes
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetNo() *math_big.Int {
+	if m != nil {
+		return m.No
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetVeto() *math_big.Int {
+	if m != nil {
+		return m.Veto
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetVoted() bool {
+	if m != nil {
+		return m.Voted
+	}
+	return false
+}
+
+func (m *GeneralProposalV2_0) GetVotes() [][]byte {
+	if m != nil {
+		return m.Votes
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetTopReference() []byte {
+	if m != nil {
+		return m.TopReference
+	}
+	return nil
+}
+
+func (m *GeneralProposalV2_0) GetClosed() bool {
+	if m != nil {
+		return m.Closed
+	}
+	return false
+}
+
+type GovernanceConfigV2_0 struct {
+	MinQuorum        *math_big.Int `protobuf:"bytes,1,opt,name=MinQuorum,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinQuorum"`
+	MinPassThreshold *math_big.Int `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinPassThreshold"`
+	MinVetoThreshold *math_big.Int `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"MinVetoThreshold"`
+	ProposalFee      *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"ProposalFee"`
+}
+
+func (m *GovernanceConfigV2_0) Reset()      { *m = GovernanceConfigV2_0{} }
+func (*GovernanceConfigV2_0) ProtoMessage() {}
+func (*GovernanceConfigV2_0) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{9}
+}
+func (m *GovernanceConfigV2_0) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GovernanceConfigV2_0) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *GovernanceConfigV2_0) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GovernanceConfigV2_0.Merge(m, src)
+}
+func (m *GovernanceConfigV2_0) XXX_Size() int {
+	return m.Size()
+}
+func (m *GovernanceConfigV2_0) XXX_DiscardUnknown() {
+	xxx_messageInfo_GovernanceConfigV2_0.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GovernanceConfigV2_0 proto.InternalMessageInfo
+
+func (m *GovernanceConfigV2_0) GetMinQuorum() *math_big.Int {
+	if m != nil {
+		return m.MinQuorum
+	}
+	return nil
+}
+
+func (m *GovernanceConfigV2_0) GetMinPassThreshold() *math_big.Int {
+	if m != nil {
+		return m.MinPassThreshold
+	}
+	return nil
+}
+
+func (m *GovernanceConfigV2_0) GetMinVetoThreshold() *math_big.Int {
+	if m != nil {
+		return m.MinVetoThreshold
+	}
+	return nil
+}
+
+func (m *GovernanceConfigV2_0) GetProposalFee() *math_big.Int {
+	if m != nil {
+		return m.ProposalFee
+	}
+	return nil
+}
+
+type VoteDataV2_0 struct {
+	UsedPower *math_big.Int  `protobuf:"bytes,1,opt,name=UsedPower,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"UsedPower"`
+	TotalYes  *math_big.Int  `protobuf:"bytes,2,opt,name=TotalYes,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalYes"`
+	TotalNo   *math_big.Int  `protobuf:"bytes,3,opt,name=TotalNo,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalNo"`
+	TotalVeto *math_big.Int  `protobuf:"bytes,4,opt,name=TotalVeto,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"TotalVeto"`
+	Claimed   bool           `protobuf:"varint,5,opt,name=Claimed,proto3" json:"Claimed"`
+	VoteItems []*VoteDetails `protobuf:"bytes,6,rep,name=VoteItems,proto3" json:"VoteItems"`
+}
+
+func (m *VoteDataV2_0) Reset()      { *m = VoteDataV2_0{} }
+func (*VoteDataV2_0) ProtoMessage() {}
+func (*VoteDataV2_0) Descriptor() ([]byte, []int) {
+	return fileDescriptor_e18a03da5266c714, []int{10}
+}
+func (m *VoteDataV2_0) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VoteDataV2_0) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VoteDataV2_0) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VoteDataV2_0.Merge(m, src)
+}
+func (m *VoteDataV2_0) XXX_Size() int {
+	return m.Size()
+}
+func (m *VoteDataV2_0) XXX_DiscardUnknown() {
+	xxx_messageInfo_VoteDataV2_0.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VoteDataV2_0 proto.InternalMessageInfo
+
+func (m *VoteDataV2_0) GetUsedPower() *math_big.Int {
 	if m != nil {
 		return m.UsedPower
 	}
 	return nil
 }
 
-func (m *VoteData) GetTotalYes() *math_big.Int {
+func (m *VoteDataV2_0) GetTotalYes() *math_big.Int {
 	if m != nil {
 		return m.TotalYes
 	}
 	return nil
 }
 
-func (m *VoteData) GetTotalNo() *math_big.Int {
+func (m *VoteDataV2_0) GetTotalNo() *math_big.Int {
 	if m != nil {
 		return m.TotalNo
 	}
 	return nil
 }
 
-func (m *VoteData) GetTotalVeto() *math_big.Int {
+func (m *VoteDataV2_0) GetTotalVeto() *math_big.Int {
 	if m != nil {
 		return m.TotalVeto
 	}
 	return nil
 }
 
-func (m *VoteData) GetClaimed() bool {
+func (m *VoteDataV2_0) GetClaimed() bool {
 	if m != nil {
 		return m.Claimed
 	}
 	return false
 }
 
-func (m *VoteData) GetVoteItems() []*VoteDetails {
+func (m *VoteDataV2_0) GetVoteItems() []*VoteDetails {
 	if m != nil {
 		return m.VoteItems
 	}
@@ -516,76 +855,97 @@ func init() {
 	proto.RegisterType((*HardForkProposal)(nil), "proto.HardForkProposal")
 	proto.RegisterType((*GovernanceConfig)(nil), "proto.GovernanceConfig")
 	proto.RegisterType((*VoteDetails)(nil), "proto.VoteDetails")
+	proto.RegisterType((*VoterData)(nil), "proto.VoterData")
+	proto.RegisterType((*ValidatorData)(nil), "proto.ValidatorData")
 	proto.RegisterType((*VoteData)(nil), "proto.VoteData")
+	proto.RegisterType((*GeneralProposalV2_0)(nil), "proto.GeneralProposalV2_0")
+	proto.RegisterType((*GovernanceConfigV2_0)(nil), "proto.GovernanceConfigV2_0")
+	proto.RegisterType((*VoteDataV2_0)(nil), "proto.VoteDataV2_0")
 }
 
 func init() { proto.RegisterFile("governance.proto", fileDescriptor_e18a03da5266c714) }
 
 var fileDescriptor_e18a03da5266c714 = []byte{
-	// 1003 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x56, 0x4f, 0x6f, 0xe3, 0x44,
-	0x14, 0x8f, 0xf3, 0xa7, 0x4d, 0x27, 0x49, 0xeb, 0x1d, 0x2a, 0x64, 0x71, 0xb0, 0xa3, 0x48, 0xa0,
-	0xa8, 0x52, 0x13, 0x51, 0x40, 0x48, 0x20, 0x04, 0x75, 0xb6, 0xed, 0x56, 0x6c, 0xa3, 0xae, 0x1b,
-	0x82, 0x16, 0x24, 0xa4, 0x49, 0x3c, 0x4d, 0xcc, 0xda, 0x9e, 0x68, 0x66, 0xb2, 0xd5, 0xde, 0xb8,
-	0x70, 0xe3, 0x00, 0xdf, 0x02, 0x71, 0x40, 0xe2, 0x5b, 0x70, 0xec, 0x05, 0xa9, 0x27, 0x43, 0xd3,
-	0x0b, 0xf2, 0x69, 0x8f, 0x1c, 0xd1, 0x8c, 0x1d, 0xc7, 0x4e, 0x7b, 0xd8, 0x83, 0x2f, 0x9e, 0x79,
-	0xbf, 0x37, 0xf3, 0x7b, 0x6f, 0xde, 0x9f, 0x19, 0x03, 0x75, 0x42, 0x5e, 0x62, 0xea, 0x23, 0x7f,
-	0x8c, 0x3b, 0x33, 0x4a, 0x38, 0x81, 0x15, 0x39, 0xbc, 0xb3, 0x3f, 0x71, 0xf8, 0x74, 0x3e, 0xea,
-	0x8c, 0x89, 0xd7, 0x9d, 0x90, 0x09, 0xe9, 0x4a, 0x78, 0x34, 0xbf, 0x94, 0x92, 0x14, 0xe4, 0x2c,
-	0xda, 0xd5, 0xfa, 0xbd, 0x02, 0x76, 0x4e, 0xb0, 0x8f, 0x29, 0x72, 0xcf, 0x29, 0x99, 0x11, 0x86,
-	0x5c, 0xf8, 0x31, 0x68, 0x9c, 0x32, 0x36, 0xc7, 0xf4, 0xd0, 0xb6, 0x29, 0x66, 0x4c, 0x53, 0x9a,
-	0x4a, 0xbb, 0x6e, 0x3e, 0x0a, 0x03, 0x23, 0xab, 0xb0, 0xb2, 0x22, 0xfc, 0x10, 0xd4, 0x4f, 0x1c,
-	0xfe, 0x64, 0x3e, 0xea, 0x11, 0xcf, 0x73, 0xb8, 0x56, 0x94, 0xfb, 0xd4, 0x30, 0x30, 0x32, 0xb8,
-	0x95, 0x91, 0xe0, 0x27, 0x60, 0xfb, 0x82, 0x23, 0xca, 0x87, 0x84, 0xe3, 0x3e, 0xf1, 0xc7, 0x58,
-	0x2b, 0x35, 0x95, 0x76, 0xd9, 0x84, 0x61, 0x60, 0xac, 0x69, 0xac, 0x35, 0x59, 0x58, 0x3c, 0xf2,
-	0xed, 0xd5, 0xce, 0xb2, 0xdc, 0x29, 0x2d, 0xa6, 0x71, 0x2b, 0x23, 0xc1, 0xef, 0x40, 0xe9, 0x39,
-	0x66, 0x5a, 0x45, 0xba, 0xf7, 0x34, 0x0c, 0x0c, 0x21, 0xfe, 0xf6, 0xb7, 0x71, 0xe8, 0x21, 0x3e,
-	0xed, 0x8e, 0x9c, 0x49, 0xe7, 0xd4, 0xe7, 0x9f, 0xa6, 0x02, 0x79, 0xe4, 0x52, 0xe2, 0xdb, 0x7d,
-	0xcc, 0xaf, 0x08, 0x7d, 0xd1, 0xc5, 0x52, 0xda, 0x9f, 0x90, 0xae, 0x8d, 0x38, 0xea, 0x98, 0xce,
-	0xe4, 0xd4, 0xe7, 0x3d, 0xc4, 0x38, 0xa6, 0x96, 0x60, 0x82, 0xdf, 0x82, 0x62, 0x9f, 0x68, 0x1b,
-	0x92, 0xfe, 0xcb, 0x30, 0x30, 0x8a, 0x7d, 0x92, 0x0f, 0x7b, 0xb1, 0x4f, 0x20, 0x02, 0xe5, 0x21,
-	0xe6, 0x44, 0xdb, 0x94, 0xf4, 0x67, 0x61, 0x60, 0x48, 0x39, 0x1f, 0x03, 0x92, 0x0a, 0x1a, 0xa0,
-	0x22, 0x82, 0x65, 0x6b, 0xd5, 0xa6, 0xd2, 0xae, 0x9a, 0x5b, 0x61, 0x60, 0x44, 0x80, 0x15, 0x0d,
-	0xcb, 0x05, 0x4c, 0xdb, 0x6a, 0x96, 0xda, 0xf5, 0xd5, 0x02, 0x16, 0x2d, 0x90, 0x95, 0x30, 0x20,
-	0x33, 0x0b, 0x5f, 0x62, 0x8a, 0x45, 0x5e, 0xc0, 0xaa, 0x12, 0xd2, 0xb8, 0x95, 0x91, 0x60, 0x0b,
-	0x6c, 0xf4, 0x5c, 0xc2, 0xb0, 0xad, 0xd5, 0xa4, 0x61, 0x10, 0x06, 0x46, 0x8c, 0x58, 0xf1, 0xd8,
-	0xfa, 0x45, 0x01, 0x8f, 0xbe, 0x9e, 0x3a, 0x1c, 0x3f, 0x75, 0x18, 0x4f, 0x4a, 0xf6, 0x0b, 0xa0,
-	0x26, 0x60, 0xb6, 0x6a, 0x77, 0xc3, 0xc0, 0xb8, 0xa7, 0xb3, 0xee, 0x21, 0xa2, 0x0a, 0x97, 0x6c,
-	0x17, 0x1c, 0xf1, 0x39, 0x8b, 0xab, 0x57, 0x56, 0x61, 0x56, 0x63, 0xad, 0xc9, 0xad, 0xbf, 0x14,
-	0xa0, 0x3e, 0x41, 0xd4, 0x3e, 0x26, 0xf4, 0x45, 0xe2, 0xd2, 0x67, 0x60, 0xe7, 0x68, 0x46, 0xc6,
-	0xd3, 0x01, 0x59, 0xaa, 0xa4, 0x47, 0x0d, 0xf3, 0xad, 0x30, 0x30, 0xd6, 0x55, 0xd6, 0x3a, 0x00,
-	0x8f, 0x01, 0xec, 0xe3, 0xab, 0x0b, 0x72, 0xc9, 0xaf, 0x10, 0xc5, 0x43, 0x4c, 0x99, 0x43, 0xfc,
-	0xd8, 0xa7, 0xb7, 0xc3, 0xc0, 0x78, 0x40, 0x6b, 0x3d, 0x80, 0x3d, 0x70, 0xae, 0xd2, 0x1b, 0x9f,
-	0xeb, 0xa7, 0x32, 0x50, 0x4f, 0x92, 0x7b, 0xa6, 0x47, 0xfc, 0x4b, 0x67, 0x02, 0x67, 0x60, 0xeb,
-	0xcc, 0xf1, 0x9f, 0xcd, 0x09, 0x9d, 0x7b, 0x71, 0x8c, 0xad, 0x30, 0x30, 0x56, 0x60, 0x3e, 0x95,
-	0xb8, 0xe2, 0x83, 0x3f, 0x2a, 0x40, 0x3d, 0x73, 0xfc, 0x73, 0xc4, 0xd8, 0x60, 0x4a, 0x31, 0x9b,
-	0x12, 0xd7, 0x8e, 0x23, 0xf1, 0x5c, 0x64, 0x77, 0x5d, 0x97, 0x8f, 0x03, 0xf7, 0x68, 0x97, 0x7e,
-	0x88, 0x16, 0x59, 0xf9, 0x51, 0xca, 0xf8, 0x91, 0xd1, 0xe5, 0xe7, 0x47, 0x86, 0x16, 0xbe, 0x04,
-	0xb5, 0x65, 0xa2, 0x8e, 0x71, 0x74, 0xe7, 0xd5, 0xcd, 0x41, 0x18, 0x18, 0x69, 0x38, 0x1f, 0xe3,
-	0x69, 0xc6, 0xd6, 0x7f, 0x45, 0x50, 0x13, 0xed, 0xfd, 0x18, 0x73, 0xe4, 0xb8, 0x0c, 0x7e, 0x04,
-	0x2a, 0x43, 0xe4, 0xce, 0xb1, 0xac, 0x82, 0xed, 0x83, 0xdd, 0xe8, 0x49, 0xe9, 0x88, 0x25, 0x12,
-	0x1f, 0xbc, 0x9a, 0xe1, 0xf8, 0x6e, 0x10, 0xa2, 0x15, 0x0d, 0xd0, 0x06, 0x95, 0x73, 0x72, 0x85,
-	0x69, 0x9c, 0xc2, 0xbe, 0x58, 0x20, 0x81, 0x7c, 0x5c, 0x8e, 0xb8, 0xe0, 0xf7, 0x60, 0xd3, 0x44,
-	0x2e, 0x5a, 0x3e, 0x27, 0x75, 0xf3, 0x3c, 0x0c, 0x8c, 0x25, 0x94, 0x8f, 0xa5, 0x25, 0x1b, 0xdc,
-	0x07, 0x65, 0x71, 0x56, 0x99, 0x89, 0xed, 0x83, 0x9d, 0x54, 0x1c, 0x64, 0x08, 0xaa, 0xe2, 0x8e,
-	0x16, 0x33, 0x4b, 0x7e, 0xe1, 0xfb, 0xa0, 0xf6, 0x18, 0xbb, 0x78, 0x82, 0x38, 0xb6, 0x07, 0x24,
-	0x7e, 0x86, 0x76, 0x44, 0xfe, 0x52, 0xb0, 0x95, 0x16, 0x5a, 0x7f, 0x94, 0x41, 0x55, 0x86, 0x1e,
-	0x71, 0x24, 0x3a, 0xf0, 0x2b, 0x86, 0xed, 0x28, 0x88, 0xa9, 0x0e, 0x4c, 0xc0, 0x9c, 0x3a, 0x30,
-	0xe1, 0x83, 0x1e, 0xa8, 0x0e, 0x08, 0x47, 0xae, 0x78, 0x35, 0xa3, 0xac, 0x3d, 0x0b, 0x03, 0x23,
-	0xc1, 0xf2, 0xb1, 0x97, 0xd0, 0x89, 0xdc, 0xc9, 0x79, 0x9f, 0xa4, 0x73, 0x17, 0x43, 0x39, 0xe5,
-	0x2e, 0x66, 0x13, 0xc1, 0x94, 0x53, 0xf9, 0xa6, 0x96, 0x57, 0xc1, 0x4c, 0xc0, 0x9c, 0x82, 0x99,
-	0xf0, 0xc1, 0x77, 0xc1, 0x66, 0xcf, 0x45, 0x8e, 0x87, 0x6d, 0x99, 0xfa, 0xaa, 0x59, 0x13, 0xa7,
-	0x8b, 0x21, 0x6b, 0x39, 0x81, 0x9f, 0x83, 0x2d, 0x91, 0xf1, 0x53, 0x8e, 0x3d, 0xa6, 0x6d, 0x34,
-	0x4b, 0xed, 0xda, 0x01, 0x4c, 0x55, 0x56, 0xdc, 0x84, 0x66, 0x43, 0x38, 0x9b, 0x2c, 0xb4, 0x56,
-	0xd3, 0xbd, 0xf7, 0xa2, 0x92, 0x91, 0x25, 0xd7, 0x00, 0x5b, 0x43, 0xe4, 0x3a, 0x36, 0xe2, 0x84,
-	0xaa, 0x05, 0x58, 0x03, 0x9b, 0x87, 0xe3, 0x31, 0x99, 0xfb, 0x5c, 0x55, 0xf6, 0xf6, 0x40, 0x23,
-	0xd3, 0xb2, 0x70, 0x53, 0xfe, 0x1e, 0xa9, 0x05, 0xb8, 0x21, 0xfe, 0x63, 0x54, 0x05, 0x56, 0xa3,
-	0x5f, 0x0e, 0xb5, 0x68, 0xf6, 0xaf, 0x6f, 0xf5, 0xc2, 0xcd, 0xad, 0x5e, 0x78, 0x7d, 0xab, 0x2b,
-	0x3f, 0x2c, 0x74, 0xe5, 0xd7, 0x85, 0xae, 0xfc, 0xb9, 0xd0, 0x95, 0xeb, 0x85, 0xae, 0xdc, 0x2c,
-	0x74, 0xe5, 0x9f, 0x85, 0xae, 0xfc, 0xbb, 0xd0, 0x0b, 0xaf, 0x17, 0xba, 0xf2, 0xf3, 0x9d, 0x5e,
-	0xb8, 0xbe, 0xd3, 0x0b, 0x37, 0x77, 0x7a, 0xe1, 0x9b, 0x5d, 0xf6, 0x8a, 0x71, 0xec, 0x5d, 0x78,
-	0x88, 0xf2, 0x1e, 0xf1, 0x39, 0x45, 0x63, 0xce, 0x46, 0x1b, 0xf2, 0x40, 0x1f, 0xfc, 0x1f, 0x00,
-	0x00, 0xff, 0xff, 0x4b, 0xa5, 0xc7, 0x2a, 0xcf, 0x0a, 0x00, 0x00,
+	// 1264 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x56, 0xcd, 0x6f, 0xe3, 0x44,
+	0x14, 0x8f, 0xf3, 0x9d, 0x49, 0xd2, 0x66, 0x67, 0xab, 0x95, 0x41, 0xc8, 0xae, 0x22, 0x81, 0xa2,
+	0x45, 0xdb, 0x42, 0x01, 0x21, 0x81, 0x10, 0xbb, 0x4e, 0xf7, 0xa3, 0x62, 0x37, 0xea, 0x4e, 0x43,
+	0x50, 0x01, 0x81, 0xa6, 0xf1, 0x34, 0x31, 0xeb, 0x78, 0x22, 0x7b, 0xb2, 0xd5, 0x8a, 0x0b, 0x17,
+	0x6e, 0x1c, 0x96, 0xff, 0x02, 0x71, 0x44, 0xe2, 0x7f, 0xe0, 0xd8, 0x0b, 0x52, 0x4f, 0x86, 0xa6,
+	0x42, 0x42, 0x3e, 0xed, 0x91, 0x23, 0x9a, 0x19, 0xdb, 0xb1, 0x93, 0x2e, 0x62, 0x25, 0x8b, 0x03,
+	0x17, 0xfb, 0xbd, 0xdf, 0x9b, 0x79, 0x6f, 0x3e, 0xde, 0xbc, 0xdf, 0x03, 0xad, 0x11, 0x7d, 0x4c,
+	0x5c, 0x07, 0x3b, 0x43, 0xb2, 0x35, 0x75, 0x29, 0xa3, 0xb0, 0x24, 0x7e, 0x2f, 0xdf, 0x18, 0x59,
+	0x6c, 0x3c, 0x3b, 0xda, 0x1a, 0xd2, 0xc9, 0xf6, 0x88, 0x8e, 0xe8, 0xb6, 0x80, 0x8f, 0x66, 0xc7,
+	0x42, 0x13, 0x8a, 0x90, 0xe4, 0xac, 0xf6, 0x77, 0x45, 0xb0, 0x7e, 0x97, 0x38, 0xc4, 0xc5, 0xf6,
+	0xbe, 0x4b, 0xa7, 0xd4, 0xc3, 0x36, 0x7c, 0x17, 0x34, 0xf7, 0x3c, 0x6f, 0x46, 0xdc, 0x5b, 0xa6,
+	0xe9, 0x12, 0xcf, 0x53, 0x95, 0x4d, 0xa5, 0xd3, 0x30, 0xae, 0x04, 0xbe, 0x9e, 0x36, 0xa0, 0xb4,
+	0x0a, 0xdf, 0x06, 0x8d, 0xbb, 0x16, 0xbb, 0x37, 0x3b, 0xea, 0xd2, 0xc9, 0xc4, 0x62, 0x6a, 0x5e,
+	0xcc, 0x6b, 0x05, 0xbe, 0x9e, 0xc2, 0x51, 0x4a, 0x83, 0xef, 0x81, 0xb5, 0x03, 0x86, 0x5d, 0x36,
+	0xa0, 0x8c, 0xf4, 0xa8, 0x33, 0x24, 0x6a, 0x61, 0x53, 0xe9, 0x14, 0x0d, 0x18, 0xf8, 0xfa, 0x92,
+	0x05, 0x2d, 0xe9, 0x3c, 0xe2, 0x6d, 0xc7, 0x5c, 0xcc, 0x2c, 0x8a, 0x99, 0x22, 0x62, 0x12, 0x47,
+	0x29, 0x0d, 0xbe, 0x04, 0x0a, 0x87, 0xc4, 0x53, 0x4b, 0x9b, 0x4a, 0xa7, 0x64, 0x54, 0x02, 0x5f,
+	0xe7, 0x2a, 0xe2, 0x1f, 0x78, 0x0d, 0xe4, 0x7b, 0x54, 0x2d, 0x0b, 0x4b, 0x39, 0xf0, 0xf5, 0x7c,
+	0x8f, 0xa2, 0x7c, 0x8f, 0xc2, 0x57, 0x40, 0x71, 0x40, 0x18, 0x55, 0x2b, 0xc2, 0x52, 0x0d, 0x7c,
+	0x5d, 0xe8, 0x48, 0x7c, 0x61, 0x07, 0x54, 0x77, 0xa9, 0xc3, 0xba, 0xd8, 0x25, 0x6a, 0x55, 0x8c,
+	0x68, 0x04, 0xbe, 0x1e, 0x63, 0x28, 0x96, 0xa0, 0x0e, 0x4a, 0x7c, 0x1d, 0xa6, 0x5a, 0xdb, 0x54,
+	0x3a, 0x55, 0xa3, 0x16, 0xf8, 0xba, 0x04, 0x90, 0xfc, 0xc1, 0x36, 0x28, 0x73, 0xc1, 0xf5, 0x54,
+	0xb0, 0x59, 0xe8, 0x34, 0x0c, 0x10, 0xf8, 0x7a, 0x88, 0xa0, 0xf0, 0xcf, 0x77, 0xdd, 0xa7, 0x53,
+	0x44, 0x8e, 0x89, 0x4b, 0xf8, 0xae, 0xeb, 0x8b, 0x73, 0x4e, 0xe2, 0x28, 0xa5, 0x71, 0xcf, 0x5d,
+	0x9b, 0x7a, 0xc4, 0x54, 0x1b, 0x22, 0xb6, 0xf0, 0x2c, 0x11, 0x14, 0xfe, 0xdb, 0xdf, 0x2b, 0xe0,
+	0xca, 0x27, 0x63, 0x8b, 0x91, 0xfb, 0x96, 0xc7, 0xe2, 0x84, 0xb8, 0x09, 0x5a, 0x31, 0x98, 0xce,
+	0x89, 0x8d, 0xc0, 0xd7, 0x57, 0x6c, 0x68, 0x05, 0xe1, 0x77, 0x1c, 0x79, 0x3b, 0x60, 0x98, 0xcd,
+	0xbc, 0x30, 0x37, 0xc4, 0x1d, 0xa7, 0x2d, 0x68, 0x49, 0x6f, 0xff, 0xaa, 0x80, 0xd6, 0x3d, 0xec,
+	0x9a, 0x77, 0xa8, 0xfb, 0x28, 0x5e, 0xd2, 0x07, 0x60, 0xfd, 0xf6, 0x94, 0x0e, 0xc7, 0x7d, 0x1a,
+	0x99, 0xc4, 0x8a, 0x9a, 0xc6, 0xd5, 0xc0, 0xd7, 0x97, 0x4d, 0x68, 0x19, 0x80, 0x77, 0x00, 0xec,
+	0x91, 0x93, 0x03, 0x7a, 0xcc, 0x4e, 0xb0, 0x4b, 0x06, 0xc4, 0xf5, 0x2c, 0xea, 0x84, 0x6b, 0xba,
+	0x16, 0xf8, 0xfa, 0x25, 0x56, 0x74, 0x09, 0x76, 0xc9, 0xbe, 0x0a, 0xff, 0x7a, 0x5f, 0x7f, 0xe4,
+	0x41, 0xeb, 0x6e, 0xfc, 0x8a, 0xbb, 0xd4, 0x39, 0xb6, 0x46, 0x3c, 0x93, 0x7a, 0xb3, 0x49, 0x8f,
+	0x9a, 0x44, 0x1e, 0x71, 0x41, 0x66, 0x52, 0x84, 0xa1, 0x58, 0x82, 0xaf, 0x83, 0xda, 0x03, 0xcb,
+	0x79, 0x38, 0xa3, 0xee, 0x6c, 0x22, 0x56, 0x5e, 0x32, 0x9a, 0x81, 0xaf, 0x2f, 0x40, 0xb4, 0x10,
+	0xf9, 0x0d, 0x3e, 0xb0, 0x9c, 0x7d, 0xec, 0x79, 0xfd, 0xb1, 0x4b, 0xbc, 0x31, 0xb5, 0x4d, 0xb1,
+	0xd2, 0x92, 0xbc, 0xc1, 0x65, 0x1b, 0x5a, 0x41, 0x42, 0x0f, 0x3c, 0xdb, 0x17, 0x1e, 0x8a, 0x29,
+	0x0f, 0x29, 0x1b, 0x5a, 0x41, 0xe0, 0x63, 0x50, 0x8f, 0x4e, 0xe0, 0x0e, 0x21, 0xe2, 0xf5, 0x35,
+	0x8c, 0x7e, 0xe0, 0xeb, 0x49, 0xf8, 0xc7, 0xdf, 0xf4, 0x5b, 0x13, 0xcc, 0xc6, 0xdb, 0x47, 0xd6,
+	0x68, 0x6b, 0xcf, 0x61, 0xef, 0x27, 0xca, 0xd9, 0x6d, 0xdb, 0xa5, 0x8e, 0xd9, 0x23, 0xec, 0x84,
+	0xba, 0x8f, 0xb6, 0x89, 0xd0, 0x6e, 0x8c, 0xe8, 0xb6, 0x89, 0x19, 0xde, 0x32, 0xac, 0xd1, 0x1e,
+	0x7f, 0x63, 0x1e, 0x23, 0x2e, 0x4a, 0x7a, 0x6c, 0xff, 0x95, 0x07, 0x75, 0xfe, 0x70, 0x76, 0x09,
+	0xc3, 0x96, 0xed, 0xc1, 0x77, 0x40, 0x69, 0x80, 0xed, 0x19, 0x11, 0xe7, 0xbb, 0xb6, 0xb3, 0x21,
+	0x2b, 0xe1, 0x16, 0x1f, 0x22, 0xf0, 0xfe, 0x93, 0x29, 0x09, 0x1f, 0x26, 0x57, 0x91, 0xfc, 0x41,
+	0x13, 0x94, 0xf6, 0xe9, 0x09, 0x71, 0xc3, 0x2c, 0xe9, 0xf1, 0x01, 0x02, 0xc8, 0x66, 0xc9, 0xd2,
+	0x17, 0xfc, 0x0a, 0x54, 0x0c, 0x6c, 0xe3, 0xa8, 0x0a, 0x36, 0x8c, 0xfd, 0xc0, 0xd7, 0x23, 0x28,
+	0x9b, 0x48, 0x91, 0x37, 0x78, 0x03, 0x14, 0xf9, 0x5e, 0xc5, 0x35, 0xae, 0xed, 0xac, 0x27, 0xce,
+	0x41, 0x1c, 0x81, 0x28, 0x72, 0x5c, 0x42, 0xe2, 0x0b, 0xdf, 0x04, 0xf5, 0x5d, 0x62, 0x93, 0x11,
+	0x66, 0xc4, 0xec, 0xd3, 0xf0, 0xfe, 0xd6, 0xf9, 0xfd, 0x25, 0x60, 0x94, 0x54, 0xda, 0x9f, 0x83,
+	0x9a, 0x28, 0x59, 0xbb, 0x98, 0x61, 0xf8, 0x2a, 0xa8, 0xa4, 0x8b, 0x47, 0x9d, 0x6f, 0x2d, 0xaa,
+	0x19, 0x91, 0x90, 0x7a, 0x01, 0xf9, 0x45, 0x2d, 0x5d, 0x7d, 0x01, 0xed, 0xaf, 0x41, 0x73, 0x80,
+	0x6d, 0xcb, 0xc4, 0x8c, 0xca, 0x08, 0x37, 0x01, 0x08, 0xa3, 0x53, 0x97, 0x07, 0x29, 0x74, 0xea,
+	0x3b, 0xad, 0xc4, 0xb6, 0xc4, 0x28, 0x63, 0x2d, 0xf0, 0xf5, 0xc4, 0x38, 0x94, 0x90, 0x5f, 0x20,
+	0x38, 0x06, 0x55, 0x91, 0x54, 0x3c, 0xae, 0x9c, 0xc5, 0x55, 0xb9, 0xb5, 0x70, 0x56, 0x64, 0x47,
+	0xb1, 0x95, 0x3f, 0xda, 0x38, 0xcf, 0x44, 0x80, 0x9a, 0x7c, 0xb4, 0x31, 0x88, 0x16, 0x62, 0xfb,
+	0xa7, 0x12, 0xb8, 0xba, 0xc4, 0xcd, 0x83, 0x9d, 0x2f, 0xdf, 0xf8, 0xff, 0xf3, 0xf3, 0x17, 0x0b,
+	0x7e, 0x6e, 0x18, 0xf7, 0x43, 0x7e, 0xce, 0x26, 0xf9, 0x05, 0xc9, 0x7f, 0x16, 0x93, 0x7c, 0xc3,
+	0xf8, 0x48, 0x92, 0x7c, 0x36, 0xde, 0x79, 0xa7, 0x80, 0x13, 0x9d, 0x42, 0xc3, 0x78, 0x10, 0x75,
+	0x0a, 0xd9, 0x04, 0x90, 0xed, 0x46, 0xdc, 0x44, 0x54, 0x9f, 0xd3, 0x44, 0x84, 0x03, 0x3c, 0xb5,
+	0x26, 0x7a, 0x88, 0x78, 0x80, 0x27, 0x07, 0xac, 0x76, 0x10, 0xe0, 0x05, 0x3b, 0x88, 0xfa, 0x73,
+	0x3b, 0x88, 0xa7, 0x45, 0xb0, 0xb1, 0xcc, 0x6a, 0x22, 0x6b, 0xa7, 0x49, 0xbe, 0x92, 0x19, 0x8b,
+	0x52, 0x7c, 0x95, 0xcd, 0x09, 0x25, 0x48, 0xef, 0x5b, 0xe5, 0x12, 0xd6, 0x93, 0x39, 0x7f, 0x78,
+	0x19, 0xeb, 0x65, 0xb3, 0x80, 0x55, 0xea, 0x0c, 0xd7, 0x91, 0xe6, 0xce, 0x42, 0x6a, 0x1d, 0x29,
+	0x5b, 0x76, 0xeb, 0xf8, 0x47, 0x02, 0x2e, 0xfe, 0x57, 0x04, 0xfc, 0x73, 0x11, 0x34, 0xa2, 0x5a,
+	0x18, 0xa5, 0xc2, 0xc7, 0x1e, 0x31, 0x25, 0x9d, 0x26, 0x52, 0x21, 0x06, 0x33, 0x4a, 0x85, 0xd8,
+	0x1f, 0x9c, 0x80, 0x6a, 0x9f, 0x32, 0x6c, 0x1f, 0x92, 0xa8, 0xf3, 0x7c, 0xc8, 0x2b, 0x74, 0x84,
+	0x65, 0x13, 0x2f, 0x76, 0xc7, 0x59, 0x5c, 0xc8, 0x3d, 0x9a, 0x64, 0xf1, 0x10, 0xca, 0x88, 0xc5,
+	0x43, 0x6f, 0xfc, 0x30, 0x85, 0x28, 0x8a, 0x4e, 0x71, 0x71, 0x98, 0x31, 0x98, 0xd1, 0x61, 0xc6,
+	0xfe, 0x38, 0x91, 0x77, 0x6d, 0x6c, 0x4d, 0x88, 0x29, 0x4a, 0x74, 0x55, 0x12, 0x79, 0x08, 0xa1,
+	0x48, 0x80, 0x1f, 0x4a, 0xae, 0xdb, 0x63, 0x64, 0xe2, 0xa9, 0x65, 0x41, 0xc6, 0x30, 0x41, 0xc6,
+	0x61, 0x3b, 0xb6, 0xe0, 0x3f, 0x31, 0x10, 0x2d, 0xc4, 0xeb, 0xaf, 0x49, 0x8a, 0x15, 0xcd, 0x47,
+	0x13, 0xd4, 0x62, 0xae, 0x6f, 0xe5, 0x60, 0x1d, 0x54, 0x6e, 0x0d, 0x87, 0x74, 0xe6, 0xb0, 0x96,
+	0x72, 0xfd, 0x3a, 0x68, 0xa6, 0x9a, 0x37, 0x58, 0x11, 0xfc, 0xd1, 0xca, 0xc1, 0x32, 0x2f, 0xf4,
+	0x2d, 0x05, 0x56, 0x65, 0x4d, 0x6e, 0xe5, 0x8d, 0xde, 0xe9, 0xb9, 0x96, 0x3b, 0x3b, 0xd7, 0x72,
+	0xcf, 0xce, 0x35, 0xe5, 0x9b, 0xb9, 0xa6, 0xfc, 0x30, 0xd7, 0x94, 0x5f, 0xe6, 0x9a, 0x72, 0x3a,
+	0xd7, 0x94, 0xb3, 0xb9, 0xa6, 0xfc, 0x3e, 0xd7, 0x94, 0x3f, 0xe7, 0x5a, 0xee, 0xd9, 0x5c, 0x53,
+	0x9e, 0x5e, 0x68, 0xb9, 0xd3, 0x0b, 0x2d, 0x77, 0x76, 0xa1, 0xe5, 0x3e, 0xdd, 0xf0, 0x9e, 0x78,
+	0x8c, 0x4c, 0x0e, 0x26, 0xd8, 0x65, 0x5d, 0xea, 0x30, 0x17, 0x0f, 0x99, 0x77, 0x54, 0x16, 0x1b,
+	0x7a, 0xeb, 0xef, 0x00, 0x00, 0x00, 0xff, 0xff, 0xf3, 0xa7, 0xed, 0x02, 0x90, 0x0f, 0x00, 0x00,
 }
 
 func (x VoteType) String() string {
@@ -633,32 +993,26 @@ func (this *GeneralProposal) Equal(that interface{}) bool {
 	if this.EndVoteNonce != that1.EndVoteNonce {
 		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.Yes, that1.Yes) {
-			return false
-		}
+	if this.Yes != that1.Yes {
+		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.No, that1.No) {
-			return false
-		}
+	if this.No != that1.No {
+		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.Veto, that1.Veto) {
-			return false
-		}
+	if this.Veto != that1.Veto {
+		return false
+	}
+	if this.DontCare != that1.DontCare {
+		return false
 	}
 	if this.Voted != that1.Voted {
 		return false
 	}
-	if len(this.Votes) != len(that1.Votes) {
+	if len(this.Voters) != len(that1.Voters) {
 		return false
 	}
-	for i := range this.Votes {
-		if !bytes.Equal(this.Votes[i], that1.Votes[i]) {
+	for i := range this.Voters {
+		if !bytes.Equal(this.Voters[i], that1.Voters[i]) {
 			return false
 		}
 	}
@@ -746,23 +1100,17 @@ func (this *GovernanceConfig) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.MinQuorum, that1.MinQuorum) {
-			return false
-		}
+	if this.NumNodes != that1.NumNodes {
+		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.MinPassThreshold, that1.MinPassThreshold) {
-			return false
-		}
+	if this.MinQuorum != that1.MinQuorum {
+		return false
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		if !__caster.Equal(this.MinVetoThreshold, that1.MinVetoThreshold) {
-			return false
-		}
+	if this.MinPassThreshold != that1.MinPassThreshold {
+		return false
+	}
+	if this.MinVetoThreshold != that1.MinVetoThreshold {
+		return false
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -814,6 +1162,65 @@ func (this *VoteDetails) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *VoterData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VoterData)
+	if !ok {
+		that2, ok := that.(VoterData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Address, that1.Address) {
+		return false
+	}
+	if this.NumNodes != that1.NumNodes {
+		return false
+	}
+	return true
+}
+func (this *ValidatorData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ValidatorData)
+	if !ok {
+		that2, ok := that.(ValidatorData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Delegators) != len(that1.Delegators) {
+		return false
+	}
+	for i := range this.Delegators {
+		if !this.Delegators[i].Equal(that1.Delegators[i]) {
+			return false
+		}
+	}
+	if this.NumNodes != that1.NumNodes {
+		return false
+	}
+	return true
+}
 func (this *VoteData) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
@@ -822,6 +1229,146 @@ func (this *VoteData) Equal(that interface{}) bool {
 	that1, ok := that.(*VoteData)
 	if !ok {
 		that2, ok := that.(VoteData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.NumVotes != that1.NumVotes {
+		return false
+	}
+	if this.VoteValue != that1.VoteValue {
+		return false
+	}
+	return true
+}
+func (this *GeneralProposalV2_0) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GeneralProposalV2_0)
+	if !ok {
+		that2, ok := that.(GeneralProposalV2_0)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
+		return false
+	}
+	if !bytes.Equal(this.GitHubCommit, that1.GitHubCommit) {
+		return false
+	}
+	if this.StartVoteNonce != that1.StartVoteNonce {
+		return false
+	}
+	if this.EndVoteNonce != that1.EndVoteNonce {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.Yes, that1.Yes) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.No, that1.No) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.Veto, that1.Veto) {
+			return false
+		}
+	}
+	if this.Voted != that1.Voted {
+		return false
+	}
+	if len(this.Votes) != len(that1.Votes) {
+		return false
+	}
+	for i := range this.Votes {
+		if !bytes.Equal(this.Votes[i], that1.Votes[i]) {
+			return false
+		}
+	}
+	if !bytes.Equal(this.TopReference, that1.TopReference) {
+		return false
+	}
+	if this.Closed != that1.Closed {
+		return false
+	}
+	return true
+}
+func (this *GovernanceConfigV2_0) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GovernanceConfigV2_0)
+	if !ok {
+		that2, ok := that.(GovernanceConfigV2_0)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.MinQuorum, that1.MinQuorum) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.MinPassThreshold, that1.MinPassThreshold) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.MinVetoThreshold, that1.MinVetoThreshold) {
+			return false
+		}
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		if !__caster.Equal(this.ProposalFee, that1.ProposalFee) {
+			return false
+		}
+	}
+	return true
+}
+func (this *VoteDataV2_0) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VoteDataV2_0)
+	if !ok {
+		that2, ok := that.(VoteDataV2_0)
 		if ok {
 			that1 = &that2
 		} else {
@@ -874,7 +1421,7 @@ func (this *GeneralProposal) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 15)
+	s := make([]string, 0, 16)
 	s = append(s, "&systemSmartContracts.GeneralProposal{")
 	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
 	s = append(s, "GitHubCommit: "+fmt.Sprintf("%#v", this.GitHubCommit)+",\n")
@@ -883,8 +1430,9 @@ func (this *GeneralProposal) GoString() string {
 	s = append(s, "Yes: "+fmt.Sprintf("%#v", this.Yes)+",\n")
 	s = append(s, "No: "+fmt.Sprintf("%#v", this.No)+",\n")
 	s = append(s, "Veto: "+fmt.Sprintf("%#v", this.Veto)+",\n")
+	s = append(s, "DontCare: "+fmt.Sprintf("%#v", this.DontCare)+",\n")
 	s = append(s, "Voted: "+fmt.Sprintf("%#v", this.Voted)+",\n")
-	s = append(s, "Votes: "+fmt.Sprintf("%#v", this.Votes)+",\n")
+	s = append(s, "Voters: "+fmt.Sprintf("%#v", this.Voters)+",\n")
 	s = append(s, "TopReference: "+fmt.Sprintf("%#v", this.TopReference)+",\n")
 	s = append(s, "Closed: "+fmt.Sprintf("%#v", this.Closed)+",\n")
 	s = append(s, "}")
@@ -917,8 +1465,9 @@ func (this *GovernanceConfig) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 8)
+	s := make([]string, 0, 9)
 	s = append(s, "&systemSmartContracts.GovernanceConfig{")
+	s = append(s, "NumNodes: "+fmt.Sprintf("%#v", this.NumNodes)+",\n")
 	s = append(s, "MinQuorum: "+fmt.Sprintf("%#v", this.MinQuorum)+",\n")
 	s = append(s, "MinPassThreshold: "+fmt.Sprintf("%#v", this.MinPassThreshold)+",\n")
 	s = append(s, "MinVetoThreshold: "+fmt.Sprintf("%#v", this.MinVetoThreshold)+",\n")
@@ -940,12 +1489,80 @@ func (this *VoteDetails) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
+func (this *VoterData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&systemSmartContracts.VoterData{")
+	s = append(s, "Address: "+fmt.Sprintf("%#v", this.Address)+",\n")
+	s = append(s, "NumNodes: "+fmt.Sprintf("%#v", this.NumNodes)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ValidatorData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&systemSmartContracts.ValidatorData{")
+	if this.Delegators != nil {
+		s = append(s, "Delegators: "+fmt.Sprintf("%#v", this.Delegators)+",\n")
+	}
+	s = append(s, "NumNodes: "+fmt.Sprintf("%#v", this.NumNodes)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
 func (this *VoteData) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
+	s := make([]string, 0, 6)
 	s = append(s, "&systemSmartContracts.VoteData{")
+	s = append(s, "NumVotes: "+fmt.Sprintf("%#v", this.NumVotes)+",\n")
+	s = append(s, "VoteValue: "+fmt.Sprintf("%#v", this.VoteValue)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *GeneralProposalV2_0) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 15)
+	s = append(s, "&systemSmartContracts.GeneralProposalV2_0{")
+	s = append(s, "IssuerAddress: "+fmt.Sprintf("%#v", this.IssuerAddress)+",\n")
+	s = append(s, "GitHubCommit: "+fmt.Sprintf("%#v", this.GitHubCommit)+",\n")
+	s = append(s, "StartVoteNonce: "+fmt.Sprintf("%#v", this.StartVoteNonce)+",\n")
+	s = append(s, "EndVoteNonce: "+fmt.Sprintf("%#v", this.EndVoteNonce)+",\n")
+	s = append(s, "Yes: "+fmt.Sprintf("%#v", this.Yes)+",\n")
+	s = append(s, "No: "+fmt.Sprintf("%#v", this.No)+",\n")
+	s = append(s, "Veto: "+fmt.Sprintf("%#v", this.Veto)+",\n")
+	s = append(s, "Voted: "+fmt.Sprintf("%#v", this.Voted)+",\n")
+	s = append(s, "Votes: "+fmt.Sprintf("%#v", this.Votes)+",\n")
+	s = append(s, "TopReference: "+fmt.Sprintf("%#v", this.TopReference)+",\n")
+	s = append(s, "Closed: "+fmt.Sprintf("%#v", this.Closed)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *GovernanceConfigV2_0) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&systemSmartContracts.GovernanceConfigV2_0{")
+	s = append(s, "MinQuorum: "+fmt.Sprintf("%#v", this.MinQuorum)+",\n")
+	s = append(s, "MinPassThreshold: "+fmt.Sprintf("%#v", this.MinPassThreshold)+",\n")
+	s = append(s, "MinVetoThreshold: "+fmt.Sprintf("%#v", this.MinVetoThreshold)+",\n")
+	s = append(s, "ProposalFee: "+fmt.Sprintf("%#v", this.ProposalFee)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *VoteDataV2_0) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&systemSmartContracts.VoteDataV2_0{")
 	s = append(s, "UsedPower: "+fmt.Sprintf("%#v", this.UsedPower)+",\n")
 	s = append(s, "TotalYes: "+fmt.Sprintf("%#v", this.TotalYes)+",\n")
 	s = append(s, "TotalNo: "+fmt.Sprintf("%#v", this.TotalNo)+",\n")
@@ -993,22 +1610,22 @@ func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
-		dAtA[i] = 0x58
+		dAtA[i] = 0x60
 	}
 	if len(m.TopReference) > 0 {
 		i -= len(m.TopReference)
 		copy(dAtA[i:], m.TopReference)
 		i = encodeVarintGovernance(dAtA, i, uint64(len(m.TopReference)))
 		i--
-		dAtA[i] = 0x52
+		dAtA[i] = 0x5a
 	}
-	if len(m.Votes) > 0 {
-		for iNdEx := len(m.Votes) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Votes[iNdEx])
-			copy(dAtA[i:], m.Votes[iNdEx])
-			i = encodeVarintGovernance(dAtA, i, uint64(len(m.Votes[iNdEx])))
+	if len(m.Voters) > 0 {
+		for iNdEx := len(m.Voters) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Voters[iNdEx])
+			copy(dAtA[i:], m.Voters[iNdEx])
+			i = encodeVarintGovernance(dAtA, i, uint64(len(m.Voters[iNdEx])))
 			i--
-			dAtA[i] = 0x4a
+			dAtA[i] = 0x52
 		}
 	}
 	if m.Voted {
@@ -1019,41 +1636,28 @@ func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0
 		}
 		i--
+		dAtA[i] = 0x48
+	}
+	if m.DontCare != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.DontCare))
+		i--
 		dAtA[i] = 0x40
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.Veto)
-		i -= size
-		if _, err := __caster.MarshalTo(m.Veto, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if m.Veto != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.Veto))
+		i--
+		dAtA[i] = 0x38
 	}
-	i--
-	dAtA[i] = 0x3a
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.No)
-		i -= size
-		if _, err := __caster.MarshalTo(m.No, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if m.No != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.No))
+		i--
+		dAtA[i] = 0x30
 	}
-	i--
-	dAtA[i] = 0x32
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.Yes)
-		i -= size
-		if _, err := __caster.MarshalTo(m.Yes, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if m.Yes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.Yes))
+		i--
+		dAtA[i] = 0x28
 	}
-	i--
-	dAtA[i] = 0x2a
 	if m.EndVoteNonce != 0 {
 		i = encodeVarintGovernance(dAtA, i, uint64(m.EndVoteNonce))
 		i--
@@ -1190,40 +1794,27 @@ func (m *GovernanceConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintGovernance(dAtA, i, uint64(size))
 	}
 	i--
-	dAtA[i] = 0x22
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.MinVetoThreshold)
-		i -= size
-		if _, err := __caster.MarshalTo(m.MinVetoThreshold, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	dAtA[i] = 0x2a
+	if m.MinVetoThreshold != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.MinVetoThreshold))
+		i--
+		dAtA[i] = 0x20
 	}
-	i--
-	dAtA[i] = 0x1a
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.MinPassThreshold)
-		i -= size
-		if _, err := __caster.MarshalTo(m.MinPassThreshold, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if m.MinPassThreshold != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.MinPassThreshold))
+		i--
+		dAtA[i] = 0x18
 	}
-	i--
-	dAtA[i] = 0x12
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		size := __caster.Size(m.MinQuorum)
-		i -= size
-		if _, err := __caster.MarshalTo(m.MinQuorum, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if m.MinQuorum != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.MinQuorum))
+		i--
+		dAtA[i] = 0x10
 	}
-	i--
-	dAtA[i] = 0xa
+	if m.NumNodes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.NumNodes))
+		i--
+		dAtA[i] = 0x8
+	}
 	return len(dAtA) - i, nil
 }
 
@@ -1289,6 +1880,83 @@ func (m *VoteDetails) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *VoterData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VoterData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VoterData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.NumNodes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.NumNodes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Address) > 0 {
+		i -= len(m.Address)
+		copy(dAtA[i:], m.Address)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.Address)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ValidatorData) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ValidatorData) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ValidatorData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.NumNodes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.NumNodes))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.Delegators) > 0 {
+		for iNdEx := len(m.Delegators) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Delegators[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintGovernance(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *VoteData) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1305,6 +1973,224 @@ func (m *VoteData) MarshalTo(dAtA []byte) (int, error) {
 }
 
 func (m *VoteData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.VoteValue) > 0 {
+		i -= len(m.VoteValue)
+		copy(dAtA[i:], m.VoteValue)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.VoteValue)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if m.NumVotes != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.NumVotes))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GeneralProposalV2_0) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GeneralProposalV2_0) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GeneralProposalV2_0) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Closed {
+		i--
+		if m.Closed {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x58
+	}
+	if len(m.TopReference) > 0 {
+		i -= len(m.TopReference)
+		copy(dAtA[i:], m.TopReference)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.TopReference)))
+		i--
+		dAtA[i] = 0x52
+	}
+	if len(m.Votes) > 0 {
+		for iNdEx := len(m.Votes) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Votes[iNdEx])
+			copy(dAtA[i:], m.Votes[iNdEx])
+			i = encodeVarintGovernance(dAtA, i, uint64(len(m.Votes[iNdEx])))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if m.Voted {
+		i--
+		if m.Voted {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x40
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.Veto)
+		i -= size
+		if _, err := __caster.MarshalTo(m.Veto, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x3a
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.No)
+		i -= size
+		if _, err := __caster.MarshalTo(m.No, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x32
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.Yes)
+		i -= size
+		if _, err := __caster.MarshalTo(m.Yes, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x2a
+	if m.EndVoteNonce != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.EndVoteNonce))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.StartVoteNonce != 0 {
+		i = encodeVarintGovernance(dAtA, i, uint64(m.StartVoteNonce))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.GitHubCommit) > 0 {
+		i -= len(m.GitHubCommit)
+		copy(dAtA[i:], m.GitHubCommit)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.GitHubCommit)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.IssuerAddress) > 0 {
+		i -= len(m.IssuerAddress)
+		copy(dAtA[i:], m.IssuerAddress)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.IssuerAddress)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *GovernanceConfigV2_0) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GovernanceConfigV2_0) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GovernanceConfigV2_0) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.ProposalFee)
+		i -= size
+		if _, err := __caster.MarshalTo(m.ProposalFee, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.MinVetoThreshold)
+		i -= size
+		if _, err := __caster.MarshalTo(m.MinVetoThreshold, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.MinPassThreshold)
+		i -= size
+		if _, err := __caster.MarshalTo(m.MinPassThreshold, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		size := __caster.Size(m.MinQuorum)
+		i -= size
+		if _, err := __caster.MarshalTo(m.MinQuorum, dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *VoteDataV2_0) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VoteDataV2_0) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VoteDataV2_0) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
@@ -1411,26 +2297,23 @@ func (m *GeneralProposal) Size() (n int) {
 	if m.EndVoteNonce != 0 {
 		n += 1 + sovGovernance(uint64(m.EndVoteNonce))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.Yes)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.Yes != 0 {
+		n += 1 + sovGovernance(uint64(m.Yes))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.No)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.No != 0 {
+		n += 1 + sovGovernance(uint64(m.No))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.Veto)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.Veto != 0 {
+		n += 1 + sovGovernance(uint64(m.Veto))
+	}
+	if m.DontCare != 0 {
+		n += 1 + sovGovernance(uint64(m.DontCare))
 	}
 	if m.Voted {
 		n += 2
 	}
-	if len(m.Votes) > 0 {
-		for _, b := range m.Votes {
+	if len(m.Voters) > 0 {
+		for _, b := range m.Voters {
 			l = len(b)
 			n += 1 + l + sovGovernance(uint64(l))
 		}
@@ -1488,20 +2371,17 @@ func (m *GovernanceConfig) Size() (n int) {
 	}
 	var l int
 	_ = l
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.MinQuorum)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.NumNodes != 0 {
+		n += 1 + sovGovernance(uint64(m.NumNodes))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.MinPassThreshold)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.MinQuorum != 0 {
+		n += 1 + sovGovernance(uint64(m.MinQuorum))
 	}
-	{
-		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-		l = __caster.Size(m.MinVetoThreshold)
-		n += 1 + l + sovGovernance(uint64(l))
+	if m.MinPassThreshold != 0 {
+		n += 1 + sovGovernance(uint64(m.MinPassThreshold))
+	}
+	if m.MinVetoThreshold != 0 {
+		n += 1 + sovGovernance(uint64(m.MinVetoThreshold))
 	}
 	{
 		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
@@ -1540,7 +2420,140 @@ func (m *VoteDetails) Size() (n int) {
 	return n
 }
 
+func (m *VoterData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Address)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.NumNodes != 0 {
+		n += 1 + sovGovernance(uint64(m.NumNodes))
+	}
+	return n
+}
+
+func (m *ValidatorData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Delegators) > 0 {
+		for _, e := range m.Delegators {
+			l = e.Size()
+			n += 1 + l + sovGovernance(uint64(l))
+		}
+	}
+	if m.NumNodes != 0 {
+		n += 1 + sovGovernance(uint64(m.NumNodes))
+	}
+	return n
+}
+
 func (m *VoteData) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.NumVotes != 0 {
+		n += 1 + sovGovernance(uint64(m.NumVotes))
+	}
+	l = len(m.VoteValue)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	return n
+}
+
+func (m *GeneralProposalV2_0) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.IssuerAddress)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	l = len(m.GitHubCommit)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.StartVoteNonce != 0 {
+		n += 1 + sovGovernance(uint64(m.StartVoteNonce))
+	}
+	if m.EndVoteNonce != 0 {
+		n += 1 + sovGovernance(uint64(m.EndVoteNonce))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.Yes)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.No)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.Veto)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.Voted {
+		n += 2
+	}
+	if len(m.Votes) > 0 {
+		for _, b := range m.Votes {
+			l = len(b)
+			n += 1 + l + sovGovernance(uint64(l))
+		}
+	}
+	l = len(m.TopReference)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	if m.Closed {
+		n += 2
+	}
+	return n
+}
+
+func (m *GovernanceConfigV2_0) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.MinQuorum)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.MinPassThreshold)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.MinVetoThreshold)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	{
+		__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+		l = __caster.Size(m.ProposalFee)
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	return n
+}
+
+func (m *VoteDataV2_0) Size() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -1596,8 +2609,9 @@ func (this *GeneralProposal) String() string {
 		`Yes:` + fmt.Sprintf("%v", this.Yes) + `,`,
 		`No:` + fmt.Sprintf("%v", this.No) + `,`,
 		`Veto:` + fmt.Sprintf("%v", this.Veto) + `,`,
+		`DontCare:` + fmt.Sprintf("%v", this.DontCare) + `,`,
 		`Voted:` + fmt.Sprintf("%v", this.Voted) + `,`,
-		`Votes:` + fmt.Sprintf("%v", this.Votes) + `,`,
+		`Voters:` + fmt.Sprintf("%v", this.Voters) + `,`,
 		`TopReference:` + fmt.Sprintf("%v", this.TopReference) + `,`,
 		`Closed:` + fmt.Sprintf("%v", this.Closed) + `,`,
 		`}`,
@@ -1632,6 +2646,7 @@ func (this *GovernanceConfig) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&GovernanceConfig{`,
+		`NumNodes:` + fmt.Sprintf("%v", this.NumNodes) + `,`,
 		`MinQuorum:` + fmt.Sprintf("%v", this.MinQuorum) + `,`,
 		`MinPassThreshold:` + fmt.Sprintf("%v", this.MinPassThreshold) + `,`,
 		`MinVetoThreshold:` + fmt.Sprintf("%v", this.MinVetoThreshold) + `,`,
@@ -1654,7 +2669,78 @@ func (this *VoteDetails) String() string {
 	}, "")
 	return s
 }
+func (this *VoterData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&VoterData{`,
+		`Address:` + fmt.Sprintf("%v", this.Address) + `,`,
+		`NumNodes:` + fmt.Sprintf("%v", this.NumNodes) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ValidatorData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForDelegators := "[]*VoterData{"
+	for _, f := range this.Delegators {
+		repeatedStringForDelegators += strings.Replace(f.String(), "VoterData", "VoterData", 1) + ","
+	}
+	repeatedStringForDelegators += "}"
+	s := strings.Join([]string{`&ValidatorData{`,
+		`Delegators:` + repeatedStringForDelegators + `,`,
+		`NumNodes:` + fmt.Sprintf("%v", this.NumNodes) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *VoteData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&VoteData{`,
+		`NumVotes:` + fmt.Sprintf("%v", this.NumVotes) + `,`,
+		`VoteValue:` + fmt.Sprintf("%v", this.VoteValue) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GeneralProposalV2_0) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GeneralProposalV2_0{`,
+		`IssuerAddress:` + fmt.Sprintf("%v", this.IssuerAddress) + `,`,
+		`GitHubCommit:` + fmt.Sprintf("%v", this.GitHubCommit) + `,`,
+		`StartVoteNonce:` + fmt.Sprintf("%v", this.StartVoteNonce) + `,`,
+		`EndVoteNonce:` + fmt.Sprintf("%v", this.EndVoteNonce) + `,`,
+		`Yes:` + fmt.Sprintf("%v", this.Yes) + `,`,
+		`No:` + fmt.Sprintf("%v", this.No) + `,`,
+		`Veto:` + fmt.Sprintf("%v", this.Veto) + `,`,
+		`Voted:` + fmt.Sprintf("%v", this.Voted) + `,`,
+		`Votes:` + fmt.Sprintf("%v", this.Votes) + `,`,
+		`TopReference:` + fmt.Sprintf("%v", this.TopReference) + `,`,
+		`Closed:` + fmt.Sprintf("%v", this.Closed) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GovernanceConfigV2_0) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GovernanceConfigV2_0{`,
+		`MinQuorum:` + fmt.Sprintf("%v", this.MinQuorum) + `,`,
+		`MinPassThreshold:` + fmt.Sprintf("%v", this.MinPassThreshold) + `,`,
+		`MinVetoThreshold:` + fmt.Sprintf("%v", this.MinVetoThreshold) + `,`,
+		`ProposalFee:` + fmt.Sprintf("%v", this.ProposalFee) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *VoteDataV2_0) String() string {
 	if this == nil {
 		return "nil"
 	}
@@ -1663,7 +2749,7 @@ func (this *VoteData) String() string {
 		repeatedStringForVoteItems += strings.Replace(f.String(), "VoteDetails", "VoteDetails", 1) + ","
 	}
 	repeatedStringForVoteItems += "}"
-	s := strings.Join([]string{`&VoteData{`,
+	s := strings.Join([]string{`&VoteDataV2_0{`,
 		`UsedPower:` + fmt.Sprintf("%v", this.UsedPower) + `,`,
 		`TotalYes:` + fmt.Sprintf("%v", this.TotalYes) + `,`,
 		`TotalNo:` + fmt.Sprintf("%v", this.TotalNo) + `,`,
@@ -1709,6 +2795,1292 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: GeneralProposal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IssuerAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.IssuerAddress = append(m.IssuerAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.IssuerAddress == nil {
+				m.IssuerAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field GitHubCommit", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.GitHubCommit = append(m.GitHubCommit[:0], dAtA[iNdEx:postIndex]...)
+			if m.GitHubCommit == nil {
+				m.GitHubCommit = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field StartVoteNonce", wireType)
+			}
+			m.StartVoteNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.StartVoteNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EndVoteNonce", wireType)
+			}
+			m.EndVoteNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EndVoteNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Yes", wireType)
+			}
+			m.Yes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Yes |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field No", wireType)
+			}
+			m.No = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.No |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Veto", wireType)
+			}
+			m.Veto = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Veto |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 8:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DontCare", wireType)
+			}
+			m.DontCare = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.DontCare |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 9:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Voted", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Voted = bool(v != 0)
+		case 10:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Voters", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Voters = append(m.Voters, make([]byte, postIndex-iNdEx))
+			copy(m.Voters[len(m.Voters)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 11:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TopReference", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TopReference = append(m.TopReference[:0], dAtA[iNdEx:postIndex]...)
+			if m.TopReference == nil {
+				m.TopReference = []byte{}
+			}
+			iNdEx = postIndex
+		case 12:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Closed", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Closed = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: WhiteListProposal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: WhiteListProposal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field WhiteListAddress", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.WhiteListAddress = append(m.WhiteListAddress[:0], dAtA[iNdEx:postIndex]...)
+			if m.WhiteListAddress == nil {
+				m.WhiteListAddress = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProposalStatus = append(m.ProposalStatus[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProposalStatus == nil {
+				m.ProposalStatus = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HardForkProposal) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HardForkProposal: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HardForkProposal: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field EpochToHardFork", wireType)
+			}
+			m.EpochToHardFork = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.EpochToHardFork |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NewSoftwareVersion", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NewSoftwareVersion = append(m.NewSoftwareVersion[:0], dAtA[iNdEx:postIndex]...)
+			if m.NewSoftwareVersion == nil {
+				m.NewSoftwareVersion = []byte{}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProposalStatus = append(m.ProposalStatus[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProposalStatus == nil {
+				m.ProposalStatus = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GovernanceConfig) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GovernanceConfig: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GovernanceConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumNodes", wireType)
+			}
+			m.NumNodes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumNodes |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinQuorum", wireType)
+			}
+			m.MinQuorum = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinQuorum |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinPassThreshold", wireType)
+			}
+			m.MinPassThreshold = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinPassThreshold |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MinVetoThreshold", wireType)
+			}
+			m.MinVetoThreshold = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MinVetoThreshold |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProposalFee", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.ProposalFee = tmp
+				}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VoteDetails) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VoteDetails: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VoteDetails: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
+			}
+			m.Value = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Value |= VoteValueType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Power", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.Power = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Balance", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			{
+				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
+				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+					return err
+				} else {
+					m.Balance = tmp
+				}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= VoteType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DelegatedTo", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.DelegatedTo = append(m.DelegatedTo[:0], dAtA[iNdEx:postIndex]...)
+			if m.DelegatedTo == nil {
+				m.DelegatedTo = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VoterData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VoterData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VoterData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Address", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Address = append(m.Address[:0], dAtA[iNdEx:postIndex]...)
+			if m.Address == nil {
+				m.Address = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumNodes", wireType)
+			}
+			m.NumNodes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumNodes |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ValidatorData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ValidatorData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ValidatorData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Delegators", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Delegators = append(m.Delegators, &VoterData{})
+			if err := m.Delegators[len(m.Delegators)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumNodes", wireType)
+			}
+			m.NumNodes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumNodes |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VoteData) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VoteData: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VoteData: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumVotes", wireType)
+			}
+			m.NumVotes = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumVotes |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field VoteValue", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.VoteValue = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGovernance(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GeneralProposalV2_0) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGovernance
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GeneralProposalV2_0: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GeneralProposalV2_0: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2061,7 +4433,7 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
+func (m *GovernanceConfigV2_0) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2084,271 +4456,10 @@ func (m *WhiteListProposal) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: WhiteListProposal: wiretype end group for non-group")
+			return fmt.Errorf("proto: GovernanceConfigV2_0: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: WhiteListProposal: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field WhiteListAddress", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.WhiteListAddress = append(m.WhiteListAddress[:0], dAtA[iNdEx:postIndex]...)
-			if m.WhiteListAddress == nil {
-				m.WhiteListAddress = []byte{}
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ProposalStatus = append(m.ProposalStatus[:0], dAtA[iNdEx:postIndex]...)
-			if m.ProposalStatus == nil {
-				m.ProposalStatus = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGovernance(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *HardForkProposal) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGovernance
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: HardForkProposal: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: HardForkProposal: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field EpochToHardFork", wireType)
-			}
-			m.EpochToHardFork = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.EpochToHardFork |= uint32(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NewSoftwareVersion", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.NewSoftwareVersion = append(m.NewSoftwareVersion[:0], dAtA[iNdEx:postIndex]...)
-			if m.NewSoftwareVersion == nil {
-				m.NewSoftwareVersion = []byte{}
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProposalStatus", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.ProposalStatus = append(m.ProposalStatus[:0], dAtA[iNdEx:postIndex]...)
-			if m.ProposalStatus == nil {
-				m.ProposalStatus = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGovernance(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GovernanceConfig) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGovernance
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GovernanceConfig: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GovernanceConfig: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GovernanceConfigV2_0: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -2527,7 +4638,7 @@ func (m *GovernanceConfig) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *VoteDetails) Unmarshal(dAtA []byte) error {
+func (m *VoteDataV2_0) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -2550,211 +4661,10 @@ func (m *VoteDetails) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: VoteDetails: wiretype end group for non-group")
+			return fmt.Errorf("proto: VoteDataV2_0: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VoteDetails: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
-			}
-			m.Value = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Value |= VoteValueType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Power", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.Power = tmp
-				}
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Balance", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			{
-				__caster := &github_com_ElrondNetwork_elrond_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.Balance = tmp
-				}
-			}
-			iNdEx = postIndex
-		case 4:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
-			}
-			m.Type = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Type |= VoteType(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field DelegatedTo", wireType)
-			}
-			var byteLen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGovernance
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				byteLen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if byteLen < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			postIndex := iNdEx + byteLen
-			if postIndex < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.DelegatedTo = append(m.DelegatedTo[:0], dAtA[iNdEx:postIndex]...)
-			if m.DelegatedTo == nil {
-				m.DelegatedTo = []byte{}
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGovernance(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *VoteData) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGovernance
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: VoteData: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: VoteData: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: VoteDataV2_0: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:

@@ -31,6 +31,7 @@ type ArgsNewGovernanceContract struct {
 	Eei                        vm.SystemEI
 	GasCost                    vm.GasCost
 	GovernanceConfig           config.GovernanceSystemSCConfig
+	GovernanceConfigV2         config.GovernanceSystemSCConfigV2
 	Marshalizer                marshal.Marshalizer
 	Hasher                     hashing.Hasher
 	GovernanceSCAddress        []byte
@@ -50,7 +51,8 @@ type governanceContract struct {
 	auctionSCAddress            []byte
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
-	governanceConfig            GovernanceConfig
+	governanceConfig            config.GovernanceSystemSCConfig
+	governanceConfigV2          GovernanceConfigV2_0
 	initialWhiteListedAddresses [][]byte
 	enabledEpoch                uint32
 	flagEnabled                 atomic.Flag
@@ -86,14 +88,15 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		auctionSCAddress:    args.AuctionSCAddress,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
+		governanceConfig:    args.GovernanceConfig,
 		enabledEpoch:        args.GovernanceConfig.EnabledEpoch,
 	}
 
-	cfg, err := g.convertConfig(args.GovernanceConfig)
+	cfg, err := g.convertConfig(args.GovernanceConfigV2)
 	if err != nil {
 		return nil, err
 	}
-	g.governanceConfig = *cfg
+	g.governanceConfigV2 = *cfg
 
 	err = g.validateInitialWhiteListedAddresses(args.InitalWhiteListedAddresses)
 	if err != nil {
@@ -136,7 +139,6 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
-	// View functions
 	case "getValidatorVotingPower":
 		return g.getValidatorVotingPowerFromArgs(args)
 	case "getBalanceVotingPower":
@@ -150,9 +152,27 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 
 func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scConfig := &GovernanceConfig{
+		NumNodes:         g.governanceConfig.NumNodes,
 		MinQuorum:        g.governanceConfig.MinQuorum,
 		MinPassThreshold: g.governanceConfig.MinPassThreshold,
 		MinVetoThreshold: g.governanceConfig.MinVetoThreshold,
+		ProposalFee:      g.baseProposalCost,
+	}
+	marshaledData, err := g.marshalizer.Marshal(scConfig)
+	log.LogIfError(err, "marshal error on governance init function")
+
+	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
+	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
+	g.ownerAddress = make([]byte, 0, len(args.CallerAddr))
+	g.ownerAddress = append(g.ownerAddress, args.CallerAddr...)
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	scConfig := &GovernanceConfigV2_0{
+		MinQuorum:        g.governanceConfigV2.MinQuorum,
+		MinPassThreshold: g.governanceConfigV2.MinPassThreshold,
+		MinVetoThreshold: g.governanceConfigV2.MinVetoThreshold,
 		ProposalFee:      g.baseProposalCost,
 	}
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
@@ -200,7 +220,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.UserError
 	}
 
-	generalProposal := &GeneralProposal{
+	generalProposal := &GeneralProposalV2_0{
 		IssuerAddress:  args.CallerAddr,
 		GitHubCommit:   gitHubCommit,
 		StartVoteNonce: startVoteNonce,
@@ -471,7 +491,7 @@ func (g *governanceContract) whiteListProposal(args *vmcommon.ContractCallInput)
 	}
 
 	key = append([]byte(whiteListPrefix), args.CallerAddr...)
-	generalProposal := &GeneralProposal{
+	generalProposal := &GeneralProposalV2_0{
 		IssuerAddress:  args.CallerAddr,
 		GitHubCommit:   args.Arguments[0],
 		StartVoteNonce: startVoteNonce,
@@ -562,7 +582,7 @@ func (g *governanceContract) hardForkProposal(args *vmcommon.ContractCallInput) 
 	}
 
 	key = append([]byte(hardForkPrefix), gitHubCommit...)
-	generalProposal := &GeneralProposal{
+	generalProposal := &GeneralProposalV2_0{
 		IssuerAddress:  args.CallerAddr,
 		GitHubCommit:   gitHubCommit,
 		StartVoteNonce: startVoteNonce,
@@ -706,9 +726,9 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 }
 
 // getConfig returns the curent system smart contract configuration
-func (g *governanceContract) getConfig() (*GovernanceConfig, error) {
+func (g *governanceContract) getConfig() (*GovernanceConfigV2_0, error) {
 	marshaledData := g.eei.GetStorage([]byte(governanceConfigKey))
-	scConfig := &GovernanceConfig{}
+	scConfig := &GovernanceConfigV2_0{}
 	err := g.marshalizer.Unmarshal(scConfig, marshaledData)
 	if err != nil {
 		return nil, err
@@ -768,7 +788,7 @@ func (g *governanceContract) getBalanceVotingPower(args *vmcommon.ContractCallIn
 }
 
 // saveGeneralProposal saves a proposal into the storage
-func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposal) error {
+func (g *governanceContract) saveGeneralProposal(reference []byte, generalProposal *GeneralProposalV2_0) error {
 	marshaledData, err := g.marshalizer.Marshal(generalProposal)
 	if err != nil {
 		return err
@@ -780,7 +800,7 @@ func (g *governanceContract) saveGeneralProposal(reference []byte, generalPropos
 }
 
 // getGeneralProposal returns a proposal from storage
-func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposal, error) {
+func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralProposalV2_0, error) {
 	key := append([]byte(proposalPrefix), reference...)
 	marshaledData := g.eei.GetStorage(key)
 
@@ -788,7 +808,7 @@ func (g *governanceContract) getGeneralProposal(reference []byte) (*GeneralPropo
 		return nil, vm.ErrProposalNotFound
 	}
 
-	generalProposal := &GeneralProposal{}
+	generalProposal := &GeneralProposalV2_0{}
 	err := g.marshalizer.Unmarshal(generalProposal, marshaledData)
 	if err != nil {
 		return nil, err
@@ -805,7 +825,7 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 }
 
 // getValidProposal returns a proposal from storage if it exists or it is still valid/in-progress
-func (g *governanceContract) getValidProposal(reference []byte) (*GeneralProposal, error) {
+func (g *governanceContract) getValidProposal(reference []byte) (*GeneralProposalV2_0, error) {
 	proposal, err := g.getGeneralProposal(reference)
 	if err != nil {
 		return nil, err
@@ -867,12 +887,12 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 	}
 
 	key = append([]byte(whiteListPrefix), args.CallerAddr...)
-	generalProposal := &GeneralProposal{
+	generalProposal := &GeneralProposalV2_0{
 		IssuerAddress:  args.CallerAddr,
 		GitHubCommit:   []byte("genesis"),
 		StartVoteNonce: 0,
 		EndVoteNonce:   0,
-		Yes:            g.governanceConfig.MinQuorum,
+		Yes:            g.governanceConfigV2.MinQuorum,
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Voted:          true,
@@ -896,7 +916,7 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 
 // applyVote takes in a vote and a full VoteData object and correctly applies the new vote, then returning
 //  the new full VoteData object. In the same way applies the vote to the general proposal
-func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteData, proposal *GeneralProposal) (*VoteData, *GeneralProposal, error) {
+func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteDataV2_0, proposal *GeneralProposalV2_0) (*VoteDataV2_0, *GeneralProposalV2_0, error) {
 	switch vote.Value {
 	case Yes:
 		voteData.TotalYes.Add(voteData.TotalYes, vote.Power)
@@ -921,7 +941,7 @@ func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteData, pr
 }
 
 // saveNewVoteData first saves the main vote data of the voter, then the full proposal with the updated information
-func (g *governanceContract) saveNewVoteData(voter []byte, voteData *VoteData, proposal *GeneralProposal, voteType VoteType) error {
+func (g *governanceContract) saveNewVoteData(voter []byte, voteData *VoteDataV2_0, proposal *GeneralProposalV2_0, voteType VoteType) error {
 	proposalKey := append([]byte(proposalPrefix), proposal.GitHubCommit...)
 	voteItemKey := append(proposalKey, voter...)
 
@@ -947,7 +967,7 @@ func (g *governanceContract) saveNewVoteData(voter []byte, voteData *VoteData, p
 }
 
 // saveVoteData saves the provided vote data into the storage
-func (g *governanceContract) saveVoteData(voter []byte, voteData *VoteData, proposalReference []byte) error {
+func (g *governanceContract) saveVoteData(voter []byte, voteData *VoteDataV2_0, proposalReference []byte) error {
 	proposalKey := append([]byte(proposalPrefix), proposalReference...)
 	voteItemKey := append(proposalKey, voter...)
 
@@ -961,7 +981,7 @@ func (g *governanceContract) saveVoteData(voter []byte, voteData *VoteData, prop
 }
 
 // setLock will set a storage key with the nonce until the funds for a specific voter are locked
-func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *GeneralProposal) error {
+func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *GeneralProposalV2_0) error {
 	prefix := []byte(validatorLockPrefix)
 	if voteType == Account {
 		prefix = append([]byte(accountLockPrefix), proposal.GitHubCommit...)
@@ -992,7 +1012,7 @@ func (g *governanceContract) getLock(voter []byte, voteType VoteType, proposalRe
 
 // proposalContainsVoter iterates through all the votes on a proposal and returns if it already contains a
 //  vote from a certain address
-func (g *governanceContract) proposalContainsVoter(proposal *GeneralProposal, voteKey []byte) bool {
+func (g *governanceContract) proposalContainsVoter(proposal *GeneralProposalV2_0, voteKey []byte) bool {
 	for _, vote := range proposal.Votes {
 		if bytes.Equal(vote, voteKey) {
 			return true
@@ -1028,7 +1048,9 @@ func (g *governanceContract) getDelegatedToAddress(args *vmcommon.ContractCallIn
 func (g *governanceContract) isValidVoteString(vote string) bool {
 	switch vote {
 	case "yes":
+		return true
 	case "no":
+		return true
 	case "veto":
 		return true
 	}
@@ -1050,14 +1072,14 @@ func (g *governanceContract) castVoteType(vote string) (VoteValueType, error) {
 
 // getOrCreateVoteData returns the vote data from storage for a goven proposer/validator pair.
 //  If no vote data exists, it returns a new instance of VoteData
-func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) (*VoteData, error) {
+func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) (*VoteDataV2_0, error) {
 	key := append(proposal, voter...)
 	marshaledData := g.eei.GetStorage(key)
 	if len(marshaledData) == 0 {
 		return g.getEmptyVoteData(), nil
 	}
 
-	voteData := &VoteData{}
+	voteData := &VoteDataV2_0{}
 	err := g.marshalizer.Unmarshal(voteData, marshaledData)
 	if err != nil {
 		return nil, err
@@ -1067,8 +1089,8 @@ func (g *governanceContract) getOrCreateVoteData(proposal []byte, voter []byte) 
 }
 
 // getEmptyVoteData returns a new  VoteData instance with it's members initialised with their 0 value
-func (g *governanceContract) getEmptyVoteData() *VoteData {
-	return &VoteData{
+func (g *governanceContract) getEmptyVoteData() *VoteDataV2_0 {
+	return &VoteDataV2_0{
 		UsedPower: big.NewInt(0),
 		TotalYes: big.NewInt(0),
 		TotalNo: big.NewInt(0),
@@ -1171,7 +1193,7 @@ func (g *governanceContract) startEndNonceFromArguments(argStart []byte, argEnd 
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error {
+func (g *governanceContract) computeEndResults(proposal *GeneralProposalV2_0) error {
 	baseConfig, err := g.getConfig()
 	if err != nil {
 		return err
@@ -1199,7 +1221,7 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 }
 
 // convertConfig converts the passed config file to the correct typed GovernanceConfig
-func (g *governanceContract) convertConfig(config config.GovernanceSystemSCConfig) (*GovernanceConfig, error) {
+func (g *governanceContract) convertConfig(config config.GovernanceSystemSCConfigV2) (*GovernanceConfigV2_0, error) {
 	minQuorum, success := big.NewInt(0).SetString(config.MinQuorum, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
@@ -1216,7 +1238,7 @@ func (g *governanceContract) convertConfig(config config.GovernanceSystemSCConfi
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
-	return &GovernanceConfig{
+	return &GovernanceConfigV2_0{
 		MinQuorum: minQuorum,
 		MinPassThreshold: minPass,
 		MinVetoThreshold: minVeto,

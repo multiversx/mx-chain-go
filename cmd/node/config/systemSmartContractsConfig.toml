@@ -21,9 +21,9 @@
 
 [GovernanceSystemSCConfig]
 	ProposalCost = "5000000000000000000" #5 eGLD
-	MinQuorum    = "158000000000000000000" # sqrt(10*NodePrice)
-	MinPassThreshold = "80000000000000000000"
-	MinVetoThreshold = "30000000000000000000"
+	MinQuorum    = "500000000000" # VotePower of 10*sqrt(NodePrice)
+	MinPassThreshold = "251000000000"
+	MinVetoThreshold = "249000000000"
     EnabledEpoch = 2
 
 [DelegationManagerSystemSCConfig]

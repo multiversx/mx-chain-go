@@ -672,11 +672,9 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
-	governanceLockKey := append([]byte(validatorLockPrefix), args.CallerAddr...)
-	lock := r.eei.GetStorageFromAddress(r.governanceSCAddr, governanceLockKey)
-	lockNonce := big.NewInt(0).SetBytes(lock)
-	if currentNonce < lockNonce.Uint64() {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible because funds are locked by the governance contract until nonce: %s", lockNonce.String()))
+	governanceLockNonce := r.getGovernanceLockNonce(args.CallerAddr)
+	if governanceLockNonce.Uint64() > currentNonce {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible because funds are locked by the governance contract until nonce: %s", governanceLockNonce.String()))
 		return vmcommon.UserError
 	}
 
@@ -1383,6 +1381,13 @@ func (r *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	r.eei.Finish([]byte(hex.EncodeToString(stakedData.OwnerAddress)))
 	return vmcommon.Ok
+}
+
+func (r *stakingSC) getGovernanceLockNonce(address []byte) *big.Int {
+	governanceLockKey := append([]byte(validatorLockPrefix), address...)
+	lock := r.eei.GetStorageFromAddress(r.governanceSCAddr, governanceLockKey)
+
+	return big.NewInt(0).SetBytes(lock)
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
