@@ -9,6 +9,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -799,6 +800,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+	e.tryCloseExisting(factory.UserAccountTrie)
+	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
@@ -823,11 +826,6 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	err = e.tryCloseExisting(factory.UserAccountTrie)
-	if err != nil {
-		return err
-	}
-
 	e.trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
 
@@ -841,34 +839,27 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
-	err = e.tryCloseExisting(factory.PeerAccountTrie)
-	if err != nil {
-		return err
-	}
-
 	e.trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
 	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
 
 	return nil
 }
 
-func (e *epochStartBootstrap) tryCloseExisting(trieType string) error {
-	var err error
+func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
 	existingTrie := e.trieContainer.Get([]byte(trieType))
-	if existingTrie != nil {
-		err = existingTrie.ClosePersister()
+	if !check.IfNil(existingTrie) {
+		err := existingTrie.ClosePersister()
 		if err != nil {
-			return err
+			log.Warn("failed to close existing trie", "error", err)
 		}
 	}
-	existinStorageManager := e.trieStorageManagers[trieType]
-	if existinStorageManager != nil {
-		err = existinStorageManager.Close()
+	existingStorageManager := e.trieStorageManagers[trieType]
+	if !check.IfNil(existingStorageManager) {
+		err := existingStorageManager.Close()
 		if err != nil {
-			return err
+			log.Warn("failed to close existing storage manager", "error", err)
 		}
 	}
-	return nil
 }
 
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
