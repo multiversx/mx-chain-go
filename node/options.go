@@ -734,3 +734,33 @@ func WithHistoryRepository(historyRepo dblookupext.HistoryRepository) Option {
 		return nil
 	}
 }
+
+// WithEnableSignTxWithHashEpoch sets up enableSignTxWithHashEpoch for the node
+func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
+	return func(n *Node) error {
+		n.enableSignTxWithHashEpoch = enableSignTxWithHashEpoch
+		return nil
+	}
+}
+
+// WithTxSignHasher sets up a transaction sign hasher for the node
+func WithTxSignHasher(txSignHasher hashing.Hasher) Option {
+	return func(n *Node) error {
+		if check.IfNil(txSignHasher) {
+			return ErrNilHasher
+		}
+		n.txSignHasher = txSignHasher
+		return nil
+	}
+}
+
+// WithTxVersionChecker sets up a transaction version checker for the node
+func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(txVersionChecker) {
+			return ErrNilTransactionVersionChecker
+		}
+		n.txVersionChecker = txVersionChecker
+		return nil
+	}
+}

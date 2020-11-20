@@ -31,7 +31,7 @@ const (
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
@@ -70,6 +70,7 @@ type SendTxRequest struct {
 	Signature string `form:"signature" json:"signature"`
 	ChainID   string `form:"chainID" json:"chainID"`
 	Version   uint32 `form:"version" json:"version"`
+	Options   uint32 `json:"options,omitempty"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -173,6 +174,7 @@ func SimulateTransaction(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
@@ -255,6 +257,7 @@ func SendTransaction(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
@@ -345,6 +348,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Signature,
 			receivedTx.ChainID,
 			receivedTx.Version,
+			receivedTx.Options,
 		)
 		if err != nil {
 			continue
@@ -473,6 +477,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
