@@ -754,7 +754,6 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 
 	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
 	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
-	delegationMgrAcc.SetCode(vmInput.ContractCodeMetadata)
 
 	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
 	if err != nil {
