@@ -200,6 +200,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
+	if s.flagGovernanceV2Enabled.IsSet() {
+		err := s.updateToGovernanceV2()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -662,6 +669,39 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	}
 
 	err = s.callUpdateStakingV2(auctionAccounts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) updateToGovernanceV2() error {
+	sw := core.NewStopWatch()
+	sw.Start("systemSCProcessor")
+	defer func() {
+		sw.Stop("systemSCProcessor")
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
+	}()
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.GovernanceSCAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.GovernanceSCAddress,
+		Function:      "initV2",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when updating to governanceV2", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when updating to governanceV2", vmOutput.ReturnCode)
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
 	if err != nil {
 		return err
 	}
