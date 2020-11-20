@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/mock"
@@ -411,12 +410,8 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenNotAllS
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(&mock.RounderMock{
-		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-			return 1
-		},
-	})
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
@@ -431,12 +426,8 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenAllSigna
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(&mock.RounderMock{
-		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-			return 1
-		},
-	})
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
@@ -451,12 +442,8 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughBu
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(&mock.RounderMock{
-		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-			return -1
-		},
-	})
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.WaitingAllSignaturesTimeOut = true
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
@@ -471,17 +458,13 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(&mock.RounderMock{
-		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-			return -1
-		},
-	})
 	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
 		},
 	})
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.WaitingAllSignaturesTimeOut = false
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
@@ -496,17 +479,13 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	container.SetRounder(&mock.RounderMock{
-		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-			return -1
-		},
-	})
 	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return true
 		},
 	})
 	sr := *initSubroundSignatureWithContainer(container)
+	sr.WaitingAllSignaturesTimeOut = true
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 

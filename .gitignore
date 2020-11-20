@@ -13,7 +13,7 @@
 
 .*
 !/.gitignore
-!/.travis.yml
+!/.github
 
 /vendor
 /esdata

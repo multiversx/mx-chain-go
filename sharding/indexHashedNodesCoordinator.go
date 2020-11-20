@@ -557,6 +557,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              randomness,
 		NbShards:          newNodesConfig.nbShards,
+		Epoch:             newEpoch,
 	}
 
 	resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)

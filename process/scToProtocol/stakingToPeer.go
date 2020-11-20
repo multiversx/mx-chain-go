@@ -277,9 +277,12 @@ func (stp *stakingToPeer) updatePeerState(
 	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(core.JailedList)
 	if isUnJailForInactive {
-		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey())
+		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey(), "unStakedEpoch", stakingData.UnStakedEpoch)
 		account.SetListAndIndex(account.GetShardId(), string(core.InactiveList), uint32(stakingData.UnJailedNonce))
-		account.SetTempRating(stp.jailRating)
+		if account.GetTempRating() < stp.unJailRating {
+			account.SetTempRating(stp.unJailRating)
+		}
+		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
 		return stp.peerState.SaveAccount(account)
 	}

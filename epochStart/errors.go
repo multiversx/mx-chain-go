@@ -218,9 +218,6 @@ var ErrNilSystemVM = errors.New("nil system VM")
 // ErrStakingSCOutputAccountNotFound signals that staking sc output account was not found
 var ErrStakingSCOutputAccountNotFound = errors.New("staking sc output was not found")
 
-// ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
-var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
-
 // ErrNilEndOfEpochCallerAddress signals that nil end of epoch caller address was provided
 var ErrNilEndOfEpochCallerAddress = errors.New("nil end of epoch caller address")
 
@@ -235,6 +232,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
@@ -266,11 +266,14 @@ var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
 // ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
 var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
 
-// ErrInvalidTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
+// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
 var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
 
 // ErrNilEconomicsDataProvider signals that the economics data provider is nil
 var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
 
-// ErrInvalidRewardsCreatorProxyConfig signals that the rewards creator proxy has an invalid configuration
-var ErrInvalidRewardsCreatorProxyConfig = errors.New("rewards creator proxy has an invalid configuration")
+// ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
+var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")
+
+// ErrInvalidSystemSCReturn signals that system sc returned with something unexpected
+var ErrInvalidSystemSCReturn = errors.New("invalid system sc return")

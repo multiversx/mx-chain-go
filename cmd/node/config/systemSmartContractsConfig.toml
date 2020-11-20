@@ -9,8 +9,8 @@
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 2169
-    NodesToSelectInAuction = 2169
+    MaxNumberOfNodesForStake = 36
+    NodesToSelectInAuction = 36
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
 
@@ -20,11 +20,11 @@
     EnabledEpoch = 2
 
 [GovernanceSystemSCConfig]
-	ProposalCost = "5000000000000000000" #5 eGLD
-	NumNodes     = 500
-	MinQuorum    = 400
-	MinPassThreshold = 300
-	MinVetoThreshold = 50
+    ProposalCost = "5000000000000000000" #5 eGLD
+    NumNodes     = 500
+    MinQuorum    = 400
+    MinPassThreshold = 300
+    MinVetoThreshold = 50
     EnabledEpoch = 2
 
 [DelegationManagerSystemSCConfig]

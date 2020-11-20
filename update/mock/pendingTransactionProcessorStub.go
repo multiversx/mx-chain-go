@@ -1,20 +1,20 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/update"
 )
 
 // PendingTransactionProcessorStub -
 type PendingTransactionProcessorStub struct {
-	ProcessTransactionsDstMeCalled func(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error)
+	ProcessTransactionsDstMeCalled func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error)
 	RootHashCalled                 func() ([]byte, error)
 }
 
 // ProcessTransactionsDstMe -
-func (ptps *PendingTransactionProcessorStub) ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+func (ptps *PendingTransactionProcessorStub) ProcessTransactionsDstMe(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 	if ptps.ProcessTransactionsDstMeCalled != nil {
-		return ptps.ProcessTransactionsDstMeCalled(mapTxs)
+		return ptps.ProcessTransactionsDstMeCalled(txsInfo)
 	}
 	return nil, nil
 }

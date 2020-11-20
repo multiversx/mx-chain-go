@@ -16,6 +16,7 @@ var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
 
 var zero = big.NewInt(0)
 
+// ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
 type ArgsNewRewardsCreator struct {
 	BaseRewardsCreatorArgs
 }

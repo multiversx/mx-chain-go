@@ -180,7 +180,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	interceptedData, err := mdi.factory.Create(dataBuff)
 	if err != nil {
 		//this situation is so severe that we need to black list de peers
-		reason := "can not create object from received bytes, topic " + mdi.topic
+		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
 		mdi.antifloodHandler.BlacklistPeer(originator, reason, core.InvalidMessageBlacklistDuration)
 		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, core.InvalidMessageBlacklistDuration)
 

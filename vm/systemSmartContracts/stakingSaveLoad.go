@@ -79,7 +79,7 @@ func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) erro
 	if !r.flagEnableStaking.IsSet() {
 		return r.saveAsStakingDataV1P0(key, stakedData)
 	}
-	if !r.flagSetOwner.IsSet() {
+	if !r.flagStakingV2.IsSet() {
 		return r.saveAsStakingDataV1P1(key, stakedData)
 	}
 
