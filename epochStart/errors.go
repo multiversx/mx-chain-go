@@ -232,3 +232,6 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
+
+// ErrNilMetablockProcessor signals that a nil metablock processor was provided
+var ErrNilMetablockProcessor = errors.New("nil metablock processor")
