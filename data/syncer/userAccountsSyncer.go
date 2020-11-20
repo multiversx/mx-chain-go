@@ -169,7 +169,15 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) 
 }
 
 func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie) ([][]byte, error) {
-	leavesChannel := mainTrie.GetAllLeavesOnChannel()
+	mainRootHash, err := mainTrie.Root()
+	if err != nil {
+		return nil, err
+	}
+
+	leavesChannel, err := mainTrie.GetAllLeavesOnChannel(mainRootHash)
+	if err != nil {
+		return nil, err
+	}
 
 	rootHashes := make([][]byte, 0)
 	for leaf := range leavesChannel {

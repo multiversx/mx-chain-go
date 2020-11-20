@@ -577,26 +577,6 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 	return nil, []node{child}, nil
 }
 
-func (en *extensionNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getAllLeaves error %w", err)
-	}
-
-	err = resolveIfCollapsed(en, 0, db)
-	if err != nil {
-		return err
-	}
-
-	childKey := append(key, en.Key...)
-	err = en.child.getAllLeaves(leaves, childKey, db, marshalizer)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -614,12 +594,7 @@ func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueH
 		return err
 	}
 
-	collapsedEn, err := en.getCollapsedEn()
-	if err != nil {
-		return err
-	}
-
-	*en = *collapsedEn
+	en.child = nil
 
 	return nil
 }

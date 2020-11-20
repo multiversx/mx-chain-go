@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -154,8 +156,11 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 			},
 			RecreateCalled: func(root []byte) (data.Trie, error) {
 				return &mock.TrieStub{
-					GetAllLeavesCalled: func() (map[string][]byte, error) {
-						return map[string][]byte{}, nil
+					GetAllLeavesOnChannelCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
+						ch := make(chan core.KeyValueHolder)
+						close(ch)
+
+						return ch, nil
 					},
 				}, nil
 			},
@@ -972,42 +977,24 @@ func TestAccountsDB_RootHash(t *testing.T) {
 	assert.Equal(t, rootHash, res)
 }
 
-func TestAccountsDB_GetAllLeavesWrongRootHash(t *testing.T) {
-	t.Parallel()
-
-	trieStub := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (d data.Trie, err error) {
-			return nil, nil
-		},
-	}
-
-	adb := generateAccountDBFromTrie(trieStub)
-	res, err := adb.GetAllLeaves([]byte("root hash"))
-	assert.Equal(t, state.ErrNilTrie, err)
-	assert.Nil(t, res)
-}
-
 func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	t.Parallel()
 
-	recreateCalled := false
 	getAllLeavesCalled := false
 	trieStub := &mock.TrieStub{
-		RecreateCalled: func(root []byte) (d data.Trie, err error) {
-			recreateCalled = true
-			return &mock.TrieStub{
-				GetAllLeavesCalled: func() (m map[string][]byte, err error) {
-					getAllLeavesCalled = true
-					return nil, nil
-				},
-			}, nil
+		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+			getAllLeavesCalled = true
+
+			ch := make(chan core.KeyValueHolder)
+			close(ch)
+
+			return ch, nil
 		},
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
 	_, err := adb.GetAllLeaves([]byte("root hash"))
 	assert.Nil(t, err)
-	assert.True(t, recreateCalled)
 	assert.True(t, getAllLeavesCalled)
 }
 

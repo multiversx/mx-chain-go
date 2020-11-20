@@ -1,6 +1,7 @@
 package txsimulator
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -93,7 +94,7 @@ func (w *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
 	return w.originalAccounts.GetAllLeaves(rootHash)
 }
 

@@ -3,6 +3,7 @@ package state
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -137,7 +138,7 @@ type AccountsAdapter interface {
 	SnapshotState(rootHash []byte)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
-	GetAllLeaves(rootHash []byte) (map[string][]byte, error)
+	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }

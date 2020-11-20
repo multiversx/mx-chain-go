@@ -478,19 +478,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	leaves, err := tr.GetAllLeaves()
-
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(leaves))
-	assert.Equal(t, []byte("reindeer"), leaves["doe"])
-	assert.Equal(t, []byte("puppy"), leaves["dog"])
-	assert.Equal(t, []byte("cat"), leaves["ddog"])
-}
-
 func TestPatriciaMerkleTrie_String(t *testing.T) {
 	t.Parallel()
 
@@ -635,12 +622,13 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeavesOnChannelNilTrie(t *testing.T) {
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
 
-	leavesChannel := tr.GetAllLeavesOnChannel()
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
+	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
 	_, ok := <-leavesChannel
@@ -656,8 +644,11 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		"dog":  []byte("puppy"),
 		"ddog": []byte("cat"),
 	}
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
 
-	leavesChannel := tr.GetAllLeavesOnChannel()
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
+	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
 	recovered := make(map[string][]byte)

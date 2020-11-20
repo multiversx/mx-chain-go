@@ -708,32 +708,6 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 	return missingChildren, existingChildren, nil
 }
 
-func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getAllLeaves error %w", err)
-	}
-
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
-		if err != nil {
-			return err
-		}
-
-		if bn.children[i] == nil {
-			continue
-		}
-
-		childKey := append(key, byte(i))
-		err = bn.children[i].getAllLeaves(leaves, childKey, db, marshalizer)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (bn *branchNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
@@ -755,14 +729,9 @@ func (bn *branchNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHold
 		if err != nil {
 			return err
 		}
-	}
 
-	collapsedBn, err := bn.getCollapsedBn()
-	if err != nil {
-		return err
+		bn.children[i] = nil
 	}
-
-	*bn = *collapsedBn
 
 	return nil
 }

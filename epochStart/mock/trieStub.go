@@ -25,19 +25,18 @@ type TrieStub struct {
 	SetCheckpointCalled         func(rootHash []byte)
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	DatabaseCalled              func() data.DBWriteCacher
-	GetAllLeavesCalled          func() (map[string][]byte, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	IsPruningEnabledCalled      func() bool
 	ClosePersisterCalled        func() error
-	GetAllLeavesOnChannelCalled func() chan core.KeyValueHolder
+	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 }
 
-// EnterSnapshotMode -
-func (ts *TrieStub) EnterSnapshotMode() {
+// EnterPruningBufferingMode -
+func (ts *TrieStub) EnterPruningBufferingMode() {
 }
 
-// ExitSnapshotMode -
-func (ts *TrieStub) ExitSnapshotMode() {
+// ExitPruningBufferingMode -
+func (ts *TrieStub) ExitPruningBufferingMode() {
 }
 
 // ClosePersister -
@@ -108,25 +107,16 @@ func (ts *TrieStub) String() string {
 	return "stub trie"
 }
 
-// GetAllLeaves -
-func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
-	if ts.GetAllLeavesCalled != nil {
-		return ts.GetAllLeavesCalled()
-	}
-
-	return nil, errNotImplemented
-}
-
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled()
+		return ts.GetAllLeavesOnChannelCalled(rootHash)
 	}
 
 	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
-	return ch
+	return ch, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

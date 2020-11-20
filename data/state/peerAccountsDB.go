@@ -52,9 +52,9 @@ func NewPeerAccountsDB(
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
-	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.EnterPruningBufferingMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
-	adb.mainTrie.ExitSnapshotMode()
+	adb.mainTrie.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }
@@ -62,9 +62,9 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 // SetStateCheckpoint triggers the checkpointing process of the state trie
 func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
-	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.EnterPruningBufferingMode()
 	adb.mainTrie.SetCheckpoint(rootHash)
-	adb.mainTrie.ExitSnapshotMode()
+	adb.mainTrie.ExitPruningBufferingMode()
 
 	adb.increaseNumCheckpoints()
 }

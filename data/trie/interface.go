@@ -39,7 +39,6 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeaves(map[string][]byte, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 

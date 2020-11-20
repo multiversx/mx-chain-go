@@ -423,31 +423,9 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 }
 
 // GetAllState returns the underlying state of a given account
-func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, error) {
-	defer stopMeasure(startMeasure("GetAllState"))
-
-	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if dstShardId != bh.shardCoordinator.SelfId() {
-		return nil, process.ErrDestinationNotInSelfShard
-	}
-
-	acc, err := bh.accounts.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	dstAccount, ok := acc.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	leavesChannel := dstAccount.DataTrie().GetAllLeavesOnChannel()
-	leavesMap := make(map[string][]byte)
-	for leaf := range leavesChannel {
-		leavesMap[string(leaf.Key())] = leaf.Value()
-	}
-
-	return leavesMap, nil
+// TODO remove this func completely
+func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
+	return nil, nil
 }
 
 func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte {

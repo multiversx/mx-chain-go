@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -767,12 +769,15 @@ func (adb *AccountsDB) recreateTrie(rootHash []byte) error {
 
 // RecreateAllTries recreates all the tries from the accounts DB
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
-	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	leavesChannel, err := adb.mainTrie.GetAllLeavesOnChannel(rootHash)
 	if err != nil {
 		return nil, err
 	}
 
-	leavesChannel := recreatedTrie.GetAllLeavesOnChannel()
+	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
+	}
 
 	allTries := make(map[string]data.Trie)
 	allTries[string(rootHash)] = recreatedTrie
@@ -834,27 +839,27 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
-	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.EnterPruningBufferingMode()
 
 	go func() {
 		adb.mainTrie.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
-		adb.mainTrie.ExitSnapshotMode()
+		adb.mainTrie.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
 }
 
 func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte) {
-	leafs, err := adb.GetAllLeaves(rootHash)
+	leavesChannel, err := adb.GetAllLeaves(rootHash)
 	if err != nil {
 		log.Error("incomplete snapshot as getAllLeaves error", "error", err)
 		return
 	}
 
-	for _, leaf := range leafs {
+	for leaf := range leavesChannel {
 		account := &userAccount{}
-		err = adb.marshalizer.Unmarshal(account, leaf)
+		err = adb.marshalizer.Unmarshal(account, leaf.Value())
 		if err != nil {
 			log.Trace("this must be a leaf with code", "err", err)
 			continue
@@ -872,12 +877,12 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
 	defer adb.mutOp.Unlock()
 
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
-	adb.mainTrie.EnterSnapshotMode()
+	adb.mainTrie.EnterPruningBufferingMode()
 
 	go func() {
 		adb.mainTrie.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash)
-		adb.mainTrie.ExitSnapshotMode()
+		adb.mainTrie.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
@@ -903,24 +908,11 @@ func (adb *AccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash
-func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (adb *AccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	newTrie, err := adb.mainTrie.Recreate(rootHash)
-	if err != nil {
-		return nil, err
-	}
-	if check.IfNil(newTrie) {
-		return nil, ErrNilTrie
-	}
-
-	allAccounts, err := newTrie.GetAllLeaves()
-	if err != nil {
-		return nil, err
-	}
-
-	return allAccounts, nil
+	return adb.mainTrie.GetAllLeavesOnChannel(rootHash)
 }
 
 // GetNumCheckpoints returns the total number of state checkpoints

@@ -173,10 +173,10 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]byte) (map[uint32][]workItems.ValidatorRatingInfo, error) {
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]workItems.ValidatorRatingInfo, error) {
 	validatorsRatingInfo := make(map[uint32][]workItems.ValidatorRatingInfo)
-	for _, pa := range leaves {
-		peerAccount, err := unmarshalPeer(pa, rp.marshalizer)
+	for pa := range leavesChannel {
+		peerAccount, err := unmarshalPeer(pa.Value(), rp.marshalizer)
 		if err != nil {
 			continue
 		}

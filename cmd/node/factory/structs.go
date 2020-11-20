@@ -594,14 +594,14 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer
 		return err
 	}
 
-	leaves, err := accountsAdapter.GetAllLeaves(rootHash)
+	leavesChannel, err := accountsAdapter.GetAllLeaves(rootHash)
 	if err != nil {
 		return err
 	}
 
 	genesisAccounts := make([]state.UserAccountHandler, 0)
-	for addressKey, userAccountsBytes := range leaves {
-		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, marshalizer)
+	for leaf := range leavesChannel {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), marshalizer)
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
 			continue

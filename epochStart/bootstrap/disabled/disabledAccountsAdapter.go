@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -85,7 +86,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ []byte) (map[string][]byte, error) {
+func (a *accountsAdapter) GetAllLeaves(_ []byte) (chan core.KeyValueHolder, error) {
 	return nil, nil
 }
 

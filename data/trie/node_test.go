@@ -600,7 +600,7 @@ func rollbackTrieState(t *testing.T, index int, tr data.Trie, rootHashes [][]byt
 	assert.NotNil(t, err)
 }
 
-func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
+func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
@@ -612,13 +612,18 @@ func TestPatriciaMerkleTrie_GetAllLeafsCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leafs, err := tr.GetAllLeaves()
-
+	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash())
 	assert.Nil(t, err)
-	assert.Equal(t, 3, len(leafs))
-	assert.Equal(t, []byte("reindeer"), leafs[string([]byte("doe"))])
-	assert.Equal(t, []byte("puppy"), leafs[string([]byte("dog"))])
-	assert.Equal(t, []byte("cat"), leafs[string([]byte("ddog"))])
+	leaves := make(map[string][]byte)
+
+	for l := range leavesChannel {
+		leaves[string(l.Key())] = l.Value()
+	}
+
+	assert.Equal(t, 3, len(leaves))
+	assert.Equal(t, []byte("reindeer"), leaves["doe"])
+	assert.Equal(t, []byte("puppy"), leaves["dog"])
+	assert.Equal(t, []byte("cat"), leaves["ddog"])
 }
 
 func TestPatriciaMerkleTrie_removeDuplicatedKeys(t *testing.T) {

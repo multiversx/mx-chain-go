@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -1834,7 +1836,7 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 	arguments := createMockArguments()
 
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		return nil, expectedErr
 	}
 	arguments.PeerAdapter = peerAdapter
@@ -1858,13 +1860,12 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 
-	validatorInfoMap := make(map[string][]byte)
-	validatorInfoMap[string(addrBytes0)] = marshalizedPa0
-
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
-			return validatorInfoMap, nil
+			ch := make(chan core.KeyValueHolder)
+			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+			return ch, nil
 		}
 		return nil, expectedErr
 	}
@@ -1915,14 +1916,13 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
-	validatorInfoMap := make(map[string][]byte)
-	validatorInfoMap[string(addrBytes0)] = marshalizedPa0
-	validatorInfoMap[string(addrBytesMeta)] = marshalizedPaMeta
-
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
-			return validatorInfoMap, nil
+			ch := make(chan core.KeyValueHolder, 2)
+			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			return ch, nil
 		}
 		return nil, expectedErr
 	}
@@ -1961,14 +1961,13 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
-	validatorInfoMap := make(map[string][]byte)
-	validatorInfoMap[string(addrBytes0)] = marshalizedPa0
-	validatorInfoMap[string(addrBytesMeta)] = marshalizedPaMeta
-
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
 		if bytes.Equal(rootHash, hash) {
-			return validatorInfoMap, nil
+			ch := make(chan core.KeyValueHolder, 2)
+			ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+			ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			return ch, nil
 		}
 		return nil, expectedErr
 	}
@@ -2350,12 +2349,12 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	marshalizedPa0, _ := arguments.Marshalizer.Marshal(pa0)
 	marshalizedPaMeta, _ := arguments.Marshalizer.Marshal(paMeta)
 
-	validatorInfoMap := make(map[string][]byte)
-	validatorInfoMap[string(addrBytes0)] = marshalizedPa0
-	validatorInfoMap[string(addrBytesMeta)] = marshalizedPaMeta
 	peerAdapter := getAccountsMock()
-	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (m map[string][]byte, err error) {
-		return validatorInfoMap, nil
+	peerAdapter.GetAllLeavesCalled = func(rootHash []byte) (chan core.KeyValueHolder, error) {
+		ch := make(chan core.KeyValueHolder, 2)
+		ch <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+		ch <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+		return ch, nil
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, err error) {
 		return pa0, nil

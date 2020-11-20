@@ -3,6 +3,7 @@ package mock
 import (
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -24,7 +25,7 @@ type AccountsStub struct {
 	SnapshotStateCalled      func(rootHash []byte)
 	SetStateCheckpointCalled func(rootHash []byte)
 	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
 }
@@ -54,7 +55,7 @@ func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (as *AccountsStub) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
 	if as.GetAllLeavesCalled != nil {
 		return as.GetAllLeavesCalled(rootHash)
 	}
