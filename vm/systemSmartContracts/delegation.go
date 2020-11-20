@@ -310,6 +310,12 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
+	err = d.checkOwnerInitialFunds(dConfig, callerAddr, callValue)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	globalFund.TotalActive.Set(newTotalActive)
 	isNew, delegator, err := d.getOrCreateDelegatorData(callerAddr)
 	if err != nil {
@@ -988,7 +994,18 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 
 	numActiveKeys := len(delegationStatus.StakedKeys) + len(delegationStatus.UnStakedKeys)
 	if numActiveKeys > 0 {
-		return vm.ErrOwnerCannotUnDelegate
+		return fmt.Errorf("%w cannot unDelegate from initial owner funds as nodes are active", vm.ErrOwnerCannotUnDelegate)
+	}
+
+	allDelegationLeft := big.NewInt(0).Add(activeFund.Value, delegationConfig.InitialOwnerFunds)
+	if allDelegationLeft.Cmp(valueToUnDelegate) != 0 {
+		return fmt.Errorf("%w must undelegate all", vm.ErrOwnerCannotUnDelegate)
+	}
+
+	delegationConfig.InitialOwnerFunds = big.NewInt(0)
+	err = d.saveDelegationContractConfig(delegationConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -1966,6 +1983,48 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	d.eei.SetStorage([]byte(globalFundKey), marshaledData)
 	d.eei.SetStorage([]byte(totalActiveKey), globalFundData.TotalActive.Bytes())
 	return nil
+}
+
+func (d *delegation) checkOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
+	// initial owner funds must be 0 or higher than min deposit
+	if delegationConfig.InitialOwnerFunds.Cmp(zero) > 0 {
+		return nil
+	}
+
+	if !d.isOwner(caller) {
+		return vm.ErrNotEnoughInitialOwnerFunds
+	}
+
+	minDeposit, err := d.getMinDeposit()
+	if err != nil {
+		return err
+	}
+	if minDeposit.Cmp(callValue) < 0 {
+		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
+	}
+
+	delegationConfig.InitialOwnerFunds.Set(callValue)
+	err = d.saveDelegationContractConfig(delegationConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *delegation) getMinDeposit() (*big.Int, error) {
+	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
+	if len(marshaledData) == 0 {
+		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	}
+
+	managementData := &DelegationManagement{}
+	err := d.marshalizer.Unmarshal(managementData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return managementData.MinDeposit, nil
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

@@ -1475,7 +1475,8 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 
 	_ = d.saveDelegationStatus(&DelegationContractStatus{})
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		MaxDelegationCap: big.NewInt(100),
+		MaxDelegationCap:  big.NewInt(100),
+		InitialOwnerFunds: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
 		TotalActive: big.NewInt(100),
