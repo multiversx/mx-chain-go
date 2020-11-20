@@ -1419,7 +1419,7 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
-		r.eei.AddReturnMessage("this is only a view function")
+		r.eei.AddReturnMessage("stake nodes from waiting list can be called by endOfEpochAccess address only")
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
