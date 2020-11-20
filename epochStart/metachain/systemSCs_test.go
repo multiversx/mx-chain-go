@@ -465,6 +465,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
 		StakingV2EnableEpoch:    1000000,
+		GovernanceV2EnableEpoch: 1000000,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
