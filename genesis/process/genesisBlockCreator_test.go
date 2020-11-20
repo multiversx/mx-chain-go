@@ -65,9 +65,9 @@ func createMockArgument(
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				ProposalCost:     "500",
-				MinQuorum:        "50",
-				MinPassThreshold: "50",
-				MinVetoThreshold: "50",
+				MinQuorumV2:        "50",
+				MinPassThresholdV2: "50",
+				MinVetoThresholdV2: "50",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     nodePrice.Text(10),

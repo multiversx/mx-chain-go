@@ -4,7 +4,6 @@ package config
 type SystemSmartContractsConfig struct {
 	ESDTSystemSCConfig              ESDTSystemSCConfig
 	GovernanceSystemSCConfig        GovernanceSystemSCConfig
-	GovernanceSystemSCConfigV2      GovernanceSystemSCConfigV2
 	StakingSystemSCConfig           StakingSystemSCConfig
 	DelegationManagerSystemSCConfig DelegationManagerSystemSCConfig
 	DelegationSystemSCConfig        DelegationSystemSCConfig
@@ -37,21 +36,18 @@ type ESDTSystemSCConfig struct {
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	ProposalCost     string
-	NumNodes         int64
-	MinQuorum        int32
-	MinPassThreshold int32
-	MinVetoThreshold int32
-	EnabledEpoch     uint32
-}
-
-// GovernanceSystemSCConfigV2 defines the set of constants to initialize the governance system smart contract of version 2
-type GovernanceSystemSCConfigV2 struct {
-	ProposalCost     string
-	MinQuorum        string
-	MinPassThreshold string
-	MinVetoThreshold string
-	EnabledEpoch     uint32
+	ProposalCost       string
+	ProposalCostV2     string
+	NumNodes           int64
+	NumNodesV2         int64
+	MinQuorum          int32
+	MinQuorumV2        string
+	MinPassThreshold   int32
+	MinPassThresholdV2 string
+	MinVetoThreshold   int32
+	MinVetoThresholdV2 string
+	EnabledEpoch       uint32
+	EnabledEpochV2     uint32
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract

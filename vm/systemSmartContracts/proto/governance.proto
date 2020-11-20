@@ -23,14 +23,13 @@ message GeneralProposal {
     bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
     uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
     uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
-    int32  Yes            = 5 [(gogoproto.jsontag) = "Yes"];
-    int32  No             = 6 [(gogoproto.jsontag) = "No"];
-    int32  Veto           = 7 [(gogoproto.jsontag) = "Veto"];
-    int32  DontCare       = 8 [(gogoproto.jsontag) = "DontCare"];
-    bool   Voted          = 9 [(gogoproto.jsontag) = "Voted"];
-    repeated bytes Voters = 10 [(gogoproto.jsontag) = "Voters"];
-    bytes  TopReference   = 11 [(gogoproto.jsontag) = "TopReference"];
-    bool   Closed         = 12 [(gogoproto.jsontag) = "Closed"];
+    bytes  Yes            = 5 [(gogoproto.jsontag) = "Yes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  No             = 6 [(gogoproto.jsontag) = "No", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  Veto           = 7 [(gogoproto.jsontag) = "Veto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bool   Voted          = 8 [(gogoproto.jsontag) = "Voted"];
+    repeated bytes Votes  = 9 [(gogoproto.jsontag) = "Votes"];
+    bytes  TopReference   = 10 [(gogoproto.jsontag) = "TopReference"];
+    bool   Closed         = 11 [(gogoproto.jsontag) = "Closed"];
 }
 
 message WhiteListProposal {
@@ -52,6 +51,13 @@ message GovernanceConfig {
     bytes ProposalFee      = 5 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
+message GovernanceConfigV2 {
+    bytes MinQuorum        = 1 [(gogoproto.jsontag) = "MinQuorum", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes MinPassThreshold = 2 [(gogoproto.jsontag) = "MinPassThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes MinVetoThreshold = 3 [(gogoproto.jsontag) = "MinVetoThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes ProposalFee      = 4 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+}
+
 message VoteDetails {
     VoteValueType Value       = 1 [(gogoproto.jsontag) = "Value"];
     bytes         Power       = 2 [(gogoproto.jsontag) = "Power", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
@@ -60,47 +66,12 @@ message VoteDetails {
     bytes         DelegatedTo = 5 [(gogoproto.jsontag) = "DelegatedTo"];
 }
 
-message VoterData {
-    bytes  Address  = 1 [(gogoproto.jsontag) = "Address"];
-    int32 NumNodes = 2 [(gogoproto.jsontag) = "NumNodes"];
-}
-
-message ValidatorData {
-    repeated VoterData Delegators = 1 [(gogoproto.jsontag) = "Delegators"];
-    int32              NumNodes   = 2 [(gogoproto.jsontag) = "NumNodes"];
-}
-
 message VoteData {
-    int32  NumVotes  = 1 [(gogoproto.jsontag) = "VoteData"];
-    string VoteValue = 2 [(gogoproto.jsontag) = "VoteValue"];
-}
-
-message GeneralProposalV2_0 {
-    bytes  IssuerAddress  = 1 [(gogoproto.jsontag) = "IssuerAddress"];
-    bytes  GitHubCommit   = 2 [(gogoproto.jsontag) = "GitHubCommit"];
-    uint64 StartVoteNonce = 3 [(gogoproto.jsontag) = "StartVoteNonce"];
-    uint64 EndVoteNonce   = 4 [(gogoproto.jsontag) = "EndVoteNonce"];
-    bytes  Yes            = 5 [(gogoproto.jsontag) = "Yes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  No             = 6 [(gogoproto.jsontag) = "No", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  Veto           = 7 [(gogoproto.jsontag) = "Veto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bool   Voted          = 8 [(gogoproto.jsontag) = "Voted"];
-    repeated bytes Votes  = 9 [(gogoproto.jsontag) = "Votes"];
-    bytes  TopReference   = 10 [(gogoproto.jsontag) = "TopReference"];
-    bool   Closed         = 11 [(gogoproto.jsontag) = "Closed"];
-}
-
-message GovernanceConfigV2_0 {
-    bytes MinQuorum        = 1 [(gogoproto.jsontag) = "MinQuorum", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes MinPassThreshold = 2 [(gogoproto.jsontag) = "MinPassThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes MinVetoThreshold = 3 [(gogoproto.jsontag) = "MinVetoThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes ProposalFee      = 4 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-}
-
-message VoteDataV2_0 {
     bytes    UsedPower             = 1 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes    TotalYes              = 2 [(gogoproto.jsontag) = "TotalYes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes    TotalNo               = 3 [(gogoproto.jsontag) = "TotalNo", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bytes    TotalVeto             = 4 [(gogoproto.jsontag) = "TotalVeto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
     bool     Claimed               = 5 [(gogoproto.jsontag) = "Claimed"];
     repeated VoteDetails VoteItems = 6 [(gogoproto.jsontag) = "VoteItems"];
+
 }

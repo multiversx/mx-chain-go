@@ -39,6 +39,7 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	DelegationEnableEpoch                  uint32
 	StakingV2EnableEpoch                   uint32
+	GovernanceV2EnableEpoch                uint32
 
 	GenesisNodesConfig sharding.GenesisNodesSetupHandler
 	EpochNotifier      process.EpochNotifier
@@ -59,10 +60,12 @@ type systemSCProcessor struct {
 	hystNodesEnableEpoch     uint32
 	delegationEnableEpoch    uint32
 	stakingV2EnableEpoch     uint32
+	governanceV2EnableEpoch  uint32
 	flagSwitchJailedWaiting  atomic.Flag
 	flagHystNodesEnabled     atomic.Flag
 	flagDelegationEnabled    atomic.Flag
 	flagStakingV2Enabled     atomic.Flag
+	flagGovernanceV2Enabled  atomic.Flag
 	mapNumSwitchedPerShard   map[uint32]uint32
 	mapNumSwitchablePerShard map[uint32]uint32
 }
@@ -137,6 +140,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
 		delegationEnableEpoch:    args.DelegationEnableEpoch,
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
+		governanceV2EnableEpoch:  args.GovernanceV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(s)
@@ -727,4 +731,7 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 
 	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
 	log.Debug("systemProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
+
+	s.flagGovernanceV2Enabled.Toggle(epoch == s.governanceV2EnableEpoch)
+	log.Debug("systemProcessor: governanceV2", "enabled", epoch >= s.governanceV2EnableEpoch)
 }

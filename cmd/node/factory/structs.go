@@ -2145,6 +2145,7 @@ func newMetaBlockProcessor(
 		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
 		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		GovernanceV2EnableEpoch:                systemSCConfig.GovernanceSystemSCConfig.EnabledEpochV2,
 		GenesisNodesConfig:                     nodesSetup,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
