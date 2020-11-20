@@ -790,7 +790,7 @@ func (s *systemSCProcessor) stakeNodesFromWaitingList(nodesToStake uint32, nonce
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{nodesToStakeAsBigInt.Bytes()},
 		},
-		RecipientAddr: vm.AuctionSCAddress,
+		RecipientAddr: vm.StakingSCAddress,
 		Function:      "stakeNodesFromWaitingList",
 	}
 	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
@@ -820,7 +820,7 @@ func (s *systemSCProcessor) stakeNodesFromWaitingList(nodesToStake uint32, nonce
 func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(returnData [][]byte, nonce uint64) error {
 	for i := 0; i < len(returnData); i += 2 {
 		blsKey := returnData[i]
-		rewardAddress := returnData[i+2]
+		rewardAddress := returnData[i+1]
 
 		peerAcc, err := s.getPeerAccount(blsKey)
 		if err != nil {
