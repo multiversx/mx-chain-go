@@ -28,7 +28,7 @@
     EnabledEpoch = 2
 
 [DelegationManagerSystemSCConfig]
-    BaseIssuingCost = "5000000000000000000" #5 eGLD
+    BaseIssuingCost = "0" #5 eGLD
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
     EnabledEpoch = 2
 

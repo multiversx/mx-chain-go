@@ -126,6 +126,7 @@ type Process struct {
 	RequestHandler           process.RequestHandler
 	TxLogsProcessor          process.TransactionLogProcessorDatabase
 	HeaderValidator          epochStart.HeaderValidator
+	SystemSCContainer        vm.SystemSCContainer
 }
 
 type processComponentsFactoryArgs struct {
@@ -175,6 +176,7 @@ type processComponentsFactoryArgs struct {
 	storageReolverImportPath  string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
 	fallbackHeaderValidator   process.FallbackHeaderValidator
+	systemSCContainer         vm.SystemSCContainer
 }
 
 // NewProcessComponentsFactoryArgs initializes the arguments necessary for creating the process components
@@ -583,6 +585,7 @@ func ProcessComponentsFactory(args *processComponentsFactoryArgs) (*Process, err
 		RequestHandler:           requestHandler,
 		TxLogsProcessor:          txLogsProcessor,
 		HeaderValidator:          headerValidator,
+		SystemSCContainer:        args.systemSCContainer,
 	}, nil
 }
 
@@ -1442,7 +1445,7 @@ func newBlockProcessor(
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return newMetaBlockProcessor(
+		metaBlockProcessor, scContainer, err := newMetaBlockProcessor(
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1476,6 +1479,12 @@ func newBlockProcessor(
 			processArgs.mainConfig.GeneralSettings,
 			processArgs.rater,
 		)
+		if err != nil {
+			return nil, err
+		}
+
+		processArgs.systemSCContainer = scContainer
+		return metaBlockProcessor, nil
 	}
 
 	return nil, errors.New("could not create block processor")
@@ -1819,7 +1828,7 @@ func newMetaBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 	generalSettingsConfig config.GeneralSettingsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
-) (process.BlockProcessor, error) {
+) (process.BlockProcessor, vm.SystemSCContainer, error) {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
@@ -1832,28 +1841,29 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		economicsData,
-		messageSignVerifier,
-		gasSchedule,
-		nodesSetup,
-		core.Hasher,
-		core.InternalMarshalizer,
-		systemSCConfig,
-		stateComponents.PeerAccounts,
-		rater,
-		epochNotifier,
-	)
+	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           economicsData,
+		MessageSignVerifier: messageSignVerifier,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: nodesSetup,
+		Hasher:              core.Hasher,
+		Marshalizer:         core.InternalMarshalizer,
+		SystemSCConfig:      systemSCConfig,
+		ValidatorAccountsDB: stateComponents.PeerAccounts,
+		ChanceComputer:      rater,
+		EpochNotifier:       epochNotifier,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsNewVMContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsParser := smartContract.NewArgumentParser()
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(
@@ -1865,22 +1875,22 @@ func newMetaBlockProcessor(
 		data.Datapool,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	interimProcContainer, err := interimProcFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	scForwarder, err := interimProcContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	badTxForwarder, err := interimProcContainer.Get(dataBlock.InvalidBlock)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
@@ -1891,17 +1901,17 @@ func newMetaBlockProcessor(
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	gasHandler, err := preprocess.NewGasComputation(economicsData, txTypeHandler)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txFeeHandler, err := postprocess.NewFeeAccumulator()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -1929,7 +1939,7 @@ func newMetaBlockProcessor(
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	transactionProcessor, err := transaction.NewMetaTxProcessor(
@@ -1943,27 +1953,27 @@ func newMetaBlockProcessor(
 		economicsData,
 	)
 	if err != nil {
-		return nil, errors.New("could not create transaction processor: " + err.Error())
+		return nil, nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	err = createMetaTxSimulatorProcessor(argsNewScProcessor, shardCoordinator, data, core, stateComponents, txTypeHandler, txSimulatorProcessorArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockSizeThrottler, err := throttle.NewBlockSizeThrottle(minSizeInBytes, maxSizeInBytes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(core.InternalMarshalizer, blockSizeThrottler, maxSizeInBytes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
@@ -1984,12 +1994,12 @@ func newMetaBlockProcessor(
 		balanceComputationHandler,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	preProcContainer, err := preProcFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txCoordinator, err := coordinator.NewTransactionCoordinator(
@@ -2007,7 +2017,7 @@ func newMetaBlockProcessor(
 		balanceComputationHandler,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
@@ -2024,7 +2034,7 @@ func newMetaBlockProcessor(
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	genesisHdr := data.Blkc.GetGenesisHeader()
@@ -2041,7 +2051,7 @@ func newMetaBlockProcessor(
 	}
 	epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
@@ -2059,18 +2069,18 @@ func newMetaBlockProcessor(
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
 	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
@@ -2100,7 +2110,7 @@ func newMetaBlockProcessor(
 
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
@@ -2112,7 +2122,7 @@ func newMetaBlockProcessor(
 	}
 	validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -2168,7 +2178,7 @@ func newMetaBlockProcessor(
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	arguments := block.ArgMetaProcessor{
@@ -2185,15 +2195,15 @@ func newMetaBlockProcessor(
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, nil, errors.New("could not create block processor: " + err.Error())
 	}
 
 	err = metaProcessor.SetAppStatusHandler(core.StatusHandler)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return metaProcessor, nil
+	return metaProcessor, vmFactory.SystemSmartContractContainer(), nil
 }
 
 func createShardTxSimulatorProcessor(

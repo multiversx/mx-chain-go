@@ -1436,6 +1436,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		processComponents.SystemSCContainer,
 	)
 	if err != nil {
 		return err
@@ -2445,6 +2446,7 @@ func createApiResolver(
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	systemSCContainer vm.SystemSCContainer,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2472,19 +2474,21 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(
-			argsHook,
-			economics,
-			messageSigVerifier,
-			gasSchedule,
-			nodesSetup,
-			hasher,
-			marshalizer,
-			systemSCConfig,
-			validatorAccounts,
-			rater,
-			epochNotifier,
-		)
+		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           economics,
+			MessageSignVerifier: messageSigVerifier,
+			GasSchedule:         gasSchedule,
+			NodesConfigProvider: nodesSetup,
+			Hasher:              hasher,
+			Marshalizer:         marshalizer,
+			SystemSCConfig:      systemSCConfig,
+			ValidatorAccountsDB: validatorAccounts,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+			SystemSCContainer:   systemSCContainer,
+		}
+		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
 			return nil, err
 		}

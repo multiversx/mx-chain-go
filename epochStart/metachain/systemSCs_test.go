@@ -397,15 +397,15 @@ func createFullArgumentsForSystemSCProcessing() (ArgsNewEpochStartSystemSCProces
 	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
 	nodesSetup := &mock.NodesSetupStub{}
-	metaVmFactory, _ := metaProcess.NewVMContainerFactory(
-		argsHook,
-		createEconomicsData(),
-		signVerifer,
-		gasSchedule,
-		nodesSetup,
-		hasher,
-		marshalizer,
-		&config.SystemSmartContractsConfig{
+	argsNewVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           createEconomicsData(),
+		MessageSignVerifier: signVerifer,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: nodesSetup,
+		Hasher:              hasher,
+		Marshalizer:         marshalizer,
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
@@ -445,10 +445,11 @@ func createFullArgumentsForSystemSCProcessing() (ArgsNewEpochStartSystemSCProces
 				MaxServiceFee:  100,
 			},
 		},
-		peerAccountsDB,
-		&mock.ChanceComputerStub{},
-		epochNotifier,
-	)
+		ValidatorAccountsDB: peerAccountsDB,
+		ChanceComputer:      &mock.ChanceComputerStub{},
+		EpochNotifier:       epochNotifier,
+	}
+	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
 	vmContainer, _ := metaVmFactory.Create()
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)

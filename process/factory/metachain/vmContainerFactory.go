@@ -38,46 +38,49 @@ type vmContainerFactory struct {
 	epochNotifier       process.EpochNotifier
 }
 
+// ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
+type ArgsNewVMContainerFactory struct {
+	ArgBlockChainHook   hooks.ArgBlockChainHook
+	Economics           *economics.EconomicsData
+	MessageSignVerifier vm.MessageSignVerifier
+	GasSchedule         map[string]map[string]uint64
+	NodesConfigProvider vm.NodesConfigProvider
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	SystemSCConfig      *config.SystemSmartContractsConfig
+	ValidatorAccountsDB state.AccountsAdapter
+	ChanceComputer      sharding.ChanceComputer
+	EpochNotifier       process.EpochNotifier
+	SystemSCContainer   vm.SystemSCContainer
+}
+
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
-func NewVMContainerFactory(
-	argBlockChainHook hooks.ArgBlockChainHook,
-	economics *economics.EconomicsData,
-	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule map[string]map[string]uint64,
-	nodesConfigProvider vm.NodesConfigProvider,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	systemSCConfig *config.SystemSmartContractsConfig,
-	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer sharding.ChanceComputer,
-	epochNotifier process.EpochNotifier,
-) (*vmContainerFactory, error) {
-	if economics == nil {
+func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory, error) {
+	if args.Economics == nil {
 		return nil, process.ErrNilEconomicsData
 	}
-	if check.IfNil(messageSignVerifier) {
+	if check.IfNil(args.MessageSignVerifier) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(nodesConfigProvider) {
+	if check.IfNil(args.NodesConfigProvider) {
 		return nil, process.ErrNilNodesConfigProvider
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if systemSCConfig == nil {
+	if args.SystemSCConfig == nil {
 		return nil, process.ErrNilSystemSCConfig
 	}
-	if check.IfNil(validatorAccountsDB) {
+	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
-	if check.IfNil(chanceComputer) {
+	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
-
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
@@ -86,16 +89,17 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		blockChainHookImpl:  blockChainHookImpl,
 		cryptoHook:          cryptoHook,
-		economics:           economics,
-		messageSigVerifier:  messageSignVerifier,
-		gasSchedule:         gasSchedule,
-		nodesConfigProvider: nodesConfigProvider,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		systemSCConfig:      systemSCConfig,
-		validatorAccountsDB: validatorAccountsDB,
-		chanceComputer:      chanceComputer,
-		epochNotifier:       epochNotifier,
+		economics:           args.Economics,
+		messageSigVerifier:  args.MessageSignVerifier,
+		gasSchedule:         args.GasSchedule,
+		nodesConfigProvider: args.NodesConfigProvider,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		systemSCConfig:      args.SystemSCConfig,
+		validatorAccountsDB: args.ValidatorAccountsDB,
+		chanceComputer:      args.ChanceComputer,
+		epochNotifier:       args.EpochNotifier,
+		systemContracts:     args.SystemSCContainer,
 	}, nil
 }
 
@@ -145,9 +149,11 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	vmf.systemContracts, err = scFactory.Create()
-	if err != nil {
-		return nil, err
+	if check.IfNil(vmf.systemContracts) {
+		vmf.systemContracts, err = scFactory.Create()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
