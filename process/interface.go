@@ -67,6 +67,13 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
+// TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
+type TxVersionCheckerHandler interface {
+	IsSignedWithHash(tx *transaction.Transaction) bool
+	CheckTxVersion(tx *transaction.Transaction) error
+	IsInterfaceNil() bool
+}
+
 // HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
 type HdrValidatorHandler interface {
 	Hash() []byte
@@ -779,7 +786,7 @@ type EpochStartValidatorInfoCreator interface {
 
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
-	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error
 	ProcessDelegationRewards(
 		miniBlocks block.MiniBlockSlice,
 		rewardTxs epochStart.TransactionCacher,

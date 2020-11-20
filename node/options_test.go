@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
@@ -1423,5 +1424,66 @@ func TestWithPeerSignatureHandler_OkPeerSignatureHandlerShouldWork(t *testing.T)
 	err := opt(node)
 
 	assert.Equal(t, peerSigHandler, node.peerSigHandler)
+	assert.Nil(t, err)
+}
+
+func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	epochEnable := uint32(10)
+	opt := WithEnableSignTxWithHashEpoch(epochEnable)
+	err := opt(node)
+
+	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
+	assert.Nil(t, err)
+}
+
+func TestWithTxSignHasher_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxSignHasher(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilHasher, err)
+}
+
+func TestWithTxSignHasher_OkTxSignHasherShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	hasher := &mock.HasherMock{}
+	opt := WithTxSignHasher(hasher)
+	err := opt(node)
+
+	assert.Equal(t, hasher, node.txSignHasher)
+	assert.Nil(t, err)
+}
+
+func TestWithTxVersionChecker_NilTxVersionCheckerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	opt := WithTxVersionChecker(nil)
+	err := opt(node)
+
+	assert.Equal(t, ErrNilTransactionVersionChecker, err)
+}
+
+func TestWithTxVersionChecker_OkTxVersionCheckerShoulWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	txVersionChecker := versioning.NewTxVersionChecker(1)
+	opt := WithTxVersionChecker(txVersionChecker)
+	err := opt(node)
+
+	assert.Equal(t, txVersionChecker, node.txVersionChecker)
 	assert.Nil(t, err)
 }

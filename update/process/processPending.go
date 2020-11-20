@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -37,11 +36,6 @@ type pendingProcessor struct {
 	scrTxProcessor   process.SmartContractResultProcessor
 	pubKeyConv       core.PubkeyConverter
 	shardCoordinator sharding.Coordinator
-}
-
-type txInfo struct {
-	hash string
-	tx   data.TransactionHandler
 }
 
 // NewPendingTransactionProcessor creates a pending transaction processor to be used after hardfork import
@@ -76,29 +70,27 @@ func NewPendingTransactionProcessor(args ArgsPendingTransactionProcessor) (*pend
 }
 
 // ProcessTransactionsDstMe processes all the transactions in which destination is the current shard
-func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
-	sortedTxs := getSortedSliceFromTxsMap(mapTxs)
-
+func (p *pendingProcessor) ProcessTransactionsDstMe(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 	mapMiniBlocks := make(map[string]*block.MiniBlock)
-	for _, info := range sortedTxs {
+	for _, txInfo := range txsInfo {
 		sndShardID := core.MetachainShardId
-		if len(info.tx.GetSndAddr()) > 0 {
-			sndShardID = p.shardCoordinator.ComputeId(info.tx.GetSndAddr())
+		if len(txInfo.Tx.GetSndAddr()) > 0 {
+			sndShardID = p.shardCoordinator.ComputeId(txInfo.Tx.GetSndAddr())
 		}
 
-		dstShardID := p.shardCoordinator.ComputeId(info.tx.GetRcvAddr())
+		dstShardID := p.shardCoordinator.ComputeId(txInfo.Tx.GetRcvAddr())
 		if dstShardID != p.shardCoordinator.SelfId() {
 			continue
 		}
 
-		blockType, err := p.processSingleTransaction(info)
+		blockType, err := p.processSingleTransaction(txInfo)
 		if err != nil {
 			log.Debug("could not process transaction",
 				"err", err,
-				"snd", info.tx.GetSndAddr(),
-				"rcv", info.tx.GetRcvAddr(),
-				"value", info.tx.GetValue().String(),
-				"data", info.tx.GetData())
+				"snd", txInfo.Tx.GetSndAddr(),
+				"rcv", txInfo.Tx.GetRcvAddr(),
+				"value", txInfo.Tx.GetValue().String(),
+				"data", txInfo.Tx.GetData())
 			continue
 		}
 
@@ -114,7 +106,7 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 			mapMiniBlocks[localID] = mb
 		}
 
-		mb.TxHashes = append(mb.TxHashes, []byte(info.hash))
+		mb.TxHashes = append(mb.TxHashes, txInfo.TxHash)
 	}
 
 	_, err := p.accounts.Commit()
@@ -124,22 +116,6 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(mapTxs map[string]data.Trans
 
 	miniBlocks := getSortedSliceFromMbsMap(mapMiniBlocks)
 	return miniBlocks, nil
-}
-
-func getSortedSliceFromTxsMap(mapTxs map[string]data.TransactionHandler) []*txInfo {
-	sortedTxs := make([]*txInfo, 0, len(mapTxs))
-	for hash, tx := range mapTxs {
-		sortedTxs = append(sortedTxs, &txInfo{
-			hash: hash,
-			tx:   tx,
-		})
-	}
-
-	sort.Slice(sortedTxs, func(i, j int) bool {
-		return sortedTxs[i].hash < sortedTxs[j].hash
-	})
-
-	return sortedTxs
 }
 
 func getSortedSliceFromMbsMap(mbsMap map[string]*block.MiniBlock) block.MiniBlockSlice {
@@ -158,8 +134,8 @@ func getSortedSliceFromMbsMap(mbsMap map[string]*block.MiniBlock) block.MiniBloc
 	return miniBlocks
 }
 
-func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, error) {
-	rwdTx, ok := info.tx.(*rewardTx.RewardTx)
+func (p *pendingProcessor) processSingleTransaction(txInfo *update.TxInfo) (block.Type, error) {
+	rwdTx, ok := txInfo.Tx.(*rewardTx.RewardTx)
 	if ok {
 		err := p.rwdTxProcessor.ProcessRewardTransaction(rwdTx)
 		if err != nil {
@@ -168,7 +144,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, e
 		return block.RewardsBlock, nil
 	}
 
-	scrTx, ok := info.tx.(*smartContractResult.SmartContractResult)
+	scrTx, ok := txInfo.Tx.(*smartContractResult.SmartContractResult)
 	if ok {
 		_, err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
 		if err != nil {
@@ -177,7 +153,7 @@ func (p *pendingProcessor) processSingleTransaction(info *txInfo) (block.Type, e
 		return block.SmartContractResultBlock, nil
 	}
 
-	tx, ok := info.tx.(*transaction.Transaction)
+	tx, ok := txInfo.Tx.(*transaction.Transaction)
 	if ok {
 		_, err := p.txProcessor.ProcessTransaction(tx)
 		if err != nil {

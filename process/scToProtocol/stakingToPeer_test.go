@@ -626,3 +626,54 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
 }
+
+func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
+	t.Parallel()
+
+	var peerAccount state.PeerAccountHandler
+	peerAccount = state.NewEmptyPeerAccount()
+	peerAccountsDB := &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return peerAccount, nil
+		},
+	}
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.PeerState = peerAccountsDB
+	stp, _ := NewStakingToPeer(arguments)
+	stp.unJailRating = 500
+	stp.jailRating = 10
+
+	stakingData := systemSmartContracts.StakedDataV2_0{
+		RegisterNonce: 0,
+		Staked:        false,
+		UnStakedNonce: 0,
+		UnStakedEpoch: core.DefaultUnstakedEpoch,
+		RewardAddress: []byte("rwd"),
+		StakeValue:    big.NewInt(0),
+		JailedRound:   0,
+		JailedNonce:   0,
+		UnJailedNonce: 0,
+		StakedNonce:   math.MaxUint64,
+	}
+
+	blsPubKey := []byte("key")
+	stakingData.Staked = true
+	stakingData.StakedNonce = 1
+	err := stp.updatePeerState(stakingData, blsPubKey, stakingData.StakedNonce)
+	assert.NoError(t, err)
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
+	assert.Equal(t, string(core.NewList), peerAccount.GetList())
+
+	stakingData.UnStakedNonce = 11
+	stakingData.Staked = false
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
+	assert.Equal(t, string(core.LeavingList), peerAccount.GetList())
+
+	peerAccount.SetListAndIndex(0, string(core.JailedList), 5)
+	stakingData.UnJailedNonce = 14
+	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	assert.Equal(t, string(core.InactiveList), peerAccount.GetList())
+	assert.Equal(t, stp.unJailRating, peerAccount.GetTempRating())
+}
