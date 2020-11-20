@@ -80,8 +80,14 @@ var ErrInvalidLogFileMinLifeSpan = errors.New("minimum log file life span is inv
 // ErrFileLoggingProcessIsClosed signals that the file logging process is closed
 var ErrFileLoggingProcessIsClosed = errors.New("file logging process is closed")
 
+// ErrNilShardCoordinator signals that a nil shard coordinator was provided
+var ErrNilShardCoordinator = errors.New("nil shard coordinator")
+
 // ErrSuffixNotPresentOrInIncorrectPosition signals that the suffix is not present in the data field or its position is incorrect
 var ErrSuffixNotPresentOrInIncorrectPosition = errors.New("suffix is not present or the position is incorrect")
 
 // ErrNilFeeConfig signals that a nil fee config is provided
 var ErrNilFeeConfig = errors.New("nil fee config")
+
+// ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
+var ErrInvalidTransactionVersion = errors.New("invalid transaction version")

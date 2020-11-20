@@ -67,6 +67,13 @@ type TxValidatorHandler interface {
 	Fee() *big.Int
 }
 
+// TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
+type TxVersionCheckerHandler interface {
+	IsSignedWithHash(tx *transaction.Transaction) bool
+	CheckTxVersion(tx *transaction.Transaction) error
+	IsInterfaceNil() bool
+}
+
 // HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
 type HdrValidatorHandler interface {
 	Hash() []byte

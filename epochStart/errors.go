@@ -218,9 +218,6 @@ var ErrNilSystemVM = errors.New("nil system VM")
 // ErrStakingSCOutputAccountNotFound signals that staking sc output account was not found
 var ErrStakingSCOutputAccountNotFound = errors.New("staking sc output was not found")
 
-// ErrNilRatingsInfoHandler signals that nil ratings info handler has been provided
-var ErrNilRatingsInfoHandler = errors.New("nil ratings info handler")
-
 // ErrNilEndOfEpochCallerAddress signals that nil end of epoch caller address was provided
 var ErrNilEndOfEpochCallerAddress = errors.New("nil end of epoch caller address")
 
@@ -235,6 +232,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrInvalidMinNumberOfNodes signals that the minimum number of nodes is invalid
 var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
+
+// ErrNilEpochNotifier signals that the provided EpochNotifier is nil
+var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
