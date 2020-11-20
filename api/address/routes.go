@@ -19,7 +19,7 @@ const (
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
 	getESDTTokens   = "/:address/esdt"
-	getESDTBalance  = "/:address/esdt/:tokenName"
+	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -44,9 +44,9 @@ type accountResponse struct {
 }
 
 type esdtTokenData struct {
-	TokenName  string `json:"tokenName"`
-	Balance    string `json:"balance"`
-	Properties string `json:"properties"`
+	TokenIdentifier string `json:"tokenIdentifier"`
+	Balance         string `json:"balance"`
+	Properties      string `json:"properties"`
 }
 
 // Routes defines address related routes
@@ -281,8 +281,8 @@ func GetESDTBalance(c *gin.Context) {
 		return
 	}
 
-	tokenName := c.Param("tokenName")
-	if tokenName == "" {
+	tokenIdentifier := c.Param("tokenIdentifier")
+	if tokenIdentifier == "" {
 		c.JSON(
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
@@ -294,7 +294,7 @@ func GetESDTBalance(c *gin.Context) {
 		return
 	}
 
-	balance, freeze, err := facade.GetESDTBalance(addr, tokenName)
+	balance, freeze, err := facade.GetESDTBalance(addr, tokenIdentifier)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -308,9 +308,9 @@ func GetESDTBalance(c *gin.Context) {
 	}
 
 	tokenData := esdtTokenData{
-		TokenName:  tokenName,
-		Balance:    balance,
-		Properties: freeze,
+		TokenIdentifier: tokenIdentifier,
+		Balance:         balance,
+		Properties:      freeze,
 	}
 
 	c.JSON(

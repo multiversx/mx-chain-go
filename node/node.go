@@ -467,7 +467,7 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
 	if err != nil {
-		return "", "", err
+		return "0", "", nil
 	}
 
 	esdtToken := &esdt.ESDigitalToken{}
@@ -492,7 +492,7 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return nil, ErrNilDataTrie
+		return []string{}, nil
 	}
 
 	foundTokens := make([]string, 0)
