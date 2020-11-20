@@ -1545,6 +1545,7 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 40

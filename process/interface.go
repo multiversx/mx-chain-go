@@ -779,7 +779,7 @@ type EpochStartValidatorInfoCreator interface {
 
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
-	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error
+	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error
 	ProcessDelegationRewards(
 		miniBlocks block.MiniBlockSlice,
 		rewardTxs epochStart.TransactionCacher,

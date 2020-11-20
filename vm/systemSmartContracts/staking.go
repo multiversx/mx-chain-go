@@ -184,6 +184,8 @@ func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return r.getOwner(args)
 	case "updateConfigMaxNodes":
 		return r.updateConfigMaxNodes(args)
+	case "stakeNodesFromWaitingList":
+		return r.stakeNodesFromWaitingList(args)
 	}
 
 	return vmcommon.UserError
@@ -523,6 +525,7 @@ func (r *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 	stakingData.StakedNonce = r.eei.BlockChainHook().CurrentNonce()
 	stakingData.UnStakedEpoch = core.DefaultUnstakedEpoch
 	stakingData.UnStakedNonce = 0
+	stakingData.Waiting = false
 }
 
 func (r *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1415,7 +1418,7 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 		r.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(args.CallerAddr, r.stakeAccessAddr) {
+	if !bytes.Equal(args.CallerAddr, r.endOfEpochAccessAddr) {
 		r.eei.AddReturnMessage("this is only a view function")
 		return vmcommon.UserError
 	}
@@ -1450,6 +1453,7 @@ func (r *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 
 		// return the change key
 		r.eei.Finish(blsKey)
+		r.eei.Finish(stakedData.RewardAddress)
 	}
 
 	err = r.updateWaitingListToNewFirstKey(waitingListData)

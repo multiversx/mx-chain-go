@@ -70,7 +70,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 	}
 	validatorInfos[0] = append(validatorInfos[0], vInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
@@ -103,7 +103,7 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
 	validatorsInfo[0] = append(validatorsInfo[0], jailed...)
 
-	err := s.ProcessSystemSmartContract(validatorsInfo)
+	err := s.ProcessSystemSmartContract(validatorsInfo, 0)
 	assert.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
 		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
@@ -517,7 +517,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	s.flagDelegationEnabled.Set()
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0)
 	assert.Nil(t, err)
 
 	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
@@ -525,7 +525,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	userAcc, _ := acc.(state.UserAccountHandler)
 	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
-	assert.NotNil(t, userAcc.GetCode())
 	assert.NotNil(t, userAcc.GetCodeMetadata())
 }
 

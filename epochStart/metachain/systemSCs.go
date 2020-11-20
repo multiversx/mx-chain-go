@@ -155,7 +155,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
-func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error {
 	if s.flagHystNodesEnabled.IsSet() {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
@@ -164,7 +164,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 	}
 
 	if s.flagChangeMaxNodesEnabled.IsSet() {
-		err := s.updateSystemSCConfigMaxNodes()
+		err := s.updateMaxNodes(nonce)
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 }
 
 // updates the configuration of the system SC if the flags permit
-func (s *systemSCProcessor) updateSystemSCConfigMaxNodes() error {
+func (s *systemSCProcessor) updateMaxNodes(nonce uint64) error {
 	maxNumberOfNodes := s.maxNodes
 	prevMaxNumberOfNodes, err := s.setMaxNumberOfNodes(maxNumberOfNodes)
 	if err != nil {
@@ -289,7 +289,7 @@ func (s *systemSCProcessor) updateSystemSCConfigMaxNodes() error {
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
-	err = s.stakeNodesFromWaitingList(maxNumberOfNodes - prevMaxNumberOfNodes)
+	err = s.stakeNodesFromWaitingList(maxNumberOfNodes-prevMaxNumberOfNodes, nonce)
 	if err != nil {
 		return err
 	}
@@ -769,7 +769,6 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 
 	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
 	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
-	delegationMgrAcc.SetCode(vmInput.ContractCodeMetadata)
 
 	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
 	if err != nil {
@@ -779,9 +778,73 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 	return nil
 }
 
-func (s *systemSCProcessor) stakeNodesFromWaitingList(nodesToStake uint32) error {
+func (s *systemSCProcessor) stakeNodesFromWaitingList(nodesToStake uint32, nonce uint64) error {
 	if nodesToStake == 0 {
 		return nil
+	}
+
+	nodesToStakeAsBigInt := big.NewInt(0).SetUint64(uint64(nodesToStake))
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{nodesToStakeAsBigInt.Bytes()},
+		},
+		RecipientAddr: vm.AuctionSCAddress,
+		Function:      "stakeNodesFromWaitingList",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when staking nodes from waiting list", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when staking nodes from waiting list", vmOutput.ReturnCode)
+	}
+	if len(vmOutput.ReturnData)%2 != 0 {
+		return fmt.Errorf("%w return data must be divisible by 2 when staking nodes from waiting list", epochStart.ErrInvalidSystemSCReturn)
+	}
+
+	err := s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	err = s.addNewlyStakedNodesToValidatorTrie(vmOutput.ReturnData, nonce)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(returnData [][]byte, nonce uint64) error {
+	for i := 0; i < len(returnData); i += 2 {
+		blsKey := returnData[i]
+		rewardAddress := returnData[i+2]
+
+		peerAcc, err := s.getPeerAccount(blsKey)
+		if err != nil {
+			return err
+		}
+
+		err = peerAcc.SetRewardAddress(rewardAddress)
+		if err != nil {
+			return err
+		}
+
+		err = peerAcc.SetBLSPublicKey(blsKey)
+		if err != nil {
+			return err
+		}
+
+		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(core.NewList), uint32(nonce))
+		peerAcc.SetTempRating(s.startRating)
+		peerAcc.SetUnStakedEpoch(core.DefaultUnstakedEpoch)
+
+		err = s.peerAccountsDB.SaveAccount(peerAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

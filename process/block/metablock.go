@@ -356,7 +356,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce)
 	if err != nil {
 		return err
 	}
@@ -753,7 +753,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo)
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce)
 	if err != nil {
 		return nil, err
 	}
