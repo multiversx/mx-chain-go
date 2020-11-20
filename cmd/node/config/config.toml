@@ -33,6 +33,10 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+    # signed with the hash of transaction
+    TransactionSignedWithTxHashEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
@@ -471,6 +475,9 @@
 
 [MultisigHasher]
    Type = "blake2b"
+
+[TxSignHasher]
+    Type = "keccak"
 
 # The main marshalizer, used in internodes communication
 # Type identifies the marshalizer

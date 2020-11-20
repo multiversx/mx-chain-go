@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -107,7 +107,12 @@ func (se *stateExport) ExportAll(epoch uint32) error {
 		log.LogIfError(errClose)
 	}()
 
-	err = se.exportMeta()
+	err = se.exportEpochStartMetaBlock()
+	if err != nil {
+		return err
+	}
+
+	err = se.exportUnFinishedMetaBlocks()
 	if err != nil {
 		return err
 	}
@@ -136,7 +141,7 @@ func (se *stateExport) exportAllTransactions() error {
 		return err
 	}
 
-	log.Debug("Exported transactions", "len", len(toExportTransactions))
+	log.Debug("Starting export for transactions", "len", len(toExportTransactions))
 	for key, tx := range toExportTransactions {
 		errExport := se.exportTx(key, tx)
 		if errExport != nil {
@@ -153,7 +158,7 @@ func (se *stateExport) exportAllMiniBlocks() error {
 		return err
 	}
 
-	log.Debug("Exported miniBlocks", "len", len(toExportMBs))
+	log.Debug("Starting export for miniBlocks", "len", len(toExportMBs))
 	for key, mb := range toExportMBs {
 		errExport := se.exportMBs(key, mb)
 		if errExport != nil {
@@ -170,6 +175,7 @@ func (se *stateExport) exportAllTries() error {
 		return err
 	}
 
+	log.Debug("Starting export for tries", "len", len(toExportTries))
 	for key, trie := range toExportTries {
 		err = se.exportTrie(key, trie)
 		if err != nil {
@@ -180,12 +186,49 @@ func (se *stateExport) exportAllTries() error {
 	return nil
 }
 
-func (se *stateExport) exportMeta() error {
+func (se *stateExport) exportEpochStartMetaBlock() error {
 	metaBlock, err := se.stateSyncer.GetEpochStartMetaBlock()
 	if err != nil {
 		return err
 	}
 
+	log.Debug("Starting export for epoch start metaBlock")
+	err = se.exportMetaBlock(metaBlock, EpochStartMetaBlockIdentifier)
+	if err != nil {
+		return err
+	}
+
+	err = se.hardforkStorer.FinishedIdentifier(EpochStartMetaBlockIdentifier)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportUnFinishedMetaBlocks() error {
+	unFinishedMetaBlocks, err := se.stateSyncer.GetUnFinishedMetaBlocks()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("Starting export for unFinished metaBlocks", "len", len(unFinishedMetaBlocks))
+	for _, metaBlock := range unFinishedMetaBlocks {
+		err := se.exportMetaBlock(metaBlock, UnFinishedMetaBlocksIdentifier)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = se.hardforkStorer.FinishedIdentifier(UnFinishedMetaBlocksIdentifier)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (se *stateExport) exportMetaBlock(metaBlock *block.MetaBlock, identifier string) error {
 	jsonData, err := json.Marshal(metaBlock)
 	if err != nil {
 		return err
@@ -193,18 +236,21 @@ func (se *stateExport) exportMeta() error {
 
 	metaHash := se.hasher.Compute(string(jsonData))
 	versionKey := CreateVersionKey(metaBlock, metaHash)
-
-	err = se.hardforkStorer.Write(MetaBlockIdentifier, []byte(versionKey), jsonData)
+	err = se.hardforkStorer.Write(identifier, []byte(versionKey), jsonData)
 	if err != nil {
 		return err
 	}
 
-	err = se.hardforkStorer.FinishedIdentifier(MetaBlockIdentifier)
-	if err != nil {
-		return err
-	}
-
-	log.Debug("Exported metaBlock", "rootHash", metaBlock.RootHash)
+	log.Debug("Exported metaBlock",
+		"identifier", identifier,
+		"version key", versionKey,
+		"hash", metaHash,
+		"epoch", metaBlock.Epoch,
+		"round", metaBlock.Round,
+		"nonce", metaBlock.Nonce,
+		"start of epoch block", metaBlock.Nonce == 0 || metaBlock.IsStartOfEpochBlock(),
+		"rootHash", metaBlock.RootHash,
+	)
 
 	return nil
 }

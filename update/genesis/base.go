@@ -15,8 +15,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// MetaBlockIdentifier is the constant which defines the export/import identifier for metaBlock
-const MetaBlockIdentifier = "metaBlock"
+// EpochStartMetaBlockIdentifier is the constant which defines the export/import identifier for epoch start metaBlock
+const EpochStartMetaBlockIdentifier = "epochStartMetaBlock"
+
+// UnFinishedMetaBlocksIdentifier is the constant which defines the export/import identifier for unFinished metaBlocks
+const UnFinishedMetaBlocksIdentifier = "unFinishedMetaBlocks"
 
 // TransactionsIdentifier is the constant which defines the export/import identifier for transactions
 const TransactionsIdentifier = "transactions"
