@@ -442,8 +442,12 @@ type Configs struct {
 	P2pConfig                        *P2PConfig
 	FlagsConfig                      *ContextFlagsConfig
 	ConfigurationFileName            string
+	ConfigurationApiRoutesFileName   string
 	ConfigurationEconomicsFileName   string
+	ConfigurationSystemSCFilename    string
 	ConfigurationRatingsFileName     string
 	ConfigurationPreferencesFileName string
+	ConfigurationExternalFileName    string
 	P2pConfigurationFileName         string
+	ConfigurationGasScheduleFileName string
 }

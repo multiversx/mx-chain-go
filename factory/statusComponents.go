@@ -128,12 +128,13 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	softwareVersionChecker, err := softwareVersionCheckerFactory.Create()
 	if err != nil {
-		log.Debug("nil software version checker", "error", err.Error())
-	} else {
-		softwareVersionChecker.StartCheckSoftwareVersion()
+		return nil, err
 	}
+
+	softwareVersionChecker.StartCheckSoftwareVersion()
 
 	initialTpsBenchmark := scf.coreComponents.StatusHandlerUtils().LoadTpsBenchmarkFromStorage(
 		scf.dataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit),

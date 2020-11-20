@@ -139,7 +139,9 @@ func (rm *ResourceMonitor) IsInterfaceNil() bool {
 
 // Close closes all underlying components
 func (rm *ResourceMonitor) Close() error {
-	rm.cancelFunc()
+	if rm.cancelFunc != nil {
+		rm.cancelFunc()
+	}
 
 	return nil
 }

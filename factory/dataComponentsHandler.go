@@ -167,6 +167,6 @@ func (mdc *managedDataComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedDataComponents) String() string {
+func (mdc *managedDataComponents) String() string {
 	return "managedDataComponents"
 }

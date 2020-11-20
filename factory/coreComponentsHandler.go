@@ -466,6 +466,6 @@ func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedCoreComponents) String() string {
+func (mcc *managedCoreComponents) String() string {
 	return "managedCoreComponents"
 }

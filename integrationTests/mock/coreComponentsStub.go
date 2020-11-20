@@ -19,31 +19,31 @@ import (
 
 // CoreComponentsStub -
 type CoreComponentsStub struct {
-	IntMarsh                    marshal.Marshalizer
-	TxMarsh                     marshal.Marshalizer
-	VmMarsh                     marshal.Marshalizer
-	Hash                        hashing.Hasher
-	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
-	AddrPubKeyConv              core.PubkeyConverter
-	ValPubKeyConv               core.PubkeyConverter
-	PathHdl                     storage.PathManagerHandler
-	ChainIdCalled               func() string
-	MinTransactionVersionCalled func() uint32
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	WDTimer                     core.WatchdogTimer
-	Alarm                       core.TimersScheduler
-	NtpTimer                    ntp.SyncTimer
-	RoundHandler                consensus.Rounder
-	EconomicsHandler            process.EconomicsHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	Shuffler                    sharding.NodesShuffler
-	EpochChangeNotifier         factory.EpochNotifier
-	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
-	ChanStopProcess             chan endProcess.ArgEndProcess
-	StartTime                   time.Time
+	InternalMarshalizerField           marshal.Marshalizer
+	TxMarshalizerField                 marshal.Marshalizer
+	VmMarshalizerField                 marshal.Marshalizer
+	HasherField                        hashing.Hasher
+	Uint64ByteSliceConverterField      typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverterField        core.PubkeyConverter
+	ValidatorPubKeyConverterField      core.PubkeyConverter
+	PathHandlerField                   storage.PathManagerHandler
+	ChainIdCalled                      func() string
+	MinTransactionVersionCalled        func() uint32
+	StatusHandlerUtilsField            nodeFactory.StatusHandlersUtils
+	StatusHandlerField                 core.AppStatusHandler
+	WatchdogField                      core.WatchdogTimer
+	AlarmSchedulerField                core.TimersScheduler
+	SyncTimerField                     ntp.SyncTimer
+	RounderField                       consensus.Rounder
+	EconomicsDataField                 process.EconomicsHandler
+	RatingsDataField                   process.RatingsInfoHandler
+	RaterField                         sharding.PeerAccountListAndRatingHandler
+	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
+	NodesShufflerField                 sharding.NodesShuffler
+	EpochNotifierField                 factory.EpochNotifier
+	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
+	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
+	GenesisTimeField                   time.Time
 }
 
 // Create -
@@ -63,119 +63,119 @@ func (ccs *CoreComponentsStub) CheckSubcomponents() error {
 
 // VmMarshalizer -
 func (ccs *CoreComponentsStub) VmMarshalizer() marshal.Marshalizer {
-	return ccs.VmMarsh
+	return ccs.VmMarshalizerField
 }
 
 // StatusHandlerUtils -
 func (ccs *CoreComponentsStub) StatusHandlerUtils() nodeFactory.StatusHandlersUtils {
-	return ccs.StatusHdlUtils
+	return ccs.StatusHandlerUtilsField
 }
 
 // StatusHandler -
 func (ccs *CoreComponentsStub) StatusHandler() core.AppStatusHandler {
-	return ccs.AppStatusHdl
+	return ccs.StatusHandlerField
 }
 
 // Watchdog -
 func (ccs *CoreComponentsStub) Watchdog() core.WatchdogTimer {
-	return ccs.WDTimer
+	return ccs.WatchdogField
 }
 
 // AlarmScheduler -
 func (ccs *CoreComponentsStub) AlarmScheduler() core.TimersScheduler {
-	return ccs.Alarm
+	return ccs.AlarmSchedulerField
 }
 
 // SyncTimer -
 func (ccs *CoreComponentsStub) SyncTimer() ntp.SyncTimer {
-	return ccs.NtpTimer
+	return ccs.SyncTimerField
 }
 
 // Rounder -
 func (ccs *CoreComponentsStub) Rounder() consensus.Rounder {
-	return ccs.RoundHandler
+	return ccs.RounderField
 }
 
 // EconomicsData -
 func (ccs *CoreComponentsStub) EconomicsData() process.EconomicsHandler {
-	return ccs.EconomicsHandler
+	return ccs.EconomicsDataField
 }
 
 // RatingsData -
 func (ccs *CoreComponentsStub) RatingsData() process.RatingsInfoHandler {
-	return ccs.RatingsConfig
+	return ccs.RatingsDataField
 }
 
 // Rater -
 func (ccs *CoreComponentsStub) Rater() sharding.PeerAccountListAndRatingHandler {
-	return ccs.RatingHandler
+	return ccs.RaterField
 
 }
 
 // GenesisNodesSetup -
 func (ccs *CoreComponentsStub) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
-	return ccs.NodesConfig
+	return ccs.GenesisNodesSetupField
 }
 
 // NodesShuffler -
 func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
-	return ccs.Shuffler
+	return ccs.NodesShufflerField
 }
 
 // EpochNotifier -
-func (ccm *CoreComponentsStub) EpochNotifier() factory.EpochNotifier {
-	return ccm.EpochChangeNotifier
+func (ccs *CoreComponentsStub) EpochNotifier() factory.EpochNotifier {
+	return ccs.EpochNotifierField
 }
 
 // EpochStartNotifierWithConfirm -
-func (ccm *CoreComponentsStub) EpochStartNotifierWithConfirm() factory.EpochStartNotifierWithConfirm {
-	return ccm.EpochNotifierWithConfirm
+func (ccs *CoreComponentsStub) EpochStartNotifierWithConfirm() factory.EpochStartNotifierWithConfirm {
+	return ccs.EpochStartNotifierWithConfirmField
 }
 
 // GenesisTime -
 func (ccs *CoreComponentsStub) GenesisTime() time.Time {
-	return ccs.StartTime
+	return ccs.GenesisTimeField
 }
 
 // InternalMarshalizer -
 func (ccs *CoreComponentsStub) InternalMarshalizer() marshal.Marshalizer {
-	return ccs.IntMarsh
+	return ccs.InternalMarshalizerField
 }
 
 // SetInternalMarshalizer -
 func (ccs *CoreComponentsStub) SetInternalMarshalizer(m marshal.Marshalizer) error {
-	ccs.IntMarsh = m
+	ccs.InternalMarshalizerField = m
 	return nil
 }
 
 // TxMarshalizer -
 func (ccs *CoreComponentsStub) TxMarshalizer() marshal.Marshalizer {
-	return ccs.TxMarsh
+	return ccs.TxMarshalizerField
 }
 
 // Hasher -
 func (ccs *CoreComponentsStub) Hasher() hashing.Hasher {
-	return ccs.Hash
+	return ccs.HasherField
 }
 
 // Uint64ByteSliceConverter -
 func (ccs *CoreComponentsStub) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
-	return ccs.UInt64ByteSliceConv
+	return ccs.Uint64ByteSliceConverterField
 }
 
 // AddressPubKeyConverter -
 func (ccs *CoreComponentsStub) AddressPubKeyConverter() core.PubkeyConverter {
-	return ccs.AddrPubKeyConv
+	return ccs.AddressPubKeyConverterField
 }
 
 // ValidatorPubKeyConverter -
 func (ccs *CoreComponentsStub) ValidatorPubKeyConverter() core.PubkeyConverter {
-	return ccs.ValPubKeyConv
+	return ccs.ValidatorPubKeyConverterField
 }
 
 // PathHandler -
 func (ccs *CoreComponentsStub) PathHandler() storage.PathManagerHandler {
-	return ccs.PathHdl
+	return ccs.PathHandlerField
 }
 
 // ChainID -
@@ -196,7 +196,7 @@ func (ccs *CoreComponentsStub) MinTransactionVersion() uint32 {
 
 // ChanStopNodeProcess -
 func (ccs *CoreComponentsStub) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
-	return ccs.ChanStopProcess
+	return ccs.ChanStopNodeProcessField
 }
 
 // IsInterfaceNil -

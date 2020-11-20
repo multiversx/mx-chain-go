@@ -488,6 +488,6 @@ func (m *managedProcessComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedProcessComponents) String() string {
+func (m *managedProcessComponents) String() string {
 	return "managedProcessComponents"
 }

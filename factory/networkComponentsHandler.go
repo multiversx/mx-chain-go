@@ -168,6 +168,6 @@ func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedNetworkComponents) String() string {
+func (mnc *managedNetworkComponents) String() string {
 	return "managedNetworkComponents"
 }

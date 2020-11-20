@@ -21,6 +21,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
+// CreateHardForkTrigger is the hard fork trigger factory
+// TODO: move this to process components
 func CreateHardForkTrigger(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
@@ -124,6 +126,7 @@ func prepareOpenTopics(
 	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }
 
+// CreateNode is the node factory
 func CreateNode(
 	config *config.Config,
 	bootstrapComponents factory.BootstrapComponentsHandler,

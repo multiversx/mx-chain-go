@@ -24,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
+// CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
+// TODO: refactor to further decrease node's codebase
 func CreateApiResolver(
 	generalConfig *config.Config,
 	accnts state.AccountsAdapter,
