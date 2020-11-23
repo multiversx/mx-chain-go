@@ -444,8 +444,6 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
 		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
 		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
-		generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart = 0
-		generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid = 1
 		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 
@@ -462,8 +460,6 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 			"kad dht discoverer", "off",
-			"EpochStartConfig.MinNumConnectedPeersToStart", generalConfigs.EpochStartConfig.MinNumConnectedPeersToStart,
-			"EpochStartConfig.MinNumOfPeersToConsiderBlockValid", generalConfigs.EpochStartConfig.MinNumOfPeersToConsiderBlockValid,
 		)
 	}
 

@@ -458,8 +458,11 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
-// ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
+// ErrNewEpochStartBootstrap signals that a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
+
+// ErrNewStorageEpochStartBootstrap signals that a new storageEpochStartBootstrap creation has failed
+var ErrNewStorageEpochStartBootstrap = errors.New("storageEpochStartBootstrap creation has failed")
 
 // ErrBootstrap signals the bootstrapping process has failed
 var ErrBootstrap = errors.New("bootstrap process has failed")

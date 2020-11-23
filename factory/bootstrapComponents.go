@@ -158,9 +158,23 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
 	}
 
-	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+	var epochStartBootstraper EpochStartBootstrapper
+	if bcf.importDbConfig.IsImportDBMode {
+		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
+			ArgsEpochStartBootstrap: epochStartBootstrapArgs,
+			ImportDbConfig:          bcf.importDbConfig,
+			ChanGracefullyClose:     bcf.coreComponents.ChanStopNodeProcess(),
+		}
+
+		epochStartBootstraper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
+		}
+	} else {
+		epochStartBootstraper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+		}
 	}
 
 	bootstrapParameters, err := epochStartBootstraper.Bootstrap()
