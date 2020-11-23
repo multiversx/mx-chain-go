@@ -36,11 +36,6 @@ type dataIndexer struct {
 	marshalizer      marshal.Marshalizer
 }
 
-// TODO save smart contract results in a separate index
-// TODO save receipts in a separate index
-// TODO change structure for validators rating
-// TODO add timestamp in miniblock structure
-
 // NewDataIndexer will create a new data indexer
 func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 	err := checkIndexerArgs(arguments)

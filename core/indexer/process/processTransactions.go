@@ -1,9 +1,7 @@
 package process
 
 import (
-	"bytes"
 	"encoding/hex"
-	"math/big"
 	"strconv"
 	"strings"
 
@@ -11,18 +9,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -64,6 +58,7 @@ func newTxDatabaseProcessor(
 			validatorPubkeyConverter: validatorPubkeyConverter,
 			minGasLimit:              minGasLimit,
 			gasPerDataByte:           gasPerDataByte,
+			esdtProc:                 newEsdtTransactionHandler(),
 		},
 		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
 		isInImportMode:   isInImportMode,
@@ -77,16 +72,18 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	header data.HeaderHandler,
 	txPool map[string]data.TransactionHandler,
 	selfShardID uint32,
-) ([]*types.Transaction, map[string]struct{}) {
+) ([]*types.Transaction, []*types.ScResult, []*types.Receipt, map[string]*accounts.AlteredAccount) {
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	//we can not iterate smart contract results directly on the miniblocks contained in the block body
 	// as some miniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
 	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
-	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
 
+	dbReceipts := make([]*types.Receipt, 0)
 	transactions = tdp.setTransactionSearchOrder(transactions)
-	for _, rec := range receipts {
+	for recHash, rec := range receipts {
+		dbReceipts = append(dbReceipts, tdp.commonProcessor.convertReceiptInDatabaseReceipt(recHash, rec, header))
+
 		tx, ok := transactions[string(rec.TxHash)]
 		if !ok {
 			continue
@@ -95,24 +92,32 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
 	}
 
+	dbSCResults := make([]*types.ScResult, 0)
 	countScResults := make(map[string]int)
 	for scHash, scResult := range scResults {
+		dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scResult)
+		dbSCResults = append(dbSCResults, dbScResult)
+
 		tx, ok := transactions[string(scResult.OriginalTxHash)]
 		if !ok {
 			continue
 		}
 
-		tx = tdp.addScResultInfoInTx(scHash, scResult, tx)
+		tx = tdp.addScResultInfoInTx(dbScResult, tx)
 		countScResults[string(scResult.OriginalTxHash)]++
 		delete(scResults, scHash)
 
 		// append child smart contract results
 		scrs := findAllChildScrResults(scHash, scResults)
 		for childScHash, sc := range scrs {
-			tx = tdp.addScResultInfoInTx(childScHash, sc, tx)
+			childDBScResult := tdp.commonProcessor.convertScResultInDatabaseScr(childScHash, sc)
+
+			tx = tdp.addScResultInfoInTx(childDBScResult, tx)
 			countScResults[string(scResult.OriginalTxHash)]++
 		}
 	}
+
+	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, dbSCResults)
 
 	for hash, nrScResult := range countScResults {
 		if nrScResult < minimumNumberOfSmartContractResults {
@@ -145,75 +150,40 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 	tdp.txLogsProcessor.Clean()
 
-	return append(convertMapTxsToSlice(transactions), rewardsTxs...), alteredAddresses
+	txsSlice := append(convertMapTxsToSlice(transactions), rewardsTxs...)
+
+	return txsSlice, dbSCResults, dbReceipts, alteredAddresses
 }
 
 func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
-	alteredAddress map[string]struct{},
-	scrs map[string]*smartContractResult.SmartContractResult,
+	alteredAddress map[string]*accounts.AlteredAccount,
+	scrs []*types.ScResult,
 ) {
 	for _, scr := range scrs {
-		shardID := tdp.shardCoordinator.ComputeId(scr.RcvAddr)
-		if shardID == tdp.shardCoordinator.SelfId() {
-			encodedReceiverAddress := tdp.addressPubkeyConverter.Encode(scr.RcvAddr)
-			alteredAddress[encodedReceiverAddress] = struct{}{}
+		receiverAddr, _ := tdp.addressPubkeyConverter.Decode(scr.Receiver)
+		shardID := tdp.shardCoordinator.ComputeId(receiverAddr)
+		if shardID != tdp.shardCoordinator.SelfId() {
+			continue
+		}
+
+		encodedReceiverAddress := scr.Receiver
+		alteredAddress[encodedReceiverAddress] = &accounts.AlteredAccount{
+			IsESDTSender:    false,
+			IsESDTOperation: scr.EsdtTokenIdentifier != "" && scr.EsdtValue != "",
+			TokenIdentifier: scr.EsdtTokenIdentifier,
 		}
 	}
 }
 
-func getGasUsedFromReceipt(rec *receipt.Receipt, tx *types.Transaction) uint64 {
-	if rec.Data != nil && string(rec.Data) == processTransaction.RefundGasMessage {
-		// in this gas receipt contains the refunded value
-		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
-		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
-		gasUsed.Sub(gasUsed, rec.Value)
-		gasUsed.Div(gasUsed, big.NewInt(0).SetUint64(tx.GasPrice))
+func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResults *types.ScResult, tx *types.Transaction) *types.Transaction {
+	tx.SmartContractResults = append(tx.SmartContractResults, dbScResults)
 
-		return gasUsed.Uint64()
-	}
-
-	gasUsed := big.NewInt(0)
-	gasUsed = gasUsed.Div(rec.Value, big.NewInt(0).SetUint64(tx.GasPrice))
-
-	return gasUsed.Uint64()
-}
-
-func isScResultSuccessful(scResultData []byte) bool {
-	okReturnDataNewVersion := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
-	okReturnDataOldVersion := []byte("@" + vmcommon.Ok.String()) // backwards compatible
-	return bytes.Contains(scResultData, okReturnDataNewVersion) || bytes.Contains(scResultData, okReturnDataOldVersion)
-}
-
-func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
-	scrResults := make(map[string]*smartContractResult.SmartContractResult, 0)
-	for scrHash, scr := range scrs {
-		if string(scr.OriginalTxHash) == hash {
-			scrResults[scrHash] = scr
-			delete(scrs, scrHash)
-		}
-	}
-
-	return scrResults
-}
-
-func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartContractResult.SmartContractResult, tx *types.Transaction) *types.Transaction {
-	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scr)
-	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
-
-	if isSCRForSenderWithGasUsed(dbScResult, tx) {
-		gasUsed := tx.GasLimit - scr.GasLimit
+	if isSCRForSenderWithGasUsed(dbScResults, tx) {
+		gasUsed := tx.GasLimit - dbScResults.GasLimit
 		tx.GasUsed = gasUsed
 	}
 
 	return tx
-}
-
-func isSCRForSenderWithGasUsed(dbScResult types.ScResult, tx *types.Transaction) bool {
-	isForSender := dbScResult.Receiver == tx.Sender
-	isWithGasLimit := dbScResult.GasLimit != 0
-	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
-
-	return isFromCurrentTx && isForSender && isWithGasLimit
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {
@@ -239,16 +209,6 @@ func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {
 	}
 }
 
-func convertMapTxsToSlice(txs map[string]*types.Transaction) []*types.Transaction {
-	transactions := make([]*types.Transaction, len(txs))
-	i := 0
-	for _, tx := range txs {
-		transactions[i] = tx
-		i++
-	}
-	return transactions
-}
-
 func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 	body *block.Body,
 	txPool map[string]data.TransactionHandler,
@@ -257,9 +217,9 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 ) (
 	map[string]*types.Transaction,
 	[]*types.Transaction,
-	map[string]struct{},
+	map[string]*accounts.AlteredAccount,
 ) {
-	alteredAddresses := make(map[string]struct{})
+	alteredAddresses := make(map[string]*accounts.AlteredAccount)
 	transactions := make(map[string]*types.Transaction)
 	rewardsTxs := make([]*types.Transaction, 0)
 
@@ -327,85 +287,4 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 	}
 
 	return transactions
-}
-
-func addToAlteredAddresses(
-	tx *types.Transaction,
-	alteredAddresses map[string]struct{},
-	miniBlock *block.MiniBlock,
-	selfShardID uint32,
-	isRewardTx bool,
-) {
-	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
-		alteredAddresses[tx.Sender] = struct{}{}
-	}
-	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
-		alteredAddresses[tx.Receiver] = struct{}{}
-	}
-}
-
-func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
-	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
-	for hash, tx := range txPool {
-		scResult, ok := tx.(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-		scResults[hash] = scResult
-	}
-
-	return scResults
-}
-
-func groupReceipts(txPool map[string]data.TransactionHandler) []*receipt.Receipt {
-	receipts := make([]*receipt.Receipt, 0)
-	for hash, tx := range txPool {
-		rec, ok := tx.(*receipt.Receipt)
-		if !ok {
-			continue
-		}
-
-		receipts = append(receipts, rec)
-		delete(txPool, hash)
-	}
-
-	return receipts
-}
-
-func getTransactions(txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*transaction.Transaction {
-	transactions := make(map[string]*transaction.Transaction)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
-		if !ok {
-			continue
-		}
-
-		tx, ok := txHandler.(*transaction.Transaction)
-		if !ok {
-			continue
-		}
-		transactions[string(txHash)] = tx
-	}
-	return transactions
-}
-
-func getRewardsTransaction(txPool map[string]data.TransactionHandler,
-	txHashes [][]byte,
-) map[string]*rewardTx.RewardTx {
-	rewardsTxs := make(map[string]*rewardTx.RewardTx)
-	for _, txHash := range txHashes {
-		txHandler, ok := txPool[string(txHash)]
-		if !ok {
-			continue
-		}
-
-		reward, ok := txHandler.(*rewardTx.RewardTx)
-		if !ok {
-			continue
-		}
-		rewardsTxs[string(txHash)] = reward
-	}
-	return rewardsTxs
 }

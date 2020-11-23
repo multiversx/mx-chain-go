@@ -48,3 +48,6 @@ var ErrReadPolicyFile = errors.New("error while reading policy file")
 
 // ErrWriteToBuffer signals that a write error occurred
 var ErrWriteToBuffer = errors.New("error while writing to buffer")
+
+// ErrNilDataTrie signals that user account has a nil data trie
+var ErrNilDataTrie = errors.New("nil data trie")

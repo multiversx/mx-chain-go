@@ -2,7 +2,7 @@ package workItems
 
 // ValidatorRatingInfo is a structure containing validator rating information
 type ValidatorRatingInfo struct {
-	PublicKey string  `json:"publicKey"`
+	PublicKey string  `json:"-"`
 	Rating    float32 `json:"rating"`
 }
 

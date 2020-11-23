@@ -134,7 +134,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.ShardCoordinatorMock{},
 	)
 
-	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _, _, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 7, len(transactions))
 
 }
@@ -243,7 +243,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.ShardCoordinatorMock{},
 	)
 
-	transactions, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	transactions, _, _, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	assert.Equal(t, 1, len(transactions))
 	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
 	assert.Equal(t, transaction.TxStatusSuccess.String(), transactions[0].Status)
@@ -446,6 +446,7 @@ func TestAlteredAddresses(t *testing.T) {
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+			esdtProc:               newEsdtTransactionHandler(),
 		},
 		marshalizer:     &mock.MarshalizerMock{},
 		hasher:          &mock.HasherMock{},
@@ -462,7 +463,7 @@ func TestAlteredAddresses(t *testing.T) {
 		},
 	}
 
-	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
+	_, _, _, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
 	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
 
 	for addrActual := range alteredAddresses {

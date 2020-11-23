@@ -3,8 +3,6 @@ package types
 import (
 	"math/big"
 	"time"
-
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 )
 
 // Transaction is a structure containing all the fields that need
@@ -29,14 +27,15 @@ type Transaction struct {
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
 	SearchOrder          uint32        `json:"searchOrder"`
-	SmartContractResults []ScResult    `json:"-"`
+	SmartContractResults []*ScResult   `json:"-"`
 	Log                  TxLog         `json:"-"`
-	EsdtTokenName        string        `json:"tokenName,omitempty"`
+	EsdtTokenIdentifier  string        `json:"token,omitempty"`
 	EsdtValue            string        `json:"esdtValue,omitempty"`
 }
 
 // Receipt is a structure containing all the fields that need to be save for a Receipt
 type Receipt struct {
+	Hash      string        `json:"-"`
 	Value     string        `json:"value"`
 	Sender    string        `json:"sender"`
 	Data      string        `json:"data,omitempty"`
@@ -60,25 +59,25 @@ type Event struct {
 
 // ScResult is a structure containing all the fields that need to be saved for a smart contract result
 type ScResult struct {
-	Hash           string        `json:"hash"`
-	Nonce          uint64        `json:"nonce"`
-	GasLimit       uint64        `json:"gasLimit"`
-	GasPrice       uint64        `json:"gasPrice"`
-	Value          string        `json:"value"`
-	Sender         string        `json:"sender"`
-	Receiver       string        `json:"receiver"`
-	RelayerAddr    string        `json:"relayerAddr,omitempty"`
-	RelayedValue   string        `json:"relayedValue,omitempty"`
-	Code           string        `json:"code,omitempty"`
-	Data           []byte        `json:"data,omitempty"`
-	PreTxHash      string        `json:"prevTxHash"`
-	OriginalTxHash string        `json:"originalTxHash"`
-	CallType       string        `json:"callType"`
-	CodeMetadata   []byte        `json:"codeMetaData,omitempty"`
-	ReturnMessage  string        `json:"returnMessage,omitempty"`
-	Timestamp      time.Duration `json:"timestamp"`
-	EsdtTokenName  string        `json:"tokenName,omitempty"`
-	EsdtValue      string        `json:"esdtValue,omitempty"`
+	Hash                string        `json:"-"`
+	Nonce               uint64        `json:"nonce"`
+	GasLimit            uint64        `json:"gasLimit"`
+	GasPrice            uint64        `json:"gasPrice"`
+	Value               string        `json:"value"`
+	Sender              string        `json:"sender"`
+	Receiver            string        `json:"receiver"`
+	RelayerAddr         string        `json:"relayerAddr,omitempty"`
+	RelayedValue        string        `json:"relayedValue,omitempty"`
+	Code                string        `json:"code,omitempty"`
+	Data                []byte        `json:"data,omitempty"`
+	PreTxHash           string        `json:"prevTxHash"`
+	OriginalTxHash      string        `json:"originalTxHash"`
+	CallType            string        `json:"callType"`
+	CodeMetadata        []byte        `json:"codeMetaData,omitempty"`
+	ReturnMessage       string        `json:"returnMessage,omitempty"`
+	Timestamp           time.Duration `json:"timestamp"`
+	EsdtTokenIdentifier string        `json:"token,omitempty"`
+	EsdtValue           string        `json:"esdtValue,omitempty"`
 }
 
 // Block is a structure containing all the fields that need
@@ -111,45 +110,31 @@ type ValidatorsPublicKeys struct {
 
 // AccountInfo holds (serializable) data about an account
 type AccountInfo struct {
-	Nonce      uint64      `json:"nonce"`
-	Balance    string      `json:"balance"`
-	BalanceNum float64     `json:"balanceNum"`
-	ESDTInfo   []*ESDTData `json:"esdtInfo,omitempty"`
-}
-
-// ESDTData hold information about an ESDT token
-type ESDTData struct {
-	TokenName  string `json:"tokenName"`
-	Balance    string `json:"balance"`
-	Properties string `json:"properties"`
+	Address         string  `json:"address,omitempty"`
+	Nonce           uint64  `json:"nonce,omitempty"`
+	Balance         string  `json:"balance"`
+	BalanceNum      float64 `json:"balanceNum"`
+	TokenIdentifier string  `json:"token,omitempty"`
+	Properties      string  `json:"properties,omitempty"`
 }
 
 // AccountBalanceHistory represents an entry in the user accounts balances history
 type AccountBalanceHistory struct {
-	Address   string `json:"address"`
-	Timestamp int64  `json:"timestamp"`
-	Balance   string `json:"balance"`
-}
-
-// AccountBalanceESDTHistory represents an entry in the user accounts balances ESDT history
-type AccountBalanceESDTHistory struct {
-	AccountBalanceHistory
-	TokenName string `json:"tokenName"`
-}
-
-// ValidatorsRatingInfo is a structure containing validators information
-type ValidatorsRatingInfo struct {
-	ValidatorsInfos []workItems.ValidatorRatingInfo `json:"validatorsRating"`
+	Address         string `json:"address"`
+	Timestamp       int64  `json:"timestamp"`
+	Balance         string `json:"balance"`
+	TokenIdentifier string `json:"token,omitempty"`
 }
 
 // Miniblock is a structure containing miniblock information
 type Miniblock struct {
-	Hash              string `json:"-"`
-	SenderShardID     uint32 `json:"senderShard"`
-	ReceiverShardID   uint32 `json:"receiverShard"`
-	SenderBlockHash   string `json:"senderBlockHash"`
-	ReceiverBlockHash string `json:"receiverBlockHash"`
-	Type              string `json:"type"`
+	Hash              string        `json:"-"`
+	SenderShardID     uint32        `json:"senderShard"`
+	ReceiverShardID   uint32        `json:"receiverShard"`
+	SenderBlockHash   string        `json:"senderBlockHash"`
+	ReceiverBlockHash string        `json:"receiverBlockHash"`
+	Type              string        `json:"type"`
+	Timestamp         time.Duration `json:"timestamp"`
 }
 
 // TPS is a structure containing all the fields that need to

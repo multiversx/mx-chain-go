@@ -112,6 +112,7 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 			SenderShardID:   miniblock.SenderShardID,
 			ReceiverShardID: miniblock.ReceiverShardID,
 			Type:            miniblock.Type.String(),
+			Timestamp:       time.Duration(header.GetTimeStamp()),
 		}
 
 		if mb.SenderShardID == header.GetShardID() {

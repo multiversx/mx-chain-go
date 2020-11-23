@@ -6,12 +6,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type esdtTransactionProc struct {
-	esdtOperations map[string]struct{}
-	argumentParser process.CallArgumentsParser
+	esdtOperations      map[string]struct{}
+	argumentParser      process.CallArgumentsParser
+	internalMarshalizer marshal.Marshalizer
 }
 
 func newEsdtTransactionHandler() *esdtTransactionProc {
@@ -65,6 +67,9 @@ func (etp *esdtTransactionProc) getTokenIdentifierAndValue(
 		bigValue := big.NewInt(0).SetBytes(arguments[1])
 
 		value = bigValue.String()
+		if value == "0" {
+			value = ""
+		}
 	}
 
 	return

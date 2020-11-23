@@ -12,6 +12,7 @@ const (
 	accountsHistoryIndex     = "accountshistory"
 	receiptsIndex            = "receipts"
 	scResultsIndex           = "scresults"
+	accountsESDTIndex        = "accountsesdt"
 	accountsESDTHistoryIndex = "accountsesdthistory"
 
 	txPolicy                  = "transactions_policy"

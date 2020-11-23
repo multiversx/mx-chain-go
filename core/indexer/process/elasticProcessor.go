@@ -5,14 +5,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
-	"math/big"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -27,8 +25,6 @@ import (
 )
 
 type objectsMap = map[string]interface{}
-
-const numDecimalsInFloatBalance = 10
 
 //ArgElasticProcessor is struct that is used to store all components that are needed to an elastic indexer
 type ArgElasticProcessor struct {
@@ -51,13 +47,12 @@ type ArgElasticProcessor struct {
 type elasticProcessor struct {
 	*txDatabaseProcessor
 
-	elasticClient          DatabaseClientHandler
-	parser                 *dataParser
-	enabledIndexes         map[string]struct{}
-	accountsDB             state.AccountsAdapter
-	dividerForDenomination float64
-	balancePrecision       float64
-	feeConfig              config.FeeSettings
+	elasticClient  DatabaseClientHandler
+	parser         *dataParser
+	enabledIndexes map[string]struct{}
+	feeConfig      config.FeeSettings
+
+	accountsProc *accounts.AccountsProcessor
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
@@ -73,10 +68,8 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, erro
 			hasher:      arguments.Hasher,
 			marshalizer: arguments.Marshalizer,
 		},
-		enabledIndexes:         arguments.EnabledIndexes,
-		accountsDB:             arguments.AccountsDB,
-		balancePrecision:       math.Pow(10, float64(numDecimalsInFloatBalance)),
-		dividerForDenomination: math.Pow(10, float64(core.MaxInt(arguments.Denomination, 0))),
+		enabledIndexes: arguments.EnabledIndexes,
+		accountsProc:   accounts.NewAccountsProcessor(arguments.Denomination, arguments.Marshalizer, arguments.AddressPubkeyConverter, arguments.AccountsDB),
 	}
 
 	ei.txDatabaseProcessor = newTxDatabaseProcessor(
@@ -194,7 +187,7 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 
 func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
 	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy,
-		accountsHistoryPolicy, accountsESDTHistoryPolicy}
+		accountsHistoryPolicy, accountsESDTHistoryPolicy, accountsESDTIndex}
 	for _, indexPolicyName := range indexesPolicies {
 		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
 		if indexPolicy != nil {
@@ -223,7 +216,7 @@ func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]
 
 func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex,
-		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
 	for _, index := range indexes {
 		indexTemplate := getTemplateByName(index, indexTemplates)
 		if indexTemplate != nil {
@@ -238,8 +231,8 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 }
 
 func (ei *elasticProcessor) createIndexes() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
-		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex,
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
@@ -253,7 +246,7 @@ func (ei *elasticProcessor) createIndexes() error {
 
 func (ei *elasticProcessor) createAliases() error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
-		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
+		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
@@ -397,7 +390,7 @@ func (ei *elasticProcessor) SaveTransactions(
 		return nil
 	}
 
-	txs, alteredAccounts := ei.txDatabaseProcessor.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	txs, dbScResults, dbReceipts, alteredAccounts := ei.txDatabaseProcessor.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 	buffSlice, err := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
 	if err != nil {
 		return err
@@ -410,6 +403,18 @@ func (ei *elasticProcessor) SaveTransactions(
 				"error", err.Error())
 			return err
 		}
+	}
+
+	err = ei.indexScResults(dbScResults)
+	if err != nil {
+		log.Warn("indexer indexing bulk of smart contract results",
+			"error", err.Error())
+	}
+
+	err = ei.indexReceipts(dbReceipts)
+	if err != nil {
+		log.Warn("indexer indexing bulk of receipts",
+			"error", err.Error())
 	}
 
 	return ei.indexAlteredAccounts(alteredAccounts)
@@ -449,30 +454,21 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 		return nil
 	}
 
-	var buff bytes.Buffer
-
-	infosRating := types.ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
-
-	marshalizedInfoRating, err := json.Marshal(&infosRating)
+	buffSlice, err := serializeValidatorsRating(index, validatorsRatingInfo)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal validators rating")
 		return err
 	}
-
-	buff.Grow(len(marshalizedInfoRating))
-	_, err = buff.Write(marshalizedInfoRating)
-	if err != nil {
-		log.Warn("elastic search: save validators rating, write", "error", err.Error())
+	for idx := range buffSlice {
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], ratingIndex)
+		if err != nil {
+			log.Warn("indexer: indexing bulk of validators rating information",
+				"index", ratingIndex,
+				"error", err.Error())
+			return err
+		}
 	}
 
-	req := &esapi.IndexRequest{
-		Index:      ratingIndex,
-		DocumentID: index,
-		Body:       bytes.NewReader(buff.Bytes()),
-		Refresh:    "true",
-	}
-
-	return ei.elasticClient.DoRequest(req)
+	return nil
 }
 
 // SaveShardValidatorsPubKeys will prepare and save information about a shard validators public keys in elasticsearch server
@@ -539,42 +535,34 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
 }
 
-func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) error {
+func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*accounts.AlteredAccount) error {
 	if !ei.isIndexEnabled(accountsIndex) {
 		return nil
 	}
 
-	accountsToIndex := make([]state.UserAccountHandler, len(accounts))
-	idx := 0
-	for address := range accounts {
-		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
-		if err != nil {
-			log.Warn("cannot decode address", "address", address, "error", err)
-			continue
-		}
+	accountsToIndexEGLD, accountsToIndexESDT := ei.accountsProc.GetAccounts(alteredAccounts)
 
-		account, err := ei.accountsDB.LoadAccount(addressBytes)
-		if err != nil {
-			log.Warn("cannot load account", "address bytes", addressBytes, "error", err)
-			continue
-		}
-
-		userAccount, ok := account.(state.UserAccountHandler)
-		if !ok {
-			log.Warn("cannot cast AccountHandler to type UserAccountHandler")
-			continue
-		}
-
-		accountsToIndex[idx] = userAccount
-		idx++
+	err := ei.SaveAccounts(accountsToIndexEGLD)
+	if err != nil {
+		return err
 	}
 
-	if len(accountsToIndex) == 0 {
-		log.Debug("no account to index from provided transactions")
+	return ei.saveAccountsESDT(accountsToIndexESDT)
+}
+
+func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*accounts.WrappedUserAccount) error {
+	if !ei.isIndexEnabled(accountsESDTIndex) {
 		return nil
 	}
 
-	return ei.SaveAccounts(accountsToIndex)
+	accountsESDTMap := ei.accountsProc.PrepareAccountsMapESDT(wrappedAccounts)
+
+	err := ei.serializeAndIndexAccounts(accountsESDTMap, accountsESDTIndex, true)
+	if err != nil {
+		return err
+	}
+
+	return ei.saveAccountsESDTHistory(accountsESDTMap)
 }
 
 // SaveAccounts will prepare and save information about provided accounts in elasticsearch server
@@ -583,32 +571,41 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		return nil
 	}
 
-	accountsMap := make(map[string]*types.AccountInfo)
-	for _, userAccount := range accounts {
-		balanceAsFloat := ei.computeBalanceAsFloat(userAccount.GetBalance())
-		acc := &types.AccountInfo{
-			Nonce:      userAccount.GetNonce(),
-			Balance:    userAccount.GetBalance().String(),
-			BalanceNum: balanceAsFloat,
-		}
-		address := ei.addressPubkeyConverter.Encode(userAccount.AddressBytes())
-		accountsMap[address] = acc
+	accountsMap := ei.accountsProc.PrepareAccountsMapEGLD(accounts)
+	err := ei.serializeAndIndexAccounts(accountsMap, accountsIndex, false)
+	if err != nil {
+		return err
 	}
 
-	buffSlice, err := serializeAccounts(accountsMap)
+	return ei.saveAccountsHistory(accountsMap)
+}
+
+func (ei *elasticProcessor) serializeAndIndexAccounts(accountsMap map[string]*types.AccountInfo, index string, areESDTAccounts bool) error {
+	buffSlice, err := accounts.SerializeAccounts(accountsMap, bulkSizeThreshold, areESDTAccounts)
 	if err != nil {
 		return err
 	}
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], index)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts",
+				"index", index,
 				"error", err.Error())
 			return err
 		}
 	}
 
-	return ei.saveAccountsHistory(accountsMap)
+	return nil
+}
+
+func (ei *elasticProcessor) saveAccountsESDTHistory(accountsInfoMap map[string]*types.AccountInfo) error {
+	if !ei.isIndexEnabled(accountsESDTHistoryIndex) {
+		return nil
+	}
+
+	accountsMap := ei.accountsProc.PrepareAccountsHistory(accountsInfoMap)
+
+	return ei.serializeAndIndexAccountsHistory(accountsMap, accountsESDTHistoryIndex)
 }
 
 func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*types.AccountInfo) error {
@@ -616,24 +613,18 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*type
 		return nil
 	}
 
-	currentTimestamp := time.Now().Unix()
-	accountsMap := make(map[string]*types.AccountBalanceHistory)
-	for address, userAccount := range accountsInfoMap {
-		acc := &types.AccountBalanceHistory{
-			Address:   address,
-			Balance:   userAccount.Balance,
-			Timestamp: currentTimestamp,
-		}
-		addressKey := fmt.Sprintf("%s_%d", address, currentTimestamp)
-		accountsMap[addressKey] = acc
-	}
+	accountsMap := ei.accountsProc.PrepareAccountsHistory(accountsInfoMap)
 
-	buffSlice, err := serializeAccountsHistory(accountsMap)
+	return ei.serializeAndIndexAccountsHistory(accountsMap, accountsHistoryIndex)
+}
+
+func (ei *elasticProcessor) serializeAndIndexAccountsHistory(accountsMap map[string]*types.AccountBalanceHistory, index string) error {
+	buffSlice, err := accounts.SerializeAccountsHistory(accountsMap, bulkSizeThreshold, false)
 	if err != nil {
 		return err
 	}
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], accountsHistoryIndex)
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], index)
 		if err != nil {
 			log.Warn("indexer: indexing bulk of accounts history",
 				"error", err.Error())
@@ -644,19 +635,49 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*type
 	return nil
 }
 
+func (ei *elasticProcessor) indexScResults(scrs []*types.ScResult) error {
+	if !ei.isIndexEnabled(scResultsIndex) {
+		return nil
+	}
+
+	buffSlice, err := serializeScResults(scrs)
+	if err != nil {
+		return err
+	}
+
+	for idx := range buffSlice {
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], scResultsIndex)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ei *elasticProcessor) indexReceipts(receipts []*types.Receipt) error {
+	if !ei.isIndexEnabled(scResultsIndex) {
+		return nil
+	}
+
+	buffSlice, err := serializeReceipts(receipts)
+	if err != nil {
+		return err
+	}
+
+	for idx := range buffSlice {
+		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], receiptsIndex)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (ei *elasticProcessor) isIndexEnabled(index string) bool {
 	_, isEnabled := ei.enabledIndexes[index]
 	return isEnabled
-}
-
-func (ei *elasticProcessor) computeBalanceAsFloat(balance *big.Int) float64 {
-	balanceBigFloat := big.NewFloat(0).SetInt(balance)
-	balanceFloat64, _ := balanceBigFloat.Float64()
-
-	bal := balanceFloat64 / ei.dividerForDenomination
-	balanceFloatWithDecimals := math.Round(bal*ei.balancePrecision) / ei.balancePrecision
-
-	return core.MaxFloat64(balanceFloatWithDecimals, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

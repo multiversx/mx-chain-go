@@ -25,6 +25,7 @@ func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProc
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		gasPerDataByte:           gasPerDataByte,
 		minGasLimit:              minGasLimit,
+		esdtProc:                 newEsdtTransactionHandler(),
 	}
 }
 
@@ -99,7 +100,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 	}
 
 	scRes := cp.convertScResultInDatabaseScr(scHash, smartContractRes)
-	expectedTx := types.ScResult{
+	expectedTx := &types.ScResult{
 		Nonce:        nonce,
 		Hash:         hex.EncodeToString([]byte(scHash)),
 		PreTxHash:    hex.EncodeToString(txHash),
