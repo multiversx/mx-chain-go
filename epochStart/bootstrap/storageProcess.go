@@ -405,7 +405,9 @@ func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta *block.MetaB
 	shardIds := make([]uint32, 0, len(meta.EpochStart.LastFinalizedHeaders)+1)
 
 	for _, epochStartData := range meta.EpochStart.LastFinalizedHeaders {
-		if epochStartData.ShardID != syncingShardID {
+		shouldSkipHeaderFetch := epochStartData.ShardID != syncingShardID &&
+			sesb.importDbConfig.ImportDBTargetShardID != core.MetachainShardId
+		if shouldSkipHeaderFetch {
 			continue
 		}
 
