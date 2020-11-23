@@ -13,13 +13,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
 	mclsig "github.com/ElrondNetwork/elrond-go/crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
@@ -454,8 +454,7 @@ func checkNodesStatus(
 	expectedStatus string,
 ) {
 	for i := range blsKeys {
-		txData := txDataForFunc("getBLSKeyStatus", [][]byte{blsKeys[i]})
-		nodeStatus := viewFuncSingleResult(t, tpn, txData, destAddr)
+		nodeStatus := viewFuncSingleResult(t, tpn, destAddr, "getBLSKeyStatus", [][]byte{blsKeys[i]})
 		assert.Equal(t, expectedStatus, string(nodeStatus))
 	}
 }
@@ -467,8 +466,7 @@ func checkDelegatorReward(
 	delegAddr []byte,
 	expectedRewards int64,
 ) {
-	txData := "getClaimableRewards@" + hex.EncodeToString(delegAddr)
-	delegRewards := viewFuncSingleResult(t, tpn, txData, delegScAddr)
+	delegRewards := viewFuncSingleResult(t, tpn, delegScAddr, "getClaimableRewards", [][]byte{delegAddr})
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), delegRewards)
 
 }
@@ -482,8 +480,7 @@ func checkRewardData(
 	expectedTotalActive int64,
 	expectedServiceFee *big.Int,
 ) {
-	txData := "getRewardData@" + hex.EncodeToString([]byte{epoch})
-	epoch0RewardData := viewFuncMultipleResults(t, tpn, txData, delegScAddr)
+	epoch0RewardData := viewFuncMultipleResults(t, tpn, delegScAddr, "getRewardData", [][]byte{{epoch}})
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), epoch0RewardData[0])
 	assert.Equal(t, big.NewInt(expectedTotalActive).Bytes(), epoch0RewardData[1])
 	assert.Equal(t, expectedServiceFee.Bytes(), epoch0RewardData[2])
@@ -524,8 +521,7 @@ func verifyDelegatorsStake(
 	expectedRes *big.Int,
 ) {
 	for i := range addresses {
-		txData := txDataForFunc(funcName, [][]byte{addresses[i]})
-		delegActiveStake := viewFuncSingleResult(t, tpn, txData, delegationAddr)
+		delegActiveStake := viewFuncSingleResult(t, tpn, delegationAddr, funcName, [][]byte{addresses[i]})
 		assert.Equal(t, expectedRes, big.NewInt(0).SetBytes(delegActiveStake))
 	}
 }
@@ -568,56 +564,43 @@ func deployNewSc(
 func viewFuncSingleResult(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
-	txData string,
-	delegScAddr []byte,
+	address []byte,
+	function string,
+	arguments [][]byte,
 ) []byte {
-	scr := getMyScr(t, tpn, txData, delegScAddr)
-
-	tokens := strings.Split(string(scr.GetData()), "@")
-	res, _ := hex.DecodeString(tokens[2])
-
-	return res
+	returnData := getReturnDataFromQuery(t, tpn, address, function, arguments)
+	return returnData[0]
 }
 
 func viewFuncMultipleResults(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
-	txData string,
-	delegScAddr []byte,
+	address []byte,
+	function string,
+	arguments [][]byte,
 ) [][]byte {
-	scr := getMyScr(t, tpn, txData, delegScAddr)
-
-	tokens := strings.Split(string(scr.GetData()), "@")
-
-	result := make([][]byte, 0)
-	for i := 2; i < len(tokens); i++ {
-		res, _ := hex.DecodeString(tokens[i])
-		result = append(result, res)
-	}
-	return result
+	return getReturnDataFromQuery(t, tpn, address, function, arguments)
 }
 
-func getMyScr(
+func getReturnDataFromQuery(
 	t *testing.T,
 	tpn *integrationTests.TestProcessorNode,
-	txData string,
-	delegScAddr []byte,
-) data.TransactionHandler {
-	scrForwarder, _ := tpn.ScrForwarder.(interface {
-		CleanIntermediateTransactions()
-	})
-	scrForwarder.CleanIntermediateTransactions()
-
-	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegScAddr, txData, big.NewInt(0))
-	assert.Nil(t, err)
-	assert.Equal(t, vmcommon.Ok, returnedCode)
-
-	scr := smartContract.GetAllSCRs(tpn.ScProcessor)
-	if len(scr) != 1 {
-		return nil
+	address []byte,
+	function string,
+	arguments [][]byte,
+) [][]byte {
+	query := &process.SCQuery{
+		ScAddress:  address,
+		FuncName:   function,
+		CallerAddr: vm.EndOfEpochAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  arguments,
 	}
+	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
-	return scr[0]
+	return vmOutput.ReturnData
 }
 
 func intToString(val uint32) string {

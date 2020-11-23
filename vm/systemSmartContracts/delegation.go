@@ -303,9 +303,9 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	newTotalActive := big.NewInt(0).Add(globalFund.TotalActive, callValue)
+	globalFund.TotalActive.Add(globalFund.TotalActive, callValue)
 	withDelegationCap := dConfig.MaxDelegationCap.Cmp(zero) != 0
-	if withDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
+	if withDelegationCap && globalFund.TotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
 		d.eei.AddReturnMessage("total delegation cap reached, no more space to accept")
 		return vmcommon.UserError
 	}
@@ -316,7 +316,6 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	globalFund.TotalActive.Set(newTotalActive)
 	isNew, delegator, err := d.getOrCreateDelegatorData(callerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
