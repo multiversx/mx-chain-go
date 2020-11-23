@@ -50,9 +50,9 @@ type valueForKeyResponse struct {
 }
 
 type esdtTokenData struct {
-	TokenName  string `json:"tokenName"`
-	Balance    string `json:"balance"`
-	Properties string `json:"properties"`
+	TokenIdentifier string `json:"tokenIdentifier"`
+	Balance         string `json:"balance"`
+	Properties      string `json:"properties"`
 }
 
 type esdtTokenResponseData struct {
@@ -605,7 +605,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
-					{Name: "/:address/esdt/:tokenName", Open: true},
+					{Name: "/:address/esdt/:tokenIdentifier", Open: true},
 				},
 			},
 		},

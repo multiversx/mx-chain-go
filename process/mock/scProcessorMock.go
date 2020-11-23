@@ -15,7 +15,7 @@ type SCProcessorMock struct {
 	ExecuteBuiltInFunctionCalled          func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
-	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
+	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
 	IsPayableCalled                       func(address []byte) (bool, error)
 }
 
@@ -35,9 +35,10 @@ func (sc *SCProcessorMock) ProcessIfError(
 	returnCode string,
 	returnMessage []byte,
 	snapshot int,
+	gasLocked uint64,
 ) error {
 	if sc.ProcessIfErrorCalled != nil {
-		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, returnMessage, snapshot)
+		return sc.ProcessIfErrorCalled(acntSnd, txHash, tx, returnCode, returnMessage, snapshot, gasLocked)
 	}
 	return nil
 }

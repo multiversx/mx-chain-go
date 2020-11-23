@@ -43,7 +43,7 @@
         { Name = "/:address/esdt", Open = true },
 
         # /address/:address/esdt/:tokenName will return data of an esdt token for a given account
-        { Name = "/:address/esdt/:tokenName", Open = true }
+        { Name = "/:address/esdt/:tokenIdentifier", Open = true }
 	]
 
 [APIPackages.hardfork]
