@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"errors"
+	errorsGo "errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -9,6 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +31,7 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
 		TemplatesPath:            "../testdata",
-		Options:                  &indexer.Options{},
+		Options:                  &types.Options{},
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
 		FeeConfig:                &config.FeeSettings{},
@@ -51,7 +53,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.IndexerCacheSize = -1
 				return args
 			},
-			exError: indexer.ErrNegativeCacheSize,
+			exError: errors.ErrNegativeCacheSize,
 		},
 		{
 			name: "NilAddressPubkeyConverter",
@@ -60,7 +62,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.AddressPubkeyConverter = nil
 				return args
 			},
-			exError: indexer.ErrNilPubkeyConverter,
+			exError: errors.ErrNilPubkeyConverter,
 		},
 		{
 			name: "NilValidatorPubkeyConverter",
@@ -69,7 +71,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.ValidatorPubkeyConverter = nil
 				return args
 			},
-			exError: indexer.ErrNilPubkeyConverter,
+			exError: errors.ErrNilPubkeyConverter,
 		},
 		{
 			name: "NilMarshalizer",
@@ -114,7 +116,7 @@ func TestNewIndexerFactory(t *testing.T) {
 				args.AccountsDB = nil
 				return args
 			},
-			exError: indexer.ErrNilAccountsDB,
+			exError: errors.ErrNilAccountsDB,
 		},
 		{
 			name: "EmptyUrl",
@@ -146,7 +148,7 @@ func TestNewIndexerFactory(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewIndexer(tt.argsFunc())
-			require.True(t, errors.Is(err, tt.exError))
+			require.True(t, errorsGo.Is(err, tt.exError))
 		})
 	}
 }

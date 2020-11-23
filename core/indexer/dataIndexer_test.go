@@ -3,10 +3,6 @@ package indexer
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
-	process2 "github.com/ElrondNetwork/elrond-go/core/indexer/process"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"math/big"
 	"sync"
 	"testing"
@@ -15,7 +11,11 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -23,7 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
+	dataProcess "github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/stretchr/testify/assert"
@@ -238,7 +238,7 @@ func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
 
 	arguments := NewDataIndexerArguments()
 	arguments.ElasticProcessor = &mock.ElasticProcessorStub{
-		SetTxLogsProcessorCalled: func(txLogsProc process.TransactionLogProcessorDatabase) {
+		SetTxLogsProcessorCalled: func(txLogsProc dataProcess.TransactionLogProcessorDatabase) {
 			called = true
 		},
 	}
@@ -348,7 +348,7 @@ func TestDataIndexer(t *testing.T) {
 }
 
 func testCreateIndexer(t *testing.T) {
-	indexTemplates, indexPolicies, _ := process2.GetElasticTemplatesAndPolicies("", false)
+	indexTemplates, indexPolicies, _ := process.GetElasticTemplatesAndPolicies("", false)
 
 	dispatcher, _ := NewDataDispatcher(100)
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
@@ -357,7 +357,7 @@ func testCreateIndexer(t *testing.T) {
 		Password:  "",
 	})
 
-	elasticIndexer, _ := process2.NewElasticProcessor(process2.ArgElasticProcessor{
+	elasticIndexer, _ := process.NewElasticProcessor(process.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              &marshal.JsonMarshalizer{},
