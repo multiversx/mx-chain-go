@@ -45,6 +45,7 @@ type SystemEI interface {
 	GetStorageFromAddress(address []byte, key []byte) []byte
 	Finish(value []byte)
 	UseGas(gasToConsume uint64) error
+	GasLeft() uint64
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 	IsValidator(blsKey []byte) bool

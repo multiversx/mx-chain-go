@@ -176,6 +176,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.withdraw(args)
 	case "changeServiceFee":
 		return d.changeServiceFee(args)
+	case "setAutomaticActivation":
+		return d.setAutomaticActivation(args)
 	case "modifyTotalDelegationCap":
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
@@ -358,7 +360,8 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", nil, callValue)
+	stakeArgs := d.makeStakeArgsIfAutomaticActivation(dConfig, dStatus, globalFund)
+	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", stakeArgs, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -380,6 +383,39 @@ func (d *delegation) delegateUser(
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) makeStakeArgsIfAutomaticActivation(
+	config *DelegationConfig,
+	status *DelegationContractStatus,
+	globalFund *GlobalFundData,
+) [][]byte {
+	if !config.AutomaticActivation || len(status.NotStakedKeys) == 0 {
+		return nil
+	}
+
+	maxNodesToStake := big.NewInt(0).Div(globalFund.TotalActive, d.nodePrice).Uint64()
+	numStakedNodes := uint64(len(status.StakedKeys))
+	if maxNodesToStake <= numStakedNodes {
+		return nil
+	}
+
+	lenNotStakedKeys := uint64(len(status.NotStakedKeys))
+	numNodesToStake := maxNodesToStake - numStakedNodes
+	gasLeftToStakeNumNodes := d.eei.GasLeft() / d.gasCost.MetaChainSystemSCsCost.Stake
+
+	numNodesToStake = core.MinUint64(core.MinUint64(lenNotStakedKeys, numNodesToStake), gasLeftToStakeNumNodes)
+	if numNodesToStake == 0 {
+		return nil
+	}
+
+	stakeArgs := [][]byte{big.NewInt(0).SetUint64(numNodesToStake).Bytes()}
+	for i := uint64(0); i < numNodesToStake; i++ {
+		stakeArgs = append(stakeArgs, status.NotStakedKeys[i].BLSKey)
+		stakeArgs = append(stakeArgs, status.NotStakedKeys[i].SignedMsg)
+	}
+
+	return stakeArgs
 }
 
 func (d *delegation) isOwner(address []byte) bool {
@@ -677,7 +713,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	numNodesToStake := big.NewInt(int64(len(args.Arguments)))
+	numNodesToStake := big.NewInt(int64(len(args.Arguments) + len(status.StakedKeys)))
 	stakeValue := big.NewInt(0).Mul(d.nodePrice, numNodesToStake)
 
 	if globalFund.TotalActive.Cmp(stakeValue) < 0 {

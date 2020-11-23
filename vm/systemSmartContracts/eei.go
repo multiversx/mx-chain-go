@@ -446,6 +446,11 @@ func (host *vmContext) UseGas(gasToConsume uint64) error {
 	return nil
 }
 
+// GasLeft returns the remaining gas
+func (host *vmContext) GasLeft() uint64 {
+	return host.gasRemaining
+}
+
 func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)

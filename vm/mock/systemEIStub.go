@@ -34,7 +34,17 @@ type SystemEIStub struct {
 	IsBadRatingCalled                   func(blsKey []byte) bool
 	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
 	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
+	GasLeftCalled                       func() uint64
 	ReturnMessage                       string
+}
+
+// GasLeft -
+func (s *SystemEIStub) GasLeft() uint64 {
+	if s.GasLeftCalled != nil {
+		return s.GasLeftCalled()
+	}
+
+	return 0
 }
 
 // GetContract -
