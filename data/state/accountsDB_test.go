@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -170,7 +171,7 @@ func TestAccountsDB_SetStateCheckpointSavesNumCheckpoints(t *testing.T) {
 	)
 
 	for i := 0; i < numCheckpoints; i++ {
-		adb.SetStateCheckpoint([]byte("rootHash"))
+		adb.SetStateCheckpoint([]byte("rootHash"), context.Background())
 	}
 
 	time.Sleep(time.Second * 2)
@@ -824,7 +825,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), context.Background())
 	time.Sleep(time.Second)
 
 	snapshotMut.Lock()
@@ -845,7 +846,7 @@ func TestAccountsDB_SetStateCheckpoint(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SetStateCheckpoint([]byte("roothash"))
+	adb.SetStateCheckpoint([]byte("roothash"), context.Background())
 	time.Sleep(time.Second)
 
 	snapshotMut.Lock()
@@ -992,7 +993,7 @@ func TestAccountsDB_GetAllLeaves(t *testing.T) {
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
-	_, err := adb.GetAllLeaves([]byte("root hash"))
+	_, err := adb.GetAllLeaves([]byte("root hash"), context.Background())
 	assert.Nil(t, err)
 	assert.True(t, getAllLeavesCalled)
 }

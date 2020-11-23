@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -549,7 +550,8 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return nil, err
 	}

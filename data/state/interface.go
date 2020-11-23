@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -135,11 +136,11 @@ type AccountsAdapter interface {
 	RecreateTrie(rootHash []byte) error
 	PruneTrie(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier)
-	SnapshotState(rootHash []byte)
-	SetStateCheckpoint(rootHash []byte)
+	SnapshotState(rootHash []byte, ctx context.Context)
+	SetStateCheckpoint(rootHash []byte, ctx context.Context)
 	IsPruningEnabled() bool
-	GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error)
-	RecreateAllTries(rootHash []byte) (map[string]data.Trie, error)
+	GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+	RecreateAllTries(rootHash []byte, ctx context.Context) (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }
 

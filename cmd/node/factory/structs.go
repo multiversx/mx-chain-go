@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -596,7 +597,8 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer
 		return err
 	}
 
-	leavesChannel, err := accountsAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := accountsAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return err
 	}

@@ -63,7 +63,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
 
-	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash)
+	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash, context.Background())
 	numLeaves := 0
 	for range leavesChannel {
 		numLeaves++
@@ -100,7 +100,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, _ = requesterTrie.GetAllLeavesOnChannel(newRootHash)
+	leavesChannel, _ = requesterTrie.GetAllLeavesOnChannel(newRootHash, context.Background())
 	numLeaves = 0
 	for range leavesChannel {
 		numLeaves++
@@ -153,7 +153,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	}
 
 	rootHash, _ := accState.RootHash()
-	leavesChannel, err := accState.GetAllLeaves(rootHash)
+	leavesChannel, err := accState.GetAllLeaves(rootHash, context.Background())
 	for range leavesChannel {
 	}
 	require.Nil(t, err)
@@ -203,7 +203,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leavesChannel, err = nRequester.AccntState.GetAllLeaves(rootHash)
+	leavesChannel, err = nRequester.AccntState.GetAllLeaves(rootHash, context.Background())
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel {
@@ -215,7 +215,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 
 func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.AccountsAdapter, dataTriesRootHashes [][]byte) {
 	for i := range dataTriesRootHashes {
-		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i])
+		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i], context.Background())
 		assert.Nil(t, err)
 		numLeaves := 0
 		for range dataTrieLeaves {

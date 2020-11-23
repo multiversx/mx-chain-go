@@ -196,11 +196,10 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 	if tsm.pruningBlockingOps < 1 {
 		log.Error("ExitPruningBufferingMode called too many times")
+		return
 	}
 
-	if tsm.pruningBlockingOps > 0 {
-		tsm.pruningBlockingOps--
-	}
+	tsm.pruningBlockingOps--
 
 	log.Trace("exit pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }

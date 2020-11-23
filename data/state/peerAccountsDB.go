@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -50,7 +51,7 @@ func NewPeerAccountsDB(
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
-func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
+func (adb *PeerAccountsDB) SnapshotState(rootHash []byte, _ context.Context) {
 	log.Trace("peerAccountsDB.SnapshotState", "root hash", rootHash)
 	adb.mainTrie.EnterPruningBufferingMode()
 	adb.mainTrie.TakeSnapshot(rootHash)
@@ -60,7 +61,7 @@ func (adb *PeerAccountsDB) SnapshotState(rootHash []byte) {
 }
 
 // SetStateCheckpoint triggers the checkpointing process of the state trie
-func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
+func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte, _ context.Context) {
 	log.Trace("peerAccountsDB.SetStateCheckpoint", "root hash", rootHash)
 	adb.mainTrie.EnterPruningBufferingMode()
 	adb.mainTrie.SetCheckpoint(rootHash)
@@ -70,7 +71,7 @@ func (adb *PeerAccountsDB) SetStateCheckpoint(rootHash []byte) {
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
-func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+func (adb *PeerAccountsDB) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
 	recreatedTrie, err := adb.mainTrie.Recreate(rootHash)
 	if err != nil {
 		return nil, err

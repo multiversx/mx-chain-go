@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -577,24 +578,35 @@ func (en *extensionNode) loadChildren(getNode func([]byte) (node, error)) ([][]b
 	return nil, []node{child}, nil
 }
 
-func (en *extensionNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (en *extensionNode) getAllLeavesOnChannel(
+	leavesChannel chan core.KeyValueHolder,
+	key []byte, db data.DBWriteCacher,
+	marshalizer marshal.Marshalizer,
+	ctx context.Context,
+) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
 	}
 
-	err = resolveIfCollapsed(en, 0, db)
-	if err != nil {
-		return err
-	}
+	select {
+	case <-ctx.Done():
+		log.Trace("getAllLeavesOnChannel interrupted")
+		return nil
+	default:
+		err = resolveIfCollapsed(en, 0, db)
+		if err != nil {
+			return err
+		}
 
-	childKey := append(key, en.Key...)
-	err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer)
-	if err != nil {
-		return err
-	}
+		childKey := append(key, en.Key...)
+		err = en.child.getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+		if err != nil {
+			return err
+		}
 
-	en.child = nil
+		en.child = nil
+	}
 
 	return nil
 }

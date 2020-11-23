@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -612,7 +613,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	}
 	tr.root = root
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash())
+	leavesChannel, err := tr.GetAllLeavesOnChannel(tr.root.getHash(), context.Background())
 	assert.Nil(t, err)
 	leaves := make(map[string][]byte)
 

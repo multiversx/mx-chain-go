@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
@@ -41,7 +43,7 @@ func (ts *TrieStub) SetCheckpoint(_ []byte) {
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error) {
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
 	if ts.GetAllLeavesOnChannelCalled != nil {
 		return ts.GetAllLeavesOnChannelCalled(rootHash)
 	}

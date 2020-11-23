@@ -1,6 +1,7 @@
 package dataprocessor
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -95,7 +96,8 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	}
 
 	rootHash := metaBlock.ValidatorStatsRootHash
-	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		log.Error("ratingsProcessor -> GetAllLeaves error", "error", err, "root hash", rootHash)
 		// don't return error because if the trie is prunned this kind of data will be available only for the last 3 epochs

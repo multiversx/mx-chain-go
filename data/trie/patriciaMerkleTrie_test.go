@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -627,7 +628,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{})
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
@@ -647,7 +648,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.Root()
 
-	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash)
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
 	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 

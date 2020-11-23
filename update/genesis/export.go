@@ -1,6 +1,7 @@
 package genesis
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -268,7 +269,8 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 		return err
 	}
 
-	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := trie.GetAllLeavesOnChannel(rootHash, ctx)
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,8 @@
 package txsimulator
 
 import (
+	"context"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -81,11 +83,11 @@ func (w *readOnlyAccountsDB) CancelPrune(_ []byte, _ data.TriePruningIdentifier)
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SnapshotState(_ []byte) {
+func (w *readOnlyAccountsDB) SnapshotState(_ []byte, _ context.Context) {
 }
 
 // SetStateCheckpoint won't do anything as write operations are disabled on this component
-func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte) {
+func (w *readOnlyAccountsDB) SetStateCheckpoint(_ []byte, _ context.Context) {
 }
 
 // IsPruningEnabled will call the original accounts' function with the same name
@@ -94,12 +96,12 @@ func (w *readOnlyAccountsDB) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the original accounts' function with the same name
-func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte) (chan core.KeyValueHolder, error) {
-	return w.originalAccounts.GetAllLeaves(rootHash)
+func (w *readOnlyAccountsDB) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+	return w.originalAccounts.GetAllLeaves(rootHash, ctx)
 }
 
 // RecreateAllTries will return an error which indicates that this operation is not supported
-func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
+func (w *readOnlyAccountsDB) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
 	return nil, nil
 }
 

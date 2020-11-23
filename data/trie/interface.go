@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"io"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ type node interface {
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer) error
+	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
 
 	getMarshalizer() marshal.Marshalizer

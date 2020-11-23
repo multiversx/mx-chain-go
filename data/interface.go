@@ -164,7 +164,7 @@ type Trie interface {
 	SetNewHashes(ModifiedHashes)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
-	GetAllLeavesOnChannel(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	IsPruningEnabled() bool
 	EnterPruningBufferingMode()
