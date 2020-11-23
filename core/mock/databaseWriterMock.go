@@ -11,7 +11,7 @@ type DatabaseWriterStub struct {
 	DoRequestCalled     func(req *esapi.IndexRequest) error
 	DoBulkRequestCalled func(buff *bytes.Buffer, index string) error
 	DoBulkRemoveCalled  func(index string, hashes []string) error
-	DoMultiGetCalled    func(query map[string]interface{}, index string) (map[string]interface{}, error)
+	DoMultiGetCalled    func(hashes []string, index string) (map[string]interface{}, error)
 }
 
 // DoRequest --
@@ -31,9 +31,9 @@ func (dwm *DatabaseWriterStub) DoBulkRequest(buff *bytes.Buffer, index string) e
 }
 
 // DoMultiGet --
-func (dwm *DatabaseWriterStub) DoMultiGet(query map[string]interface{}, index string) (map[string]interface{}, error) {
+func (dwm *DatabaseWriterStub) DoMultiGet(hashes []string, index string) (map[string]interface{}, error) {
 	if dwm.DoMultiGetCalled != nil {
-		return dwm.DoMultiGetCalled(query, index)
+		return dwm.DoMultiGetCalled(hashes, index)
 	}
 
 	return nil, nil

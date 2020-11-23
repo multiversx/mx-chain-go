@@ -1,4 +1,4 @@
-package indexer
+package client
 
 import (
 	"bytes"

@@ -1,9 +1,12 @@
 package indexer
 
 import (
-	"bytes"
 	"crypto/rand"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	process2 "github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"math/big"
 	"sync"
 	"testing"
@@ -45,7 +48,7 @@ func newTestMetaBlock() *dataBlock.MetaBlock {
 func NewDataIndexerArguments() ArgDataIndexer {
 	return ArgDataIndexer{
 		Marshalizer:        &mock.MarshalizerMock{},
-		Options:            &Options{},
+		Options:            &types.Options{},
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     &mock.DispatcherMock{},
@@ -69,7 +72,7 @@ func TestDataIndexer_NewIndexerWithNilDataDispatcherShouldErr(t *testing.T) {
 	ei, err := NewDataIndexer(arguments)
 
 	require.Nil(t, ei)
-	require.Equal(t, ErrNilDataDispatcher, err)
+	require.Equal(t, errors.ErrNilDataDispatcher, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
@@ -78,7 +81,7 @@ func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
 	ei, err := NewDataIndexer(arguments)
 
 	require.Nil(t, ei)
-	require.Equal(t, ErrNilElasticProcessor, err)
+	require.Equal(t, errors.ErrNilElasticProcessor, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilMarshalizerShouldErr(t *testing.T) {
@@ -345,28 +348,28 @@ func TestDataIndexer(t *testing.T) {
 }
 
 func testCreateIndexer(t *testing.T) {
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	indexTemplates, indexPolicies, _ := process2.GetElasticTemplatesAndPolicies("", false)
 
 	dispatcher, _ := NewDataDispatcher(100)
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 		Username:  "",
 		Password:  "",
 	})
 
-	elasticIndexer, _ := NewElasticProcessor(ArgElasticProcessor{
+	elasticIndexer, _ := process2.NewElasticProcessor(process2.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              &marshal.JsonMarshalizer{},
 		Hasher:                   &sha256.Sha256{},
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		Options:                  &Options{},
+		Options:                  &types.Options{},
 		DBClient:                 dbClient,
 	})
 
 	di, err := NewDataIndexer(ArgDataIndexer{
-		Options:            &Options{},
+		Options:            &types.Options{},
 		Marshalizer:        &marshal.JsonMarshalizer{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     dispatcher,
@@ -437,31 +440,4 @@ func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transacti
 	}
 
 	return txs, hashes
-}
-
-func getIndexTemplateAndPolicies() (map[string]*bytes.Buffer, map[string]*bytes.Buffer) {
-	indexTemplates := make(map[string]*bytes.Buffer)
-	indexPolicies := make(map[string]*bytes.Buffer)
-
-	template := &bytes.Buffer{}
-	_ = core.LoadJsonFile(template, "./testdata/opendistro.json")
-	indexTemplates["opendistro"] = template
-	_ = core.LoadJsonFile(template, "./testdata/transactions.json")
-	indexTemplates["transactions"] = template
-
-	_ = core.LoadJsonFile(template, "./testdata/blocks.json")
-	indexTemplates["blocks"] = template
-	_ = core.LoadJsonFile(template, "./testdata/miniblocks.json")
-	indexTemplates["miniblocks"] = template
-
-	_ = core.LoadJsonFile(template, "./testdata/tps.json")
-	indexTemplates["tps"] = template
-
-	policy := &bytes.Buffer{}
-	_ = core.LoadJsonFile(template, "./testdata/transactions_policy.json")
-	indexPolicies["transactions_policy"] = policy
-	_ = core.LoadJsonFile(template, "./testdata/blocks_policy.json")
-	indexPolicies["blocks_policy"] = policy
-
-	return indexTemplates, indexPolicies
 }

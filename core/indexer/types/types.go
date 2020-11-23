@@ -1,4 +1,4 @@
-package indexer
+package types
 
 import (
 	"math/big"
@@ -29,8 +29,19 @@ type Transaction struct {
 	Timestamp            time.Duration `json:"timestamp"`
 	Status               string        `json:"status"`
 	SearchOrder          uint32        `json:"searchOrder"`
-	SmartContractResults []ScResult    `json:"scResults,omitempty"`
+	SmartContractResults []ScResult    `json:"-"`
 	Log                  TxLog         `json:"-"`
+	EsdtTokenName        string        `json:"tokenName,omitempty"`
+	EsdtValue            string        `json:"esdtValue,omitempty"`
+}
+
+// Receipt is a structure containing all the fields that need to be save for a Receipt
+type Receipt struct {
+	Value     string        `json:"value"`
+	Sender    string        `json:"sender"`
+	Data      string        `json:"data,omitempty"`
+	TxHash    string        `json:"txHash"`
+	Timestamp time.Duration `json:"timestamp"`
 }
 
 // TxLog holds all the data needed for a log structure
@@ -49,22 +60,25 @@ type Event struct {
 
 // ScResult is a structure containing all the fields that need to be saved for a smart contract result
 type ScResult struct {
-	Hash           string `json:"hash"`
-	Nonce          uint64 `json:"nonce"`
-	GasLimit       uint64 `json:"gasLimit"`
-	GasPrice       uint64 `json:"gasPrice"`
-	Value          string `json:"value"`
-	Sender         string `json:"sender"`
-	Receiver       string `json:"receiver"`
-	RelayerAddr    string `json:"relayerAddr,omitempty"`
-	RelayedValue   string `json:"relayedValue,omitempty"`
-	Code           string `json:"code,omitempty"`
-	Data           []byte `json:"data,omitempty"`
-	PreTxHash      string `json:"prevTxHash"`
-	OriginalTxHash string `json:"originalTxHash"`
-	CallType       string `json:"callType"`
-	CodeMetadata   []byte `json:"codeMetaData,omitempty"`
-	ReturnMessage  string `json:"returnMessage,omitempty"`
+	Hash           string        `json:"hash"`
+	Nonce          uint64        `json:"nonce"`
+	GasLimit       uint64        `json:"gasLimit"`
+	GasPrice       uint64        `json:"gasPrice"`
+	Value          string        `json:"value"`
+	Sender         string        `json:"sender"`
+	Receiver       string        `json:"receiver"`
+	RelayerAddr    string        `json:"relayerAddr,omitempty"`
+	RelayedValue   string        `json:"relayedValue,omitempty"`
+	Code           string        `json:"code,omitempty"`
+	Data           []byte        `json:"data,omitempty"`
+	PreTxHash      string        `json:"prevTxHash"`
+	OriginalTxHash string        `json:"originalTxHash"`
+	CallType       string        `json:"callType"`
+	CodeMetadata   []byte        `json:"codeMetaData,omitempty"`
+	ReturnMessage  string        `json:"returnMessage,omitempty"`
+	Timestamp      time.Duration `json:"timestamp"`
+	EsdtTokenName  string        `json:"tokenName,omitempty"`
+	EsdtValue      string        `json:"esdtValue,omitempty"`
 }
 
 // Block is a structure containing all the fields that need
@@ -97,9 +111,17 @@ type ValidatorsPublicKeys struct {
 
 // AccountInfo holds (serializable) data about an account
 type AccountInfo struct {
-	Nonce      uint64  `json:"nonce"`
-	Balance    string  `json:"balance"`
-	BalanceNum float64 `json:"balanceNum"`
+	Nonce      uint64      `json:"nonce"`
+	Balance    string      `json:"balance"`
+	BalanceNum float64     `json:"balanceNum"`
+	ESDTInfo   []*ESDTData `json:"esdtInfo,omitempty"`
+}
+
+// ESDTData hold information about an ESDT token
+type ESDTData struct {
+	TokenName  string `json:"tokenName"`
+	Balance    string `json:"balance"`
+	Properties string `json:"properties"`
 }
 
 // AccountBalanceHistory represents an entry in the user accounts balances history
@@ -107,6 +129,12 @@ type AccountBalanceHistory struct {
 	Address   string `json:"address"`
 	Timestamp int64  `json:"timestamp"`
 	Balance   string `json:"balance"`
+}
+
+// AccountBalanceESDTHistory represents an entry in the user accounts balances ESDT history
+type AccountBalanceESDTHistory struct {
+	AccountBalanceHistory
+	TokenName string `json:"tokenName"`
 }
 
 // ValidatorsRatingInfo is a structure containing validators information
@@ -142,7 +170,14 @@ type TPS struct {
 	ShardID               uint32   `json:"shardID"`
 }
 
-type kibanaResponse struct {
+// KibanaResponse -
+type KibanaResponse struct {
 	Ok    bool   `json:"ok"`
 	Error string `json:"error,omitempty"`
+}
+
+// Options structure holds the indexer's configuration options
+type Options struct {
+	IndexerCacheSize int
+	UseKibana        bool
 }

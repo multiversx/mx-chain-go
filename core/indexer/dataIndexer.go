@@ -3,6 +3,8 @@ package indexer
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -14,14 +16,30 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+//ArgDataIndexer is struct that is used to store all components that are needed to create a indexer
+type ArgDataIndexer struct {
+	ShardCoordinator   sharding.Coordinator
+	Marshalizer        marshal.Marshalizer
+	EpochStartNotifier sharding.EpochStartEventNotifier
+	NodesCoordinator   sharding.NodesCoordinator
+	Options            *types.Options
+	DataDispatcher     DispatcherHandler
+	ElasticProcessor   ElasticProcessor
+}
+
 type dataIndexer struct {
 	isNilIndexer     bool
 	dispatcher       DispatcherHandler
 	coordinator      sharding.NodesCoordinator
 	elasticProcessor ElasticProcessor
-	options          *Options
+	options          *types.Options
 	marshalizer      marshal.Marshalizer
 }
+
+// TODO save smart contract results in a separate index
+// TODO save receipts in a separate index
+// TODO change structure for validators rating
+// TODO add timestamp in miniblock structure
 
 // NewDataIndexer will create a new data indexer
 func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
@@ -48,10 +66,10 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 
 func checkIndexerArgs(arguments ArgDataIndexer) error {
 	if check.IfNil(arguments.DataDispatcher) {
-		return ErrNilDataDispatcher
+		return errors.ErrNilDataDispatcher
 	}
 	if check.IfNil(arguments.ElasticProcessor) {
-		return ErrNilElasticProcessor
+		return errors.ErrNilElasticProcessor
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
@@ -63,7 +81,7 @@ func checkIndexerArgs(arguments ArgDataIndexer) error {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
-		return ErrNilShardCoordinator
+		return errors.ErrNilShardCoordinator
 	}
 
 	return nil

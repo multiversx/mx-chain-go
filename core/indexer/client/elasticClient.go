@@ -1,4 +1,4 @@
-package indexer
+package client
 
 import (
 	"bytes"
@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
@@ -15,6 +18,10 @@ import (
 const errPolicyAlreadyExists = "document already exists"
 
 type responseErrorHandler func(res *esapi.Response) error
+
+var log = logger.GetOrCreate("indexer/client")
+
+type objectsMap = map[string]interface{}
 
 type elasticClient struct {
 	elasticBaseUrl string
@@ -24,7 +31,7 @@ type elasticClient struct {
 // NewElasticClient will create a new instance of elasticClient
 func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 	if len(cfg.Addresses) == 0 {
-		return nil, ErrNoElasticUrlProvided
+		return nil, errors.ErrNoElasticUrlProvided
 	}
 
 	es, err := elasticsearch.NewClient(cfg)
@@ -101,7 +108,8 @@ func (ec *elasticClient) DoBulkRequest(buff *bytes.Buffer, index string) error {
 }
 
 // DoMultiGet wil do a multi get request to elaticsearch server
-func (ec *elasticClient) DoMultiGet(obj objectsMap, index string) (objectsMap, error) {
+func (ec *elasticClient) DoMultiGet(hashes []string, index string) (objectsMap, error) {
+	obj := getDocumentsByIDsQuery(hashes)
 	body, err := encode(obj)
 	if err != nil {
 		return nil, err
@@ -200,7 +208,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaResponse{}
+	existsRes := &types.KibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		log.Warn("elasticClient.PolicyExists",
@@ -278,14 +286,14 @@ func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) e
 		Header:     res.Header,
 	}
 
-	existsRes := &kibanaResponse{}
+	existsRes := &types.KibanaResponse{}
 	err = parseResponse(response, existsRes, kibanaResponseErrorHandler)
 	if err != nil {
 		return err
 	}
 
 	if !existsRes.Ok && !strings.Contains(existsRes.Error, errPolicyAlreadyExists) {
-		return ErrCouldNotCreatePolicy
+		return errors.ErrCouldNotCreatePolicy
 	}
 
 	return nil

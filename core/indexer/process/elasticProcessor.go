@@ -1,4 +1,4 @@
-package indexer
+package process
 
 import (
 	"bytes"
@@ -12,16 +12,41 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
+type objectsMap = map[string]interface{}
+
 const numDecimalsInFloatBalance = 10
+
+//ArgElasticProcessor is struct that is used to store all components that are needed to an elastic indexer
+type ArgElasticProcessor struct {
+	IndexTemplates           map[string]*bytes.Buffer
+	IndexPolicies            map[string]*bytes.Buffer
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	AddressPubkeyConverter   core.PubkeyConverter
+	ValidatorPubkeyConverter core.PubkeyConverter
+	Options                  *types.Options
+	DBClient                 DatabaseClientHandler
+	EnabledIndexes           map[string]struct{}
+	AccountsDB               state.AccountsAdapter
+	Denomination             int
+	FeeConfig                *config.FeeSettings
+	IsInImportDBMode         bool
+	ShardCoordinator         sharding.Coordinator
+}
 
 type elasticProcessor struct {
 	*txDatabaseProcessor
@@ -36,7 +61,7 @@ type elasticProcessor struct {
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
-func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error) {
+func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, error) {
 	err := checkArgElasticProcessor(arguments)
 	if err != nil {
 		return nil, err
@@ -86,7 +111,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 
 func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	if check.IfNil(arguments.DBClient) {
-		return ErrNilDatabaseClient
+		return errors.ErrNilDatabaseClient
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
@@ -95,19 +120,19 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 		return core.ErrNilHasher
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return ErrNilPubkeyConverter
+		return errors.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return ErrNilPubkeyConverter
+		return errors.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.AccountsDB) {
-		return ErrNilAccountsDB
+		return errors.ErrNilAccountsDB
 	}
 	if arguments.Options == nil {
-		return ErrNilOptions
+		return errors.ErrNilOptions
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
-		return ErrNilShardCoordinator
+		return errors.ErrNilShardCoordinator
 	}
 
 	return nil
@@ -168,8 +193,8 @@ func (ei *elasticProcessor) initNoKibana(indexTemplates map[string]*bytes.Buffer
 }
 
 func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.Buffer) error {
-
-	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
+	indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy,
+		accountsHistoryPolicy, accountsESDTHistoryPolicy}
 	for _, indexPolicyName := range indexesPolicies {
 		indexPolicy := getTemplateByName(indexPolicyName, indexPolicies)
 		if indexPolicy != nil {
@@ -197,7 +222,8 @@ func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]
 }
 
 func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex,
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 	for _, index := range indexes {
 		indexTemplate := getTemplateByName(index, indexTemplates)
 		if indexTemplate != nil {
@@ -212,7 +238,8 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 }
 
 func (ei *elasticProcessor) createIndexes() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
@@ -225,7 +252,8 @@ func (ei *elasticProcessor) createIndexes() error {
 }
 
 func (ei *elasticProcessor) createAliases() error {
-	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
+	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
+		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
@@ -243,7 +271,7 @@ func (ei *elasticProcessor) getExistingObjMap(hashes []string, index string) (ma
 		return make(map[string]bool), nil
 	}
 
-	response, err := ei.elasticClient.DoMultiGet(getDocumentsByIDsQuery(hashes), index)
+	response, err := ei.elasticClient.DoMultiGet(hashes, index)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +354,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 
 		miniblockHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
 		if err != nil {
-			log.Debug("indexer.RemoveMiniblocks cannot calculate miniblock hash",
+			log.Debug("RemoveMiniblocks cannot calculate miniblock hash",
 				"error", err.Error())
 			continue
 		}
@@ -339,7 +367,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 
 // SetTxLogsProcessor will set tx logs processor
 func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
-	ei.txLogsProcessor = txLogsProc
+	//ei.txLogsProcessor = txLogsProc
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
@@ -369,7 +397,7 @@ func (ei *elasticProcessor) SaveTransactions(
 		return nil
 	}
 
-	txs, alteredAccounts := ei.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
+	txs, alteredAccounts := ei.txDatabaseProcessor.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
 	buffSlice, err := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
 	if err != nil {
 		return err
@@ -423,7 +451,7 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 
 	var buff bytes.Buffer
 
-	infosRating := ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
+	infosRating := types.ValidatorsRatingInfo{ValidatorsInfos: validatorsRatingInfo}
 
 	marshalizedInfoRating, err := json.Marshal(&infosRating)
 	if err != nil {
@@ -455,7 +483,7 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 
 	var buff bytes.Buffer
 
-	shardValPubKeys := ValidatorsPublicKeys{
+	shardValPubKeys := types.ValidatorsPublicKeys{
 		PublicKeys: make([]string, 0, len(shardValidatorsPubKeys)),
 	}
 	for _, validatorPk := range shardValidatorsPubKeys {
@@ -555,10 +583,10 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 		return nil
 	}
 
-	accountsMap := make(map[string]*AccountInfo)
+	accountsMap := make(map[string]*types.AccountInfo)
 	for _, userAccount := range accounts {
 		balanceAsFloat := ei.computeBalanceAsFloat(userAccount.GetBalance())
-		acc := &AccountInfo{
+		acc := &types.AccountInfo{
 			Nonce:      userAccount.GetNonce(),
 			Balance:    userAccount.GetBalance().String(),
 			BalanceNum: balanceAsFloat,
@@ -583,15 +611,15 @@ func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) er
 	return ei.saveAccountsHistory(accountsMap)
 }
 
-func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*AccountInfo) error {
+func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*types.AccountInfo) error {
 	if !ei.isIndexEnabled(accountsHistoryIndex) {
 		return nil
 	}
 
 	currentTimestamp := time.Now().Unix()
-	accountsMap := make(map[string]*AccountBalanceHistory)
+	accountsMap := make(map[string]*types.AccountBalanceHistory)
 	for address, userAccount := range accountsInfoMap {
-		acc := &AccountBalanceHistory{
+		acc := &types.AccountBalanceHistory{
 			Address:   address,
 			Balance:   userAccount.Balance,
 			Timestamp: currentTimestamp,

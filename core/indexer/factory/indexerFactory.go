@@ -8,6 +8,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -36,7 +40,7 @@ type ArgsIndexerFactory struct {
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
 	TemplatesPath            string
-	Options                  *indexer.Options
+	Options                  *types.Options
 	EnabledIndexes           []string
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
@@ -80,8 +84,8 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	return indexer.NewDataIndexer(arguments)
 }
 
-func createDatabaseClient(url, userName, password string) (indexer.DatabaseClientHandler, error) {
-	return indexer.NewElasticClient(elasticsearch.Config{
+func createDatabaseClient(url, userName, password string) (process.DatabaseClientHandler, error) {
+	return client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{url},
 		Username:  userName,
 		Password:  password,
@@ -101,7 +105,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		templatesPath = path.Join(args.TemplatesPath, noKibanaFolder)
 	}
 
-	indexTemplates, indexPolicies, err := indexer.GetElasticTemplatesAndPolicies(templatesPath, args.Options.UseKibana)
+	indexTemplates, indexPolicies, err := process.GetElasticTemplatesAndPolicies(templatesPath, args.Options.UseKibana)
 	if err != nil {
 		return nil, err
 	}
@@ -111,10 +115,10 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		enabledIndexesMap[index] = struct{}{}
 	}
 	if len(enabledIndexesMap) == 0 {
-		return nil, indexer.ErrEmptyEnabledIndexes
+		return nil, errors.ErrEmptyEnabledIndexes
 	}
 
-	esIndexerArgs := indexer.ArgElasticProcessor{
+	esIndexerArgs := process.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              args.Marshalizer,
@@ -131,18 +135,18 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		ShardCoordinator:         args.ShardCoordinator,
 	}
 
-	return indexer.NewElasticProcessor(esIndexerArgs)
+	return process.NewElasticProcessor(esIndexerArgs)
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if arguments.IndexerCacheSize < 0 {
-		return indexer.ErrNegativeCacheSize
+		return errors.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", errors.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", indexer.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", errors.ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl

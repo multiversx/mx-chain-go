@@ -2,23 +2,18 @@ package indexer
 
 import (
 	"context"
-	"errors"
+	goErrors "errors"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 )
 
 var log = logger.GetOrCreate("core/indexer")
 
 const durationBetweenErrorRetry = time.Second * 3
-
-// Options structure holds the indexer's configuration options
-type Options struct {
-	IndexerCacheSize int
-	UseKibana        bool
-}
 
 const (
 	backOffTime = time.Second * 10
@@ -34,7 +29,7 @@ type dataDispatcher struct {
 // NewDataDispatcher creates a new dataDispatcher instance, capable of saving sequentially data in elasticsearch database
 func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
 	if cacheSize < 0 {
-		return nil, ErrNegativeCacheSize
+		return nil, errors.ErrNegativeCacheSize
 	}
 
 	dd := &dataDispatcher{
@@ -86,7 +81,7 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
 	for {
 		err := wi.Save()
-		if errors.Is(err, ErrBackOff) {
+		if goErrors.Is(err, errors.ErrBackOff) {
 			log.Warn("dataDispatcher.doWork could not index item",
 				"received back off:", err.Error())
 

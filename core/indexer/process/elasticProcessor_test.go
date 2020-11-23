@@ -1,15 +1,19 @@
-package indexer
+package process
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"io/ioutil"
 	"math/big"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -56,7 +60,7 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		Hasher:                   &mock.HasherMock{},
 		Marshalizer:              &mock.MarshalizerMock{},
 		DBClient:                 &mock.DatabaseWriterStub{},
-		Options:                  &Options{},
+		Options:                  &types.Options{},
 		IsInImportDBMode:         false,
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
@@ -131,7 +135,7 @@ func newTestBlockBody() *dataBlock.Body {
 
 func TestNewElasticProcessorWithKibana(t *testing.T) {
 	args := createMockElasticProcessorArgs()
-	args.Options = &Options{
+	args.Options = &types.Options{
 		UseKibana: true,
 	}
 	args.DBClient = &mock.DatabaseWriterStub{}
@@ -263,7 +267,7 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, blockIndex, req.Index)
 
-			var block Block
+			var block types.Block
 			blockBytes, _ := ioutil.ReadAll(req.Body)
 			_ = json.Unmarshal(blockBytes, &block)
 			require.Equal(t, header.Nonce, block.Nonce)
@@ -332,7 +336,7 @@ func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
 		DoBulkRequestCalled: func(buff *bytes.Buffer, index string) error {
 			return localErr
 		},
-		DoMultiGetCalled: func(query map[string]interface{}, index string) (map[string]interface{}, error) {
+		DoMultiGetCalled: func(hashes []string, index string) (map[string]interface{}, error) {
 			return nil, nil
 		},
 	}
@@ -462,7 +466,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
 	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("./testdata/noKibana", false)
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -477,7 +481,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		EnabledIndexes: map[string]struct{}{
 			"miniblocks": {},
 		},
-		Options: &Options{
+		Options: &types.Options{
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
@@ -516,8 +520,8 @@ func TestUpdateMiniBlock(t *testing.T) {
 func TestSaveRoundsInfo(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -547,8 +551,8 @@ func TestSaveRoundsInfo(t *testing.T) {
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -563,7 +567,7 @@ func TestUpdateTransaction(t *testing.T) {
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		AccountsDB:               &mock.AccountsStub{},
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
-		Options: &Options{
+		Options: &types.Options{
 			UseKibana:        false,
 			IndexerCacheSize: 10000,
 		},
@@ -684,8 +688,8 @@ func TestUpdateTransaction(t *testing.T) {
 func TestGetMultiple(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -697,14 +701,12 @@ func TestGetMultiple(t *testing.T) {
 		IndexPolicies:  indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticProcessor(args)
+	es, _ := NewElasticProcessor(args)
 
 	hashes := []string{
 		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
 		"9a3beb87930e42b820cbcb5e73b224ebfc707308aa377905eda18d4589e2b093",
 	}
-
-	es := esDatabase.(*elasticProcessor)
 	response, _ := es.getExistingObjMap(hashes, "transactions")
 	fmt.Println(response)
 }
@@ -712,8 +714,8 @@ func TestGetMultiple(t *testing.T) {
 func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -773,8 +775,8 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 func TestDoBulkRequestLimit(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
-	dbClient, _ := NewElasticClient(elasticsearch.Config{
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
@@ -827,10 +829,8 @@ func TestElasticProcessor_ComputeBalanceAsFloat(t *testing.T) {
 	args := createMockElasticProcessorArgs()
 	args.Denomination = 10
 
-	epInt, _ := NewElasticProcessor(args)
-	require.NotNil(t, epInt)
-
-	ep := epInt.(*elasticProcessor)
+	ep, _ := NewElasticProcessor(args)
+	require.NotNil(t, ep)
 
 	tests := []struct {
 		input  *big.Int
@@ -862,4 +862,28 @@ func TestElasticProcessor_ComputeBalanceAsFloat(t *testing.T) {
 		out := ep.computeBalanceAsFloat(tt.input)
 		assert.Equal(t, tt.output, out)
 	}
+}
+
+func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
+	txs := make([]transaction.Transaction, numTxs)
+	hashes := make([]string, numTxs)
+
+	randomByteArray := make([]byte, datFieldSize)
+	_, _ = rand.Read(randomByteArray)
+
+	for i := 0; i < numTxs; i++ {
+		txs[i] = transaction.Transaction{
+			Nonce:     uint64(i),
+			Value:     big.NewInt(int64(i)),
+			RcvAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+			SndAddr:   []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+			GasPrice:  200000000000,
+			GasLimit:  20000,
+			Data:      randomByteArray,
+			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+		}
+		hashes[i] = fmt.Sprintf("%v", time.Now())
+	}
+
+	return txs, hashes
 }

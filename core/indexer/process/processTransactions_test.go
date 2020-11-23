@@ -1,4 +1,4 @@
-package indexer
+package process
 
 import (
 	"encoding/hex"
@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -167,9 +168,9 @@ func TestPrepareTxLog(t *testing.T) {
 			},
 		},
 	}
-	expectedTxLog := TxLog{
+	expectedTxLog := types.TxLog{
 		Address: txDbProc.addressPubkeyConverter.Encode(scAddr),
-		Events: []Event{
+		Events: []types.Event{
 			{
 				Address:    hex.EncodeToString(addr),
 				Identifier: hex.EncodeToString(identifier),
@@ -251,12 +252,12 @@ func TestRelayedTransactions(t *testing.T) {
 func TestSetTransactionSearchOrder(t *testing.T) {
 	t.Parallel()
 	txHash1 := []byte("txHash1")
-	tx1 := &Transaction{}
+	tx1 := &types.Transaction{}
 
 	txHash2 := []byte("txHash2")
-	tx2 := &Transaction{}
+	tx2 := &types.Transaction{}
 
-	txPool := map[string]*Transaction{
+	txPool := map[string]*types.Transaction{
 		string(txHash1): tx1,
 		string(txHash2): tx2,
 	}
@@ -297,7 +298,7 @@ func TestGetGasUsedFromReceipt_RefundedGas(t *testing.T) {
 		Data:    []byte(processTransaction.RefundGasMessage),
 		TxHash:  txHash,
 	}
-	tx := &Transaction{
+	tx := &types.Transaction{
 		Hash: hex.EncodeToString(txHash),
 
 		GasPrice: gasPrice,
@@ -323,7 +324,7 @@ func TestGetGasUsedFromReceipt_DataError(t *testing.T) {
 		Data:    []byte("error"),
 		TxHash:  txHash,
 	}
-	tx := &Transaction{
+	tx := &types.Transaction{
 		Hash: hex.EncodeToString(txHash),
 
 		GasPrice: gasPrice,
@@ -472,7 +473,7 @@ func TestAlteredAddresses(t *testing.T) {
 	}
 }
 
-func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bool {
+func txPoolHasSearchOrder(txPool map[string]*types.Transaction, searchOrder uint32) bool {
 	for _, tx := range txPool {
 		if tx.SearchOrder == searchOrder {
 			return true

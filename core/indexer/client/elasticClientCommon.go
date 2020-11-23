@@ -1,4 +1,4 @@
-package indexer
+package client
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
@@ -66,7 +68,7 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 		isBackOffError := strings.Contains(string(bodyBytes), fmt.Sprintf("%d", http.StatusForbidden)) ||
 			strings.Contains(string(bodyBytes), fmt.Sprintf("%d", http.StatusTooManyRequests))
 		if isBackOffError {
-			errToReturn = ErrBackOff
+			errToReturn = errors.ErrBackOff
 		}
 
 		return fmt.Errorf("%w, cannot unmarshal elastic response body to map[string]interface{}, "+
@@ -137,7 +139,7 @@ func isErrAliasAlreadyExists(response map[string]interface{}) bool {
 }
 
 func kibanaResponseErrorHandler(res *esapi.Response) error {
-	errorRes := &kibanaResponse{}
+	errorRes := &types.KibanaResponse{}
 	decodeErr := loadResponseBody(res.Body, errorRes)
 	if decodeErr != nil {
 		return decodeErr
@@ -146,7 +148,7 @@ func kibanaResponseErrorHandler(res *esapi.Response) error {
 	log.Warn("elasticClient.parseResponse",
 		"error returned by elastic API", errorRes.Error,
 		"code", res.StatusCode)
-	return ErrBackOff
+	return errors.ErrBackOff
 }
 
 func newRequest(method, path string, body *bytes.Buffer) (*http.Request, error) {
@@ -196,7 +198,7 @@ func parseResponse(res *esapi.Response, dest interface{}, errorHandler responseE
 	if err != nil {
 		log.Warn("elasticClient.parseResponse",
 			"could not load response body:", err.Error())
-		return ErrBackOff
+		return errors.ErrBackOff
 	}
 
 	return nil

@@ -1,15 +1,12 @@
 package indexer
 
 import (
-	"bytes"
-
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
 // DataIndexerFactory can create new instances of Indexer
@@ -57,20 +54,5 @@ type ElasticProcessor interface {
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveAccounts(accounts []state.UserAccountHandler) error
-	IsInterfaceNil() bool
-}
-
-// DatabaseClientHandler is an interface that do requests to elasticsearch server
-type DatabaseClientHandler interface {
-	DoRequest(req *esapi.IndexRequest) error
-	DoBulkRequest(buff *bytes.Buffer, index string) error
-	DoBulkRemove(index string, hashes []string) error
-	DoMultiGet(query objectsMap, index string) (objectsMap, error)
-
-	CheckAndCreateIndex(index string) error
-	CheckAndCreateAlias(alias string, index string) error
-	CheckAndCreateTemplate(templateName string, template *bytes.Buffer) error
-	CheckAndCreatePolicy(policyName string, policy *bytes.Buffer) error
-
 	IsInterfaceNil() bool
 }

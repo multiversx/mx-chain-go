@@ -1,39 +1,91 @@
-package indexer
+package process
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
-	"strconv"
-	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
-	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
-type objectsMap = map[string]interface{}
+// GetElasticTemplatesAndPolicies will return elastic templates and policies
+func GetElasticTemplatesAndPolicies(path string, useKibana bool) (map[string]*bytes.Buffer, map[string]*bytes.Buffer, error) {
+	indexTemplates := make(map[string]*bytes.Buffer)
+	indexPolicies := make(map[string]*bytes.Buffer)
+	var err error
 
-type commonProcessor struct {
-	addressPubkeyConverter   core.PubkeyConverter
-	validatorPubkeyConverter core.PubkeyConverter
-	minGasLimit              uint64
-	gasPerDataByte           uint64
+	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
+		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
+	for _, index := range indexes {
+		indexTemplates[index], err = getTemplateByIndex(path, index)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if useKibana {
+		indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy,
+			validatorsPolicy, accountsHistoryPolicy, accountsESDTHistoryPolicy}
+		for _, indexPolicy := range indexesPolicies {
+			indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+
+	return indexTemplates, indexPolicies, nil
+}
+
+func getTemplateByIndex(path string, index string) (*bytes.Buffer, error) {
+	indexTemplate := &bytes.Buffer{}
+
+	fileName := fmt.Sprintf("%s.json", index)
+	filePath := filepath.Join(path, fileName)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", errors.ErrReadTemplatesFile, filePath, err.Error())
+	}
+
+	indexTemplate.Grow(len(fileBytes))
+	_, err = indexTemplate.Write(fileBytes)
+	if err != nil {
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", errors.ErrWriteToBuffer, filePath, err.Error())
+	}
+
+	return indexTemplate, nil
+}
+
+func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
+	indexPolicy := &bytes.Buffer{}
+
+	fileName := fmt.Sprintf("%s.json", index)
+	filePath := filepath.Join(path, fileName)
+	fileBytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", errors.ErrReadPolicyFile, filePath, err.Error())
+	}
+
+	indexPolicy.Grow(len(fileBytes))
+	_, err = indexPolicy.Write(fileBytes)
+	if err != nil {
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", errors.ErrWriteToBuffer, filePath, err.Error())
+	}
+
+	return indexPolicy, nil
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
 	var buff bytes.Buffer
 
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, metachainTpsDocID, tpsIndex, "\n"))
-	generalInfo := TPS{
+	generalInfo := types.TPS{
 		LiveTPS:               tpsBenchmark.LiveTPS(),
 		PeakTPS:               tpsBenchmark.PeakTPS(),
 		NrOfShards:            tpsBenchmark.NrOfShards(),
@@ -71,7 +123,7 @@ func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 		shardTpsDocIDPrefix, shardInfo.ShardID(), tpsIndex, "\n"))
 
 	bigTxCount := big.NewInt(int64(shardInfo.AverageBlockTxCount()))
-	shardTPS := TPS{
+	shardTPS := types.TPS{
 		ShardID:               shardInfo.ShardID(),
 		LiveTPS:               shardInfo.LiveTPS(),
 		PeakTPS:               shardInfo.PeakTPS(),
@@ -93,92 +145,9 @@ func serializeShardInfo(shardInfo statistics.ShardStatistic) ([]byte, []byte) {
 	return serializedInfo, meta
 }
 
-func (cm *commonProcessor) buildTransaction(
-	tx *transaction.Transaction,
-	txHash []byte,
-	mbHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-	txStatus string,
-) *Transaction {
-	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
-
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		Nonce:         tx.Nonce,
-		Round:         header.GetRound(),
-		Value:         tx.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:        cm.addressPubkeyConverter.Encode(tx.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      tx.GasPrice,
-		GasLimit:      tx.GasLimit,
-		Data:          tx.Data,
-		Signature:     hex.EncodeToString(tx.Signature),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        txStatus,
-		GasUsed:       gasUsed,
-	}
-}
-
-func (cm *commonProcessor) buildRewardTransaction(
-	rTx *rewardTx.RewardTx,
-	txHash []byte,
-	mbHash []byte,
-	mb *block.MiniBlock,
-	header data.HeaderHandler,
-	txStatus string,
-) *Transaction {
-	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		Nonce:         0,
-		Round:         rTx.Round,
-		Value:         rTx.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(rTx.RcvAddr),
-		Sender:        fmt.Sprintf("%d", core.MetachainShardId),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      0,
-		GasLimit:      0,
-		Data:          make([]byte, 0),
-		Signature:     "",
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        txStatus,
-	}
-}
-
-func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smartContractResult.SmartContractResult) ScResult {
-	relayerAddr := ""
-	if len(sc.RelayerAddr) > 0 {
-		relayerAddr = cm.addressPubkeyConverter.Encode(sc.RelayerAddr)
-	}
-
-	return ScResult{
-		Hash:           hex.EncodeToString([]byte(scHash)),
-		Nonce:          sc.Nonce,
-		GasLimit:       sc.GasLimit,
-		GasPrice:       sc.GasPrice,
-		Value:          sc.Value.String(),
-		Sender:         cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:       cm.addressPubkeyConverter.Encode(sc.RcvAddr),
-		RelayerAddr:    relayerAddr,
-		RelayedValue:   sc.RelayedValue.String(),
-		Code:           string(sc.Code),
-		Data:           sc.Data,
-		PreTxHash:      hex.EncodeToString(sc.PrevTxHash),
-		OriginalTxHash: hex.EncodeToString(sc.OriginalTxHash),
-		CallType:       strconv.Itoa(int(sc.CallType)),
-		CodeMetadata:   sc.CodeMetadata,
-		ReturnMessage:  string(sc.ReturnMessage),
-	}
-}
-
 func serializeBulkMiniBlocks(
 	hdrShardID uint32,
-	bulkMbs []*Miniblock,
+	bulkMbs []*types.Miniblock,
 	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
 ) (bytes.Buffer, map[string]bool) {
 	var err error
@@ -243,7 +212,7 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 }
 
 func serializeTransactions(
-	transactions []*Transaction,
+	transactions []*types.Transaction,
 	selfShardID uint32,
 	_ func(hashes []string, index string) (map[string]bool, error),
 	mbsHashInDB map[string]bool,
@@ -291,7 +260,7 @@ func serializeTransactions(
 	return buffSlice, nil
 }
 
-func serializeAccounts(accounts map[string]*AccountInfo) ([]bytes.Buffer, error) {
+func serializeAccounts(accounts map[string]*types.AccountInfo) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
@@ -333,7 +302,7 @@ func serializeAccounts(accounts map[string]*AccountInfo) ([]bytes.Buffer, error)
 	return buffSlice, nil
 }
 
-func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) ([]bytes.Buffer, error) {
+func serializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
@@ -376,7 +345,7 @@ func serializeAccountsHistory(accounts map[string]*AccountBalanceHistory) ([]byt
 }
 
 func prepareSerializedDataForATransaction(
-	tx *Transaction,
+	tx *types.Transaction,
 	selfShardID uint32,
 	_ bool,
 ) ([]byte, []byte, error) {
@@ -464,7 +433,7 @@ func prepareSerializedDataForATransaction(
 	return metaData, serializedData, nil
 }
 
-func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte, []byte, error) {
+func prepareSerializedAccountInfo(address string, account *types.AccountInfo) ([]byte, []byte, error) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
 	serializedData, err := json.Marshal(account)
 	if err != nil {
@@ -477,7 +446,7 @@ func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte,
 	return meta, serializedData, nil
 }
 
-func prepareSerializedAccountBalanceHistory(address string, account *AccountBalanceHistory) ([]byte, []byte, error) {
+func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory) ([]byte, []byte, error) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, address, "\n"))
 	serializedData, err := json.Marshal(account)
 	if err != nil {
@@ -490,11 +459,11 @@ func prepareSerializedAccountBalanceHistory(address string, account *AccountBala
 	return meta, serializedData, nil
 }
 
-func isCrossShardDstMe(tx *Transaction, selfShardID uint32) bool {
+func isCrossShardDstMe(tx *types.Transaction, selfShardID uint32) bool {
 	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
 }
 
-func isIntraShardOrInvalid(tx *Transaction, selfShardID uint32) bool {
+func isIntraShardOrInvalid(tx *types.Transaction, selfShardID uint32) bool {
 	return (tx.SenderShard == tx.ReceiverShard && tx.ReceiverShard == selfShardID) || tx.Status == transaction.TxStatusInvalid.String()
 }
 
@@ -515,69 +484,4 @@ func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
 	}
 
 	return founded
-}
-
-// GetElasticTemplatesAndPolicies will return elastic templates and policies
-func GetElasticTemplatesAndPolicies(path string, useKibana bool) (map[string]*bytes.Buffer, map[string]*bytes.Buffer, error) {
-	indexTemplates := make(map[string]*bytes.Buffer)
-	indexPolicies := make(map[string]*bytes.Buffer)
-	var err error
-
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex, accountsIndex, accountsHistoryIndex}
-	for _, index := range indexes {
-		indexTemplates[index], err = getTemplateByIndex(path, index)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if useKibana {
-		indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy, validatorsPolicy, accountsHistoryPolicy}
-		for _, indexPolicy := range indexesPolicies {
-			indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-	}
-
-	return indexTemplates, indexPolicies, nil
-}
-
-func getTemplateByIndex(path string, index string) (*bytes.Buffer, error) {
-	indexTemplate := &bytes.Buffer{}
-
-	fileName := fmt.Sprintf("%s.json", index)
-	filePath := filepath.Join(path, fileName)
-	fileBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrReadTemplatesFile, filePath, err.Error())
-	}
-
-	indexTemplate.Grow(len(fileBytes))
-	_, err = indexTemplate.Write(fileBytes)
-	if err != nil {
-		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
-	}
-
-	return indexTemplate, nil
-}
-
-func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
-	indexPolicy := &bytes.Buffer{}
-
-	fileName := fmt.Sprintf("%s.json", index)
-	filePath := filepath.Join(path, fileName)
-	fileBytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrReadPolicyFile, filePath, err.Error())
-	}
-
-	indexPolicy.Grow(len(fileBytes))
-	_, err = indexPolicy.Write(fileBytes)
-	if err != nil {
-		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
-	}
-
-	return indexPolicy, nil
 }
