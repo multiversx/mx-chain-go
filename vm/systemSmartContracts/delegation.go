@@ -370,6 +370,14 @@ func (d *delegation) delegateUser(
 		return vmOutput.ReturnCode
 	}
 
+	if len(stakeArgs) > 0 {
+		err = d.updateDelegationStatusAfterStake(dStatus, vmOutput.ReturnData, stakeArgs)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -400,7 +408,7 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 		return nil
 	}
 
-	lenNotStakedKeys := uint64(len(status.NotStakedKeys))
+	lenNotStakedKeys := uint64(len(status.NotStakedKeys)) + uint64(len(status.UnStakedKeys))
 	numNodesToStake := maxNodesToStake - numStakedNodes
 	gasLeftToStakeNumNodes := d.eei.GasLeft() / d.gasCost.MetaChainSystemSCsCost.Stake
 
@@ -410,9 +418,10 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 	}
 
 	stakeArgs := [][]byte{big.NewInt(0).SetUint64(numNodesToStake).Bytes()}
+	listOfStakeableNodes := append(status.NotStakedKeys, status.UnStakedKeys...)
 	for i := uint64(0); i < numNodesToStake; i++ {
-		stakeArgs = append(stakeArgs, status.NotStakedKeys[i].BLSKey)
-		stakeArgs = append(stakeArgs, status.NotStakedKeys[i].SignedMsg)
+		stakeArgs = append(stakeArgs, listOfStakeableNodes[i].BLSKey)
+		stakeArgs = append(stakeArgs, listOfStakeableNodes[i].SignedMsg)
 	}
 
 	return stakeArgs
@@ -731,19 +740,32 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmOutput.ReturnCode
 	}
 
-	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
-	for _, successKey := range successKeys {
-		status.NotStakedKeys, status.StakedKeys = moveNodeFromList(status.NotStakedKeys, status.StakedKeys, successKey)
-		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
-	}
-
-	err = d.saveDelegationStatus(status)
+	err = d.updateDelegationStatusAfterStake(status, vmOutput.ReturnData, args.Arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) updateDelegationStatusAfterStake(
+	status *DelegationContractStatus,
+	returnData [][]byte,
+	args [][]byte,
+) error {
+	successKeys, _ := getSuccessAndUnSuccessKeys(returnData, args)
+	for _, successKey := range successKeys {
+		status.NotStakedKeys, status.StakedKeys = moveNodeFromList(status.NotStakedKeys, status.StakedKeys, successKey)
+		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
+	}
+
+	err := d.saveDelegationStatus(status)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

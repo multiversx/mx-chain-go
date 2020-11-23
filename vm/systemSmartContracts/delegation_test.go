@@ -941,6 +941,61 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
 }
 
+func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
+	t.Parallel()
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	args := createMockArgumentsForDelegation()
+	args.GasCost.MetaChainSystemSCsCost.Stake = 1
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	key1 := &NodesData{BLSKey: blsKey1}
+	key2 := &NodesData{BLSKey: blsKey2}
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		NotStakedKeys: []*NodesData{key1},
+		UnStakedKeys:  []*NodesData{key2},
+	})
+	globalFund := &GlobalFundData{
+		TotalActive: big.NewInt(0),
+	}
+	_ = d.saveGlobalFundData(globalFund)
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		MaxDelegationCap:    big.NewInt(1000),
+		InitialOwnerFunds:   big.NewInt(100),
+		AutomaticActivation: true,
+	})
+	addAuctionAndStakingScToVmContext(eei)
+
+	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
+	vmInput.CallerAddr = []byte("delegator")
+	vmInput.CallValue = big.NewInt(500)
+	vmInput.GasProvided = 10000
+	eei.gasRemaining = vmInput.GasProvided
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	globalFund, _ = d.getGlobalFundData()
+	assert.Equal(t, big.NewInt(500), globalFund.TotalActive)
+
+	dStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
+	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
+}
+
 func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
 	t.Parallel()
 
