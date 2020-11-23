@@ -68,10 +68,10 @@ message VoteDetails {
 
 message VoteSet {
     bytes    UsedPower             = 1 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes    TotalYes              = 2 [(gogoproto.jsontag) = "TotalYes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes    TotalNo               = 3 [(gogoproto.jsontag) = "TotalNo", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes    TotalVeto             = 4 [(gogoproto.jsontag) = "TotalVeto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bool     Claimed               = 5 [(gogoproto.jsontag) = "Claimed"];
-    repeated VoteDetails VoteItems = 6 [(gogoproto.jsontag) = "VoteItems"];
-
+    bytes    UsedBalance           = 2 [(gogoproto.jsontag) = "UsedBalance", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    TotalYes              = 3 [(gogoproto.jsontag) = "TotalYes", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    TotalNo               = 4 [(gogoproto.jsontag) = "TotalNo", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    TotalVeto             = 5 [(gogoproto.jsontag) = "TotalVeto", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bool     Claimed               = 6 [(gogoproto.jsontag) = "Claimed"];
+    repeated VoteDetails VoteItems = 7 [(gogoproto.jsontag) = "VoteItems"];
 }

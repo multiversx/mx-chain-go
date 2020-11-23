@@ -23,14 +23,14 @@
     NumNodes           = 500
     ProposalCost       = "5000000000000000000" #5 eGLD
     ProposalCostV2     = "5000000000000000000" #5 eGLD
-	MinQuorum          = 400
-	MinQuorumV2        = "500000000000" # VotePower of 10*sqrt(NodePrice)
-	MinPassThreshold   = 300
-	MinPassThresholdV2 = "251000000000"
-	MinVetoThreshold   = 50
-	MinVetoThresholdV2 = "249000000000"
+    MinQuorum          = 400
+    MinQuorumV2        = "500000000000" # VotePower of 10*sqrt(NodePrice)
+    MinPassThreshold   = 300
+    MinPassThresholdV2 = "251000000000"
+    MinVetoThreshold   = 50
+    MinVetoThresholdV2 = "249000000000"
     EnabledEpoch       = 2
-	EnabledEpochV2     = 2
+    EnabledEpochV2     = 2
 
 [DelegationManagerSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD

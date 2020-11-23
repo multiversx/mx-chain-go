@@ -175,7 +175,10 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	marshaledData, err := g.marshalizer.Marshal(cfg)
-	log.LogIfError(err, "marshal error on governance init function")
+	if err != nil {
+		log.Error("marshal error on governance init function")
+		return vmcommon.ExecutionFailed
+	}
 
 	g.eei.SetStorage([]byte(governanceConfigKey), marshaledData)
 	g.eei.SetStorage([]byte(ownerKey), args.CallerAddr)
@@ -933,6 +936,7 @@ func (g *governanceContract) applyVote(vote *VoteDetails, voteData *VoteSet, pro
 	}
 
 	voteData.UsedPower.Add(voteData.UsedPower, vote.Power)
+	voteData.UsedBalance.Add(voteData.UsedBalance, vote.Balance)
 	voteData.VoteItems = append(voteData.VoteItems, vote)
 
 	return voteData, proposal, nil
@@ -1049,21 +1053,12 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 //  the following way: the power of all votes combined has to be sqrt(sum(allAccountVotes)). So, the new
 //  vote will have a smaller power depending on how much existed previously
 func (g *governanceContract) computeAccountLeveledPower(value *big.Int, voteData *VoteSet) (*big.Int, error) {
-	totalBalance := big.NewInt(0)
-	for _, accountVote := range voteData.VoteItems {
-		if accountVote.Type != Account {
-			continue
-		}
-
-		totalBalance.Add(totalBalance, accountVote.Balance)
-	}
-
-	previousAccountPower, err := g.computeVotingPower(totalBalance)
+	previousAccountPower, err := g.computeVotingPower(voteData.UsedBalance)
 	if err != nil {
 		return nil, err
 	}
 
-	fullAccountBalance := big.NewInt(0).Add(totalBalance, value)
+	fullAccountBalance := big.NewInt(0).Add(voteData.UsedBalance, value)
 	newAccountPower, err := g.computeVotingPower(fullAccountBalance)
 	if err != nil {
 		return nil, err
@@ -1087,14 +1082,11 @@ func (g *governanceContract) getDelegatedToAddress(args *vmcommon.ContractCallIn
 // isValidVoteString checks if a certain string represents a valid vote string
 func (g *governanceContract) isValidVoteString(vote string) bool {
 	switch vote {
-	case yesString:
+	case yesString, noString, vetoString:
 		return true
-	case noString:
-		return true
-	case vetoString:
-		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // castVoteType casts a valid string vote passed as an argument to the actual mapped value
@@ -1267,6 +1259,7 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 		return nil
 	}
 
+	proposal.Voted = false
 	return nil
 }
 
