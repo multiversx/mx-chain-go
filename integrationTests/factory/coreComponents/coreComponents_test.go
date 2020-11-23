@@ -21,8 +21,9 @@ func TestCoreComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	configs := factory.CreateDefaultConfig()
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
-
-	coreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
+	nr, err := node.NewNodeRunner(configs)
+	require.Nil(t, err)
+	coreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
 	require.NotNil(t, coreComponents)
 

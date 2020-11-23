@@ -407,12 +407,12 @@ func hardForkImport(
 		log.Warn("started import process")
 
 		coreComponents := integrationTests.GetDefaultCoreComponents()
-		coreComponents.IntMarsh = integrationTests.TestMarshalizer
-		coreComponents.TxMarsh = integrationTests.TestMarshalizer
-		coreComponents.Hash = integrationTests.TestHasher
-		coreComponents.UInt64ByteSliceConv = integrationTests.TestUint64Converter
-		coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
-		coreComponents.ValPubKeyConv = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.HasherField = integrationTests.TestHasher
+		coreComponents.Uint64ByteSliceConverterField = integrationTests.TestUint64Converter
+		coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValidatorPubKeyConverterField = integrationTests.TestValidatorPubkeyConverter
 		coreComponents.ChainIdCalled = func() string {
 			return string(node.ChainID)
 		}
@@ -555,12 +555,12 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
 		coreComponents := integrationTests.GetDefaultCoreComponents()
-		coreComponents.IntMarsh = integrationTests.TestMarshalizer
-		coreComponents.TxMarsh = integrationTests.TestTxSignMarshalizer
-		coreComponents.Hash = integrationTests.TestHasher
-		coreComponents.UInt64ByteSliceConv = integrationTests.TestUint64Converter
-		coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
-		coreComponents.ValPubKeyConv = integrationTests.TestValidatorPubkeyConverter
+		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
+		coreComponents.HasherField = integrationTests.TestHasher
+		coreComponents.Uint64ByteSliceConverterField = integrationTests.TestUint64Converter
+		coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+		coreComponents.ValidatorPubKeyConverterField = integrationTests.TestValidatorPubkeyConverter
 		coreComponents.ChainIdCalled = func() string {
 			return string(node.ChainID)
 		}
