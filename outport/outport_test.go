@@ -48,17 +48,17 @@ func TestOutport_SaveAccounts(t *testing.T) {
 func TestOutport_SaveBlock(t *testing.T) {
 	t.Parallel()
 
-	called1 := false
+	called := false
 	driver1 := &mock.DriverStub{
 		SaveBlockCalled: func(args types.ArgsSaveBlocks) {
-			called1 = true
+			called = true
 		},
 	}
 	outportHandler := NewOutport()
 	_ = outportHandler.SubscribeDriver(driver1)
 
 	outportHandler.SaveBlock(types.ArgsSaveBlocks{})
-	require.True(t, called1)
+	require.True(t, called)
 }
 
 func TestOutport_SaveRoundsInfo(t *testing.T) {
@@ -80,65 +80,65 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 func TestOutport_UpdateTPS(t *testing.T) {
 	t.Parallel()
 
-	called1 := false
-	driver1 := &mock.DriverStub{
+	called := false
+	driver := &mock.DriverStub{
 		UpdateTPSCalled: func(tpsBenchmark statistics.TPSBenchmark) {
-			called1 = true
+			called = true
 		},
 	}
 	outportHandler := NewOutport()
-	_ = outportHandler.SubscribeDriver(driver1)
+	_ = outportHandler.SubscribeDriver(driver)
 
 	outportHandler.UpdateTPS(nil)
-	require.True(t, called1)
+	require.True(t, called)
 }
 
 func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 	t.Parallel()
 
-	called1 := false
-	driver1 := &mock.DriverStub{
+	called := false
+	driver := &mock.DriverStub{
 		SaveValidatorsPubKeysCalled: func(validatorsPubKeys map[uint32][][]byte, epoch uint32) {
-			called1 = true
+			called = true
 		},
 	}
 	outportHandler := NewOutport()
-	_ = outportHandler.SubscribeDriver(driver1)
+	_ = outportHandler.SubscribeDriver(driver)
 
 	outportHandler.SaveValidatorsPubKeys(nil, 0)
-	require.True(t, called1)
+	require.True(t, called)
 }
 
 func TestOutport_SaveValidatorsRating(t *testing.T) {
 	t.Parallel()
 
-	called1 := false
-	driver1 := &mock.DriverStub{
+	called := false
+	driver := &mock.DriverStub{
 		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
-			called1 = true
+			called = true
 		},
 	}
 	outportHandler := NewOutport()
-	_ = outportHandler.SubscribeDriver(driver1)
+	_ = outportHandler.SubscribeDriver(driver)
 
 	outportHandler.SaveValidatorsRating("", nil)
-	require.True(t, called1)
+	require.True(t, called)
 }
 
 func TestOutport_RevertBlock(t *testing.T) {
 	t.Parallel()
 
-	called1 := false
-	driver1 := &mock.DriverStub{
+	called := false
+	driver := &mock.DriverStub{
 		RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) {
-			called1 = true
+			called = true
 		},
 	}
 	outportHandler := NewOutport()
-	_ = outportHandler.SubscribeDriver(driver1)
+	_ = outportHandler.SubscribeDriver(driver)
 
 	outportHandler.RevertBlock(nil, nil)
-	require.True(t, called1)
+	require.True(t, called)
 }
 
 func TestOutport_SubscribeDriver(t *testing.T) {

@@ -16,7 +16,7 @@ import (
 
 // subroundStartRound defines the data needed by the subround StartRound
 type subroundStartRound struct {
-	mutex sync.RWMutex
+	outportMutex sync.RWMutex
 	*spos.Subround
 	processingThresholdPercentage int
 	executeStoredMessages         func()
@@ -46,7 +46,7 @@ func NewSubroundStartRound(
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
 		outportHandler:                outport.NewNilOutport(),
-		mutex:                         sync.RWMutex{},
+		outportMutex:                  sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -73,9 +73,9 @@ func checkNewSubroundStartRoundParams(
 
 // SetOutportHandler method set outport handler
 func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHandler) {
-	sr.mutex.Lock()
+	sr.outportMutex.Lock()
 	sr.outportHandler = outportHandler
-	sr.mutex.Unlock()
+	sr.outportMutex.Unlock()
 }
 
 // doStartRoundJob method does the job of the subround StartRound
