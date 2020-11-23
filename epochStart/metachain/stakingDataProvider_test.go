@@ -262,7 +262,7 @@ func createStakingDataProviderWithMockArgs(
 }
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
-	args, _ := createFullArgumentsForSystemSCProcessing()
+	args, _ := createFullArgumentsForSystemSCProcessing(1000)
 	args.EpochNotifier.CheckEpoch(1000000)
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
