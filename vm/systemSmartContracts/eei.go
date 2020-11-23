@@ -74,6 +74,32 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
+// GetContract gets the actual system contract from address and code
+func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, error) {
+	userAcc, err := host.blockChainHook.GetUserAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	codeIdentifier := userAcc.GetCode()
+	if len(codeIdentifier) == 0 {
+		// backward compatibility
+		codeIdentifier = address
+	}
+
+	contract, err := host.systemContracts.Get(codeIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	if !contract.CanUseContract() {
+		// backward compatibility
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	return contract, nil
+}
+
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
 	storageAdrMap, exists := host.storageUpdate[string(address)]
@@ -284,11 +310,6 @@ func (host *vmContext) DeploySystemSC(
 	host.SetSCAddress(oldSCAddress)
 	host.addContractDeployToOutput(newAddress, ownerAddress, baseContract)
 
-	err = host.systemContracts.Replace(newAddress, contract)
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
-
 	return returnCode, nil
 }
 
@@ -344,7 +365,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	host.softCleanCache()
 	host.SetSCAddress(callInput.RecipientAddr)
 
-	contract, err := host.systemContracts.Get(callInput.RecipientAddr)
+	contract, err := host.GetContract(callInput.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}

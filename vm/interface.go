@@ -65,6 +65,7 @@ type EconomicsHandler interface {
 type ContextHandler interface {
 	SystemEI
 
+	GetContract(address []byte) (SystemSmartContract, error)
 	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()
