@@ -1604,11 +1604,7 @@ func TestAuctionStakingSC_ExecuteStakeNotEnoughFundsForMultipleNodesShouldErr(t 
 	stakerPubKey2 := big.NewInt(102)
 	args := createMockArgumentsForAuction()
 
-	blockChainHook := &mock.BlockChainHookStub{
-		GetUserAccountCalled: func(address []byte) (vmcommon.UserAccountHandler, error) {
-			return nil, state.ErrAccNotFound
-		},
-	}
+	blockChainHook := &mock.BlockChainHookStub{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 
 	argsStaking := createMockStakingScArguments()

@@ -74,20 +74,25 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
-// GetContract gets the actual system contract from address and code
-func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, error) {
+func (host *vmContext) getCodeFromAddress(address []byte) []byte {
 	userAcc, err := host.blockChainHook.GetUserAccount(address)
 	if err != nil {
-		return nil, err
-	}
-
-	codeIdentifier := userAcc.GetCode()
-	if len(codeIdentifier) == 0 {
 		// backward compatibility
-		codeIdentifier = address
+		return address
 	}
 
-	contract, err := host.systemContracts.Get(codeIdentifier)
+	code := userAcc.GetCode()
+	if len(code) == 0 {
+		return address
+	}
+
+	return code
+}
+
+// GetContract gets the actual system contract from address and code
+func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, error) {
+	code := host.getCodeFromAddress(address)
+	contract, err := host.systemContracts.Get(code)
 	if err != nil {
 		return nil, err
 	}
@@ -488,6 +493,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
 
+		// backward compatibility - genesis was done without this
 		if host.blockChainHook.CurrentNonce() > 0 {
 			if len(outAcc.CodeDeployerAddress) > 0 {
 				outAccs[addr].CodeDeployerAddress = outAcc.CodeDeployerAddress

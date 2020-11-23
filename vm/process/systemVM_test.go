@@ -64,7 +64,12 @@ func TestSystemVM_RunSmartContractCreate(t *testing.T) {
 func TestSystemVM_RunSmartContractCallWrongSmartContract(t *testing.T) {
 	t.Parallel()
 
-	s, _ := NewSystemVM(&mock.SystemEIStub{}, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
+	systemEI := &mock.SystemEIStub{
+		GetContractCalled: func(_ []byte) (vm.SystemSmartContract, error) {
+			return nil, vm.ErrUnknownSystemSmartContract
+		},
+	}
+	s, _ := NewSystemVM(systemEI, &mock.SystemSCContainerStub{}, factory.SystemVirtualMachine)
 
 	vmOutput, err := s.RunSmartContractCall(&vmcommon.ContractCallInput{RecipientAddr: []byte("tralala")})
 	assert.Nil(t, vmOutput)

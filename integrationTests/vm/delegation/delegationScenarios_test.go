@@ -34,6 +34,8 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
 
@@ -78,6 +80,7 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	returnedCode, _ = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.UserError, returnedCode)
 
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 10000000})
 	//unBond nodes
 	txData = txDataForFunc("unBondNodes", blsKeys[:numNodesToStake-3])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
@@ -99,6 +102,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
@@ -152,6 +156,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
@@ -205,6 +210,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 	totalNumNodes := 3
 	numDelegators := 4
 	delegationVal := int64(1000)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
 	for i := range ownerAddresses {
@@ -271,6 +277,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 	numDelegators := 4
 	delegationVal := int64(1000)
 	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
 	for i := range ownerAddresses {
@@ -329,6 +336,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 5
 	numDelegators := 4
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
@@ -389,6 +397,7 @@ func TestDelegationUnJail(t *testing.T) {
 	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 5
 	numDelegators := 4
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)

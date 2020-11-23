@@ -883,11 +883,12 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 
+	s.flagChangeMaxNodesEnabled.Toggle(false)
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
-		if epoch >= maxNodesConfig.EpochEnable {
-			// to cover also rollbacks, we always set the maxNodes and set the Enabled flag
-			s.flagChangeMaxNodesEnabled.Toggle(epoch == maxNodesConfig.EpochEnable)
+		if epoch == maxNodesConfig.EpochEnable {
+			s.flagChangeMaxNodesEnabled.Toggle(true)
 			s.maxNodes = maxNodesConfig.MaxNumNodes
+			break
 		}
 	}
 

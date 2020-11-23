@@ -51,7 +51,7 @@ func (as *AccountsStub) LoadAccount(address []byte) (state.AccountHandler, error
 	if as.LoadAccountCalled != nil {
 		return as.LoadAccountCalled(address)
 	}
-	return nil, errNotImplemented
+	return state.NewUserAccount(address)
 }
 
 // SaveAccount -
