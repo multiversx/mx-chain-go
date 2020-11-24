@@ -229,7 +229,11 @@ func startStatisticsMonitor(
 	if generalConfig.ResourceStats.RefreshIntervalInSec < 1 {
 		return nil, fmt.Errorf("invalid RefreshIntervalInSec in section [ResourceStats]. Should be an integer higher than 1")
 	}
-	resMon := statistics.NewResourceMonitor(generalConfig, pathManager, shardId)
+	resMon, err := statistics.NewResourceMonitor(generalConfig, pathManager, shardId)
+	if err != nil {
+		return nil, err
+	}
+
 	resMon.StartMonitoring()
 
 	return resMon, nil

@@ -141,7 +141,7 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		IntMarsh:            &testscommon.MarshalizerMock{},
 		TxMarsh:             &testscommon.MarshalizerMock{},
 		VmMarsh:             &testscommon.MarshalizerMock{},
-		Hash:                &testscommon.HasherMock{},
+		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),

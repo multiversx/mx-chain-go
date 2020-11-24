@@ -163,6 +163,7 @@ func ConvertToEvenHexBigInt(value *big.Int) string {
 	return str
 }
 
+// ProcessDestinationShardAsObserver returns the shardID given the destination as observer string
 func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uint32, error) {
 	destShard := strings.ToLower(destinationShardIdAsObserver)
 	if len(destShard) == 0 {

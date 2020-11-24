@@ -28,7 +28,6 @@ var log = logger.GetOrCreate("main")
 // StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
 type StatusHandlersFactoryArgs struct {
 	UseTermUI                    bool
-	ServersConfigurationFileName string
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
@@ -37,14 +36,12 @@ type statusHandlersInfo struct {
 	AppStatusHandler         core.AppStatusHandler
 	StatusMetrics            external.StatusMetricsHandler
 	PersistentHandler        *persister.PersistentStatusHandler
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	chanStartViews           chan struct{}
 	chanLogRewrite           chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
 	useTermUI                    bool
-	serversConfigurationFileName string
 	ctx                          *cli.Context
 }
 

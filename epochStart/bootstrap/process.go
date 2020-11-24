@@ -964,15 +964,6 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 
 // Close closes the component's opened storage services/started go-routines
 func (e *epochStartBootstrap) Close() error {
-	if e.trieContainer != nil {
-		log.Debug("closing all dataTries....")
-		dataTries := e.trieContainer.GetAll()
-		for _, trie := range dataTries {
-			err := trie.ClosePersister()
-			log.LogIfError(err)
-		}
-	}
-
 	e.mutTrieStorageManagers.RLock()
 	defer e.mutTrieStorageManagers.RUnlock()
 

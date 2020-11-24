@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/shirou/gopsutil/net"
@@ -26,13 +27,20 @@ type ResourceMonitor struct {
 }
 
 // NewResourceMonitor creates a new ResourceMonitor instance
-func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHandler, shardId string) *ResourceMonitor {
+func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHandler, shardId string) (*ResourceMonitor, error) {
+	if config == nil{
+		return nil, ErrNilConfig
+	}
+	if check.IfNil(pathManager){
+		return nil, ErrNilPathHandler
+	}
+
 	return &ResourceMonitor{
 		generalConfig: config,
 		pathManager:   pathManager,
 		shardId:       shardId,
 		startTime:     time.Now(),
-	}
+	}, nil
 }
 
 // GenerateStatistics creates a new statistic string

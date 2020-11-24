@@ -34,11 +34,6 @@ func (ts *TrieStub) EnterSnapshotMode() {
 func (ts *TrieStub) ExitSnapshotMode() {
 }
 
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	return nil
-}
-
 // TakeSnapshot -
 func (ts *TrieStub) TakeSnapshot(_ []byte) {
 }
