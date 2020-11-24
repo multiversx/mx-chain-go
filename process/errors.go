@@ -500,9 +500,6 @@ var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 
-// ErrNilSCDataGetter signals that a nil sc data getter has been provided
-var ErrNilSCDataGetter = errors.New("nil sc data getter")
-
 // ErrNilTxForCurrentBlockHandler signals that nil tx for current block handler has been provided
 var ErrNilTxForCurrentBlockHandler = errors.New("nil tx for current block handler")
 
@@ -902,8 +899,11 @@ var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt toke
 // ErrNilPayableHandler signals that nil payableHandler was provided
 var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
 
-// ErrFailedExecutionAfterBuiltInFunc signals that tx execution after built in func call failed
-var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after built in func call failed")
-
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
+
+// ErrTransactionSignedWithHashIsNotEnabled signals that a transaction signed with hash is not enabled
+var ErrTransactionSignedWithHashIsNotEnabled = errors.New("transaction signed with hash is not enabled")
+
+// ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
+var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")

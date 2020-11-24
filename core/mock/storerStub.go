@@ -13,6 +13,12 @@ type StorerStub struct {
 	DestroyUnitCalled      func() error
 	RangeKeysCalled        func(handler func(key []byte, val []byte) bool)
 	GetBulkFromEpochCalled func(keys [][]byte, epoch uint32) (map[string][]byte, error)
+	PutInEpochCalled       func(key, data []byte, epoch uint32) error
+}
+
+// PutInEpoch -
+func (ss *StorerStub) PutInEpoch(key, data []byte, epoch uint32) error {
+	return ss.PutInEpochCalled(key, data, epoch)
 }
 
 // GetFromEpoch -

@@ -4,12 +4,12 @@
     UnBondPeriod = 2500
     MinStepValue = "100000000000000000000"
     AuctionEnableEpoch = 1000000
-    StakeEnableEpoch = 30
+    StakeEnableEpoch = 6
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 270
-    NodesToSelectInAuction = 270
+    MaxNumberOfNodesForStake = 413
+    NodesToSelectInAuction = 413
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = true
 
@@ -19,9 +19,9 @@
     EnabledEpoch = 1000000
 
 [GovernanceSystemSCConfig]
-	ProposalCost = "5000000000000000000" #5 eGLD
-	NumNodes     = 500
-	MinQuorum    = 400
-	MinPassThreshold = 300
-	MinVetoThreshold = 50
+    ProposalCost = "5000000000000000000" #5 eGLD
+    NumNodes     = 500
+    MinQuorum    = 400
+    MinPassThreshold = 300
+    MinVetoThreshold = 50
     EnabledEpoch = 1000000
