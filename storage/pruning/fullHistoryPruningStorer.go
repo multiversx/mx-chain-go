@@ -15,7 +15,6 @@ type FullHistoryPruningStorer struct {
 	*PruningStorer
 	args                      *StorerArgs
 	shardId                   string
-	pathManager               storage.PathManagerHandler
 	oldEpochsActivePersisters storage.Cacher
 }
 
@@ -43,16 +42,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		return nil, err
 	}
 
-	oldEpochsActivePersisters, err := lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters),
-		func(key interface{}, value interface{}) {
-			pd, ok := value.(persisterData)
-			if ok {
-				err := pd.Close()
-				if err != nil {
-					log.Warn("initFullHistoryPruningStorer - eviction", "err", err.Error())
-				}
-			}
-		})
+	oldEpochsActivePersisters, err := lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), onEvicted)
 
 	if err != nil {
 		return nil, err
@@ -62,9 +52,18 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		PruningStorer:             ps,
 		args:                      args.StorerArgs,
 		shardId:                   shardId,
-		pathManager:               args.PathManager,
 		oldEpochsActivePersisters: oldEpochsActivePersisters,
 	}, nil
+}
+
+func onEvicted(key interface{}, value interface{}) {
+	pd, ok := value.(persisterData)
+	if ok {
+		err := pd.Close()
+		if err != nil {
+			log.Warn("initFullHistoryPruningStorer - onEvicted", "key", key, "err", err.Error())
+		}
+	}
 }
 
 // GetFromEpoch will search a key only in the persister for the given epoch
@@ -74,31 +73,30 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 	if ok {
 		return v.([]byte), nil
 	}
-
+	epochString := fmt.Sprintf("%d", epoch)
 	fhps.lock.RLock()
-	pd, exists := fhps.persistersMapByEpoch[epoch]
+	pdata, exists := fhps.oldEpochsActivePersisters.Get([]byte(epochString))
 	fhps.lock.RUnlock()
 	if !exists {
 		p, err := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
 		if err != nil {
 			return nil, err
 		}
-		epochString := fmt.Sprintf("%d", epoch)
+
 		fhps.oldEpochsActivePersisters.Put([]byte(epochString), p, 0)
 	}
-
-	persister, closePersister, err := fhps.createAndInitPersisterIfClosed(pd)
+	pd := pdata.(*persisterData)
+	persister, _, err := fhps.createAndInitPersisterIfClosed(pd)
 	if err != nil {
 		return nil, err
 	}
-	defer closePersister()
 
 	res, err := persister.Get(key)
 	if err == nil {
 		return res, nil
 	}
 
-	log.Warn("get from closed persister",
+	log.Warn("GetFromEpoch persister",
 		"id", fhps.identifier,
 		"epoch", epoch,
 		"key", key,
