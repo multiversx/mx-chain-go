@@ -640,6 +640,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.NodesConfigProvider = &mock.NodesCoordinatorStub{}
 	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(1, core.MetachainShardId)
 	rwdc, _ := NewEpochStartRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
@@ -667,7 +668,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
-	userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
+	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	_ = args.UserAccountsDB.SaveAccount(userAcc)
 
 	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo)
