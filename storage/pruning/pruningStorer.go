@@ -32,24 +32,31 @@ const epochForDefaultEpochPrepareHdr = math.MaxUint32 - 7
 
 // persisterData structure is used so the persister and its path can be kept in the same place
 type persisterData struct {
-	persister   storage.Persister
-	path        string
-	epoch       uint32
-	isClosed    bool
-	mutIsClosed sync.RWMutex
+	persister storage.Persister
+	path      string
+	epoch     uint32
+	isClosed  bool
+	sync.RWMutex
 }
 
 func (pd *persisterData) getIsClosed() bool {
-	pd.mutIsClosed.RLock()
-	defer pd.mutIsClosed.RUnlock()
+	pd.RLock()
+	defer pd.RUnlock()
 
 	return pd.isClosed
 }
 
 func (pd *persisterData) setIsClosed(closed bool) {
-	pd.mutIsClosed.Lock()
+	pd.Lock()
 	pd.isClosed = closed
-	pd.mutIsClosed.Unlock()
+	pd.Unlock()
+}
+
+// Close closes the underlying persister
+func (pd *persisterData) Close() error {
+	pd.setIsClosed(true)
+	err := pd.persister.Close()
+	return err
 }
 
 // PruningStorer represents a storer which creates a new persister for each epoch and removes older activePersisters
@@ -225,11 +232,10 @@ func initPersistersInEpoch(
 		persistersMapByEpoch[uint32(epoch)] = p
 
 		if epoch < oldestEpochActive {
-			err = p.persister.Close()
+			err = p.Close()
 			if err != nil {
 				log.Debug("persister.Close()", "identifier", args.Identifier, "error", err.Error())
 			}
-			p.setIsClosed(true)
 		} else {
 			persisters = append(persisters, p)
 			log.Debug("appended a pruning active persister", "epoch", epoch, "identifier", args.Identifier)
@@ -311,11 +317,10 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 	}
 
 	closeFunc := func() {
-		err = persister.Close()
+		err = pd.Close()
 		if err != nil {
 			log.Warn("createAndInitPersister(): persister.Close()", "error", err.Error())
 		}
-		pd.setIsClosed(true)
 	}
 
 	err = persister.Init()
@@ -370,14 +375,13 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 // Close will close PruningStorer
 func (ps *PruningStorer) Close() error {
 	closedSuccessfully := true
-	for _, persister := range ps.activePersisters {
-		err := persister.persister.Close()
+	for _, pd := range ps.activePersisters {
+		err := pd.Close()
 
 		if err != nil {
-			log.Error("cannot close persister", "error", err)
+			log.Warn("cannot close pd", "error", err)
 			closedSuccessfully = false
 		}
-		persister.setIsClosed(true)
 	}
 
 	if closedSuccessfully {
@@ -866,21 +870,22 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	}
 	ps.lock.Unlock()
 
-	for _, p := range persistersToClose {
-		err := p.persister.Close()
+	for _, pd := range persistersToClose {
+		//TODO: check if this should return the error or try to close all other persisters first like other methods
+		err := pd.persister.Close()
 		if err != nil {
 			log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
 			return err
 		}
-		p.setIsClosed(true)
+		pd.setIsClosed(true)
 	}
 
-	for _, p := range persistersToDestroy {
-		err := p.persister.DestroyClosed()
+	for _, pd := range persistersToDestroy {
+		err := pd.persister.DestroyClosed()
 		if err != nil {
 			return err
 		}
-		removeDirectoryIfEmpty(p.path)
+		removeDirectoryIfEmpty(pd.path)
 	}
 
 	return nil

@@ -11,6 +11,9 @@ import (
 
 var log = logger.GetOrCreate("storage/lrucache/capacity")
 
+// EvictCallback is used to get a callback when a cache entry is evicted
+type EvictCallback func(key interface{}, value interface{})
+
 // capacityLRU implements a non thread safe LRU Cache with a max capacity size
 type capacityLRU struct {
 	lock                   sync.Mutex
@@ -20,6 +23,7 @@ type capacityLRU struct {
 	//TODO investigate if we can replace this list with a binary tree. Check also the other implementation lruCache
 	evictList *list.List
 	items     map[interface{}]*list.Element
+	onEvict   EvictCallback
 }
 
 // entry is used to hold a value in the evictList
@@ -31,6 +35,11 @@ type entry struct {
 
 // NewCapacityLRU constructs an CapacityLRU of the given size with a byte size capacity
 func NewCapacityLRU(size int, byteCapacity int64) (*capacityLRU, error) {
+	return NewCapacityLRUWithEviction(size, byteCapacity, nil)
+}
+
+// NewCapacityLRUWithEviction constructs an CapacityLRU of the given size with a byte size capacity and eviction function
+func NewCapacityLRUWithEviction(size int, byteCapacity int64, onEvict EvictCallback) (*capacityLRU, error) {
 	if size < 1 {
 		return nil, storage.ErrCacheSizeInvalid
 	}
@@ -42,6 +51,7 @@ func NewCapacityLRU(size int, byteCapacity int64) (*capacityLRU, error) {
 		maxCapacityInBytes: byteCapacity,
 		evictList:          list.New(),
 		items:              make(map[interface{}]*list.Element),
+		onEvict:            onEvict,
 	}
 	return c, nil
 }
@@ -221,6 +231,9 @@ func (c *capacityLRU) removeElement(e *list.Element) {
 	kv := e.Value.(*entry)
 	delete(c.items, kv.key)
 	c.currentCapacityInBytes -= kv.size
+	if c.onEvict != nil {
+		c.onEvict(kv.key, kv.value)
+	}
 }
 
 func (c *capacityLRU) adjustSize(key interface{}, sizeInBytes int64) {
