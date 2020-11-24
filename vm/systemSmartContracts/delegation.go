@@ -312,7 +312,7 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	err = d.checkUpdateOwnerInitialFunds(dConfig, callerAddr, callValue)
+	err = d.checkAndUpdateOwnerInitialFunds(dConfig, callerAddr, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2042,7 +2042,7 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	return nil
 }
 
-func (d *delegation) checkUpdateOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
+func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
 	// initial owner funds must be 0 or higher than min deposit
 	if delegationConfig.InitialOwnerFunds.Cmp(zero) > 0 {
 		return nil

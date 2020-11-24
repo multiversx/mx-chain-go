@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-// readOnlySCContainer is a wrapper over a sccontainer db which works read-only. write operation are disabled
+// readOnlySCContainer is a wrapper over a scContainer which works read-only. write operation are disabled
 type readOnlySCContainer struct {
 	scContainer vm.SystemSCContainer
 }
@@ -44,7 +44,7 @@ func (r *readOnlySCContainer) Len() int {
 	return r.scContainer.Len()
 }
 
-// Keys returns the all the keys from the containers
+// Keys returns all the keys from the containers
 func (r *readOnlySCContainer) Keys() [][]byte {
 	return r.scContainer.Keys()
 }
