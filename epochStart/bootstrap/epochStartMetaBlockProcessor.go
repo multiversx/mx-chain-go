@@ -39,7 +39,7 @@ type epochStartMetaBlockProcessor struct {
 	minNumOfPeersToConsiderBlockValid int
 }
 
-// NewEpochStartMetaBlockProcessor will return a interceptor processor for epoch start meta block
+// NewEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block
 func NewEpochStartMetaBlockProcessor(
 	messenger Messenger,
 	handler RequestHandler,

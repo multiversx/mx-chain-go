@@ -1038,6 +1038,11 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		Hasher:                   pcf.coreData.Hasher(),
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		ChainID:                  pcf.coreData.ChainID(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
