@@ -86,7 +86,7 @@ func (p2pahs *P2PAntifloodHandlerStub) SetTopicsForAll(_ ...string) {
 }
 
 // Close -
-func (af *P2PAntifloodHandlerStub) Close() error {
+func (p2pahs *P2PAntifloodHandlerStub) Close() error {
 	return nil
 }
 
