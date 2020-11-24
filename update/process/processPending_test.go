@@ -7,9 +7,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
@@ -75,11 +75,11 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 
 	pendingTxProcessor, _ := NewPendingTransactionProcessor(args)
 
-	hash1 := "hash1"
-	hash2 := "hash2"
-	hash3 := "hash3"
-	hash4 := "hash4"
-	hash5 := "hash5"
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hash3 := []byte("hash3")
+	hash4 := []byte("hash4")
+	hash5 := []byte("hash5")
 
 	tx1 := &transaction.Transaction{RcvAddr: addr1}
 	tx2 := &transaction.Transaction{SndAddr: addr2}
@@ -87,19 +87,19 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	tx4 := &transaction.Transaction{SndAddr: addr4}
 	tx5 := &transaction.Transaction{SndAddr: addr5}
 
-	mapTxs := map[string]data.TransactionHandler{
-		hash1: tx1,
-		hash2: tx2,
-		hash3: tx3,
-		hash4: tx4,
-		hash5: tx5,
+	txsInfo := []*update.TxInfo{
+		{TxHash: hash1, Tx: tx1},
+		{TxHash: hash2, Tx: tx2},
+		{TxHash: hash3, Tx: tx3},
+		{TxHash: hash4, Tx: tx4},
+		{TxHash: hash5, Tx: tx5},
 	}
 
-	mbSlice, err := pendingTxProcessor.ProcessTransactionsDstMe(mapTxs)
+	mbSlice, err := pendingTxProcessor.ProcessTransactionsDstMe(txsInfo)
 	assert.True(t, called)
 	assert.NotNil(t, mbSlice)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(hash2), mbSlice[0].TxHashes[0])
+	assert.Equal(t, hash2, mbSlice[0].TxHashes[0])
 }
 
 func TestGetSortedSliceFromMbsMap(t *testing.T) {

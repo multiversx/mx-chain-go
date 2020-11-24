@@ -33,6 +33,10 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+    # signed with the hash of transaction
+    TransactionSignedWithTxHashEnableEpoch = 2
+
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
    MetaProtectionEnableEpoch = 2
 
@@ -515,6 +519,9 @@
 
 [MultisigHasher]
    Type = "blake2b"
+
+[TxSignHasher]
+    Type = "keccak"
 
 # The main marshalizer, used in internodes communication
 # Type identifies the marshalizer
