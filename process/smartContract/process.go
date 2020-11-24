@@ -1485,13 +1485,14 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 
 	var refundGasToRelayerSCR *smartContractResult.SmartContractResult
 	relayedSCR, isRelayed := isRelayedTx(tx)
-	if isRelayed && callType != vmcommon.AsynchronousCall && gasRefund.Cmp(zero) > 0 {
+	shouldRefundGasToRelayerSCR := isRelayed && callType != vmcommon.AsynchronousCall && gasRefund.Cmp(zero) > 0
+	if shouldRefundGasToRelayerSCR {
 		refundGasToRelayerSCR = &smartContractResult.SmartContractResult{
 			Nonce:          relayedSCR.Nonce + 1,
 			Value:          big.NewInt(0).Set(gasRefund),
 			RcvAddr:        relayedSCR.RelayerAddr,
 			SndAddr:        tx.GetRcvAddr(),
-			PrevTxHash:     relayedSCR.OriginalTxHash,
+			PrevTxHash:     txHash,
 			OriginalTxHash: relayedSCR.OriginalTxHash,
 			GasPrice:       tx.GetGasPrice(),
 			CallType:       vmcommon.DirectCall,

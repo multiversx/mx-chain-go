@@ -10,10 +10,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -312,6 +314,43 @@ func TestBlockChainHookImpl_GetBlockhashShouldReturnCurrentBlockHeaderHash(t *te
 	hash, err := bh.GetBlockhash(2)
 	assert.Nil(t, err)
 	assert.Equal(t, hashToRet, hash)
+}
+
+func TestBlockChainHookImpl_GetBlockhashFromOldEpoch(t *testing.T) {
+	t.Parallel()
+
+	hdrToRet := &block.Header{Nonce: 2, Epoch: 2}
+	hashToRet := []byte("hash")
+	args := createMockVMAccountsArguments()
+
+	marshaledData, _ := args.Marshalizer.Marshal(hdrToRet)
+
+	args.BlockChain = &mock.BlockChainMock{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 10, Epoch: 10}
+		},
+	}
+	args.StorageService = &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			if uint8(unitType) >= uint8(dataRetriever.ShardHdrNonceHashDataUnit) {
+				return &mock.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return hashToRet, nil
+					},
+				}
+			}
+
+			return &mock.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return marshaledData, nil
+				},
+			}
+		},
+	}
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+
+	_, err := bh.GetBlockhash(2)
+	assert.Equal(t, err, process.ErrInvalidBlockRequestOldEpoch)
 }
 
 func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
