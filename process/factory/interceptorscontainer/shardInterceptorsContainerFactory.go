@@ -82,28 +82,37 @@ func NewShardInterceptorsContainerFactory(
 	if args.MinTransactionVersion == 0 {
 		return nil, process.ErrInvalidTransactionVersion
 	}
+	if check.IfNil(args.TxSignHasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:        args.ProtoMarshalizer,
-		TxSignMarshalizer:       args.TxSignMarshalizer,
-		Hasher:                  args.Hasher,
-		ShardCoordinator:        args.ShardCoordinator,
-		MultiSigVerifier:        args.MultiSigner,
-		NodesCoordinator:        args.NodesCoordinator,
-		KeyGen:                  args.KeyGen,
-		BlockKeyGen:             args.BlockSignKeyGen,
-		Signer:                  args.SingleSigner,
-		BlockSigner:             args.BlockSingleSigner,
-		AddressPubkeyConv:       args.AddressPubkeyConverter,
-		FeeHandler:              args.TxFeeHandler,
-		HeaderSigVerifier:       args.HeaderSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:        args.ValidityAttester,
-		EpochStartTrigger:       args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		ArgsParser:              args.ArgumentsParser,
-		ChainID:                 args.ChainID,
-		MinTransactionVersion:   args.MinTransactionVersion,
+		ProtoMarshalizer:          args.ProtoMarshalizer,
+		TxSignMarshalizer:         args.TxSignMarshalizer,
+		Hasher:                    args.Hasher,
+		ShardCoordinator:          args.ShardCoordinator,
+		MultiSigVerifier:          args.MultiSigner,
+		NodesCoordinator:          args.NodesCoordinator,
+		KeyGen:                    args.KeyGen,
+		BlockKeyGen:               args.BlockSignKeyGen,
+		Signer:                    args.SingleSigner,
+		BlockSigner:               args.BlockSingleSigner,
+		AddressPubkeyConv:         args.AddressPubkeyConverter,
+		FeeHandler:                args.TxFeeHandler,
+		HeaderSigVerifier:         args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
+		ValidityAttester:          args.ValidityAttester,
+		EpochStartTrigger:         args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
+		ArgsParser:                args.ArgumentsParser,
+		ChainID:                   args.ChainID,
+		MinTransactionVersion:     args.MinTransactionVersion,
+		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	container := containers.NewInterceptorsContainer()
