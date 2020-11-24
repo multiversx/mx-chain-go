@@ -602,7 +602,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 	if err != nil || check.IfNil(newTrie) || tr.root == nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
-		return nil, err
+		return leavesChannel, err
 	}
 
 	tr.EnterPruningBufferingMode()

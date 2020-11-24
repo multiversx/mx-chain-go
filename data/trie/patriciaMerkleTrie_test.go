@@ -630,7 +630,10 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 
 	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
 	assert.Nil(t, err)
-	assert.Nil(t, leavesChannel)
+	assert.NotNil(t, leavesChannel)
+
+	_, ok := <-leavesChannel
+	assert.False(t, ok)
 }
 
 func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
