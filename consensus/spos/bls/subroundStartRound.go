@@ -191,6 +191,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+	sr.outportMutex.RLock()
+	defer sr.outportMutex.RUnlock()
+
 	if check.IfNil(sr.outportHandler) || !sr.outportHandler.HasDrivers() {
 		return
 	}
