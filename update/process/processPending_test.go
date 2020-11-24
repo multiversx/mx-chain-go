@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -100,7 +99,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	assert.True(t, called)
 	assert.NotNil(t, mbSlice)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(hash2), mbSlice[0].TxHashes[0])
+	assert.Equal(t, hash2, mbSlice[0].TxHashes[0])
 }
 
 func TestGetSortedSliceFromMbsMap(t *testing.T) {
