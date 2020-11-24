@@ -273,54 +273,10 @@ func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[strin
 // Bootstrap runs the fast bootstrap method from the network or local storage
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
-		log.Warn("fast bootstrap is disabled")
-
-		e.initializeFromLocalStorage()
-		if !e.baseData.storageExists {
-			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
-			if err != nil {
-				return Parameters{}, err
-			}
-
-			return Parameters{
-				Epoch:       e.startEpoch,
-				SelfShardId: e.genesisShardCoordinator.SelfId(),
-				NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
-			}, nil
-		}
-
-		newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		err = e.createTriesComponentsForShardId(newShardId)
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		epochToStart := e.baseData.lastEpoch
-		if shuffledOut {
-			epochToStart = e.startEpoch
-		}
-
-		newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
-		return Parameters{
-			Epoch:       epochToStart,
-			SelfShardId: newShardId,
-			NumOfShards: e.baseData.numberOfShards,
-			NodesConfig: e.nodesConfig,
-		}, nil
+		return e.bootstrapFromLocalStorage()
 	}
 
-	defer func() {
-		log.Debug("unregistering all message processor and un-joining all topics")
-		errMessenger := e.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger)
-
-		errMessenger = e.messenger.UnjoinAllTopics()
-		log.LogIfError(errMessenger)
-	}()
+	defer e.cleanupOnBootstrapFinish()
 
 	var err error
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
@@ -339,25 +295,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	isStartInEpochZero := e.isStartInEpochZero()
-	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
-
-	if isStartInEpochZero || isCurrentEpochSaved {
-		if e.baseData.lastEpoch <= e.startEpoch {
-			return e.prepareEpochZero()
-		}
-
-		parameters, errPrepare := e.prepareEpochFromStorage()
-		if errPrepare == nil {
-			return parameters, nil
-		}
-
-		if e.shuffledOut {
-			// sync was already tried - not need to continue from here
-			return Parameters{}, errPrepare
-		}
-
-		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+	params, shouldContinue, err := e.startFromSavedEpoch()
+	if !shouldContinue {
+		return params, err
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -377,12 +317,88 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	params, err := e.requestAndProcessing()
+	params, err = e.requestAndProcessing()
 	if err != nil {
 		return Parameters{}, err
 	}
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
+	log.Warn("fast bootstrap is disabled")
+
+	e.initializeFromLocalStorage()
+	if !e.baseData.storageExists {
+		err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())
+		if err != nil {
+			return Parameters{}, err
+		}
+
+		return Parameters{
+			Epoch:       e.startEpoch,
+			SelfShardId: e.genesisShardCoordinator.SelfId(),
+			NumOfShards: e.genesisShardCoordinator.NumberOfShards(),
+		}, nil
+	}
+
+	newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	err = e.createTriesComponentsForShardId(newShardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
+	epochToStart := e.baseData.lastEpoch
+	if shuffledOut {
+		epochToStart = e.startEpoch
+	}
+
+	newShardId = e.applyShardIDAsObserverIfNeeded(newShardId)
+	return Parameters{
+		Epoch:       epochToStart,
+		SelfShardId: newShardId,
+		NumOfShards: e.baseData.numberOfShards,
+		NodesConfig: e.nodesConfig,
+	}, nil
+}
+
+func (e *epochStartBootstrap) cleanupOnBootstrapFinish() {
+	log.Debug("unregistering all message processor and un-joining all topics")
+	errMessenger := e.messenger.UnregisterAllMessageProcessors()
+	log.LogIfError(errMessenger)
+
+	errMessenger = e.messenger.UnjoinAllTopics()
+	log.LogIfError(errMessenger)
+}
+
+func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
+	isStartInEpochZero := e.isStartInEpochZero()
+	isCurrentEpochSaved := e.computeIfCurrentEpochIsSaved()
+
+	if isStartInEpochZero || isCurrentEpochSaved {
+		if e.baseData.lastEpoch <= e.startEpoch {
+			params, err := e.prepareEpochZero()
+			return params, false, err
+		}
+
+		parameters, errPrepare := e.prepareEpochFromStorage()
+		if errPrepare == nil {
+			return parameters, false, nil
+		}
+
+		if e.shuffledOut {
+			// sync was already tried - not need to continue from here
+			return Parameters{}, false, errPrepare
+		}
+
+		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+	}
+
+	return Parameters{}, true, nil
 }
 
 func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {

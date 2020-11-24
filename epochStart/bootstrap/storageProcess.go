@@ -65,53 +65,11 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
 func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !sesb.generalConfig.GeneralSettings.StartInEpochEnabled {
-		log.Warn("fast bootstrap is disabled")
-
-		sesb.initializeFromLocalStorage()
-		if !sesb.baseData.storageExists {
-			err := sesb.createTriesComponentsForShardId(sesb.genesisShardCoordinator.SelfId())
-			if err != nil {
-				return Parameters{}, err
-			}
-
-			return Parameters{
-				Epoch:       sesb.startEpoch,
-				SelfShardId: sesb.genesisShardCoordinator.SelfId(),
-				NumOfShards: sesb.genesisShardCoordinator.NumberOfShards(),
-			}, nil
-		}
-
-		newShardId, shuffledOut, err := sesb.getShardIDForLatestEpoch()
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		err = sesb.createTriesComponentsForShardId(newShardId)
-		if err != nil {
-			return Parameters{}, err
-		}
-
-		epochToStart := sesb.baseData.lastEpoch
-		if shuffledOut {
-			epochToStart = sesb.startEpoch
-		}
-
-		newShardId = sesb.applyShardIDAsObserverIfNeeded(newShardId)
-		return Parameters{
-			Epoch:       epochToStart,
-			SelfShardId: newShardId,
-			NumOfShards: sesb.baseData.numberOfShards,
-			NodesConfig: sesb.nodesConfig,
-		}, nil
+		return sesb.bootstrapFromLocalStorage()
 	}
 
 	defer func() {
-		log.Debug("unregistering all message processor and un-joining all topics")
-		errMessenger := sesb.messenger.UnregisterAllMessageProcessors()
-		log.LogIfError(errMessenger)
-
-		errMessenger = sesb.messenger.UnjoinAllTopics()
-		log.LogIfError(errMessenger)
+		sesb.cleanupOnBootstrapFinish()
 
 		if !check.IfNil(sesb.resolvers) {
 			err := sesb.resolvers.Close()
@@ -141,25 +99,9 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	isStartInEpochZero := sesb.isStartInEpochZero()
-	isCurrentEpochSaved := sesb.computeIfCurrentEpochIsSaved()
-
-	if isStartInEpochZero || isCurrentEpochSaved {
-		if sesb.baseData.lastEpoch <= sesb.startEpoch {
-			return sesb.prepareEpochZero()
-		}
-
-		parameters, errPrepare := sesb.prepareEpochFromStorage()
-		if errPrepare == nil {
-			return parameters, nil
-		}
-
-		if sesb.shuffledOut {
-			// sync was already tried - not need to continue from here
-			return Parameters{}, errPrepare
-		}
-
-		log.Debug("could not start from storage - will try sync for start in epoch", "error", errPrepare)
+	params, shouldContinue, err := sesb.startFromSavedEpoch()
+	if !shouldContinue {
+		return params, err
 	}
 
 	err = sesb.prepareComponentsToSync()
@@ -179,7 +121,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	params, err := sesb.requestAndProcessFromStorage()
+	params, err = sesb.requestAndProcessFromStorage()
 	if err != nil {
 		return Parameters{}, err
 	}
