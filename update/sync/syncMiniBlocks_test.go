@@ -138,7 +138,11 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 	mbHash := []byte("mbHash")
 	rwdMBHash := []byte("rwdMBHash")
 	mb := &block.MiniBlock{}
-	rwdMB := &block.MiniBlock{Type: block.RewardsBlock}
+	rwdMB := &block.MiniBlock{
+		SenderShardID:   core.MetachainShardId,
+		ReceiverShardID: 0,
+		Type:            block.RewardsBlock,
+	}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &mock.StorerStub{},
 		Cache: &testscommon.CacherStub{
@@ -166,10 +170,13 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 		EpochStart: block.EpochStart{
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{
-					ShardID:                 0,
-					RootHash:                []byte("shardDataRootHash"),
-					PendingMiniBlockHeaders: []block.MiniBlockHeader{{Hash: mbHash}},
-					FirstPendingMetaBlock:   []byte("firstPending"),
+					ShardID:  0,
+					RootHash: []byte("shardDataRootHash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{Hash: mbHash},
+						{Hash: rwdMBHash},
+					},
+					FirstPendingMetaBlock: []byte("firstPending"),
 				},
 			},
 		},

@@ -75,7 +75,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	ss.printMetablockInfo(meta)
 
-	unFinished, err := ss.headers.GetUnfinishedMetaBlocks()
+	unFinished, err := ss.headers.GetUnFinishedMetaBlocks()
 	if err != nil {
 		return err
 	}
@@ -157,9 +157,9 @@ func (ss *syncState) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	return ss.headers.GetEpochStartMetaBlock()
 }
 
-// GetUnfinishedMetaBlocks returns the synced unfinished metablocks
-func (ss *syncState) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
-	return ss.headers.GetUnfinishedMetaBlocks()
+// GetUnFinishedMetaBlocks returns the synced unFinished metablocks
+func (ss *syncState) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+	return ss.headers.GetUnFinishedMetaBlocks()
 }
 
 // GetAllTries returns the synced tries

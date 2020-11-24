@@ -28,6 +28,7 @@ type HistoryRepositoryArguments struct {
 	MiniblocksMetadataStorer    storage.Storer
 	MiniblockHashByTxHashStorer storage.Storer
 	EpochByHashStorer           storage.Storer
+	EventsHashesByTxHashStorer  storage.Storer
 	Marshalizer                 marshal.Marshalizer
 	Hasher                      hashing.Hasher
 }
@@ -37,6 +38,7 @@ type historyRepository struct {
 	miniblocksMetadataStorer   storage.Storer
 	miniblockHashByTxHashIndex storage.Storer
 	epochByHashIndex           *epochByHashIndex
+	eventsHashesByTxHashIndex  *eventsHashesByTxHash
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
 
@@ -76,9 +78,14 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.Hasher) {
 		return nil, core.ErrNilHasher
 	}
+	if check.IfNil(arguments.EventsHashesByTxHashStorer) {
+		return nil, core.ErrNilStore
+	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := lrucache.NewCache(sizeOfDeduplicationCache)
+
+	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
 
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
@@ -91,12 +98,19 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		pendingNotarizedAtDestinationNotifications:   container.NewMutexMap(),
 		pendingNotarizedAtBothNotifications:          container.NewMutexMap(),
 		deduplicationCacheForInsertMiniblockMetadata: deduplicationCacheForInsertMiniblockMetadata,
+		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
 	}, nil
 }
 
 // RecordBlock records a block
 // This function is not called on a goroutine, but synchronously instead, right after committing a block
-func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+func (hr *historyRepository) RecordBlock(
+	blockHeaderHash []byte,
+	blockHeader data.HeaderHandler,
+	blockBody data.BodyHandler,
+	scrResultsFromPool map[string]data.TransactionHandler,
+	receiptsFromPool map[string]data.TransactionHandler,
+) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
@@ -123,6 +137,11 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte, blockHeader dat
 		if err != nil {
 			continue
 		}
+	}
+
+	err = hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -400,6 +419,11 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 
 		pendingMap.Remove(key)
 	}
+}
+
+// GetResultsHashesByTxHash will return results hashes by transaction hash
+func (hr *historyRepository) GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error) {
+	return hr.eventsHashesByTxHashIndex.getEventsHashesByTxHash(txHash, epoch)
 }
 
 // IsEnabled will always returns true

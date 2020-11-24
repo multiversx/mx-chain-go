@@ -213,6 +213,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			TxSignMarshalizer: config.TypeConfig{
 				Type: testMarshalizer,
 			},
+			TxSignHasher: config.TypeConfig{
+				Type: testHasher,
+			},
 		},
 		ShardId: "0",
 		ChainID: []byte("chainID"),

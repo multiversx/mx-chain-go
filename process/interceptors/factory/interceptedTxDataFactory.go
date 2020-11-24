@@ -1,8 +1,11 @@
 package factory
 
 import (
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -13,19 +16,27 @@ import (
 
 var _ process.InterceptedDataFactory = (*interceptedTxDataFactory)(nil)
 
+var log = logger.GetOrCreate("interceptors/factory")
+
 type interceptedTxDataFactory struct {
-	protoMarshalizer       marshal.Marshalizer
-	signMarshalizer        marshal.Marshalizer
-	hasher                 hashing.Hasher
-	keyGen                 crypto.KeyGenerator
-	singleSigner           crypto.SingleSigner
-	pubkeyConverter        core.PubkeyConverter
-	shardCoordinator       sharding.Coordinator
-	feeHandler             process.FeeHandler
-	whiteListerVerifiedTxs process.WhiteListHandler
-	argsParser             process.ArgumentsParser
-	chainID                []byte
-	minTransactionVersion  uint32
+	protoMarshalizer            marshal.Marshalizer
+	signMarshalizer             marshal.Marshalizer
+	hasher                      hashing.Hasher
+	keyGen                      crypto.KeyGenerator
+	singleSigner                crypto.SingleSigner
+	pubkeyConverter             core.PubkeyConverter
+	shardCoordinator            sharding.Coordinator
+	feeHandler                  process.FeeHandler
+	whiteListerVerifiedTxs      process.WhiteListHandler
+	argsParser                  process.ArgumentsParser
+	chainID                     []byte
+	minTransactionVersion       uint32
+	enableSignedTxWithHashEpoch uint32
+	epochStartTrigger           process.EpochStartTriggerHandler
+	txSignHasher                hashing.Hasher
+	txVersionChecker            process.TxVersionCheckerHandler
+	flagEnableSignedTxWithHash  atomic.Flag
+	epochNotifier               process.EpochNotifier
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -69,21 +80,38 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument.MinTransactionVersion == 0 {
 		return nil, process.ErrInvalidTransactionVersion
 	}
+	if check.IfNil(argument.EpochStartTrigger) {
+		return nil, process.ErrNilEpochStartTrigger
+	}
+	if check.IfNil(argument.TxSignHasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(argument.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
-	return &interceptedTxDataFactory{
-		protoMarshalizer:       argument.ProtoMarshalizer,
-		signMarshalizer:        argument.TxSignMarshalizer,
-		hasher:                 argument.Hasher,
-		keyGen:                 argument.KeyGen,
-		singleSigner:           argument.Signer,
-		pubkeyConverter:        argument.AddressPubkeyConv,
-		shardCoordinator:       argument.ShardCoordinator,
-		feeHandler:             argument.FeeHandler,
-		whiteListerVerifiedTxs: argument.WhiteListerVerifiedTxs,
-		argsParser:             argument.ArgsParser,
-		chainID:                argument.ChainID,
-		minTransactionVersion:  argument.MinTransactionVersion,
-	}, nil
+	interceptedTxDataFactory := &interceptedTxDataFactory{
+		protoMarshalizer:            argument.ProtoMarshalizer,
+		signMarshalizer:             argument.TxSignMarshalizer,
+		hasher:                      argument.Hasher,
+		keyGen:                      argument.KeyGen,
+		singleSigner:                argument.Signer,
+		pubkeyConverter:             argument.AddressPubkeyConv,
+		shardCoordinator:            argument.ShardCoordinator,
+		feeHandler:                  argument.FeeHandler,
+		whiteListerVerifiedTxs:      argument.WhiteListerVerifiedTxs,
+		argsParser:                  argument.ArgsParser,
+		chainID:                     argument.ChainID,
+		minTransactionVersion:       argument.MinTransactionVersion,
+		epochStartTrigger:           argument.EpochStartTrigger,
+		enableSignedTxWithHashEpoch: argument.EnableSignTxWithHashEpoch,
+		txSignHasher:                argument.TxSignHasher,
+		txVersionChecker:            versioning.NewTxVersionChecker(argument.MinTransactionVersion),
+	}
+
+	argument.EpochNotifier.RegisterNotifyHandler(interceptedTxDataFactory)
+
+	return interceptedTxDataFactory, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
@@ -101,11 +129,19 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.whiteListerVerifiedTxs,
 		itdf.argsParser,
 		itdf.chainID,
-		itdf.minTransactionVersion,
+		itdf.flagEnableSignedTxWithHash.IsSet(),
+		itdf.txSignHasher,
+		itdf.txVersionChecker,
 	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (itdf *interceptedTxDataFactory) IsInterfaceNil() bool {
 	return itdf == nil
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (itdf *interceptedTxDataFactory) EpochConfirmed(epoch uint32) {
+	itdf.flagEnableSignedTxWithHash.Toggle(epoch >= itdf.enableSignedTxWithHashEpoch)
+	log.Debug("interceptors: transaction signed with hash", "enabled", itdf.flagEnableSignedTxWithHash.IsSet())
 }
