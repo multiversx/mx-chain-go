@@ -312,7 +312,7 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	err = d.checkOwnerInitialFunds(dConfig, callerAddr, callValue)
+	err = d.checkUpdateOwnerInitialFunds(dConfig, callerAddr, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -398,7 +398,8 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 	status *DelegationContractStatus,
 	globalFund *GlobalFundData,
 ) [][]byte {
-	if !config.AutomaticActivation || len(status.NotStakedKeys) == 0 {
+	lenStakableKeys := uint64(len(status.NotStakedKeys)) + uint64(len(status.UnStakedKeys))
+	if !config.AutomaticActivation || lenStakableKeys == 0 {
 		return nil
 	}
 
@@ -408,20 +409,19 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 		return nil
 	}
 
-	lenNotStakedKeys := uint64(len(status.NotStakedKeys)) + uint64(len(status.UnStakedKeys))
 	numNodesToStake := maxNodesToStake - numStakedNodes
 	gasLeftToStakeNumNodes := d.eei.GasLeft() / d.gasCost.MetaChainSystemSCsCost.Stake
 
-	numNodesToStake = core.MinUint64(core.MinUint64(lenNotStakedKeys, numNodesToStake), gasLeftToStakeNumNodes)
+	numNodesToStake = core.MinUint64(core.MinUint64(lenStakableKeys, numNodesToStake), gasLeftToStakeNumNodes)
 	if numNodesToStake == 0 {
 		return nil
 	}
 
 	stakeArgs := [][]byte{big.NewInt(0).SetUint64(numNodesToStake).Bytes()}
-	listOfStakeableNodes := append(status.NotStakedKeys, status.UnStakedKeys...)
+	listOfStakableNodes := append(status.NotStakedKeys, status.UnStakedKeys...)
 	for i := uint64(0); i < numNodesToStake; i++ {
-		stakeArgs = append(stakeArgs, listOfStakeableNodes[i].BLSKey)
-		stakeArgs = append(stakeArgs, listOfStakeableNodes[i].SignedMsg)
+		stakeArgs = append(stakeArgs, listOfStakableNodes[i].BLSKey)
+		stakeArgs = append(stakeArgs, listOfStakableNodes[i].SignedMsg)
 	}
 
 	return stakeArgs
@@ -2042,7 +2042,7 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	return nil
 }
 
-func (d *delegation) checkOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
+func (d *delegation) checkUpdateOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
 	// initial owner funds must be 0 or higher than min deposit
 	if delegationConfig.InitialOwnerFunds.Cmp(zero) > 0 {
 		return nil
