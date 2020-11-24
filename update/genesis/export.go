@@ -324,7 +324,6 @@ func (se *stateExport) exportDataTries(
 ) error {
 	for leaf := range leavesChannel {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
-
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
 			return err
@@ -347,7 +346,6 @@ func (se *stateExport) exportAccountLeaves(
 ) error {
 	for leaf := range leavesChannel {
 		keyToExport := CreateAccountKey(accType, shId, leaf.Key())
-
 		err := se.hardforkStorer.Write(identifier, []byte(keyToExport), leaf.Value())
 		if err != nil {
 			return err

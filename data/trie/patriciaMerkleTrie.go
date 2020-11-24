@@ -599,10 +599,16 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 	tr.mutOperation.RLock()
 
 	newTrie, err := tr.recreate(rootHash)
-	if err != nil || check.IfNil(newTrie) || tr.root == nil {
+	if err != nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
-		return leavesChannel, err
+		return nil, err
+	}
+
+	if check.IfNil(newTrie) || newTrie.root == nil {
+		tr.mutOperation.RUnlock()
+		close(leavesChannel)
+		return leavesChannel, nil
 	}
 
 	tr.EnterPruningBufferingMode()
