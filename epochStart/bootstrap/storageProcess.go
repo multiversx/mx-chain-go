@@ -328,7 +328,7 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
 		return storageServiceCreator.CreateForMeta()
 	} else {
-		return storageServiceCreator.CreateForMeta()
+		return storageServiceCreator.CreateForShard()
 	}
 }
 
