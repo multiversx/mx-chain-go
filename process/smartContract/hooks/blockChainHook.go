@@ -208,16 +208,19 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
 
-	_, hash, err := process.GetHeaderFromStorageWithNonce(
+	header, hash, err := process.GetHeaderFromStorageWithNonce(
 		nonce,
 		bh.shardCoordinator.SelfId(),
 		bh.storageService,
 		bh.uint64Converter,
 		bh.marshalizer,
 	)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if header.GetEpoch() != hdr.GetEpoch() {
+		return nil, process.ErrInvalidBlockRequestOldEpoch
 	}
 
 	return hash, nil
