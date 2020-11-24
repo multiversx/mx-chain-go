@@ -80,8 +80,6 @@ func TestManagedCryptoComponents_Close(t *testing.T) {
 }
 
 func getManagedCryptoComponents(t *testing.T) factory.CryptoComponentsHandler {
-	t.Parallel()
-
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
