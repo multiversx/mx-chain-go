@@ -615,11 +615,12 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		tr.mutOperation.RLock()
 		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer, ctx)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
+
+		tr.mutOperation.RLock()
 		tr.ExitPruningBufferingMode()
 		tr.mutOperation.RUnlock()
 
