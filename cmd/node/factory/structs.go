@@ -2105,7 +2105,7 @@ func newMetaBlockProcessor(
 		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
 		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
 		EconomicsDataProvider: economicsDataProvider,
-		EpochEnableV2:         10000000,
+		EpochEnableV2:         10000000, // TODO: change this back when economics v2 is working
 	}
 
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
