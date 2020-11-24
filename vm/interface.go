@@ -45,6 +45,7 @@ type SystemEI interface {
 	GetStorageFromAddress(address []byte, key []byte) []byte
 	Finish(value []byte)
 	UseGas(gasToConsume uint64) error
+	GasLeft() uint64
 	BlockChainHook() vmcommon.BlockchainHook
 	CryptoHook() vmcommon.CryptoHook
 	IsValidator(blsKey []byte) bool
@@ -65,6 +66,7 @@ type EconomicsHandler interface {
 type ContextHandler interface {
 	SystemEI
 
+	GetContract(address []byte) (SystemSmartContract, error)
 	SetSystemSCContainer(scContainer SystemSCContainer) error
 	CreateVMOutput() *vmcommon.VMOutput
 	CleanCache()

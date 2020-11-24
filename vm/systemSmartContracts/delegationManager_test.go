@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"strings"
@@ -403,6 +404,12 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	assert.Equal(t, vmInput.CallerAddr, retrievedOwnerAddress)
 	assert.Equal(t, []byte{10}, retrievedServiceFee)
 	assert.Equal(t, big.NewInt(250), dContractConfig.MaxDelegationCap)
+
+	marshalledData := eei.GetStorageFromAddress(vm.AuctionSCAddress, eei.scAddress)
+	stakedData := &StakedDataV2_0{}
+	err := args.Marshalizer.Unmarshal(stakedData, marshalledData)
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(stakedData.RewardAddress, eei.scAddress))
 }
 
 func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) {

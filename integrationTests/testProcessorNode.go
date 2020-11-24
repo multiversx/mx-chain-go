@@ -1246,15 +1246,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	} else {
 		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	}
-	vmFactory, _ := metaProcess.NewVMContainerFactory(
-		argsHook,
-		tpn.EconomicsData.EconomicsData,
-		signVerifier,
-		gasSchedule,
-		tpn.NodesSetup,
-		TestHasher,
-		TestMarshalizer,
-		&config.SystemSmartContractsConfig{
+	argsVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           tpn.EconomicsData.EconomicsData,
+		MessageSignVerifier: signVerifier,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: tpn.NodesSetup,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
@@ -1294,10 +1294,11 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MaxServiceFee:  100000,
 			},
 		},
-		tpn.PeerState,
-		&mock.RaterMock{},
-		tpn.EpochNotifier,
-	)
+		ValidatorAccountsDB: tpn.PeerState,
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       tpn.EpochNotifier,
+	}
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)

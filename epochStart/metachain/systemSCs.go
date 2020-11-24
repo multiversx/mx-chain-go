@@ -762,17 +762,37 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 		return err
 	}
 
-	delegationMgrAcc, err := s.getUserAccount(vm.DelegationManagerSCAddress)
+	err = s.updateSystemSCContractsCode(vmInput.ContractCodeMetadata)
 	if err != nil {
 		return err
 	}
 
-	delegationMgrAcc.SetOwnerAddress(vmInput.CallerAddr)
-	delegationMgrAcc.SetCodeMetadata(vmInput.ContractCodeMetadata)
+	return nil
+}
 
-	err = s.userAccountsDB.SaveAccount(delegationMgrAcc)
-	if err != nil {
-		return err
+func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte) error {
+	contractsToUpdate := make([][]byte, 0)
+	contractsToUpdate = append(contractsToUpdate, vm.StakingSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.AuctionSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.GovernanceSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.ESDTSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.DelegationManagerSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.FirstDelegationSCAddress)
+
+	for _, address := range contractsToUpdate {
+		userAcc, err := s.getUserAccount(address)
+		if err != nil {
+			return err
+		}
+
+		userAcc.SetOwnerAddress(address)
+		userAcc.SetCodeMetadata(contractMetadata)
+		userAcc.SetCode(address)
+
+		err = s.userAccountsDB.SaveAccount(userAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -863,11 +883,12 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	// only toggle on exact epoch. In future epochs the config should have already been synchronized from peers
 	s.flagHystNodesEnabled.Toggle(epoch == s.hystNodesEnableEpoch)
 
+	s.flagChangeMaxNodesEnabled.Toggle(false)
 	for _, maxNodesConfig := range s.maxNodesEnableConfig {
-		if epoch >= maxNodesConfig.EpochEnable {
-			// to cover also rollbacks, we always set the maxNodes and set the Enabled flag
-			s.flagChangeMaxNodesEnabled.Toggle(epoch == maxNodesConfig.EpochEnable)
+		if epoch == maxNodesConfig.EpochEnable {
+			s.flagChangeMaxNodesEnabled.Toggle(true)
 			s.maxNodes = maxNodesConfig.MaxNumNodes
+			break
 		}
 	}
 

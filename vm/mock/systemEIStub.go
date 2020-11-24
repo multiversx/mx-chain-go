@@ -33,7 +33,26 @@ type SystemEIStub struct {
 	CanUnJailCalled                     func(blsKey []byte) bool
 	IsBadRatingCalled                   func(blsKey []byte) bool
 	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
+	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
+	GasLeftCalled                       func() uint64
 	ReturnMessage                       string
+}
+
+// GasLeft -
+func (s *SystemEIStub) GasLeft() uint64 {
+	if s.GasLeftCalled != nil {
+		return s.GasLeftCalled()
+	}
+
+	return 0
+}
+
+// GetContract -
+func (s *SystemEIStub) GetContract(address []byte) (vm.SystemSmartContract, error) {
+	if s.GetContractCalled != nil {
+		return s.GetContractCalled(address)
+	}
+	return &SystemSCStub{}, nil
 }
 
 // CanUnJail -

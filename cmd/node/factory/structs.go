@@ -1832,19 +1832,20 @@ func newMetaBlockProcessor(
 		Uint64Converter:  core.Uint64ByteSliceConverter,
 		BuiltInFunctions: builtInFuncs, // no built-in functions for meta.
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		economicsData,
-		messageSignVerifier,
-		gasSchedule,
-		nodesSetup,
-		core.Hasher,
-		core.InternalMarshalizer,
-		systemSCConfig,
-		stateComponents.PeerAccounts,
-		rater,
-		epochNotifier,
-	)
+	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           economicsData,
+		MessageSignVerifier: messageSignVerifier,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: nodesSetup,
+		Hasher:              core.Hasher,
+		Marshalizer:         core.InternalMarshalizer,
+		SystemSCConfig:      systemSCConfig,
+		ValidatorAccountsDB: stateComponents.PeerAccounts,
+		ChanceComputer:      rater,
+		EpochNotifier:       epochNotifier,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsNewVMContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -2095,7 +2096,7 @@ func newMetaBlockProcessor(
 		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
 		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
 		EconomicsDataProvider: economicsDataProvider,
-		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		EpochEnableV2:         10000000, // TODO: change this back when economics v2 is working
 	}
 
 	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)

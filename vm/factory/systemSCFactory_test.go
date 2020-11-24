@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"encoding/hex"
+	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -76,6 +79,9 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+
+	value, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
+	fmt.Println(hex.EncodeToString(value.Bytes()))
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
