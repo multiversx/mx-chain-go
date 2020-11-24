@@ -11,7 +11,7 @@ type RounderMock struct {
 	RoundIndex        int64
 	RoundTimeStamp    time.Time
 	RoundTimeDuration time.Duration
-	mutRounder sync.RWMutex
+	mutRounder        sync.RWMutex
 }
 
 // BeforeGenesis -

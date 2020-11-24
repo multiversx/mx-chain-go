@@ -2,9 +2,9 @@ package dataprocessor
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
@@ -12,19 +12,19 @@ const numMillisecondsInASecond = 1000
 
 type tpsBenchmarkUpdater struct {
 	tpsBenchmark   statistics.TPSBenchmark
-	elasticIndexer indexer.Indexer
+	outportHandler outport.OutportHandler
 }
 
 // NewTPSBenchmarkUpdater returns a new instance of tpsBenchmarkUpdater
 func NewTPSBenchmarkUpdater(
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
-	elasticIndexer indexer.Indexer,
+	outportHandler outport.OutportHandler,
 ) (*tpsBenchmarkUpdater, error) {
 	if check.IfNil(genesisNodesConfig) {
 		return nil, ErrNilGenesisNodesSetup
 	}
-	if check.IfNil(elasticIndexer) {
-		return nil, ErrNilElasticIndexer
+	if check.IfNil(outportHandler) {
+		return nil, ErrNilOutportHandler
 	}
 
 	tpsBenchmark, err := statistics.NewTPSBenchmark(
@@ -37,14 +37,14 @@ func NewTPSBenchmarkUpdater(
 
 	return &tpsBenchmarkUpdater{
 		tpsBenchmark:   tpsBenchmark,
-		elasticIndexer: elasticIndexer,
+		outportHandler: outportHandler,
 	}, nil
 }
 
 // IndexTPSForMetaBlock will call the indexer's tps for a metablock
 func (tbp *tpsBenchmarkUpdater) IndexTPSForMetaBlock(metaBlock *block.MetaBlock) {
 	tbp.tpsBenchmark.Update(metaBlock)
-	tbp.elasticIndexer.UpdateTPS(tbp.tpsBenchmark)
+	tbp.outportHandler.UpdateTPS(tbp.tpsBenchmark)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

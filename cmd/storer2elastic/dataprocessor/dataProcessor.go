@@ -12,13 +12,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process/rating"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
@@ -32,7 +32,7 @@ const indexLogStep = 10
 
 // ArgsDataProcessor holds the arguments needed for creating a new dataProcessor
 type ArgsDataProcessor struct {
-	ElasticIndexer      indexer.Indexer
+	OutportHandler      outport.OutportHandler
 	DataReplayer        DataReplayerHandler
 	GenesisNodesSetup   update.GenesisNodesSetupHandler
 	ShardCoordinator    sharding.Coordinator
@@ -46,7 +46,7 @@ type ArgsDataProcessor struct {
 
 type dataProcessor struct {
 	startTime           time.Time
-	elasticIndexer      indexer.Indexer
+	outportHandler      outport.OutportHandler
 	dataReplayer        DataReplayerHandler
 	genesisNodesSetup   update.GenesisNodesSetupHandler
 	ratingConfig        config.RatingsConfig
@@ -61,8 +61,8 @@ type dataProcessor struct {
 
 // NewDataProcessor returns a new instance of dataProcessor
 func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
-	if check.IfNil(args.ElasticIndexer) {
-		return nil, ErrNilElasticIndexer
+	if check.IfNil(args.OutportHandler) {
+		return nil, ErrNilOutportHandler
 	}
 	if check.IfNil(args.DataReplayer) {
 		return nil, ErrNilDataReplayer
@@ -87,7 +87,7 @@ func NewDataProcessor(args ArgsDataProcessor) (*dataProcessor, error) {
 	}
 
 	dp := &dataProcessor{
-		elasticIndexer:      args.ElasticIndexer,
+		outportHandler:      args.OutportHandler,
 		dataReplayer:        args.DataReplayer,
 		genesisNodesSetup:   args.GenesisNodesSetup,
 		shardCoordinator:    args.ShardCoordinator,
@@ -176,17 +176,21 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 		return err
 	}
 
-	// TODO: analyze if saving to elastic search on go routines is the right way to go. Important performance improvement
-	// was noticed this way, but at the moment of writing the code, there were issues when indexing on go routines ->
-	// not all data was indexed
-	dp.elasticIndexer.SaveBlock(newBody, data.Header, data.BodyTransactions, signersIndexes, notarizedHeaders, headerHash)
+	dp.outportHandler.SaveBlock(types.ArgsSaveBlocks{
+		Body:                   newBody,
+		Header:                 data.Header,
+		TxsFromPool:            data.BodyTransactions,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: notarizedHeaders,
+		HeaderHash:             headerHash,
+	})
 	dp.indexRoundInfo(signersIndexes, data.Header)
 	dp.logHeaderInfo(data.Header, headerHash)
 	return nil
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := workItems.RoundInfo{
+	ri := types.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -194,7 +198,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfo([]workItems.RoundInfo{ri})
+	dp.outportHandler.SaveRoundsInfo([]types.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {
@@ -230,7 +234,7 @@ func (dp *dataProcessor) createNodesCoordinators(nodesConfig update.GenesisNodes
 				return nil, err
 			}
 
-			dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, 0)
+			dp.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, 0)
 		}
 	}
 
@@ -352,7 +356,7 @@ func (dp *dataProcessor) processValidatorsForEpoch(metaBlock *block.MetaBlock, b
 		return
 	}
 
-	dp.elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, metaBlock.Epoch)
+	dp.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, metaBlock.Epoch)
 }
 
 func (dp *dataProcessor) uniqueMiniBlocksSlice(mbs []*block.MiniBlock) []*block.MiniBlock {

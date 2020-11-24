@@ -6,10 +6,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/dataprocessor"
 	"github.com/ElrondNetwork/elrond-go/cmd/storer2elastic/mock"
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,10 +62,10 @@ func TestNewRatingsProcessor(t *testing.T) {
 			name: "NilElasticIndexer",
 			argsFunc: func() dataprocessor.RatingProcessorArgs {
 				args := getRatingsProcessorArgs()
-				args.ElasticIndexer = nil
+				args.OutportHandler = nil
 				return args
 			},
-			exError: dataprocessor.ErrNilElasticIndexer,
+			exError: dataprocessor.ErrNilOutportHandler,
 		},
 		{
 			name: "All arguments ok",
@@ -88,8 +89,8 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_NothingToIndexShoul
 
 	indexWasCalled := false
 	args := getRatingsProcessorArgs()
-	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+	args.OutportHandler = &testscommon.OutportStub{
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -108,8 +109,8 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_UnmarshalPeerErrorS
 	indexWasCalled := false
 
 	args := getRatingsProcessorArgs()
-	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+	args.OutportHandler = &testscommon.OutportStub{
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -136,8 +137,8 @@ func TestRatingsProcessor_IndexRatingsForGenesisMetaBlock_ShouldWork(t *testing.
 	indexWasCalled := false
 
 	args := getRatingsProcessorArgs()
-	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+	args.OutportHandler = &testscommon.OutportStub{
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -174,8 +175,8 @@ func TestRatingsProcessor_IndexRatingsForEpochStartMetaBlock_ShouldWork(t *testi
 	indexWasCalled := false
 
 	args := getRatingsProcessorArgs()
-	args.ElasticIndexer = &mock.ElasticIndexerStub{
-		SaveValidatorsRatingCalled: func(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+	args.OutportHandler = &testscommon.OutportStub{
+		SaveValidatorsRatingCalled: func(indexID string, infoRating []types.ValidatorRatingInfo) {
 			indexWasCalled = true
 		},
 	}
@@ -230,7 +231,7 @@ func getRatingsProcessorArgs() dataprocessor.RatingProcessorArgs {
 		},
 		Marshalizer:    &mock.MarshalizerMock{},
 		Hasher:         &mock.HasherMock{},
-		ElasticIndexer: &mock.ElasticIndexerStub{},
+		OutportHandler: &testscommon.OutportStub{},
 	}
 }
 

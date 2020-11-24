@@ -9,11 +9,11 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -198,14 +198,14 @@ func countMetaAcceptedSignedBlocks(
 }
 
 func indexRoundInfo(
-	indexerHandler indexer.Indexer,
+	outportHandler outport.OutportHandler,
 	nodesCoordinator sharding.NodesCoordinator,
 	shardId uint32,
 	header data.HeaderHandler,
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := workItems.RoundInfo{
+	roundInfo := types.RoundInfo{
 		Index:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
@@ -214,7 +214,7 @@ func indexRoundInfo(
 	}
 
 	if check.IfNil(lastHeader) {
-		indexerHandler.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+		outportHandler.SaveRoundsInfo([]types.RoundInfo{roundInfo})
 		return
 	}
 
@@ -222,7 +222,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]workItems.RoundInfo, 0)
+	roundsInfo := make([]types.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -235,7 +235,7 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = workItems.RoundInfo{
+		roundInfo = types.RoundInfo{
 			Index:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
@@ -246,11 +246,11 @@ func indexRoundInfo(
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	indexerHandler.SaveRoundsInfo(roundsInfo)
+	outportHandler.SaveRoundsInfo(roundsInfo)
 }
 
 func indexValidatorsRating(
-	indexerHandler indexer.Indexer,
+	outportHandler outport.OutportHandler,
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
@@ -265,11 +265,11 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]workItems.ValidatorRatingInfo)
+	shardValidatorsRating := make(map[string][]types.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
-		validatorsInfos := make([]workItems.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]types.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, workItems.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, types.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
@@ -279,15 +279,15 @@ func indexValidatorsRating(
 		shardValidatorsRating[indexID] = validatorsInfos
 	}
 
-	indexShardValidatorsRating(indexerHandler, shardValidatorsRating)
+	indexShardValidatorsRating(outportHandler, shardValidatorsRating)
 }
 
 func indexShardValidatorsRating(
-	indexerHandler indexer.Indexer,
-	shardValidatorsRating map[string][]workItems.ValidatorRatingInfo,
+	outportHandler outport.OutportHandler,
+	shardValidatorsRating map[string][]types.ValidatorRatingInfo,
 ) {
 	for indexID, validatorsInfos := range shardValidatorsRating {
-		indexerHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
 	}
 }
 

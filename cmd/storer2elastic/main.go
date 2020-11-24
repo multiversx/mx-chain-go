@@ -228,7 +228,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	elasticIndexer, err := elasticConnectorFactory.Create()
+	outportHandler, err := elasticConnectorFactory.Create()
 	if err != nil {
 		return fmt.Errorf("error connecting to elastic: %w", err)
 	}
@@ -262,7 +262,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 			GeneralConfig:            nodeConfig,
 			Marshalizer:              marshalizer,
 			Hasher:                   hasher,
-			ElasticIndexer:           elasticIndexer,
+			OutportHandler:           outportHandler,
 			GenesisNodesConfig:       genesisNodesConfig,
 			RatingsConfig:            ratingsConfig,
 		},
@@ -292,14 +292,14 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		return err
 	}
 
-	tpsBenchmarkUpdater, err := dataprocessor.NewTPSBenchmarkUpdater(genesisNodesConfig, elasticIndexer)
+	tpsBenchmarkUpdater, err := dataprocessor.NewTPSBenchmarkUpdater(genesisNodesConfig, outportHandler)
 	if err != nil {
 		return err
 	}
 
 	dataProcessor, err := dataprocessor.NewDataProcessor(
 		dataprocessor.ArgsDataProcessor{
-			ElasticIndexer:      elasticIndexer,
+			OutportHandler:      outportHandler,
 			DataReplayer:        dataReplayer,
 			GenesisNodesSetup:   genesisNodesConfig,
 			Marshalizer:         marshalizer,

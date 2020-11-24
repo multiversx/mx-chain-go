@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -104,7 +104,7 @@ type baseBootstrap struct {
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
 
-	indexer indexer.Indexer
+	outportHandler outport.OutportHandler
 
 	chRcvMiniBlocks    chan bool
 	mutRcvMiniBlocks   sync.Mutex
@@ -440,8 +440,8 @@ func checkBootstrapNilParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.AppStatusHandler) {
 		return process.ErrNilAppStatusHandler
 	}
-	if check.IfNil(arguments.Indexer) {
-		return process.ErrNilIndexer
+	if check.IfNil(arguments.OutportHandler) {
+		return process.ErrNilOutportHandler
 	}
 
 	return nil
@@ -700,7 +700,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			)
 		}
 
-		boot.indexer.RevertIndexedBlock(currHeader, currBody)
+		boot.outportHandler.RevertBlock(currHeader, currBody)
 
 		shouldAddHeaderToBlackList := revertUsingForkNonce && boot.blockBootstrapper.isForkTriggeredByMeta()
 		if shouldAddHeaderToBlackList {

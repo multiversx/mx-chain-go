@@ -170,15 +170,15 @@ func getStatusComponents(
 				EnabledIndexes: []string{"transactions", "blocks"},
 			},
 		},
-		EconomicsConfig:      config.EconomicsConfig{},
-		ShardCoordinator:     processComponents.ShardCoordinator(),
-		NodesCoordinator:     processComponents.NodesCoordinator(),
-		EpochStartNotifier:   processComponents.EpochStartNotifier(),
-		CoreComponents:       coreComponents,
-		DataComponents:       dataComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
+		EconomicsConfig:    config.EconomicsConfig{},
+		ShardCoordinator:   processComponents.ShardCoordinator(),
+		NodesCoordinator:   processComponents.NodesCoordinator(),
+		EpochStartNotifier: processComponents.EpochStartNotifier(),
+		CoreComponents:     coreComponents,
+		DataComponents:     dataComponents,
+		NetworkComponents:  networkComponents,
+		StateComponents:    stateComponents,
+		IsInImportMode:     false,
 
 		ElasticTemplatesPath: "../cmd/node/config/elasticIndexTemplates",
 	}
@@ -215,7 +215,7 @@ func getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 	elasticUsername := "user"
 	elasticPassword := "pass"
 	return factory.StatusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
+		Config: testscommon.GetGeneralConfig(),
 		ExternalConfig: config.ExternalConfig{
 			ElasticSearchConnector: config.ElasticSearchConfig{
 				Enabled:        false,

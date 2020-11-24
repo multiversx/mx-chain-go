@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	dbLookupFactory "github.com/ElrondNetwork/elrond-go/core/dblookupext/factory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -31,6 +30,7 @@ import (
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
 	"github.com/ElrondNetwork/elrond-go/health"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -211,12 +211,6 @@ func (nr *NodeRunner) Start() error {
 		managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 		err = managedStatusComponents.StartPolling()
 
-		elasticIndexer := managedStatusComponents.ElasticIndexer()
-		if !elasticIndexer.IsNilIndexer() {
-			elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-			managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-		}
-
 		log.Debug("starting node...")
 
 		managedConsensusComponents, err := CreateManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut)
@@ -251,7 +245,7 @@ func (nr *NodeRunner) Start() error {
 		if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 			log.Trace("activating nodesCoordinator's validators indexing")
 			indexValidatorsListIfNeeded(
-				elasticIndexer,
+				managedStatusComponents.OutportHandler(),
 				nodesCoordinator,
 				managedProcessComponents.EpochStartTrigger().Epoch(),
 				log,
@@ -738,7 +732,7 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 		Version:                   configs.FlagsConfig.Version,
 		ImportStartHandler:        importStartHandler,
 		WorkingDir:                configs.FlagsConfig.WorkingDir,
-		Indexer:                   managedStatusComponents.ElasticIndexer(),
+		OutportHandler:            managedStatusComponents.OutportHandler(),
 		TpsBenchmark:              managedStatusComponents.TpsBenchmark(),
 		HistoryRepo:               historyRepository,
 		EpochNotifier:             epochNotifier,
@@ -1074,13 +1068,13 @@ func copySingleFile(folder string, configFile string) {
 }
 
 func indexValidatorsListIfNeeded(
-	elasticIndexer indexer.Indexer,
+	outportHandler outport.OutportHandler,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
 	log logger.Logger,
 
 ) {
-	if check.IfNil(elasticIndexer) {
+	if check.IfNil(outportHandler) || !outportHandler.HasDrivers() {
 		return
 	}
 
@@ -1090,7 +1084,7 @@ func indexValidatorsListIfNeeded(
 	}
 
 	if len(validatorsPubKeys) > 0 {
-		elasticIndexer.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
+		outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, epoch)
 	}
 }
 

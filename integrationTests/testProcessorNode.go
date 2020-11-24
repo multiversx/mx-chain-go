@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/crypto"
@@ -1402,7 +1401,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BlockTracker:            tpn.BlockTracker,
 		StateCheckpointModulus:  stateCheckpointModulus,
 		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
+		OutportHandler:          mock.NewNilOutport(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepository:       tpn.HistoryRepository,
 		EpochNotifier:           tpn.EpochNotifier,
@@ -2313,7 +2312,7 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsStub {
 func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 	return &mock.StatusComponentsStub{
 		TPSBench:             &testscommon.TpsBenchmarkMock{},
-		Indexer:              &mock.NilIndexer{},
+		Outport:              mock.NewNilOutport(),
 		SoftwareVersionCheck: &mock.SoftwareVersionCheckerMock{},
 		AppStatusHandler:     &mock.AppStatusHandlerStub{},
 	}

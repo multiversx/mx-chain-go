@@ -23,6 +23,8 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	factory.PrintStack()
 
 	configs := factory.CreateDefaultConfig()
+	configs.ExternalConfig.ElasticSearchConnector.Enabled = false
+
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
 	require.Nil(t, err)
@@ -75,12 +77,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
 	err = managedStatusComponents.StartPolling()
 	require.Nil(t, err)
-
-	elasticIndexer := managedStatusComponents.ElasticIndexer()
-	if !elasticIndexer.IsNilIndexer() {
-		elasticIndexer.SetTxLogsProcessor(managedProcessComponents.TxLogsProcessor())
-		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
-	}
 
 	managedConsensusComponents, err := node.CreateManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut)
 	require.Nil(t, err)

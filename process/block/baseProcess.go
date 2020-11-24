@@ -12,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -22,6 +21,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -75,11 +75,11 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer       indexer.Indexer
-	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   dblookupext.HistoryRepository
-	epochNotifier process.EpochNotifier
-	vmContainer   process.VirtualMachinesContainer
+	outportHandler outport.OutportHandler
+	tpsBenchmark   statistics.TPSBenchmark
+	historyRepo    dblookupext.HistoryRepository
+	epochNotifier  process.EpochNotifier
+	vmContainer    process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -408,8 +408,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockSizeThrottler) {
 		return process.ErrNilBlockSizeThrottler
 	}
-	if check.IfNil(arguments.Indexer) {
-		return process.ErrNilIndexer
+	if check.IfNil(arguments.OutportHandler) {
+		return process.ErrNilOutportHandler
 	}
 	if check.IfNil(arguments.TpsBenchmark) {
 		return process.ErrNilTpsBenchmark

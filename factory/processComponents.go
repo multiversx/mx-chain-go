@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -34,6 +33,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/genesis"
 	"github.com/ElrondNetwork/elrond-go/genesis/checking"
 	processGenesis "github.com/ElrondNetwork/elrond-go/genesis/process"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
@@ -134,7 +135,7 @@ type ProcessComponentsFactoryArgs struct {
 	Version                   string
 	ImportStartHandler        update.ImportStartHandler
 	WorkingDir                string
-	Indexer                   indexer.Indexer
+	OutportHandler            outport.OutportHandler
 	TpsBenchmark              statistics.TPSBenchmark
 	HistoryRepo               dblookupext.HistoryRepository
 	EpochNotifier             process.EpochNotifier
@@ -177,7 +178,7 @@ type processComponentsFactory struct {
 	version                   string
 	importStartHandler        update.ImportStartHandler
 	workingDir                string
-	indexer                   indexer.Indexer
+	outportHandler            outport.OutportHandler
 	tpsBenchmark              statistics.TPSBenchmark
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
@@ -226,7 +227,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		version:                   args.Version,
 		importStartHandler:        args.ImportStartHandler,
 		workingDir:                args.WorkingDir,
-		indexer:                   args.Indexer,
+		outportHandler:            args.OutportHandler,
 		tpsBenchmark:              args.TpsBenchmark,
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
@@ -691,7 +692,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 }
 
 func (pcf *processComponentsFactory) indexGenesisAccounts() error {
-	if pcf.indexer.IsNilIndexer() {
+	if !pcf.outportHandler.HasDrivers() {
 		return nil
 	}
 
@@ -716,7 +717,7 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		genesisAccounts = append(genesisAccounts, userAccount)
 	}
 
-	pcf.indexer.SaveAccounts(genesisAccounts)
+	pcf.outportHandler.SaveAccounts(genesisAccounts)
 	return nil
 }
 
@@ -803,9 +804,16 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		return err
 	}
 
-	if !pcf.indexer.IsNilIndexer() {
+	if pcf.outportHandler.HasDrivers() {
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
-		pcf.indexer.SaveBlock(&dataBlock.Body{}, genesisBlockHeader, nil, nil, nil, genesisBlockHash)
+		pcf.outportHandler.SaveBlock(types.ArgsSaveBlocks{
+			Body:                   &dataBlock.Body{},
+			Header:                 genesisBlockHeader,
+			TxsFromPool:            nil,
+			SignersIndexes:         nil,
+			NotarizedHeadersHashes: nil,
+			HeaderHash:             genesisBlockHash,
+		})
 	}
 
 	// In "dblookupext" index, record both the metachain and the shardID blocks

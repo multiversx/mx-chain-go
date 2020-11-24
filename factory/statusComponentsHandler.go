@@ -11,10 +11,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/appStatusPolling"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -89,8 +89,8 @@ func (m *managedStatusComponents) CheckSubcomponents() error {
 	if check.IfNil(m.tpsBenchmark) {
 		return errors.ErrNilTpsBenchmark
 	}
-	if check.IfNil(m.elasticIndexer) {
-		return errors.ErrNilElasticIndexer
+	if check.IfNil(m.outportHandler) {
+		return errors.ErrNilOutportHandler
 	}
 	if check.IfNil(m.softwareVersion) {
 		return errors.ErrNilSoftwareVersion
@@ -141,8 +141,8 @@ func (m *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
 	return m.statusComponents.tpsBenchmark
 }
 
-// ElasticIndexer returns the elastic indexer handler
-func (m *managedStatusComponents) ElasticIndexer() indexer.Indexer {
+// OutportHandler returns the outport handler
+func (m *managedStatusComponents) OutportHandler() outport.OutportHandler {
 	m.mutStatusComponents.RLock()
 	defer m.mutStatusComponents.RUnlock()
 
@@ -150,7 +150,7 @@ func (m *managedStatusComponents) ElasticIndexer() indexer.Indexer {
 		return nil
 	}
 
-	return m.statusComponents.elasticIndexer
+	return m.statusComponents.outportHandler
 }
 
 // SoftwareVersionChecker returns the software version checker handler
