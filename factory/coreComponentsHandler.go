@@ -63,13 +63,15 @@ func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
 	defer mcc.mutCoreComponents.Unlock()
 
-	if mcc.coreComponents != nil {
-		err := mcc.coreComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcc.coreComponents = nil
+	if mcc.coreComponents == nil {
+		return nil
 	}
+
+	err := mcc.coreComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.coreComponents = nil
 
 	return nil
 }

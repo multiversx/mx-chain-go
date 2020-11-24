@@ -12,12 +12,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	factory4 "github.com/ElrondNetwork/elrond-go/process/factory"
+	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
-	factory3 "github.com/ElrondNetwork/elrond-go/update/factory"
+	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
@@ -50,7 +50,7 @@ func CreateHardForkTrigger(
 	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
 	hardForkConfig := config.Hardfork
 	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
-	argsExporter := factory3.ArgsExporter{
+	argsExporter := updateFactory.ArgsExporter{
 		CoreComponents:           coreData,
 		CryptoComponents:         crypto,
 		HeaderValidator:          process.HeaderConstructionValidator(),
@@ -78,7 +78,7 @@ func CreateHardForkTrigger(
 		Rounder:                  process.Rounder(),
 		InterceptorDebugConfig:   config.Debug.InterceptorResolver,
 	}
-	hardForkExportFactory, err := factory3.NewExportHandlerFactory(argsExporter)
+	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func prepareOpenTopics(
 		return
 	}
 
-	selfShardTxTopic := factory4.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }
 

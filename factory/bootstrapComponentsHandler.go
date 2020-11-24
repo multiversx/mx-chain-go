@@ -49,13 +49,15 @@ func (mbf *managedBootstrapComponents) Close() error {
 	mbf.mutBootstrapComponents.Lock()
 	defer mbf.mutBootstrapComponents.Unlock()
 
-	if mbf.bootstrapComponents != nil {
-		err := mbf.bootstrapComponents.Close()
-		if err != nil {
-			return err
-		}
-		mbf.bootstrapComponents = nil
+	if mbf.bootstrapComponents == nil {
+		return nil
 	}
+
+	err := mbf.bootstrapComponents.Close()
+	if err != nil {
+		return err
+	}
+	mbf.bootstrapComponents = nil
 
 	return nil
 }

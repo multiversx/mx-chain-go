@@ -18,8 +18,6 @@ var _ ComponentHandler = (*managedProcessComponents)(nil)
 var _ ProcessComponentsHolder = (*managedProcessComponents)(nil)
 var _ ProcessComponentsHandler = (*managedProcessComponents)(nil)
 
-// TODO: integrate this in main.go and remove obsolete component from structs.go afterwards
-
 type managedProcessComponents struct {
 	*processComponents
 	factory              *processComponentsFactory
@@ -57,13 +55,15 @@ func (m *managedProcessComponents) Close() error {
 	m.mutProcessComponents.Lock()
 	defer m.mutProcessComponents.Unlock()
 
-	if m.processComponents != nil {
-		err := m.processComponents.Close()
-		if err != nil {
-			return err
-		}
-		m.processComponents = nil
+	if m.processComponents == nil {
+		return nil
 	}
+
+	err := m.processComponents.Close()
+	if err != nil {
+		return err
+	}
+	m.processComponents = nil
 
 	return nil
 }

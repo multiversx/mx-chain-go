@@ -149,7 +149,7 @@ func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	return 1
 }
 
-// MinNumberOfNodes -
+// MinNumberOfNodesWithHysteresis -
 func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 	if n.MinNumberOfNodesWithHysteresisCalled != nil {
 		return n.MinNumberOfNodesWithHysteresisCalled()

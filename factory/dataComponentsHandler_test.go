@@ -11,6 +11,8 @@ import (
 
 // ------------ Test ManagedDataComponents --------------------
 func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getDataArgs(coreComponents, shardCoordinator)
@@ -24,6 +26,8 @@ func TestManagedDataComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getDataArgs(coreComponents, shardCoordinator)
@@ -42,6 +46,8 @@ func TestManagedDataComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedDataComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getDataArgs(coreComponents, shardCoordinator)
@@ -56,6 +62,8 @@ func TestManagedDataComponents_Close(t *testing.T) {
 }
 
 func TestManagedDataComponents_Clone(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getDataArgs(coreComponents, shardCoordinator)

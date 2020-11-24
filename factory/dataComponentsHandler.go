@@ -52,13 +52,15 @@ func (mdc *managedDataComponents) Close() error {
 	mdc.mutDataComponents.Lock()
 	defer mdc.mutDataComponents.Unlock()
 
-	if mdc.dataComponents != nil {
-		err := mdc.dataComponents.Close()
-		if err != nil {
-			return err
-		}
-		mdc.dataComponents = nil
+	if mdc.dataComponents == nil {
+		return nil
 	}
+
+	err := mdc.dataComponents.Close()
+	if err != nil {
+		return err
+	}
+	mdc.dataComponents = nil
 
 	return nil
 }

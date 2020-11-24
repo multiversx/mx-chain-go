@@ -94,6 +94,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     pcf.coreData.InternalMarshalizer(),
 		Accounts:        pcf.state.AccountsAdapter(),
+		// TODO: Confirm EnableUserNameChange should be false
 	}
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
 	if err != nil {

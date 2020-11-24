@@ -2319,6 +2319,7 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 	}
 }
 
+// GetDefaultBootstrapComponents -
 func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{

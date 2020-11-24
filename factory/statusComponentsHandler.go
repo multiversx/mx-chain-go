@@ -64,16 +64,18 @@ func (msc *managedStatusComponents) Close() error {
 	msc.mutStatusComponents.Lock()
 	defer msc.mutStatusComponents.Unlock()
 
-	if msc.statusComponents != nil {
-		if msc.cancelFunc != nil {
-			msc.cancelFunc()
-		}
-		err := msc.statusComponents.Close()
-		if err != nil {
-			return err
-		}
-		msc.statusComponents = nil
+	if msc.statusComponents == nil {
+		return nil
 	}
+	if msc.cancelFunc != nil {
+		msc.cancelFunc()
+	}
+
+	err := msc.statusComponents.Close()
+	if err != nil {
+		return err
+	}
+	msc.statusComponents = nil
 
 	return nil
 }

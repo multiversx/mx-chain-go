@@ -56,13 +56,15 @@ func (mcc *managedCryptoComponents) Close() error {
 	mcc.mutCryptoComponents.Lock()
 	defer mcc.mutCryptoComponents.Unlock()
 
-	if mcc.cryptoComponents != nil {
-		err := mcc.cryptoComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcc.cryptoComponents = nil
+	if mcc.cryptoComponents == nil {
+		return nil
 	}
+
+	err := mcc.cryptoComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.cryptoComponents = nil
 
 	return nil
 }

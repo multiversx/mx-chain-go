@@ -51,13 +51,15 @@ func (msc *managedStateComponents) Close() error {
 	msc.mutStateComponents.Lock()
 	defer msc.mutStateComponents.Unlock()
 
-	if msc.stateComponents != nil {
-		err := msc.stateComponents.Close()
-		if err != nil {
-			return err
-		}
-		msc.stateComponents = nil
+	if msc.stateComponents == nil {
+		return nil
 	}
+
+	err := msc.stateComponents.Close()
+	if err != nil {
+		return err
+	}
+	msc.stateComponents = nil
 
 	return nil
 }

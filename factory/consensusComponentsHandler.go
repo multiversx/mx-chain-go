@@ -50,13 +50,15 @@ func (mcc *managedConsensusComponents) Close() error {
 	mcc.mutConsensusComponents.Lock()
 	defer mcc.mutConsensusComponents.Unlock()
 
-	if mcc.consensusComponents != nil {
-		err := mcc.consensusComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcc.consensusComponents = nil
+	if mcc.consensusComponents == nil {
+		return nil
 	}
+
+	err := mcc.consensusComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.consensusComponents = nil
 
 	return nil
 }

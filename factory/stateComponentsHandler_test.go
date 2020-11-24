@@ -11,6 +11,8 @@ import (
 
 // ------------ Test ManagedStateComponents --------------------
 func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getStateArgs(coreComponents, shardCoordinator)
@@ -24,6 +26,8 @@ func TestManagedStateComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getStateArgs(coreComponents, shardCoordinator)
@@ -44,6 +48,8 @@ func TestManagedStateComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedStateComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getStateArgs(coreComponents, shardCoordinator)
@@ -58,6 +64,8 @@ func TestManagedStateComponents_Close(t *testing.T) {
 }
 
 func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getStateArgs(coreComponents, shardCoordinator)
@@ -71,6 +79,8 @@ func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 }
 
 func TestManagedStateComponents_Setters(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getStateArgs(coreComponents, shardCoordinator)

@@ -10,6 +10,8 @@ import (
 
 // ------------ Test ManagedHeartbeatComponents --------------------
 func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatArgs.Config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = 0
@@ -22,6 +24,8 @@ func TestManagedHeartbeatComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 }
 
 func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
@@ -41,6 +45,8 @@ func TestManagedHeartbeatComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedHeartbeatComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	heartbeatArgs := getDefaultHeartbeatComponents(shardCoordinator)
 	heartbeatComponentsFactory, _ := factory.NewHeartbeatComponentsFactory(heartbeatArgs)
