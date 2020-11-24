@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -29,6 +30,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
 	ImportDbConfig      config.ImportDbConfig
 	ChanGracefullyClose chan endProcess.ArgEndProcess
+	TimeToWait          time.Duration
 }
 
 type storageEpochStartBootstrap struct {
@@ -38,6 +40,7 @@ type storageEpochStartBootstrap struct {
 	importDbConfig      config.ImportDbConfig
 	chanGracefullyClose chan endProcess.ArgEndProcess
 	chainID             string
+	timeToWait          time.Duration
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -57,6 +60,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		importDbConfig:      args.ImportDbConfig,
 		chanGracefullyClose: args.ChanGracefullyClose,
 		chainID:             args.CoreComponentsHolder.ChainID(),
+		timeToWait:          args.TimeToWait,
 	}
 
 	return sesb, nil
@@ -109,7 +113,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	sesb.epochStartMeta, err = sesb.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
+	sesb.epochStartMeta, err = sesb.epochStartMetaBlockSyncer.SyncEpochStartMeta(sesb.timeToWait)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -362,7 +366,7 @@ func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta *block.MetaB
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), sesb.timeToWait)
 	err := sesb.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {

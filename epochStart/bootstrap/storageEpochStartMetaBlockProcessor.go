@@ -80,7 +80,12 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 		return nil
 	}
 
-	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	if !ok {
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion)
+		return nil
+	}
+
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil
@@ -108,9 +113,9 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	for {
 		select {
 		case <-ses.chanReceived:
-			return ses.getMetablock(), nil
+			return ses.getMetablock()
 		case <-ctx.Done():
-			return ses.getMetablock(), nil
+			return ses.getMetablock()
 		case <-chanRequests:
 			ses.requestMetaBlock()
 			chanRequests = time.After(durationBetweenReRequests)
@@ -118,11 +123,15 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	}
 }
 
-func (ses *storageEpochStartMetaBlockProcessor) getMetablock() *block.MetaBlock {
+func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (*block.MetaBlock, error) {
 	ses.mutMetablock.Lock()
 	defer ses.mutMetablock.Unlock()
 
-	return ses.metaBlock
+	if check.IfNil(ses.metaBlock) {
+		return nil, process.ErrNilMetaBlockHeader
+	}
+
+	return ses.metaBlock, nil
 }
 
 func (ses *storageEpochStartMetaBlockProcessor) requestMetaBlock() {
