@@ -2,18 +2,16 @@ package mock
 
 // ReconnecterStub -
 type ReconnecterStub struct {
-	ReconnectToNetworkCalled func() <-chan struct{}
+	ReconnectToNetworkCalled func()
 	PauseCall                func()
 	ResumeCall               func()
 }
 
 // ReconnectToNetwork -
-func (rs *ReconnecterStub) ReconnectToNetwork() <-chan struct{} {
+func (rs *ReconnecterStub) ReconnectToNetwork() {
 	if rs.ReconnectToNetworkCalled != nil {
-		return rs.ReconnectToNetworkCalled()
+		rs.ReconnectToNetworkCalled()
 	}
-
-	return make(chan struct{})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

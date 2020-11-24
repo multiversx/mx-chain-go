@@ -26,9 +26,8 @@ func (nd *NilDiscoverer) Name() string {
 	return nilName
 }
 
-// ReconnectToNetwork returns an empty channel
-func (nd *NilDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return make(chan struct{})
+// ReconnectToNetwork does nothing
+func (nd *NilDiscoverer) ReconnectToNetwork() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -74,6 +74,7 @@ func TestNetworkComponentsFactory_Create_ShouldWork(t *testing.T) {
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
 			ProtocolID:                       "erd/kad/1.0.0",
 			InitialPeerList:                  []string{"peer0", "peer1"},

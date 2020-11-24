@@ -11,6 +11,7 @@ import (
 type ConnectableHost interface {
 	host.Host
 	ConnectToPeer(ctx context.Context, address string) error
+	AddressToPeerInfo(address string) (*peer.AddrInfo, error)
 	IsInterfaceNil() bool
 }
 

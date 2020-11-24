@@ -92,7 +92,7 @@ func (lcms *libp2pConnectionMonitorSimple) ClosedStream(network.Network, network
 func (lcms *libp2pConnectionMonitorSimple) doReconnection() {
 	for {
 		<-lcms.chDoReconnect
-		<-lcms.reconnecter.ReconnectToNetwork()
+		lcms.reconnecter.ReconnectToNetwork()
 
 		time.Sleep(DurationBetweenReconnectAttempts)
 	}

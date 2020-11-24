@@ -54,6 +54,24 @@ type ContinuousKadDhtDiscoverer struct {
 // NewContinuousKadDhtDiscoverer creates a new kad-dht discovery type implementation
 // initialPeersList can be nil or empty, no initial connection will be attempted, a warning message will appear
 func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, error) {
+	sharder, err := prepareArguments(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ContinuousKadDhtDiscoverer{
+		context:              arg.Context,
+		host:                 arg.Host,
+		sharder:              sharder,
+		peersRefreshInterval: arg.PeersRefreshInterval,
+		protocolID:           arg.ProtocolID,
+		initialPeersList:     arg.InitialPeersList,
+		bucketSize:           arg.BucketSize,
+		routingTableRefresh:  arg.RoutingTableRefresh,
+	}, nil
+}
+
+func prepareArguments(arg ArgKadDht) (Sharder, error) {
 	if check.IfNilReflect(arg.Context) {
 		return nil, p2p.ErrNilContext
 	}
@@ -79,16 +97,7 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 			"No initial connection will be done")
 	}
 
-	return &ContinuousKadDhtDiscoverer{
-		context:              arg.Context,
-		host:                 arg.Host,
-		sharder:              sharder,
-		peersRefreshInterval: arg.PeersRefreshInterval,
-		protocolID:           arg.ProtocolID,
-		initialPeersList:     arg.InitialPeersList,
-		bucketSize:           arg.BucketSize,
-		routingTableRefresh:  arg.RoutingTableRefresh,
-	}, nil
+	return sharder, nil
 }
 
 // Bootstrap will start the bootstrapping new peers process
@@ -172,7 +181,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.Bootstrap(ckdd.context)
 		if shouldReconnect {
 			log.Debug("pausing the p2p bootstrapping process")
-			<-ckdd.ReconnectToNetwork()
+			ckdd.ReconnectToNetwork()
 			log.Debug("resuming the p2p bootstrapping process")
 		}
 
@@ -241,8 +250,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) Name() string {
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() <-chan struct{} {
-	return ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
+func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() {
+	<-ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

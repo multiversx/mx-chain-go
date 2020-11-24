@@ -118,6 +118,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
 			ProtocolID:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  initialPeerList,

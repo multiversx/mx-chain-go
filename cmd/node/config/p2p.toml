@@ -34,6 +34,13 @@
     #Enabled: true/false to enable/disable this discovery mechanism
     Enabled = true
 
+    #Type represents the kad-dht glue code implementation.
+    #"legacy" will define the first implementation.
+    #"optimized" represents the new variant able to connect to multiple seeders at once. This implementation also has
+    #a built-in timer that will try to automatically reconnect to the seeders (in case the seeders recover after a
+    #premature shutdown)
+    Type = "optimized"
+
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10
 

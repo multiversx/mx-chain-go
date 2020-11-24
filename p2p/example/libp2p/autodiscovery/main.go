@@ -23,6 +23,7 @@ func createMockNetworkArgs() libp2p.ArgsNetworkMessenger {
 			},
 			KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 				Enabled:                          true,
+				Type:                             "optimized",
 				RefreshIntervalInSec:             2,
 				ProtocolID:                       "/erd/kad/1.0.0",
 				InitialPeerList:                  nil,

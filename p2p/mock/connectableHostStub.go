@@ -151,6 +151,16 @@ func (hs *ConnectableHostStub) ConnManager() connmgr.ConnManager {
 	return nil
 }
 
+// AddressToPeerInfo -
+func (hs *ConnectableHostStub) AddressToPeerInfo(address string) (*peer.AddrInfo, error) {
+	multiAddr, err := multiaddr.NewMultiaddr(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return peer.AddrInfoFromP2pAddr(multiAddr)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hs *ConnectableHostStub) IsInterfaceNil() bool {
 	return hs == nil
