@@ -51,7 +51,6 @@ type ArgsNewVMContainerFactory struct {
 	ValidatorAccountsDB state.AccountsAdapter
 	ChanceComputer      sharding.ChanceComputer
 	EpochNotifier       process.EpochNotifier
-	SystemSCContainer   vm.SystemSCContainer
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -99,7 +98,6 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		validatorAccountsDB: args.ValidatorAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		epochNotifier:       args.EpochNotifier,
-		systemContracts:     args.SystemSCContainer,
 	}, nil
 }
 
@@ -149,11 +147,9 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		return nil, err
 	}
 
-	if check.IfNil(vmf.systemContracts) {
-		vmf.systemContracts, err = scFactory.Create()
-		if err != nil {
-			return nil, err
-		}
+	vmf.systemContracts, err = scFactory.Create()
+	if err != nil {
+		return nil, err
 	}
 
 	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
