@@ -155,7 +155,7 @@ func (okdd *optimizedKadDhtDiscoverer) connectToSeeders(ctx context.Context, blo
 
 	for {
 		connectedToASeeder := okdd.tryToReconnectAtLeastToASeeder(ctx)
-		log.Warn("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
+		log.Debug("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
 			"num seeders", len(okdd.initialPeersList), "connected to a seeder", connectedToASeeder)
 		if connectedToASeeder || !blocking {
 			return connectedToASeeder
