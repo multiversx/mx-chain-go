@@ -742,6 +742,16 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ResultsHashesByTx"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
 
 [Logs]
     LogFileLifeSpanInSec = 86400
