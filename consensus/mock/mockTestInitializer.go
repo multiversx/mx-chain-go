@@ -133,27 +133,29 @@ func InitConsensusCore() *ConsensusCoreMock {
 	headerPoolSubscriber := &HeadersCacherStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierStub{}
+	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 
 	container := &ConsensusCoreMock{
-		blockChain:             blockChain,
-		blockProcessor:         blockProcessorMock,
-		headersSubscriber:      headerPoolSubscriber,
-		bootstrapper:           bootstrapperMock,
-		broadcastMessenger:     broadcastMessengerMock,
-		chronologyHandler:      chronologyHandlerMock,
-		hasher:                 hasherMock,
-		marshalizer:            marshalizerMock,
-		blsPrivateKey:          blsPrivateKeyMock,
-		blsSingleSigner:        blsSingleSignerMock,
-		multiSigner:            multiSignerMock,
-		rounder:                rounderMock,
-		shardCoordinator:       shardCoordinatorMock,
-		syncTimer:              syncTimerMock,
-		validatorGroupSelector: validatorGroupSelector,
-		epochStartNotifier:     epochStartSubscriber,
-		antifloodHandler:       antifloodHandler,
-		peerHonestyHandler:     peerHonestyHandler,
-		headerSigVerifier:      headerSigVerifier,
+		blockChain:              blockChain,
+		blockProcessor:          blockProcessorMock,
+		headersSubscriber:       headerPoolSubscriber,
+		bootstrapper:            bootstrapperMock,
+		broadcastMessenger:      broadcastMessengerMock,
+		chronologyHandler:       chronologyHandlerMock,
+		hasher:                  hasherMock,
+		marshalizer:             marshalizerMock,
+		blsPrivateKey:           blsPrivateKeyMock,
+		blsSingleSigner:         blsSingleSignerMock,
+		multiSigner:             multiSignerMock,
+		rounder:                 rounderMock,
+		shardCoordinator:        shardCoordinatorMock,
+		syncTimer:               syncTimerMock,
+		validatorGroupSelector:  validatorGroupSelector,
+		epochStartNotifier:      epochStartSubscriber,
+		antifloodHandler:        antifloodHandler,
+		peerHonestyHandler:      peerHonestyHandler,
+		headerSigVerifier:       headerSigVerifier,
+		fallbackHeaderValidator: fallbackHeaderValidator,
 	}
 
 	return container

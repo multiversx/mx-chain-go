@@ -12,6 +12,7 @@ type ConnectionMonitor interface {
 	IsConnectedToTheNetwork(netw network.Network) bool
 	SetThresholdMinConnectedPeers(thresholdMinConnectedPeers int, netw network.Network)
 	ThresholdMinConnectedPeers() int
+	Close() error
 	IsInterfaceNil() bool
 }
 

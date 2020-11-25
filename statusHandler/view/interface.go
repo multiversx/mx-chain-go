@@ -43,8 +43,8 @@ type Presenter interface {
 	GetCurrentBlockHash() string
 	GetEpochNumber() uint64
 	GetEpochInfo() (uint64, uint64, int, string)
-	CalculateTimeToSynchronize() string
-	CalculateSynchronizationSpeed() uint64
+	CalculateTimeToSynchronize(numMillisecondsRefreshTime int) string
+	CalculateSynchronizationSpeed(numMillisecondsRefreshTime int) uint64
 	GetCurrentRoundTimestamp() uint64
 	GetBlockSize() uint64
 	GetNumShardHeadersInPool() uint64

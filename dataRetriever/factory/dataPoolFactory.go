@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -20,7 +20,7 @@ var log = logger.GetOrCreate("dataRetriever/factory")
 // ArgsDataPool holds the arguments needed for NewDataPoolFromConfig function
 type ArgsDataPool struct {
 	Config           *config.Config
-	EconomicsData    *economics.EconomicsData
+	EconomicsData    process.EconomicsHandler
 	ShardCoordinator sharding.Coordinator
 }
 
@@ -31,7 +31,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	if args.Config == nil {
 		return nil, dataRetriever.ErrNilConfig
 	}
-	if args.EconomicsData == nil {
+	if check.IfNil(args.EconomicsData) {
 		return nil, dataRetriever.ErrNilEconomicsData
 	}
 	if check.IfNil(args.ShardCoordinator) {

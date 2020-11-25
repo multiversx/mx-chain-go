@@ -17,7 +17,7 @@ func NewStableTagProvider(stableTagLocation string) *stableTagProvider {
 
 // FetchTagVersion will call the provided URL and will fetch the software version
 func (stp *stableTagProvider) FetchTagVersion() (string, error) {
-	resp, err := http.Get(stp.stableTagLocation)
+	resp, err := http.DefaultClient.Get(stp.stableTagLocation)
 	if err != nil {
 		return "", err
 	}
@@ -27,6 +27,8 @@ func (stp *stableTagProvider) FetchTagVersion() (string, error) {
 		if err != nil {
 			log.Debug(err.Error())
 		}
+
+		http.DefaultClient.CloseIdleConnections()
 	}()
 
 	buf := new(bytes.Buffer)

@@ -36,7 +36,7 @@ var signature = make([]byte, SignatureSize)
 var invalidSignature = make([]byte, SignatureSize+1)
 var publicKey = make([]byte, PublicKeySize)
 
-func createDefaultWorkerArgs() *spos.WorkerArgs {
+func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.WorkerArgs {
 	blockchainMock := &mock.BlockChainMock{}
 	blockProcessor := &mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -95,6 +95,7 @@ func createDefaultWorkerArgs() *spos.WorkerArgs {
 		PoolAdder:                poolAdder,
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
+		AppStatusHandler:         appStatusHandler,
 	}
 
 	return workerArgs
@@ -120,8 +121,8 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 	}
 }
 
-func initWorker() *spos.Worker {
-	workerArgs := createDefaultWorkerArgs()
+func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
+	workerArgs := createDefaultWorkerArgs(appStatusHandler)
 	sposWorker, _ := spos.NewWorker(workerArgs)
 
 	return sposWorker
@@ -142,7 +143,7 @@ func initRounderMock() *mock.RounderMock {
 func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.ConsensusService = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -152,7 +153,7 @@ func TestWorker_NewWorkerConsensusServiceNilShouldFail(t *testing.T) {
 
 func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 	t.Parallel()
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.BlockChain = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -163,7 +164,7 @@ func TestWorker_NewWorkerBlockChainNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.BlockProcessor = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -174,7 +175,7 @@ func TestWorker_NewWorkerBlockProcessorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.Bootstrapper = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -185,7 +186,7 @@ func TestWorker_NewWorkerBootstrapperNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.BroadcastMessenger = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -196,7 +197,7 @@ func TestWorker_NewWorkerBroadcastMessengerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.ConsensusState = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -207,7 +208,7 @@ func TestWorker_NewWorkerConsensusStateNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.ForkDetector = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -218,7 +219,7 @@ func TestWorker_NewWorkerForkDetectorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.Marshalizer = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -229,7 +230,7 @@ func TestWorker_NewWorkerMarshalizerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.Hasher = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -240,7 +241,7 @@ func TestWorker_NewWorkerHasherNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.Rounder = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -251,7 +252,7 @@ func TestWorker_NewWorkerRounderNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.ShardCoordinator = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -262,7 +263,7 @@ func TestWorker_NewWorkerShardCoordinatorNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerPeerSignatureHandlerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.PeerSignatureHandler = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -273,7 +274,7 @@ func TestWorker_NewWorkerPeerSignatureHandlerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.SyncTimer = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -284,7 +285,7 @@ func TestWorker_NewWorkerSyncTimerNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.HeaderSigVerifier = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -295,7 +296,7 @@ func TestWorker_NewWorkerHeaderSigVerifierNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerHeaderIntegrityVerifierShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.HeaderIntegrityVerifier = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -306,7 +307,7 @@ func TestWorker_NewWorkerHeaderIntegrityVerifierShouldFail(t *testing.T) {
 func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.ChainID = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -317,7 +318,7 @@ func TestWorker_NewWorkerEmptyChainIDShouldFail(t *testing.T) {
 func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.NetworkShardingCollector = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -328,7 +329,7 @@ func TestWorker_NewWorkerNilNetworkShardingCollectorShouldFail(t *testing.T) {
 func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.AntifloodHandler = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -339,7 +340,7 @@ func TestWorker_NewWorkerNilAntifloodHandlerShouldFail(t *testing.T) {
 func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	workerArgs.PoolAdder = nil
 	wrk, err := spos.NewWorker(workerArgs)
 
@@ -350,7 +351,7 @@ func TestWorker_NewWorkerPoolAdderNilShouldFail(t *testing.T) {
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	wrk, err := spos.NewWorker(workerArgs)
 
 	assert.Nil(t, err)
@@ -361,7 +362,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 	t.Parallel()
 
 	expectedErr := errors.New("flood detected")
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{
 		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 			return nil
@@ -381,7 +382,7 @@ func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testi
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testing.T) {
 	t.Parallel()
-	wrk := initWorker()
+	wrk := initWorker(&mock.AppStatusHandlerStub{})
 	wrk.ReceivedSyncState(false)
 	rcv := false
 	select {
@@ -394,7 +395,7 @@ func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenInputIsFalse(t *testi
 
 func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenChannelIsBusy(t *testing.T) {
 	t.Parallel()
-	wrk := initWorker()
+	wrk := initWorker(&mock.AppStatusHandlerStub{})
 	wrk.ConsensusStateChangedChannel() <- false
 	wrk.ReceivedSyncState(true)
 	rcv := false
@@ -408,7 +409,7 @@ func TestWorker_ReceivedSyncStateShouldNotSendOnChannelWhenChannelIsBusy(t *test
 
 func TestWorker_ReceivedSyncStateShouldSendOnChannel(t *testing.T) {
 	t.Parallel()
-	wrk := initWorker()
+	wrk := initWorker(&mock.AppStatusHandlerStub{})
 	wrk.ReceivedSyncState(true)
 	rcv := false
 	select {
@@ -421,7 +422,7 @@ func TestWorker_ReceivedSyncStateShouldSendOnChannel(t *testing.T) {
 
 func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
 	t.Parallel()
-	wrk := initWorker()
+	wrk := initWorker(&mock.AppStatusHandlerStub{})
 	wrk.NilReceivedMessages()
 	wrk.InitReceivedMessages()
 
@@ -430,7 +431,7 @@ func TestWorker_InitReceivedMessagesShouldInitMap(t *testing.T) {
 
 func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := initWorker()
+	wrk := initWorker(&mock.AppStatusHandlerStub{})
 	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
@@ -444,7 +445,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	receivedMessageCall := func(*consensus.Message) bool {
 		return true
 	}
@@ -464,7 +465,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -495,7 +496,7 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	err := wrk.ProcessReceivedMessage(nil, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
@@ -505,7 +506,7 @@ func TestWorker_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	err := wrk.ProcessReceivedMessage(&mock.P2PMessageMock{}, fromConnectedPeerId)
 	time.Sleep(time.Second)
 
@@ -515,7 +516,7 @@ func TestWorker_ProcessReceivedMessageNilMessageDataFieldShouldErr(t *testing.T)
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -543,7 +544,13 @@ func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.
 
 func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+
+	receivedValue := uint64(0)
+	wrk := *initWorker(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			receivedValue = value
+		},
+	})
 	wrk.SetBlockProcessor(&mock.BlockProcessorMock{
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return &block.Header{
@@ -587,12 +594,6 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		nil,
 		currentPid,
 	)
-	receivedValue := uint64(0)
-	_ = wrk.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-			receivedValue = value
-		},
-	})
 
 	time.Sleep(delay)
 
@@ -613,7 +614,7 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -639,7 +640,7 @@ func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShoul
 
 func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -667,7 +668,7 @@ func TestWorker_ProcessReceivedMessageTypeInvalidShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -695,7 +696,7 @@ func TestWorker_ProcessReceivedHeaderHashSizeInvalidShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -723,7 +724,7 @@ func TestWorker_ProcessReceivedMessageForFutureRoundShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -751,7 +752,7 @@ func TestWorker_ProcessReceivedMessageForPastRoundShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -788,7 +789,7 @@ func TestWorker_ProcessReceivedMessageTypeLimitReachedShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -816,7 +817,7 @@ func TestWorker_ProcessReceivedMessageInvalidSignatureShouldErr(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -848,7 +849,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 
 func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.ConsensusState().RoundCanceled = true
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -881,7 +882,7 @@ func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProce
 
 func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -925,7 +926,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 
 func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -978,7 +979,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.SetBlockProcessor(
 		&mock.BlockProcessorMock{
 			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
@@ -1031,7 +1032,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 
 func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
@@ -1053,7 +1054,7 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 
 func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.ConsensusState().RoundCanceled = true
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
@@ -1076,7 +1077,7 @@ func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 
 func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
@@ -1098,7 +1099,7 @@ func TestWorker_CheckSelfStateShouldNotErr(t *testing.T) {
 
 func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1123,7 +1124,7 @@ func TestWorker_CheckSignatureShouldReturnNilErr(t *testing.T) {
 
 func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1153,7 +1154,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenConsensusDataIsNil(t *testing
 
 func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1183,7 +1184,7 @@ func TestWorker_ExecuteMessagesShouldNotExecuteWhenMessageIsForOtherRound(t *tes
 
 func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1213,7 +1214,7 @@ func TestWorker_ExecuteBlockBodyMessagesShouldNotExecuteWhenStartRoundIsNotFinis
 
 func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFinished(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1243,7 +1244,7 @@ func TestWorker_ExecuteBlockHeaderMessagesShouldNotExecuteWhenStartRoundIsNotFin
 
 func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	wrk.InitReceivedMessages()
@@ -1273,7 +1274,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -1307,7 +1308,7 @@ func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 
 func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
@@ -1348,7 +1349,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 
 func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
 		GetNodeStateCalled: func() core.NodeState {
@@ -1368,7 +1369,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 
 func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bootstrapperMock := &mock.BootstrapperMock{
 		GetNodeStateCalled: func() core.NodeState {
@@ -1387,7 +1388,7 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 
 func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := false
 	bmm := &mock.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
@@ -1408,7 +1409,7 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 
 func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
@@ -1433,7 +1434,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 
 func TestWorker_ExtendShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &mock.BlockProcessorMock{
 		RevertAccountStateCalled: func(header data.HeaderHandler) {
@@ -1449,7 +1450,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
-	wrk := *initWorker()
+	wrk := *initWorker(&mock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -1486,30 +1487,19 @@ func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	_ = wrk.Close()
 }
 
-func TestWorker_SetAppStatusHandlerNilShouldErr(t *testing.T) {
+func TestWorker_AppStatusHandlerNilShouldErr(t *testing.T) {
 	t.Parallel()
 
-	wrk := spos.Worker{}
-	err := wrk.SetAppStatusHandler(nil)
+	workerArgs := createDefaultWorkerArgs(nil)
+	_, err := spos.NewWorker(workerArgs)
 
 	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
-}
-
-func TestWorker_SetAppStatusHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	wrk := spos.Worker{}
-	handler := &mock.AppStatusHandlerStub{}
-	err := wrk.SetAppStatusHandler(handler)
-
-	assert.Nil(t, err)
-	assert.True(t, handler == wrk.AppStatusHandler())
 }
 
 func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	workerArgs := createDefaultWorkerArgs()
+	workerArgs := createDefaultWorkerArgs(&mock.AppStatusHandlerStub{})
 	headerSigVerifier := &mock.HeaderSigVerifierStub{}
 	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch

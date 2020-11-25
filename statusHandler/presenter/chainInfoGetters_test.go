@@ -130,7 +130,7 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currentBlockNonce)
 	presenterStatusHandler.SetUInt64Value(core.MetricCurrentRound, probableHighestNonce)
 	presenterStatusHandler.synchronizationSpeedHistory = append(presenterStatusHandler.synchronizationSpeedHistory, synchronizationSpeed)
-	synchronizationEstimation := presenterStatusHandler.CalculateTimeToSynchronize()
+	synchronizationEstimation := presenterStatusHandler.CalculateTimeToSynchronize(1000)
 
 	// Node needs to synchronize 190 blocks and synchronization speed is 10 blocks/s
 	// Synchronization estimation will be equals with ((200-10)/10) seconds
@@ -147,11 +147,26 @@ func TestPresenterStatusHandler_CalculateSynchronizationSpeed(t *testing.T) {
 	currentNonce := uint64(20)
 	presenterStatusHandler := NewPresenterStatusHandler()
 	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initialNonce)
-	_ = presenterStatusHandler.CalculateSynchronizationSpeed()
+	_ = presenterStatusHandler.CalculateSynchronizationSpeed(1000)
 	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currentNonce)
-	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed()
+	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed(1000)
 
 	expectedSpeed := currentNonce - initialNonce
+	assert.Equal(t, expectedSpeed, syncSpeed)
+}
+
+func TestPresenterStatusHandler_CalculateSynchronizationSpeedMultipleRoundsPerSecond(t *testing.T) {
+	t.Parallel()
+
+	initialNonce := uint64(10)
+	currentNonce := uint64(20)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, initialNonce)
+	_ = presenterStatusHandler.CalculateSynchronizationSpeed(100)
+	presenterStatusHandler.SetUInt64Value(core.MetricSynchronizedRound, currentNonce)
+	syncSpeed := presenterStatusHandler.CalculateSynchronizationSpeed(100)
+
+	expectedSpeed := 10 * (currentNonce - initialNonce)
 	assert.Equal(t, expectedSpeed, syncSpeed)
 }
 

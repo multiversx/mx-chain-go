@@ -16,9 +16,6 @@ import (
 
 //NodeHandler contains all functions that a node should contain.
 type NodeHandler interface {
-	// StartConsensus will start the consesus service for the current node
-	StartConsensus() error
-
 	// GetBalance returns the balance for a specific address
 	GetBalance(address string) (*big.Int, error)
 
@@ -34,6 +31,7 @@ type NodeHandler interface {
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
+	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 
 	//SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
@@ -53,7 +51,7 @@ type NodeHandler interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
-	DirectTrigger(epoch uint32) error
+	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 
 	EncodeAddressPubkey(pk []byte) (string, error)
@@ -77,12 +75,13 @@ type ApiResolver interface {
 	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	StatusMetrics() external.StatusMetricsHandler
+	Close() error
 	IsInterfaceNil() bool
 }
 
 // HardforkTrigger defines the structure used to trigger hardforks
 type HardforkTrigger interface {
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

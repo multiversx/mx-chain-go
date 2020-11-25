@@ -1,6 +1,7 @@
 package connectionMonitor
 
 import (
+	"context"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -18,18 +19,16 @@ type libp2pConnectionMonitorSimple struct {
 	reconnecter                p2p.Reconnecter
 	thresholdMinConnectedPeers int
 	sharder                    Sharder
+	cancelFunc                 context.CancelFunc
 }
 
 // NewLibp2pConnectionMonitorSimple creates a new connection monitor (version 2 that is more streamlined and does not care
 //about pausing and resuming the discovery process)
 func NewLibp2pConnectionMonitorSimple(
 	reconnecter p2p.Reconnecter,
-	thresholdMinConnectedPeers int,
+	thresholdMinConnectedPeers uint32,
 	sharder Sharder,
 ) (*libp2pConnectionMonitorSimple, error) {
-	if thresholdMinConnectedPeers < 0 {
-		return nil, p2p.ErrInvalidValue
-	}
 	if check.IfNil(reconnecter) {
 		return nil, p2p.ErrNilReconnecter
 	}
@@ -37,15 +36,18 @@ func NewLibp2pConnectionMonitorSimple(
 		return nil, p2p.ErrNilSharder
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	cm := &libp2pConnectionMonitorSimple{
 		reconnecter:                reconnecter,
 		chDoReconnect:              make(chan struct{}),
-		thresholdMinConnectedPeers: thresholdMinConnectedPeers,
+		thresholdMinConnectedPeers: int(thresholdMinConnectedPeers),
 		sharder:                    sharder,
+		cancelFunc:                 cancelFunc,
 	}
 
 	if reconnecter != nil {
-		go cm.doReconnection()
+		go cm.doReconnection(ctx)
 	}
 
 	return cm, nil
@@ -92,10 +94,18 @@ func (lcms *libp2pConnectionMonitorSimple) OpenedStream(network.Network, network
 // ClosedStream is called when a stream closed
 func (lcms *libp2pConnectionMonitorSimple) ClosedStream(network.Network, network.Stream) {}
 
-func (lcms *libp2pConnectionMonitorSimple) doReconnection() {
+func (lcms *libp2pConnectionMonitorSimple) doReconnection(ctx context.Context) {
 	for {
-		<-lcms.chDoReconnect
-		<-lcms.reconnecter.ReconnectToNetwork()
+		select {
+		case <-lcms.chDoReconnect:
+			select {
+			case <-lcms.reconnecter.ReconnectToNetwork():
+			case <-ctx.Done():
+				return
+			}
+		case <-ctx.Done():
+			return
+		}
 
 		time.Sleep(DurationBetweenReconnectAttempts)
 	}
@@ -118,6 +128,12 @@ func (lcms *libp2pConnectionMonitorSimple) SetThresholdMinConnectedPeers(thresho
 // ThresholdMinConnectedPeers returns the minimum connected peers number when the node is considered connected on the network
 func (lcms *libp2pConnectionMonitorSimple) ThresholdMinConnectedPeers() int {
 	return lcms.thresholdMinConnectedPeers
+}
+
+// Close closes all underlying components
+func (lcms *libp2pConnectionMonitorSimple) Close() error {
+	lcms.cancelFunc()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

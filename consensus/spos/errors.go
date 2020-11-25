@@ -58,6 +58,9 @@ var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 // ErrNilHeadersSubscriber is raised when a valid headers subscriber is expected but nil is provided
 var ErrNilHeadersSubscriber = errors.New("headers subscriber is nil")
 
+// ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is provided
+var ErrNilAlarmScheduler = errors.New("alarm scheduler is nil")
+
 // ErrInvalidKey is raised when an invalid key is used with a map
 var ErrInvalidKey = errors.New("map key is invalid")
 
@@ -210,3 +213,6 @@ var ErrNilPeerSignatureHandler = errors.New("trying to set nil peerSignatureHand
 
 // ErrMessageTypeLimitReached signals that a consensus message type limit has been reached for a public key
 var ErrMessageTypeLimitReached = errors.New("consensus message type limit has been reached")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")

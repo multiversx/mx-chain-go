@@ -43,6 +43,11 @@ func (n *NilConnectionMonitor) ThresholdMinConnectedPeers() int {
 	return n.thresholdMinConnectedPeers
 }
 
+// Close returns nil
+func (n *NilConnectionMonitor) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (n *NilConnectionMonitor) IsInterfaceNil() bool {
 	return n == nil

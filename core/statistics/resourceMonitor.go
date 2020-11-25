@@ -1,6 +1,7 @@
 package statistics
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/machine"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/shirou/gopsutil/net"
@@ -17,18 +19,32 @@ import (
 
 // ResourceMonitor outputs statistics about resources used by the binary
 type ResourceMonitor struct {
-	startTime time.Time
+	startTime     time.Time
+	cancelFunc    context.CancelFunc
+	generalConfig *config.Config
+	pathManager   storage.PathManagerHandler
+	shardId       string
 }
 
 // NewResourceMonitor creates a new ResourceMonitor instance
-func NewResourceMonitor() *ResourceMonitor {
-	return &ResourceMonitor{
-		startTime: time.Now(),
+func NewResourceMonitor(config *config.Config, pathManager storage.PathManagerHandler, shardId string) (*ResourceMonitor, error) {
+	if config == nil{
+		return nil, ErrNilConfig
 	}
+	if check.IfNil(pathManager){
+		return nil, ErrNilPathHandler
+	}
+
+	return &ResourceMonitor{
+		generalConfig: config,
+		pathManager:   pathManager,
+		shardId:       shardId,
+		startTime:     time.Now(),
+	}, nil
 }
 
 // GenerateStatistics creates a new statistic string
-func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) []interface{} {
+func (rm *ResourceMonitor) GenerateStatistics() []interface{} {
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
 
@@ -50,6 +66,10 @@ func (rm *ResourceMonitor) GenerateStatistics(generalConfig *config.Config, path
 			numConns = len(conns)
 		}
 	}
+
+	pathManager := rm.pathManager
+	generalConfig := rm.generalConfig
+	shardId := rm.shardId
 
 	trieStoragePath, mainDb := path.Split(pathManager.PathForStatic(shardId, generalConfig.AccountsTrieStorage.DB.FilePath))
 
@@ -99,8 +119,37 @@ func getDirMemSize(dir string) string {
 }
 
 // SaveStatistics generates and saves statistic data on the disk
-func (rm *ResourceMonitor) SaveStatistics(generalConfig *config.Config, pathManager storage.PathManagerHandler, shardId string) {
-
-	stats := rm.GenerateStatistics(generalConfig, pathManager, shardId)
+func (rm *ResourceMonitor) SaveStatistics() {
+	stats := rm.GenerateStatistics()
 	log.Debug("node statistics", stats...)
+}
+
+// StartMonitoring starts the monitoring process for saving statistics
+func (rm *ResourceMonitor) StartMonitoring() {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	rm.cancelFunc = cancelFunc
+	go func() {
+		for {
+			select {
+			case <-time.After(time.Second * time.Duration(rm.generalConfig.ResourceStats.RefreshIntervalInSec)):
+				rm.SaveStatistics()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+}
+
+// IsInterfaceNil returns true if underlying object is nil
+func (rm *ResourceMonitor) IsInterfaceNil() bool {
+	return rm == nil
+}
+
+// Close closes all underlying components
+func (rm *ResourceMonitor) Close() error {
+	if rm.cancelFunc != nil {
+		rm.cancelFunc()
+	}
+
+	return nil
 }

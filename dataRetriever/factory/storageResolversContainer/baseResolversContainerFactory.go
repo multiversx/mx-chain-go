@@ -1,6 +1,8 @@
 package storageResolversContainers
 
 import (
+	"time"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -11,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
+
+const defaultBeforeGracefulClose = time.Minute
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -102,6 +106,7 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 		Marshalizer:              brcf.marshalizer,
 		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	resolver, err := storageResolvers.NewSliceResolver(arg)
 	if err != nil {
@@ -160,6 +165,7 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 		Marshalizer:              brcf.marshalizer,
 		ManualEpochStartNotifier: brcf.manualEpochStartNotifier,
 		ChanGracefullyClose:      brcf.chanGracefullyClose,
+		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
 	}
 	mbResolver, err := storageResolvers.NewSliceResolver(arg)
 	if err != nil {

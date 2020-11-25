@@ -14,11 +14,16 @@ import (
 func TestESDTTransfer_ProcessBuiltInFunctionErrors(t *testing.T) {
 	t.Parallel()
 
-	esdt, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{})
+	esdt, _ := NewESDTTransferFunc(10, &mock.MarshalizerMock{}, &mock.PauseHandlerStub{})
+	_ = esdt.setPayableHandler(&mock.PayableHandlerStub{})
 	_, err := esdt.ProcessBuiltinFunction(nil, nil, nil)
 	assert.Equal(t, err, process.ErrNilVmInput)
 
-	input := &vmcommon.ContractCallInput{}
+	input := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallValue: big.NewInt(0),
+		},
+	}
 	_, err = esdt.ProcessBuiltinFunction(nil, nil, input)
 	assert.Equal(t, err, process.ErrInvalidArguments)
 
@@ -44,7 +49,8 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	esdt, _ := NewESDTTransferFunc(10, marshalizer)
+	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	_ = esdt.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -64,7 +70,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSingleShard(t *testing.T) {
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err = esdt.ProcessBuiltinFunction(accSnd, accDst, input)
 	assert.Nil(t, err)
@@ -81,7 +87,8 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	esdt, _ := NewESDTTransferFunc(10, marshalizer)
+	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	_ = esdt.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -97,7 +104,7 @@ func TestESDTTransfer_ProcessBuiltInFunctionSenderInShard(t *testing.T) {
 	esdtKey := append(esdt.keyPrefix, key...)
 	esdtToken := &ESDigitalToken{Value: big.NewInt(100)}
 	marshaledData, _ := marshalizer.Marshal(esdtToken)
-	accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
+	_ = accSnd.DataTrieTracker().SaveKeyValue(esdtKey, marshaledData)
 
 	_, err := esdt.ProcessBuiltinFunction(accSnd, nil, input)
 	assert.Nil(t, err)
@@ -110,7 +117,8 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	esdt, _ := NewESDTTransferFunc(10, marshalizer)
+	esdt, _ := NewESDTTransferFunc(10, marshalizer, &mock.PauseHandlerStub{})
+	_ = esdt.setPayableHandler(&mock.PayableHandlerStub{})
 
 	input := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

@@ -9,10 +9,10 @@ import (
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled func(address []byte) (state.AccountHandler, error)
-	LoadAccountCalled        func(address []byte) (state.AccountHandler, error)
+	GetExistingAccountCalled func(addressContainer []byte) (state.AccountHandler, error)
+	LoadAccountCalled        func(container []byte) (state.AccountHandler, error)
 	SaveAccountCalled        func(account state.AccountHandler) error
-	RemoveAccountCalled      func(address []byte) error
+	RemoveAccountCalled      func(addressContainer []byte) error
 	CommitCalled             func() ([]byte, error)
 	JournalLenCalled         func() int
 	RevertToSnapshotCalled   func(snapshot int) error
@@ -24,6 +24,8 @@ type AccountsStub struct {
 	SetStateCheckpointCalled func(rootHash []byte)
 	IsPruningEnabledCalled   func() bool
 	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
+	GetNumCheckpointsCalled  func() uint32
 }
 
 // LoadAccount -
@@ -150,6 +152,23 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 	}
 
 	return false
+}
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+	if as.RecreateAllTriesCalled != nil {
+		return as.RecreateAllTriesCalled(rootHash)
+	}
+	return nil, nil
+}
+
+// GetNumCheckpoints -
+func (as *AccountsStub) GetNumCheckpoints() uint32 {
+	if as.GetNumCheckpointsCalled != nil {
+		return as.GetNumCheckpointsCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

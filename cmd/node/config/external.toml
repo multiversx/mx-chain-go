@@ -1,6 +1,15 @@
 # ElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [ElasticSearchConnector]
-    Enabled    = false
-    URL        = "http://localhost:9200"
-    Username   = "basic_auth_username"
-    Password   = "basic_auth_password"
+    ## We do not recommend to activate this indexer on a validator node since
+    #the node might loose rating (even facing penalties) due to the fact that
+    #the indexer is called synchronously and might block due to external causes.
+    #Strongly suggested to activate this on a regular observer node.
+    Enabled           = false
+    IndexerCacheSize  = 100
+    URL               = "http://localhost:9200"
+    UseKibana         = false
+    Username          = ""
+    Password          = ""
+    # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
+    # ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory"]
+    EnabledIndexes    = ["tps", "rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory"]

@@ -107,6 +107,7 @@ type HeadersPoolSubscriber interface {
 type PeerHonestyHandler interface {
 	ChangeScore(pk string, topic string, units int)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // InterceptorSubscriber can subscribe for notifications when data is received by an interceptor
@@ -120,5 +121,11 @@ type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	IsInterfaceNil() bool
+}
+
+// FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
+type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }

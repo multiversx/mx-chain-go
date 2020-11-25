@@ -162,6 +162,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unJail(args)
 	case "getTotalStaked":
 		return s.getTotalStaked(args)
+	case "getBlsKeysStatus":
+		return s.getBlsKeysStatus(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -853,7 +855,9 @@ func (s *stakingAuctionSC) activateStakingFor(
 			s.eei.Finish([]byte{waiting})
 		}
 
-		numRegistered++
+		if stakedData.UnStakedNonce == 0 {
+			numRegistered++
+		}
 	}
 
 	registrationData.NumRegistered = uint32(numRegistered)
@@ -1384,6 +1388,51 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 
 	s.flagAuction.Toggle(epoch >= s.enableAuctionEpoch)
 	log.Debug("stakingAuctionSC: auction", "enabled", s.flagAuction.IsSet())
+}
+
+func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, s.auctionSCAddress) {
+		s.eei.AddReturnMessage("this is only a view function")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.Arguments[0])
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get or create registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.BlsPubKeys) == 0 {
+		s.eei.AddReturnMessage("no bls keys")
+		return vmcommon.Ok
+	}
+
+	for _, blsKey := range registrationData.BlsPubKeys {
+		vmOutput, err := s.executeOnStakingSC([]byte("getBLSKeyStatus@" + hex.EncodeToString(blsKey)))
+		if err != nil {
+			s.eei.AddReturnMessage("cannot get bls key status: bls key - " + hex.EncodeToString(blsKey) + " error - " + err.Error())
+			continue
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			s.eei.AddReturnMessage("error in getting bls key status: bls key - " + hex.EncodeToString(blsKey))
+			continue
+		}
+
+		if len(vmOutput.ReturnData) != 1 {
+			s.eei.AddReturnMessage("cannot get bls key status for key " + hex.EncodeToString(blsKey))
+			continue
+		}
+
+		s.eei.Finish(blsKey)
+		s.eei.Finish(vmOutput.ReturnData[0])
+	}
+
+	return vmcommon.Ok
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

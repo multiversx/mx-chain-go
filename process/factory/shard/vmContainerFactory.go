@@ -27,6 +27,7 @@ type vmContainerFactory struct {
 	blockGasLimit      uint64
 	gasSchedule        map[string]map[string]uint64
 	builtinFunctions   vmcommon.FunctionNames
+	deployEnableEpoch  uint32
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -35,6 +36,7 @@ func NewVMContainerFactory(
 	blockGasLimit uint64,
 	gasSchedule map[string]map[string]uint64,
 	argBlockChainHook hooks.ArgBlockChainHook,
+	deployEnableEpoch uint32,
 ) (*vmContainerFactory, error) {
 	if gasSchedule == nil {
 		return nil, process.ErrNilGasSchedule
@@ -55,6 +57,7 @@ func NewVMContainerFactory(
 		blockGasLimit:      blockGasLimit,
 		gasSchedule:        gasSchedule,
 		builtinFunctions:   builtinFunctions,
+		deployEnableEpoch:  deployEnableEpoch,
 	}, nil
 }
 
@@ -102,6 +105,8 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				GasSchedule:              vmf.gasSchedule,
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+				UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -112,16 +117,18 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createInProcessArwenVM")
+	logVMContainerFactory.Info("createInProcessArwenVM", "config", vmf.config)
+
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,
-		vmf.cryptoHook,
 		&arwen.VMHostParameters{
 			VMType:                   factory.ArwenVirtualMachine,
 			BlockGasLimit:            vmf.blockGasLimit,
 			GasSchedule:              vmf.gasSchedule,
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
+			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
+			UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 		},
 	)
 }

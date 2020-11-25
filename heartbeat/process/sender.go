@@ -13,6 +13,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
+const delayAfterHardforkMessageBroadcast = time.Second * 5
+
 // ArgHeartbeatSender represents the arguments for the heartbeat sender
 type ArgHeartbeatSender struct {
 	PeerMessenger        heartbeat.P2PMessenger
@@ -124,16 +126,19 @@ func (s *Sender) SendHeartbeat() error {
 
 	triggerMessage, isHardforkTriggered := s.hardforkTrigger.RecordedTriggerMessage()
 	if isHardforkTriggered {
-		isPayloadRecorder := len(triggerMessage) != 0
-		if isPayloadRecorder {
+		isPayloadRecorded := len(triggerMessage) != 0
+		if isPayloadRecorded {
 			//beside sending the regular heartbeat message, send also the initial payload hardfork trigger message
 			// so that will be spread in an epidemic manner
+			log.Debug("broadcasting stored hardfork message")
 			s.peerMessenger.Broadcast(s.topic, triggerMessage)
+			time.Sleep(delayAfterHardforkMessageBroadcast)
 		} else {
 			hb.Payload = s.hardforkTrigger.CreateData()
 		}
 	}
 
+	log.Debug("broadcasting message", "is hardfork triggered", isHardforkTriggered)
 	var err error
 	hb.Pubkey, err = s.privKey.GeneratePublic().ToByteArray()
 	if err != nil {
@@ -161,6 +166,11 @@ func (s *Sender) SendHeartbeat() error {
 	s.peerMessenger.Broadcast(s.topic, buffToSend)
 
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *Sender) IsInterfaceNil() bool {
+	return s == nil
 }
 
 func (s *Sender) updateMetrics(hb *heartbeatData.Heartbeat) {

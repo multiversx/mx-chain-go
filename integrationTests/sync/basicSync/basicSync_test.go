@@ -22,7 +22,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	numNodesPerShard := 6
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
@@ -55,7 +55,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 		_ = n.StartSync()
 	}
 
@@ -94,7 +94,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	numNodesPerShard := 6
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard)
@@ -118,7 +118,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	}()
 
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 		_ = n.StartSync()
 	}
 

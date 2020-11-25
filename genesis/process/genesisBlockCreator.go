@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
@@ -98,14 +99,14 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	arg := storing.ArgHardforkStorer{
 		KeysStore:   keysStorer,
 		KeyValue:    keysVals,
-		Marshalizer: gbc.arg.Marshalizer,
+		Marshalizer: gbc.arg.Core.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
-		Hasher:              gbc.arg.Hasher,
-		Marshalizer:         gbc.arg.Marshalizer,
+		Hasher:              gbc.arg.Core.Hasher(),
+		Marshalizer:         gbc.arg.Core.InternalMarshalizer(),
 		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
 		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
@@ -138,7 +139,13 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(arg.PubkeyConv) {
+	if check.IfNil(arg.Core) {
+		return process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(arg.Data) {
+		return process.ErrNilDataComponentsHolder
+	}
+	if check.IfNil(arg.Core.AddressPubKeyConverter()) {
 		return process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(arg.InitialNodesSetup) {
@@ -150,22 +157,22 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if check.IfNil(arg.Store) {
+	if check.IfNil(arg.Data.StorageService()) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(arg.Blkc) {
+	if check.IfNil(arg.Data.Blockchain()) {
 		return process.ErrNilBlockChain
 	}
-	if check.IfNil(arg.Marshalizer) {
+	if check.IfNil(arg.Core.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arg.Hasher) {
+	if check.IfNil(arg.Core.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arg.Uint64ByteSliceConverter) {
+	if check.IfNil(arg.Core.Uint64ByteSliceConverter()) {
 		return process.ErrNilUint64Converter
 	}
-	if check.IfNil(arg.DataPool) {
+	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
 	}
 	if check.IfNil(arg.AccountsParser) {
@@ -186,7 +193,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.ImportStartHandler) {
 		return update.ErrNilImportStartHandler
 	}
-	if check.IfNil(arg.SignMarshalizer) {
+	if check.IfNil(arg.Core.TxMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
 	if arg.GeneralConfig == nil {
@@ -301,7 +308,12 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, fmt.Errorf("'%w' while creating new argument for metachain", err)
 	}
 
-	newArgument.Blkc = blockchain.NewMetaChain()
+	chain, err := blockchain.NewMetaChain(&statusHandler.NilStatusHandler{})
+	if err != nil {
+		return nil, fmt.Errorf("'%w' while generating genesis block for metachain", err)
+	}
+
+	newArgument.Data.SetBlockchain(chain)
 	var scResults [][]byte
 	genesisBlock, scResults, err = gbc.metaCreatorHandler(newArgument, nodesListSplitter, selfShardId)
 	if err != nil {
@@ -359,12 +371,12 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:         gbc.arg.Accounts,
-		PubkeyConv:       gbc.arg.PubkeyConv,
-		StorageService:   gbc.arg.Store,
-		BlockChain:       gbc.arg.Blkc,
+		PubkeyConv:       gbc.arg.Core.AddressPubKeyConverter(),
+		StorageService:   gbc.arg.Data.StorageService(),
+		BlockChain:       gbc.arg.Data.Blockchain(),
 		ShardCoordinator: gbc.arg.ShardCoordinator,
-		Marshalizer:      gbc.arg.Marshalizer,
-		Uint64Converter:  gbc.arg.Uint64ByteSliceConverter,
+		Marshalizer:      gbc.arg.Core.InternalMarshalizer(),
+		Uint64Converter:  gbc.arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions: builtInFuncs,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -384,7 +396,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 		}
 
 		dnsSC.AddAddressBytes(scResultingAddress)
-		dnsSC.AddAddress(gbc.arg.PubkeyConv.Encode(scResultingAddress))
+		dnsSC.AddAddress(gbc.arg.Core.AddressPubKeyConverter().Encode(scResultingAddress))
 	}
 
 	return nil
@@ -395,13 +407,15 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
 	if isCurrentShard {
-		return gbc.arg, nil
+		newArgument := gbc.arg // copy the arguments
+		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
+		return newArgument, nil
 	}
 
 	newArgument := gbc.arg //copy the arguments
 	newArgument.Accounts, err = createAccountAdapter(
-		newArgument.Marshalizer,
-		newArgument.Hasher,
+		newArgument.Core.InternalMarshalizer(),
+		newArgument.Core.Hasher(),
 		factoryState.NewAccountCreator(),
 		gbc.arg.TrieStorageManagers[triesFactory.UserAccountTrie],
 	)
@@ -419,22 +433,24 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 			err, shardID)
 	}
 
+	// create copy of components handlers we need to change temporarily
+	newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 	return newArgument, err
 }
 
 func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) error {
-	blockBuff, err := gbc.arg.Marshalizer.Marshal(header)
+	blockBuff, err := gbc.arg.Core.InternalMarshalizer().Marshal(header)
 	if err != nil {
 		return err
 	}
 
-	hash := gbc.arg.Hasher.Compute(string(blockBuff))
+	hash := gbc.arg.Core.Hasher().Compute(string(blockBuff))
 	unitType := dataRetriever.BlockHeaderUnit
 	if header.GetShardID() == core.MetachainShardId {
 		unitType = dataRetriever.MetaBlockUnit
 	}
 
-	return gbc.arg.Store.Put(unitType, hash, blockBuff)
+	return gbc.arg.Data.StorageService().Put(unitType, hash, blockBuff)
 }
 
 func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(

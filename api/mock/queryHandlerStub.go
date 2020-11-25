@@ -14,6 +14,11 @@ func (qhs *QueryHandlerStub) Query(search string) []string {
 	return make([]string, 0)
 }
 
+// Close -
+func (qhs *QueryHandlerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (qhs *QueryHandlerStub) IsInterfaceNil() bool {
 	return qhs == nil

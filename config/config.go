@@ -58,6 +58,11 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32
 }
 
+// ConsensusConfig holds the consensus configuration parameters
+type ConsensusConfig struct {
+	Type string
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -147,14 +152,14 @@ type Config struct {
 	Heartbeat           HeartbeatConfig
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
-	Consensus           TypeConfig
+	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
 	TxLogsStorage       StorageConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
-	VirtualMachineConfig    VirtualMachineConfig
+	VirtualMachine          VirtualMachineServicesConfig
 
 	Hardfork HardforkConfig
 	Debug    DebugConfig
@@ -203,15 +208,19 @@ type ValidatorStatisticsConfig struct {
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec       int
-	MaxComputableRounds            uint64
-	StartInEpochEnabled            bool
-	SCDeployEnableEpoch            uint32
-	BuiltInFunctionsEnableEpoch    uint32
-	RelayedTransactionsEnableEpoch uint32
-	PenalizedTooMuchGasEnableEpoch uint32
-	SwitchJailWaitingEnableEpoch   uint32
-	GenesisString                  string
+	StatusPollingIntervalSec               int
+	MaxComputableRounds                    uint64
+	StartInEpochEnabled                    bool
+	ChainID                                string
+	MinTransactionVersion                  uint32
+	SCDeployEnableEpoch                    uint32
+	BuiltInFunctionsEnableEpoch            uint32
+	RelayedTransactionsEnableEpoch         uint32
+	PenalizedTooMuchGasEnableEpoch         uint32
+	SwitchJailWaitingEnableEpoch           uint32
+	SwitchHysteresisForMinNodesEnableEpoch uint32
+	BelowSignedThresholdEnableEpoch        uint32
+	GenesisString                          string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
@@ -233,7 +242,7 @@ type StateTriesConfig struct {
 type TrieStorageManagerConfig struct {
 	PruningBufferLen   uint32
 	SnapshotsBufferLen uint32
-	MaxSnapshots       uint8
+	MaxSnapshots       uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -312,10 +321,17 @@ type IncreaseFactorConfig struct {
 	Factor    float32
 }
 
-// VirtualMachineConfig holds configuration for the Virtual Machine(s)
+// VirtualMachineServicesConfig holds configuration for the Virtual Machine(s): both querying and execution services.
+type VirtualMachineServicesConfig struct {
+	Execution VirtualMachineConfig
+	Querying  VirtualMachineConfig
+}
+
+// VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
 	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+	WarmInstanceEnabled bool
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
@@ -415,4 +431,26 @@ type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
 	Cache            CacheConfig
+}
+
+// Configs is a holder for the node configuration parameters
+type Configs struct {
+	GeneralConfig                    *Config
+	ApiRoutesConfig                  *ApiRoutesConfig
+	EconomicsConfig                  *EconomicsConfig
+	SystemSCConfig                   *SystemSmartContractsConfig
+	RatingsConfig                    *RatingsConfig
+	PreferencesConfig                *Preferences
+	ExternalConfig                   *ExternalConfig
+	P2pConfig                        *P2PConfig
+	FlagsConfig                      *ContextFlagsConfig
+	ConfigurationFileName            string
+	ConfigurationApiRoutesFileName   string
+	ConfigurationEconomicsFileName   string
+	ConfigurationSystemSCFilename    string
+	ConfigurationRatingsFileName     string
+	ConfigurationPreferencesFileName string
+	ConfigurationExternalFileName    string
+	P2pConfigurationFileName         string
+	ConfigurationGasScheduleFileName string
 }

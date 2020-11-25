@@ -35,7 +35,7 @@ func TestHeartbeatMonitorWillUpdateAnInactivePeer(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
@@ -82,7 +82,7 @@ func TestHeartbeatMonitorWillNotUpdateTooLongHeartbeatMessages(t *testing.T) {
 	}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := integrationTests.GetConnectableAddress(advertiser)
 	maxUnresposiveTime := time.Second * 10
 
@@ -147,7 +147,7 @@ func prepareNodes(
 			_ = nodes[i].RegisterMessageProcessor(topicHeartbeat, "test", monitor)
 		}
 
-		_ = nodes[i].Bootstrap()
+		_ = nodes[i].Bootstrap(0)
 	}
 
 	return nodes, senders, pks
@@ -280,6 +280,7 @@ func createMonitor(maxDurationPeerUnresponsive time.Duration) *process.Monitor {
 		ValidatorPubkeyConverter:           integrationTests.TestValidatorPubkeyConverter,
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
 	}
 
 	monitor, _ := process.NewMonitor(argMonitor)

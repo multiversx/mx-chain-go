@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -28,7 +27,7 @@ type vmContainerFactory struct {
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
 	systemContracts     vm.SystemSCContainer
-	economics           *economics.EconomicsData
+	economics           process.EconomicsHandler
 	messageSigVerifier  vm.MessageSignVerifier
 	nodesConfigProvider vm.NodesConfigProvider
 	gasSchedule         map[string]map[string]uint64
@@ -41,7 +40,7 @@ type vmContainerFactory struct {
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
-	economics *economics.EconomicsData,
+	economics process.EconomicsHandler,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule map[string]map[string]uint64,
 	nodesConfigProvider vm.NodesConfigProvider,
@@ -52,7 +51,7 @@ func NewVMContainerFactory(
 	chanceComputer sharding.ChanceComputer,
 	epochNotifier process.EpochNotifier,
 ) (*vmContainerFactory, error) {
-	if economics == nil {
+	if check.IfNil(economics) {
 		return nil, process.ErrNilEconomicsData
 	}
 	if check.IfNil(messageSignVerifier) {

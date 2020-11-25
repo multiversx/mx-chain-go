@@ -174,7 +174,7 @@ func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
 	t.Parallel()
 
 	ns, err := NewNodesSetup(
-		"mock/invalidNodesSetupMock.json",
+		"mock/testdata/invalidNodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 	)
@@ -187,7 +187,7 @@ func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ns, err := NewNodesSetup(
-		"mock/nodesSetupMock.json",
+		"mock/testdata/nodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 	)
@@ -577,4 +577,35 @@ func TestNodesSetup_MetaPublicKeyGoodMeta(t *testing.T) {
 	assert.NotNil(t, ns)
 	assert.Nil(t, err)
 	assert.Equal(t, metaId, selfId)
+}
+
+func TestNodesSetup_MinNumberOfNodes(t *testing.T) {
+	t.Parallel()
+	ns := &NodesSetup{
+		ConsensusGroupSize:          63,
+		MinNodesPerShard:            400,
+		MetaChainConsensusGroupSize: 400,
+		MetaChainMinNodes:           400,
+		Hysteresis:                  0.2,
+		Adaptivity:                  false,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
+	}
+
+	ns = createAndAssignNodes(*ns, 2169)
+	assert.Equal(t, 4, len(ns.eligible))
+	for shard, shardNodes := range ns.eligible {
+		assert.Equal(t, 400, len(shardNodes))
+		assert.LessOrEqual(t, len(ns.waiting[shard]), 143)
+		assert.GreaterOrEqual(t, len(ns.waiting[shard]), 142)
+	}
+
+	minNumNodes := ns.MinNumberOfNodes()
+	assert.Equal(t, uint32(1600), minNumNodes)
+
+	minHysteresisNodesShard := ns.MinShardHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesShard)
+
+	minHysteresisNodesMeta := ns.MinMetaHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesMeta)
 }

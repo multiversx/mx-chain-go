@@ -56,7 +56,7 @@ func initBasicTestData() (*testscommon.PoolsHolderMock, data.ChainHandler, []byt
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
 	tdp.Transactions().AddData(txHash, &transaction.Transaction{}, 0, process.ShardCacherIdentifier(1, 0))
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Round:    1,
@@ -96,15 +96,23 @@ func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHd
 	return hdr
 }
 
-func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
-	arguments := CreateMockArguments()
-	arguments.DataPool = initDataPool([]byte("tx_hash1"))
+func CreateCoreComponentsMultiShard() (*mock.CoreComponentsMock, *mock.DataComponentsMock) {
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.BlockChain, _ = blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	_ = dataComponents.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
+	dataComponents.DataPool = initDataPool([]byte("tx_hash1"))
+
+	return coreComponents, dataComponents
+}
+
+func CreateMockArgumentsMultiShard(
+	coreComponents *mock.CoreComponentsMock,
+	dataComponents *mock.DataComponentsMock,
+) blproc.ArgShardProcessor {
+
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = initAccountsMock()
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
-	arguments.BlockChain = blockchain.NewBlockChain()
-	_ = arguments.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
-	arguments.Indexer = &mock.IndexerMock{}
-	arguments.TpsBenchmark = &testscommon.TpsBenchmarkMock{}
 
 	return arguments
 }
@@ -114,8 +122,9 @@ func CreateMockArgumentsMultiShard() blproc.ArgShardProcessor {
 func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
-	arguments.DataPool = nil
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.DataPool = nil
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
@@ -125,8 +134,9 @@ func TestNewBlockProcessor_NilDataPoolShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
-	arguments.Store = nil
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.Storage = nil
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilStorage, err)
@@ -136,8 +146,9 @@ func TestNewShardProcessor_NilStoreShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
-	arguments.Hasher = nil
+	coreComponents, dataComponents := createComponentHolderMocks()
+	coreComponents.Hash = nil
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -147,8 +158,9 @@ func TestNewShardProcessor_NilHasherShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
-	arguments.Marshalizer = nil
+	coreComponents, dataComponents := createComponentHolderMocks()
+	coreComponents.IntMarsh = nil
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -158,7 +170,8 @@ func TestNewShardProcessor_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -169,7 +182,8 @@ func TestNewShardProcessor_NilAccountsAdapterShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.ShardCoordinator = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -180,7 +194,8 @@ func TestNewShardProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.ForkDetector = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -191,7 +206,8 @@ func TestNewShardProcessor_NilForkDetectorShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilRequestTransactionHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.RequestHandler = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -206,8 +222,10 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 	tdp.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilTransactionPool, err)
@@ -217,7 +235,8 @@ func TestNewShardProcessor_NilTransactionPoolShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.TxCoordinator = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -228,8 +247,10 @@ func TestNewShardProcessor_NilTxCoordinatorShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
-	arguments.Uint64Converter = nil
+	coreComponents, dataComponents := createComponentHolderMocks()
+	coreComponents.UInt64ByteSliceConv = nil
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Equal(t, process.ErrNilUint64Converter, err)
@@ -239,7 +260,8 @@ func TestNewShardProcessor_NilUint64ConverterShouldErr(t *testing.T) {
 func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArguments()
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	arguments.BlockSizeThrottler = nil
 	sp, err := blproc.NewShardProcessor(arguments)
 
@@ -250,7 +272,8 @@ func TestNewShardProcessor_NilBlockSizeThrottlerShouldErr(t *testing.T) {
 func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 
 	assert.Nil(t, err)
@@ -263,7 +286,8 @@ func TestNewShardProcessor_OkValsShouldWork(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
 	err := sp.ProcessBlock(nil, body, haveTime)
@@ -274,7 +298,8 @@ func TestShardProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	err := sp.ProcessBlock(&block.Header{}, nil, haveTime)
 
@@ -284,7 +309,8 @@ func TestShardProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	blk := &block.Body{}
 	err := sp.ProcessBlock(&block.Header{}, blk, nil)
@@ -307,7 +333,8 @@ func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	}
 
 	body := &block.Body{}
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
@@ -348,7 +375,8 @@ func TestShardProcessor_ProcessBlockHeaderBodyMismatchShouldErr(t *testing.T) {
 		return []byte("rootHash"), nil
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
@@ -480,10 +508,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 	)
 	assert.Nil(t, err)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
@@ -499,7 +528,9 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 
 func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 	t.Parallel()
-	arguments := CreateMockArgumentsMultiShard()
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -518,7 +549,8 @@ func TestShardProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
 		Nonce:         0,
@@ -538,7 +570,19 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) 
 func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	randSeed := []byte("rand seed")
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
+	_ = blkc.SetCurrentBlockHeader(
+		&block.Header{
+			Nonce:    0,
+			RandSeed: randSeed,
+		},
+	)
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
@@ -548,16 +592,6 @@ func TestShardProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.
 		},
 	}
 
-	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetCurrentBlockHeader(
-		&block.Header{
-			Nonce:    0,
-			RandSeed: randSeed,
-		},
-	)
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{
 		Nonce:         1,
@@ -578,7 +612,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -706,10 +740,12 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BalanceComputationStub{},
 	)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Store = store
-	arguments.Hasher = hasher
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.ForkDetector = &mock.ForkDetectorMock{
@@ -721,7 +757,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		},
 	}
 	arguments.TxCoordinator = tc
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -736,7 +772,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -792,14 +828,16 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 		return []byte("rootHashX"), nil
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = &mock.HasherStub{}
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.Hasher = &mock.HasherStub{}
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		ProbableHighestNonceCalled: func() uint64 {
 			return 0
@@ -808,7 +846,7 @@ func TestShardProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertStat
 			return 0
 		},
 	}
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 	// should return err
 	err := sp.ProcessBlock(&hdr, body, haveTime)
@@ -822,7 +860,7 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	randSeed := []byte("rand seed")
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -878,14 +916,16 @@ func TestShardProcessor_ProcessBlockOnlyIntraShardShouldPass(t *testing.T) {
 		return rootHash, nil
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -900,7 +940,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	randSeed := []byte("rand seed")
 	tdp := initDataPool([]byte("tx_hash1"))
 	txHash := []byte("tx_hash1")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    0,
@@ -957,14 +997,16 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 	rootHashCalled := func() ([]byte, error) {
 		return rootHash, nil
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -1036,16 +1078,17 @@ func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	rootHashCalled := func() ([]byte, error) {
 		return rootHash, nil
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -1060,7 +1103,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 	tdp := initDataPool(txHash)
 
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1180,16 +1223,17 @@ func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	rootHashCalled := func() ([]byte, error) {
 		return rootHash, nil
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -1203,7 +1247,7 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	txHash := []byte("tx_hash1")
 	tdp := initDataPool(txHash)
 	randSeed := []byte("rand seed")
-	blkc := blockchain.NewBlockChain()
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blkc.SetCurrentBlockHeader(
 		&block.Header{
 			Nonce:    1,
@@ -1243,12 +1287,14 @@ func TestShardProcessor_ProcessBlockWithWrongMiniBlockHeaderShouldErr(t *testing
 	rootHashCalled := func() ([]byte, error) {
 		return rootHash, nil
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		RootHashCalled: rootHashCalled,
 	}
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	// should return err
@@ -1314,10 +1360,12 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 		return rootHash, nil
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	dataComponents.DataPool = tdp
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.RequestHandler = &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			atomic.AddInt32(&hdrNoncesRequestCalled, 1)
@@ -1328,7 +1376,6 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 		RevertToSnapshotCalled: revertToSnapshot,
 		RootHashCalled:         rootHashCalled,
 	}
-	arguments.BlockChain = blkc
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.ProcessBlock(&hdr, body, haveTime)
@@ -1355,8 +1402,9 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	t.Parallel()
 
 	tdp := testscommon.NewPoolsHolderMock()
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, 1)
@@ -1439,10 +1487,12 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	metaHash2 := hasher.Compute(string(metaBytes))
 
 	tdp.Headers().AddHeader(metaHash2, meta2)
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdr.Round = 4
 
@@ -1504,9 +1554,10 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 			return []byte("obj"), nil
 		},
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1559,9 +1610,15 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, hdrUnit)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Store = store
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.Storage = store
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
@@ -1580,12 +1637,6 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {},
-	})
-	arguments.BlockChain = blkc
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1635,9 +1686,15 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 	store := initStore()
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Store = store
+	blkc, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {},
+	})
+	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.Storage = store
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
@@ -1655,12 +1712,7 @@ func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc := blockchain.NewBlockChain()
-	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-	_ = blkc.SetAppStatusHandler(&mock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {},
-	})
-	arguments.BlockChain = blkc
+
 	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 
@@ -1744,17 +1796,6 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	store := initStore()
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.AccountsDB[state.UserAccountsState] = accounts
-	arguments.ForkDetector = fd
-	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
-	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
-		return &block.MetaBlock{}, []byte("hash"), nil
-	}
-	arguments.BlockTracker = blockTrackerMock
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -1762,7 +1803,21 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return hdrHash
 	}
-	arguments.BlockChain = blkc
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.Hash = hasher
+	dataComponents.DataPool = tdp
+	dataComponents.Storage = store
+	dataComponents.BlockChain = blkc
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.AccountsDB[state.UserAccountsState] = accounts
+	arguments.ForkDetector = fd
+	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{}, []byte("hash"), nil
+	}
+	arguments.BlockTracker = blockTrackerMock
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.ProcessBlock(hdr, body, haveTime)
@@ -1846,7 +1901,21 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	var saveBlockCalled map[string]data.TransactionHandler
 	saveBlockCalledMutex := sync.Mutex{}
 
-	arguments := CreateMockArgumentsMultiShard()
+	blkc := createTestBlockchain()
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return prevHdr
+	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return hdrHash
+	}
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	dataComponents.BlockChain = blkc
+
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+
 	arguments.Indexer = &mock.IndexerMock{
 		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
 			saveBlockCalledMutex.Lock()
@@ -1854,9 +1923,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 			saveBlockCalledMutex.Unlock()
 		},
 	}
-	arguments.DataPool = tdp
-	arguments.Store = store
-	arguments.Hasher = hasher
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
 	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
@@ -1882,14 +1948,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return prevHdr
-	}
-	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-		return hdrHash
-	}
-	arguments.BlockChain = blkc
+
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.ProcessBlock(hdr, body, haveTime)
@@ -1913,8 +1972,9 @@ func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(
 	journalLen := func() int { return 3 }
 	revToSnapshot := func(snapshot int) error { return nil }
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RevertToSnapshotCalled: revToSnapshot,
@@ -1935,8 +1995,9 @@ func TestShardProcessor_CreateTxBlockBodyWithNoTimeShouldReturnEmptyBody(t *test
 		return []byte("roothash"), nil
 	}
 	revToSnapshot := func(snapshot int) error { return nil }
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled:       journalLen,
 		RootHashCalled:         rootHashfunc,
@@ -1962,8 +2023,9 @@ func TestShardProcessor_CreateTxBlockBodyOK(t *testing.T) {
 	haveTimeTrue := func() bool {
 		return true
 	}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		JournalLenCalled: journalLen,
 		RootHashCalled:   rootHashfunc,
@@ -1982,11 +2044,12 @@ func TestNode_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	marshalizer := &mock.MarshalizerStub{}
 	hasher := &mock.HasherStub{}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.Store = initStore()
-	arguments.DataPool = tdp
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.Storage = initStore()
+	dataComponents.DataPool = tdp
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	be, _ := blproc.NewShardProcessor(arguments)
 	hdr, txBlock := createTestHdrTxBlockBody()
@@ -2074,8 +2137,9 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 		},
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
@@ -2085,7 +2149,9 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 
 func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 	t.Parallel()
-	arguments := CreateMockArgumentsMultiShard()
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
@@ -2095,7 +2161,9 @@ func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
 
 func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 	t.Parallel()
-	arguments := CreateMockArgumentsMultiShard()
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr := &block.Header{}
@@ -2107,8 +2175,9 @@ func TestBlockProcessor_ApplyBodyToHeaderShouldNotReturnNil(t *testing.T) {
 func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.Marshalizer = &mock.MarshalizerMock{Fail: true}
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	coreComponents.IntMarsh = &mock.MarshalizerMock{Fail: true}
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	bp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{{
@@ -2136,7 +2205,8 @@ func TestShardProcessor_ApplyBodyToHeaderShouldErrWhenMarshalizerErrors(t *testi
 func TestShardProcessor_ApplyBodyToHeaderReturnsOK(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	bp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -2172,7 +2242,8 @@ func TestShardProcessor_CommitBlockShouldRevertAccountStateWhenErr(t *testing.T)
 		return nil
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = &mock.AccountsStub{
 		RevertToSnapshotCalled: revToSnapshot,
 	}
@@ -2243,9 +2314,10 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.TxCoordinator = tc
 	sp, _ := blproc.NewShardProcessor(arguments)
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
@@ -2270,9 +2342,10 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 		Fail: false,
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	wr := &wrongBody{}
@@ -2289,9 +2362,10 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 		Fail: false,
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil)
@@ -2356,9 +2430,10 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.TxCoordinator = tc
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -2439,10 +2514,11 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 		&mock.BalanceComputationStub{},
 	)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.RequestHandler = requestHandler
 	arguments.TxCoordinator = tc
 
@@ -2516,10 +2592,11 @@ func TestShardProcessor_ReceivedMetaBlockNoMissingMiniBlocksShouldPass(t *testin
 		&mock.BalanceComputationStub{},
 	)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.RequestHandler = requestHandler
 	arguments.TxCoordinator = tc
 
@@ -2558,8 +2635,9 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 		return true
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	miniBlockSlice, usedMetaHdrsHashes, noOfTxs, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
 	assert.Equal(t, err == nil, true)
@@ -2634,8 +2712,9 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	mb3Hash := []byte("meta block 3")
 	tdp.Headers().AddHeader(mb3Hash, meta)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	miniBlocksReturned, usedMetaHdrsHashes, nrTxAdded, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
@@ -2773,10 +2852,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	)
 	assert.Nil(t, err)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accntAdapter
 	arguments.TxCoordinator = tc
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -2836,10 +2916,11 @@ func TestShardProcessor_GetProcessedMetaBlockFromPoolShouldWork(t *testing.T) {
 	shardCoordinator.CurrentShard = destShardId
 	shardCoordinator.SetNoShards(destShardId + 1)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
@@ -2876,8 +2957,9 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldErrNilBlockHeader(t *testing.
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	be, _ := blproc.NewShardProcessor(arguments)
 	err := be.RestoreBlockIntoPools(nil, nil)
 	assert.NotNil(t, err)
@@ -2888,8 +2970,9 @@ func TestBlockProcessor_RestoreBlockIntoPoolsShouldWorkNilTxBlockBody(t *testing
 	t.Parallel()
 	tdp := initDataPool([]byte("tx_hash1"))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.RestoreBlockIntoPools(&block.Header{}, nil)
@@ -2957,11 +3040,12 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasherMock
-	arguments.Marshalizer = marshalizerMock
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasherMock
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.TxCoordinator = tc
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -3015,9 +3099,10 @@ func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 
 	tdp := initDataPool([]byte("tx_hash1"))
 	marshalizerMock := &mock.MarshalizerMock{}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizerMock
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{ReceiverShardID: 69})
@@ -3038,9 +3123,10 @@ func TestShardProcessor_DecodeBlockHeader(t *testing.T) {
 	tdp := initDataPool([]byte("tx_hash1"))
 	marshalizerMock := &mock.MarshalizerMock{}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = tdp
-	arguments.Marshalizer = marshalizerMock
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = tdp
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, err := blproc.NewShardProcessor(arguments)
 	assert.Nil(t, err)
 	hdr := &block.Header{}
@@ -3071,10 +3157,11 @@ func TestShardProcessor_IsHdrConstructionValid(t *testing.T) {
 	datapool := initDataPool([]byte("tx_hash1"))
 
 	shardNr := uint32(5)
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -3169,11 +3256,12 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	}
 
 	shardNr := uint32(5)
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
@@ -3324,11 +3412,12 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNotAllMBFinished(t *tes
 
 	shardNr := uint32(5)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
@@ -3457,11 +3546,12 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrAllMBFinished(t *testin
 
 	shardNr := uint32(5)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(shardNr)
 	arguments.ForkDetector = forkDetector
 	startHeaders := createGenesisBlocks(arguments.ShardCoordinator)
@@ -3618,7 +3708,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationReceiverMissmatch(t *testing.T
 	t.Parallel()
 
 	hdr, body := createOneHeaderOneBody()
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr.MiniBlockHeaders[0].ReceiverShardID = body.MiniBlocks[0].ReceiverShardID + 1
@@ -3630,7 +3721,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationSenderMissmatch(t *testing.T) 
 	t.Parallel()
 
 	hdr, body := createOneHeaderOneBody()
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr.MiniBlockHeaders[0].SenderShardID = body.MiniBlocks[0].SenderShardID + 1
@@ -3643,7 +3735,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationTxCountMissmatch(t *testing.T)
 
 	hdr, body := createOneHeaderOneBody()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr.MiniBlockHeaders[0].TxCount = uint32(len(body.MiniBlocks[0].TxHashes) + 1)
@@ -3655,7 +3748,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationHashMissmatch(t *testing.T) {
 	t.Parallel()
 
 	hdr, body := createOneHeaderOneBody()
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	hdr.MiniBlockHeaders[0].Hash = []byte("wrongHash")
@@ -3667,7 +3761,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationShouldPass(t *testing.T) {
 	t.Parallel()
 
 	hdr, body := createOneHeaderOneBody()
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.CheckHeaderBodyCorrelation(hdr, body)
@@ -3678,7 +3773,8 @@ func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
 	t.Parallel()
 
 	hdr, body := createOneHeaderOneBody()
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	body.MiniBlocks[0] = nil
@@ -3700,9 +3796,7 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 		ShardInfo: make([]block.ShardData, 0),
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = poolFake
-	arguments.Store = &mock.ChainStorerMock{
+	store := &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{
 				RemoveCalled: func(key []byte) error {
@@ -3714,6 +3808,11 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 			}
 		},
 	}
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = poolFake
+	dataComponents.Storage = store
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	miniblockHashes := make(map[string]uint32)
@@ -3781,8 +3880,9 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 
 	idp := initDataPool([]byte("tx_hash1"))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = idp
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = idp
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	metaBytes, _ := marshalizer.Marshal(metaBlock)
@@ -3806,7 +3906,8 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) 
 func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainNothingToProcess(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 	hdrs, _, _ := sp.GetHighestHdrForOwnShardFromMetachain(nil)
 
@@ -3824,11 +3925,12 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithoutOwnHd
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, err := blproc.NewShardProcessor(arguments)
@@ -3884,11 +3986,12 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrBu
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -3941,11 +4044,12 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	marshalizer := &mock.MarshalizerMock{}
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = datapool
-	arguments.Store = store
-	arguments.Hasher = hasher
-	arguments.Marshalizer = marshalizer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasher
+	coreComponents.IntMarsh = marshalizer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -4029,9 +4133,10 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	storer := &mock.ChainStorerMock{}
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = poolMock
-	arguments.Store = storer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = poolMock
+	dataComponents.Storage = storer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = shardC
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -4119,9 +4224,10 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 
 	shardC := mock.NewMultiShardsCoordinatorMock(3)
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.DataPool = poolMock
-	arguments.Store = storer
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = poolMock
+	dataComponents.Storage = storer
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ShardCoordinator = shardC
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
 	arguments.StateCheckpointModulus = 2
@@ -4152,8 +4258,7 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.BlockChain = &mock.BlockChainMock{
+	chain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return nil
 		},
@@ -4161,6 +4266,9 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testin
 			return &block.Header{Nonce: 0}
 		},
 	}
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.BlockChain = chain
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
@@ -4178,9 +4286,6 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T
 			return 1
 		},
 	}
-
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.EpochStartTrigger = epochStartTrigger
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{Epoch: 1}
@@ -4189,21 +4294,15 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainCorrectEpoch(t *testing.T
 			return &block.Header{Nonce: 0}
 		},
 	}
-	arguments.BlockChain = blockChain
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.BlockChain = blockChain
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.EpochStartTrigger = epochStartTrigger
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
 	assert.Equal(t, nil, err)
 
-	blockChain = &mock.BlockChainMock{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound()}
-		},
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{Nonce: 0}
-		},
-	}
-	arguments.BlockChain = blockChain
 	sp, _ = blproc.NewShardProcessor(arguments)
 
 	err = sp.CheckEpochCorrectnessCrossChain()
@@ -4225,8 +4324,6 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 		},
 	}
 
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.EpochStartTrigger = epochStartTrigger
 	header := &block.Header{Epoch: epochStartTrigger.Epoch() - 1, Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1}
 	blockChain := &mock.BlockChainMock{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -4236,14 +4333,21 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochStorageErro
 			return &block.Header{Nonce: 0}
 		},
 	}
-	arguments.BlockChain = blockChain
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.BlockChain = blockChain
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.EpochStartTrigger = epochStartTrigger
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	store := arguments.Store
-	val, _ := arguments.Marshalizer.Marshal(header)
-	key := arguments.Hasher.Compute(string(val))
-	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(header.Nonce), key)
+	store := dataComponents.StorageService()
+	val, _ := coreComponents.InternalMarshalizer().Marshal(header)
+	key := coreComponents.Hasher().Compute(string(val))
+	_ = store.Put(
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		coreComponents.Uint64ByteSliceConverter().ToByteSlice(header.Nonce),
+		key,
+	)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
@@ -4268,11 +4372,6 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 	forkDetector := &mock.ForkDetectorMock{SetRollBackNonceCalled: func(nonce uint64) {
 		nonceCalled = nonce
 	}}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.EpochStartTrigger = epochStartTrigger
-	arguments.Store = store
-	arguments.ForkDetector = forkDetector
-
 	prevHash := []byte("prevHash")
 	currHeader := &block.Header{
 		Nonce:    10,
@@ -4288,7 +4387,13 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 			return &block.Header{Nonce: 0}
 		},
 	}
-	arguments.BlockChain = blockChain
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.Storage = store
+	dataComponents.BlockChain = blockChain
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.EpochStartTrigger = epochStartTrigger
+	arguments.ForkDetector = forkDetector
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -4298,8 +4403,12 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback1Bl
 		Round: epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod,
 	}
 
-	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
-	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevHeader.Nonce), prevHash)
+	prevHeaderData, _ := coreComponents.InternalMarshalizer().Marshal(prevHeader)
+	_ = store.Put(
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevHeader.Nonce),
+		prevHash,
+	)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
@@ -4326,10 +4435,6 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 	forkDetector := &mock.ForkDetectorMock{SetRollBackNonceCalled: func(nonce uint64) {
 		nonceCalled = nonce
 	}}
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.EpochStartTrigger = epochStartTrigger
-	arguments.Store = store
-	arguments.ForkDetector = forkDetector
 	prevHash := []byte("prevHash")
 	header := &block.Header{
 		Nonce:    10,
@@ -4345,7 +4450,13 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 			return &block.Header{Nonce: 0}
 		},
 	}
-	arguments.BlockChain = blockChain
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.Storage = store
+	dataComponents.BlockChain = blockChain
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	arguments.EpochStartTrigger = epochStartTrigger
+	arguments.ForkDetector = forkDetector
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -4356,8 +4467,12 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod + 1,
 		PrevHash: prevPrevHash,
 	}
-	prevHeaderData, _ := arguments.Marshalizer.Marshal(prevHeader)
-	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevHeader.Nonce), prevHash)
+	prevHeaderData, _ := coreComponents.InternalMarshalizer().Marshal(prevHeader)
+	_ = store.Put(
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevHeader.Nonce),
+		prevHash,
+	)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevHash, prevHeaderData)
 
 	prevPrevHeader := &block.Header{
@@ -4366,8 +4481,12 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 		Round:    epochStartTrigger.EpochFinalityAttestingRound() + process.EpochChangeGracePeriod,
 		PrevHash: prevPrevHash,
 	}
-	prevPrevHeaderData, _ := arguments.Marshalizer.Marshal(prevPrevHeader)
-	_ = store.Put(dataRetriever.ShardHdrNonceHashDataUnit, arguments.Uint64Converter.ToByteSlice(prevPrevHeader.Nonce), prevPrevHash)
+	prevPrevHeaderData, _ := coreComponents.InternalMarshalizer().Marshal(prevPrevHeader)
+	_ = store.Put(
+		dataRetriever.ShardHdrNonceHashDataUnit,
+		coreComponents.Uint64ByteSliceConverter().ToByteSlice(prevPrevHeader.Nonce),
+		prevPrevHash,
+	)
 	_ = store.Put(dataRetriever.BlockHeaderUnit, prevPrevHash, prevPrevHeaderData)
 
 	err := sp.CheckEpochCorrectnessCrossChain()
@@ -4378,7 +4497,8 @@ func TestShardProcessor_checkEpochCorrectnessCrossChainInCorrectEpochRollback2Bl
 func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnNilWhenNoSelfNotarizedHeadersExists(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(nil, nil)
@@ -4392,7 +4512,8 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonce
 	finalNonce := uint64(1)
 	finalHash := []byte("final hash")
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return finalNonce
@@ -4412,7 +4533,8 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonce
 func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsNotHigherThanSelfNotarizedNonce(t *testing.T) {
 	t.Parallel()
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return 0
@@ -4441,7 +4563,8 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonc
 	finalNonce := uint64(2)
 	finalHash := []byte("final hash")
 
-	arguments := CreateMockArgumentsMultiShard()
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			return finalNonce
@@ -4472,12 +4595,6 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	t.Parallel()
 
 	var addedNonces []uint64
-
-	rounderMock := &mock.RounderMock{}
-
-	arguments := CreateMockArgumentsMultiShard()
-	arguments.Rounder = rounderMock
-
 	poolsHolderStub := initDataPool([]byte(""))
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
@@ -4487,7 +4604,12 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 			},
 		}
 	}
-	arguments.DataPool = poolsHolderStub
+
+	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
+	dataComponents.DataPool = poolsHolderStub
+	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
+	rounderMock := &mock.RounderMock{}
+	arguments.Rounder = rounderMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 

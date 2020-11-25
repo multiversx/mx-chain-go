@@ -66,6 +66,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 	wg := sync.WaitGroup{}
 	wg.Add(1 + len(meta.EpochStart.LastFinalizedHeaders))
 
+	// TODO: might think of a way to stop waiting at a signal
 	chDone := make(chan bool)
 	go func() {
 		wg.Wait()
@@ -134,6 +135,12 @@ func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error 
 
 func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
 	accAdapterIdentifier := genesis.CreateTrieIdentifier(shardId, accountType)
+
+	log.Debug("syncing accounts",
+		"type", accAdapterIdentifier,
+		"shard ID", shardId,
+		"root hash", rootHash,
+	)
 
 	success := st.tryRecreateTrie(shardId, accAdapterIdentifier, trieID, rootHash)
 	if success {
