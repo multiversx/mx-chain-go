@@ -47,13 +47,19 @@ func TestCreateAllBlocksAfterHardfork(t *testing.T) {
 	body1 := &block.Body{}
 	body2 := &block.Body{}
 	args.MapBlockProcessors[0] = &mock.HardForkBlockProcessor{
-		CreateNewBlockCalled: func(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
-			return hdr1, body1, nil
+		CreateBodyCalled: func() (data.BodyHandler, []*update.MbInfo, error) {
+			return body1, nil, nil
+		},
+		CreateBlockCalled: func(bodyHandler data.BodyHandler, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error) {
+			return hdr1, nil
 		},
 	}
 	args.MapBlockProcessors[core.MetachainShardId] = &mock.HardForkBlockProcessor{
-		CreateNewBlockCalled: func(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error) {
-			return hdr2, body2, nil
+		CreateBodyCalled: func() (data.BodyHandler, []*update.MbInfo, error) {
+			return body2, nil, nil
+		},
+		CreateBlockCalled: func(bodyHandler data.BodyHandler, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error) {
+			return hdr2, nil
 		},
 	}
 

@@ -79,7 +79,7 @@ func TestNewMetaBlockCreatorAfterHardforkShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(blockCreator))
 }
 
-func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
+func TestMetaBlockCreator_CreateBlock(t *testing.T) {
 	t.Parallel()
 
 	rootHash1 := []byte("rootHash1")
@@ -101,7 +101,9 @@ func TestMetaBlockCreator_CreateNewBlock(t *testing.T) {
 	blockCreator, _ := NewMetaBlockCreatorAfterHardfork(args)
 
 	chainID, round, nonce, epoch := "id", uint64(10), uint64(12), uint32(1)
-	header, body, err := blockCreator.CreateNewBlock(chainID, round, nonce, epoch)
+	body, _, err := blockCreator.CreateBody()
+	assert.NoError(t, err)
+	header, err := blockCreator.CreateBlock(body, chainID, round, nonce, epoch)
 	assert.NoError(t, err)
 
 	blockBody := &block.Body{

@@ -331,3 +331,5 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
 }
+
+//TODO: Add unit tests for methods: createArgsGenesisBlockCreator, createHarForkBlockProcessor

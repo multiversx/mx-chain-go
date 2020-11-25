@@ -74,22 +74,55 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	}
 	shardIDs[a.shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	for _, shardID := range shardIDs {
-		blockProcessor, ok := a.mapBlockProcessors[shardID]
-		if !ok {
-			return nil, nil, update.ErrNilHardForkBlockProcessor
-		}
+	lastPostMbs, err := update.CreateBody(shardIDs, mapBodies, a.mapBlockProcessors)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		hdr, body, err := blockProcessor.CreateNewBlock(chainID, round, nonce, epoch)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = update.CreatePostBodies(shardIDs, lastPostMbs, mapBodies, a.mapBlockProcessors)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		mapHeaders[shardID] = hdr
-		mapBodies[shardID] = body
+	err = update.CheckDuplicates(shardIDs, mapBodies, a.marshalizer, a.hasher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = a.createHeader(shardIDs, mapBodies, mapHeaders, chainID, round, nonce, epoch)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return mapHeaders, mapBodies, nil
+}
+
+func (a *afterHardFork) createHeader(
+	shardIDs []uint32,
+	mapBodies map[uint32]data.BodyHandler,
+	mapHeaders map[uint32]data.HeaderHandler,
+	chainID string,
+	round uint64,
+	nonce uint64,
+	epoch uint32,
+) error {
+	for _, shardID := range shardIDs {
+		log.Debug("afterHardFork.createHeader", "shard", shardID)
+
+		blockProcessor, ok := a.mapBlockProcessors[shardID]
+		if !ok {
+			return update.ErrNilHardForkBlockProcessor
+		}
+
+		hdr, err := blockProcessor.CreateBlock(mapBodies[shardID], chainID, round, nonce, epoch)
+		if err != nil {
+			return err
+		}
+
+		mapHeaders[shardID] = hdr
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

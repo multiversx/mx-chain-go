@@ -58,36 +58,48 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork)
 	}, nil
 }
 
-// CreateNewBlock will create a new block after hardfork import
-func (m *metaBlockCreator) CreateNewBlock(
+// CreateBody will create a block body after hardfork import
+func (m *metaBlockCreator) CreateBody() (data.BodyHandler, []*update.MbInfo, error) {
+	return &block.Body{
+		MiniBlocks: make([]*block.MiniBlock, 0),
+	}, nil, nil
+}
+
+// CreatePostBody will create a post block body from the given miniBlocks info
+func (m *metaBlockCreator) CreatePostBody(_ []*update.MbInfo) (data.BodyHandler, []*update.MbInfo, error) {
+	return &block.Body{
+		MiniBlocks: make([]*block.MiniBlock, 0),
+	}, nil, nil
+}
+
+// CreateBlock will create a block after hardfork import
+func (m *metaBlockCreator) CreateBlock(
+	_ data.BodyHandler,
 	chainID string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
+) (data.HeaderHandler, error) {
 	if len(chainID) == 0 {
-		return nil, nil, update.ErrEmptyChainID
+		return nil, update.ErrEmptyChainID
 	}
 
 	validatorRootHash, err := m.validatorAccounts.Commit()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	accounts := m.importHandler.GetAccountsDBForShard(core.MetachainShardId)
 	if check.IfNil(accounts) {
-		return nil, nil, update.ErrNilAccounts
+		return nil, update.ErrNilAccounts
 	}
 
 	rootHash, err := accounts.Commit()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
-	blockBody := &block.Body{
-		MiniBlocks: make([]*block.MiniBlock, 0),
-	}
 	metaHdr := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,
@@ -106,7 +118,7 @@ func (m *metaBlockCreator) CreateNewBlock(
 		PubKeysBitmap:          []byte{1},
 	}
 
-	return metaHdr, blockBody, nil
+	return metaHdr, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

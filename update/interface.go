@@ -101,14 +101,17 @@ type ImportHandler interface {
 
 // HardForkBlockProcessor defines the methods to process after hardfork
 type HardForkBlockProcessor interface {
-	CreateNewBlock(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlock(bodyHandler data.BodyHandler, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error)
+	CreateBody() (data.BodyHandler, []*MbInfo, error)
+	CreatePostBody(mbsInfo []*MbInfo) (data.BodyHandler, []*MbInfo, error)
 	IsInterfaceNil() bool
 }
 
 // PendingTransactionProcessor defines the methods to process a transaction destination me
 type PendingTransactionProcessor interface {
-	ProcessTransactionsDstMe(txsInfo []*TxInfo) (block.MiniBlockSlice, error)
+	ProcessTransactionsDstMe(mbInfo *MbInfo) (*block.MiniBlock, error)
 	RootHash() ([]byte, error)
+	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

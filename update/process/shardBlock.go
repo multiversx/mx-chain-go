@@ -80,25 +80,35 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 	}, nil
 }
 
-// CreateNewBlock will create a new block after hardfork import
-func (s *shardBlockCreator) CreateNewBlock(
+// CreateBody will create a block body after hardfork import
+func (s *shardBlockCreator) CreateBody() (data.BodyHandler, []*update.MbInfo, error) {
+	mbsInfo, err := s.getPendingMbsAndTxsInCorrectOrder()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return s.CreatePostBody(mbsInfo)
+}
+
+// CreateBlock will create a block after hardfork import
+func (s *shardBlockCreator) CreateBlock(
+	bodyHandler data.BodyHandler,
 	chainID string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
-	if len(chainID) == 0 {
-		return nil, nil, update.ErrEmptyChainID
+) (data.HeaderHandler, error) {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
-
-	blockBody, err := s.createBody()
-	if err != nil {
-		return nil, nil, err
+	if len(chainID) == 0 {
+		return nil, update.ErrEmptyChainID
 	}
 
 	rootHash, err := s.pendingTxProcessor.RootHash()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	shardHeader := &block.Header{
@@ -118,12 +128,12 @@ func (s *shardBlockCreator) CreateNewBlock(
 
 	shardHeader.ReceiptsHash, err = s.txCoordinator.CreateReceiptsHash()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	totalTxCount, miniBlockHeaders, err := s.createMiniBlockHeaders(blockBody)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	shardHeader.MiniBlockHeaders = miniBlockHeaders
@@ -131,7 +141,7 @@ func (s *shardBlockCreator) CreateNewBlock(
 
 	metaBlockHash, err := core.CalculateHash(s.marshalizer, s.hasher, s.importHandler.GetHardForkMetaBlock())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	shardHeader.MetaBlockHashes = [][]byte{metaBlockHash}
@@ -141,97 +151,77 @@ func (s *shardBlockCreator) CreateNewBlock(
 	s.saveAllCreatedDestMeTransactionsToCache(shardHeader, blockBody)
 	s.saveAllTransactionsToStorageIfSelfShard(shardHeader, blockBody)
 
-	return shardHeader, blockBody, nil
+	return shardHeader, nil
 }
 
-func (s *shardBlockCreator) createBody() (*block.Body, error) {
-	pendingMiniBlocks, txsInfoPerPendingMiniBlock, err := s.getPendingMbsAndTxsInCorrectOrder()
-	if err != nil {
-		return nil, err
-	}
-
-	mapPendingMiniBlocksHashes := make(map[string]struct{})
-	for _, pendingMiniBlock := range pendingMiniBlocks {
-		mapPendingMiniBlocksHashes[string(pendingMiniBlock.Hash)] = struct{}{}
-	}
-
+// CreatePostBody will create a post block body from the given miniBlocks info
+func (s *shardBlockCreator) CreatePostBody(mbsInfo []*update.MbInfo) (data.BodyHandler, []*update.MbInfo, error) {
 	s.txCoordinator.CreateBlockStarted()
 
 	body := &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}
 
-	for _, txsInfo := range txsInfoPerPendingMiniBlock {
-		dstMeMiniBlocks, err := s.pendingTxProcessor.ProcessTransactionsDstMe(txsInfo)
+	for _, mbInfo := range mbsInfo {
+		if mbInfo.ReceiverShardID != s.shardCoordinator.SelfId() {
+			continue
+		}
+
+		miniBlock, err := s.pendingTxProcessor.ProcessTransactionsDstMe(mbInfo)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		body.MiniBlocks = append(body.MiniBlocks, dstMeMiniBlocks...)
 
-		postProcessMiniBlocks := s.txCoordinator.CreatePostProcessMiniBlocks()
-		for _, postProcessMiniBlock := range postProcessMiniBlocks {
-			mbHash, errCalculateHash := core.CalculateHash(s.marshalizer, s.hasher, postProcessMiniBlock)
-			if errCalculateHash != nil {
-				return nil, errCalculateHash
-			}
-
-			_, miniBlockFound := mapPendingMiniBlocksHashes[string(mbHash)]
-			if miniBlockFound {
-				continue
-			}
-
-			body.MiniBlocks = append(body.MiniBlocks, postProcessMiniBlock)
-		}
+		body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	}
 
-	err = s.checkDuplicates(body.MiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	return body, nil
-}
-
-func (s *shardBlockCreator) checkDuplicates(miniBlocks []*block.MiniBlock) error {
-	mapMiniBlocks := make(map[string]struct{})
-
-	for _, miniBlock := range miniBlocks {
-		mbHash, err := core.CalculateHash(s.marshalizer, s.hasher, miniBlock)
-		if err != nil {
-			return err
-		}
-		_, duplicatesFound := mapMiniBlocks[string(mbHash)]
-		if duplicatesFound {
-			return update.ErrDuplicatedMiniBlocksFound
+	postProcessMiniBlocks := s.txCoordinator.CreatePostProcessMiniBlocks()
+	postProcessMiniBlocksInfo := make([]*update.MbInfo, len(postProcessMiniBlocks))
+	for index, postProcessMiniBlock := range postProcessMiniBlocks {
+		mbHash, errCalculateHash := core.CalculateHash(s.marshalizer, s.hasher, postProcessMiniBlock)
+		if errCalculateHash != nil {
+			return nil, nil, errCalculateHash
 		}
 
-		mapMiniBlocks[string(mbHash)] = struct{}{}
+		body.MiniBlocks = append(body.MiniBlocks, postProcessMiniBlock)
+
+		postProcessMiniBlockInfo, errCreate := s.createMiniBlockInfoForPostProcessMiniBlock(mbHash, postProcessMiniBlock)
+		if errCreate != nil {
+			return nil, nil, errCreate
+		}
+
+		postProcessMiniBlocksInfo[index] = postProcessMiniBlockInfo
 	}
 
-	return nil
-}
-
-func (s *shardBlockCreator) getPendingMbsAndTxsInCorrectOrder() ([]block.MiniBlockHeader, [][]*update.TxInfo, error) {
-	hardForkMetaBlock := s.importHandler.GetHardForkMetaBlock()
-	unFinishedMetaBlocks := s.importHandler.GetUnFinishedMetaBlocks()
-	pendingMiniBlocks, err := update.GetPendingMiniBlocks(hardForkMetaBlock, unFinishedMetaBlocks)
+	_, err := s.pendingTxProcessor.Commit()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	return body, postProcessMiniBlocksInfo, nil
+}
+
+func (s *shardBlockCreator) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, error) {
+	hardForkMetaBlock := s.importHandler.GetHardForkMetaBlock()
+	unFinishedMetaBlocks := s.importHandler.GetUnFinishedMetaBlocks()
+	pendingMiniBlocks, err := update.GetPendingMiniBlocks(hardForkMetaBlock, unFinishedMetaBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	importedMiniBlocksMap := s.importHandler.GetMiniBlocks()
 	if len(importedMiniBlocksMap) != len(pendingMiniBlocks) {
-		return nil, nil, update.ErrWrongImportedMiniBlocksMap
+		return nil, update.ErrWrongImportedMiniBlocksMap
 	}
 
 	numPendingTransactions := 0
 	importedTransactionsMap := s.importHandler.GetTransactions()
-	txsInfoPerPendingMiniBlock := make([][]*update.TxInfo, len(pendingMiniBlocks))
+	mbsInfo := make([]*update.MbInfo, len(pendingMiniBlocks))
 
 	for mbIndex, pendingMiniBlock := range pendingMiniBlocks {
 		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.Hash)]
 		if !miniBlockFound {
-			return nil, nil, update.ErrMiniBlockNotFoundInImportedMap
+			return nil, update.ErrMiniBlockNotFoundInImportedMap
 		}
 
 		numPendingTransactions += len(miniBlock.TxHashes)
@@ -239,24 +229,29 @@ func (s *shardBlockCreator) getPendingMbsAndTxsInCorrectOrder() ([]block.MiniBlo
 		for txIndex, txHash := range miniBlock.TxHashes {
 			tx, transactionFound := importedTransactionsMap[string(txHash)]
 			if !transactionFound {
-				return nil, nil, update.ErrTransactionNotFoundInImportedMap
+				return nil, update.ErrTransactionNotFoundInImportedMap
 			}
 
 			txsInfo[txIndex] = &update.TxInfo{
-				MbHash: pendingMiniBlock.Hash,
 				TxHash: txHash,
 				Tx:     tx,
 			}
 		}
 
-		txsInfoPerPendingMiniBlock[mbIndex] = txsInfo
+		mbsInfo[mbIndex] = &update.MbInfo{
+			MbHash:          pendingMiniBlock.Hash,
+			SenderShardID:   pendingMiniBlock.SenderShardID,
+			ReceiverShardID: pendingMiniBlock.ReceiverShardID,
+			Type:            pendingMiniBlock.Type,
+			TxsInfo:         txsInfo,
+		}
 	}
 
 	if len(importedTransactionsMap) != numPendingTransactions {
-		return nil, nil, update.ErrWrongImportedTransactionsMap
+		return nil, update.ErrWrongImportedTransactionsMap
 	}
 
-	return pendingMiniBlocks, txsInfoPerPendingMiniBlock, nil
+	return mbsInfo, nil
 }
 
 func (s *shardBlockCreator) createMiniBlockHeaders(body *block.Body) (int, []block.MiniBlockHeader, error) {
@@ -330,10 +325,6 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 	mapTxs := s.importHandler.GetTransactions()
 	// save transactions from imported map
 	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.SenderShardID == s.selfShardID {
-			continue
-		}
-
 		for _, txHash := range miniBlock.TxHashes {
 			tx, ok := mapTxs[string(txHash)]
 			if !ok {
@@ -383,7 +374,7 @@ func (s *shardBlockCreator) saveAllCreatedDestMeTransactionsToCache(
 	crossMiniBlocksToMe := make([]*block.MiniBlock, 0)
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
-		isCrossShardDstMe := miniBlock.SenderShardID == s.shardCoordinator.SelfId() &&
+		isCrossShardDstMe := miniBlock.SenderShardID != s.selfShardID &&
 			miniBlock.ReceiverShardID == s.selfShardID
 		if !isCrossShardDstMe {
 			continue
@@ -432,6 +423,35 @@ func (s *shardBlockCreator) saveTxToCache(
 	}
 
 	chosenCache.AddData(txHash, tx, tx.Size(), strCache)
+}
+
+func (s *shardBlockCreator) createMiniBlockInfoForPostProcessMiniBlock(
+	mbHash []byte,
+	mb *block.MiniBlock,
+) (*update.MbInfo, error) {
+	mapHashTx := s.txCoordinator.GetAllCurrentUsedTxs(mb.Type)
+	txsInfo := make([]*update.TxInfo, len(mb.TxHashes))
+	for index, txHash := range mb.TxHashes {
+		tx, transactionFound := mapHashTx[string(txHash)]
+		if !transactionFound {
+			return nil, update.ErrPostProcessTransactionNotFound
+		}
+
+		txInfo := &update.TxInfo{
+			TxHash: txHash,
+			Tx:     tx,
+		}
+
+		txsInfo[index] = txInfo
+	}
+
+	return &update.MbInfo{
+		MbHash:          mbHash,
+		SenderShardID:   mb.SenderShardID,
+		ReceiverShardID: mb.ReceiverShardID,
+		Type:            mb.Type,
+		TxsInfo:         txsInfo,
+	}, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

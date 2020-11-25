@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
@@ -87,44 +86,21 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	tx4 := &transaction.Transaction{SndAddr: addr4}
 	tx5 := &transaction.Transaction{SndAddr: addr5}
 
-	txsInfo := []*update.TxInfo{
-		{TxHash: hash1, Tx: tx1},
-		{TxHash: hash2, Tx: tx2},
-		{TxHash: hash3, Tx: tx3},
-		{TxHash: hash4, Tx: tx4},
-		{TxHash: hash5, Tx: tx5},
-	}
+	mbInfo := &update.MbInfo{
+		TxsInfo: []*update.TxInfo{
+			{TxHash: hash1, Tx: tx1},
+			{TxHash: hash2, Tx: tx2},
+			{TxHash: hash3, Tx: tx3},
+			{TxHash: hash4, Tx: tx4},
+			{TxHash: hash5, Tx: tx5},
+		}}
 
-	mbSlice, err := pendingTxProcessor.ProcessTransactionsDstMe(txsInfo)
+	mb, err := pendingTxProcessor.ProcessTransactionsDstMe(mbInfo)
+	_, _ = pendingTxProcessor.Commit()
 	assert.True(t, called)
-	assert.NotNil(t, mbSlice)
+	assert.NotNil(t, mb)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(hash2), mbSlice[0].TxHashes[0])
-}
-
-func TestGetSortedSliceFromMbsMap(t *testing.T) {
-	mb1 := &block.MiniBlock{
-		SenderShardID: 5,
-		Type:          block.TxBlock,
-	}
-	mb2 := &block.MiniBlock{
-		SenderShardID: 5,
-		Type:          block.SmartContractResultBlock,
-	}
-	mb3 := &block.MiniBlock{
-		SenderShardID: 2,
-	}
-	mb4 := &block.MiniBlock{
-		SenderShardID: 0,
-	}
-
-	mbsMap := map[string]*block.MiniBlock{
-		"mb1": mb1, "mb2": mb2, "mb3": mb3, "mb4": mb4,
-	}
-
-	expectedSlice := block.MiniBlockSlice{mb4, mb3, mb1, mb2}
-	mbsSlice := getSortedSliceFromMbsMap(mbsMap)
-	assert.Equal(t, expectedSlice, mbsSlice)
+	assert.Equal(t, []byte(hash2), mb.TxHashes[1])
 }
 
 func TestRootHash(t *testing.T) {
