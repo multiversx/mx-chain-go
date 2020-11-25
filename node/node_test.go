@@ -225,7 +225,7 @@ func TestNode_GetESDTBalance(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
 	accDB := &mock.AccountsStub{}
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
@@ -251,11 +251,11 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
-	acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
 
 	acc.DataTrieTracker().SetDataTrie(
 		&mock.TrieStub{
-			GetAllLeavesOnChannelCalled: func() chan core.KeyValueHolder {
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
 				ch := make(chan core.KeyValueHolder)
 
 				go func() {
@@ -264,7 +264,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 					close(ch)
 				}()
 
-				return ch
+				return ch, nil
 			},
 		})
 
