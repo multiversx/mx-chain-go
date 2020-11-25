@@ -10,6 +10,8 @@ import (
 
 // ------------ Test ManagedConsensusComponentsFactory --------------------
 func TestManagedConsensusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getConsensusArgs(shardCoordinator)
 	coreComponents := getDefaultCoreComponents()
@@ -25,6 +27,8 @@ func TestManagedConsensusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T
 }
 
 func TestManagedConsensusComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := getConsensusArgs(shardCoordinator)
 
@@ -46,6 +50,8 @@ func TestManagedConsensusComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedConsensusComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	consensusArgs := getConsensusArgs(shardCoordinator)
 	consensusComponentsFactory, _ := factory.NewConsensusComponentsFactory(consensusArgs)

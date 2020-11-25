@@ -141,6 +141,6 @@ func (mhc *managedHeartbeatComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedHeartbeatComponents) String() string {
+func (mhc *managedHeartbeatComponents) String() string {
 	return "managedHeartbeatComponents"
 }

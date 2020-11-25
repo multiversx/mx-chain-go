@@ -109,7 +109,6 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 	if config.EnablePrint {
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		ir.cancelFunc = cancelFunc
-		//TODO add context stopping mechanism here
 		go ir.printContinously(ctx)
 	}
 

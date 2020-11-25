@@ -38,13 +38,9 @@ type bootstrapComponentsFactory struct {
 	networkComponents NetworkComponentsHolder
 }
 
-type bootstrapParamsHolder struct {
-	bootstrapParams bootstrap.Parameters
-}
-
 type bootstrapComponents struct {
 	epochStartBootstraper   EpochStartBootstrapper
-	bootstrapParamsHandler  BootstrapParamsHandler
+	bootstrapParamsHolder   BootstrapParamsHolder
 	nodeType                core.NodeType
 	shardCoordinator        sharding.Coordinator
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler
@@ -198,7 +194,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	return &bootstrapComponents{
 		epochStartBootstraper: epochStartBootstraper,
-		bootstrapParamsHandler: &bootstrapParamsHolder{
+		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
 		nodeType:                nodeType,
@@ -217,45 +213,21 @@ func (bc *bootstrapComponents) Close() error {
 	return nil
 }
 
-// Epoch returns the epoch number after bootstrap
-func (bph *bootstrapParamsHolder) Epoch() uint32 {
-	return bph.bootstrapParams.Epoch
-}
-
-// SelfShardID returns the self shard ID after bootstrap
-func (bph *bootstrapParamsHolder) SelfShardID() uint32 {
-	return bph.bootstrapParams.SelfShardId
-}
-
-// NumOfShards returns the number of shards after bootstrap
-func (bph *bootstrapParamsHolder) NumOfShards() uint32 {
-	return bph.bootstrapParams.NumOfShards
-}
-
-// NodesConfig returns the nodes coordinator config after bootstrap
-func (bph *bootstrapParamsHolder) NodesConfig() *sharding.NodesCoordinatorRegistry {
-	return bph.bootstrapParams.NodesConfig
-}
-
 // NodeType returns the node type
-func (bph *bootstrapComponents) NodeType() core.NodeType {
-	return bph.nodeType
+func (bc *bootstrapComponents) NodeType() core.NodeType {
+	return bc.nodeType
 }
 
 // ShardCoordinator returns the shard coordinator
-func (bph *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
-	return bph.shardCoordinator
+func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
+	return bc.shardCoordinator
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier
-func (bph *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
-	return bph.headerIntegrityVerifier
+func (bc *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
+	return bc.headerIntegrityVerifier
 }
 
-// IsInterfaceNil returns true if the underlying object is nil
-func (bph *bootstrapParamsHolder) IsInterfaceNil() bool {
-	return bph == nil
-}
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler
 func CreateLatestStorageDataProvider(

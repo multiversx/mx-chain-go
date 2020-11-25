@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// NetworkComponentsStub -
 type NetworkComponentsStub struct {
 	Messenger       p2p.Messenger
 	InputAntiFlood  factory.P2PAntifloodHandler

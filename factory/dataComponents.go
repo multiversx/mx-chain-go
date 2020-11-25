@@ -57,6 +57,9 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, errors.ErrNilEpochStartNotifier
 	}
+	if check.IfNil(args.Core.EconomicsData()) {
+		return nil, errors.ErrNilEconomicsHandler
+	}
 
 	return &dataComponentsFactory{
 		config:                        args.Config,

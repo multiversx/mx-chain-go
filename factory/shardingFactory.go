@@ -19,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/lrucache"
 )
 
+// CreateShardCoordinator is the shard coordinator factory
 func CreateShardCoordinator(
 	nodesConfig sharding.GenesisNodesSetupHandler,
 	pubKey crypto.PublicKey,
@@ -78,6 +79,7 @@ func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig sharding.Gene
 	return selfShardId, err
 }
 
+// CreateNodesCoordinator is the nodes coordinator factory
 func CreateNodesCoordinator(
 	nodeShufflerOut ShuffleOutCloser,
 	nodesConfig sharding.GenesisNodesSetupHandler,
@@ -90,7 +92,7 @@ func CreateNodesCoordinator(
 	bootStorer storage.Storer,
 	nodeShuffler sharding.NodesShuffler,
 	currentShardID uint32,
-	bootstrapParameters BootstrapParamsHandler,
+	bootstrapParameters BootstrapParamsHolder,
 	startEpoch uint32,
 ) (sharding.NodesCoordinator, error) {
 	shardIDAsObserver, err := core.ProcessDestinationShardAsObserver(prefsConfig.DestinationShardAsObserver)
@@ -180,6 +182,7 @@ func CreateNodesCoordinator(
 	return nodesCoordinator, nil
 }
 
+// CreateNodesShuffleOut is the nodes shuffler closer factory
 func CreateNodesShuffleOut(
 	nodesConfig sharding.GenesisNodesSetupHandler,
 	epochConfig config.EpochStartConfig,

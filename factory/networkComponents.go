@@ -118,7 +118,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	inputAntifloodHandler, ok := antiFloodComponents.AntiFloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting input antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting input antiflood handler to P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
 	outAntifloodHandler, errOutputAntiflood := antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
@@ -128,7 +128,7 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 
 	outputAntifloodHandler, ok := outAntifloodHandler.(P2PAntifloodHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when casting output antiflood handler to structs/P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when casting output antiflood handler to P2PAntifloodHandler", errors.ErrWrongTypeAssertion)
 	}
 
 	peerHonestyHandler, err := ncf.createPeerHonestyHandler(

@@ -373,20 +373,20 @@ func createConsensusOnlyNode(
 	networkShardingCollector := mock.NewNetworkShardingCollectorMock()
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()
-	coreComponents.NtpTimer = syncer
-	coreComponents.RoundHandler = rounder
-	coreComponents.IntMarsh = testMarshalizer
-	coreComponents.VmMarsh = &marshal.JsonMarshalizer{}
-	coreComponents.TxMarsh = &marshal.JsonMarshalizer{}
-	coreComponents.Hash = testHasher
-	coreComponents.AddrPubKeyConv = testPubkeyConverter
+	coreComponents.SyncTimerField = syncer
+	coreComponents.RounderField = rounder
+	coreComponents.InternalMarshalizerField = testMarshalizer
+	coreComponents.VmMarshalizerField = &marshal.JsonMarshalizer{}
+	coreComponents.TxMarshalizerField = &marshal.JsonMarshalizer{}
+	coreComponents.HasherField = testHasher
+	coreComponents.AddressPubKeyConverterField = testPubkeyConverter
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}
-	coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{}
-	coreComponents.WDTimer = &mock.WatchdogMock{}
-	coreComponents.StartTime = time.Unix(startTime, 0)
-	coreComponents.NodesConfig = &testscommon.NodesSetupStub{
+	coreComponents.Uint64ByteSliceConverterField = &mock.Uint64ByteSliceConverterMock{}
+	coreComponents.WatchdogField = &mock.WatchdogMock{}
+	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
+	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return consensusSize
 		},

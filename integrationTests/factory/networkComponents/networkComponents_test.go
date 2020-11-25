@@ -21,11 +21,14 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	configs := factory.CreateDefaultConfig()
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
-	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
+	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
+
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
-	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	require.Nil(t, err)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedNetworkComponents)
 

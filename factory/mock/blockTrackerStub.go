@@ -216,7 +216,7 @@ func (bts *BlockTrackerStub) RegisterCrossNotarizedHeadersHandler(handler func(s
 	}
 }
 
-// RegisterSelfNotarizedFromCrossHeadersHandlerCalled -
+// RegisterSelfNotarizedFromCrossHeadersHandler -
 func (bts *BlockTrackerStub) RegisterSelfNotarizedFromCrossHeadersHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if bts.RegisterSelfNotarizedFromCrossHeadersHandlerCalled != nil {
 		bts.RegisterSelfNotarizedFromCrossHeadersHandlerCalled(handler)
