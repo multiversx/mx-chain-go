@@ -21,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ closing.Closer = (*Worker)(nil)
@@ -44,8 +43,8 @@ type Worker struct {
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	syncTimer               ntp.SyncTimer
-	headerSigVerifier       RandSeedVerifier
-	headerIntegrityVerifier HeaderIntegrityVerifier
+	headerSigVerifier       HeaderSigVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
@@ -87,14 +86,15 @@ type WorkerArgs struct {
 	ShardCoordinator         sharding.Coordinator
 	PeerSignatureHandler     crypto.PeerSignatureHandler
 	SyncTimer                ntp.SyncTimer
-	HeaderSigVerifier        RandSeedVerifier
-	HeaderIntegrityVerifier  HeaderIntegrityVerifier
+	HeaderSigVerifier        HeaderSigVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
 	ChainID                  []byte
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
 	PoolAdder                PoolAdder
 	SignatureSize            int
 	PublicKeySize            int
+	AppStatusHandler         core.AppStatusHandler
 }
 
 // NewWorker creates a new Worker object
@@ -135,7 +135,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		syncTimer:                args.SyncTimer,
 		headerSigVerifier:        args.HeaderSigVerifier,
 		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
-		appStatusHandler:         statusHandler.NewNilStatusHandler(),
+		appStatusHandler:         args.AppStatusHandler,
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
@@ -226,6 +226,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -624,21 +627,13 @@ func (wrk *Worker) ExecuteStoredMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// SetAppStatusHandler sets the status metric handler
-func (wrk *Worker) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return ErrNilAppStatusHandler
-	}
-	wrk.appStatusHandler = ash
-
-	return nil
-}
-
 // Close will close the endless running go routine
 func (wrk *Worker) Close() error {
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
 	}
+
+	wrk.cleanChannels()
 
 	return nil
 }
@@ -651,4 +646,24 @@ func (wrk *Worker) ResetConsensusMessages() {
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
+}
+
+func (wrk *Worker) cleanChannels() {
+	nrReads := core.EmptyChannel(wrk.consensusStateChangedChannel)
+	log.Debug("close worker: emptied channel", "consensusStateChangedChannel nrReads", nrReads)
+
+	nrReads = emptyChannel(wrk.executeMessageChannel)
+	log.Debug("close worker: emptied channel", "executeMessageChannel nrReads", nrReads)
+}
+
+func emptyChannel(ch chan *consensus.Message) int {
+	readsCnt := 0
+	for {
+		select {
+		case <-ch:
+			readsCnt++
+		default:
+			return readsCnt
+		}
+	}
 }

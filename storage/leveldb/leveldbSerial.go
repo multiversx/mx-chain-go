@@ -92,7 +92,7 @@ func (s *SerialDB) batchTimeoutHandle(ctx context.Context) {
 				continue
 			}
 		case <-ctx.Done():
-			log.Debug("closing the timed batch handler", "path", s.path)
+			log.Debug("batchTimeoutHandle - closing", "path", s.path)
 			return
 		}
 	}
@@ -302,7 +302,7 @@ func (s *SerialDB) processLoop(ctx context.Context) {
 		case queryer := <-s.dbAccess:
 			queryer.request(s)
 		case <-ctx.Done():
-			log.Debug("closing the leveldb process loop")
+			log.Debug("processLoop - closing the leveldb process loop", "path", s.path)
 			return
 		}
 	}

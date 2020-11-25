@@ -36,7 +36,7 @@ const PeerStateCheckpointsKey = "erd_num_peer_state_checkpoints"
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
-	TpsBenchmark() *statistics.TpsBenchmark
+	TpsBenchmark() statistics.TPSBenchmark
 	StatusMetrics() external.StatusMetricsHandler
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
@@ -202,7 +202,7 @@ func P2pStatusMetrics(c *gin.Context) {
 	)
 }
 
-func statsFromTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) statisticsResponse {
+func statsFromTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) statisticsResponse {
 	sr := statisticsResponse{}
 	sr.LiveTPS = tpsBenchmark.LiveTPS()
 	sr.PeakTPS = tpsBenchmark.PeakTPS()

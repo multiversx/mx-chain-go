@@ -35,6 +35,7 @@ func createMonitor(
 		ValidatorPubkeyConverter:           mock.NewPubkeyConverterMock(32),
 		HeartbeatRefreshIntervalInSec:      1,
 		HideInactiveValidatorIntervalInSec: 600,
+		AppStatusHandler:                   &mock.AppStatusHandlerStub{},
 	}
 	mon, _ := process.NewMonitor(arg)
 

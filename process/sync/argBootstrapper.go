@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -37,6 +38,7 @@ type ArgBaseBootstrapper struct {
 	EpochHandler        dataRetriever.EpochHandler
 	MiniblocksProvider  process.MiniBlockProvider
 	Uint64Converter     typeConverters.Uint64ByteSliceConverter
+	AppStatusHandler    core.AppStatusHandler
 	Indexer             indexer.Indexer
 }
 

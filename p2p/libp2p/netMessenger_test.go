@@ -1058,7 +1058,7 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes.SetPeerDiscoverer(pdm)
 
-	_ = mes.Bootstrap()
+	_ = mes.Bootstrap(0)
 
 	assert.True(t, wasCalled)
 

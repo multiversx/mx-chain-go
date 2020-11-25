@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -46,28 +45,19 @@ type chronology struct {
 }
 
 // NewChronology creates a new chronology object
-func NewChronology(
-	genesisTime time.Time,
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	watchdog core.WatchdogTimer,
-) (*chronology, error) {
+func NewChronology(arg ArgChronology) (*chronology, error) {
 
-	err := checkNewChronologyParams(
-		rounder,
-		syncTimer,
-		watchdog,
-	)
+	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		genesisTime:      genesisTime,
-		rounder:          rounder,
-		syncTimer:        syncTimer,
-		appStatusHandler: statusHandler.NewNilStatusHandler(),
-		watchdog:         watchdog,
+		genesisTime:      arg.GenesisTime,
+		rounder:          arg.Rounder,
+		syncTimer:        arg.SyncTimer,
+		appStatusHandler: arg.AppStatusHandler,
+		watchdog:         arg.Watchdog,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -78,32 +68,21 @@ func NewChronology(
 	return &chr, nil
 }
 
-func checkNewChronologyParams(
-	rounder consensus.Rounder,
-	syncTimer ntp.SyncTimer,
-	watchdog core.WatchdogTimer,
-) error {
+func checkNewChronologyParams(arg ArgChronology) error {
 
-	if check.IfNil(rounder) {
+	if check.IfNil(arg.Rounder) {
 		return ErrNilRounder
 	}
-	if check.IfNil(syncTimer) {
+	if check.IfNil(arg.SyncTimer) {
 		return ErrNilSyncTimer
 	}
-	if check.IfNil(watchdog) {
+	if check.IfNil(arg.Watchdog) {
 		return ErrNilWatchdog
 	}
-
-	return nil
-}
-
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (chr *chronology) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if ash == nil || ash.IsInterfaceNil() {
+	if check.IfNil(arg.AppStatusHandler) {
 		return ErrNilAppStatusHandler
 	}
 
-	chr.appStatusHandler = ash
 	return nil
 }
 

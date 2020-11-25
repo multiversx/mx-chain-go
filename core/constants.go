@@ -63,6 +63,9 @@ const MaxTxNonceDeltaAllowed = 30000
 //TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 //256KB bulks
 
+// MaxTxsToRequest specifies the maximum number of txs to request
+const MaxTxsToRequest = 1000
+
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"
 
@@ -493,6 +496,30 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
 
+// DefaultStatsPath is the default path where the node stats are logged
+const DefaultStatsPath = "stats"
+
+// DefaultLogsPath is the default path for the node logs
+const DefaultLogsPath = "logs"
+
+// DefaultDBPath is the default path for nodes databases
+const DefaultDBPath = "db"
+
+// DefaultEpochString is the default folder root name for node per epoch databases
+const DefaultEpochString = "Epoch"
+
+// DefaultStaticDbString is the default name for the static databases (not changing with epoch)
+const DefaultStaticDbString = "Static"
+
+// DefaultShardString is the default folder root name for per shard databases
+const DefaultShardString = "Shard"
+
+// MetachainShardName is the string identifier of the metachain shard
+const MetachainShardName = "metachain"
+
+// SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
+const SecondsToWaitForP2PBootstrap = 20
+
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
@@ -538,6 +565,9 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // DefaultLogProfileIdentifier represents the default log profile used when the logviewer/termui applications do not
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
+
+// NotSetDestinationShardID represents the shardIdString when the destinationShardId is not set in the prefs
+const NotSetDestinationShardID = "disabled"
 
 // MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used by a node when it
 // includes sc calls in a miniblock.

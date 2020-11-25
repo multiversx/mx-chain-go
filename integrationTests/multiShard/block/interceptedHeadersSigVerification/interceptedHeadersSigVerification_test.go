@@ -30,7 +30,7 @@ func TestInterceptedShardBlockHeaderVerifiedWithCorrectConsensusGroup(t *testing
 	singleSigner := &mclsinglesig.BlsSingleSigner{}
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -99,7 +99,7 @@ func TestInterceptedMetaBlockVerifiedWithCorrectConsensusGroup(t *testing.T) {
 	consensusGroupSize := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -176,7 +176,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	consensusGroupSize := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
@@ -251,7 +251,7 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 	consensusGroupSize := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 

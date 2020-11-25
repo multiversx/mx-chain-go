@@ -11,6 +11,12 @@
    # available in local disk
    StartInEpochEnabled = true
 
+   # ChainID identifies the blockChain
+   ChainID = "undefined"
+
+   # MinTransactionVersion represents the minimum transaction version accepted
+   MinTransactionVersion = 1
+
    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
    SCDeployEnableEpoch = 2
 

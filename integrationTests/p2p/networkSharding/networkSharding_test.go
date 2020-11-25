@@ -55,7 +55,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	consensusGroupSize := 2
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	seedAddress := integrationTests.GetConnectableAddress(advertiser)
 
 	p2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{seedAddress}
@@ -116,7 +116,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 func startNodes(nodesMap map[uint32][]*integrationTests.TestP2PNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Messenger.Bootstrap()
+			_ = n.Messenger.Bootstrap(0)
 		}
 	}
 }

@@ -24,16 +24,19 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.TxSignMarshalizer) {
+	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.AddressPubkeyConv) {
+	if check.IfNil(argument.CoreComponents.AddressPubKeyConverter()) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -41,9 +44,9 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 	}
 
 	return &interceptedUnsignedTxDataFactory{
-		protoMarshalizer: argument.ProtoMarshalizer,
-		hasher:           argument.Hasher,
-		pubkeyConverter:  argument.AddressPubkeyConv,
+		protoMarshalizer: argument.CoreComponents.InternalMarshalizer(),
+		hasher:           argument.CoreComponents.Hasher(),
+		pubkeyConverter:  argument.CoreComponents.AddressPubKeyConverter(),
 		shardCoordinator: argument.ShardCoordinator,
 	}, nil
 }
