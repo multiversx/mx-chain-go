@@ -1452,7 +1452,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return returnCode
 	}
 
-	actualUserUnBond, unBondFromNodes, err := d.resolveUnStakedUnBondResponse(returnData, totalUnBondable, false)
+	actualUserUnBond, _, err := d.resolveUnStakedUnBondResponse(returnData, totalUnBondable, false)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1490,6 +1490,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 	globalFund.TotalUnStaked.Sub(globalFund.TotalUnStaked, actualUserUnBond)
 	globalFund.TotalUnBondedFromNodes.Add(globalFund.TotalUnBondedFromNodes, unBondFromNodes)
+	globalFund.TotalUnStakedFromNodes.Sub(globalFund.TotalUnStakedFromNodes, unBondFromNodes)
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())

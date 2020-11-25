@@ -1508,7 +1508,12 @@ func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInpu
 		}
 	}
 
+	remainingToTopUp := big.NewInt(0)
 	totalUnBond.Add(totalUnBond, totalUnBondedFromNodes)
+	if totalUnBond.Cmp(unBondValue) > 0 {
+		remainingToTopUp.Sub(totalUnBond, unBondValue)
+		totalUnBond.Set(unBondValue)
+	}
 
 	s.eei.Finish(totalUnBond.Bytes())
 	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
@@ -1517,6 +1522,7 @@ func (s *stakingAuctionSC) unBondTokensWithNodes(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
+	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, remainingToTopUp)
 	returnCode = s.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedNodes, args.CallerAddr)
 	if returnCode != vmcommon.Ok {
 		return returnCode
