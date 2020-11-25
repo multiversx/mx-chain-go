@@ -70,13 +70,13 @@ func prepareSerializedAccountInfo(address string, account *types.AccountInfo, is
 }
 
 // SerializeAccountsHistory wil serialize accounts history
-func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, bulkSizeThreshold int, areESDTAccounts bool) ([]bytes.Buffer, error) {
+func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, bulkSizeThreshold int) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
 	buffSlice := make([]bytes.Buffer, 0)
 	for address, acc := range accounts {
-		meta, serializedData, errPrepareAcc := prepareSerializedAccountBalanceHistory(address, acc, areESDTAccounts)
+		meta, serializedData, errPrepareAcc := prepareSerializedAccountBalanceHistory(address, acc)
 		if errPrepareAcc != nil {
 			log.Warn("cannot prepare serializes account balance history", "error", err)
 			return nil, err
@@ -112,7 +112,7 @@ func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, 
 	return buffSlice, nil
 }
 
-func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory, _ bool) ([]byte, []byte, error) {
+func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory) ([]byte, []byte, error) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { } }%s`, "\n"))
 	serializedData, err := json.Marshal(account)
 	if err != nil {

@@ -620,7 +620,7 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*type
 }
 
 func (ei *elasticProcessor) serializeAndIndexAccountsHistory(accountsMap map[string]*types.AccountBalanceHistory, index string) error {
-	buffSlice, err := accounts.SerializeAccountsHistory(accountsMap, bulkSizeThreshold, false)
+	buffSlice, err := accounts.SerializeAccountsHistory(accountsMap, bulkSizeThreshold)
 	if err != nil {
 		return err
 	}

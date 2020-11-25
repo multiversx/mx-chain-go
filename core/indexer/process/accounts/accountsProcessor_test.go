@@ -1,10 +1,14 @@
 package accounts
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,4 +49,32 @@ func TestAccountsProcessor_ComputeBalanceAsFloat(t *testing.T) {
 		out := ap.computeBalanceAsFloat(tt.input)
 		assert.Equal(t, tt.output, out)
 	}
+}
+
+func TestGetESDTInfo(t *testing.T) {
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), &mock.AccountsStub{})
+	require.NotNil(t, ap)
+
+	esdtToken := &esdt.ESDigitalToken{
+		Value:      big.NewInt(1000),
+		Properties: []byte("ok"),
+	}
+
+	tokenIdentifier := "token-001"
+	wrapAccount := &WrappedUserAccount{
+		Account: &mock.UserAccountStub{
+			DataTrieTrackerCalled: func() state.DataTrieTracker {
+				return &mock.DataTrieTrackerStub{
+					RetrieveValueCalled: func(key []byte) ([]byte, error) {
+						return json.Marshal(esdtToken)
+					},
+				}
+			},
+		},
+		TokenIdentifier: tokenIdentifier,
+	}
+	balance, prop, err := ap.getESDTInfo(wrapAccount)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(1000), balance)
+	require.Equal(t, hex.EncodeToString([]byte("ok")), prop)
 }
