@@ -23,14 +23,15 @@ const kadDhtName = "kad-dht discovery"
 
 // ArgKadDht represents the kad-dht config argument DTO
 type ArgKadDht struct {
-	Context              context.Context
-	Host                 ConnectableHost
-	PeersRefreshInterval time.Duration
-	ProtocolID           string
-	InitialPeersList     []string
-	BucketSize           uint32
-	RoutingTableRefresh  time.Duration
-	KddSharder           p2p.CommonSharder
+	Context                     context.Context
+	Host                        ConnectableHost
+	PeersRefreshInterval        time.Duration
+	SeedersReconnectionInterval time.Duration
+	ProtocolID                  string
+	InitialPeersList            []string
+	BucketSize                  uint32
+	RoutingTableRefresh         time.Duration
+	KddSharder                  p2p.CommonSharder
 }
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation

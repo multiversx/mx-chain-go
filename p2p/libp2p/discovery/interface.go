@@ -21,3 +21,8 @@ type Sharder interface {
 	Has(pid peer.ID, list []peer.ID) bool
 	IsInterfaceNil() bool
 }
+
+// KadDhtHandler defines the behavior of a component that can find new peers in a p2p network through kad dht mechanism
+type KadDhtHandler interface {
+	Bootstrap(ctx context.Context) error
+}

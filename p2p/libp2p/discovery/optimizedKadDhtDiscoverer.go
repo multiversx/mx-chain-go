@@ -13,24 +13,25 @@ type discovererStatus string
 
 const statNotInitialized discovererStatus = "not initialized"
 const statInitialized discovererStatus = "initialized"
-const intervalBetweenSeedersReconnect = time.Minute * 5
+const minIntervalForSeedersReconnection = time.Second
 const optimizedKadDhtName = "optimized kad-dht discovery"
 
 type optimizedKadDhtDiscoverer struct {
-	kadDHT               *dht.IpfsDHT
-	peersRefreshInterval time.Duration
-	protocolID           string
-	initialPeersList     []string
-	bucketSize           uint32
-	routingTableRefresh  time.Duration
-	hostConnManagement   *hostWithConnectionManagement
-	sharder              Sharder
-
-	status                   discovererStatus
-	chanInit                 chan struct{}
-	errChanInit              chan error
-	chanConnectToSeeders     chan struct{}
-	chanDoneConnectToSeeders chan struct{}
+	kadDHT                      KadDhtHandler
+	peersRefreshInterval        time.Duration
+	seedersReconnectionInterval time.Duration
+	protocolID                  string
+	initialPeersList            []string
+	bucketSize                  uint32
+	routingTableRefresh         time.Duration
+	hostConnManagement          *hostWithConnectionManagement
+	sharder                     Sharder
+	status                      discovererStatus
+	chanInit                    chan struct{}
+	errChanInit                 chan error
+	chanConnectToSeeders        chan struct{}
+	chanDoneConnectToSeeders    chan struct{}
+	initKadDhtHandler           func(ctx context.Context) (KadDhtHandler, error)
 }
 
 // NewOptimizedKadDhtDiscoverer creates an optimized kad-dht discovery type implementation
@@ -42,21 +43,26 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		return nil, err
 	}
 
-	okdd := &optimizedKadDhtDiscoverer{
-		sharder:              sharder,
-		peersRefreshInterval: arg.PeersRefreshInterval,
-		protocolID:           arg.ProtocolID,
-		initialPeersList:     arg.InitialPeersList,
-		bucketSize:           arg.BucketSize,
-		routingTableRefresh:  arg.RoutingTableRefresh,
-
-		status:                   statNotInitialized,
-		chanInit:                 make(chan struct{}),
-		errChanInit:              make(chan error),
-		chanConnectToSeeders:     make(chan struct{}),
-		chanDoneConnectToSeeders: make(chan struct{}),
+	if arg.SeedersReconnectionInterval < minIntervalForSeedersReconnection {
+		return nil, p2p.ErrInvalidSeedersReconnectionInterval
 	}
 
+	okdd := &optimizedKadDhtDiscoverer{
+		sharder:                     sharder,
+		peersRefreshInterval:        arg.PeersRefreshInterval,
+		seedersReconnectionInterval: arg.SeedersReconnectionInterval,
+		protocolID:                  arg.ProtocolID,
+		initialPeersList:            arg.InitialPeersList,
+		bucketSize:                  arg.BucketSize,
+		routingTableRefresh:         arg.RoutingTableRefresh,
+		status:                      statNotInitialized,
+		chanInit:                    make(chan struct{}),
+		errChanInit:                 make(chan error),
+		chanConnectToSeeders:        make(chan struct{}),
+		chanDoneConnectToSeeders:    make(chan struct{}),
+	}
+
+	okdd.initKadDhtHandler = okdd.initKadDht
 	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
 	if err != nil {
 		return nil, err
@@ -74,7 +80,7 @@ func (okdd *optimizedKadDhtDiscoverer) Bootstrap() error {
 }
 
 func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
-	chTimeSeedersReconnect := time.After(intervalBetweenSeedersReconnect)
+	chTimeSeedersReconnect := time.After(okdd.seedersReconnectionInterval)
 	chTimeFindPeers := time.After(okdd.peersRefreshInterval)
 
 	for {
@@ -87,12 +93,12 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 
 		case <-chTimeSeedersReconnect:
 			okdd.connectToSeeders(ctx, false)
-			chTimeSeedersReconnect = time.After(intervalBetweenSeedersReconnect)
+			chTimeSeedersReconnect = time.After(okdd.seedersReconnectionInterval)
 
 		case <-okdd.chanConnectToSeeders:
 			okdd.connectToSeeders(ctx, true)
 			//reset the automatic reconnect channel as we just tried to reconnect to the seeders
-			chTimeSeedersReconnect = time.After(intervalBetweenSeedersReconnect)
+			chTimeSeedersReconnect = time.After(okdd.seedersReconnectionInterval)
 			okdd.chanDoneConnectToSeeders <- struct{}{}
 
 		case <-chTimeFindPeers:
@@ -111,21 +117,26 @@ func (okdd *optimizedKadDhtDiscoverer) init(ctx context.Context) error {
 		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
 	}
 
-	var err error
+	kadDhtHandler, err := okdd.initKadDhtHandler(ctx)
+	if err != nil {
+		return err
+	}
+
+	okdd.kadDHT = kadDhtHandler
+	okdd.status = statInitialized
+
+	return nil
+}
+
+func (okdd *optimizedKadDhtDiscoverer) initKadDht(ctx context.Context) (KadDhtHandler, error) {
 	protocolID := protocol.ID(okdd.protocolID)
-	okdd.kadDHT, err = dht.New(
+	return dht.New(
 		ctx,
 		okdd.hostConnManagement,
 		dht.ProtocolPrefix(protocolID),
 		dht.RoutingTableRefreshPeriod(okdd.routingTableRefresh),
 		dht.Mode(dht.ModeServer),
 	)
-	if err != nil {
-		return err
-	}
-
-	okdd.status = statInitialized
-	return nil
 }
 
 func (okdd *optimizedKadDhtDiscoverer) connectToSeeders(ctx context.Context, blocking bool) {
@@ -137,6 +148,13 @@ func (okdd *optimizedKadDhtDiscoverer) connectToSeeders(ctx context.Context, blo
 		shouldStopReconnecting := okdd.tryToReconnectAtLeastToASeeder(ctx)
 		if shouldStopReconnecting || !blocking {
 			return
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(okdd.peersRefreshInterval):
+			//we need a bit o delay before we retry connecting to seeder peers as to not solely rely on the libp2p back-off mechanism
 		}
 	}
 }
@@ -158,7 +176,7 @@ func (okdd *optimizedKadDhtDiscoverer) tryToReconnectAtLeastToASeeder(ctx contex
 		select {
 		case <-ctx.Done():
 			return true
-		case <-time.After(okdd.peersRefreshInterval):
+		default:
 		}
 	}
 

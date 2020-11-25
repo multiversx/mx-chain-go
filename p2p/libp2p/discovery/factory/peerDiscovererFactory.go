@@ -13,6 +13,7 @@ import (
 
 const typeLegacy = "legacy"
 const typeOptimized = "optimized"
+const defaultSeedersReconnectionInterval = time.Minute * 5
 
 var log = logger.GetOrCreate("p2p/discovery/factory")
 
@@ -39,14 +40,15 @@ func createKadDhtPeerDiscoverer(
 	p2pConfig config.P2PConfig,
 ) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
-		Context:              context,
-		Host:                 host,
-		KddSharder:           sharder,
-		PeersRefreshInterval: time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
-		ProtocolID:           p2pConfig.KadDhtPeerDiscovery.ProtocolID,
-		InitialPeersList:     p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
-		BucketSize:           p2pConfig.KadDhtPeerDiscovery.BucketSize,
-		RoutingTableRefresh:  time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
+		Context:                     context,
+		Host:                        host,
+		KddSharder:                  sharder,
+		PeersRefreshInterval:        time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RefreshIntervalInSec),
+		SeedersReconnectionInterval: defaultSeedersReconnectionInterval,
+		ProtocolID:                  p2pConfig.KadDhtPeerDiscovery.ProtocolID,
+		InitialPeersList:            p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+		BucketSize:                  p2pConfig.KadDhtPeerDiscovery.BucketSize,
+		RoutingTableRefresh:         time.Second * time.Duration(p2pConfig.KadDhtPeerDiscovery.RoutingTableRefreshIntervalInSec),
 	}
 
 	switch p2pConfig.Sharding.Type {

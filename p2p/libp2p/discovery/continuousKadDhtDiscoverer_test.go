@@ -19,14 +19,15 @@ var timeoutWaitResponses = 2 * time.Second
 
 func createTestArgument() discovery.ArgKadDht {
 	return discovery.ArgKadDht{
-		Context:              context.Background(),
-		Host:                 &mock.ConnectableHostStub{},
-		KddSharder:           &mock.SharderStub{},
-		PeersRefreshInterval: time.Second,
-		ProtocolID:           "/erd/test/0.0.0",
-		InitialPeersList:     []string{"peer1", "peer2"},
-		BucketSize:           100,
-		RoutingTableRefresh:  5 * time.Second,
+		Context:                     context.Background(),
+		Host:                        &mock.ConnectableHostStub{},
+		KddSharder:                  &mock.SharderStub{},
+		PeersRefreshInterval:        time.Second,
+		ProtocolID:                  "/erd/test/0.0.0",
+		InitialPeersList:            []string{"peer1", "peer2"},
+		BucketSize:                  100,
+		RoutingTableRefresh:         5 * time.Second,
+		SeedersReconnectionInterval: time.Second * 5,
 	}
 }
 
