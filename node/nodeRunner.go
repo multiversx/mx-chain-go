@@ -140,7 +140,6 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		log.Debug("creating bootstrap components")
 		managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
-			configs,
 			managedCoreComponents,
 			managedCryptoComponents,
 			managedNetworkComponents,
@@ -966,7 +965,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:               managedCoreComponents.SyncTimer(),
 		BootstrapWaitSeconds: core.SecondsToWaitForP2PBootstrap,
 	}
-	if cfgs.ImportDbConfig.IsImportDBMode {
+	if nr.configs.ImportDbConfig.IsImportDBMode {
 		networkComponentsFactoryArgs.BootstrapWaitSeconds = 0
 	}
 
@@ -1042,8 +1041,8 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               configs.FlagsConfig.ImportDbNoSigCheckFlag,
-		IsInImportMode:                       configs.FlagsConfig.IsInImportMode,
+		UseDisabledSigVerifier:               configs.ImportDbConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
