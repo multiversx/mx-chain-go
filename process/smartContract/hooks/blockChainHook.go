@@ -456,25 +456,9 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionNames() vmcommon.FunctionNames {
 }
 
 // GetAllState returns the underlying state of a given account
-func (bh *BlockChainHookImpl) GetAllState(address []byte) (map[string][]byte, error) {
-	defer stopMeasure(startMeasure("GetAllState"))
-
-	dstShardId := bh.shardCoordinator.ComputeId(address)
-	if dstShardId != bh.shardCoordinator.SelfId() {
-		return nil, process.ErrDestinationNotInSelfShard
-	}
-
-	acc, err := bh.accounts.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	dstAccount, ok := acc.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return dstAccount.DataTrie().GetAllLeaves()
+// TODO remove this func completely
+func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
+	return nil, nil
 }
 
 // NumberOfShards returns the number of shards
