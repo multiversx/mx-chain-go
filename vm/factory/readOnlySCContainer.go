@@ -5,7 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-// readOnlySCContainer is a wrapper over a scContainer which works read-only. write operation are disabled
+// readOnlySCContainer is a wrapper over a scContainer which works read-only. write operations are disabled
 type readOnlySCContainer struct {
 	scContainer vm.SystemSCContainer
 }

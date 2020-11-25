@@ -920,6 +920,16 @@ func (s *stakingAuctionSC) unStakeNodeOneNodeFromStakingSC(blsKey []byte, reward
 	return vmOutput.ReturnCode
 }
 
+func (s *stakingAuctionSC) unBondNodesOnly(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagEnableTopUp.IsSet() {
+		//claim function will become unavailable after enabling staking v2
+		s.eei.AddReturnMessage("claim function is disabled")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
@@ -974,7 +984,6 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 			continue
 		}
 
-		registrationData.NumRegistered -= 1
 		auctionConfig := s.getConfig(nodeData.UnStakedEpoch)
 		unBondedKeys = append(unBondedKeys, blsKey)
 		totalUnBond.Add(totalUnBond, auctionConfig.NodePrice)
@@ -1011,6 +1020,12 @@ func (s *stakingAuctionSC) updateRegistrationDataAfterUnBond(
 		return vmcommon.UserError
 	}
 
+	if registrationData.NumRegistered < uint32(len(unBondedKeys)) {
+		s.eei.AddReturnMessage("contract error on unBond function, missing nodes")
+		return vmcommon.UserError
+	}
+
+	registrationData.NumRegistered -= uint32(len(unBondedKeys))
 	registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
@@ -1405,7 +1420,6 @@ func (s *stakingAuctionSC) unBondNecessaryNodes(
 			continue
 		}
 
-		registrationData.NumRegistered -= 1
 		totalUnBond.Add(totalUnBond, s.baseConfig.NodePrice)
 		totalUnBond.Sub(totalUnBond, nodeData.SlashValue)
 
