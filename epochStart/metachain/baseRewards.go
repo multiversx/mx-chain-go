@@ -343,12 +343,13 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 
 func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 	metaBlock *block.MetaBlock,
+	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 
 	shardID := brc.shardCoordinator.ComputeId(brc.protocolSustainabilityAddress)
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability),
+		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
 		RcvAddr: brc.protocolSustainabilityAddress,
 		Epoch:   metaBlock.Epoch,
 	}

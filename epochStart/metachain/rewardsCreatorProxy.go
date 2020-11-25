@@ -64,21 +64,29 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 }
 
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.Epoch)
 	if err != nil {
 		return nil, err
 	}
-	return rcp.rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo)
+	return rcp.rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
 }
 
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) error {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.Epoch)
 	if err != nil {
 		return err
 	}
-	return rcp.rc.VerifyRewardsMiniBlocks(metaBlock, validatorsInfo)
+	return rcp.rc.VerifyRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
 }
 
 // GetProtocolSustainabilityRewards proxies the same method of the configured rewardsCreator instance

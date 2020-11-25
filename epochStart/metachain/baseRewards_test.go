@@ -866,7 +866,7 @@ func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *tes
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk)
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)

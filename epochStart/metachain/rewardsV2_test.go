@@ -127,7 +127,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocksV2ComputeErrorsShouldErr(t *testi
 			AccumulatedFees: big.NewInt(100),
 		},
 	}
-	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	require.NotNil(t, err)
 	require.Equal(t, expectedErr, err)
 	require.Nil(t, bdy)
@@ -993,7 +993,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo)
+	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
 	require.NotNil(t, miniBlocks)
 
@@ -1034,7 +1034,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 		}
 	}
 
-	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo)
+	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
 }
 
