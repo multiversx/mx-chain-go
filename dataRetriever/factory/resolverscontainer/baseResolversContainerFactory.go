@@ -8,9 +8,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -233,7 +233,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
-		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
+		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(

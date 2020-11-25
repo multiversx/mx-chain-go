@@ -21,7 +21,7 @@ func (ncm *NetworkComponentsMock) PubKeyCacher() process.TimeCacher {
 
 // PeerHonestyHandler -
 func (ncm *NetworkComponentsMock) PeerHonestyHandler() factory.PeerHonestyHandler {
-	panic("implement me")
+	return nil
 }
 
 // Create -

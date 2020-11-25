@@ -21,6 +21,11 @@ type MessengerStub struct {
 	PeersCalled                      func() []core.PeerID
 }
 
+// ConnectedFullHistoryPeersOnTopic -
+func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return make([]core.PeerID, 0)
+}
+
 // ID -
 func (ms *MessengerStub) ID() core.PeerID {
 	if ms.IDCalled != nil {
@@ -133,7 +138,7 @@ func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(_ string) error {
+func (ms *MessengerStub) UnregisterMessageProcessor(_ string, _ string) error {
 	return nil
 }
 

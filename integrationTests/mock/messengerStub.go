@@ -14,12 +14,17 @@ type MessengerStub struct {
 	HasTopicValidatorCalled          func(name string) bool
 	BroadcastOnChannelCalled         func(channel string, topic string, buff []byte)
 	BroadcastCalled                  func(topic string, buff []byte)
-	RegisterMessageProcessorCalled   func(topic string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled   func(topic string, identifier string, handler p2p.MessageProcessor) error
 	BootstrapCalled                  func() error
 	PeerAddressesCalled              func(pid core.PeerID) []string
 	BroadcastOnChannelBlockingCalled func(channel string, topic string, buff []byte) error
 	IsConnectedToTheNetworkCalled    func() bool
 	PeersCalled                      func() []core.PeerID
+}
+
+// ConnectedFullHistoryPeersOnTopic -
+func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return make([]core.PeerID, 0)
 }
 
 // ID -
@@ -32,9 +37,9 @@ func (ms *MessengerStub) ID() core.PeerID {
 }
 
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
+func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if ms.RegisterMessageProcessorCalled != nil {
-		return ms.RegisterMessageProcessorCalled(topic, handler)
+		return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
 	}
 	return nil
 }
@@ -139,7 +144,7 @@ func (ms *MessengerStub) UnregisterAllMessageProcessors() error {
 }
 
 // UnregisterMessageProcessor -
-func (ms *MessengerStub) UnregisterMessageProcessor(_ string) error {
+func (ms *MessengerStub) UnregisterMessageProcessor(_ string, _ string) error {
 	return nil
 }
 

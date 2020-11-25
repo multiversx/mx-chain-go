@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/factory/disabled"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -149,6 +150,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		CurrentNetworkEpochSetter:  &disabled.NilCurrentNetworkEpochProviderHandler{}, //TODO inject here the real component
 	}
 
 	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
@@ -209,7 +211,6 @@ func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 func (bc *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
-
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler
 func CreateLatestStorageDataProvider(

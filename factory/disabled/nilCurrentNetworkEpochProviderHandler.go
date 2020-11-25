@@ -1,19 +1,19 @@
-package mock
+package disabled
 
-// NilCurrentNetworkEpochProviderHandler -
+// NilCurrentNetworkEpochProviderHandler implements CurrentNetworkEpochSetter and does nothing
 type NilCurrentNetworkEpochProviderHandler struct {
 }
 
-// SetNetworkEpochAtBootstrap -
+// SetNetworkEpochAtBootstrap does nothing
 func (ncneph *NilCurrentNetworkEpochProviderHandler) SetNetworkEpochAtBootstrap(_ uint32) {
 }
 
-// EpochIsActiveInNetwork -
+// EpochIsActiveInNetwork returns true
 func (ncneph *NilCurrentNetworkEpochProviderHandler) EpochIsActiveInNetwork(_ uint32) bool {
 	return true
 }
 
-// CurrentEpoch -
+// CurrentEpoch returns 0
 func (ncneph *NilCurrentNetworkEpochProviderHandler) CurrentEpoch() uint32 {
 	return 0
 }
