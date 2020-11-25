@@ -90,11 +90,10 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
-	economicsData := *computedEconomics
 	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
-		"totalToDistribute", economicsData.TotalToDistribute,
-		"rewardsForProtocolSustainability", economicsData.RewardsForProtocolSustainability,
-		"rewardsPerBlock", economicsData.RewardsPerBlock,
+		"totalToDistribute", computedEconomics.TotalToDistribute,
+		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
+		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
 		"devFeesInEpoch", metaBlock.DevFeesInEpoch,
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
 		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),

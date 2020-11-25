@@ -10,6 +10,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
@@ -19,10 +20,10 @@ import (
 )
 
 const (
-	topUpStake   = "topUpStake"
-	topUpRewards = "topUpRewards"
-	baseRewards  = "baseRewards"
-	fullRewards  = "fullRewards"
+	tuStake   = "topUpStake"
+	tuRewards = "topUpRewards"
+	bRewards  = "baseRewards"
+	fRewards  = "fullRewards"
 )
 
 func TestNewEpochStartRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
@@ -212,8 +213,8 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T)
 	topUpVal, _ := big.NewInt(0).SetString("100000000000000000000", 10)
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			t := big.NewInt(0).Set(topUpVal)
-			return t, nil
+			topUp := big.NewInt(0).Set(topUpVal)
+			return topUp, nil
 		},
 	}
 	rwd, err := NewEpochStartRewardsCreatorV2(args)
@@ -244,8 +245,8 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFound
 			if bytes.Compare(blsKey, notFoundKey) == 0 {
 				return nil, fmt.Errorf("not found")
 			}
-			t := big.NewInt(0).Set(topUpVal)
-			return t, nil
+			topUp := big.NewInt(0).Set(topUpVal)
+			return topUp, nil
 		},
 	}
 	rwd, err := NewEpochStartRewardsCreatorV2(args)
@@ -369,7 +370,7 @@ func TestNewEpochStartRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, topUpStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
 	nodePowerInShard := computeNodesPowerInShard(nodesRewardInfo)
 	require.NotNil(t, nodePowerInShard)
@@ -466,7 +467,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShar
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, topUpStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
 	topUpRewards := big.NewInt(3000)
 	rwd.economicsDataProvider.SetNumberOfBlocksPerShard(nil)
@@ -489,7 +490,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T)
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	topUpPerShard, _ := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, topUpStake)
+	topUpPerShard, _ := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
 	blocksPerShard := make(map[uint32]uint64)
 	blocksPerShard[0] = 2000
@@ -594,7 +595,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) 
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, topUpStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
@@ -724,7 +725,7 @@ func TestNewEpochStartRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, topUpStake)
+	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
@@ -786,7 +787,7 @@ func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *t
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee)
 	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fullRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
 
 	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 	require.Equal(t, big.NewInt(0), unassigned)
@@ -828,7 +829,7 @@ func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithO
 	}
 
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fullRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
 	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 
 	expectedUnassigned := big.NewInt(0)
@@ -868,7 +869,7 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testin
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fullRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
 
 	metaBlock := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -886,9 +887,11 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testin
 	require.Equal(t, big.NewInt(0), accumulatedDust)
 
 	sumRewards := big.NewInt(0)
+
+	var tx data.TransactionHandler
 	for _, mb := range miniBlocks {
 		for _, txHash := range mb.TxHashes {
-			tx, err := rwd.currTxs.GetTx(txHash)
+			tx, err = rwd.currTxs.GetTx(txHash)
 			require.Nil(t, err)
 			sumRewards.Add(sumRewards, tx.GetValue())
 		}
@@ -911,7 +914,7 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInM
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fullRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
 
 	metaBlock := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -935,9 +938,11 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInM
 	require.True(t, big.NewInt(0).Cmp(accumulatedDust) < 0)
 
 	sumRewards := big.NewInt(0)
+
+	var tx data.TransactionHandler
 	for _, mb := range miniBlocks {
 		for _, txHash := range mb.TxHashes {
-			tx, err := rwd.currTxs.GetTx(txHash)
+			tx, err = rwd.currTxs.GetTx(txHash)
 			require.Nil(t, err)
 			sumRewards.Add(sumRewards, tx.GetValue())
 		}
@@ -955,7 +960,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, topUpStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
@@ -998,9 +1003,10 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	require.NotNil(t, miniBlocks)
 
 	sumRewards := big.NewInt(0)
+	var tx data.TransactionHandler
 	for _, mb := range miniBlocks {
 		for _, txHash := range mb.TxHashes {
-			tx, err := rwd.currTxs.GetTx(txHash)
+			tx, err = rwd.currTxs.GetTx(txHash)
 			require.Nil(t, err)
 			sumRewards.Add(sumRewards, tx.GetValue())
 		}
@@ -1021,8 +1027,10 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 
 	// now verification
 	metaBlock.MiniBlockHeaders = make([]block.MiniBlockHeader, len(miniBlocks))
+
+	var mbHash []byte
 	for i, mb := range miniBlocks {
-		mbHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, mb)
+		mbHash, err = core.CalculateHash(args.Marshalizer, args.Hasher, mb)
 		require.Nil(t, err)
 		metaBlock.MiniBlockHeaders[i] = block.MiniBlockHeader{
 			Hash:            mbHash,
@@ -1065,13 +1073,13 @@ func setDummyValuesInNodesRewardInfo(
 			multiplier, _ := big.NewInt(0).SetString("10000000000000000", 10)
 			v.Mul(v, multiplier)
 			switch field {
-			case topUpStake:
+			case tuStake:
 				nodeInfo.topUpStake = v
-			case topUpRewards:
+			case tuRewards:
 				nodeInfo.topUpReward = v
-			case baseRewards:
+			case bRewards:
 				nodeInfo.baseReward = v
-			case fullRewards:
+			case fRewards:
 				nodeInfo.fullRewards = v
 			}
 
