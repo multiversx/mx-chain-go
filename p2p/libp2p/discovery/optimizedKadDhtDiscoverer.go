@@ -92,13 +92,12 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 			okdd.findPeers(ctx)
 
 		case <-chTimeSeedersReconnect:
-			okdd.connectToSeeders(ctx, false)
-			chTimeSeedersReconnect = time.After(okdd.seedersReconnectionInterval)
+			isConnectedToSeeders := okdd.connectToSeeders(ctx, false)
+			chTimeSeedersReconnect = okdd.createChTimeSeedersReconnect(isConnectedToSeeders)
 
 		case <-okdd.chanConnectToSeeders:
-			okdd.connectToSeeders(ctx, true)
-			//reset the automatic reconnect channel as we just tried to reconnect to the seeders
-			chTimeSeedersReconnect = time.After(okdd.seedersReconnectionInterval)
+			isConnectedToSeeders := okdd.connectToSeeders(ctx, true)
+			chTimeSeedersReconnect = okdd.createChTimeSeedersReconnect(isConnectedToSeeders)
 			okdd.chanDoneConnectToSeeders <- struct{}{}
 
 		case <-chTimeFindPeers:
@@ -110,6 +109,16 @@ func (okdd *optimizedKadDhtDiscoverer) processLoop(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (okdd *optimizedKadDhtDiscoverer) createChTimeSeedersReconnect(isConnectedToSeeders bool) <-chan time.Time {
+	if isConnectedToSeeders {
+		//the reconnection will be done less often
+		return time.After(okdd.seedersReconnectionInterval)
+	}
+
+	// no connection to seeders, let's try a little bit faster
+	return time.After(okdd.peersRefreshInterval)
 }
 
 func (okdd *optimizedKadDhtDiscoverer) init(ctx context.Context) error {
@@ -139,20 +148,22 @@ func (okdd *optimizedKadDhtDiscoverer) initKadDht(ctx context.Context) (KadDhtHa
 	)
 }
 
-func (okdd *optimizedKadDhtDiscoverer) connectToSeeders(ctx context.Context, blocking bool) {
+func (okdd *optimizedKadDhtDiscoverer) connectToSeeders(ctx context.Context, blocking bool) bool {
 	if okdd.status != statInitialized {
-		return
+		return false
 	}
 
 	for {
-		shouldStopReconnecting := okdd.tryToReconnectAtLeastToASeeder(ctx)
-		if shouldStopReconnecting || !blocking {
-			return
+		connectedToASeeder := okdd.tryToReconnectAtLeastToASeeder(ctx)
+		log.Warn("optimizedKadDhtDiscoverer.tryToReconnectAtLeastToASeeder",
+			"num seeders", len(okdd.initialPeersList), "connected to a seeder", connectedToASeeder)
+		if connectedToASeeder || !blocking {
+			return connectedToASeeder
 		}
 
 		select {
 		case <-ctx.Done():
-			return
+			return true
 		case <-time.After(okdd.peersRefreshInterval):
 			//we need a bit o delay before we retry connecting to seeder peers as to not solely rely on the libp2p back-off mechanism
 		}
