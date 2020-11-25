@@ -846,7 +846,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unBond", args.Arguments, big.NewInt(0))
+	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unBondNodesOnly", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -861,20 +861,6 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	err = d.saveDelegationStatus(status)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	totalNewUnBondedValue := big.NewInt(0).Mul(big.NewInt(int64(len(successKeys))), d.nodePrice)
-	globalFundData, err := d.getGlobalFundData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	globalFundData.TotalUnBondedFromNodes.Add(globalFundData.TotalUnBondedFromNodes, totalNewUnBondedValue)
-	err = d.saveGlobalFundData(globalFundData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError

@@ -154,6 +154,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.unStake(args)
 	case "unBond":
 		return s.unBond(args)
+	case "unBondNodesOnly":
+		return s.unBondNodesOnly(args)
 	case "claim":
 		return s.claim(args)
 	case "get":
@@ -922,48 +924,69 @@ func (s *stakingAuctionSC) unStakeNodeOneNodeFromStakingSC(blsKey []byte, reward
 
 func (s *stakingAuctionSC) unBondNodesOnly(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagEnableTopUp.IsSet() {
-		//claim function will become unavailable after enabling staking v2
-		s.eei.AddReturnMessage("claim function is disabled")
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	registrationData, returnCode := s.checkUnBondArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	totalUnBond, unBondedKeys := s.unBondNodesFromStakingSC(args.Arguments)
+	if registrationData.NumRegistered < uint32(len(unBondedKeys)) {
+		s.eei.AddReturnMessage("contract error on unBond function, missing nodes")
+		return vmcommon.UserError
+	}
+
+	registrationData.NumRegistered -= uint32(len(unBondedKeys))
+	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, totalUnBond)
+
+	s.deleteUnBondedKeys(registrationData, unBondedKeys)
+	err := s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (s *stakingAuctionSC) checkUnBondArguments(args *vmcommon.ContractCallInput) (*AuctionDataV2, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
 		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
-
 	if !s.flagEnableStaking.IsSet() {
 		s.eei.AddReturnMessage(vm.UnBondNotEnabled)
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
-	blsKeys := args.Arguments
-	err = verifyBLSPublicKeys(registrationData, blsKeys)
+	err = verifyBLSPublicKeys(registrationData, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage(vm.CannotGetAllBlsKeysFromRegistrationData + err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	err = s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.UnBond * uint64(len(args.Arguments)))
 	if err != nil {
 		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
-		return vmcommon.OutOfGas
+		return nil, vmcommon.OutOfGas
 	}
 
+	return registrationData, vmcommon.Ok
+}
+
+func (s *stakingAuctionSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]byte) {
 	unBondedKeys := make([][]byte, 0)
 	totalUnBond := big.NewInt(0)
 	totalSlashed := big.NewInt(0)
@@ -995,12 +1018,22 @@ func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.Ret
 		totalUnBond.Set(zero)
 	}
 
-	returnCode := s.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedKeys, args.CallerAddr)
+	return totalUnBond, unBondedKeys
+}
+
+func (s *stakingAuctionSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, returnCode := s.checkUnBondArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	err = s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
+	totalUnBond, unBondedKeys := s.unBondNodesFromStakingSC(args.Arguments)
+	returnCode = s.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedKeys, args.CallerAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := s.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
 	if err != nil {
 		s.eei.AddReturnMessage("transfer error on unBond function")
 		return vmcommon.UserError
