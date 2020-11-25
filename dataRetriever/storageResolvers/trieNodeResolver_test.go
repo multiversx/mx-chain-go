@@ -108,10 +108,10 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 			return [][]byte{buff}, 1, nil
 		},
 	}
-	numSendCalled := uint32(0)
+	numSendToConnectedPeerCalled := uint32(0)
 	args.Messenger = &mock.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-			atomic.AddUint32(&numSendCalled, 1)
+			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil
 		},
 	}
@@ -121,7 +121,7 @@ func TestTrieNodeResolver_RequestDataFromHashShouldWork(t *testing.T) {
 	err := tnr.RequestDataFromHash(nil, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(args.ChanGracefullyClose))
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendCalled))
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendToConnectedPeerCalled))
 }
 
 func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
@@ -129,17 +129,17 @@ func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 
 	args := createMockTrieResolverArguments()
 	buff := []byte("data")
-	numGetSerializedCalled := uint32(0)
+	numGetSerializedNodesCalled := uint32(0)
 	args.TrieDataGetter = &mock.TrieStub{
 		GetSerializedNodesCalled: func(bytes []byte, u uint64) ([][]byte, uint64, error) {
-			atomic.AddUint32(&numGetSerializedCalled, 1)
+			atomic.AddUint32(&numGetSerializedNodesCalled, 1)
 			return [][]byte{buff}, 1, nil
 		},
 	}
-	numSendCalled := uint32(0)
+	numSendToConnectedPeerCalled := uint32(0)
 	args.Messenger = &mock.MessengerStub{
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-			atomic.AddUint32(&numSendCalled, 1)
+			atomic.AddUint32(&numSendToConnectedPeerCalled, 1)
 			return nil
 		},
 	}
@@ -153,6 +153,6 @@ func TestTrieNodeResolver_RequestDataFromHashArrayShouldWork(t *testing.T) {
 		}, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(args.ChanGracefullyClose))
-	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendCalled))
-	assert.Equal(t, uint32(2), atomic.LoadUint32(&numGetSerializedCalled))
+	assert.Equal(t, uint32(1), atomic.LoadUint32(&numSendToConnectedPeerCalled))
+	assert.Equal(t, uint32(2), atomic.LoadUint32(&numGetSerializedNodesCalled))
 }

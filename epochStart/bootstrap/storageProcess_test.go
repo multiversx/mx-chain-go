@@ -22,10 +22,10 @@ func createMockStorageEpochStartBootstrapArgs(
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsStorageEpochStartBootstrap {
 	return ArgsStorageEpochStartBootstrap{
-		ArgsEpochStartBootstrap: createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
-		ImportDbConfig:          config.ImportDbConfig{},
-		ChanGracefullyClose:     make(chan endProcess.ArgEndProcess, 1),
-		TimeToWait:              time.Second,
+		ArgsEpochStartBootstrap:    createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
+		ImportDbConfig:             config.ImportDbConfig{},
+		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData: time.Second,
 	}
 }
 
