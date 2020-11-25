@@ -223,19 +223,20 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	if err != nil {
 		return nil, err
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		arg.Economics,
-		pubKeyVerifier,
-		arg.GasMap,
-		arg.InitialNodesSetup,
-		arg.Hasher,
-		arg.Marshalizer,
-		&arg.SystemSCConfig,
-		arg.ValidatorAccounts,
-		&disabled.Rater{},
-		epochNotifier,
-	)
+	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           arg.Economics,
+		MessageSignVerifier: pubKeyVerifier,
+		GasSchedule:         arg.GasMap,
+		NodesConfigProvider: arg.InitialNodesSetup,
+		Hasher:              arg.Hasher,
+		Marshalizer:         arg.Marshalizer,
+		SystemSCConfig:      &arg.SystemSCConfig,
+		ValidatorAccountsDB: arg.ValidatorAccounts,
+		ChanceComputer:      &disabled.Rater{},
+		EpochNotifier:       epochNotifier,
+	}
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
 		return nil, err
 	}

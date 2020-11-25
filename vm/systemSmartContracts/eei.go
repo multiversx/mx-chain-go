@@ -74,6 +74,37 @@ func (host *vmContext) SetSystemSCContainer(scContainer vm.SystemSCContainer) er
 	return nil
 }
 
+func (host *vmContext) getCodeFromAddress(address []byte) []byte {
+	userAcc, err := host.blockChainHook.GetUserAccount(address)
+	if err != nil {
+		// backward compatibility
+		return address
+	}
+
+	code := userAcc.GetCode()
+	if len(code) == 0 {
+		return address
+	}
+
+	return code
+}
+
+// GetContract gets the actual system contract from address and code
+func (host *vmContext) GetContract(address []byte) (vm.SystemSmartContract, error) {
+	code := host.getCodeFromAddress(address)
+	contract, err := host.systemContracts.Get(code)
+	if err != nil {
+		return nil, err
+	}
+
+	if !contract.CanUseContract() {
+		// backward compatibility
+		return nil, vm.ErrUnknownSystemSmartContract
+	}
+
+	return contract, nil
+}
+
 // GetStorageFromAddress gets the storage from address and key
 func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte {
 	storageAdrMap, exists := host.storageUpdate[string(address)]
@@ -284,11 +315,6 @@ func (host *vmContext) DeploySystemSC(
 	host.SetSCAddress(oldSCAddress)
 	host.addContractDeployToOutput(newAddress, ownerAddress, baseContract)
 
-	err = host.systemContracts.Replace(newAddress, contract)
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
-
 	return returnCode, nil
 }
 
@@ -344,7 +370,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	host.softCleanCache()
 	host.SetSCAddress(callInput.RecipientAddr)
 
-	contract, err := host.systemContracts.Get(callInput.RecipientAddr)
+	contract, err := host.GetContract(callInput.RecipientAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -420,6 +446,11 @@ func (host *vmContext) UseGas(gasToConsume uint64) error {
 	return nil
 }
 
+// GasLeft returns the remaining gas
+func (host *vmContext) GasLeft() uint64 {
+	return host.gasRemaining
+}
+
 func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
@@ -467,6 +498,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 			outAccs[addr].Nonce = outAcc.Nonce
 		}
 
+		// backward compatibility - genesis was done without this
 		if host.blockChainHook.CurrentNonce() > 0 {
 			if len(outAcc.CodeDeployerAddress) > 0 {
 				outAccs[addr].CodeDeployerAddress = outAcc.CodeDeployerAddress

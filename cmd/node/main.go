@@ -2472,19 +2472,20 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(
-			argsHook,
-			economics,
-			messageSigVerifier,
-			gasSchedule,
-			nodesSetup,
-			hasher,
-			marshalizer,
-			systemSCConfig,
-			validatorAccounts,
-			rater,
-			epochNotifier,
-		)
+		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           economics,
+			MessageSignVerifier: messageSigVerifier,
+			GasSchedule:         gasSchedule,
+			NodesConfigProvider: nodesSetup,
+			Hasher:              hasher,
+			Marshalizer:         marshalizer,
+			SystemSCConfig:      systemSCConfig,
+			ValidatorAccountsDB: validatorAccounts,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+		}
+		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
 			return nil, err
 		}

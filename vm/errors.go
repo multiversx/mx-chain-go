@@ -220,3 +220,6 @@ var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
 
 // ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
 var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")
+
+// ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
+var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
