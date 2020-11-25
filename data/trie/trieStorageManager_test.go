@@ -472,10 +472,10 @@ func TestTriePruneAndCancelPruneWhileSnapshotInProgressAddsToPruningBuffer(t *te
 	_ = tr.Commit()
 	newRootHash, _ := tr.Root()
 
-	tr.EnterSnapshotMode()
+	tr.EnterPruningBufferingMode()
 	tr.Prune(oldRootHash, data.OldRoot)
 	tr.CancelPrune(newRootHash, data.NewRoot)
-	tr.ExitSnapshotMode()
+	tr.ExitPruningBufferingMode()
 
 	assert.Equal(t, 2, trieStorage.pruningBuffer.len())
 }
@@ -494,10 +494,10 @@ func TestTriePruneOnRollbackWhileSnapshotInProgressCancelsPrune(t *testing.T) {
 	_ = tr.Commit()
 	newRootHash, _ := tr.Root()
 
-	tr.EnterSnapshotMode()
+	tr.EnterPruningBufferingMode()
 	tr.CancelPrune(oldRootHash, data.OldRoot)
 	tr.Prune(newRootHash, data.NewRoot)
-	tr.ExitSnapshotMode()
+	tr.ExitPruningBufferingMode()
 
 	assert.Equal(t, 1, trieStorage.pruningBuffer.len())
 }
@@ -520,10 +520,10 @@ func TestTriePruneAfterSnapshotIsDonePrunesBufferedHashes(t *testing.T) {
 	_ = tr.Commit()
 	newRootHash, _ := tr.Root()
 
-	tr.EnterSnapshotMode()
+	tr.EnterPruningBufferingMode()
 	tr.Prune(oldRootHash, data.OldRoot)
 	tr.CancelPrune(newRootHash, data.NewRoot)
-	tr.ExitSnapshotMode()
+	tr.ExitPruningBufferingMode()
 
 	tr.Prune(oldRootHash, data.NewRoot)
 
@@ -544,10 +544,10 @@ func TestTrieCancelPruneAndPruningBufferNotEmptyAddsToPruningBuffer(t *testing.T
 	_ = tr.Commit()
 	newRootHash, _ := tr.Root()
 
-	tr.EnterSnapshotMode()
+	tr.EnterPruningBufferingMode()
 	tr.Prune(oldRootHash, data.OldRoot)
 	tr.CancelPrune(newRootHash, data.NewRoot)
-	tr.ExitSnapshotMode()
+	tr.ExitPruningBufferingMode()
 
 	tr.CancelPrune(oldRootHash, data.NewRoot)
 
@@ -568,10 +568,10 @@ func TestTriePruneAndCancelPruneAddedToBufferInOrder(t *testing.T) {
 	_ = tr.Commit()
 	newRootHash, _ := tr.Root()
 
-	tr.EnterSnapshotMode()
+	tr.EnterPruningBufferingMode()
 	tr.Prune(oldRootHash, data.OldRoot)
 	tr.CancelPrune(newRootHash, data.NewRoot)
-	tr.ExitSnapshotMode()
+	tr.ExitPruningBufferingMode()
 
 	tr.CancelPrune(oldRootHash, data.NewRoot)
 
