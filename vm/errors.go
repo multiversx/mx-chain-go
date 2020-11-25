@@ -224,5 +224,8 @@ var ErrInvalidDelegationSCConfig = errors.New("invalid delegation sc config")
 // ErrOwnerCannotUnDelegate signals that owner cannot undelegate as contract is still active
 var ErrOwnerCannotUnDelegate = errors.New("owner cannot undelegate, contract still active")
 
+// ErrNotEnoughInitialOwnerFunds signals that not enough initial owner funds has been provided
+var ErrNotEnoughInitialOwnerFunds = errors.New("not enough initial owner funds")
+
 // ErrProposalNotFound signals that the storage is empty for given key
 var ErrProposalNotFound = errors.New("proposal was not found in storage")

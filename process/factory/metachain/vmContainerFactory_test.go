@@ -37,15 +37,15 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
 	gasSchedule := make(map[string]map[string]uint64)
-	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		&economics.EconomicsData{},
-		&mock.MessageSignVerifierMock{},
-		gasSchedule,
-		&mock.NodesConfigProviderStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&config.SystemSmartContractsConfig{
+	argsNewVmContainerFactory := ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		Economics:           &economics.EconomicsData{},
+		MessageSignVerifier: &mock.MessageSignVerifierMock{},
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
@@ -72,10 +72,11 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 				ActivateBLSPubKeyMessageVerification: false,
 			},
 		},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
-	)
+		ValidatorAccountsDB: &mock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
+	}
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
@@ -118,15 +119,15 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
-	vmf, err := NewVMContainerFactory(
-		createMockVMAccountsArguments(),
-		economicsData,
-		&mock.MessageSignVerifierMock{},
-		makeGasSchedule(),
-		&mock.NodesConfigProviderStub{},
-		&mock.HasherMock{},
-		&mock.MarshalizerMock{},
-		&config.SystemSmartContractsConfig{
+	argsNewVMContainerFactory := ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   createMockVMAccountsArguments(),
+		Economics:           economicsData,
+		MessageSignVerifier: &mock.MessageSignVerifierMock{},
+		GasSchedule:         makeGasSchedule(),
+		NodesConfigProvider: &mock.NodesConfigProviderStub{},
+		Hasher:              &mock.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "100000000",
 				OwnerAddress:    "aaaaaa",
@@ -165,10 +166,11 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxServiceFee:  100,
 			},
 		},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
-	)
+		ValidatorAccountsDB: &mock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       &mock.EpochNotifierStub{},
+	}
+	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)
 	assert.Nil(t, err)
 

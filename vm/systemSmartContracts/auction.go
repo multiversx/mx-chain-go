@@ -627,6 +627,10 @@ func (s *stakingAuctionSC) updateStakeValue(registrationData *AuctionDataV2, cal
 		return vmcommon.UserError
 	}
 
+	if len(registrationData.RewardAddress) == 0 {
+		registrationData.RewardAddress = caller
+	}
+
 	err := s.saveRegistrationData(caller, registrationData)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot save registration data error " + err.Error())

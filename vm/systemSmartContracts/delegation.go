@@ -176,6 +176,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.withdraw(args)
 	case "changeServiceFee":
 		return d.changeServiceFee(args)
+	case "setAutomaticActivation":
+		return d.setAutomaticActivation(args)
 	case "modifyTotalDelegationCap":
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
@@ -303,14 +305,19 @@ func (d *delegation) delegateUser(
 		return vmcommon.UserError
 	}
 
-	newTotalActive := big.NewInt(0).Add(globalFund.TotalActive, callValue)
+	globalFund.TotalActive.Add(globalFund.TotalActive, callValue)
 	withDelegationCap := dConfig.MaxDelegationCap.Cmp(zero) != 0
-	if withDelegationCap && newTotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
+	if withDelegationCap && globalFund.TotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
 		d.eei.AddReturnMessage("total delegation cap reached, no more space to accept")
 		return vmcommon.UserError
 	}
 
-	globalFund.TotalActive.Set(newTotalActive)
+	err = d.checkAndUpdateOwnerInitialFunds(dConfig, callerAddr, callValue)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
 	isNew, delegator, err := d.getOrCreateDelegatorData(callerAddr)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -353,13 +360,22 @@ func (d *delegation) delegateUser(
 		}
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", nil, callValue)
+	stakeArgs := d.makeStakeArgsIfAutomaticActivation(dConfig, dStatus, globalFund)
+	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", stakeArgs, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return vmOutput.ReturnCode
+	}
+
+	if len(stakeArgs) > 0 {
+		err = d.updateDelegationStatusAfterStake(dStatus, vmOutput.ReturnData, stakeArgs)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 	}
 
 	err = d.saveGlobalFundData(globalFund)
@@ -375,6 +391,40 @@ func (d *delegation) delegateUser(
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) makeStakeArgsIfAutomaticActivation(
+	config *DelegationConfig,
+	status *DelegationContractStatus,
+	globalFund *GlobalFundData,
+) [][]byte {
+	lenStakableKeys := uint64(len(status.NotStakedKeys)) + uint64(len(status.UnStakedKeys))
+	if !config.AutomaticActivation || lenStakableKeys == 0 {
+		return nil
+	}
+
+	maxNodesToStake := big.NewInt(0).Div(globalFund.TotalActive, d.nodePrice).Uint64()
+	numStakedNodes := uint64(len(status.StakedKeys))
+	if maxNodesToStake <= numStakedNodes {
+		return nil
+	}
+
+	numNodesToStake := maxNodesToStake - numStakedNodes
+	gasLeftToStakeNumNodes := d.eei.GasLeft() / d.gasCost.MetaChainSystemSCsCost.Stake
+
+	numNodesToStake = core.MinUint64(core.MinUint64(lenStakableKeys, numNodesToStake), gasLeftToStakeNumNodes)
+	if numNodesToStake == 0 {
+		return nil
+	}
+
+	stakeArgs := [][]byte{big.NewInt(0).SetUint64(numNodesToStake).Bytes()}
+	listOfStakableNodes := append(status.NotStakedKeys, status.UnStakedKeys...)
+	for i := uint64(0); i < numNodesToStake; i++ {
+		stakeArgs = append(stakeArgs, listOfStakableNodes[i].BLSKey)
+		stakeArgs = append(stakeArgs, listOfStakableNodes[i].SignedMsg)
+	}
+
+	return stakeArgs
 }
 
 func (d *delegation) isOwner(address []byte) bool {
@@ -672,7 +722,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	numNodesToStake := big.NewInt(int64(len(args.Arguments)))
+	numNodesToStake := big.NewInt(int64(len(args.Arguments) + len(status.StakedKeys)))
 	stakeValue := big.NewInt(0).Mul(d.nodePrice, numNodesToStake)
 
 	if globalFund.TotalActive.Cmp(stakeValue) < 0 {
@@ -690,19 +740,32 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmOutput.ReturnCode
 	}
 
-	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
-	for _, successKey := range successKeys {
-		status.NotStakedKeys, status.StakedKeys = moveNodeFromList(status.NotStakedKeys, status.StakedKeys, successKey)
-		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
-	}
-
-	err = d.saveDelegationStatus(status)
+	err = d.updateDelegationStatusAfterStake(status, vmOutput.ReturnData, args.Arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegation) updateDelegationStatusAfterStake(
+	status *DelegationContractStatus,
+	returnData [][]byte,
+	args [][]byte,
+) error {
+	successKeys, _ := getSuccessAndUnSuccessKeys(returnData, args)
+	for _, successKey := range successKeys {
+		status.NotStakedKeys, status.StakedKeys = moveNodeFromList(status.NotStakedKeys, status.StakedKeys, successKey)
+		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
+	}
+
+	err := d.saveDelegationStatus(status)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -988,7 +1051,18 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 
 	numActiveKeys := len(delegationStatus.StakedKeys) + len(delegationStatus.UnStakedKeys)
 	if numActiveKeys > 0 {
-		return vm.ErrOwnerCannotUnDelegate
+		return fmt.Errorf("%w cannot unDelegate from initial owner funds as nodes are active", vm.ErrOwnerCannotUnDelegate)
+	}
+
+	allDelegationLeft := big.NewInt(0).Add(activeFund.Value, delegationConfig.InitialOwnerFunds)
+	if allDelegationLeft.Cmp(valueToUnDelegate) != 0 {
+		return fmt.Errorf("%w must undelegate all", vm.ErrOwnerCannotUnDelegate)
+	}
+
+	delegationConfig.InitialOwnerFunds = big.NewInt(0)
+	err = d.saveDelegationContractConfig(delegationConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -1966,6 +2040,48 @@ func (d *delegation) saveGlobalFundData(globalFundData *GlobalFundData) error {
 	d.eei.SetStorage([]byte(globalFundKey), marshaledData)
 	d.eei.SetStorage([]byte(totalActiveKey), globalFundData.TotalActive.Bytes())
 	return nil
+}
+
+func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *DelegationConfig, caller []byte, callValue *big.Int) error {
+	// initial owner funds must be 0 or higher than min deposit
+	if delegationConfig.InitialOwnerFunds.Cmp(zero) > 0 {
+		return nil
+	}
+
+	if !d.isOwner(caller) {
+		return vm.ErrNotEnoughInitialOwnerFunds
+	}
+
+	minDeposit, err := d.getMinDeposit()
+	if err != nil {
+		return err
+	}
+	if minDeposit.Cmp(callValue) < 0 {
+		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
+	}
+
+	delegationConfig.InitialOwnerFunds.Set(callValue)
+	err = d.saveDelegationContractConfig(delegationConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *delegation) getMinDeposit() (*big.Int, error) {
+	marshaledData := d.eei.GetStorageFromAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey))
+	if len(marshaledData) == 0 {
+		return nil, fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	}
+
+	managementData := &DelegationManagement{}
+	err := d.marshalizer.Unmarshal(managementData, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+
+	return managementData.MinDeposit, nil
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
