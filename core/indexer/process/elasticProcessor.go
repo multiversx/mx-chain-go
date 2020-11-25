@@ -222,7 +222,8 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 		if indexTemplate != nil {
 			err := ei.elasticClient.CheckAndCreateTemplate(index, indexTemplate)
 			if err != nil {
-				log.Error("check and create template", "err", err)
+				log.Error("check and create template", "err", err,
+					"index", index)
 				return err
 			}
 		}

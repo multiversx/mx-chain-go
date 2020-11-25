@@ -112,13 +112,8 @@ func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, 
 	return buffSlice, nil
 }
 
-func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory, isESDTAccount bool) ([]byte, []byte, error) {
-	id := address
-	if isESDTAccount {
-		id += fmt.Sprintf("_%s", account.TokenIdentifier)
-	}
-
-	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, id, "\n"))
+func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory, _ bool) ([]byte, []byte, error) {
+	meta := []byte(fmt.Sprintf(`{ "index" : { } }%s`, "\n"))
 	serializedData, err := json.Marshal(account)
 	if err != nil {
 		log.Debug("indexer: marshal",

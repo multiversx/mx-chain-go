@@ -2,6 +2,17 @@
   "index_patterns": ["receipts-*"],
   "settings": {
     "number_of_shards": 3,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "index": {
+      "sort.field": ["timestamp"],
+      "sort.order": ["desc"]
+    }
+  },
+  "mappings": {
+    "properties": {
+      "timestamp": {
+        "type": "date"
+      }
+    }
   }
 }

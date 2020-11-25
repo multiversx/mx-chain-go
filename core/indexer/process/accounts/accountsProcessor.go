@@ -87,8 +87,9 @@ func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAcco
 			})
 		}
 
-		if info.IsESDTSender {
-			accountsToIndexEGLD = append(accountsToIndexEGLD, userAccount)
+		if info.IsESDTOperation && !info.IsESDTSender {
+			// should continue because he have an esdt transfer and the current account is not the sender
+			// this transfer will not affect the egld balance of the account
 			continue
 		}
 

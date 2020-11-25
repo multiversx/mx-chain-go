@@ -2,14 +2,14 @@
   "index_patterns": ["scresults-*"],
   "settings": {
     "number_of_shards": 3,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "index": {
+      "sort.field": ["timestamp", "nonce"],
+      "sort.order": ["desc", "desc"]
+    }
   },
   "opendistro.index_state_management.policy_id": "scresults_policy",
   "opendistro.index_state_management.rollover_alias": "scresults",
-  "index": {
-    "sort.field": ["timestamp", "nonce"],
-    "sort.order": ["desc", "desc"]
-  },
   "mappings": {
     "properties": {
       "nonce": {

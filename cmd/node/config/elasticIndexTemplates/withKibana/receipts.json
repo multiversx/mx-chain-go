@@ -2,14 +2,14 @@
   "index_patterns": ["receipts-*"],
   "settings": {
     "number_of_shards": 3,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "index": {
+      "sort.field": ["timestamp"],
+      "sort.order": ["desc"]
+    }
   },
   "opendistro.index_state_management.policy_id": "receipts_policy",
   "opendistro.index_state_management.rollover_alias": "receipts",
-  "index": {
-    "sort.field": ["timestamp"],
-    "sort.order": ["desc", "desc"]
-  },
   "mappings": {
     "properties": {
       "timestamp": {

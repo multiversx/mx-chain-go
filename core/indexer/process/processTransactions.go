@@ -166,6 +166,13 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 			continue
 		}
 
+		egldBalanceNotChanged := scr.Value == "" || scr.Value == "0"
+		esdtBalanceNotChanged := scr.EsdtValue == "" || scr.EsdtValue == "0"
+		if egldBalanceNotChanged && esdtBalanceNotChanged {
+			// the smart contract results that not alter the balance of the receiver address should be ignored
+			continue
+		}
+
 		encodedReceiverAddress := scr.Receiver
 		alteredAddress[encodedReceiverAddress] = &accounts.AlteredAccount{
 			IsESDTSender:    false,
