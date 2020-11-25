@@ -23,6 +23,8 @@ const (
 	ratingPolicy              = "rating_policy"
 	accountsHistoryPolicy     = "accountshistory_policy"
 	accountsESDTHistoryPolicy = "accountsesdthistory_policy"
+	scResultsPolicy           = "scresults_policy"
+	receiptsPolicy            = "receipts_policy"
 
 	metachainTpsDocID   = "meta"
 	shardTpsDocIDPrefix = "shard"

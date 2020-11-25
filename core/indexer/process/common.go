@@ -28,7 +28,7 @@ func GetElasticTemplatesAndPolicies(path string, useKibana bool) (map[string]*by
 
 	if useKibana {
 		indexesPolicies := []string{txPolicy, blockPolicy, miniblocksPolicy, ratingPolicy, roundPolicy,
-			validatorsPolicy, accountsHistoryPolicy, accountsESDTHistoryPolicy}
+			validatorsPolicy, accountsHistoryPolicy, accountsESDTHistoryPolicy, receiptsPolicy, scResultsPolicy}
 		for _, indexPolicy := range indexesPolicies {
 			indexPolicies[indexPolicy], err = getPolicyByIndex(path, indexPolicy)
 			if err != nil {
