@@ -19,7 +19,7 @@ func (hsvm *HeaderSigVerifierStub) VerifyRandSeed(header data.HeaderHandler) err
 	return nil
 }
 
-// VerifyRandSeedAndLeaderSignature -
+// VerifyLeaderSignature -
 func (hsvm *HeaderSigVerifierStub) VerifyLeaderSignature(header data.HeaderHandler) error {
 	if hsvm.VerifyLeaderSignatureCalled != nil {
 		return hsvm.VerifyLeaderSignatureCalled(header)

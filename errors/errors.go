@@ -344,6 +344,9 @@ var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
 // ErrNilStatusHandler signals that a nil status handler was provided
 var ErrNilStatusHandler = errors.New("nil status handler provided")
 
+// ErrNilHardforkTrigger signals that a nil hardfork trigger was provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
 // ErrNilStatusHandlersUtils signals that a nil status handlers utils instance was provided
 var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")
 
@@ -458,7 +461,7 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
-// ErrNewEpochStartBootstrap signals that a new epochStartBootstrap creation has failed
+// ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
 // ErrNewStorageEpochStartBootstrap signals that a new storageEpochStartBootstrap creation has failed

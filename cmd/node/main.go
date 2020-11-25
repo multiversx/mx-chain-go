@@ -71,10 +71,9 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		var cfgs *config.Configs
-		cfgs, err = readConfigs(c, log)
-		if err != nil {
-			return err
+		cfgs, errCfg := readConfigs(c, log)
+		if errCfg != nil {
+			return errCfg
 		}
 
 		err = applyFlags(c, cfgs, log)
@@ -84,10 +83,9 @@ func main() {
 
 		cfgs.FlagsConfig.Version = app.Version
 
-		var nodeRunner *node.NodeRunner
-		nodeRunner, err = node.NewNodeRunner(cfgs, log)
-		if err != nil {
-			return err
+		nodeRunner, errRunner := node.NewNodeRunner(cfgs)
+		if errRunner != nil {
+			return errRunner
 		}
 
 		return nodeRunner.Start()
@@ -182,9 +180,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		ExternalConfig:                   externalConfig,
 		P2pConfig:                        p2pConfig,
 		ConfigurationFileName:            configurationFileName,
+		ConfigurationApiRoutesFileName:   configurationApiFileName,
 		ConfigurationEconomicsFileName:   configurationEconomicsFileName,
+		ConfigurationSystemSCFilename:    configurationSystemSCConfigFileName,
 		ConfigurationRatingsFileName:     configurationRatingsFileName,
 		ConfigurationPreferencesFileName: configurationPreferencesFileName,
+		ConfigurationExternalFileName:    externalConfigurationFileName,
 		P2pConfigurationFileName:         p2pConfigurationFileName,
+		ConfigurationGasScheduleFileName: gasScheduleConfigurationFile.Name,
 	}, nil
 }

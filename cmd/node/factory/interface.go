@@ -46,6 +46,7 @@ type FileLoggingHandler interface {
 	IsInterfaceNil() bool
 }
 
+// TODO: find a better naming
 // StatusHandlersUtils provides some functionality for statusHandlers
 type StatusHandlersUtils interface {
 	StatusHandler() core.AppStatusHandler

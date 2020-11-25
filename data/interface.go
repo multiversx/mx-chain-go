@@ -172,7 +172,6 @@ type Trie interface {
 	ExitSnapshotMode()
 	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
-	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

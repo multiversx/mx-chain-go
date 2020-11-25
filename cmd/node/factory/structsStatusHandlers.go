@@ -23,27 +23,25 @@ import (
 )
 
 const defaultTermuiRefreshTimeInMilliseconds = 500
+var log = logger.GetOrCreate("main")
 
 // StatusHandlersFactoryArgs is a struct that stores arguments needed to create status handlers factory
 type StatusHandlersFactoryArgs struct {
 	UseTermUI                    bool
-	ServersConfigurationFileName string
 }
 
 // StatusHandlersInfo is struct that stores all components that are returned when status handlers are created
 type statusHandlersInfo struct {
 	UseTermUI                bool
-	StatusHdl                core.AppStatusHandler
+	AppStatusHandler         core.AppStatusHandler
 	StatusMetrics            external.StatusMetricsHandler
 	PersistentHandler        *persister.PersistentStatusHandler
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	chanStartViews           chan struct{}
 	chanLogRewrite           chan struct{}
 }
 
 type statusHandlerUtilsFactory struct {
 	useTermUI                    bool
-	serversConfigurationFileName string
 	ctx                          *cli.Context
 }
 
@@ -138,7 +136,7 @@ func (shuf *statusHandlerUtilsFactory) Create(
 	statusHandlersInfoObject := new(statusHandlersInfo)
 	statusHandlersInfoObject.chanStartViews = chanStartViews
 	statusHandlersInfoObject.chanLogRewrite = chanLogRewrite
-	statusHandlersInfoObject.StatusHdl = handler
+	statusHandlersInfoObject.AppStatusHandler = handler
 	statusHandlersInfoObject.UseTermUI = shuf.useTermUI
 	statusHandlersInfoObject.StatusMetrics = statusMetrics
 	statusHandlersInfoObject.PersistentHandler = persistentHandler
@@ -214,7 +212,7 @@ func (shi *statusHandlersInfo) LoadTpsBenchmarkFromStorage(
 
 // StatusHandler returns the status handler
 func (shi *statusHandlersInfo) StatusHandler() core.AppStatusHandler {
-	return shi.StatusHdl
+	return shi.AppStatusHandler
 }
 
 // Metrics returns the status metrics
@@ -241,11 +239,11 @@ func (shi *statusHandlersInfo) updateTpsMetrics(metricsMap map[string]interface{
 	for key, value := range metricsMap {
 		if key == core.MetricAverageBlockTxCount {
 			log.Trace("setting metric value", "key", key, "value string", value.(string))
-			shi.StatusHdl.SetStringValue(key, value.(string))
+			shi.AppStatusHandler.SetStringValue(key, value.(string))
 			continue
 		}
 		log.Trace("setting metric value", "key", key, "value uint64", value.(uint64))
-		shi.StatusHdl.SetUInt64Value(key, value.(uint64))
+		shi.AppStatusHandler.SetUInt64Value(key, value.(uint64))
 	}
 }
 

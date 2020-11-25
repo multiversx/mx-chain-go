@@ -360,11 +360,6 @@ func (tr *patriciaMerkleTrie) String() string {
 	return writer.String()
 }
 
-// ClosePersister will close trie persister
-func (tr *patriciaMerkleTrie) ClosePersister() error {
-	return tr.trieStorage.Database().Close()
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil

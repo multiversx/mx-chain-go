@@ -10,6 +10,8 @@ import (
 
 // ------------ Test ManagedCoreComponents --------------------
 func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	coreArgs := getCoreArgs()
 	coreArgs.Config.Marshalizer = config.MarshalizerConfig{
 		Type:           "invalid_marshalizer_type",
@@ -24,6 +26,8 @@ func TestManagedCoreComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	coreArgs := getCoreArgs()
 	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
 	managedCoreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
@@ -56,6 +60,8 @@ func TestManagedCoreComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedCoreComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	coreArgs := getCoreArgs()
 	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
 	managedCoreComponents, _ := factory.NewManagedCoreComponents(coreComponentsFactory)

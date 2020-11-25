@@ -58,6 +58,7 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32
 }
 
+// ConsensusConfig holds the consensus configuration parameters
 type ConsensusConfig struct {
 	Type string
 }
@@ -432,6 +433,7 @@ type VersionsConfig struct {
 	Cache            CacheConfig
 }
 
+// Configs is a holder for the node configuration parameters
 type Configs struct {
 	GeneralConfig                    *Config
 	ApiRoutesConfig                  *ApiRoutesConfig
@@ -444,8 +446,12 @@ type Configs struct {
 	FlagsConfig                      *ContextFlagsConfig
 	ImportDbConfig                   *ImportDbConfig
 	ConfigurationFileName            string
+	ConfigurationApiRoutesFileName   string
 	ConfigurationEconomicsFileName   string
+	ConfigurationSystemSCFilename    string
 	ConfigurationRatingsFileName     string
 	ConfigurationPreferencesFileName string
+	ConfigurationExternalFileName    string
 	P2pConfigurationFileName         string
+	ConfigurationGasScheduleFileName string
 }

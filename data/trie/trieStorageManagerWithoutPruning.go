@@ -48,7 +48,7 @@ func (tsm *trieStorageManagerWithoutPruning) MarkForEviction(_ []byte, _ data.Mo
 // Close - closes all underlying components
 func (tsm *trieStorageManagerWithoutPruning) Close() error {
 	log.Trace("trieStorageManagerWithoutPruning - Close:trie storage pruning is disabled")
-	return nil
+	return tsm.db.Close()
 }
 
 // IsPruningEnabled returns false if the trie pruning is disabled

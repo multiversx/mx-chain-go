@@ -322,7 +322,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),
-		NodesFilename:         "mock/nodesSetupMock.json",
+		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
 		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},

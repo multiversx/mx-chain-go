@@ -246,50 +246,50 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 }
 
 func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
-	cryptoParams := &cryptoParams{}
+	cp := &cryptoParams{}
 	sk, readPk, err := ccf.getSkPk()
 	if err != nil {
 		return nil, err
 	}
 
-	cryptoParams.privateKey, err = keygen.PrivateKeyFromByteArray(sk)
+	cp.privateKey, err = keygen.PrivateKeyFromByteArray(sk)
 	if err != nil {
 		return nil, err
 	}
 
-	cryptoParams.publicKey = cryptoParams.privateKey.GeneratePublic()
+	cp.publicKey = cp.privateKey.GeneratePublic()
 	if len(readPk) > 0 {
-		cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
+		cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
 		if err != nil {
 			return nil, err
 		}
 
-		if !bytes.Equal(cryptoParams.publicKeyBytes, readPk) {
+		if !bytes.Equal(cp.publicKeyBytes, readPk) {
 			return nil, errors.ErrPublicKeyMismatch
 		}
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cryptoParams.publicKeyString = validatorKeyConverter.Encode(cryptoParams.publicKeyBytes)
+	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
 
-	return cryptoParams, nil
+	return cp, nil
 }
 
 func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
 	log.Warn("the node is in import mode! Will generate a fresh new BLS key")
-	cryptoParams := &cryptoParams{}
-	cryptoParams.privateKey, cryptoParams.publicKey = keygen.GeneratePair()
+	cp := &cryptoParams{}
+	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 
 	var err error
-	cryptoParams.publicKeyBytes, err = cryptoParams.publicKey.ToByteArray()
+	cp.publicKeyBytes, err = cp.publicKey.ToByteArray()
 	if err != nil {
 		return nil, err
 	}
 
 	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cryptoParams.publicKeyString = validatorKeyConverter.Encode(cryptoParams.publicKeyBytes)
+	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
 
-	return cryptoParams, nil
+	return cp, nil
 }
 
 func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
@@ -312,7 +312,7 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 	return skBytes, pkBytes, nil
 }
 
-// Closes all underlying components that need closing
+// Close closes all underlying components that need closing
 func (cc *cryptoComponents) Close() error {
 	return nil
 }

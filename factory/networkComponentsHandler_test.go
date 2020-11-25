@@ -9,6 +9,8 @@ import (
 
 // ------------ Test ManagedNetworkComponents --------------------
 func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	networkArgs := getNetworkArgs()
 	networkArgs.P2pConfig.Node.Port = "invalid"
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
@@ -20,6 +22,8 @@ func TestManagedNetworkComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 }
 
 func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	networkArgs := getNetworkArgs()
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
 	managedNetworkComponents, err := factory.NewManagedNetworkComponents(networkComponentsFactory)
@@ -40,6 +44,8 @@ func TestManagedNetworkComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedNetworkComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	networkArgs := getNetworkArgs()
 	networkComponentsFactory, _ := factory.NewNetworkComponentsFactory(networkArgs)
 	managedNetworkComponents, _ := factory.NewManagedNetworkComponents(networkComponentsFactory)
