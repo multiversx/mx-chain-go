@@ -504,7 +504,16 @@ func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
 	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	chLeaves := userAccount.DataTrie().GetAllLeavesOnChannel()
+	rootHash, err := userAccount.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
 	for leaf := range chLeaves {
 		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
 			continue
