@@ -88,6 +88,9 @@ type Node struct {
 	statusComponents    mainFactory.StatusComponentsHolder
 
 	closableComponents []mainFactory.Closer
+	enableSignTxWithHashEpoch uint32
+	txSignHasher              hashing.Hasher
+	txVersionChecker          process.TxVersionCheckerHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -400,6 +403,9 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		return nil, nil, err
 	}
 
+	currentEpoch := n.epochStartTrigger.Epoch()
+	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
+
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
@@ -415,6 +421,9 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
 		n.coreComponents.MinTransactionVersion(),
+		enableSignWithTxHash,
+		n.txSignHasher,
+		n.txVersionChecker,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -488,6 +497,7 @@ func (n *Node) CreateTransaction(
 	signatureHex string,
 	chainID string,
 	version uint32,
+	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
@@ -534,6 +544,7 @@ func (n *Node) CreateTransaction(
 		Signature: signatureBytes,
 		ChainID:   []byte(chainID),
 		Version:   version,
+		Options:   options,
 	}
 
 	var txHash []byte

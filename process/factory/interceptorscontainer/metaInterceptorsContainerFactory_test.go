@@ -293,6 +293,30 @@ func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.TxSignHasher = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewMetaInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.EpochNotifier = nil
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -535,5 +559,7 @@ func getArgumentsMeta(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		TxSignHasher:            mock.HasherMock{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

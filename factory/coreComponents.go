@@ -118,6 +118,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w (tx sign): %s", errors.ErrMarshalizerCreation, err.Error())
 	}
 
+	txSignHasher, err := factoryHasher.NewHasher(ccf.config.TxSignHasher.Type)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrHasherCreation, err.Error())
+	}
+
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
 
 	addressPubkeyConverter, err := stateFactory.NewPubkeyConverter(ccf.config.AddressPubkeyConverter)
@@ -259,6 +264,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochNotifier:                 epochNotifier,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
+		TxSignHasher:                  txSignHasher,
 	}, nil
 }
 

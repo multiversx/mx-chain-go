@@ -122,7 +122,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 	txSingleSigner := &singlesig.Ed25519Signer{}
-	singleSigner, err := ccf.createSingleSigner()
+	processingSingleSigner, err := ccf.createSingleSigner(false)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptSingleSigner, err := ccf.createSingleSigner(ccf.isInImportMode)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +144,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	var messageSignVerifier vm.MessageSignVerifier
 	if ccf.activateBLSPubKeyMessageVerification {
-		messageSignVerifier, err = systemVM.NewMessageSigVerifier(blockSignKeyGen, singleSigner)
+		messageSignVerifier, err = systemVM.NewMessageSigVerifier(blockSignKeyGen, processingSingleSigner)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +161,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, singleSigner, blockSignKeyGen)
+	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, interceptSingleSigner, blockSignKeyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +170,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	return &cryptoComponents{
 		txSingleSigner:      txSingleSigner,
-		blockSingleSigner:   singleSigner,
+		blockSingleSigner:   interceptSingleSigner,
 		multiSigner:         multiSigner,
 		peerSignHandler:     peerSigHandler,
 		blockSignKeyGen:     blockSignKeyGen,
@@ -176,6 +181,11 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 }
 
 func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
+	if ccf.isInImportMode {
+		log.Warn("using disabled single signer because the node is running in import-db 'turbo mode'")
+		return &disabledSig.DisabledSingleSig{}, nil
+	}
+
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		return &mclSig.BlsSingleSigner{}, nil
@@ -210,6 +220,11 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
 ) (crypto.MultiSigner, error) {
+	if ccf.isInImportMode {
+		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
+		return &disabledMultiSig.DisabledMultiSig{}, nil
+	}
+
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclMultiSig.BlsMultiSigner{Hasher: hasher}

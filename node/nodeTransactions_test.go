@@ -12,8 +12,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/mock"
+	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/testscommon/genericmocks"
 	"github.com/stretchr/testify/assert"
@@ -24,7 +26,7 @@ func TestNode_GetTransaction_InvalidHashShouldErr(t *testing.T) {
 	t.Parallel()
 
 	n, _ := node.NewNode()
-	_, err := n.GetTransaction("zzz")
+	_, err := n.GetTransaction("zzz", false)
 	assert.Error(t, err)
 }
 
@@ -45,11 +47,11 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	dataPool.Transactions().AddData([]byte("c"), txC, 42, "1")
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
@@ -64,7 +66,7 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	dataPool.RewardTransactions().AddData([]byte("d"), txD, 42, "foo")
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
 	require.Equal(t, transaction.TxStatusPending, actualD.Status)
@@ -81,11 +83,11 @@ func TestNode_GetTransaction_FromPool(t *testing.T) {
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	dataPool.UnsignedTransactions().AddData([]byte("g"), txG, 42, "foo")
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -114,11 +116,11 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txC := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, internalMarshalizer)
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txA.Nonce, actualA.Nonce)
@@ -133,7 +135,7 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txD := &rewardTx.RewardTx{Round: 42, RcvAddr: []byte("alice")}
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, txD.Round, actualD.Round)
 	require.Equal(t, transaction.TxStatusSuccess, actualD.Status)
@@ -150,11 +152,11 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	txG := &smartContractResult.SmartContractResult{GasLimit: 15, SndAddr: []byte("alice"), RcvAddr: []byte("alice")}
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, internalMarshalizer)
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -165,16 +167,96 @@ func TestNode_GetTransaction_FromStorage(t *testing.T) {
 	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
-	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")))
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("missing")), false)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
 	require.Nil(t, tx)
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
-	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
+}
+
+func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerFake{}
+	txHash := hex.EncodeToString([]byte("txHash"))
+	tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+	scResultHash := []byte("scHash")
+	scResult := &smartContractResult.SmartContractResult{
+		OriginalTxHash: []byte("txHash"),
+	}
+
+	resultHashesByTxHash := &dblookupext.ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
+			{
+				Epoch:           0,
+				ScResultsHashes: [][]byte{scResultHash},
+			},
+		},
+	}
+
+	chainStorer := &mock.ChainStorerMock{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			switch unitType {
+			case dataRetriever.TransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(tx)
+					},
+				}
+			case dataRetriever.UnsignedTransactionUnit:
+				return &mock.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(scResult)
+					},
+				}
+			default:
+				return nil
+			}
+		},
+	}
+	historyRepo := &testscommon.HistoryRepositoryStub{
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+			return &dblookupext.MiniblockMetadata{}, nil
+		},
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return resultHashesByTxHash, nil
+		},
+	}
+
+	n, _ := NewNode(
+		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
+		WithInternalMarshalizer(marshalizer, 0),
+		WithDataStore(chainStorer),
+		WithHistoryRepository(historyRepo),
+		WithDataPool(testscommon.NewPoolsHolderMock()),
+		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+	)
+
+	expectedTx := &transaction.ApiTransactionResult{
+		Tx:            &transaction.Transaction{Nonce: tx.Nonce, RcvAddr: tx.RcvAddr, SndAddr: tx.SndAddr, Value: tx.Value},
+		Nonce:         tx.Nonce,
+		Receiver:      hex.EncodeToString(tx.RcvAddr),
+		Sender:        hex.EncodeToString(tx.SndAddr),
+		Status:        transaction.TxStatusSuccess,
+		MiniBlockType: block.TxBlock.String(),
+		Type:          "normal",
+		Value:         "<nil>",
+		SmartContractResults: []*transaction.ApiSmartContractResult{
+			{
+				Hash:           hex.EncodeToString(scResultHash),
+				OriginalTxHash: txHash,
+			},
+		},
+	}
+
+	apiTx, err := n.GetTransaction(txHash, true)
+	require.Nil(t, err)
+	require.Equal(t, expectedTx, apiTx)
 }
 
 func TestNode_lookupHistoricalTransaction(t *testing.T) {
@@ -190,7 +272,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 2, 42)
 
-	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")))
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
 	require.Nil(t, err)
 	require.Equal(t, txA.Nonce, actualA.Nonce)
 	require.Equal(t, 42, int(actualA.Epoch))
@@ -201,7 +283,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("b"), txB, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 2, 1, 42)
 
-	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")))
+	actualB, err := n.GetTransaction(hex.EncodeToString([]byte("b")), false)
 	require.Nil(t, err)
 	require.Equal(t, txB.Nonce, actualB.Nonce)
 	require.Equal(t, 42, int(actualB.Epoch))
@@ -212,7 +294,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("c"), txC, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.TxBlock, 1, 1, 42)
 
-	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")))
+	actualC, err := n.GetTransaction(hex.EncodeToString([]byte("c")), false)
 	require.Nil(t, err)
 	require.Equal(t, txC.Nonce, actualC.Nonce)
 	require.Equal(t, 42, int(actualC.Epoch))
@@ -223,7 +305,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("invalid"), txInvalid, n.GetCoreComponents().InternalMarshalizer())
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.InvalidBlock, 1, 1, 42)
 
-	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")))
+	actualInvalid, err := n.GetTransaction(hex.EncodeToString([]byte("invalid")), false)
 	require.Nil(t, err)
 	require.Equal(t, txInvalid.Nonce, actualInvalid.Nonce)
 	require.Equal(t, 42, int(actualInvalid.Epoch))
@@ -236,7 +318,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Rewards.PutWithMarshalizer([]byte("d"), txD, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.RewardsBlock, core.MetachainShardId, 1, 42)
 
-	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")))
+	actualD, err := n.GetTransaction(hex.EncodeToString([]byte("d")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualD.Epoch))
 	require.Equal(t, string(transaction.TxTypeReward), actualD.Type)
@@ -249,7 +331,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("e"), txE, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 2, 42)
 
-	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")))
+	actualE, err := n.GetTransaction(hex.EncodeToString([]byte("e")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualE.Epoch))
 	require.Equal(t, txE.GasLimit, actualE.GasLimit)
@@ -261,7 +343,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("f"), txF, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 2, 1, 42)
 
-	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")))
+	actualF, err := n.GetTransaction(hex.EncodeToString([]byte("f")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualF.Epoch))
 	require.Equal(t, txF.GasLimit, actualF.GasLimit)
@@ -273,7 +355,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	_ = chainStorer.Unsigned.PutWithMarshalizer([]byte("g"), txG, internalMarshalizer)
 	setupGetMiniblockMetadataByTxHash(historyRepo, block.SmartContractResultBlock, 1, 1, 42)
 
-	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	actualG, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, err)
 	require.Equal(t, 42, int(actualG.Epoch))
 	require.Equal(t, txG.GasLimit, actualG.GasLimit)
@@ -284,7 +366,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return nil, fmt.Errorf("fooError")
 	}
-	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")))
+	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, tx)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "transaction not found")
@@ -295,7 +377,7 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 		return &dblookupext.MiniblockMetadata{}, nil
 	}
-	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")))
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
 }

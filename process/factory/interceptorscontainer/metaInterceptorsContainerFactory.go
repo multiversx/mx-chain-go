@@ -68,6 +68,12 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	if check.IfNil(args.TxSignHasher) {
+		return nil, process.ErrNilHasher
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponents,
@@ -81,6 +87,9 @@ func NewMetaInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              args.ArgumentsParser,
+		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	container := containers.NewInterceptorsContainer()

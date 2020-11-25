@@ -141,6 +141,18 @@ func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.EpochNotifier = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -213,6 +225,18 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldEr
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.TxSignHasher = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
@@ -614,5 +638,7 @@ func getArgumentsShard(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
+		TxSignHasher:            mock.HasherMock{},
+		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

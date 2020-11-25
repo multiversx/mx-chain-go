@@ -76,6 +76,7 @@ func (tx *Transaction) GetDataForSigning(encoder Encoder, marshalizer Marshalize
 		Data:             tx.Data,
 		ChainID:          string(tx.ChainID),
 		Version:          tx.Version,
+		Options:          tx.Options,
 	}
 
 	return marshalizer.Marshal(ftx)

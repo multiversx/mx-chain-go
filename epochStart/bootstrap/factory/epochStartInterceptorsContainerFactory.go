@@ -23,19 +23,22 @@ const timeSpanForBadHeaders = time.Minute
 // ArgsEpochStartInterceptorContainer holds the arguments needed for creating a new epoch start interceptors
 // container factory
 type ArgsEpochStartInterceptorContainer struct {
-	CoreComponents          process.CoreComponentsHolder
-	CryptoComponents        process.CryptoComponentsHolder
-	Config                  config.Config
-	ShardCoordinator        sharding.Coordinator
-	Messenger               process.TopicHandler
-	DataPool                dataRetriever.PoolsHolder
-	WhiteListHandler        update.WhiteListHandler
-	WhiteListerVerifiedTxs  update.WhiteListHandler
-	AddressPubkeyConv       core.PubkeyConverter
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
-	ChainID                 []byte
-	ArgumentsParser         process.ArgumentsParser
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
+	CoreComponents            process.CoreComponentsHolder
+	CryptoComponents          process.CryptoComponentsHolder
+	Config                    config.Config
+	ShardCoordinator          sharding.Coordinator
+	Messenger                 process.TopicHandler
+	DataPool                  dataRetriever.PoolsHolder
+	WhiteListHandler          update.WhiteListHandler
+	WhiteListerVerifiedTxs    update.WhiteListHandler
+	AddressPubkeyConv         core.PubkeyConverter
+	NonceConverter            typeConverters.Uint64ByteSliceConverter
+	ChainID                   []byte
+	ArgumentsParser           process.ArgumentsParser
+	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
+	EnableSignTxWithHashEpoch uint32
+	TxSignHasher              hashing.Hasher
+	EpochNotifier             process.EpochNotifier
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -69,26 +72,29 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 
 	containerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        cryptoComponents,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        nodesCoordinator,
-		Messenger:               args.Messenger,
-		Store:                   storer,
-		DataPool:                args.DataPool,
-		Accounts:                accountsAdapter,
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            feeHandler,
-		BlackList:               blackListHandler,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		SizeCheckDelta:          uint32(sizeCheckDelta),
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        args.WhiteListHandler,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		AntifloodHandler:        antiFloodHandler,
-		ArgumentsParser:         args.ArgumentsParser,
+		CoreComponents:            args.CoreComponents,
+		CryptoComponents:          cryptoComponents,
+		ShardCoordinator:          args.ShardCoordinator,
+		NodesCoordinator:          nodesCoordinator,
+		Messenger:                 args.Messenger,
+		Store:                     storer,
+		DataPool:                  args.DataPool,
+		Accounts:                  accountsAdapter,
+		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:              feeHandler,
+		BlackList:                 blackListHandler,
+		HeaderSigVerifier:         headerSigVerifier,
+		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
+		SizeCheckDelta:            uint32(sizeCheckDelta),
+		ValidityAttester:          validityAttester,
+		EpochStartTrigger:         epochStartTrigger,
+		WhiteListHandler:          args.WhiteListHandler,
+		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
+		AntifloodHandler:          antiFloodHandler,
+		ArgumentsParser:           args.ArgumentsParser,
+		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
+		TxSignHasher:              args.TxSignHasher,
+		EpochNotifier:             args.EpochNotifier,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
