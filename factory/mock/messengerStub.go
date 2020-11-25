@@ -117,7 +117,7 @@ func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil
 }
 
-// IsConnected
+// IsConnected -
 func (ms *MessengerStub) IsConnected(_ core.PeerID) bool {
 	return false
 }

@@ -32,98 +32,100 @@ func NewManagedConsensusComponents(ccf *consensusComponentsFactory) (*managedCon
 }
 
 // Create creates the consensus components
-func (mcf *managedConsensusComponents) Create() error {
-	cc, err := mcf.consensusComponentsFactory.Create()
+func (mcc *managedConsensusComponents) Create() error {
+	cc, err := mcc.consensusComponentsFactory.Create()
 	if err != nil {
 		return fmt.Errorf("%w: %v", errors.ErrConsensusComponentsFactoryCreate, err)
 	}
 
-	mcf.mutConsensusComponents.Lock()
-	mcf.consensusComponents = cc
-	mcf.mutConsensusComponents.Unlock()
+	mcc.mutConsensusComponents.Lock()
+	mcc.consensusComponents = cc
+	mcc.mutConsensusComponents.Unlock()
 
 	return nil
 }
 
 // Close closes all the consensus components
-func (mcf *managedConsensusComponents) Close() error {
-	mcf.mutConsensusComponents.Lock()
-	defer mcf.mutConsensusComponents.Unlock()
+func (mcc *managedConsensusComponents) Close() error {
+	mcc.mutConsensusComponents.Lock()
+	defer mcc.mutConsensusComponents.Unlock()
 
-	if mcf.consensusComponents != nil {
-		err := mcf.consensusComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcf.consensusComponents = nil
+	if mcc.consensusComponents == nil {
+		return nil
 	}
+
+	err := mcc.consensusComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.consensusComponents = nil
 
 	return nil
 }
 
 // Chronology returns the chronology handler
-func (mcf *managedConsensusComponents) Chronology() consensus.ChronologyHandler {
-	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.RUnlock()
+func (mcc *managedConsensusComponents) Chronology() consensus.ChronologyHandler {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return nil
 	}
 
-	return mcf.consensusComponents.chronology
+	return mcc.consensusComponents.chronology
 }
 
 // ConsensusWorker returns the consensus worker
-func (mcf *managedConsensusComponents) ConsensusWorker() ConsensusWorker {
-	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.RUnlock()
+func (mcc *managedConsensusComponents) ConsensusWorker() ConsensusWorker {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return nil
 	}
 
-	return mcf.consensusComponents.worker
+	return mcc.consensusComponents.worker
 }
 
 // BroadcastMessenger returns the consensus broadcast messenger
-func (mcf *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastMessenger {
-	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.RUnlock()
+func (mcc *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastMessenger {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return nil
 	}
 
-	return mcf.consensusComponents.broadcastMessenger
+	return mcc.consensusComponents.broadcastMessenger
 }
 
 // ConsensusGroupSize returns the consensus group size
-func (mcf *managedConsensusComponents) ConsensusGroupSize() (int, error) {
-	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.RUnlock()
+func (mcc *managedConsensusComponents) ConsensusGroupSize() (int, error) {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return 0, errors.ErrNilConsensusComponentsHolder
 	}
 
-	return mcf.consensusComponents.consensusGroupSize, nil
+	return mcc.consensusComponents.consensusGroupSize, nil
 }
 
 // CheckSubcomponents verifies all subcomponents
-func (mcf *managedConsensusComponents) CheckSubcomponents() error {
-	mcf.mutConsensusComponents.Lock()
-	defer mcf.mutConsensusComponents.Unlock()
+func (mcc *managedConsensusComponents) CheckSubcomponents() error {
+	mcc.mutConsensusComponents.Lock()
+	defer mcc.mutConsensusComponents.Unlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return errors.ErrNilConsensusComponentsHolder
 	}
-	if check.IfNil(mcf.chronology) {
+	if check.IfNil(mcc.chronology) {
 		return errors.ErrNilChronologyHandler
 	}
-	if check.IfNil(mcf.worker) {
+	if check.IfNil(mcc.worker) {
 		return errors.ErrNilConsensusWorker
 	}
-	if check.IfNil(mcf.broadcastMessenger) {
+	if check.IfNil(mcc.broadcastMessenger) {
 		return errors.ErrNilBroadcastMessenger
 	}
 
@@ -131,23 +133,23 @@ func (mcf *managedConsensusComponents) CheckSubcomponents() error {
 }
 
 // HardforkTrigger returns the hardfork trigger
-func (mcf *managedConsensusComponents) HardforkTrigger() HardforkTrigger {
-	mcf.mutConsensusComponents.RLock()
-	defer mcf.mutConsensusComponents.RUnlock()
+func (mcc *managedConsensusComponents) HardforkTrigger() HardforkTrigger {
+	mcc.mutConsensusComponents.RLock()
+	defer mcc.mutConsensusComponents.RUnlock()
 
-	if mcf.consensusComponents == nil {
+	if mcc.consensusComponents == nil {
 		return nil
 	}
 
-	return mcf.consensusComponents.hardforkTrigger
+	return mcc.consensusComponents.hardforkTrigger
 }
 
 // IsInterfaceNil returns true if the underlying object is nil
-func (mcf *managedConsensusComponents) IsInterfaceNil() bool {
-	return mcf == nil
+func (mcc *managedConsensusComponents) IsInterfaceNil() bool {
+	return mcc == nil
 }
 
 // String returns the name of the component
-func (mbf *managedConsensusComponents) String() string {
+func (mcc *managedConsensusComponents) String() string {
 	return "managedConsensusComponents"
 }

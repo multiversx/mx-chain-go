@@ -10,7 +10,7 @@ const (
 	NodesSetupPath        = "../../../cmd/node/config/nodesSetup.json"
 	SystemSCConfigPath    = "../../../cmd/node/config/systemSmartContractsConfig.toml"
 	GenesisPath           = "../../../cmd/node/config/genesis.json"
-	GenesisSmartContracts = "../genesisSmartContracts.json"
+	GenesisSmartContracts = "../testdata/genesisSmartContracts.json"
 	GasSchedule           = "../../../cmd/node/config/gasSchedule.toml"
 	ValidatorKeyPemPath   = "../validatorKey.pem"
 	Version               = "v1.1.6.1-0-gbae61225f/go1.14.2/linux-amd64/a72b5f2eff"

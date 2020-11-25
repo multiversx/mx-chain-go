@@ -24,17 +24,20 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 
 	configs := factory.CreateDefaultConfig()
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
-	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
+	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
+
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
-	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := node.CreateManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	require.Nil(t, err)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -54,8 +57,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	require.Nil(t, err)
-	managedStatusComponents, err := node.CreateManagedStatusComponents(
-		configs,
+	managedStatusComponents, err := nr.CreateManagedStatusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -68,7 +70,17 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	gasSchedule, err := core.LoadGasScheduleConfig(configs.FlagsConfig.GasScheduleConfigurationFileName)
 	require.Nil(t, err)
-	managedProcessComponents, err := node.CreateManagedProcessComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedBootstrapComponents, managedStateComponents, managedDataComponents, managedStatusComponents, gasSchedule, nodesCoordinator)
+	managedProcessComponents, err := nr.CreateManagedProcessComponents(
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedStateComponents,
+		managedDataComponents,
+		managedStatusComponents,
+		gasSchedule,
+		nodesCoordinator,
+	)
 	require.Nil(t, err)
 	require.NotNil(t, managedProcessComponents)
 

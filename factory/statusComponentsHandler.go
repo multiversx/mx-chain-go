@@ -46,56 +46,58 @@ func NewManagedStatusComponents(scf *statusComponentsFactory) (*managedStatusCom
 }
 
 // Create will create the status components
-func (m *managedStatusComponents) Create() error {
-	components, err := m.statusComponentsFactory.Create()
+func (msc *managedStatusComponents) Create() error {
+	components, err := msc.statusComponentsFactory.Create()
 	if err != nil {
 		return fmt.Errorf("%w: %v", errors.ErrStatusComponentsFactoryCreate, err)
 	}
 
-	m.mutStatusComponents.Lock()
-	m.statusComponents = components
-	m.mutStatusComponents.Unlock()
+	msc.mutStatusComponents.Lock()
+	msc.statusComponents = components
+	msc.mutStatusComponents.Unlock()
 
 	return nil
 }
 
 // Close will close all the underlying components
-func (m *managedStatusComponents) Close() error {
-	m.mutStatusComponents.Lock()
-	defer m.mutStatusComponents.Unlock()
+func (msc *managedStatusComponents) Close() error {
+	msc.mutStatusComponents.Lock()
+	defer msc.mutStatusComponents.Unlock()
 
-	if m.statusComponents != nil {
-		if m.cancelFunc != nil {
-			m.cancelFunc()
-		}
-		err := m.statusComponents.Close()
-		if err != nil {
-			return err
-		}
-		m.statusComponents = nil
+	if msc.statusComponents == nil {
+		return nil
 	}
+	if msc.cancelFunc != nil {
+		msc.cancelFunc()
+	}
+
+	err := msc.statusComponents.Close()
+	if err != nil {
+		return err
+	}
+	msc.statusComponents = nil
 
 	return nil
 }
 
 // CheckSubcomponents verifies all subcomponents
-func (m *managedStatusComponents) CheckSubcomponents() error {
-	m.mutStatusComponents.Lock()
-	defer m.mutStatusComponents.Unlock()
+func (msc *managedStatusComponents) CheckSubcomponents() error {
+	msc.mutStatusComponents.Lock()
+	defer msc.mutStatusComponents.Unlock()
 
-	if m.statusComponents == nil {
+	if msc.statusComponents == nil {
 		return errors.ErrNilStatusComponents
 	}
-	if check.IfNil(m.tpsBenchmark) {
+	if check.IfNil(msc.tpsBenchmark) {
 		return errors.ErrNilTpsBenchmark
 	}
-	if check.IfNil(m.elasticIndexer) {
+	if check.IfNil(msc.elasticIndexer) {
 		return errors.ErrNilElasticIndexer
 	}
-	if check.IfNil(m.softwareVersion) {
+	if check.IfNil(msc.softwareVersion) {
 		return errors.ErrNilSoftwareVersion
 	}
-	if check.IfNil(m.statusHandler) {
+	if check.IfNil(msc.statusHandler) {
 		return errors.ErrNilStatusHandler
 	}
 
@@ -103,25 +105,25 @@ func (m *managedStatusComponents) CheckSubcomponents() error {
 }
 
 // SetForkDetector sets the fork detector
-func (m *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
-	m.mutStatusComponents.Lock()
-	m.statusComponentsFactory.forkDetector = forkDetector
-	m.mutStatusComponents.Unlock()
+func (msc *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
+	msc.mutStatusComponents.Lock()
+	msc.statusComponentsFactory.forkDetector = forkDetector
+	msc.mutStatusComponents.Unlock()
 }
 
 // StartPolling starts polling for the updated status
-func (m *managedStatusComponents) StartPolling() error {
+func (msc *managedStatusComponents) StartPolling() error {
 	var ctx context.Context
-	m.mutStatusComponents.Lock()
-	ctx, m.cancelFunc = context.WithCancel(context.Background())
-	m.mutStatusComponents.Unlock()
+	msc.mutStatusComponents.Lock()
+	ctx, msc.cancelFunc = context.WithCancel(context.Background())
+	msc.mutStatusComponents.Unlock()
 
-	err := m.startStatusPolling(ctx)
+	err := msc.startStatusPolling(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = m.startMachineStatisticsPolling(ctx)
+	err = msc.startMachineStatisticsPolling(ctx)
 	if err != nil {
 		return err
 	}
@@ -130,67 +132,67 @@ func (m *managedStatusComponents) StartPolling() error {
 }
 
 // TpsBenchmark returns the tps benchmark handler
-func (m *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
-	m.mutStatusComponents.RLock()
-	defer m.mutStatusComponents.RUnlock()
+func (msc *managedStatusComponents) TpsBenchmark() statistics.TPSBenchmark {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
 
-	if m.statusComponents == nil {
+	if msc.statusComponents == nil {
 		return nil
 	}
 
-	return m.statusComponents.tpsBenchmark
+	return msc.statusComponents.tpsBenchmark
 }
 
 // ElasticIndexer returns the elastic indexer handler
-func (m *managedStatusComponents) ElasticIndexer() indexer.Indexer {
-	m.mutStatusComponents.RLock()
-	defer m.mutStatusComponents.RUnlock()
+func (msc *managedStatusComponents) ElasticIndexer() indexer.Indexer {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
 
-	if m.statusComponents == nil {
+	if msc.statusComponents == nil {
 		return nil
 	}
 
-	return m.statusComponents.elasticIndexer
+	return msc.statusComponents.elasticIndexer
 }
 
 // SoftwareVersionChecker returns the software version checker handler
-func (m *managedStatusComponents) SoftwareVersionChecker() statistics.SoftwareVersionChecker {
-	m.mutStatusComponents.RLock()
-	defer m.mutStatusComponents.RUnlock()
+func (msc *managedStatusComponents) SoftwareVersionChecker() statistics.SoftwareVersionChecker {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
 
-	if m.statusComponents == nil {
+	if msc.statusComponents == nil {
 		return nil
 	}
 
-	return m.statusComponents.softwareVersion
+	return msc.statusComponents.softwareVersion
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (m *managedStatusComponents) IsInterfaceNil() bool {
-	return m == nil
+func (msc *managedStatusComponents) IsInterfaceNil() bool {
+	return msc == nil
 }
 
-func (m *managedStatusComponents) startStatusPolling(ctx context.Context) error {
+func (msc *managedStatusComponents) startStatusPolling(ctx context.Context) error {
 	// TODO: inject the context to the AppStatusPolling
 	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
-		m.statusComponentsFactory.coreComponents.StatusHandler(),
-		time.Duration(m.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
+		msc.statusComponentsFactory.coreComponents.StatusHandler(),
+		time.Duration(msc.statusComponentsFactory.config.GeneralSettings.StatusPollingIntervalSec)*time.Second,
 	)
 	if err != nil {
 		return errors.ErrStatusPollingInit
 	}
 
-	err = registerPollConnectedPeers(appStatusPollingHandler, m.statusComponentsFactory.networkComponents)
+	err = registerPollConnectedPeers(appStatusPollingHandler, msc.statusComponentsFactory.networkComponents)
 	if err != nil {
 		return err
 	}
 
-	err = registerPollProbableHighestNonce(appStatusPollingHandler, m.statusComponentsFactory.forkDetector)
+	err = registerPollProbableHighestNonce(appStatusPollingHandler, msc.statusComponentsFactory.forkDetector)
 	if err != nil {
 		return err
 	}
 
-	err = registerShardsInformation(appStatusPollingHandler, m.statusComponentsFactory.shardCoordinator)
+	err = registerShardsInformation(appStatusPollingHandler, msc.statusComponentsFactory.shardCoordinator)
 	if err != nil {
 		return err
 	}
@@ -324,8 +326,8 @@ func registerPollProbableHighestNonce(
 	return nil
 }
 
-func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
-	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(m.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
+func (msc *managedStatusComponents) startMachineStatisticsPolling(ctx context.Context) error {
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(msc.statusComponentsFactory.coreComponents.StatusHandler(), time.Second)
 	if err != nil {
 		return fmt.Errorf("%w, cannot init AppStatusPolling", err)
 	}
@@ -340,7 +342,7 @@ func (m *managedStatusComponents) startMachineStatisticsPolling(ctx context.Cont
 		return err
 	}
 
-	err = registerNetStatistics(ctx, appStatusPollingHandler, m.statusComponentsFactory.epochStartNotifier)
+	err = registerNetStatistics(ctx, appStatusPollingHandler, msc.statusComponentsFactory.epochStartNotifier)
 	if err != nil {
 		return err
 	}
@@ -414,6 +416,6 @@ func registerCpuStatistics(ctx context.Context, appStatusPollingHandler *appStat
 }
 
 // String returns the name of the component
-func (mbf *managedStatusComponents) String() string {
+func (msc *managedStatusComponents) String() string {
 	return "managedStatusComponents"
 }

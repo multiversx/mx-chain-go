@@ -48,56 +48,78 @@ const (
 	maxTimeToClose  = 10 * time.Second
 )
 
-type NodeRunner struct {
+// nodeRunner holds the node runner configuration and controls running of a node
+type nodeRunner struct {
 	configs *config.Configs
-	log     logger.Logger
 }
 
-func NewNodeRunner(cfgs *config.Configs, log logger.Logger) (*NodeRunner, error) {
-	return &NodeRunner{
+// NewNodeRunner creates a nodeRunner instance
+func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
+	if cfgs == nil {
+		return nil, fmt.Errorf("nil configs provided")
+	}
+
+	return &nodeRunner{
 		configs: cfgs,
-		log:     log,
 	}, nil
 }
 
-func (nr *NodeRunner) Start() error {
-	log := nr.log
+// Start creates and starts the managed components
+func (nr *nodeRunner) Start() error {
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
-	chanStopNodeProcess1 := make(chan endProcess.ArgEndProcess, 1)
+	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
 	log.Debug("config", "file", flagsConfig.GenesisFileName)
 
-	enableGopsIfNeeded(flagsConfig.EnableGops, log)
+	enableGopsIfNeeded(flagsConfig.EnableGops)
 
-	fileLogging, err := attachFileLogger(configs, log)
+	fileLogging, err := nr.attachFileLogger()
 	if err != nil {
 		return err
 	}
 
-	flagsConfig.NodesFileName, err = getNodesFileName(configs)
+	flagsConfig.NodesFileName, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
 	log.Debug("config", "file", flagsConfig.NodesFileName)
 
-	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage, log)
+	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
 		return err
 	}
 
-	logGoroutinesNumber(log, 0)
+	logGoroutinesNumber(0)
 
+	err = nr.startShufflingProcessLoop(chanStopNodeProcess)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("closing node")
+	if !check.IfNil(fileLogging) {
+		err = fileLogging.Close()
+		log.LogIfError(err)
+	}
+
+	return nil
+}
+
+func (nr *nodeRunner) startShufflingProcessLoop(
+	chanStopNodeProcess1 chan endProcess.ArgEndProcess,
+) error {
+	configs := nr.configs
+	flagsConfig := configs.FlagsConfig
 	for {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 
 		log.Debug("\n\n====================Starting managedComponents creation================================")
 
 		log.Debug("creating core components")
-		managedCoreComponents, err := CreateManagedCoreComponents(
-			configs,
+		managedCoreComponents, err := nr.CreateManagedCoreComponents(
 			chanStopNodeProcess1,
 		)
 		if err != nil {
@@ -105,47 +127,51 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Debug("creating crypto components")
-		managedCryptoComponents, err := CreateManagedCryptoComponents(configs, managedCoreComponents)
+		managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating network components")
-		managedNetworkComponents, err := CreateManagedNetworkComponents(configs, managedCoreComponents)
+		managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating bootstrap components")
-		managedBootstrapComponents, err := CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+		managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 		if err != nil {
 			return err
 		}
 
-		logInformation(log, configs, managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+		nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 		log.Debug("creating state components")
-		managedStateComponents, err := CreateManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
+		managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating data components")
-		managedDataComponents, err := CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
+		managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
 
 		log.Debug("creating healthService")
-		healthService := createHealthService(configs, flagsConfig, managedDataComponents)
+		healthService := nr.createHealthService(flagsConfig, managedDataComponents)
 
 		log.Trace("creating metrics")
-		err = createMetrics(configs, managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
+		err = nr.createMetrics(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 		if err != nil {
 			return err
 		}
 
-		nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
+		nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(
+			managedCoreComponents.GenesisNodesSetup(),
+			configs.GeneralConfig.EpochStartConfig,
+			managedCoreComponents.ChanStopNodeProcess(),
+		)
 		if err != nil {
 			return err
 		}
@@ -171,8 +197,7 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Trace("starting status pooling components")
-		managedStatusComponents, err := CreateManagedStatusComponents(
-			configs,
+		managedStatusComponents, err := nr.CreateManagedStatusComponents(
 			managedCoreComponents,
 			managedNetworkComponents,
 			managedBootstrapComponents,
@@ -192,8 +217,7 @@ func (nr *NodeRunner) Start() error {
 		}
 
 		log.Trace("creating process components")
-		managedProcessComponents, err := CreateManagedProcessComponents(
-			configs,
+		managedProcessComponents, err := nr.CreateManagedProcessComponents(
 			managedCoreComponents,
 			managedCryptoComponents,
 			managedNetworkComponents,
@@ -219,12 +243,31 @@ func (nr *NodeRunner) Start() error {
 
 		log.Debug("starting node...")
 
-		managedConsensusComponents, err := CreateManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut)
+		managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
+			managedCoreComponents,
+			managedNetworkComponents,
+			managedCryptoComponents,
+			managedBootstrapComponents,
+			managedDataComponents,
+			managedStateComponents,
+			managedStatusComponents,
+			managedProcessComponents,
+			nodesCoordinator,
+			nodesShufflerOut,
+		)
 		if err != nil {
 			return err
 		}
 
-		managedHeartbeatComponents, err := CreateManagedHeartbeatComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedDataComponents, managedProcessComponents, managedConsensusComponents.HardforkTrigger())
+		managedHeartbeatComponents, err := nr.CreateManagedHeartbeatComponents(
+			managedCoreComponents,
+			managedNetworkComponents,
+			managedCryptoComponents,
+			managedDataComponents,
+			managedProcessComponents,
+			managedConsensusComponents.HardforkTrigger(),
+		)
+
 		if err != nil {
 			return err
 		}
@@ -254,11 +297,10 @@ func (nr *NodeRunner) Start() error {
 				elasticIndexer,
 				nodesCoordinator,
 				managedProcessComponents.EpochStartTrigger().Epoch(),
-				log,
 			)
 		}
 
-		ef, err := createApiFacade(configs, currentNode, gasSchedule, log)
+		ef, err := nr.createApiFacade(currentNode, gasSchedule)
 		if err != nil {
 			return err
 		}
@@ -267,22 +309,17 @@ func (nr *NodeRunner) Start() error {
 		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-		err = waitForSignal(sigs, log, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, currentNode, goRoutinesNumberStart)
+		err = waitForSignal(sigs, managedCoreComponents.ChanStopNodeProcess(), healthService, ef, currentNode, goRoutinesNumberStart)
 		if err != nil {
 			break
 		}
 	}
-
-	log.Debug("closing node")
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.Close()
-		log.LogIfError(err)
-	}
-
 	return nil
 }
 
-func createApiFacade(configs *config.Configs, currentNode *Node, gasSchedule map[string]map[string]uint64, log logger.Logger) (closing.Closer, error) {
+func (nr *nodeRunner) createApiFacade(currentNode *Node, gasSchedule map[string]map[string]uint64) (closing.Closer, error) {
+	configs := nr.configs
+
 	log.Trace("creating api resolver structure")
 	apiResolver, err := mainFactory.CreateApiResolver(
 		configs.GeneralConfig,
@@ -340,16 +377,20 @@ func createApiFacade(configs *config.Configs, currentNode *Node, gasSchedule map
 	return ef, nil
 }
 
-func createMetrics(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedCryptoComponents mainFactory.CryptoComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) error {
+func (nr *nodeRunner) createMetrics(
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+) error {
 	err := metrics.InitMetrics(
 		managedCoreComponents.StatusHandlerUtils(),
 		managedCryptoComponents.PublicKeyString(),
 		managedBootstrapComponents.NodeType(),
 		managedBootstrapComponents.ShardCoordinator(),
 		managedCoreComponents.GenesisNodesSetup(),
-		configs.FlagsConfig.Version,
-		configs.EconomicsConfig,
-		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
+		nr.configs.FlagsConfig.Version,
+		nr.configs.EconomicsConfig,
+		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		managedCoreComponents.MinTransactionVersion(),
 	)
 
@@ -357,7 +398,7 @@ func createMetrics(configs *config.Configs, managedCoreComponents mainFactory.Co
 		return err
 	}
 
-	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(managedCoreComponents.StatusHandler(), core.MetricChainId, managedCoreComponents.ChainID())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricGasPerDataByte, managedCoreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(managedCoreComponents.StatusHandler(), core.MetricMinGasPrice, managedCoreComponents.EconomicsData().MinGasPrice())
@@ -366,8 +407,8 @@ func createMetrics(configs *config.Configs, managedCoreComponents mainFactory.Co
 	return nil
 }
 
-func createHealthService(configs *config.Configs, flagsConfig *config.ContextFlagsConfig, managedDataComponents mainFactory.DataComponentsHandler) closing.Closer {
-	healthService := health.NewHealthService(configs.GeneralConfig.Health, flagsConfig.WorkingDir)
+func (nr *nodeRunner) createHealthService(flagsConfig *config.ContextFlagsConfig, managedDataComponents mainFactory.DataComponentsHandler) closing.Closer {
+	healthService := health.NewHealthService(nr.configs.GeneralConfig.Health, flagsConfig.WorkingDir)
 	if flagsConfig.UseHealthService {
 		healthService.Start()
 	}
@@ -378,8 +419,8 @@ func createHealthService(configs *config.Configs, flagsConfig *config.ContextFla
 	return healthService
 }
 
-func CreateManagedConsensusComponents(
-	configs *config.Configs,
+// CreateManagedConsensusComponents is the managed consensus components factory
+func (nr *nodeRunner) CreateManagedConsensusComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
@@ -392,7 +433,7 @@ func CreateManagedConsensusComponents(
 	nodesShuffledOut update.Closer,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	hardForkTrigger, err := CreateHardForkTrigger(
-		configs.GeneralConfig,
+		nr.configs.GeneralConfig,
 		managedBootstrapComponents.ShardCoordinator(),
 		nodesCoordinator,
 		nodesShuffledOut,
@@ -404,15 +445,15 @@ func CreateManagedConsensusComponents(
 		managedNetworkComponents,
 		managedCoreComponents.EpochStartNotifierWithConfirm(),
 		managedProcessComponents.ImportStartHandler(),
-		configs.FlagsConfig.WorkingDir,
+		nr.configs.FlagsConfig.WorkingDir,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	consensusArgs := mainFactory.ConsensusComponentsFactoryArgs{
-		Config:              *configs.GeneralConfig,
-		BootstrapRoundIndex: configs.FlagsConfig.BootstrapRoundIndex,
+		Config:              *nr.configs.GeneralConfig,
+		BootstrapRoundIndex: nr.configs.FlagsConfig.BootstrapRoundIndex,
 		HardforkTrigger:     hardForkTrigger,
 		CoreComponents:      managedCoreComponents,
 		NetworkComponents:   managedNetworkComponents,
@@ -440,18 +481,21 @@ func CreateManagedConsensusComponents(
 	return managedConsensusComponents, nil
 }
 
-func CreateManagedHeartbeatComponents(configs *config.Configs,
+// CreateManagedHeartbeatComponents is the managed heartbeat components factory
+func (nr *nodeRunner) CreateManagedHeartbeatComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
 	managedDataComponents mainFactory.DataComponentsHandler,
 	managedProcessComponents mainFactory.ProcessComponentsHandler,
-	hardforkTrigger HardforkTrigger) (mainFactory.HeartbeatComponentsHandler, error) {
+	hardforkTrigger HardforkTrigger,
+) (mainFactory.HeartbeatComponentsHandler, error) {
 	genesisTime := time.Unix(managedCoreComponents.GenesisNodesSetup().GetStartTime(), 0)
+
 	heartbeatArgs := mainFactory.HeartbeatComponentsFactoryArgs{
-		Config:            *configs.GeneralConfig,
-		Prefs:             *configs.PreferencesConfig,
-		AppVersion:        configs.FlagsConfig.Version,
+		Config:            *nr.configs.GeneralConfig,
+		Prefs:             *nr.configs.PreferencesConfig,
+		AppVersion:        nr.configs.FlagsConfig.Version,
 		GenesisTime:       genesisTime,
 		HardforkTrigger:   hardforkTrigger,
 		CoreComponents:    managedCoreComponents,
@@ -478,7 +522,14 @@ func CreateManagedHeartbeatComponents(configs *config.Configs,
 	return managedHeartbeatComponents, nil
 }
 
-func waitForSignal(sigs chan os.Signal, log logger.Logger, chanStopNodeProcess chan endProcess.ArgEndProcess, healthService closing.Closer, ef closing.Closer, currentNode *Node, goRoutinesNumberStart int) error {
+func waitForSignal(
+	sigs chan os.Signal,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	healthService closing.Closer,
+	ef closing.Closer,
+	currentNode *Node,
+	goRoutinesNumberStart int,
+) error {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
 	select {
@@ -493,7 +544,7 @@ func waitForSignal(sigs chan os.Signal, log logger.Logger, chanStopNodeProcess c
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(log, healthService, ef, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, ef, currentNode, chanCloseComponents)
 	}()
 
 	select {
@@ -501,12 +552,12 @@ func waitForSignal(sigs chan os.Signal, log logger.Logger, chanStopNodeProcess c
 		log.Debug("Closed all components gracefully")
 	case <-time.After(maxTimeToClose):
 		log.Warn("force closing the node", "error", "closeAllComponents did not finish on time")
-		return fmt.Errorf("Did NOT close all components gracefully")
+		return fmt.Errorf("did NOT close all components gracefully")
 	}
 
 	if reshuffled {
 		log.Info("=============================Shuffled out - soft restart==================================")
-		logGoroutinesNumber(log, goRoutinesNumberStart)
+		logGoroutinesNumber(goRoutinesNumberStart)
 	} else {
 		return fmt.Errorf("not reshuffled, closing")
 	}
@@ -514,7 +565,11 @@ func waitForSignal(sigs chan os.Signal, log logger.Logger, chanStopNodeProcess c
 	return nil
 }
 
-func logInformation(log logger.Logger, configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedCryptoComponents mainFactory.CryptoComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) {
+func (nr *nodeRunner) logInformation(
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+) {
 	log.Info("Bootstrap", "epoch", managedBootstrapComponents.EpochBootstrapParams().Epoch())
 	if managedBootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
 		log.Info("the epoch from nodesConfig is",
@@ -528,22 +583,22 @@ func logInformation(log logger.Logger, configs *config.Configs, managedCoreCompo
 		"PkBlockSign", managedCryptoComponents.PublicKeyString(),
 		"ShardId", shardIdString,
 		"TotalShards", managedBootstrapComponents.ShardCoordinator().NumberOfShards(),
-		"AppVersion", configs.FlagsConfig.Version,
+		"AppVersion", nr.configs.FlagsConfig.Version,
 		"GenesisTimeStamp", managedCoreComponents.GenesisTime().Unix(),
 	)
 
 	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
-	sessionInfoFileOutput += configs.FlagsConfig.SessionInfoFileOutput
+	sessionInfoFileOutput += nr.configs.FlagsConfig.SessionInfoFileOutput
 
-	logSessionInformation(configs.FlagsConfig.WorkingDir, log, configs, sessionInfoFileOutput, managedCoreComponents)
+	nr.logSessionInformation(nr.configs.FlagsConfig.WorkingDir, sessionInfoFileOutput, managedCoreComponents)
 }
 
-func getNodesFileName(configs *config.Configs) (string, error) {
-	flagsConfig := configs.FlagsConfig
+func (nr *nodeRunner) getNodesFileName() (string, error) {
+	flagsConfig := nr.configs.FlagsConfig
 	nodesFileName := flagsConfig.NodesFileName
 
-	exportFolder := filepath.Join(flagsConfig.WorkingDir, configs.GeneralConfig.Hardfork.ImportFolder)
-	if configs.GeneralConfig.Hardfork.AfterHardFork {
+	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
+	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
 		exportFolderNodesSetupPath := filepath.Join(exportFolder, core.NodesSetupJsonFileName)
 		if !core.DoesFileExist(exportFolderNodesSetupPath) {
 			return "", fmt.Errorf("cannot find %s in the export folder", core.NodesSetupJsonFileName)
@@ -554,7 +609,7 @@ func getNodesFileName(configs *config.Configs) (string, error) {
 	return nodesFileName, nil
 }
 
-func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
+func logGoroutinesNumber(goRoutinesNumberStart int) {
 	buffer := new(bytes.Buffer)
 	err := pprof.Lookup("goroutine").WriteTo(buffer, 2)
 	if err != nil {
@@ -567,8 +622,8 @@ func logGoroutinesNumber(log logger.Logger, goRoutinesNumberStart int) {
 	log.Warn(buffer.String())
 }
 
-func CreateManagedStatusComponents(
-	configs *config.Configs,
+// CreateManagedStatusComponents is the managed status components factory
+func (nr *nodeRunner) CreateManagedStatusComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
@@ -579,9 +634,9 @@ func CreateManagedStatusComponents(
 	isInImportMode bool,
 ) (mainFactory.StatusComponentsHandler, error) {
 	statArgs := mainFactory.StatusComponentsFactoryArgs{
-		Config:               *configs.GeneralConfig,
-		ExternalConfig:       *configs.ExternalConfig,
-		EconomicsConfig:      *configs.EconomicsConfig,
+		Config:               *nr.configs.GeneralConfig,
+		ExternalConfig:       *nr.configs.ExternalConfig,
+		EconomicsConfig:      *nr.configs.EconomicsConfig,
 		ShardCoordinator:     managedBootstrapComponents.ShardCoordinator(),
 		NodesCoordinator:     nodesCoordinator,
 		EpochStartNotifier:   managedCoreComponents.EpochStartNotifierWithConfirm(),
@@ -609,10 +664,14 @@ func CreateManagedStatusComponents(
 	return managedStatusComponents, nil
 }
 
-func logSessionInformation(workingDir string, log logger.Logger, configs *config.Configs, sessionInfoFileOutput string, managedCoreComponents mainFactory.CoreComponentsHandler) {
+func (nr *nodeRunner) logSessionInformation(
+	workingDir string,
+	sessionInfoFileOutput string,
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+) {
+	configs := nr.configs
 	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
 	copyConfigToStatsFolder(
-		log,
 		statsFolder,
 		[]string{
 			configs.ConfigurationFileName,
@@ -623,26 +682,38 @@ func logSessionInformation(workingDir string, log logger.Logger, configs *config
 			configs.ConfigurationFileName,
 			configs.FlagsConfig.GenesisFileName,
 			configs.FlagsConfig.NodesFileName,
+			configs.ConfigurationApiRoutesFileName,
+			configs.ConfigurationExternalFileName,
+			configs.ConfigurationSystemSCFilename,
+			configs.ConfigurationGasScheduleFileName,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
 	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), os.ModePerm)
 	log.LogIfError(err)
 
-	//TODO: remove this in the future and add just a log debug
-	computedRatingsData := filepath.Join(statsFolder, "ratings.info")
 	computedRatingsDataStr := createStringFromRatingsData(managedCoreComponents.RatingsData())
-	err = ioutil.WriteFile(computedRatingsData, []byte(computedRatingsDataStr), os.ModePerm)
-	log.LogIfError(err)
+	log.Debug("rating data", "rating", computedRatingsDataStr)
 }
 
-func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedCryptoComponents mainFactory.CryptoComponentsHandler, managedNetworkComponents mainFactory.NetworkComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler, managedStateComponents mainFactory.StateComponentsHandler, managedDataComponents mainFactory.DataComponentsHandler, managedStatusComponents mainFactory.StatusComponentsHandler, gasSchedule map[string]map[string]uint64, nodesCoordinator sharding.NodesCoordinator) (mainFactory.ProcessComponentsHandler, error) {
+// CreateManagedProcessComponents is the managed process components factory
+func (nr *nodeRunner) CreateManagedProcessComponents(
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedCryptoComponents mainFactory.CryptoComponentsHandler,
+	managedNetworkComponents mainFactory.NetworkComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+	managedStateComponents mainFactory.StateComponentsHandler,
+	managedDataComponents mainFactory.DataComponentsHandler,
+	managedStatusComponents mainFactory.StatusComponentsHandler,
+	gasSchedule map[string]map[string]uint64,
+	nodesCoordinator sharding.NodesCoordinator,
+) (mainFactory.ProcessComponentsHandler, error) {
+	configs := nr.configs
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, core.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO when refactoring main, maybe initialize economics data before this line
 	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
 		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
@@ -765,7 +836,12 @@ func CreateManagedProcessComponents(configs *config.Configs, managedCoreComponen
 	return managedProcessComponents, nil
 }
 
-func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.DataComponentsHandler, error) {
+// CreateManagedDataComponents is the managed data components factory
+func (nr *nodeRunner) CreateManagedDataComponents(
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+) (mainFactory.DataComponentsHandler, error) {
+	configs := nr.configs
 	storerEpoch := managedBootstrapComponents.EpochBootstrapParams().Epoch()
 	if !configs.GeneralConfig.StoragePruning.Enabled {
 		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
@@ -805,10 +881,14 @@ func CreateManagedDataComponents(configs *config.Configs, managedCoreComponents 
 	return managedDataComponents, nil
 }
 
-func CreateManagedStateComponents(configs *config.Configs, managedCoreComponents mainFactory.CoreComponentsHandler, managedBootstrapComponents mainFactory.BootstrapComponentsHandler) (mainFactory.StateComponentsHandler, error) {
+// CreateManagedStateComponents is the managed state components factory
+func (nr *nodeRunner) CreateManagedStateComponents(
+	managedCoreComponents mainFactory.CoreComponentsHandler,
+	managedBootstrapComponents mainFactory.BootstrapComponentsHandler,
+) (mainFactory.StateComponentsHandler, error) {
 	triesComponents, trieStorageManagers := managedBootstrapComponents.EpochStartBootstrapper().GetTriesComponents()
 	stateArgs := mainFactory.StateComponentsFactoryArgs{
-		Config:              *configs.GeneralConfig,
+		Config:              *nr.configs.GeneralConfig,
 		ShardCoordinator:    managedBootstrapComponents.ShardCoordinator(),
 		Core:                managedCoreComponents,
 		TriesContainer:      triesComponents,
@@ -832,17 +912,17 @@ func CreateManagedStateComponents(configs *config.Configs, managedCoreComponents
 	return managedStateComponents, nil
 }
 
-func CreateManagedBootstrapComponents(
-	cfgs *config.Configs,
+// CreateManagedBootstrapComponents is the managed bootstrap components factory
+func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 	managedCryptoComponents mainFactory.CryptoComponentsHandler,
 	managedNetworkComponents mainFactory.NetworkComponentsHandler,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := mainFactory.BootstrapComponentsFactoryArgs{
-		Config:            *cfgs.GeneralConfig,
-		PrefConfig:        *cfgs.PreferencesConfig,
-		WorkingDir:        cfgs.FlagsConfig.WorkingDir,
+		Config:            *nr.configs.GeneralConfig,
+		PrefConfig:        *nr.configs.PreferencesConfig,
+		WorkingDir:        nr.configs.FlagsConfig.WorkingDir,
 		CoreComponents:    managedCoreComponents,
 		CryptoComponents:  managedCryptoComponents,
 		NetworkComponents: managedNetworkComponents,
@@ -866,15 +946,15 @@ func CreateManagedBootstrapComponents(
 	return managedBootstrapComponents, nil
 }
 
-func CreateManagedNetworkComponents(
-	cfgs *config.Configs,
+// CreateManagedNetworkComponents is the managed network components factory
+func (nr *nodeRunner) CreateManagedNetworkComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.NetworkComponentsHandler, error) {
 
 	networkComponentsFactoryArgs := mainFactory.NetworkComponentsFactoryArgs{
-		P2pConfig:            *cfgs.P2pConfig,
-		MainConfig:           *cfgs.GeneralConfig,
-		RatingsConfig:        *cfgs.RatingsConfig,
+		P2pConfig:            *nr.configs.P2pConfig,
+		MainConfig:           *nr.configs.GeneralConfig,
+		RatingsConfig:        *nr.configs.RatingsConfig,
 		StatusHandler:        managedCoreComponents.StatusHandler(),
 		Marshalizer:          managedCoreComponents.InternalMarshalizer(),
 		Syncer:               managedCoreComponents.SyncTimer(),
@@ -897,13 +977,13 @@ func CreateManagedNetworkComponents(
 	return managedNetworkComponents, nil
 }
 
-func CreateManagedCoreComponents(
-	cfgs *config.Configs,
+// CreateManagedCoreComponents is the managed core components factory
+func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 
 	statusHandlersFactoryArgs := &factory.StatusHandlersFactoryArgs{
-		UseTermUI: !cfgs.FlagsConfig.UseLogView,
+		UseTermUI: !nr.configs.FlagsConfig.UseLogView,
 	}
 
 	statusHandlersFactory, err := factory.NewStatusHandlersFactory(statusHandlersFactoryArgs)
@@ -912,11 +992,11 @@ func CreateManagedCoreComponents(
 	}
 
 	coreArgs := mainFactory.CoreComponentsFactoryArgs{
-		Config:                *cfgs.GeneralConfig,
-		RatingsConfig:         *cfgs.RatingsConfig,
-		EconomicsConfig:       *cfgs.EconomicsConfig,
-		NodesFilename:         cfgs.FlagsConfig.NodesFileName,
-		WorkingDirectory:      cfgs.FlagsConfig.WorkingDir,
+		Config:                *nr.configs.GeneralConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		EconomicsConfig:       *nr.configs.EconomicsConfig,
+		NodesFilename:         nr.configs.FlagsConfig.NodesFileName,
+		WorkingDirectory:      nr.configs.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess:   chanStopNodeProcess,
 		StatusHandlersFactory: statusHandlersFactory,
 	}
@@ -939,20 +1019,21 @@ func CreateManagedCoreComponents(
 	return managedCoreComponents, nil
 }
 
-func CreateManagedCryptoComponents(
-	cfgs *config.Configs,
+// CreateManagedCryptoComponents is the managed crypto components factory
+func (nr *nodeRunner) CreateManagedCryptoComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.CryptoComponentsHandler, error) {
-	validatorKeyPemFileName := cfgs.FlagsConfig.ValidatorKeyPemFileName
+	configs := nr.configs
+	validatorKeyPemFileName := configs.FlagsConfig.ValidatorKeyPemFileName
 	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
-		SkIndex:                              cfgs.FlagsConfig.ValidatorKeyIndex,
-		Config:                               *cfgs.GeneralConfig,
+		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
+		Config:                               *configs.GeneralConfig,
 		CoreComponentsHolder:                 managedCoreComponents,
-		ActivateBLSPubKeyMessageVerification: cfgs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
+		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               cfgs.FlagsConfig.ImportDbNoSigCheckFlag,
-		IsInImportMode:                       cfgs.FlagsConfig.IsInImportMode,
+		UseDisabledSigVerifier:               configs.FlagsConfig.ImportDbNoSigCheckFlag,
+		IsInImportMode:                       configs.FlagsConfig.IsInImportMode,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
@@ -974,7 +1055,6 @@ func CreateManagedCryptoComponents(
 }
 
 func closeAllComponents(
-	log logger.Logger,
 	healthService io.Closer,
 	facade mainFactory.Closer,
 	node *Node,
@@ -1019,7 +1099,7 @@ func createStringFromRatingsData(ratingsData process.RatingsInfoHandler) string 
 	return computedRatingsDataStr
 }
 
-func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool, log logger.Logger) error {
+func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool) error {
 	if cleanupStorage {
 		dbPath := filepath.Join(
 			workingDir,
@@ -1033,7 +1113,7 @@ func cleanupStorageIfNecessary(workingDir string, cleanupStorage bool, log logge
 	return nil
 }
 
-func copyConfigToStatsFolder(log logger.Logger, statsFolder string, configs []string) {
+func copyConfigToStatsFolder(statsFolder string, configs []string) {
 	err := os.MkdirAll(statsFolder, os.ModePerm)
 	log.LogIfError(err)
 
@@ -1052,7 +1132,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			log.Warn("copySingleFile", "Could not close file", source.Name())
 		}
 	}()
 
@@ -1064,13 +1144,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			log.Warn("copySingleFile", "Could not close file", source.Name())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
+		log.Warn("copySingleFile", "Could not copy file", source.Name())
 	}
 }
 
@@ -1078,8 +1158,6 @@ func indexValidatorsListIfNeeded(
 	elasticIndexer indexer.Indexer,
 	coordinator sharding.NodesCoordinator,
 	epoch uint32,
-	log logger.Logger,
-
 ) {
 	if check.IfNil(elasticIndexer) {
 		return
@@ -1095,7 +1173,7 @@ func indexValidatorsListIfNeeded(
 	}
 }
 
-func enableGopsIfNeeded(gopsEnabled bool, log logger.Logger) {
+func enableGopsIfNeeded(gopsEnabled bool) {
 	if gopsEnabled {
 		if err := agent.Listen(agent.Options{}); err != nil {
 			log.Error("failure to init gops", "error", err.Error())
@@ -1113,7 +1191,8 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func attachFileLogger(configs *config.Configs, log logger.Logger) (factory.FileLoggingHandler, error) {
+func (nr *nodeRunner) attachFileLogger() (factory.FileLoggingHandler, error) {
+	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	var fileLogging factory.FileLoggingHandler
 	var err error
@@ -1137,15 +1216,11 @@ func attachFileLogger(configs *config.Configs, log logger.Logger) (factory.FileL
 	if flagsConfig.DisableAnsiColor {
 		err = logger.RemoveLogObserver(os.Stdout)
 		if err != nil {
-			//we need to print this manually as we do not have console log observer
-			fmt.Println("error removing log observer: " + err.Error())
 			return nil, err
 		}
 
 		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
 		if err != nil {
-			//we need to print this manually as we do not have console log observer
-			fmt.Println("error setting log observer: " + err.Error())
 			return nil, err
 		}
 	}

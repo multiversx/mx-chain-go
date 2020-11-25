@@ -62,11 +62,6 @@ func (ts *TrieStub) IsPruningEnabled() bool {
 	return false
 }
 
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	return nil
-}
-
 // Get -
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {

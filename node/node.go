@@ -44,8 +44,7 @@ var _ facade.NodeHandler = (*Node)(nil)
 //  over the None struct.
 type Option func(*Node) error
 
-// Node is a structure that passes the configuration parameters and initializes
-//  required services as requested
+// Node is a structure that holds all managed components
 type Node struct {
 	ctx                 context.Context
 	cancelFunc          context.CancelFunc

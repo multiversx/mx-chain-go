@@ -32,15 +32,15 @@ var _ closing.Closer = (*baseBootstrap)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
 
-// HdrInfo hold the data related to a header
-type HdrInfo struct {
+// hdrInfo hold the data related to a header
+type hdrInfo struct {
 	Nonce uint64
 	Hash  []byte
 }
 
 type notarizedInfo struct {
-	lastNotarized           map[uint32]*HdrInfo
-	finalNotarized          map[uint32]*HdrInfo
+	lastNotarized           map[uint32]*hdrInfo
+	finalNotarized          map[uint32]*hdrInfo
 	blockWithLastNotarized  map[uint32]uint64
 	blockWithFinalNotarized map[uint32]uint64
 	startNonce              uint64
@@ -177,11 +177,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		)
 		boot.setRequestedHeaderNonce(nil)
 		boot.mutRcvHdrNonce.Unlock()
-		//TODO: remove this
-		log.Debug("before send on channel")
 		boot.chRcvHdrNonce <- true
-		//TODO: remove this
-		log.Debug("received requested header by nonce from network")
 		return
 	}
 

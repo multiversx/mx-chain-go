@@ -161,9 +161,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.UInt64ByteSliceConv = TestUint64Converter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage

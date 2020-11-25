@@ -9,7 +9,7 @@ import (
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
 	Bootstrapper         mainFactory.EpochStartBootstrapper
-	BootstrapParams      mainFactory.BootstrapParamsHandler
+	BootstrapParams      mainFactory.BootstrapParamsHolder
 	NodeRole             core.NodeType
 	ShCoordinator        sharding.Coordinator
 	HdrIntegrityVerifier mainFactory.HeaderIntegrityVerifierHandler
@@ -36,7 +36,7 @@ func (bcs *BootstrapComponentsStub) EpochStartBootstrapper() mainFactory.EpochSt
 }
 
 // EpochBootstrapParams -
-func (bcs *BootstrapComponentsStub) EpochBootstrapParams() mainFactory.BootstrapParamsHandler {
+func (bcs *BootstrapComponentsStub) EpochBootstrapParams() mainFactory.BootstrapParamsHolder {
 	return bcs.BootstrapParams
 }
 

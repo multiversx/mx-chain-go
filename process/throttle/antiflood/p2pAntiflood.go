@@ -224,9 +224,7 @@ func (af *p2pAntiflood) SetDebugger(debugger process.AntifloodDebugger) error {
 	}
 
 	af.mutDebugger.Lock()
-	if !check.IfNil(af.debugger) {
-		log.LogIfError(af.debugger.Close())
-	}
+	log.LogIfError(af.debugger.Close())
 	af.debugger = debugger
 	af.mutDebugger.Unlock()
 
@@ -258,12 +256,8 @@ func (af *p2pAntiflood) BlacklistPeer(peer core.PeerID, reason string, duration 
 }
 
 // Close will call the close function on all sub components
-// TODO call this after the large components managers will be implemented
 func (af *p2pAntiflood) Close() error {
-	if !check.IfNil(af.debugger) {
-		return af.debugger.Close()
-	}
-	return nil
+	return af.debugger.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -64,8 +64,8 @@ func (dcs *DataComponentsStub) MiniBlocksProvider() factory.MiniBlockProvider {
 }
 
 // EconomicsHandler -
-func (dcm *DataComponentsStub) EconomicsHandler() factory.EconomicsHandler {
-	return dcm.EconomicsData
+func (dcs *DataComponentsStub) EconomicsHandler() factory.EconomicsHandler {
+	return dcs.EconomicsData
 }
 
 // Clone -

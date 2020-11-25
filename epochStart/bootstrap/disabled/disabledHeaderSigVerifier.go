@@ -30,7 +30,6 @@ func (h *headerSigVerifier) VerifyRandSeedAndLeaderSignature(_ data.HeaderHandle
 	return nil
 }
 
-
 // VerifySignature -
 func (h *headerSigVerifier) VerifySignature(_ data.HeaderHandler) error {
 	return nil
