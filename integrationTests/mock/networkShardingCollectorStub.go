@@ -42,9 +42,11 @@ func (nscs *NetworkShardingCollectorStub) GetPeerInfo(pid core.PeerID) core.P2PP
 	return core.P2PPeerInfo{}
 }
 
-// UpdatePeerIdSubType
+// UpdatePeerIdSubType -
 func (nscs *NetworkShardingCollectorStub) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-	nscs.UpdatePeerIdSubTypeCalled(pid, peerSubType)
+	if nscs.UpdatePeerIdSubTypeCalled != nil {
+		nscs.UpdatePeerIdSubTypeCalled(pid, peerSubType)
+	}
 }
 
 // IsInterfaceNil -
