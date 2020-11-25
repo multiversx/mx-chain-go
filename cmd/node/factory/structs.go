@@ -714,7 +714,7 @@ func indexGenesisBlocks(args *processComponentsFactoryArgs, genesisBlocks map[ui
 		}
 
 		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
-		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+		err = args.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil)
 		if err != nil {
 			return err
 		}

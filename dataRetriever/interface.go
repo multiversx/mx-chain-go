@@ -83,6 +83,8 @@ const (
 	MiniblockHashByTxHashUnit UnitType = 14
 	// ReceiptsUnit is the receipts storage unit identifier
 	ReceiptsUnit UnitType = 15
+	// ResultsHashesByTxHashUnit is the results hashes by transaction storage unit identifier
+	ResultsHashesByTxHashUnit UnitType = 16
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

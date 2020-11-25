@@ -23,7 +23,7 @@ type NodeStub struct {
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
-	GetTransactionHandler                          func(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
@@ -109,8 +109,8 @@ func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction
 }
 
 // GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return ns.GetTransactionHandler(hash)
+func (ns *NodeStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
+	return ns.GetTransactionHandler(hash, withEvents)
 }
 
 // SendBulkTransactions -
