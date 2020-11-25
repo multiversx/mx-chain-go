@@ -636,7 +636,7 @@ func verifyEconomicsBlock(
 func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
 	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
 	fmt.Printf("Total supply: %vERD, TotalToDistribute %vERD, "+
-		"TotalNewlyMinted %vERD, RewardsPerBlock %vERD, RewardsForProtocolSustainability %vERD, NodePrice: %vERD",
+		"TotalNewlyMinted %vERD, RewardsPerBlock %vERD, RewardsForProtocolSustainability %vERD, NodePrice: %vERD\n",
 		denomination(eb.TotalSupply), denomination(eb.TotalToDistribute), denomination(eb.TotalNewlyMinted),
 		denomination(eb.RewardsPerBlock), denomination(eb.RewardsForProtocolSustainability), denomination(eb.NodePrice))
 	fmt.Println()

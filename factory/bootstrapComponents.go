@@ -161,9 +161,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	var epochStartBootstraper EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
-			ArgsEpochStartBootstrap: epochStartBootstrapArgs,
-			ImportDbConfig:          bcf.importDbConfig,
-			ChanGracefullyClose:     bcf.coreComponents.ChanStopNodeProcess(),
+			ArgsEpochStartBootstrap:    epochStartBootstrapArgs,
+			ImportDbConfig:             bcf.importDbConfig,
+			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
+			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
 		}
 
 		epochStartBootstraper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)

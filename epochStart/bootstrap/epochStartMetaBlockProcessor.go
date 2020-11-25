@@ -128,7 +128,13 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	if !ok {
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
+			"header", interceptedHdr.HeaderHandler())
+		return nil
+	}
+
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil

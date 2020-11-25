@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -27,17 +28,19 @@ import (
 // from storage
 type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
-	ImportDbConfig      config.ImportDbConfig
-	ChanGracefullyClose chan endProcess.ArgEndProcess
+	ImportDbConfig             config.ImportDbConfig
+	ChanGracefullyClose        chan endProcess.ArgEndProcess
+	TimeToWaitForRequestedData time.Duration
 }
 
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
-	resolvers           dataRetriever.ResolversContainer
-	store               dataRetriever.StorageService
-	importDbConfig      config.ImportDbConfig
-	chanGracefullyClose chan endProcess.ArgEndProcess
-	chainID             string
+	resolvers                  dataRetriever.ResolversContainer
+	store                      dataRetriever.StorageService
+	importDbConfig             config.ImportDbConfig
+	chanGracefullyClose        chan endProcess.ArgEndProcess
+	chainID                    string
+	timeToWaitForRequestedData time.Duration
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -53,10 +56,11 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	}
 
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap: esb,
-		importDbConfig:      args.ImportDbConfig,
-		chanGracefullyClose: args.ChanGracefullyClose,
-		chainID:             args.CoreComponentsHolder.ChainID(),
+		epochStartBootstrap:        esb,
+		importDbConfig:             args.ImportDbConfig,
+		chanGracefullyClose:        args.ChanGracefullyClose,
+		chainID:                    args.CoreComponentsHolder.ChainID(),
+		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
 	}
 
 	return sesb, nil
@@ -109,7 +113,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	sesb.epochStartMeta, err = sesb.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
+	sesb.epochStartMeta, err = sesb.epochStartMetaBlockSyncer.SyncEpochStartMeta(sesb.timeToWaitForRequestedData)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -362,7 +366,7 @@ func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta *block.MetaB
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeToWait)
+	ctx, cancel := context.WithTimeout(context.Background(), sesb.timeToWaitForRequestedData)
 	err := sesb.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
