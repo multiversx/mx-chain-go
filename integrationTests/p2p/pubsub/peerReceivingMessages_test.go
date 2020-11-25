@@ -99,12 +99,12 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	}
 
 	//Step 4. Call bootstrap on all peers
-	err := advertiser.Bootstrap()
+	err := advertiser.Bootstrap(0)
 	if err != nil {
 		fmt.Println("Bootstrap failed:", err.Error())
 	}
 	for _, p := range peers {
-		err = p.Bootstrap()
+		err = p.Bootstrap(0)
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Bootstrap() for peer id %s failed:%s", p.ID(), err.Error()))
 		}

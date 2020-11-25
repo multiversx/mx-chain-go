@@ -251,15 +251,15 @@ func (tc *transactionCoordinator) IsDataPreparedForProcessing(haveTime func() ti
 	return errFound
 }
 
-// SaveBlockDataToStorage saves the data from block body into storage units
-func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error {
+// SaveTxsToStorage saves transactions from block body into storage units
+func (tc *transactionCoordinator) SaveTxsToStorage(body *block.Body) error {
 	if check.IfNil(body) {
 		return nil
 	}
 
 	separatedBodies := tc.separateBodyByType(body)
 	for key, value := range separatedBodies {
-		err := tc.saveTxBlockToStorage(key, value)
+		err := tc.saveTxsToStorage(key, value)
 		if err != nil {
 			return err
 		}
@@ -275,15 +275,15 @@ func (tc *transactionCoordinator) SaveBlockDataToStorage(body *block.Body) error
 	return nil
 }
 
-func (tc *transactionCoordinator) saveTxBlockToStorage(blockType block.Type, blockBody *block.Body) error {
+func (tc *transactionCoordinator) saveTxsToStorage(blockType block.Type, blockBody *block.Body) error {
 	preproc := tc.getPreProcessor(blockType)
 	if check.IfNil(preproc) {
 		return nil
 	}
 
-	err := preproc.SaveTxBlockToStorage(blockBody)
+	err := preproc.SaveTxsToStorage(blockBody)
 	if err != nil {
-		log.Trace("SaveTxBlockToStorage", "error", err.Error())
+		log.Trace("SaveTxsToStorage", "error", err.Error())
 
 		return err
 	}
@@ -329,9 +329,9 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 				return
 			}
 
-			restoredTxs, err := preproc.RestoreTxBlockIntoPools(blockBody, tc.miniBlockPool)
+			restoredTxs, err := preproc.RestoreBlockDataIntoPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Trace("RestoreTxBlockIntoPools", "error", err.Error())
+				log.Trace("RestoreBlockDataIntoPools", "error", err.Error())
 
 				localMutex.Lock()
 				errFound = err
@@ -374,9 +374,48 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 				return
 			}
 
-			err := preproc.RemoveTxBlockFromPools(blockBody, tc.miniBlockPool)
+			err := preproc.RemoveBlockDataFromPools(blockBody, tc.miniBlockPool)
 			if err != nil {
-				log.Trace("RemoveTxBlockFromPools", "error", err.Error())
+				log.Trace("RemoveBlockDataFromPools", "error", err.Error())
+
+				errMutex.Lock()
+				errFound = err
+				errMutex.Unlock()
+			}
+			wg.Done()
+		}(key, value)
+	}
+
+	wg.Wait()
+
+	return errFound
+}
+
+// RemoveTxsFromPool deletes txs from pools
+func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
+	if check.IfNil(body) {
+		return nil
+	}
+
+	separatedBodies := tc.separateBodyByType(body)
+
+	var errFound error
+	errMutex := sync.Mutex{}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(separatedBodies))
+
+	for key, value := range separatedBodies {
+		go func(blockType block.Type, blockBody *block.Body) {
+			preproc := tc.getPreProcessor(blockType)
+			if check.IfNil(preproc) {
+				wg.Done()
+				return
+			}
+
+			err := preproc.RemoveTxsFromPools(blockBody)
+			if err != nil {
+				log.Trace("RemoveTxsFromPools", "error", err.Error())
 
 				errMutex.Lock()
 				errFound = err

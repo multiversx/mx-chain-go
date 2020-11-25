@@ -57,11 +57,18 @@ func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, e
 	return tx.GetGasLimit() - gasForTxData, nil
 }
 
-func (sc *scProcessor) createVMCallInput(tx data.TransactionHandler, txHash []byte) (*vmcommon.ContractCallInput, error) {
+func (sc *scProcessor) createVMCallInput(
+	tx data.TransactionHandler,
+	txHash []byte,
+	builtInFuncCall bool,
+) (*vmcommon.ContractCallInput, error) {
 	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCall(tx.GetData(), callType)
+	txData := string(tx.GetData())
+	if !builtInFuncCall {
+		txData = string(prependCallbackToTxDataIfAsyncCall(tx.GetData(), callType))
+	}
 
-	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
+	function, arguments, err := sc.argsParser.ParseCallData(txData)
 	if err != nil {
 		return nil, err
 	}

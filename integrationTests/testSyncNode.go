@@ -128,6 +128,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
 		tpn.InterceptorsContainer,
+		&testscommon.AlarmSchedulerStub{},
 	)
 	tpn.initBootstrapper()
 	tpn.setGenesisBlock()
@@ -159,16 +160,24 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = tpn.Storage
+	dataComponents.DataPool = tpn.DataPool
+	dataComponents.BlockChain = tpn.BlockChain
+
 	argumentsBase := block.ArgBaseProcessor{
+		CoreComponents:    coreComponents,
+		DataComponents:    dataComponents,
 		AccountsDB:        accountsDb,
 		ForkDetector:      nil,
-		Hasher:            TestHasher,
-		Marshalizer:       TestMarshalizer,
-		Store:             tpn.Storage,
 		ShardCoordinator:  tpn.ShardCoordinator,
 		NodesCoordinator:  tpn.NodesCoordinator,
 		FeeHandler:        tpn.FeeAccumulator,
-		Uint64Converter:   TestUint64Converter,
 		RequestHandler:    tpn.RequestHandler,
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
@@ -180,15 +189,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:            tpn.BlockTracker,
-		DataPool:                tpn.DataPool,
 		StateCheckpointModulus:  stateCheckpointModulus,
-		BlockChain:              tpn.BlockChain,
 		BlockSizeThrottler:      TestBlockSizeThrottler,
 		Indexer:                 indexer.NewNilIndexer(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepository:       tpn.HistoryRepository,
 		EpochNotifier:           tpn.EpochNotifier,
 		HeaderIntegrityVerifier: tpn.HeaderIntegrityVerifier,
+		AppStatusHandler:        &mock.AppStatusHandlerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -246,6 +254,8 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		EpochHandler:        tpn.EpochStartTrigger,
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
+		AppStatusHandler:    TestAppStatusHandler,
+		Indexer:             indexer.NewNilIndexer(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -283,6 +293,8 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		EpochHandler:        tpn.EpochStartTrigger,
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
+		AppStatusHandler:    TestAppStatusHandler,
+		Indexer:             indexer.NewNilIndexer(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

@@ -53,14 +53,20 @@ func initConsensusState() *spos.ConsensusState {
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
 
-	pFTThreshold := consensusGroupSize*2/3 + 1
+	pBFTThreshold := consensusGroupSize*2/3 + 1
+	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
 
 	rthr := spos.NewRoundThreshold()
 	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, pFTThreshold)
-	rthr.SetThreshold(3, pFTThreshold)
-	rthr.SetThreshold(4, pFTThreshold)
-	rthr.SetThreshold(5, pFTThreshold)
+	rthr.SetThreshold(2, pBFTThreshold)
+	rthr.SetThreshold(3, pBFTThreshold)
+	rthr.SetThreshold(4, pBFTThreshold)
+	rthr.SetThreshold(5, pBFTThreshold)
+	rthr.SetFallbackThreshold(1, 1)
+	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
+	rthr.SetFallbackThreshold(3, pBFTFallbackThreshold)
+	rthr.SetFallbackThreshold(4, pBFTFallbackThreshold)
+	rthr.SetFallbackThreshold(5, pBFTFallbackThreshold)
 
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()
@@ -95,6 +101,7 @@ func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilConsensusState, err)
@@ -120,6 +127,7 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilChannel, err)
@@ -146,6 +154,7 @@ func TestSubround_NewSubroundNilExecuteStoredMessagesShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilExecuteStoredMessages, err)
@@ -171,6 +180,7 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		nil,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrNilConsensusCore, err)
@@ -198,6 +208,7 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -225,6 +236,7 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -252,6 +264,7 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -279,6 +292,7 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -306,6 +320,7 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -333,6 +348,7 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -360,6 +376,7 @@ func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -387,6 +404,7 @@ func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -414,6 +432,7 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -441,6 +460,7 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -468,6 +488,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, sr)
@@ -493,6 +514,7 @@ func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
 		container,
 		nil,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Equal(t, spos.ErrInvalidChainID, err)
@@ -518,6 +540,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -552,6 +575,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = nil
 	sr.Check = func() bool {
@@ -589,6 +613,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -635,6 +660,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -673,6 +699,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 
 	var mut sync.RWMutex
@@ -730,6 +757,7 @@ func TestSubround_Previous(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -761,6 +789,7 @@ func TestSubround_Current(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -792,6 +821,7 @@ func TestSubround_Next(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -823,6 +853,7 @@ func TestSubround_StartTime(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -854,6 +885,7 @@ func TestSubround_EndTime(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -885,6 +917,7 @@ func TestSubround_Name(t *testing.T) {
 		container,
 		chainID,
 		currentPid,
+		&mock.AppStatusHandlerStub{},
 	)
 	sr.Job = func() bool {
 		return true
@@ -894,24 +927,4 @@ func TestSubround_Name(t *testing.T) {
 	}
 
 	assert.Equal(t, "(BLOCK)", sr.Name())
-}
-
-func TestSubround_AppStatusHandlerNilShouldErr(t *testing.T) {
-	t.Parallel()
-
-	sr := &spos.Subround{}
-	err := sr.SetAppStatusHandler(nil)
-
-	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
-}
-
-func TestSubround_AppStatusHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	sr := &spos.Subround{}
-	ash := &mock.AppStatusHandlerStub{}
-	err := sr.SetAppStatusHandler(ash)
-
-	assert.Nil(t, err)
-	assert.True(t, ash == sr.AppStatusHandler())
 }

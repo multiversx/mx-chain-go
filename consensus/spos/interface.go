@@ -52,6 +52,8 @@ type ConsensusCoreHandler interface {
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
 	HeaderSigVerifier() consensus.HeaderSigVerifier
+	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
+	FallbackHeaderValidator() consensus.FallbackHeaderValidator
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -120,8 +122,6 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	//ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	//SetAppStatusHandler sets the status handler object used to collect useful metrics about consensus state machine
-	SetAppStatusHandler(ash core.AppStatusHandler) error
 	//ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
@@ -134,14 +134,10 @@ type PoolAdder interface {
 	IsInterfaceNil() bool
 }
 
-// RandSeedVerifier encapsulates methods that are check if header rand seed is correct
-type RandSeedVerifier interface {
+// HeaderSigVerifier encapsulates methods that check if header signature is correct
+type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
-	IsInterfaceNil() bool
-}
-
-// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
-type HeaderIntegrityVerifier interface {
-	Verify(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
+	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }

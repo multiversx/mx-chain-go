@@ -11,6 +11,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/closing"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -22,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
@@ -51,6 +51,7 @@ type ArgsShardEpochStartTrigger struct {
 	EpochStartNotifier   epochStart.Notifier
 	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
 	Rounder              process.Rounder
+	AppStatusHandler     core.AppStatusHandler
 
 	Epoch    uint32
 	Validity uint64
@@ -91,10 +92,11 @@ type trigger struct {
 	epochStartNotifier epochStart.Notifier
 	rounder            process.Rounder
 
-	epoch               uint32
-	metaEpoch           uint32
-	newEpochHdrReceived bool
-	isEpochStart        bool
+	epoch                           uint32
+	metaEpoch                       uint32
+	newEpochHdrReceived             bool
+	isEpochStart                    bool
+	requestedFinalityAttestingBlock atomic.Flag
 
 	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
@@ -170,6 +172,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.Rounder) {
 		return nil, epochStart.ErrNilRounder
 	}
+	if check.IfNil(args.AppStatusHandler) {
+		return nil, epochStart.ErrNilStatusHandler
+	}
 
 	metaHdrStorage := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if check.IfNil(metaHdrStorage) {
@@ -225,7 +230,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		epochStartMeta:              &block.MetaBlock{},
 		epochStartShardHeader:       &block.Header{},
 		peerMiniBlocksSyncer:        args.PeerMiniBlocksSyncer,
-		appStatusHandler:            &statusHandler.NilStatusHandler{},
+		appStatusHandler:            args.AppStatusHandler,
 		rounder:                     args.Rounder,
 	}
 
@@ -349,12 +354,8 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 	return t.epochFinalityAttestingRound
 }
 
-// ForceEpochStart sets the conditions for start of epoch to true in case of edge cases
-func (t *trigger) ForceEpochStart(_ uint64) error {
-	t.mutTrigger.Lock()
-	defer t.mutTrigger.Unlock()
-
-	return nil
+// ForceEpochStart does nothing in this implementation
+func (t *trigger) ForceEpochStart() {
 }
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
@@ -386,18 +387,9 @@ func (t *trigger) RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler
 	}
 }
 
-// SetAppStatusHandler will set the satus handler for the trigger
-func (t *trigger) SetAppStatusHandler(handler core.AppStatusHandler) error {
-	if check.IfNil(handler) {
-		return epochStart.ErrNilStatusHandler
-	}
-
-	t.appStatusHandler = handler
-	return nil
-}
-
 func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 	metaHdr *block.MetaBlock,
+	receivedHash []byte,
 ) {
 	hash := t.mapFinalizedEpochs[metaHdr.Epoch]
 	epochStartMetaHdr := t.mapEpochStartHdrs[hash]
@@ -410,6 +402,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		metaHdrWithFinalityAttestingRound, err := t.getHeaderWithNonceAndHash(epochStartMetaHdr.Nonce+t.finality, metaHdr.PrevHash)
 		if err != nil {
 			log.Debug("searched metaHeader was not found")
+			t.requestedFinalityAttestingBlock.Set()
 			return
 		}
 
@@ -417,11 +410,28 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 		return
 	}
 
-	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
+	isFinalityAttestingBlock := metaHdr.Nonce == epochStartMetaHdr.Nonce+t.finality
+	if !isFinalityAttestingBlock {
 		return
 	}
+
 	err := t.headerValidator.IsHeaderConstructionValid(metaHdr, t.epochStartMeta)
 	if err != nil {
+		return
+	}
+
+	if t.requestedFinalityAttestingBlock.IsSet() {
+		_, err = t.getHeaderWithNonceAndPrevHash(metaHdr.Nonce+1, receivedHash)
+		if err != nil {
+			return
+		}
+
+		t.epochFinalityAttestingRound = metaHdr.GetRound()
+		t.requestedFinalityAttestingBlock.Unset()
+		return
+	}
+
+	if metaHdr.GetRound() >= t.epochFinalityAttestingRound {
 		return
 	}
 
@@ -441,7 +451,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 
 	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
 	if t.metaEpoch == headerHandler.GetEpoch() && ok {
-		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr)
+		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
 		return
 	}
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
@@ -464,13 +474,13 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		waitTime := core.ExtraDelayForRequestBlockInfo
+		wait := core.ExtraDelayForRequestBlockInfo
 		roundDifferences := t.rounder.Index() - int64(headerHandler.GetRound())
 		if roundDifferences > 1 {
-			waitTime = 0
+			wait = 0
 		}
 
-		time.Sleep(waitTime)
+		time.Sleep(wait)
 	}
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr

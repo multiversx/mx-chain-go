@@ -79,6 +79,7 @@ type baseProcessor struct {
 	tpsBenchmark  statistics.TPSBenchmark
 	historyRepo   dblookupext.HistoryRepository
 	epochNotifier process.EpochNotifier
+	vmContainer   process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -102,16 +103,6 @@ func checkForNils(
 	if check.IfNil(bodyHandler) {
 		return process.ErrNilBlockBody
 	}
-	return nil
-}
-
-// SetAppStatusHandler method is used to set appStatusHandler
-func (bp *baseProcessor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return process.ErrNilAppStatusHandler
-	}
-
-	bp.appStatusHandler = ash
 	return nil
 }
 
@@ -357,16 +348,22 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 			return process.ErrNilAccountsAdapter
 		}
 	}
+	if check.IfNil(arguments.DataComponents) {
+		return process.ErrNilDataComponentsHolder
+	}
+	if check.IfNil(arguments.CoreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
 	if check.IfNil(arguments.ForkDetector) {
 		return process.ErrNilForkDetector
 	}
-	if check.IfNil(arguments.Hasher) {
+	if check.IfNil(arguments.CoreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arguments.Marshalizer) {
+	if check.IfNil(arguments.CoreComponents.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(arguments.Store) {
+	if check.IfNil(arguments.DataComponents.StorageService()) {
 		return process.ErrNilStorage
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
@@ -375,7 +372,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}
-	if check.IfNil(arguments.Uint64Converter) {
+	if check.IfNil(arguments.CoreComponents.Uint64ByteSliceConverter()) {
 		return process.ErrNilUint64Converter
 	}
 	if check.IfNil(arguments.RequestHandler) {
@@ -405,7 +402,7 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
-	if check.IfNil(arguments.BlockChain) {
+	if check.IfNil(arguments.DataComponents.Blockchain()) {
 		return process.ErrNilBlockChain
 	}
 	if check.IfNil(arguments.BlockSizeThrottler) {
@@ -425,6 +422,9 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.EpochNotifier) {
 		return process.ErrNilEpochNotifier
+	}
+	if check.IfNil(arguments.AppStatusHandler) {
+		return process.ErrNilAppStatusHandler
 	}
 
 	return nil
@@ -732,6 +732,15 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 	return nil
 }
 
+func (bp *baseProcessor) removeTxsFromPools(bodyHandler data.BodyHandler) error {
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return bp.txCoordinator.RemoveTxsFromPool(body)
+}
+
 func (bp *baseProcessor) cleanupBlockTrackerPools(headerHandler data.HeaderHandler) {
 	noncesToFinal := bp.getNoncesToFinal(headerHandler)
 
@@ -967,11 +976,11 @@ func (bp *baseProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler) {
 	startTime := time.Now()
 
-	errNotCritical := bp.txCoordinator.SaveBlockDataToStorage(body)
+	errNotCritical := bp.txCoordinator.SaveTxsToStorage(body)
 	if errNotCritical != nil {
-		log.Warn("saveBody.SaveBlockDataToStorage", "error", errNotCritical.Error())
+		log.Warn("saveBody.SaveTxsToStorage", "error", errNotCritical.Error())
 	}
-	log.Trace("saveBody.SaveBlockDataToStorage", "time", time.Since(startTime))
+	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -1238,4 +1247,13 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	for i := 0; i < len(headers); i++ {
 		bp.blockTracker.AddTrackedHeader(headers[i], hashes[i])
 	}
+}
+
+// Close - closes all underlying components
+func (bp *baseProcessor) Close() error {
+	if !check.IfNil(bp.vmContainer) {
+		return bp.vmContainer.Close()
+	}
+
+	return nil
 }

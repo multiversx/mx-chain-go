@@ -3,11 +3,8 @@ package interceptorscontainer
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/dataValidators"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -24,12 +21,9 @@ type baseInterceptorsContainerFactory struct {
 	container              process.InterceptorsContainer
 	shardCoordinator       sharding.Coordinator
 	accounts               state.AccountsAdapter
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
 	store                  dataRetriever.StorageService
 	dataPool               dataRetriever.PoolsHolder
 	messenger              process.TopicHandler
-	multiSigner            crypto.MultiSigner
 	nodesCoordinator       sharding.NodesCoordinator
 	blockBlackList         process.TimeCacher
 	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
@@ -42,22 +36,25 @@ type baseInterceptorsContainerFactory struct {
 }
 
 func checkBaseParams(
+	coreComponents process.CoreComponentsHolder,
+	cryptoComponents process.CryptoComponentsHolder,
 	shardCoordinator sharding.Coordinator,
 	accounts state.AccountsAdapter,
-	marshalizer marshal.Marshalizer,
-	signMarshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
 	store dataRetriever.StorageService,
 	dataPool dataRetriever.PoolsHolder,
 	messenger process.TopicHandler,
-	multiSigner crypto.MultiSigner,
 	nodesCoordinator sharding.NodesCoordinator,
 	blackList process.TimeCacher,
 	antifloodHandler process.P2PAntifloodHandler,
 	whiteListHandler process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
-	addressPubkeyConverter core.PubkeyConverter,
 ) error {
+	if check.IfNil(coreComponents) {
+		return process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(cryptoComponents) {
+		return process.ErrNilCryptoComponentsHolder
+	}
 	if check.IfNil(shardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
@@ -67,14 +64,32 @@ func checkBaseParams(
 	if check.IfNil(store) {
 		return process.ErrNilStore
 	}
-	if check.IfNil(marshalizer) || check.IfNil(signMarshalizer) {
+	if check.IfNil(coreComponents.InternalMarshalizer()) || check.IfNil(coreComponents.TxMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(coreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(multiSigner) {
+	if len(coreComponents.ChainID()) == 0 {
+		return process.ErrInvalidChainID
+	}
+	if coreComponents.MinTransactionVersion() == 0 {
+		return process.ErrInvalidTransactionVersion
+	}
+	if check.IfNil(cryptoComponents.MultiSigner()) {
 		return process.ErrNilMultiSigVerifier
+	}
+	if check.IfNil(cryptoComponents.BlockSignKeyGen()) {
+		return process.ErrNilKeyGen
+	}
+	if check.IfNil(cryptoComponents.BlockSigner()) {
+		return process.ErrNilSingleSigner
+	}
+	if check.IfNil(cryptoComponents.TxSignKeyGen()) {
+		return process.ErrNilKeyGen
+	}
+	if check.IfNil(cryptoComponents.TxSingleSigner()) {
+		return process.ErrNilSingleSigner
 	}
 	if check.IfNil(dataPool) {
 		return process.ErrNilDataPoolHolder
@@ -97,7 +112,7 @@ func checkBaseParams(
 	if check.IfNil(whiteListerVerifiedTxs) {
 		return process.ErrNilWhiteListHandler
 	}
-	if check.IfNil(addressPubkeyConverter) {
+	if check.IfNil(coreComponents.AddressPubKeyConverter()) {
 		return process.ErrNilPubkeyConverter
 	}
 
@@ -155,11 +170,20 @@ func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic string) (process.Interceptor, error) {
+	if bicf.argInterceptorFactory == nil {
+		return nil, process.ErrNilArgumentStruct
+	}
+	if check.IfNil(bicf.argInterceptorFactory.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+
+	addrPubKeyConverter := bicf.argInterceptorFactory.CoreComponents.AddressPubKeyConverter()
+
 	txValidator, err := dataValidators.NewTxValidator(
 		bicf.accounts,
 		bicf.shardCoordinator,
 		bicf.whiteListHandler,
-		bicf.addressPubkeyConverter,
+		addrPubKeyConverter,
 		bicf.maxTxNonceDeltaAllowed,
 	)
 	if err != nil {
@@ -180,10 +204,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      bicf.marshalizer,
+			Marshalizer:      internalMarshalizer,
 			DataFactory:      txFactory,
 			Processor:        txProcessor,
 			Throttler:        bicf.globalThrottler,
@@ -200,6 +225,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string) (process.Interceptor, error) {
+	if bicf.argInterceptorFactory == nil {
+		return nil, process.ErrNilArgumentStruct
+	}
+	if check.IfNil(bicf.argInterceptorFactory.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -220,10 +251,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      bicf.marshalizer,
+			Marshalizer:      internalMarshalizer,
 			DataFactory:      txFactory,
 			Processor:        txProcessor,
 			Throttler:        bicf.globalThrottler,
@@ -240,6 +272,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string) (process.Interceptor, error) {
+	if bicf.argInterceptorFactory == nil {
+		return nil, process.ErrNilArgumentStruct
+	}
+	if check.IfNil(bicf.argInterceptorFactory.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
 	//TODO replace the nil tx validator with white list validator
 	txValidator, err := mock.NewNilTxValidator()
 	if err != nil {
@@ -260,10 +298,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		return nil, err
 	}
 
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      bicf.marshalizer,
+			Marshalizer:      internalMarshalizer,
 			DataFactory:      txFactory,
 			Processor:        txProcessor,
 			Throttler:        bicf.globalThrottler,
@@ -376,10 +415,12 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	hasher := bicf.argInterceptorFactory.CoreComponents.Hasher()
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
 		MiniblockCache:   bicf.dataPool.MiniBlocks(),
-		Marshalizer:      bicf.marshalizer,
-		Hasher:           bicf.hasher,
+		Marshalizer:      internalMarshalizer,
+		Hasher:           hasher,
 		ShardCoordinator: bicf.shardCoordinator,
 		WhiteListHandler: bicf.whiteListHandler,
 	}
@@ -396,7 +437,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      bicf.marshalizer,
+			Marshalizer:      internalMarshalizer,
 			DataFactory:      miniblockFactory,
 			Processor:        miniblockProcessor,
 			Throttler:        bicf.globalThrottler,
@@ -473,10 +514,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		return nil, err
 	}
 
+	internalMarshalizer := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:            topic,
-			Marshalizer:      bicf.marshalizer,
+			Marshalizer:      internalMarshalizer,
 			DataFactory:      trieNodesFactory,
 			Processor:        trieNodesProcessor,
 			Throttler:        bicf.globalThrottler,

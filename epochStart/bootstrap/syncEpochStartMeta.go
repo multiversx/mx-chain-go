@@ -7,15 +7,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
@@ -35,21 +32,13 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
+	CoreComponentsHolder    process.CoreComponentsHolder
+	CryptoComponentsHolder  process.CryptoComponentsHolder
 	RequestHandler          RequestHandler
 	Messenger               Messenger
-	Marshalizer             marshal.Marshalizer
-	TxSignMarshalizer       marshal.Marshalizer
 	ShardCoordinator        sharding.Coordinator
-	KeyGen                  crypto.KeyGenerator
-	BlockKeyGen             crypto.KeyGenerator
-	Hasher                  hashing.Hasher
-	Signer                  crypto.SingleSigner
-	BlockSigner             crypto.SingleSigner
-	ChainID                 []byte
-	EconomicsData           *economics.EconomicsData
+	EconomicsData           process.EconomicsHandler
 	WhitelistHandler        process.WhiteListHandler
-	AddressPubkeyConv       core.PubkeyConverter
-	NonceConverter          typeConverters.Uint64ByteSliceConverter
 	StartInEpochConfig      config.EpochStartConfig
 	ArgsParser              process.ArgumentsParser
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
@@ -61,7 +50,13 @@ const thresholdForConsideringMetaBlockCorrect = 67
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
 func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaSyncer, error) {
-	if check.IfNil(args.AddressPubkeyConv) {
+	if check.IfNil(args.CoreComponentsHolder) {
+		return nil, epochStart.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CryptoComponentsHolder) {
+		return nil, epochStart.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
 	if check.IfNil(args.HeaderIntegrityVerifier) {
@@ -71,15 +66,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	e := &epochStartMetaSyncer{
 		requestHandler: args.RequestHandler,
 		messenger:      args.Messenger,
-		marshalizer:    args.Marshalizer,
-		hasher:         args.Hasher,
+		marshalizer:    args.CoreComponentsHolder.InternalMarshalizer(),
+		hasher:         args.CoreComponentsHolder.Hasher(),
 	}
 
 	processor, err := NewEpochStartMetaBlockProcessor(
 		args.Messenger,
 		args.RequestHandler,
-		args.Marshalizer,
-		args.Hasher,
+		args.CoreComponentsHolder.InternalMarshalizer(),
+		args.CoreComponentsHolder.Hasher(),
 		thresholdForConsideringMetaBlockCorrect,
 		args.StartInEpochConfig.MinNumConnectedPeersToStart,
 		args.StartInEpochConfig.MinNumOfPeersToConsiderBlockValid,
@@ -90,17 +85,10 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	e.metaBlockProcessor = processor
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		ProtoMarshalizer:        args.Marshalizer,
-		TxSignMarshalizer:       args.TxSignMarshalizer,
-		Hasher:                  args.Hasher,
+		CoreComponents:          args.CoreComponentsHolder,
+		CryptoComponents:        args.CryptoComponentsHolder,
 		ShardCoordinator:        args.ShardCoordinator,
-		MultiSigVerifier:        disabled.NewMultiSigVerifier(),
 		NodesCoordinator:        disabled.NewNodesCoordinator(),
-		KeyGen:                  args.KeyGen,
-		BlockKeyGen:             args.BlockKeyGen,
-		Signer:                  args.Signer,
-		BlockSigner:             args.BlockSigner,
-		AddressPubkeyConv:       args.AddressPubkeyConv,
 		FeeHandler:              args.EconomicsData,
 		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
 		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,

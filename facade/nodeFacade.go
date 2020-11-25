@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"net/http"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -72,7 +73,7 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	tpsBenchmark           *statistics.TpsBenchmark
+	tpsBenchmark           statistics.TPSBenchmark
 	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
@@ -81,6 +82,7 @@ type nodeFacade struct {
 	restAPIServerDebugMode bool
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
+	server                 *http.Server
 	ctx                    context.Context
 	cancelFunc             func()
 }
@@ -158,23 +160,18 @@ func (nf *nodeFacade) SetSyncer(syncer ntp.SyncTimer) {
 }
 
 // SetTpsBenchmark sets the tps benchmark handler
-func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark *statistics.TpsBenchmark) {
+func (nf *nodeFacade) SetTpsBenchmark(tpsBenchmark statistics.TPSBenchmark) {
 	nf.tpsBenchmark = tpsBenchmark
 }
 
 // TpsBenchmark returns the tps benchmark handler
-func (nf *nodeFacade) TpsBenchmark() *statistics.TpsBenchmark {
+func (nf *nodeFacade) TpsBenchmark() statistics.TPSBenchmark {
 	return nf.tpsBenchmark
-}
-
-// StartNode starts the underlying node
-func (nf *nodeFacade) StartNode() error {
-	return nf.node.StartConsensus()
 }
 
 // StartBackgroundServices starts all background services needed for the correct functionality of the node
 func (nf *nodeFacade) StartBackgroundServices() {
-	go nf.startRest()
+	nf.startRest()
 }
 
 // RestAPIServerDebugMode return true is debug mode for Rest API is enabled
@@ -216,12 +213,26 @@ func (nf *nodeFacade) startRest() {
 			"SameSourceResetIntervalInSec", nf.wsAntifloodConfig.SameSourceResetIntervalInSec,
 		)
 
-		err = api.Start(nf, nf.apiRoutesConfig, limiters...)
+		srv, err := api.CreateServer(nf, nf.apiRoutesConfig, limiters...)
+
 		if err != nil {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
+			log.Error("could not create webserver", "error", err.Error())
 		}
+
+		go func() {
+			err = srv.ListenAndServe()
+			if err != nil {
+				if err != http.ErrServerClosed {
+					log.Error("could not start webserver",
+						"error", err.Error(),
+					)
+				} else {
+					log.Debug("ListenAndServe - webserver closed")
+				}
+			}
+		}()
+
+		nf.server = srv
 	}
 }
 
@@ -291,6 +302,11 @@ func (nf *nodeFacade) ValidateTransaction(tx *transaction.Transaction) error {
 	return nf.node.ValidateTransaction(tx)
 }
 
+// ValidateTransactionForSimulation will validate a transaction for the simulation process
+func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transaction) error {
+	return nf.node.ValidateTransactionForSimulation(tx)
+}
+
 // ValidatorStatisticsApi will return the statistics for all validators
 func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return nf.node.ValidatorStatisticsApi()
@@ -353,8 +369,8 @@ func (nf *nodeFacade) PprofEnabled() bool {
 }
 
 // Trigger will trigger a hardfork event
-func (nf *nodeFacade) Trigger(epoch uint32) error {
-	return nf.node.DirectTrigger(epoch)
+func (nf *nodeFacade) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
+	return nf.node.DirectTrigger(epoch, withEarlyEndOfEpoch)
 }
 
 // IsSelfTrigger returns true if the self public key is the same with the registered public key
@@ -401,8 +417,15 @@ func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlo
 }
 
 // Close will cleanup started go routines
-// TODO use this close method
 func (nf *nodeFacade) Close() error {
+	log.Debug("shutting down webserver...")
+	err := nf.server.Shutdown(nf.ctx)
+	if err != nil {
+		log.Error("failed shutting down the webserver", "error", err.Error())
+	}
+
+	log.LogIfError(nf.apiResolver.Close())
+
 	nf.cancelFunc()
 
 	return nil
@@ -434,7 +457,8 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 				Data:   updateVal.Data,
 			}
 		}
-		outputAccounts[hex.EncodeToString([]byte(key))] = &vm.OutputAccountApi{
+		outKey := hex.EncodeToString([]byte(key))
+		outAcc := &vm.OutputAccountApi{
 			Address:        outputAddress,
 			Nonce:          acc.Nonce,
 			Balance:        acc.Balance,
@@ -442,10 +466,20 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			StorageUpdates: storageUpdates,
 			Code:           acc.Code,
 			CodeMetadata:   acc.CodeMetadata,
-			Data:           acc.Data,
-			GasLimit:       acc.GasLimit,
-			CallType:       acc.CallType,
 		}
+
+		outAcc.OutputTransfers = make([]vm.OutputTransferApi, len(acc.OutputTransfers))
+		for i, outTransfer := range acc.OutputTransfers {
+			outTransferApi := vm.OutputTransferApi{
+				Value:    outTransfer.Value,
+				GasLimit: outTransfer.GasLimit,
+				Data:     outTransfer.Data,
+				CallType: outTransfer.CallType,
+			}
+			outAcc.OutputTransfers[i] = outTransferApi
+		}
+
+		outputAccounts[outKey] = outAcc
 	}
 
 	logs := make([]*vm.LogEntryApi, 0, len(input.Logs))
@@ -464,6 +498,7 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 			Data:       originalLog.Data,
 		}
 	}
+
 	return &vm.VMOutputApi{
 		ReturnData:      input.ReturnData,
 		ReturnCode:      input.ReturnCode.String(),

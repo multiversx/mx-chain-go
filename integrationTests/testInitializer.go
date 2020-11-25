@@ -75,6 +75,7 @@ var P2pBootstrapDelay = 5 * time.Second
 // InitialRating is used to initiate a node's info
 var InitialRating = uint32(50)
 
+// AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
 var log = logger.GetOrCreate("integrationtests")
@@ -399,7 +400,7 @@ func getAccountFactory(accountType Type) state.AccountFactory {
 
 // CreateShardChain creates a blockchain implementation used by the shard nodes
 func CreateShardChain() data.ChainHandler {
-	blockChain := blockchain.NewBlockChain()
+	blockChain, _ := blockchain.NewBlockChain(&mock.AppStatusHandlerStub{})
 	_ = blockChain.SetGenesisHeader(&dataBlock.Header{})
 	genesisHeaderM, _ := TestMarshalizer.Marshal(blockChain.GetGenesisHeader())
 
@@ -410,7 +411,7 @@ func CreateShardChain() data.ChainHandler {
 
 // CreateMetaChain creates a blockchain implementation used by the meta nodes
 func CreateMetaChain() data.ChainHandler {
-	metaChain := blockchain.NewMetaChain()
+	metaChain, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 	_ = metaChain.SetGenesisHeader(&dataBlock.MetaBlock{})
 	genesisHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, metaChain.GetGenesisHeader())
 	metaChain.SetGenesisHeaderHash(genesisHeaderHash)
@@ -534,26 +535,38 @@ func CreateFullGenesisBlocks(
 	gasSchedule = arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.AddressPubKeyConverterField = TestAddressPubkeyConverter
+	coreComponents.ChainIdCalled = func() string {
+		return "undefined"
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return 1
+	}
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = store
+	dataComponents.DataPool = dataPool
+	dataComponents.BlockChain = blkc
+
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		GenesisTime:              0,
-		StartEpochNum:            0,
-		Accounts:                 accounts,
-		PubkeyConv:               TestAddressPubkeyConverter,
-		InitialNodesSetup:        nodesSetup,
-		Economics:                economics,
-		ShardCoordinator:         shardCoordinator,
-		Store:                    store,
-		Blkc:                     blkc,
-		Marshalizer:              TestMarshalizer,
-		SignMarshalizer:          TestTxSignMarshalizer,
-		Hasher:                   TestHasher,
-		Uint64ByteSliceConverter: TestUint64Converter,
-		DataPool:                 dataPool,
-		ValidatorAccounts:        validatorAccounts,
-		GasMap:                   gasSchedule,
-		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		TrieStorageManagers:      trieStorageManagers,
+		Core:                 coreComponents,
+		Data:                 dataComponents,
+		GenesisTime:          0,
+		StartEpochNum:        0,
+		Accounts:             accounts,
+		InitialNodesSetup:    nodesSetup,
+		Economics:            economics,
+		ShardCoordinator:     shardCoordinator,
+		ValidatorAccounts:    validatorAccounts,
+		GasMap:               gasSchedule,
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{},
+		TrieStorageManagers:  trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -623,26 +636,31 @@ func CreateGenesisMetaBlock(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = marshalizer
+	coreComponents.HasherField = hasher
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.AddressPubKeyConverterField = pubkeyConv
+
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.Store = store
+	dataComponents.DataPool = dataPool
+	dataComponents.BlockChain = blkc
+
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
-		GenesisTime:              0,
-		Accounts:                 accounts,
-		TrieStorageManagers:      trieStorageManagers,
-		PubkeyConv:               pubkeyConv,
-		InitialNodesSetup:        nodesSetup,
-		ShardCoordinator:         shardCoordinator,
-		Store:                    store,
-		Blkc:                     blkc,
-		Marshalizer:              marshalizer,
-		SignMarshalizer:          TestTxSignMarshalizer,
-		Hasher:                   hasher,
-		Uint64ByteSliceConverter: uint64Converter,
-		DataPool:                 dataPool,
-		Economics:                economics,
-		ValidatorAccounts:        validatorAccounts,
-		GasMap:                   gasSchedule,
-		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		Core:                 coreComponents,
+		Data:                 dataComponents,
+		GenesisTime:          0,
+		Accounts:             accounts,
+		TrieStorageManagers:  trieStorageManagers,
+		InitialNodesSetup:    nodesSetup,
+		ShardCoordinator:     shardCoordinator,
+		Economics:            economics,
+		ValidatorAccounts:    validatorAccounts,
+		GasMap:               gasSchedule,
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		VirtualMachineConfig: config.VirtualMachineConfig{},
+		HardForkConfig:       config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -690,14 +708,15 @@ func CreateGenesisMetaBlock(
 
 		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
-		newBlkc := blockchain.NewMetaChain()
+		newBlkc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 		trieStorage, _ := CreateTrieStorageManager()
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
 		argsMetaGenesis.Accounts = newAccounts
-		argsMetaGenesis.Blkc = newBlkc
-		argsMetaGenesis.DataPool = newDataPool
+
+		argsMetaGenesis.Data.SetBlockchain(newBlkc)
+		dataComponents.DataPool = newDataPool
 	}
 
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
@@ -1160,6 +1179,33 @@ func CreateNodes(
 	return nodes
 }
 
+// CreateNodesWithBLSSigVerifier creates multiple nodes in different shards
+func CreateNodesWithBLSSigVerifier(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	serviceID string,
+) []*TestProcessorNode {
+	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	idx := 0
+	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
+		for j := 0; j < nodesPerShard; j++ {
+			n := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), shardId, shardId, serviceID)
+			nodes[idx] = n
+			idx++
+		}
+	}
+
+	for i := 0; i < numMetaChainNodes; i++ {
+		metaNode := NewTestProcessorNodeWithBLSSigVerifier(uint32(numOfShards), core.MetachainShardId, 0, serviceID)
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = metaNode
+	}
+
+	return nodes
+}
+
 // CreateNodesWithFullGenesis creates multiple nodes in different shards
 func CreateNodesWithFullGenesis(
 	numOfShards int,
@@ -1167,51 +1213,74 @@ func CreateNodesWithFullGenesis(
 	numMetaChainNodes int,
 	serviceID string,
 	genesisFile string,
-) []*TestProcessorNode {
+) ([]*TestProcessorNode, *TestProcessorNode) {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
+
+	hardforkStarter := createGenesisNode(serviceID, genesisFile, uint32(numOfShards), 0, nil)
 
 	idx := 0
 	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
 		for j := 0; j < nodesPerShard; j++ {
-			accountParser := &mock.AccountsParserStub{}
-			smartContractParser, _ := parsing.NewSmartContractsParser(
+			nodes[idx] = createGenesisNode(
+				serviceID,
 				genesisFile,
-				TestAddressPubkeyConverter,
-				&mock.KeyGenMock{},
-			)
-			n := NewTestProcessorNodeWithFullGenesis(
 				uint32(numOfShards),
 				shardId,
-				shardId,
-				serviceID,
-				accountParser,
-				smartContractParser,
+				hardforkStarter.NodeKeys.Pk,
 			)
-			nodes[idx] = n
 			idx++
 		}
 	}
 
 	for i := 0; i < numMetaChainNodes; i++ {
-		accountParser := &mock.AccountsParserStub{}
-		smartContractParser, _ := parsing.NewSmartContractsParser(
+		idx = i + numOfShards*nodesPerShard
+		nodes[idx] = createGenesisNode(
+			serviceID,
 			genesisFile,
-			TestAddressPubkeyConverter,
-			&mock.KeyGenMock{},
-		)
-		metaNode := NewTestProcessorNodeWithFullGenesis(
 			uint32(numOfShards),
 			core.MetachainShardId,
-			0,
-			serviceID,
-			accountParser,
-			smartContractParser,
+			hardforkStarter.NodeKeys.Pk,
 		)
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
 	}
 
-	return nodes
+	return nodes, hardforkStarter
+}
+
+func createGenesisNode(
+	serviceID string,
+	genesisFile string,
+	numOfShards uint32,
+	shardId uint32,
+	hardforkPk crypto.PublicKey,
+) *TestProcessorNode {
+	accountParser := &mock.AccountsParserStub{}
+	smartContractParser, _ := parsing.NewSmartContractsParser(
+		genesisFile,
+		TestAddressPubkeyConverter,
+		&mock.KeyGenMock{},
+	)
+	txSignShardID := shardId
+	if shardId == core.MetachainShardId {
+		txSignShardID = 0
+	}
+
+	strPk := ""
+	if !check.IfNil(hardforkPk) {
+		buff, err := hardforkPk.ToByteArray()
+		log.LogIfError(err)
+
+		strPk = hex.EncodeToString(buff)
+	}
+
+	return NewTestProcessorNodeWithFullGenesis(
+		numOfShards,
+		shardId,
+		txSignShardID,
+		serviceID,
+		accountParser,
+		smartContractParser,
+		strPk,
+	)
 }
 
 // CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
@@ -1258,7 +1327,7 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 			hex.EncodeToString(skTxBuff),
 			TestAddressPubkeyConverter.Encode(pkTxBuff),
 		)
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for node bootstrap and topic announcement...")
@@ -1328,9 +1397,10 @@ func CreateSendersWithInitialBalances(
 }
 
 // CreateAndSendTransaction will generate a transaction with provided parameters, sign it with the provided
-// node's tx sign private key and send it on the transaction topic
+// node's tx sign private key and send it on the transaction topic using the correct node that can send the transaction
 func CreateAndSendTransaction(
 	node *TestProcessorNode,
+	nodes []*TestProcessorNode,
 	txValue *big.Int,
 	rcvAddress []byte,
 	txData string,
@@ -1350,10 +1420,24 @@ func CreateAndSendTransaction(
 
 	txBuff, _ := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
+	senderShardID := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
-	_, err := node.SendTransaction(tx)
-	if err != nil {
-		log.Warn("could not create transaction", "address", node.OwnAccount.Address, "error", err)
+	wasSend := false
+	for _, senderNode := range nodes {
+		if senderNode.ShardCoordinator.SelfId() != senderShardID {
+			continue
+		}
+
+		_, err := senderNode.SendTransaction(tx)
+		if err != nil {
+			log.Error("could not send transaction", "address", node.OwnAccount.Address, "error", err)
+		}
+		wasSend = true
+		break
+	}
+
+	if !wasSend {
+		log.Error("no suitable node found to send the provided transaction", "address", node.OwnAccount.Address)
 	}
 	node.OwnAccount.Nonce++
 }
@@ -1782,16 +1866,27 @@ func generateValidTx(
 	_, _ = accnts.Commit()
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
+
+	coreComponents := GetDefaultCoreComponents()
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.VmMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.AddressPubKeyConverterField = TestAddressPubkeyConverter
+	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
+
+	cryptoComponents := GetDefaultCryptoComponents()
+	cryptoComponents.TxSig = &ed25519SingleSig.Ed25519Signer{}
+	cryptoComponents.TxKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
+	cryptoComponents.BlKeyGen = signing.NewKeyGenerator(ed25519.NewEd25519())
+
+	stateComponents := GetDefaultStateComponents()
+	stateComponents.Accounts = accnts
+
 	mockNode, _ := node.NewNode(
-		node.WithInternalMarshalizer(TestMarshalizer, 100),
-		node.WithVmMarshalizer(TestVmMarshalizer),
-		node.WithTxSignMarshalizer(TestTxSignMarshalizer),
-		node.WithHasher(TestHasher),
-		node.WithAddressPubkeyConverter(TestAddressPubkeyConverter),
-		node.WithValidatorPubkeyConverter(TestValidatorPubkeyConverter),
-		node.WithKeyGen(signing.NewKeyGenerator(ed25519.NewEd25519())),
-		node.WithTxSingleSigner(&ed25519SingleSig.Ed25519Signer{}),
-		node.WithAccountsAdapter(accnts),
+		node.WithCoreComponents(coreComponents),
+		node.WithCryptoComponents(cryptoComponents),
+		node.WithStateComponents(stateComponents),
 		node.WithTxAccumulator(txAccumulator),
 	)
 
@@ -1955,7 +2050,7 @@ func CloseProcessorNodes(nodes []*TestProcessorNode, advertiser p2p.Messenger) {
 // StartP2PBootstrapOnProcessorNodes will start the p2p discovery on processor nodes and wait a predefined time
 func StartP2PBootstrapOnProcessorNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
-		_ = n.Messenger.Bootstrap()
+		_ = n.Messenger.Bootstrap(0)
 	}
 
 	fmt.Println("Delaying for nodes p2p bootstrap...")
@@ -1972,7 +2067,7 @@ func SetupSyncNodesOneShardAndMeta(
 	shardId := uint32(0)
 
 	advertiser := CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	advertiserAddr := GetConnectableAddress(advertiser)
 
 	var nodes []*TestProcessorNode

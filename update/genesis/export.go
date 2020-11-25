@@ -223,7 +223,8 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	}
 
 	if accType == ValidatorAccount {
-		validatorData, err := getValidatorDataFromLeaves(leaves, se.shardCoordinator, se.marshalizer)
+		var validatorData map[uint32][]*state.ValidatorInfo
+		validatorData, err = getValidatorDataFromLeaves(leaves, se.shardCoordinator, se.marshalizer)
 		if err != nil {
 			return err
 		}
@@ -257,6 +258,11 @@ func (se *stateExport) exportTrie(key string, trie data.Trie) error {
 	if accType == DataTrie {
 		return se.exportDataTries(leaves, accType, shId, identifier)
 	}
+
+	log.Debug("exporting trie",
+		"identifier", identifier,
+		"root hash", rootHash,
+	)
 
 	return se.exportAccountLeafs(leaves, accType, shId, identifier)
 }
@@ -384,8 +390,6 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
 		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
 		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		ChainID:                     genesisNodesSetupHandler.GetChainId(),
-		MinTransactionVersion:       genesisNodesSetupHandler.GetMinTransactionVersion(),
 		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
 		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
 		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),

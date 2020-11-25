@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/heartbeat/process"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
@@ -12,7 +13,7 @@ import (
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	io.Closer
-	Bootstrap() error
+	Bootstrap(numSecondsToWait uint32) error
 	Broadcast(topic string, buff []byte)
 	BroadcastOnChannel(channel string, topic string, buff []byte)
 	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
@@ -49,18 +50,11 @@ type P2PAntifloodHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Accumulator defines the interface able to accumulate data and periodically evict them
-type Accumulator interface {
-	AddData(data interface{})
-	OutputChannel() <-chan []interface{}
-	IsInterfaceNil() bool
-}
-
 // HardforkTrigger defines the behavior of a hardfork trigger
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
-	Trigger(epoch uint32) error
+	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	CreateData() []byte
 	AddCloser(closer update.Closer) error
 	NotifyTriggerReceived() <-chan struct{}
@@ -73,5 +67,12 @@ type Throttler interface {
 	CanProcess() bool
 	StartProcessing()
 	EndProcessing()
+	IsInterfaceNil() bool
+}
+
+// HeartbeatHandler defines the behavior of a heartbeat handler
+type HeartbeatHandler interface {
+	Monitor() *process.Monitor
+	Sender() *process.Sender
 	IsInterfaceNil() bool
 }

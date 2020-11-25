@@ -24,6 +24,10 @@ import (
 var log = logger.GetOrCreate("process/transaction")
 var _ process.TransactionProcessor = (*txProcessor)(nil)
 
+// RefundGasMessage is the message returned in the data field of a receipt,
+// for move balance transactions that provide more gas than needed
+const RefundGasMessage = "refundedGas"
+
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
@@ -187,7 +191,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
+		return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
 	case process.RelayedTx:
 		return txProc.processRelayedTx(tx, tx.SndAddr, tx.RcvAddr)
 	}
@@ -305,7 +309,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
 		SndAddr: tx.SndAddr,
-		Data:    []byte("refundedGas"),
+		Data:    []byte(RefundGasMessage),
 		TxHash:  txHash,
 	}
 
@@ -460,6 +464,20 @@ func (txProc *txProcessor) processSCInvoking(
 	}
 
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
+}
+
+func (txProc *txProcessor) processBuiltInFunctionCall(
+	tx *transaction.Transaction,
+	adrSrc, adrDst []byte,
+) (vmcommon.ReturnCode, error) {
+	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
+	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
+	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	if err != nil {
+		return 0, err
+	}
+
+	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
 }
 
 func (txProc *txProcessor) processRelayedTx(
@@ -632,7 +650,7 @@ func (txProc *txProcessor) processUserTx(
 	case process.SCInvoking:
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
+		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
 		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)

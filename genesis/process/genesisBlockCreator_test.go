@@ -46,18 +46,30 @@ func createMockArgument(
 	trieStorageManagers[factory.PeerAccountTrie] = storageManager
 
 	arg := ArgsGenesisBlockCreator{
-		GenesisTime:              0,
-		StartEpochNum:            0,
-		PubkeyConv:               mock.NewPubkeyConverterMock(32),
-		Blkc:                     &mock.BlockChainStub{},
-		Marshalizer:              &mock.MarshalizerMock{},
-		SignMarshalizer:          &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
-		DataPool:                 testscommon.NewPoolsHolderMock(),
-		TxLogsProcessor:          &mock.TxLogProcessorMock{},
-		VirtualMachineConfig:     config.VirtualMachineConfig{},
-		HardForkConfig:           config.HardforkConfig{},
+		GenesisTime:   0,
+		StartEpochNum: 0,
+		Core: &mock.CoreComponentsMock{
+			IntMarsh:            &mock.MarshalizerMock{},
+			TxMarsh:             &mock.MarshalizerMock{},
+			Hash:                &mock.HasherMock{},
+			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
+			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			Chain:               "chainID",
+			MinTxVersion:        1,
+		},
+		Data: &mock.DataComponentsMock{
+			Storage: &mock.ChainStorerMock{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+					return mock.NewStorerMock()
+				},
+			},
+			Blkc:     &mock.BlockChainStub{},
+			DataPool: testscommon.NewPoolsHolderMock(),
+		},
+		InitialNodesSetup:    &mock.InitialNodesSetupHandlerStub{},
+		TxLogsProcessor:      &mock.TxLogProcessorMock{},
+		VirtualMachineConfig: config.VirtualMachineConfig{},
+		HardForkConfig:       config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "5000000000000000000000",
@@ -137,24 +149,17 @@ func createMockArgument(
 	ted.SetTotalSupply(entireSupply)
 	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
 	arg.Economics = ted.EconomicsData
-
-	arg.Store = &mock.ChainStorerMock{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
-			return mock.NewStorerMock()
-		},
-	}
-
 	arg.AccountsParser, err = parsing.NewAccountsParser(
 		genesisFilename,
 		arg.Economics.GenesisTotalSupply(),
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
 		"testdata/smartcontracts.json",
-		arg.PubkeyConv,
+		arg.Core.AddressPubKeyConverter(),
 		&mock.KeyGeneratorStub{},
 	)
 	require.Nil(t, err)

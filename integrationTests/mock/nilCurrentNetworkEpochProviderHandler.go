@@ -4,16 +4,16 @@ package mock
 type NilCurrentNetworkEpochProviderHandler struct {
 }
 
-// SetNetworkEpochAtBootstrap will update the component's current epoch
+// SetNetworkEpochAtBootstrap -
 func (ncneph *NilCurrentNetworkEpochProviderHandler) SetNetworkEpochAtBootstrap(_ uint32) {
 }
 
-// EpochIsActiveInNetwork returns true if the persister for the given epoch is active in the network
+// EpochIsActiveInNetwork -
 func (ncneph *NilCurrentNetworkEpochProviderHandler) EpochIsActiveInNetwork(_ uint32) bool {
 	return true
 }
 
-// CurrentEpoch returns the current network epoch
+// CurrentEpoch -
 func (ncneph *NilCurrentNetworkEpochProviderHandler) CurrentEpoch() uint32 {
 	return 0
 }

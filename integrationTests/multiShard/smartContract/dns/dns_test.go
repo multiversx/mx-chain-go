@@ -132,10 +132,10 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	numMetachainNodes := 1
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	genesisFile := "smartcontracts.json"
-	nodes := integrationTests.CreateNodesWithFullGenesis(
+	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,

@@ -10,6 +10,15 @@ var ErrNilMessage = errors.New("nil message")
 // ErrNilAccountsAdapter defines the error when trying to use a nil AccountsAddapter
 var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
+// ErrNilDataComponentsHolder signals that a nil data components holder was provided
+var ErrNilDataComponentsHolder = errors.New("nil data components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 
@@ -419,6 +428,9 @@ var ErrInvalidPeerAccount = errors.New("invalid peer account")
 // ErrInvalidMetaHeader signals that a wrong implementation of HeaderHandler was provided
 var ErrInvalidMetaHeader = errors.New("invalid header provided, expected MetaBlock")
 
+// ErrInvalidChainID signals that an invalid chain ID was provided
+var ErrInvalidChainID = errors.New("invalid chain ID")
+
 // ErrNilEpochStartTrigger signals that a nil start of epoch trigger was provided
 var ErrNilEpochStartTrigger = errors.New("nil start of epoch trigger")
 
@@ -797,9 +809,6 @@ var ErrRelayedTxValueHigherThenUserTxValue = errors.New("relayed tx value is hig
 // ErrNilInterceptorContainer signals that nil interceptor container has been provided
 var ErrNilInterceptorContainer = errors.New("nil interceptor container")
 
-// ErrInvalidChainID signals that an invalid chain ID has been provided
-var ErrInvalidChainID = errors.New("invalid chain ID")
-
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
@@ -883,6 +892,30 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
+
+// ErrAddressIsNotESDTSystemSC signals that destination is not a system sc address
+var ErrAddressIsNotESDTSystemSC = errors.New("destination is not system sc address")
+
+// ErrOnlySystemAccountAccepted signals that only system account is accepted
+var ErrOnlySystemAccountAccepted = errors.New("only system account is accepted")
+
+// ErrNilPauseHandler signals that nil pause handler has been provided
+var ErrNilPauseHandler = errors.New("nil pause handler")
+
+// ErrESDTTokenIsPaused signals that esdt token is paused
+var ErrESDTTokenIsPaused = errors.New("esdt token is paused")
+
+// ErrESDTIsFrozenForAccount signals that account is frozen for given esdt token
+var ErrESDTIsFrozenForAccount = errors.New("account is frozen for this esdt token")
+
+// ErrNilPayableHandler signals that nil payableHandler was provided
+var ErrNilPayableHandler = errors.New("nil payableHandler was provided")
+
+// ErrFailedExecutionAfterBuiltInFunc signals that tx execution after built in func call failed
+var ErrFailedExecutionAfterBuiltInFunc = errors.New("failed execution after built in func call failed")
+
+// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
+var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")

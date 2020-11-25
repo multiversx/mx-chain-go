@@ -24,6 +24,7 @@ type BlockProcessorMock struct {
 	AddLastNotarizedHdrCalled        func(shardId uint32, processedHdr data.HeaderHandler)
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) data.HeaderHandler
 	RevertStateToBlockCalled         func(header data.HeaderHandler) error
+	RevertIndexedBlockCalled         func(header data.HeaderHandler)
 }
 
 // SetNumProcessedObj -
@@ -69,6 +70,13 @@ func (bpm *BlockProcessorMock) RevertStateToBlock(header data.HeaderHandler) err
 	return nil
 }
 
+// RevertIndexedBlock -
+func (bpm *BlockProcessorMock) RevertIndexedBlock(header data.HeaderHandler) {
+	if bpm.RevertIndexedBlockCalled != nil {
+		bpm.RevertIndexedBlockCalled(header)
+	}
+}
+
 // RevertAccountState mocks revert of the accounts state
 func (bpm *BlockProcessorMock) RevertAccountState(header data.HeaderHandler) {
 	bpm.RevertAccountStateCalled(header)
@@ -102,6 +110,11 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 // AddLastNotarizedHdr -
 func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
 	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
+}
+
+// Close -
+func (bpm *BlockProcessorMock) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

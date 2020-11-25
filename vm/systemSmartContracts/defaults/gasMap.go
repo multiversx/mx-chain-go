@@ -31,6 +31,7 @@ func FillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["SaveUserName"] = value
 	gasMap["SaveKeyValue"] = value
 	gasMap["ESDTTransfer"] = value
+	gasMap["ESDTBurn"] = value
 
 	return gasMap
 }

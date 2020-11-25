@@ -14,7 +14,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	mocktests "github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/data"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
@@ -107,19 +106,19 @@ func createMockNetworkOf3() (p2p.Messenger, p2p.Messenger, p2p.Messenger) {
 
 	_ = netw.LinkAll()
 
-	nscm1 := mocktests.NewNetworkShardingCollectorMock()
+	nscm1 := mock.NewNetworkShardingCollectorMock()
 	nscm1.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm1.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm1.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
 	_ = mes1.SetPeerShardResolver(nscm1)
 
-	nscm2 := mocktests.NewNetworkShardingCollectorMock()
+	nscm2 := mock.NewNetworkShardingCollectorMock()
 	nscm2.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm2.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm2.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
 	_ = mes2.SetPeerShardResolver(nscm2)
 
-	nscm3 := mocktests.NewNetworkShardingCollectorMock()
+	nscm3 := mock.NewNetworkShardingCollectorMock()
 	nscm3.UpdatePeerIdSubType(mes1.ID(), core.FullHistoryObserver)
 	nscm3.UpdatePeerIdSubType(mes2.ID(), core.FullHistoryObserver)
 	nscm3.UpdatePeerIdSubType(mes3.ID(), core.RegularPeer)
@@ -1136,7 +1135,7 @@ func TestNetworkMessenger_BootstrapPeerDiscoveryShouldCallPeerBootstrapper(t *te
 	mes, _ := libp2p.NewMockMessenger(createMockNetworkArgs(), netw)
 	mes.SetPeerDiscoverer(pdm)
 
-	_ = mes.Bootstrap()
+	_ = mes.Bootstrap(0)
 
 	assert.True(t, wasCalled)
 
