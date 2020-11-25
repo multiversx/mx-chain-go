@@ -38,6 +38,7 @@ type rewardsCreatorProxy struct {
 	mutRc         sync.Mutex
 }
 
+// NewRewardsCreatorProxy creates a rewards creator proxy instance
 func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy, error) {
 	var err error
 

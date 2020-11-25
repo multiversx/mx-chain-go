@@ -49,7 +49,7 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	metaBlock *block.MetaBlock,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-	_ *block.Economics,
+	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
@@ -70,8 +70,6 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	// keep the functionality as it was by passing the metaBlock economics
-	computedEconomics := &metaBlock.EpochStart.Economics
 	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
 		return nil, err

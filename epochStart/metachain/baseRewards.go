@@ -422,17 +422,10 @@ func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSusta
 		protocolSustainabilityRwdTx.Value.SetUint64(0)
 	}
 
-	// TODO: Reject negative values when VerifyRewardsMiniBlocks is refactored
-	// Currently VerifyRewardsMiniBlocks starts its computation (calling CreateRewardsMiniBlocks) based on the
-	// metaBlock produced by a block producer.
-	// That metaBlock already has in Economics the adjusted protocol sustainability rewards as effect of
-	// executing CreateRewardsMiniBlocks, so the proposer and validator start validation with different values,
-	// which makes adjusting protocol rewards with negative values a requirement for validators.
-
-	//if dustRewards.Cmp(big.NewInt(0)) < 0 {
-	//	log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
-	//	return
-	//}
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+		return
+	}
 
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
 
