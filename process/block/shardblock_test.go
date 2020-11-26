@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 	blproc "github.com/ElrondNetwork/elrond-go/process/block"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
@@ -1916,11 +1917,14 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
 
-	arguments.Indexer = &mock.IndexerMock{
-		SaveBlockCalled: func(body data.BodyHandler, header data.HeaderHandler, txPool map[string]data.TransactionHandler) {
+	arguments.OutportHandler = &testscommon.OutportStub{
+		SaveBlockCalled: func(args types.ArgsSaveBlocks) {
 			saveBlockCalledMutex.Lock()
-			saveBlockCalled = txPool
+			saveBlockCalled = args.TxsFromPool
 			saveBlockCalledMutex.Unlock()
+		},
+		HasDriversCalled: func() bool {
+			return true
 		},
 	}
 	arguments.AccountsDB[state.UserAccountsState] = accounts

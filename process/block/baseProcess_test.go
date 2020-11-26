@@ -327,7 +327,7 @@ func CreateMockArguments(
 			},
 			BlockTracker:            mock.NewBlockTrackerMock(shardCoordinator, startHeaders),
 			BlockSizeThrottler:      &mock.BlockSizeThrottlerStub{},
-			Indexer:                 &mock.IndexerMock{},
+			OutportHandler:          &testscommon.OutportStub{},
 			TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 			Version:                 "softwareVersion",
 			HistoryRepository:       &testscommon.HistoryRepositoryStub{},
@@ -1159,7 +1159,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	dataComponents.DataPool = poolsHolderStub
-	arguments := CreateMockArguments(coreComponents, dataComponents )
+	arguments := CreateMockArguments(coreComponents, dataComponents)
 	rounder := &mock.RounderMock{}
 	arguments.Rounder = rounder
 

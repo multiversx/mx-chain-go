@@ -67,7 +67,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		MiniblocksProvider:  &mock.MiniBlocksProviderStub{},
 		Uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:    &mock.AppStatusHandlerStub{},
-		Indexer:             &mock.IndexerMock{},
+		OutportHandler:      &testscommon.OutportStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

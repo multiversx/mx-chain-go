@@ -6,12 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/ntp"
+	"github.com/ElrondNetwork/elrond-go/outport"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
@@ -118,9 +118,9 @@ func (fct *factory) AppStatusHandler() core.AppStatusHandler {
 	return fct.appStatusHandler
 }
 
-// Indexer gets the indexer object
-func (fct *factory) Indexer() indexer.Indexer {
-	return fct.indexer
+// Outport gets the outport object
+func (fct *factory) Outport() outport.OutportHandler {
+	return fct.outportHandler
 }
 
 // subroundStartRound

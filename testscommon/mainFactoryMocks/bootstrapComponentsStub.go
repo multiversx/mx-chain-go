@@ -41,17 +41,17 @@ func (bcs *BootstrapComponentsStub) EpochBootstrapParams() mainFactory.Bootstrap
 }
 
 // NodeType -
-func (bcs *BootstrapComponentsStub) NodeType() core.NodeType{
+func (bcs *BootstrapComponentsStub) NodeType() core.NodeType {
 	return bcs.NodeRole
 }
 
 // ShardCoordinator -
-func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator{
+func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator {
 	return bcs.ShCoordinator
 }
 
 // HeaderIntegrityVerifier -
-func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() mainFactory.HeaderIntegrityVerifierHandler{
+func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() mainFactory.HeaderIntegrityVerifierHandler {
 	return bcs.HdrIntegrityVerifier
 }
 

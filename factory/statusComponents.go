@@ -7,12 +7,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/statistics/softwareVersion/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/ElrondNetwork/elrond-go/outport"
+	"github.com/ElrondNetwork/elrond-go/outport/drivers/elastic"
+	driversFactory "github.com/ElrondNetwork/elrond-go/outport/drivers/factory"
+	outportDriverFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
@@ -23,7 +25,7 @@ import (
 type statusComponents struct {
 	statusHandler   core.AppStatusHandler
 	tpsBenchmark    statistics.TPSBenchmark
-	elasticIndexer  indexer.Indexer
+	outportHandler  outport.OutportHandler
 	softwareVersion statistics.SoftwareVersionChecker
 	resourceMonitor statistics.ResourceMonitorHandler
 	cancelFunc      func()
@@ -155,7 +157,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
-	elasticIndexer, err := scf.createElasticIndexer()
+	outportHandler, err := scf.createOutportDriver()
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +165,7 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	return &statusComponents{
 		softwareVersion: softwareVersionChecker,
 		tpsBenchmark:    tpsBenchmark,
-		elasticIndexer:  elasticIndexer,
+		outportHandler:  outportHandler,
 		statusHandler:   scf.coreComponents.StatusHandler(),
 		resourceMonitor: resMon,
 		cancelFunc:      cancelFunc,
@@ -192,9 +194,9 @@ func (pc *statusComponents) Close() error {
 
 // createElasticIndexer creates a new elasticIndexer where the server listens on the url,
 // authentication for the server is using the username and password
-func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, error) {
+func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	indexerFactoryArgs := &indexerFactory.ArgsIndexerFactory{
+	indexerFactoryArgs := &driversFactory.ArgsElasticDriverFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		ShardCoordinator:         scf.shardCoordinator,
@@ -203,8 +205,6 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 		Password:                 elasticSearchConfig.Password,
 		Marshalizer:              scf.coreComponents.InternalMarshalizer(),
 		Hasher:                   scf.coreComponents.Hasher(),
-		EpochStartNotifier:       scf.epochStartNotifier,
-		NodesCoordinator:         scf.nodesCoordinator,
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		TemplatesPath:            scf.elasticTemplatesPath,
@@ -212,13 +212,19 @@ func (scf *statusComponentsFactory) createElasticIndexer() (indexer.Indexer, err
 		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
 		FeeConfig:                &scf.economicsConfig.FeeSettings,
-		Options: &indexer.Options{
+		Options: &elastic.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
 		IsInImportDBMode: scf.isInImportMode,
 	}
 
-	return indexerFactory.NewIndexer(indexerFactoryArgs)
+	args := &outportDriverFactory.ArgsOutportFactory{
+		ArgsElasticDriver:  indexerFactoryArgs,
+		EpochStartNotifier: scf.epochStartNotifier,
+		NodesCoordinator:   scf.nodesCoordinator,
+	}
+
+	return outportDriverFactory.CreateOutport(args)
 }
 
 func startStatisticsMonitor(

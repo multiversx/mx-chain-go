@@ -178,7 +178,7 @@ func getProcessArgs(
 			},
 		},
 		Version:                 "v1.0.0",
-		Indexer:                 &mock.IndexerMock{},
+		OutportHandler:          &testscommon.OutportStub{},
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepo:             &testscommon.HistoryRepositoryStub{},
 		EpochNotifier:           &mock.EpochNotifierStub{},

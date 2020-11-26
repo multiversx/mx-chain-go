@@ -2,14 +2,14 @@ package mock
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/outport"
 )
 
 // StatusComponentsStub -
 type StatusComponentsStub struct {
 	TPSBench             statistics.TPSBenchmark
-	Indexer              indexer.Indexer
+	Outport              outport.OutportHandler
 	SoftwareVersionCheck statistics.SoftwareVersionChecker
 	AppStatusHandler     core.AppStatusHandler
 }
@@ -34,9 +34,9 @@ func (scs *StatusComponentsStub) TpsBenchmark() statistics.TPSBenchmark {
 	return scs.TPSBench
 }
 
-// ElasticIndexer -
-func (scs *StatusComponentsStub) ElasticIndexer() indexer.Indexer {
-	return scs.Indexer
+// OutportHandler -
+func (scs *StatusComponentsStub) OutportHandler() outport.OutportHandler {
+	return scs.Outport
 }
 
 // SoftwareVersionChecker -

@@ -13,7 +13,7 @@ type EconomicsHandlerStub struct {
 	SetMinGasLimitCalled                   func(minGasLimit uint64)
 	ComputeGasLimitCalled                  func(tx process.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
-	ComputeTxFeeCalled          func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled                     func(tx process.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled            func(tx process.TransactionWithFeeHandler) error
 	DeveloperPercentageCalled              func() float64
 	MinGasPriceCalled                      func() uint64

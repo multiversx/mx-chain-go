@@ -391,8 +391,8 @@ const (
 	ConsensusOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
-	// IndexerOrder defines the order in which Indexer is notified of a start of epoch event
-	IndexerOrder
+	// OutportOrder defines the order in which Outport is notified of a start of epoch event
+	OutportOrder
 	// NetStatisticsOrder defines the order in which netStatistic component is notified of a start of epoch event
 	NetStatisticsOrder
 )
@@ -498,9 +498,6 @@ const ElrondProtectedKeyPrefix = "ELROND"
 
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
-
-// DefaultLogsPath is the default path for the node logs
-const DefaultLogsPath = "logs"
 
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"

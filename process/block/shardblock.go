@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/ElrondNetwork/elrond-go/outport/types"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -72,7 +73,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		stateCheckpointModulus:  arguments.StateCheckpointModulus,
 		blockChain:              arguments.DataComponents.Blockchain(),
 		feeHandler:              arguments.FeeHandler,
-		indexer:                 arguments.Indexer,
+		outportHandler:          arguments.OutportHandler,
 		tpsBenchmark:            arguments.TpsBenchmark,
 		genesisNonce:            genesisHdr.GetNonce(),
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
@@ -507,7 +508,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
-	if sp.indexer.IsNilIndexer() {
+	if !sp.outportHandler.HasDrivers() {
 		return
 	}
 	if check.IfNil(header) {
@@ -587,10 +588,17 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
-	sp.indexer.SaveBlock(body, header, txPool, signersIndexes, nil, headerHash)
+	sp.outportHandler.SaveBlock(types.ArgsSaveBlocks{
+		Body:                   body,
+		Header:                 header,
+		TxsFromPool:            txPool,
+		SignersIndexes:         signersIndexes,
+		NotarizedHeadersHashes: nil,
+		HeaderHash:             headerHash,
+	})
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
-	indexRoundInfo(sp.indexer, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools

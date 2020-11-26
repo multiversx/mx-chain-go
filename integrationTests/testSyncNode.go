@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/provider"
@@ -191,7 +190,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:            tpn.BlockTracker,
 		StateCheckpointModulus:  stateCheckpointModulus,
 		BlockSizeThrottler:      TestBlockSizeThrottler,
-		Indexer:                 indexer.NewNilIndexer(),
+		OutportHandler:          mock.NewNilOutport(),
 		TpsBenchmark:            &testscommon.TpsBenchmarkMock{},
 		HistoryRepository:       tpn.HistoryRepository,
 		EpochNotifier:           tpn.EpochNotifier,
@@ -255,7 +254,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             indexer.NewNilIndexer(),
+		OutportHandler:      mock.NewNilOutport(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -294,7 +293,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		MiniblocksProvider:  tpn.MiniblocksProvider,
 		Uint64Converter:     TestUint64Converter,
 		AppStatusHandler:    TestAppStatusHandler,
-		Indexer:             indexer.NewNilIndexer(),
+		OutportHandler:      mock.NewNilOutport(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
