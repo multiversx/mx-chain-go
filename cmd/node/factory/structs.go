@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -596,14 +597,15 @@ func indexGenesisAccounts(accountsAdapter state.AccountsAdapter, indexer indexer
 		return err
 	}
 
-	leaves, err := accountsAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := accountsAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return err
 	}
 
 	genesisAccounts := make([]state.UserAccountHandler, 0)
-	for addressKey, userAccountsBytes := range leaves {
-		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, marshalizer)
+	for leaf := range leavesChannel {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), marshalizer)
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
 			continue

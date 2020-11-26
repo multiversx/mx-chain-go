@@ -3,6 +3,7 @@ package txsimulator
 import (
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -92,11 +93,11 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	roAccDb.CancelPrune(nil, data.NewRoot)
 
-	roAccDb.SnapshotState(nil)
+	roAccDb.SnapshotState(nil, nil)
 
-	roAccDb.SetStateCheckpoint(nil)
+	roAccDb.SetStateCheckpoint(nil, nil)
 
-	_, err = roAccDb.RecreateAllTries(nil)
+	_, err = roAccDb.RecreateAllTries(nil, nil)
 	require.NoError(t, err)
 }
 
@@ -106,7 +107,7 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	expectedAcc := &mock.AccountWrapMock{}
 	expectedJournalLen := 37
 	expectedRootHash := []byte("root")
-	expectedAllLeaves := map[string][]byte{"1": []byte("1")}
+	expectedLeavesChannel := make(chan core.KeyValueHolder)
 	expectedNumCheckpoints := uint32(7)
 
 	accDb := &mock.AccountsStub{
@@ -125,8 +126,8 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 		IsPruningEnabledCalled: func() bool {
 			return true
 		},
-		GetAllLeavesCalled: func(_ []byte) (map[string][]byte, error) {
-			return expectedAllLeaves, nil
+		GetAllLeavesCalled: func(_ []byte) (chan core.KeyValueHolder, error) {
+			return expectedLeavesChannel, nil
 		},
 		GetNumCheckpointsCalled: func() uint32 {
 			return expectedNumCheckpoints
@@ -154,9 +155,9 @@ func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {
 	actualIsPruningEnabled := roAccDb.IsPruningEnabled()
 	require.Equal(t, true, actualIsPruningEnabled)
 
-	actualAllLeaves, err := roAccDb.GetAllLeaves(nil)
+	actualAllLeaves, err := roAccDb.GetAllLeaves(nil, nil)
 	require.NoError(t, err)
-	require.Equal(t, expectedAllLeaves, actualAllLeaves)
+	require.Equal(t, expectedLeavesChannel, actualAllLeaves)
 
 	actualNumCheckpoints := roAccDb.GetNumCheckpoints()
 	require.Equal(t, expectedNumCheckpoints, actualNumCheckpoints)
