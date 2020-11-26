@@ -10,6 +10,14 @@ import (
 type VMExecutionHandlerStub struct {
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
+}
+
+// GasScheduleChange -
+func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	if vm.GasScheduleChangeCalled != nil {
+		vm.GasScheduleChangeCalled(gasSchedule)
+	}
 }
 
 // RunSmartContractCreate --

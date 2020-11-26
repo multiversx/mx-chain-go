@@ -2499,7 +2499,7 @@ func createApiResolver(
 			ArgBlockChainHook:   argsHook,
 			Economics:           economics,
 			MessageSignVerifier: messageSigVerifier,
-			GasScheduleNotifier: gasScheduleNotifier,
+			GasSchedule:         gasScheduleNotifier,
 			NodesConfigProvider: nodesSetup,
 			Hasher:              hasher,
 			Marshalizer:         marshalizer,
