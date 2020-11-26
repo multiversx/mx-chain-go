@@ -32,23 +32,6 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 	}
 }
 
-func getDefaultVmInputForFunc(funcName string, args [][]byte) *vmcommon.ContractCallInput {
-	return &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr:     []byte("owner"),
-			Arguments:      args,
-			CallValue:      big.NewInt(0),
-			CallType:       0,
-			GasPrice:       0,
-			GasProvided:    0,
-			OriginalTxHash: nil,
-			CurrentTxHash:  nil,
-		},
-		RecipientAddr: []byte("addr"),
-		Function:      funcName,
-	}
-}
-
 func TestNewESDTSmartContract(t *testing.T) {
 	t.Parallel()
 
