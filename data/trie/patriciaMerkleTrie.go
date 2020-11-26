@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -294,6 +295,10 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	return tr.recreate(root)
+}
+
+func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error) {
 	if emptyTrie(root) {
 		return NewTrie(
 			tr.trieStorage,
@@ -311,7 +316,7 @@ func (tr *patriciaMerkleTrie) Recreate(root []byte) (data.Trie, error) {
 	return tr.recreateFromSnapshotDb(root)
 }
 
-func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
+func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) *patriciaMerkleTrie {
 	_, err := tr.Database().Get(rootHash)
 	if err != nil {
 		return nil
@@ -326,7 +331,7 @@ func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) data.Trie {
 	return newTr
 }
 
-func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (data.Trie, error) {
+func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patriciaMerkleTrie, error) {
 	db := tr.trieStorage.GetSnapshotThatContainsHash(rootHash)
 	if db == nil {
 		return nil, ErrHashNotFound
@@ -476,7 +481,7 @@ func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
 	return tr.trieStorage.Database()
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (data.Trie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
 		tr.marshalizer,
@@ -498,14 +503,16 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCac
 	return newTr, newRoot, nil
 }
 
-// EnterSnapshotMode sets the snapshot mode on
-func (tr *patriciaMerkleTrie) EnterSnapshotMode() {
-	tr.trieStorage.EnterSnapshotMode()
+// EnterPruningBufferingMode increases the counter that tracks how many operations
+// that block the pruning process are in progress
+func (tr *patriciaMerkleTrie) EnterPruningBufferingMode() {
+	tr.trieStorage.EnterPruningBufferingMode()
 }
 
-// ExitSnapshotMode sets the snapshot mode off
-func (tr *patriciaMerkleTrie) ExitSnapshotMode() {
-	tr.trieStorage.ExitSnapshotMode()
+// ExitPruningBufferingMode decreases the counter that tracks how many operations
+// that block the pruning process are in progress
+func (tr *patriciaMerkleTrie) ExitPruningBufferingMode() {
+	tr.trieStorage.ExitPruningBufferingMode()
 }
 
 func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.SnapshotDbHandler {
@@ -585,50 +592,42 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	return nodes, remainingSpace, nil
 }
 
-// GetAllLeaves iterates the trie and returns a map that contains all leafNodes information
-func (tr *patriciaMerkleTrie) GetAllLeaves() (map[string][]byte, error) {
+// GetAllLeavesOnChannel adds all the trie leaves to the given channel
+func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
+	leavesChannel := make(chan core.KeyValueHolder, 100)
+
 	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
 
-	if tr.root == nil {
-		return map[string][]byte{}, nil
-	}
-
-	leaves := make(map[string][]byte)
-	err := tr.root.getAllLeaves(leaves, []byte{}, tr.Database(), tr.marshalizer)
+	newTrie, err := tr.recreate(rootHash)
 	if err != nil {
+		tr.mutOperation.RUnlock()
+		close(leavesChannel)
 		return nil, err
 	}
 
-	return leaves, nil
-}
-
-// GetAllLeavesOnChannel adds all the trie leaves to the given channel
-func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel() chan core.KeyValueHolder {
-	//TODO pass a context for cancellation purposes when needed
-	leavesChannel := make(chan core.KeyValueHolder)
-
-	tr.mutOperation.RLock()
-	if tr.root == nil {
+	if check.IfNil(newTrie) || newTrie.root == nil {
 		tr.mutOperation.RUnlock()
 		close(leavesChannel)
-
-		return leavesChannel
+		return leavesChannel, nil
 	}
+
+	tr.EnterPruningBufferingMode()
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		tr.mutOperation.RLock()
-		err := tr.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer)
+		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer, ctx)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
+
+		tr.mutOperation.RLock()
+		tr.ExitPruningBufferingMode()
 		tr.mutOperation.RUnlock()
 
 		close(leavesChannel)
 	}()
 
-	return leavesChannel
+	return leavesChannel, nil
 }
 
 // GetAllHashes returns all the hashes from the trie

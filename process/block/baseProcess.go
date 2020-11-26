@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -1086,7 +1087,8 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			accounts.SetStateCheckpoint(rootHash)
+			ctx := context.Background()
+			accounts.SetStateCheckpoint(rootHash, ctx)
 		}
 	}
 

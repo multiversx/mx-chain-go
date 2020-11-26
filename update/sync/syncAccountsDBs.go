@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
@@ -189,7 +190,8 @@ func (st *syncAccountsDBs) tryRecreateTrie(shardId uint32, id string, trieID sta
 		return false
 	}
 
-	tries, err := activeTrie.RecreateAllTries(rootHash)
+	ctx := context.Background()
+	tries, err := activeTrie.RecreateAllTries(rootHash, ctx)
 	if err != nil {
 		return false
 	}
