@@ -73,7 +73,7 @@ extern "C" void upgradeChild()
     storageLoad((byte *)childContractAddressKey, 32, childAddress);
 
     byte codeMetadata[2] = {1, 2};
-    upgradeContract(childAddress, 15000000, nullptr, code, codeMetadata, codeLength, 0, nullptr, nullptr);
+    upgradeContract(childAddress, 150000000, nullptr, code, codeMetadata, codeLength, 0, nullptr, nullptr);
 }
 
 void memcpy(void *dest, void *src, int n)
