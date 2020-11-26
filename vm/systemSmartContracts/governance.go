@@ -396,7 +396,7 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 	lock := g.getLock(args.CallerAddr, Account, args.Arguments[0])
 	currentNonce := g.eei.BlockChainHook().CurrentNonce()
 
-	if lock.Cmp(big.NewInt(0).SetUint64(currentNonce)) == -1 {
+	if lock < currentNonce {
 		g.eei.AddReturnMessage("your funds are still locked")
 		return vmcommon.UserError
 	}
@@ -712,11 +712,6 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	for _, voter := range generalProposal.Votes {
-		key := append(proposal, voter...)
-		g.eei.SetStorage(key, nil)
-	}
-
 	return vmcommon.Ok
 }
 
@@ -1015,7 +1010,7 @@ func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *
 }
 
 // getLock returns the lock nonce for a voter
-func (g *governanceContract) getLock(voter []byte, voteType VoteType, proposalReferance []byte) *big.Int {
+func (g *governanceContract) getLock(voter []byte, voteType VoteType, proposalReferance []byte) uint64 {
 	prefix := []byte(validatorLockPrefix)
 	if voteType == Account {
 		prefix = append([]byte(accountLockPrefix), proposalReferance...)
@@ -1024,7 +1019,7 @@ func (g *governanceContract) getLock(voter []byte, voteType VoteType, proposalRe
 
 	lock := g.eei.GetStorage(lockKey)
 
-	return big.NewInt(0).SetBytes(lock)
+	return big.NewInt(0).SetBytes(lock).Uint64()
 }
 
 // proposalContainsVoter iterates through all the votes on a proposal and returns if it already contains a

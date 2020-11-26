@@ -695,8 +695,8 @@ func (r *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 	}
 
 	governanceLockNonce := r.getGovernanceLockNonce(args.CallerAddr)
-	if governanceLockNonce.Uint64() > currentNonce {
-		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible because funds are locked by the governance contract until nonce: %s", governanceLockNonce.String()))
+	if governanceLockNonce > currentNonce {
+		r.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible because funds are locked by the governance contract until nonce: %d", governanceLockNonce))
 		return vmcommon.UserError
 	}
 
@@ -1546,11 +1546,11 @@ func (r *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 	return waitingListData, nil
 }
 
-func (r *stakingSC) getGovernanceLockNonce(address []byte) *big.Int {
+func (r *stakingSC) getGovernanceLockNonce(address []byte) uint64 {
 	governanceLockKey := append([]byte(validatorLockPrefix), address...)
 	lock := r.eei.GetStorageFromAddress(r.governanceSCAddr, governanceLockKey)
 
-	return big.NewInt(0).SetBytes(lock)
+	return big.NewInt(0).SetBytes(lock).Uint64()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
