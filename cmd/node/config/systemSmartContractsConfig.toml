@@ -19,20 +19,19 @@
     OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
     EnabledEpoch = 2
 
-[OldGovernanceSystemSCConfig]
-    NumNodes           = 500
-    ProposalCost       = "5000000000000000000" #5 eGLD
-    MinQuorum          = 400
-    MinPassThreshold   = 300
-    MinVetoThreshold   = 50
-    EnabledEpoch       = 2
-
 [GovernanceSystemSCConfig]
-    ProposalCostV2     = "5000000000000000000" #5 eGLD
-    MinQuorumV2        = "500000000000" # VotePower of 10*sqrt(NodePrice)
-    MinPassThresholdV2 = "251000000000"
-    MinVetoThresholdV2 = "249000000000"
-    EnabledEpochV2     = 2
+    [GovernanceSystemSCConfig.V1]
+        NumNodes           = 500
+        ProposalCost       = "5000000000000000000" #5 eGLD
+        MinQuorum          = 400
+        MinPassThreshold   = 300
+        MinVetoThreshold   = 50
+    [GovernanceSystemSCConfig.Active]
+        ProposalCost       = "5000000000000000000" #5 eGLD
+        MinQuorum          = "500000000000" # VotePower of 10*sqrt(NodePrice)
+        MinPassThreshold   = "251000000000"
+        MinVetoThreshold   = "249000000000"
+        EnabledEpoch       = 2
 
 [DelegationManagerSystemSCConfig]
     BaseIssuingCost = "0" #0 eGLD

@@ -2164,7 +2164,7 @@ func newMetaBlockProcessor(
 		SwitchHysteresisForMinNodesEnableEpoch: generalSettingsConfig.SwitchHysteresisForMinNodesEnableEpoch,
 		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
-		GovernanceV2EnableEpoch:                systemSCConfig.GovernanceSystemSCConfig.EnabledEpochV2,
+		GovernanceV2EnableEpoch:                systemSCConfig.GovernanceSystemSCConfig.Active.EnabledEpoch,
 		GenesisNodesConfig:                     nodesSetup,
 		MaxNodesEnableConfig:                   generalSettingsConfig.MaxNodesChangeEnableEpoch,
 	}

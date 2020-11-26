@@ -73,7 +73,8 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		return nil, vm.ErrNilEpochNotifier
 	}
 
-	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.ProposalCost, conversionBase)
+	activeConfig := args.GovernanceConfig.Active
+	baseProposalCost, okConvert := big.NewInt(0).SetString(activeConfig.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
@@ -89,7 +90,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
-		enabledEpoch:        args.GovernanceConfig.EnabledEpoch,
+		enabledEpoch:        activeConfig.EnabledEpoch,
 	}
 
 	err := g.validateInitialWhiteListedAddresses(args.InitalWhiteListedAddresses)
@@ -147,10 +148,10 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 
 func (g *governanceContract) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scConfig := &GovernanceConfig{
-		NumNodes:         g.governanceConfig.NumNodes,
-		MinQuorum:        g.governanceConfig.MinQuorum,
-		MinPassThreshold: g.governanceConfig.MinPassThreshold,
-		MinVetoThreshold: g.governanceConfig.MinVetoThreshold,
+		NumNodes:         g.governanceConfig.V1.NumNodes,
+		MinQuorum:        g.governanceConfig.V1.MinQuorum,
+		MinPassThreshold: g.governanceConfig.V1.MinPassThreshold,
+		MinVetoThreshold: g.governanceConfig.V1.MinVetoThreshold,
 		ProposalFee:      g.baseProposalCost,
 	}
 	marshaledData, err := g.marshalizer.Marshal(scConfig)
@@ -876,7 +877,7 @@ func (g *governanceContract) whiteListAtGenesis(args *vmcommon.ContractCallInput
 		ProposalStatus:   key,
 	}
 
-	minQuorum, success := big.NewInt(0).SetString(g.governanceConfig.MinQuorumV2, conversionBase)
+	minQuorum, success := big.NewInt(0).SetString(g.governanceConfig.Active.MinQuorum, conversionBase)
 	if !success {
 		log.Warn("could not convert min quorum to bigInt")
 		return vmcommon.UserError
@@ -1260,19 +1261,19 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig
 func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCConfig) (*GovernanceConfigV2, error) {
-	minQuorum, success := big.NewInt(0).SetString(config.MinQuorumV2, conversionBase)
+	minQuorum, success := big.NewInt(0).SetString(config.Active.MinQuorum, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
-	minPass, success := big.NewInt(0).SetString(config.MinPassThresholdV2, conversionBase)
+	minPass, success := big.NewInt(0).SetString(config.Active.MinPassThreshold, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
-	minVeto, success := big.NewInt(0).SetString(config.MinVetoThresholdV2, conversionBase)
+	minVeto, success := big.NewInt(0).SetString(config.Active.MinVetoThreshold, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
-	proposalFee, success := big.NewInt(0).SetString(config.ProposalCostV2, conversionBase)
+	proposalFee, success := big.NewInt(0).SetString(config.Active.ProposalCost, conversionBase)
 	if !success {
 		return nil, vm.ErrIncorrectConfig
 	}
