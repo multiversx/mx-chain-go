@@ -281,7 +281,7 @@ var (
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
-
+	// fullArchive defines a flag that, if set, will make the node act like a full history node
 	fullArchive = cli.BoolFlag{
 		Name:  "full-archive",
 		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
@@ -330,6 +330,7 @@ func getFlags() []cli.Flag {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		fullArchive,
 	}
 }
 
@@ -372,6 +373,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	}
 	if ctx.IsSet(numActivePersisters.Name) {
 		cfgs.GeneralConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
+	}
+	if ctx.IsSet(fullArchive.Name) {
+		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
 	}
 
 	if ctx.IsSet(fullArchive.Name) {
@@ -460,6 +464,25 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
 
 		alterStorageConfigsForDBImport(config)
+	}
+
+	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
+	if config.StoragePruning.FullArchive {
+		log.Debug("full archive node is enabled")
+		if config.GeneralSettings.StartInEpochEnabled {
+			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
+			config.GeneralSettings.StartInEpochEnabled = false
+		}
+		if config.StoragePruning.CleanOldEpochsData {
+			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
+			config.StoragePruning.CleanOldEpochsData = false
+		}
+		if !config.StoragePruning.Enabled {
+			log.Warn("StoragePruning is overridden by FullArchive and set to true")
+			config.StoragePruning.Enabled = true
+		}
+		log.Warn("NumEpochsToKeep is overridden by FullArchive")
+		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
 	}
 }
 

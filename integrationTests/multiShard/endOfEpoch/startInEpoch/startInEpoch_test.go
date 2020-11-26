@@ -188,12 +188,12 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
 
 	coreComponents := integrationTests.GetDefaultCoreComponents()
-	coreComponents.IntMarsh = integrationTests.TestMarshalizer
-	coreComponents.TxMarsh = integrationTests.TestMarshalizer
-	coreComponents.Hash = integrationTests.TestHasher
-	coreComponents.AddrPubKeyConv = integrationTests.TestAddressPubkeyConverter
-	coreComponents.UInt64ByteSliceConv = uint64Converter
-	coreComponents.PathHdl = &mock.PathManagerStub{}
+	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
+	coreComponents.HasherField = integrationTests.TestHasher
+	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.PathHandlerField = &mock.PathManagerStub{}
 	coreComponents.ChainIdCalled = func() string {
 		return string(integrationTests.ChainID)
 	}

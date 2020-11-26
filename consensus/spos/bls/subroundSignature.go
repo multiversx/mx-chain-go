@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 type subroundSignature struct {
@@ -25,6 +26,9 @@ func NewSubroundSignature(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(appStatusHandler){
+		return nil, spos.ErrNilAppStatusHandler
 	}
 
 	srSignature := subroundSignature{

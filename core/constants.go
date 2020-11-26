@@ -581,6 +581,13 @@ const NotSetDestinationShardID = "disabled"
 // considering that constant below is set to 3
 const MultiplyFactorForScCall = 3
 
+// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+// before a special action to be applied
+const MaxRoundsWithoutCommittedStartInEpochBlock = 50
+
+// MaxLeafSize represents maximum amount of data which can be saved under one leaf
+const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 //(that makes the node run properly)
 const DefaultResolversIdentifier = "default resolver"
@@ -601,10 +608,3 @@ const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 // ConsensusPercentageForInterceptedEpochStartMetaBlocks represents the minimum number of peers required to send the
 // same epoch start meta block in order to consider it correct
 const ConsensusPercentageForInterceptedEpochStartMetaBlocks = 51
-
-// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
-// before a special action to be applied
-const MaxRoundsWithoutCommittedStartInEpochBlock = 50
-
-// MaxLeafSize represents maximum amount of data which can be saved under one leaf
-const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB

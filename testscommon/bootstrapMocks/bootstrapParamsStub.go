@@ -2,6 +2,7 @@ package bootstrapMocks
 
 import "github.com/ElrondNetwork/elrond-go/sharding"
 
+// BootstrapParamsHandlerMock -
 type BootstrapParamsHandlerMock struct {
 	EpochCalled       func() uint32
 	SelfShardIDCalled func() uint32

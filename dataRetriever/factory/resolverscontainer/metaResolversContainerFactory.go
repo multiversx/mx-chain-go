@@ -8,7 +8,7 @@ import (
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -130,7 +130,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
+			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
 		if err != nil {
 			return err
 		}
@@ -260,7 +260,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &mock.NilCurrentNetworkEpochProviderHandler{})
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
 	if err != nil {
 		return err
 	}

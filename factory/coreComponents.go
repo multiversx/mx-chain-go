@@ -157,12 +157,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		startRound = int64(ccf.config.Hardfork.StartRound)
 	}
 
-	if ccf.config.GeneralSettings.StartInEpochEnabled {
-		log.Debug("start in epoch is enabled")
-		delayedStartInterval := 2 * time.Second
-		time.Sleep(delayedStartInterval)
-	}
-
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 		ntpTime := syncer.CurrentTime()

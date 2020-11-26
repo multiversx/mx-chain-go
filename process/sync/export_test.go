@@ -130,8 +130,8 @@ func (boot *MetaBootstrap) IsForkDetected() bool {
 }
 
 func (boot *MetaBootstrap) GetNotarizedInfo(
-	lastNotarized map[uint32]*HdrInfo,
-	finalNotarized map[uint32]*HdrInfo,
+	lastNotarized map[uint32]*hdrInfo,
+	finalNotarized map[uint32]*hdrInfo,
 	blockWithLastNotarized map[uint32]uint64,
 	blockWithFinalNotarized map[uint32]uint64,
 	startNonce uint64,
@@ -173,19 +173,8 @@ func (bfd *baseForkDetector) ComputeGenesisTimeFromHeader(headerHandler data.Hea
 	return bfd.computeGenesisTimeFromHeader(headerHandler)
 }
 
-func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*HdrInfo {
-	return make(map[uint32]*HdrInfo)
-}
-
-func (boot *baseBootstrap) SetNotarizedMap(notarizedMap map[uint32]*HdrInfo, shardId uint32, nonce uint64, hash []byte) {
-	hdrInfo, ok := notarizedMap[shardId]
-	if !ok {
-		notarizedMap[shardId] = &HdrInfo{Nonce: nonce, Hash: hash}
-		return
-	}
-
-	hdrInfo.Nonce = nonce
-	hdrInfo.Hash = hash
+func (boot *baseBootstrap) InitNotarizedMap() map[uint32]*hdrInfo {
+	return make(map[uint32]*hdrInfo)
 }
 
 func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {

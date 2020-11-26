@@ -9,6 +9,7 @@ type NetworkShardingCollectorStub struct {
 	UpdatePeerIdPublicKeyCalled  func(pid core.PeerID, pk []byte)
 	UpdatePublicKeyShardIdCalled func(pk []byte, shardId uint32)
 	UpdatePeerIdShardIdCalled    func(pid core.PeerID, shardId uint32)
+	UpdatePeerIdSubTypeCalled    func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfoCalled            func(pid core.PeerID) core.P2PPeerInfo
 	UpdatePeerIdSubTypeCalled    func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 }
@@ -26,6 +27,11 @@ func (nscs *NetworkShardingCollectorStub) UpdatePublicKeyShardId(pk []byte, shar
 // UpdatePeerIdShardId -
 func (nscs *NetworkShardingCollectorStub) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
 	nscs.UpdatePeerIdShardIdCalled(pid, shardId)
+}
+
+// UpdatePeerIdSubType -
+func (nscs *NetworkShardingCollectorStub) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
+	nscs.UpdatePeerIdSubTypeCalled(pid, peerSubType)
 }
 
 // GetPeerInfo -

@@ -22,6 +22,11 @@ type MessengerStub struct {
 	PeersCalled                      func() []core.PeerID
 }
 
+// ConnectedFullHistoryPeersOnTopic -
+func (ms *MessengerStub) ConnectedFullHistoryPeersOnTopic(_ string) []core.PeerID {
+	return make([]core.PeerID, 0)
+}
+
 // ID -
 func (ms *MessengerStub) ID() core.PeerID {
 	if ms.IDCalled != nil {
@@ -117,7 +122,7 @@ func (ms *MessengerStub) IsInterfaceNil() bool {
 	return ms == nil
 }
 
-// IsConnected
+// IsConnected -
 func (ms *MessengerStub) IsConnected(_ core.PeerID) bool {
 	return false
 }

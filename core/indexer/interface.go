@@ -33,7 +33,6 @@ type Indexer interface {
 	SaveAccounts(acc []state.UserAccountHandler)
 	Close() error
 	IsInterfaceNil() bool
-	//TODO: is this really needed?
 	IsNilIndexer() bool
 }
 

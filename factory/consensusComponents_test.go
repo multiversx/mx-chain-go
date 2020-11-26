@@ -12,7 +12,6 @@ import (
 	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -191,32 +190,6 @@ func TestConsensusComponentsFactory_Create_NilShardCoordinator(t *testing.T) {
 
 	require.Nil(t, cc)
 	require.Equal(t, errorsErd.ErrNilShardCoordinator, err)
-}
-
-func TestConsensusComponentsFactory_Create_ConsensusTopicValidatorAlreadySet(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := getConsensusArgs(shardCoordinator)
-	networkComponents := getDefaultNetworkComponents()
-	networkComponents.Messenger = &mock.MessengerStub{
-		HasTopicValidatorCalled: func(name string) bool {
-			return true
-		},
-		HasTopicCalled: func(name string) bool {
-			return true
-		},
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
-			return errorsErd.ErrValidatorAlreadySet
-		},
-	}
-	args.NetworkComponents = networkComponents
-
-	bcf, _ := factory.NewConsensusComponentsFactory(args)
-	cc, err := bcf.Create()
-
-	require.Nil(t, cc)
-	require.Equal(t, errorsErd.ErrValidatorAlreadySet, err)
 }
 
 func TestConsensusComponentsFactory_Create_ConsensusTopicCreateTopicError(t *testing.T) {

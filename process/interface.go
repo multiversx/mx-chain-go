@@ -960,18 +960,6 @@ type EpochNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
-type NumConnectedPeersProvider interface {
-	ConnectedPeers() []core.PeerID
-	IsInterfaceNil() bool
-}
-
-// CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
-type CurrentNetworkEpochSetter interface {
-	SetNetworkEpochAtBootstrap(epoch uint32)
-	IsInterfaceNil() bool
-}
-
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
@@ -1017,5 +1005,17 @@ type CryptoComponentsHolder interface {
 	SetMultiSigner(ms crypto.MultiSigner) error
 	PublicKey() crypto.PublicKey
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+// NumConnectedPeersProvider defnies the actions that a component that provides the number of connected peers should do
+type NumConnectedPeersProvider interface {
+	ConnectedPeers() []core.PeerID
+	IsInterfaceNil() bool
+}
+
+// CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
+type CurrentNetworkEpochSetter interface {
+	SetNetworkEpochAtBootstrap(epoch uint32)
 	IsInterfaceNil() bool
 }

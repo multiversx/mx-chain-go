@@ -59,7 +59,7 @@ func (nah *NilAntifloodHandler) IsOriginatorEligibleForTopic(_ core.PeerID, _ st
 }
 
 // Close does nothing
-func (af *NilAntifloodHandler) Close() error {
+func (nah *NilAntifloodHandler) Close() error {
 	return nil
 }
 

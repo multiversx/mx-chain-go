@@ -57,8 +57,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// TODO: check underlying components if there are goroutines with infinite for loops
-
 var log = logger.GetOrCreate("factory")
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
@@ -86,17 +84,16 @@ type processComponents struct {
 	requestHandler              process.RequestHandler
 	txLogsProcessor             process.TransactionLogProcessorDatabase
 	headerConstructionValidator process.HeaderConstructionValidator
-	// TODO: maybe move PeerShardMapper to network components
-	peerShardMapper         process.NetworkShardingCollector
-	txSimulatorProcessor    TransactionSimulatorProcessor
-	miniBlocksPoolCleaner   process.PoolsCleaner
-	txsPoolCleaner          process.PoolsCleaner
-	fallbackHeaderValidator process.FallbackHeaderValidator
-	whiteListHandler        process.WhiteListHandler
-	whiteListerVerifiedTxs  process.WhiteListHandler
-	historyRepository       dblookupext.HistoryRepository
-	importStartHandler      update.ImportStartHandler
-	requestedItemsHandler   dataRetriever.RequestedItemsHandler
+	peerShardMapper             process.NetworkShardingCollector
+	txSimulatorProcessor        TransactionSimulatorProcessor
+	miniBlocksPoolCleaner       process.PoolsCleaner
+	txsPoolCleaner              process.PoolsCleaner
+	fallbackHeaderValidator     process.FallbackHeaderValidator
+	whiteListHandler            process.WhiteListHandler
+	whiteListerVerifiedTxs      process.WhiteListHandler
+	historyRepository           dblookupext.HistoryRepository
+	importStartHandler          update.ImportStartHandler
+	requestedItemsHandler       dataRetriever.RequestedItemsHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -497,6 +494,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	// TODO: maybe move PeerShardMapper to network components
 	peerShardMapper, err := pcf.prepareNetworkShardingCollector()
 	if err != nil {
 		return nil, err
