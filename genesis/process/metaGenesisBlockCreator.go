@@ -12,6 +12,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -31,8 +33,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
@@ -221,14 +221,17 @@ func saveGenesisMetaToStorage(
 func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.PubkeyConv,
-		StorageService:   arg.Store,
-		BlockChain:       arg.Blkc,
-		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Marshalizer,
-		Uint64Converter:  arg.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           arg.Accounts,
+		PubkeyConv:         arg.PubkeyConv,
+		StorageService:     arg.Store,
+		BlockChain:         arg.Blkc,
+		ShardCoordinator:   arg.ShardCoordinator,
+		Marshalizer:        arg.Marshalizer,
+		Uint64Converter:    arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           arg.DataPool,
+		CompiledSCPool:     arg.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
@@ -242,7 +245,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		argsHook,
 		arg.Economics,
 		pubKeyVerifier,
-		arg.GasMap,
+		arg.GasSchedule,
 		arg.InitialNodesSetup,
 		arg.Hasher,
 		arg.Marshalizer,
@@ -319,7 +322,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		EconomicsFee:                   genesisFeeHandler,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasHandler,
-		GasSchedule:                    arg.GasMap,
+		GasSchedule:                    arg.GasSchedule,
 		BuiltInFunctions:               virtualMachineFactory.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxForwarder,
@@ -333,16 +336,19 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	txProcessor, err := processTransaction.NewMetaTxProcessor(
-		arg.Hasher,
-		arg.Marshalizer,
-		arg.Accounts,
-		arg.PubkeyConv,
-		arg.ShardCoordinator,
-		scProcessor,
-		txTypeHandler,
-		genesisFeeHandler,
-	)
+	argsNewMetaTxProcessor := processTransaction.ArgsNewMetaTxProcessor{
+		Hasher:           arg.Hasher,
+		Marshalizer:      arg.Marshalizer,
+		Accounts:         arg.Accounts,
+		PubkeyConv:       arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+		ScProcessor:      scProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     genesisFeeHandler,
+		ESDTEnableEpoch:  arg.SystemSCConfig.ESDTSystemSCConfig.EnabledEpoch,
+		EpochNotifier:    epochNotifier,
+	}
+	txProcessor, err := processTransaction.NewMetaTxProcessor(argsNewMetaTxProcessor)
 	if err != nil {
 		return nil, process.ErrNilTxProcessor
 	}

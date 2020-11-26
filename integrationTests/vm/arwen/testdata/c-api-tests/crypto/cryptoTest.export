@@ -1,0 +1,9 @@
+init
+sha256Test
+keccak256Test
+ripemd160Test
+verifyBLSTest
+verifyEd25519Test
+verifySecp256k1UncompressedKeyTest
+verifySecp256k1CompressedKeyTest
+doNothing
