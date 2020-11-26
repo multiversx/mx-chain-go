@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
@@ -38,7 +39,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -382,7 +382,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain := blockchain.NewMetaChain()
-	dataPool := testscommon.NewPoolsHolderMock()
+	testDataPool := testscommon.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           userAccountsDB,
 		PubkeyConv:         &mock.PubkeyConverterMock{},
@@ -392,8 +392,8 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 		Marshalizer:        marshalizer,
 		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:           dataPool,
-		CompiledSCPool:     dataPool.SmartContracts(),
+		DataPool:           testDataPool,
+		CompiledSCPool:     testDataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
 

@@ -287,7 +287,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.DelegationManagerSCAddress, delegationManager)
+	err = scf.systemSCsContainer.Add(vm.DelegationManagerSCAddress, delegationManager)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +297,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.FirstDelegationSCAddress, delegation)
+	err = scf.systemSCsContainer.Add(vm.FirstDelegationSCAddress, delegation)
 	if err != nil {
 		return nil, err
 	}

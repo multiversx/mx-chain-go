@@ -80,7 +80,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
-	if check.IfNil(gasSchedule) {
+	if check.IfNil(args.GasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
 

@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -685,7 +686,17 @@ func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler,
 
 func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount state.UserAccountHandler) ([][]byte, error) {
 	auctionAccounts := make([][]byte, 0)
-	chLeaves := userAuctionAccount.DataTrie().GetAllLeavesOnChannel()
+
+	rootHash, err := userAuctionAccount.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAuctionAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
 	for leaf := range chLeaves {
 		auctionData := &systemSmartContracts.AuctionDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.AuctionSCAddress...))

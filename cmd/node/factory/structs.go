@@ -2126,7 +2126,7 @@ func newMetaBlockProcessor(
 			ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
 			NodesConfigProvider:           nodesCoordinator,
 			UserAccountsDB:                stateComponents.AccountsAdapter,
-			RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
+			RewardsFix1EpochEnable:        generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 			DelegationSystemSCEnableEpoch: systemSCConfig.DelegationSystemSCConfig.EnabledEpoch,
 		},
 
@@ -2203,7 +2203,7 @@ func newMetaBlockProcessor(
 		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
 		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		GenesisNodesConfig:                     nodesSetup,
-		MaxNodesEnableConfig:                   generalSettingsConfig.MaxNodesChangeEnableEpoch,
+		MaxNodesEnableConfig:                   generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

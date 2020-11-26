@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const delegationManagementKey = "delegationManagement"
@@ -33,6 +34,7 @@ type delegationManager struct {
 	minCreationDeposit       *big.Int
 	minFee                   uint64
 	maxFee                   uint64
+	mutExecution             sync.RWMutex
 }
 
 // ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
@@ -378,6 +380,13 @@ func (d *delegationManager) saveDelegationContractList(list *DelegationContractL
 
 	d.eei.SetStorage([]byte(delegationContractsList), marshaledData)
 	return nil
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
+	d.mutExecution.Lock()
+	d.gasCost = gasCost
+	d.mutExecution.Unlock()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
