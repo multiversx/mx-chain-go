@@ -11,6 +11,8 @@ import (
 
 // ------------ Test TestManagedProcessComponents --------------------
 func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
 	_ = processArgs.CoreData.SetInternalMarshalizer(nil)
@@ -23,6 +25,8 @@ func TestManagedProcessComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) 
 }
 
 func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.SelfIDCalled = func() uint32 {
@@ -98,6 +102,8 @@ func TestManagedProcessComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedProcessComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	processArgs := getProcessComponentsArgs(shardCoordinator)
 	processComponentsFactory, _ := factory.NewProcessComponentsFactory(processArgs)

@@ -52,13 +52,15 @@ func (mnc *managedNetworkComponents) Close() error {
 	mnc.mutNetworkComponents.Lock()
 	defer mnc.mutNetworkComponents.Unlock()
 
-	if mnc.networkComponents != nil {
-		err := mnc.networkComponents.Close()
-		if err != nil {
-			return err
-		}
-		mnc.networkComponents = nil
+	if mnc.networkComponents == nil {
+		return nil
 	}
+
+	err := mnc.networkComponents.Close()
+	if err != nil {
+		return err
+	}
+	mnc.networkComponents = nil
 
 	return nil
 }
@@ -168,6 +170,6 @@ func (mnc *managedNetworkComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedNetworkComponents) String() string {
+func (mnc *managedNetworkComponents) String() string {
 	return "managedNetworkComponents"
 }

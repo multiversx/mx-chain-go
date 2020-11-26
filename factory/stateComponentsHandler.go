@@ -14,8 +14,6 @@ var _ ComponentHandler = (*managedStateComponents)(nil)
 var _ StateComponentsHolder = (*managedStateComponents)(nil)
 var _ StateComponentsHandler = (*managedStateComponents)(nil)
 
-// TODO: integrate this in main.go and remove obsolete component from structs.go afterwards
-
 type managedStateComponents struct {
 	*stateComponents
 	factory            *stateComponentsFactory
@@ -35,56 +33,58 @@ func NewManagedStateComponents(scf *stateComponentsFactory) (*managedStateCompon
 }
 
 // Create will create the managed components
-func (m *managedStateComponents) Create() error {
-	sc, err := m.factory.Create()
+func (msc *managedStateComponents) Create() error {
+	sc, err := msc.factory.Create()
 	if err != nil {
 		return fmt.Errorf("%w: %v", errors.ErrStateComponentsFactoryCreate, err)
 	}
 
-	m.mutStateComponents.Lock()
-	m.stateComponents = sc
-	m.mutStateComponents.Unlock()
+	msc.mutStateComponents.Lock()
+	msc.stateComponents = sc
+	msc.mutStateComponents.Unlock()
 
 	return nil
 }
 
 // Close will close all underlying sub-components
-func (m *managedStateComponents) Close() error {
-	m.mutStateComponents.Lock()
-	defer m.mutStateComponents.Unlock()
+func (msc *managedStateComponents) Close() error {
+	msc.mutStateComponents.Lock()
+	defer msc.mutStateComponents.Unlock()
 
-	if m.stateComponents != nil {
-		err := m.stateComponents.Close()
-		if err != nil {
-			return err
-		}
-		m.stateComponents = nil
+	if msc.stateComponents == nil {
+		return nil
 	}
+
+	err := msc.stateComponents.Close()
+	if err != nil {
+		return err
+	}
+	msc.stateComponents = nil
 
 	return nil
 }
 
 // CheckSubcomponents verifies all subcomponents
-func (m *managedStateComponents) CheckSubcomponents() error {
-	m.mutStateComponents.Lock()
-	defer m.mutStateComponents.Unlock()
+func (msc *managedStateComponents) CheckSubcomponents() error {
+	msc.mutStateComponents.Lock()
+	defer msc.mutStateComponents.Unlock()
 
-	if m.stateComponents == nil {
+	if msc.stateComponents == nil {
 		return errors.ErrNilStateComponents
 	}
-	if check.IfNil(m.peerAccounts) {
+	if check.IfNil(msc.peerAccounts) {
 		return errors.ErrNilPeerAccounts
 	}
-	if check.IfNil(m.accountsAdapter) {
+	if check.IfNil(msc.accountsAdapter) {
 		return errors.ErrNilAccountsAdapter
 	}
-	if check.IfNil(m.triesContainer) {
+	if check.IfNil(msc.triesContainer) {
 		return errors.ErrNilTriesContainer
 	}
-	if len(m.trieStorageManagers) == 0 {
+	if len(msc.trieStorageManagers) == 0 {
 		return errors.ErrNilStorageManagers
 	}
-	for _, trieStorageManager := range m.trieStorageManagers {
+	for _, trieStorageManager := range msc.trieStorageManagers {
 		if check.IfNil(trieStorageManager) {
 			return errors.ErrNilTrieStorageManager
 		}
@@ -94,54 +94,54 @@ func (m *managedStateComponents) CheckSubcomponents() error {
 }
 
 // PeerAccounts returns the accounts adapter for the validators
-func (m *managedStateComponents) PeerAccounts() state.AccountsAdapter {
-	m.mutStateComponents.RLock()
-	defer m.mutStateComponents.RUnlock()
+func (msc *managedStateComponents) PeerAccounts() state.AccountsAdapter {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
 
-	if m.stateComponents == nil {
+	if msc.stateComponents == nil {
 		return nil
 	}
 
-	return m.stateComponents.peerAccounts
+	return msc.stateComponents.peerAccounts
 }
 
 // AccountsAdapter returns the accounts adapter for the user accounts
-func (m *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
-	m.mutStateComponents.RLock()
-	defer m.mutStateComponents.RUnlock()
+func (msc *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
 
-	if m.stateComponents == nil {
+	if msc.stateComponents == nil {
 		return nil
 	}
 
-	return m.stateComponents.accountsAdapter
+	return msc.stateComponents.accountsAdapter
 }
 
 // TriesContainer returns the tries container
-func (m *managedStateComponents) TriesContainer() state.TriesHolder {
-	m.mutStateComponents.RLock()
-	defer m.mutStateComponents.RUnlock()
+func (msc *managedStateComponents) TriesContainer() state.TriesHolder {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
 
-	if m.stateComponents == nil {
+	if msc.stateComponents == nil {
 		return nil
 	}
 
-	return m.stateComponents.triesContainer
+	return msc.stateComponents.triesContainer
 }
 
 // TrieStorageManagers returns the trie storage manager for the given account type
-func (m *managedStateComponents) TrieStorageManagers() map[string]data.StorageManager {
-	m.mutStateComponents.RLock()
-	defer m.mutStateComponents.RUnlock()
+func (msc *managedStateComponents) TrieStorageManagers() map[string]data.StorageManager {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
 
-	if m.stateComponents == nil {
+	if msc.stateComponents == nil {
 		return nil
 	}
 
 	retMap := make(map[string]data.StorageManager)
 
 	// give back a map copy
-	for key, val := range m.stateComponents.trieStorageManagers {
+	for key, val := range msc.stateComponents.trieStorageManagers {
 		retMap[key] = val
 	}
 
@@ -149,37 +149,37 @@ func (m *managedStateComponents) TrieStorageManagers() map[string]data.StorageMa
 }
 
 // SetTriesContainer sets the internal tries container to the one given as parameter
-func (m *managedStateComponents) SetTriesContainer(triesContainer state.TriesHolder) error {
+func (msc *managedStateComponents) SetTriesContainer(triesContainer state.TriesHolder) error {
 	if check.IfNil(triesContainer) {
 		return errors.ErrNilTriesContainer
 	}
 
-	m.mutStateComponents.Lock()
-	m.stateComponents.triesContainer = triesContainer
-	m.mutStateComponents.Unlock()
+	msc.mutStateComponents.Lock()
+	msc.stateComponents.triesContainer = triesContainer
+	msc.mutStateComponents.Unlock()
 
 	return nil
 }
 
 // SetTriesStorageManagers sets the internal map with the given parameter
-func (m *managedStateComponents) SetTriesStorageManagers(managers map[string]data.StorageManager) error {
+func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]data.StorageManager) error {
 	if len(managers) == 0 {
 		return errors.ErrNilTriesStorageManagers
 	}
 
-	m.mutStateComponents.Lock()
-	m.stateComponents.trieStorageManagers = managers
-	m.mutStateComponents.Unlock()
+	msc.mutStateComponents.Lock()
+	msc.stateComponents.trieStorageManagers = managers
+	msc.mutStateComponents.Unlock()
 
 	return nil
 }
 
 // IsInterfaceNil returns true if the interface is nil
-func (m *managedStateComponents) IsInterfaceNil() bool {
-	return m == nil
+func (msc *managedStateComponents) IsInterfaceNil() bool {
+	return msc == nil
 }
 
 // String returns the name of the component
-func (mbf *managedStateComponents) String() string {
+func (msc *managedStateComponents) String() string {
 	return "managedStateComponents"
 }

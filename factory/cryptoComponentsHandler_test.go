@@ -10,6 +10,8 @@ import (
 
 // ------------ Test ManagedCryptoComponents --------------------
 func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "invalid"
@@ -22,6 +24,8 @@ func TestManagedCryptoComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)
@@ -45,6 +49,8 @@ func TestManagedCryptoComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
 	err := managedCryptoComponents.CheckSubcomponents()
@@ -52,6 +58,8 @@ func TestManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 }
 
 func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
+	t.Parallel()
+
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
 	ms := &mock.MultisignMock{}
@@ -62,6 +70,8 @@ func TestManagedCryptoComponents_SetMultiSigner(t *testing.T) {
 }
 
 func TestManagedCryptoComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	managedCryptoComponents := getManagedCryptoComponents(t)
 
 	err := managedCryptoComponents.Close()
@@ -83,6 +93,8 @@ func getManagedCryptoComponents(t *testing.T) factory.CryptoComponentsHandler {
 }
 
 func TestManagedCryptoComponents_Clone(t *testing.T) {
+	t.Parallel()
+
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := factory.NewCryptoComponentsFactory(args)

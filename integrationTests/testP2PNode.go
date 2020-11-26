@@ -148,9 +148,9 @@ func (tP2pNode *TestP2PNode) initNode() {
 	log.LogIfError(err)
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.ValPubKeyConv = TestValidatorPubkeyConverter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.BlKeyGen = tP2pNode.KeyGen

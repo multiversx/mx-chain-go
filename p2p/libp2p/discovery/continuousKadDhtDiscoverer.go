@@ -156,6 +156,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 		ckdd.initialPeersList,
 	)
 
+	// TODO: needs refactor
 	go func() {
 		select {
 		case <-chanStartBootstrap:

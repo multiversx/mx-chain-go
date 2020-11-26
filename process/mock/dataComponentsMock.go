@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
+// DataComponentsMock -
 type DataComponentsMock struct {
 	Storage    dataRetriever.StorageService
 	DataPool   dataRetriever.PoolsHolder

@@ -56,13 +56,15 @@ func (mcc *managedCryptoComponents) Close() error {
 	mcc.mutCryptoComponents.Lock()
 	defer mcc.mutCryptoComponents.Unlock()
 
-	if mcc.cryptoComponents != nil {
-		err := mcc.cryptoComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcc.cryptoComponents = nil
+	if mcc.cryptoComponents == nil {
+		return nil
 	}
+
+	err := mcc.cryptoComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.cryptoComponents = nil
 
 	return nil
 }
@@ -292,6 +294,6 @@ func (mcc *managedCryptoComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedCryptoComponents) String() string {
+func (mcc *managedCryptoComponents) String() string {
 	return "managedCryptoComponents"
 }
