@@ -10,6 +10,8 @@ import (
 
 // ------------ Test ManagedStatusComponents --------------------
 func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	coreComponents := getDefaultCoreComponents()
@@ -25,6 +27,8 @@ func TestManagedStatusComponents_CreateWithInvalidArgs_ShouldErr(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
@@ -42,6 +46,8 @@ func TestManagedStatusComponents_Create_ShouldWork(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Close(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)
@@ -54,6 +60,8 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 }
 
 func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
+	t.Parallel()
+
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	statusArgs, _ := getStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
 	statusComponentsFactory, _ := factory.NewStatusComponentsFactory(statusArgs)

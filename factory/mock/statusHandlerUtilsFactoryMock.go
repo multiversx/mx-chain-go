@@ -6,10 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
+// StatusHandlersFactoryMock -
 type StatusHandlersFactoryMock struct {
 }
 
-func (shfm *StatusHandlersFactoryMock) Create(marshalizer marshal.Marshalizer, converter typeConverters.Uint64ByteSliceConverter) (factory.StatusHandlersUtils, error) {
+// Create -
+func (shfm *StatusHandlersFactoryMock) Create(_ marshal.Marshalizer, _ typeConverters.Uint64ByteSliceConverter) (factory.StatusHandlersUtils, error) {
 	return &StatusHandlersUtilsMock{
 		AppStatusHandler: &AppStatusHandlerMock{},
 	}, nil

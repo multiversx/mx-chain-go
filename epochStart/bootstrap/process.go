@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -34,7 +35,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/sync"
+	updateSync "github.com/ElrondNetwork/elrond-go/update/sync"
 )
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
@@ -83,6 +84,7 @@ type epochStartBootstrap struct {
 	rater                      sharding.ChanceComputer
 	trieContainer              state.TriesHolder
 	trieStorageManagers        map[string]data.StorageManager
+	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
 	rounder                    epochStart.Rounder
 	addressPubkeyConverter     core.PubkeyConverter
@@ -263,7 +265,15 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 
 // GetTriesComponents returns the created tries components according to the shardID for the current epoch
 func (e *epochStartBootstrap) GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager) {
-	return e.trieContainer, e.trieStorageManagers
+	e.mutTrieStorageManagers.RLock()
+	defer e.mutTrieStorageManagers.RUnlock()
+
+	storageManagers := make(map[string]data.StorageManager)
+	for k, v := range e.trieStorageManagers {
+		storageManagers[k] = v
+	}
+
+	return e.trieContainer, storageManagers
 }
 
 // Bootstrap runs the fast bootstrap method from the network or local storage
@@ -450,24 +460,24 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	e.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	e.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return err
 	}
 
-	syncMissingHeadersArgs := sync.ArgsNewMissingHeadersByHashSyncer{
+	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.Headers(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	e.headersSyncer, err = sync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 	if err != nil {
 		return err
 	}
@@ -771,11 +781,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 		return err
 	}
 
+	e.mutTrieStorageManagers.RLock()
+	trieStorageManager := e.trieStorageManagers[factory.UserAccountTrie]
+	e.mutTrieStorageManagers.RUnlock()
+
 	argsUserAccountsSyncer := syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:               e.coreComponentsHolder.Hasher(),
 			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
+			TrieStorageManager:   trieStorageManager,
 			RequestHandler:       e.requestHandler,
 			WaitTime:             trieSyncWaitTime,
 			Cacher:               e.dataPool.TrieNodes(),
@@ -824,7 +838,9 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	}
 
 	e.trieContainer.Put([]byte(factory.UserAccountTrie), userAccountTrie)
+	e.mutTrieStorageManagers.Lock()
 	e.trieStorageManagers[factory.UserAccountTrie] = userStorageManager
+	e.mutTrieStorageManagers.Unlock()
 
 	peerStorageManager, peerAccountsTrie, err := trieFactory.Create(
 		e.generalConfig.PeerAccountsTrieStorage,
@@ -836,18 +852,24 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 		return err
 	}
 
+	e.mutTrieStorageManagers.Lock()
 	e.trieContainer.Put([]byte(factory.PeerAccountTrie), peerAccountsTrie)
 	e.trieStorageManagers[factory.PeerAccountTrie] = peerStorageManager
+	e.mutTrieStorageManagers.Unlock()
 
 	return nil
 }
 
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
+	e.mutTrieStorageManagers.RLock()
+	peerTrieStorageManager := e.trieStorageManagers[factory.PeerAccountTrie]
+	e.mutTrieStorageManagers.RUnlock()
+
 	argsValidatorAccountsSyncer := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:               e.coreComponentsHolder.Hasher(),
 			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
-			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
+			TrieStorageManager:   peerTrieStorageManager,
 			RequestHandler:       e.requestHandler,
 			WaitTime:             trieSyncWaitTime,
 			Cacher:               e.dataPool.TrieNodes(),
@@ -940,18 +962,11 @@ func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uin
 	return receivedShardID
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// Close closes the component's opened storage services/started go-routines
 func (e *epochStartBootstrap) Close() error {
-	if e.trieContainer != nil {
-		log.Debug("closing all dataTries....")
-		dataTries := e.trieContainer.GetAll()
-		for _, trie := range dataTries {
-			err := trie.ClosePersister()
-			log.LogIfError(err)
-		}
-	}
+	e.mutTrieStorageManagers.RLock()
+	defer e.mutTrieStorageManagers.RUnlock()
 
-	//TODO: protect the trieStorageManager map with mutex
 	if e.trieStorageManagers != nil {
 		log.Debug("closing all trieStorageManagers....")
 		for _, tsm := range e.trieStorageManagers {

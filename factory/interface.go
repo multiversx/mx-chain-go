@@ -278,7 +278,7 @@ type ProcessComponentsHandler interface {
 	ProcessComponentsHolder
 }
 
-// StateComponentsHandler
+// StateComponentsHandler defines the state components handler actions
 type StateComponentsHandler interface {
 	ComponentHandler
 	StateComponentsHolder
@@ -377,6 +377,7 @@ type ConsensusWorker interface {
 	IsInterfaceNil() bool
 }
 
+// HardforkTrigger defines the hard-fork trigger functionality
 type HardforkTrigger interface {
 	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
 	RecordedTriggerMessage() ([]byte, bool)
@@ -404,8 +405,8 @@ type ConsensusComponentsHandler interface {
 	ConsensusComponentsHolder
 }
 
-// BootstrapParamsHandler gives read access to parameters after bootstrap
-type BootstrapParamsHandler interface {
+// BootstrapParamsHolder gives read access to parameters after bootstrap
+type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
@@ -413,6 +414,7 @@ type BootstrapParamsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EpochStartBootstrapper defines the epoch start bootstrap functionality
 type EpochStartBootstrapper interface {
 	GetTriesComponents() (state.TriesHolder, map[string]data.StorageManager)
 	Bootstrap() (bootstrap.Parameters, error)
@@ -423,7 +425,7 @@ type EpochStartBootstrapper interface {
 // BootstrapComponentsHolder holds the bootstrap components
 type BootstrapComponentsHolder interface {
 	EpochStartBootstrapper() EpochStartBootstrapper
-	EpochBootstrapParams() BootstrapParamsHandler
+	EpochBootstrapParams() BootstrapParamsHolder
 	NodeType() core.NodeType
 	ShardCoordinator() sharding.Coordinator
 	HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler

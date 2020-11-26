@@ -7,6 +7,7 @@ import (
 
 var _ process.TransactionLogProcessorDatabase = (*TxLogProcessorMock)(nil)
 
+// TxLogProcessorMock -
 type TxLogProcessorMock struct {
 }
 

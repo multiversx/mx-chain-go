@@ -46,7 +46,6 @@ type Monitor struct {
 	marshalizer                        marshal.Marshalizer
 	peerTypeProvider                   heartbeat.PeerTypeProviderHandler
 	mutHeartbeatMessages               sync.RWMutex
-	mutAppStatusHandler                sync.Mutex
 	heartbeatMessages                  map[string]*heartbeatMessageInfo
 	doubleSignerPeers                  map[string]process.TimeCacher
 	pubKeysMap                         map[uint32][]string
@@ -400,10 +399,8 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
-	m.mutAppStatusHandler.Lock()
 	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
-	m.mutAppStatusHandler.Unlock()
 }
 
 func (m *Monitor) computeInactiveHeartbeatMessages() {
@@ -576,13 +573,13 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
 		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
-		tc.Add(string(hb.Pid))
+		_=tc.Add(string(hb.Pid))
 		m.doubleSignerPeers[pubKeyStr] = tc
 		return
 	}
 
 	tc.Sweep()
-	tc.Add(string(hb.Pid))
+	_=tc.Add(string(hb.Pid))
 }
 
 func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
@@ -594,6 +591,7 @@ func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
 	return uint64(tc.Len())
 }
 
+// Cleanup cleans the unnecessary messages
 func (m *Monitor) Cleanup() {
 	m.mutHeartbeatMessages.Lock()
 	for k, v := range m.heartbeatMessages {

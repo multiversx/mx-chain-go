@@ -13,7 +13,7 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilCoreComponentsHolder signals that a nil core components holder was provided
 var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
 
-// ErrNilCoreComponentsHolder signals that a nil crypto components holder was provided
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
 var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 
 // ErrNilDataComponentsHolder signals that a nil data components holder was provided

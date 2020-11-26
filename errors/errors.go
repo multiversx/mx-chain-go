@@ -182,9 +182,6 @@ var ErrNilForkDetector = errors.New("fork detector is nil")
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil gas schedule")
 
-// ErrNilGenesisNodesSetup signals that a nil genesis nodes setup
-var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
-
 // ErrNilHasher is raised when a valid hasher is expected but nil used
 var ErrNilHasher = errors.New("nil hasher provided")
 
@@ -346,6 +343,9 @@ var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
 
 // ErrNilStatusHandler signals that a nil status handler was provided
 var ErrNilStatusHandler = errors.New("nil status handler provided")
+
+// ErrNilHardforkTrigger signals that a nil hardfork trigger was provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 
 // ErrNilStatusHandlersUtils signals that a nil status handlers utils instance was provided
 var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")

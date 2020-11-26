@@ -75,7 +75,7 @@ func TestNewStatusComponents_InvalidRoundDurationShouldErr(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	coreArgs := getCoreArgs()
-	coreArgs.NodesFilename = "mock/nodesSetupMockInvalidRound.json"
+	coreArgs.NodesFilename = "mock/testdata/nodesSetupMockInvalidRound.json"
 	coreComponentsFactory, _ := factory.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := factory.NewManagedCoreComponents(coreComponentsFactory)
 	require.Nil(t, err)

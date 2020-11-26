@@ -536,11 +536,11 @@ func CreateFullGenesisBlocks(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.TxMarsh = TestTxSignMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.UInt64ByteSliceConv = TestUint64Converter
-	coreComponents.AddrPubKeyConv = TestAddressPubkeyConverter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.AddressPubKeyConverterField = TestAddressPubkeyConverter
 	coreComponents.ChainIdCalled = func() string {
 		return "undefined"
 	}
@@ -637,10 +637,10 @@ func CreateGenesisMetaBlock(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = marshalizer
-	coreComponents.Hash = hasher
-	coreComponents.UInt64ByteSliceConv = uint64Converter
-	coreComponents.AddrPubKeyConv = pubkeyConv
+	coreComponents.InternalMarshalizerField = marshalizer
+	coreComponents.HasherField = hasher
+	coreComponents.Uint64ByteSliceConverterField = uint64Converter
+	coreComponents.AddressPubKeyConverterField = pubkeyConv
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = store
@@ -1868,12 +1868,12 @@ func generateValidTx(
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.TxMarsh = TestTxSignMarshalizer
-	coreComponents.VmMarsh = TestMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.AddrPubKeyConv = TestAddressPubkeyConverter
-	coreComponents.ValPubKeyConv = TestValidatorPubkeyConverter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.VmMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.AddressPubKeyConverterField = TestAddressPubkeyConverter
+	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.TxSig = &ed25519SingleSig.Ed25519Signer{}

@@ -164,8 +164,8 @@ func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingColle
 }
 
 // FallbackHeaderValidator -
-func (pcm *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHeaderValidator {
-	return pcm.FallbackHdrValidator
+func (pcs *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHeaderValidator {
+	return pcs.FallbackHdrValidator
 }
 
 // TransactionSimulatorProcessor -

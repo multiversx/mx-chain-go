@@ -833,10 +833,10 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	}
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.TxMarsh = TestTxSignMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.UInt64ByteSliceConv = TestUint64Converter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.ChainIdCalled = func() string {
 		return string(tpn.ChainID)
 	}
@@ -1372,9 +1372,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.UInt64ByteSliceConv = TestUint64Converter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.Store = tpn.Storage
@@ -1582,21 +1582,21 @@ func (tpn *TestProcessorNode) initNode() {
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	coreComponents := GetDefaultCoreComponents()
-	coreComponents.IntMarsh = TestMarshalizer
-	coreComponents.VmMarsh = TestVmMarshalizer
-	coreComponents.TxMarsh = TestTxSignMarshalizer
-	coreComponents.Hash = TestHasher
-	coreComponents.AddrPubKeyConv = TestAddressPubkeyConverter
-	coreComponents.ValPubKeyConv = TestValidatorPubkeyConverter
+	coreComponents.InternalMarshalizerField = TestMarshalizer
+	coreComponents.VmMarshalizerField = TestVmMarshalizer
+	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
+	coreComponents.HasherField = TestHasher
+	coreComponents.AddressPubKeyConverterField = TestAddressPubkeyConverter
+	coreComponents.ValidatorPubKeyConverterField = TestValidatorPubkeyConverter
 	coreComponents.ChainIdCalled = func() string {
 		return string(tpn.ChainID)
 	}
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return tpn.MinTransactionVersion
 	}
-	coreComponents.UInt64ByteSliceConv = TestUint64Converter
-	coreComponents.EconomicsHandler = tpn.EconomicsData
-	coreComponents.NtpTimer = &mock.SyncTimerMock{}
+	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.EconomicsDataField = tpn.EconomicsData
+	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tpn.BlockChain
@@ -2202,30 +2202,30 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
-		IntMarsh:            TestMarshalizer,
-		TxMarsh:             TestTxSignMarshalizer,
-		VmMarsh:             TestVmMarshalizer,
-		Hash:                TestHasher,
-		UInt64ByteSliceConv: TestUint64Converter,
-		AddrPubKeyConv:      TestAddressPubkeyConverter,
-		ValPubKeyConv:       TestValidatorPubkeyConverter,
-		PathHdl:             &testscommon.PathManagerStub{},
+		InternalMarshalizerField:      TestMarshalizer,
+		TxMarshalizerField:            TestTxSignMarshalizer,
+		VmMarshalizerField:            TestVmMarshalizer,
+		HasherField:                   TestHasher,
+		Uint64ByteSliceConverterField: TestUint64Converter,
+		AddressPubKeyConverterField:   TestAddressPubkeyConverter,
+		ValidatorPubKeyConverterField: TestValidatorPubkeyConverter,
+		PathHandlerField:              &testscommon.PathManagerStub{},
 		ChainIdCalled: func() string {
 			return string(ChainID)
 		},
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:     &testscommon.AppStatusHandlerStub{},
-		WDTimer:          &testscommon.WatchdogMock{},
-		Alarm:            &testscommon.AlarmSchedulerStub{},
-		NtpTimer:         &testscommon.SyncTimerStub{},
-		RoundHandler:     &testscommon.RounderMock{},
-		EconomicsHandler: &economicsMocks.EconomicsHandlerMock{},
-		RatingsConfig:    &testscommon.RatingsInfoMock{},
-		RatingHandler:    &testscommon.RaterMock{},
-		NodesConfig:      &testscommon.NodesSetupStub{},
-		StartTime:        time.Time{},
+		StatusHandlerField:     &testscommon.AppStatusHandlerStub{},
+		WatchdogField:          &testscommon.WatchdogMock{},
+		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
+		SyncTimerField:         &testscommon.SyncTimerStub{},
+		RounderField:           &testscommon.RounderMock{},
+		EconomicsDataField:     &economicsMocks.EconomicsHandlerMock{},
+		RatingsDataField:       &testscommon.RatingsInfoMock{},
+		RaterField:             &testscommon.RaterMock{},
+		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
+		GenesisTimeField:       time.Time{},
 	}
 }
 
@@ -2318,6 +2318,7 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 	}
 }
 
+// GetDefaultBootstrapComponents -
 func GetDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
 	return &mainFactoryMocks.BootstrapComponentsStub{
 		Bootstrapper: &bootstrapMocks.EpochStartBootstrapperStub{

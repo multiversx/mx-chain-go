@@ -17,18 +17,6 @@ var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard st
 // ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
 var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")
 
-// ErrNotEnoughRoundsBetweenEpochs signals that not enough rounds has passed since last epoch start
-var ErrNotEnoughRoundsBetweenEpochs = errors.New("tried to force start of epoch before passing of enough rounds")
-
-// ErrForceEpochStartCanBeCalledOnlyOnNewRound signals that force start of epoch was called on wrong round
-var ErrForceEpochStartCanBeCalledOnlyOnNewRound = errors.New("invalid time to call force start of epoch, possible only on new round")
-
-// ErrSavedRoundIsHigherThanInputRound signals that input round was wrong
-var ErrSavedRoundIsHigherThanInputRound = errors.New("saved round is higher than input round")
-
-// ErrSavedRoundIsHigherThanInput signals that input round was wrong
-var ErrSavedRoundIsHigherThanInput = errors.New("saved round is higher than input round")
-
 // ErrWrongTypeAssertion signals wrong type assertion
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
@@ -187,15 +175,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
-
-// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
-var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
-
-// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
-var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
-
-// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
-var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
 
 // ErrInvalidWorkingDir signals that an invalid working directory has been provided
 var ErrInvalidWorkingDir = errors.New("invalid working directory")

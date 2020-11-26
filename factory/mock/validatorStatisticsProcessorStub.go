@@ -37,9 +37,9 @@ func (vsp *ValidatorStatisticsProcessorStub) Process(validatorInfo data.ShardVal
 }
 
 // Commit -
-func (pm *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
-	if pm.CommitCalled != nil {
-		return pm.CommitCalled()
+func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
+	if vsp.CommitCalled != nil {
+		return vsp.CommitCalled()
 	}
 
 	return nil, nil
