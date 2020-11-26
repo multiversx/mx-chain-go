@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -61,21 +62,29 @@ func NewSyncState(args ArgsNewSyncState) (*syncState, error) {
 
 // SyncAllState gets an epoch number and will sync the complete data for that epoch start metablock
 func (ss *syncState) SyncAllState(epoch uint32) error {
-
+	ctxDisplay, cancelDisplay := context.WithCancel(context.Background())
+	go displayStatusMessage(fmt.Sprintf("syncing un-finished meta headers for epoch %d", epoch), ctxDisplay)
 	ss.syncingEpoch = epoch
 	err := ss.headers.SyncUnFinishedMetaHeaders(epoch)
+	cancelDisplay()
 	if err != nil {
 		return err
 	}
 
+	ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
+	go displayStatusMessage("syncing epoch start metablock", ctxDisplay)
 	meta, err := ss.headers.GetEpochStartMetaBlock()
+	cancelDisplay()
 	if err != nil {
 		return err
 	}
 
 	ss.printMetablockInfo(meta)
 
+	ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
+	go displayStatusMessage("syncing un-finished metablocks", ctxDisplay)
 	unFinished, err := ss.headers.GetUnFinishedMetaBlocks()
+	cancelDisplay()
 	if err != nil {
 		return err
 	}
@@ -101,8 +110,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	go func() {
 		defer wg.Done()
 
+		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
+		go displayStatusMessage(fmt.Sprintf("syncing pending miniblocks for epoch %d", epoch), ctxDisplay)
+
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 		errSync := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
+		cancelDisplay()
 		cancel()
 		if errSync != nil {
 			mutErr.Lock()
@@ -111,7 +124,10 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 			return
 		}
 
+		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
+		go displayStatusMessage("syncing miniblocks", ctxDisplay)
 		syncedMiniBlocks, errGet := ss.miniBlocks.GetMiniBlocks()
+		cancelDisplay()
 		if errGet != nil {
 			mutErr.Lock()
 			errFound = errGet
@@ -119,9 +135,12 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 			return
 		}
 
+		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
+		go displayStatusMessage(fmt.Sprintf("syncing pending transactions for epoch %d", epoch), ctxDisplay)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
 		errSync = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
 		cancel()
+		cancelDisplay()
 		if errSync != nil {
 			mutErr.Lock()
 			errFound = errSync
@@ -132,18 +151,20 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
+	log.Info("synced data finished", "error", errFound)
+
 	return errFound
 }
 
 func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
-	log.Debug("epoch start meta block",
+	log.Info("epoch start meta block",
 		"nonce", metaBlock.Nonce,
 		"round", metaBlock.Round,
 		"root hash", metaBlock.RootHash,
 		"epoch", metaBlock.Epoch,
 	)
 	for _, shardInfo := range metaBlock.ShardInfo {
-		log.Debug("epoch start meta block -> shard info",
+		log.Info("epoch start meta block -> shard info",
 			"header hash", shardInfo.HeaderHash,
 			"shard ID", shardInfo.ShardID,
 			"nonce", shardInfo.Nonce,
