@@ -17,6 +17,8 @@ var _ update.StateSyncer = (*syncState)(nil)
 
 var log = logger.GetOrCreate("update/genesis")
 
+const maxTimeSpanToSyncTries = time.Hour * 2
+
 type syncState struct {
 	syncingEpoch uint32
 
@@ -68,7 +70,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	err := ss.headers.SyncUnFinishedMetaHeaders(epoch)
 	cancelDisplay()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w in syncState.SyncAllState - SyncUnFinishedMetaHeaders", err)
 	}
 
 	ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
@@ -76,7 +78,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	meta, err := ss.headers.GetEpochStartMetaBlock()
 	cancelDisplay()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w in syncState.SyncAllState - GetEpochStartMetaBlock", err)
 	}
 
 	ss.printMetablockInfo(meta)
@@ -86,7 +88,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	unFinished, err := ss.headers.GetUnFinishedMetaBlocks()
 	cancelDisplay()
 	if err != nil {
-		return err
+		return fmt.Errorf("%w in syncState.SyncAllState - GetUnFinishedMetaBlocks", err)
 	}
 
 	ss.syncingEpoch = meta.GetEpoch()
@@ -98,10 +100,10 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		errSync := ss.tries.SyncTriesFrom(meta, time.Hour)
+		errSync := ss.tries.SyncTriesFrom(meta, maxTimeSpanToSyncTries)
 		if errSync != nil {
 			mutErr.Lock()
-			errFound = errSync
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncTriesFrom", errSync)
 			mutErr.Unlock()
 		}
 		wg.Done()
@@ -119,7 +121,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		cancel()
 		if errSync != nil {
 			mutErr.Lock()
-			errFound = errSync
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncPendingMiniBlocksFromMeta", errSync)
 			mutErr.Unlock()
 			return
 		}
@@ -130,7 +132,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		cancelDisplay()
 		if errGet != nil {
 			mutErr.Lock()
-			errFound = errGet
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - GetMiniBlocks", errGet)
 			mutErr.Unlock()
 			return
 		}
@@ -143,7 +145,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		cancelDisplay()
 		if errSync != nil {
 			mutErr.Lock()
-			errFound = errSync
+			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncPendingTransactionsFor", errSync)
 			mutErr.Unlock()
 			return
 		}
@@ -151,7 +153,11 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 	wg.Wait()
 
-	log.Info("synced data finished", "error", errFound)
+	if errFound != nil {
+		log.Error("sync data process finished with error", "error", errFound)
+	} else {
+		log.Info("sync data process finished successfully")
+	}
 
 	return errFound
 }

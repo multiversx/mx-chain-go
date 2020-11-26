@@ -120,12 +120,12 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w UserAccount, shard: meta", err)
 	}
 
 	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.ValidatorStatsRootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w ValidatorAccount, shard: meta", err)
 	}
 
 	return nil
@@ -138,7 +138,7 @@ func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error 
 
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.ShardID)
 	}
 	return nil
 }
