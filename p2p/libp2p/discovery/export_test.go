@@ -31,7 +31,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) StopDHT() error {
 // NewOptimizedKadDhtDiscovererWithInitFunc -
 func NewOptimizedKadDhtDiscovererWithInitFunc(
 	arg ArgKadDht,
-	initFunc func(ctx context.Context) (KadDhtHandler, error),
+	createFunc func(ctx context.Context) (KadDhtHandler, error),
 ) (*optimizedKadDhtDiscoverer, error) {
 	sharder, err := prepareArguments(arg)
 	if err != nil {
@@ -57,7 +57,7 @@ func NewOptimizedKadDhtDiscovererWithInitFunc(
 		chanDoneConnectToSeeders:    make(chan struct{}),
 	}
 
-	okdd.initKadDhtHandler = initFunc
+	okdd.createKadDhtHandler = createFunc
 	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
 	if err != nil {
 		return nil, err

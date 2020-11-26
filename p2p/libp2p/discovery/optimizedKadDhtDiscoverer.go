@@ -31,7 +31,7 @@ type optimizedKadDhtDiscoverer struct {
 	errChanInit                 chan error
 	chanConnectToSeeders        chan struct{}
 	chanDoneConnectToSeeders    chan struct{}
-	initKadDhtHandler           func(ctx context.Context) (KadDhtHandler, error)
+	createKadDhtHandler         func(ctx context.Context) (KadDhtHandler, error)
 }
 
 // NewOptimizedKadDhtDiscoverer creates an optimized kad-dht discovery type implementation
@@ -62,7 +62,7 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		chanDoneConnectToSeeders:    make(chan struct{}),
 	}
 
-	okdd.initKadDhtHandler = okdd.initKadDht
+	okdd.createKadDhtHandler = okdd.createKadDht
 	okdd.hostConnManagement, err = NewHostWithConnectionManagement(arg.Host, okdd.sharder)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (okdd *optimizedKadDhtDiscoverer) init(ctx context.Context) error {
 		return p2p.ErrPeerDiscoveryProcessAlreadyStarted
 	}
 
-	kadDhtHandler, err := okdd.initKadDhtHandler(ctx)
+	kadDhtHandler, err := okdd.createKadDhtHandler(ctx)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (okdd *optimizedKadDhtDiscoverer) init(ctx context.Context) error {
 	return nil
 }
 
-func (okdd *optimizedKadDhtDiscoverer) initKadDht(ctx context.Context) (KadDhtHandler, error) {
+func (okdd *optimizedKadDhtDiscoverer) createKadDht(ctx context.Context) (KadDhtHandler, error) {
 	protocolID := protocol.ID(okdd.protocolID)
 	return dht.New(
 		ctx,
