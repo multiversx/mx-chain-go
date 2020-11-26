@@ -1,33 +1,34 @@
 package testscommon
 
-// HasherMock -
-type HasherStub struct {
-	ComputeCalled   func(s string) []byte
-	EmptyHashCalled func() []byte
+import "crypto/sha256"
+
+var sha256EmptyHash []byte
+
+// HasherMock that will be used for testing
+type HasherMock struct {
 }
 
-// Compute -
-func (hash HasherStub) Compute(s string) []byte {
-	if hash.ComputeCalled != nil {
-		return hash.ComputeCalled(s)
+// Compute will output the SHA's equivalent of the input string
+func (sha HasherMock) Compute(s string) []byte {
+	h := sha256.New()
+	_, _ = h.Write([]byte(s))
+	return h.Sum(nil)
+}
+
+// EmptyHash will return the equivalent of empty string SHA's
+func (sha HasherMock) EmptyHash() []byte {
+	if len(sha256EmptyHash) == 0 {
+		sha256EmptyHash = sha.Compute("")
 	}
-	return nil
+	return sha256EmptyHash
 }
 
-// EmptyHash -
-func (hash HasherStub) EmptyHash() []byte {
-	if hash.EmptyHashCalled != nil {
-		hash.EmptyHashCalled()
-	}
-	return nil
-}
-
-// Size -
-func (HasherStub) Size() int {
-	return 0
+// Size returns the required size in bytes
+func (HasherMock) Size() int {
+	return sha256.Size
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hash HasherStub) IsInterfaceNil() bool {
+func (sha HasherMock) IsInterfaceNil() bool {
 	return false
 }
