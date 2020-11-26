@@ -467,7 +467,11 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			DevFeesInEpoch:         devFeesInEpoch,
 		}
 
-		err := ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards)
+		computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+		assert.Nil(t, err)
+		assert.NotNil(t, computedEconomics)
+
+		err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
 		assert.Nil(t, err)
 
 		ecos, err := ec.ComputeEndOfEpochEconomics(&mb)

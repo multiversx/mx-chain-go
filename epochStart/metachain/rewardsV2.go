@@ -24,6 +24,7 @@ type nodeRewardsData struct {
 	valInfo      *state.ValidatorInfo
 }
 
+// RewardsCreatorArgsV2 holds the data required to create end of epoch rewards
 type RewardsCreatorArgsV2 struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
@@ -40,7 +41,7 @@ type rewardsCreatorV2 struct {
 	topUpGradientPoint    *big.Int
 }
 
-// NewEpochStartRewardsCreator creates a new rewards creator object
+// NewEpochStartRewardsCreatorV2 creates a new rewards creator object
 func NewEpochStartRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	brc, err := NewBaseRewardsCreator(args.BaseRewardsCreatorArgs)
 	if err != nil {
@@ -74,19 +75,25 @@ func NewEpochStartRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info.
 // This method applies the rewards according to the economics version 2 proposal, which takes into consideration
 // stake top-up values per node
-func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
+	}
+	if computedEconomics == nil{
+		return nil, epochStart.ErrNilEconomicsData
 	}
 
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
-	economicsData := metaBlock.EpochStart.Economics
 	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
-		"totalToDistribute", economicsData.TotalToDistribute,
-		"rewardsForProtocolSustainability", economicsData.RewardsForProtocolSustainability,
-		"rewardsPerBlock", economicsData.RewardsPerBlock,
+		"totalToDistribute", computedEconomics.TotalToDistribute,
+		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
+		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
 		"devFeesInEpoch", metaBlock.DevFeesInEpoch,
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
 		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),
@@ -100,7 +107,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 		return nil, err
 	}
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
 		return nil, err
 	}
@@ -124,12 +131,16 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, 
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) error {
 	if check.IfNil(metaBlock) {
 		return epochStart.ErrNilHeaderHandler
 	}
 
-	createdMiniBlocks, err := rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo)
+	createdMiniBlocks, err := rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
 	if err != nil {
 		return err
 	}
