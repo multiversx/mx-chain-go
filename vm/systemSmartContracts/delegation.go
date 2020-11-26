@@ -274,7 +274,6 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 		ActiveFunds:            make([][]byte, 0),
 		UnStakedFunds:          make([][]byte, 0),
 		TotalUnStakedFromNodes: big.NewInt(0),
-		TotalUnBondedFromNodes: big.NewInt(0),
 		TotalActive:            big.NewInt(0),
 		TotalUnStaked:          big.NewInt(0),
 	}
@@ -1447,7 +1446,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unBondTokensWithNodes", globalFund.TotalUnBondedFromNodes, totalUnBondable)
+	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unBondTokensWithNodes", big.NewInt(0), totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
