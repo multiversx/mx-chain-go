@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -12,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgsTxSimulator holds the arguments required for creating a new transaction simulator
@@ -98,7 +98,7 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 		return err
 	}
 
-	scResults := make(map[string]*transaction.SmartContractResultApi)
+	scResults := make(map[string]*transaction.ApiSmartContractResult)
 	for hash, value := range scrForwarder.GetAllCurrentFinishedTxs() {
 		scr, ok := value.(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -130,8 +130,8 @@ func (ts *transactionSimulator) addIntermediateTxsToResult(result *transaction.S
 	return nil
 }
 
-func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.SmartContractResultApi {
-	return &transaction.SmartContractResultApi{
+func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+	return &transaction.ApiSmartContractResult{
 		Nonce:          scr.Nonce,
 		Value:          scr.Value,
 		RcvAddr:        ts.addressPubKeyConverter.Encode(scr.RcvAddr),

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -381,18 +382,22 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain := blockchain.NewMetaChain()
+	dataPool := testscommon.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         userAccountsDB,
-		PubkeyConv:       &mock.PubkeyConverterMock{},
-		StorageService:   &mock.ChainStorerStub{},
-		BlockChain:       blockChain,
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		Accounts:           userAccountsDB,
+		PubkeyConv:         &mock.PubkeyConverterMock{},
+		StorageService:     &mock.ChainStorerStub{},
+		BlockChain:         blockChain,
+		ShardCoordinator:   &mock.ShardCoordinatorStub{},
+		Marshalizer:        marshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           dataPool,
+		CompiledSCPool:     dataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
@@ -401,7 +406,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 		ArgBlockChainHook:   argsHook,
 		Economics:           createEconomicsData(),
 		MessageSignVerifier: signVerifer,
-		GasSchedule:         gasSchedule,
+		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		NodesConfigProvider: nodesSetup,
 		Hasher:              hasher,
 		Marshalizer:         marshalizer,

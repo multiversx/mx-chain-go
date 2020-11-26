@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -1086,7 +1087,8 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			accounts.SetStateCheckpoint(rootHash)
+			ctx := context.Background()
+			accounts.SetStateCheckpoint(rootHash, ctx)
 		}
 	}
 
@@ -1230,7 +1232,10 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
+	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}

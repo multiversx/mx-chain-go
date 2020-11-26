@@ -1,4 +1,4 @@
-package factory
+package latestData
 
 import (
 	"encoding/json"
@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
@@ -17,8 +18,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
+var log = logger.GetOrCreate("storage/latestData")
 var _ storage.LatestStorageDataProviderHandler = (*latestDataProvider)(nil)
 
 // ArgsLatestDataProvider holds the arguments needed for creating a latestDataProvider object
@@ -26,7 +29,7 @@ type ArgsLatestDataProvider struct {
 	GeneralConfig         config.Config
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
-	BootstrapDataProvider BootstrapDataProviderHandler
+	BootstrapDataProvider factory.BootstrapDataProviderHandler
 	DirectoryReader       storage.DirectoryReaderHandler
 	WorkingDir            string
 	ChainID               string
@@ -46,7 +49,7 @@ type latestDataProvider struct {
 	generalConfig         config.Config
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
-	bootstrapDataProvider BootstrapDataProviderHandler
+	bootstrapDataProvider factory.BootstrapDataProviderHandler
 	directoryReader       storage.DirectoryReaderHandler
 	workingDir            string
 	chainID               string
@@ -112,7 +115,7 @@ func (ldp *latestDataProvider) GetParentDirAndLastEpoch() (string, uint32, error
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory := NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
 	pathWithoutShard := filepath.Join(
 		parentDir,
 		fmt.Sprintf("%s_%d", ldp.defaultEpochString, lastEpoch),
@@ -146,7 +149,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 	if mostRecentBootstrapData == nil {
 		return storage.LatestDataFromStorage{}, storage.ErrBootstrapDataNotFoundInStorage
 	}
-	shardIDAsUint32, err := convertShardIDToUint32(mostRecentShard)
+	shardIDAsUint32, err := core.ConvertShardIDToUint32(mostRecentShard)
 	if err != nil {
 		return storage.LatestDataFromStorage{}, err
 	}
@@ -178,7 +181,7 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 	if bootstrapData.LastRound > currentHighestRound {
 		shardID := uint32(0)
 		var err error
-		shardID, err = convertShardIDToUint32(shardIdStr)
+		shardID, err = core.ConvertShardIDToUint32(shardIdStr)
 		if err != nil {
 			return &iteratedShardData{}
 		}

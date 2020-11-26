@@ -38,7 +38,7 @@ func (bc *ChainStorerStub) GetStorer(unitType dataRetriever.UnitType) storage.St
 	if bc.GetStorerCalled != nil {
 		return bc.GetStorerCalled(unitType)
 	}
-	return nil
+	return &StorerMock{}
 }
 
 // Has returns true if the key is found in the selected Unit or false otherwise
@@ -82,7 +82,7 @@ func (bc *ChainStorerStub) GetAll(unitType dataRetriever.UnitType, keys [][]byte
 }
 
 // SetEpochForPutOperation won't do anything
-func (bc *ChainStorerStub) SetEpochForPutOperation(epoch uint32) {
+func (bc *ChainStorerStub) SetEpochForPutOperation(_ uint32) {
 }
 
 // Destroy removes the underlying files/resources used by the storage service

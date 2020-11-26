@@ -171,7 +171,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.AccountsParser) {
 		return genesis.ErrNilAccountsParser
 	}
-	if arg.GasMap == nil {
+	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(arg.TxLogsProcessor) {
@@ -358,14 +358,17 @@ func (gbc *genesisBlockCreator) computeDNSAddresses() error {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         gbc.arg.Accounts,
-		PubkeyConv:       gbc.arg.PubkeyConv,
-		StorageService:   gbc.arg.Store,
-		BlockChain:       gbc.arg.Blkc,
-		ShardCoordinator: gbc.arg.ShardCoordinator,
-		Marshalizer:      gbc.arg.Marshalizer,
-		Uint64Converter:  gbc.arg.Uint64ByteSliceConverter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           gbc.arg.Accounts,
+		PubkeyConv:         gbc.arg.PubkeyConv,
+		StorageService:     gbc.arg.Store,
+		BlockChain:         gbc.arg.Blkc,
+		ShardCoordinator:   gbc.arg.ShardCoordinator,
+		Marshalizer:        gbc.arg.Marshalizer,
+		Uint64Converter:    gbc.arg.Uint64ByteSliceConverter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           gbc.arg.DataPool,
+		CompiledSCPool:     gbc.arg.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

@@ -125,9 +125,6 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
-// ErrTokenAlreadyRegistered signals that token was already registered
-var ErrTokenAlreadyRegistered = errors.New("token was already registered")
-
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
@@ -176,6 +173,12 @@ var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nod
 // ErrTokenNameNotHumanReadable signals that token name is not human readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
 
+// ErrTickerNameNotValid signals that ticker name is not valid
+var ErrTickerNameNotValid = errors.New("ticker name is not valid")
+
+// ErrCouldNotCreateNewTokenIdentifier signals that token identifier could not be created
+var ErrCouldNotCreateNewTokenIdentifier = errors.New("token identifier could not be created")
+
 // ErrBLSPublicKeyAlreadyJailed signals that bls public key was already jailed
 var ErrBLSPublicKeyAlreadyJailed = errors.New("bls public key already jailed")
 
@@ -187,6 +190,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNoTickerWithGivenName signals that ticker does not exists with given name
+var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
 
 // ErrInvalidAddress signals that invalid address has been provided
 var ErrInvalidAddress = errors.New("invalid address")
@@ -205,6 +211,9 @@ var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")
 
 // ErrInvalidArgument signals that invalid argument has been provided
 var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrNilGasSchedule signals that nil gas schedule has been provided
+var ErrNilGasSchedule = errors.New("nil gas schedule")
 
 // ErrDuplicatesFoundInArguments signals that duplicates were found in arguments
 var ErrDuplicatesFoundInArguments = errors.New("duplicates found in arguments")

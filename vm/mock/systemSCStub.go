@@ -1,13 +1,21 @@
 package mock
 
 import (
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 // SystemSCStub -
 type SystemSCStub struct {
-	ExecuteCalled func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
-	ValueOfCalled func(key interface{}) interface{}
+	ExecuteCalled       func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
+	SetNewGasCostCalled func(gasCost vm.GasCost)
+}
+
+// SetNewGasCost -
+func (s *SystemSCStub) SetNewGasCost(gasCost vm.GasCost) {
+	if s.SetNewGasCostCalled != nil {
+		s.SetNewGasCostCalled(gasCost)
+	}
 }
 
 // CanUseContract -
@@ -21,14 +29,6 @@ func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.Return
 		return s.ExecuteCalled(args)
 	}
 	return 0
-}
-
-// ValueOf -
-func (s *SystemSCStub) ValueOf(key interface{}) interface{} {
-	if s.ValueOfCalled != nil {
-		return s.ValueOfCalled(key)
-	}
-	return nil
 }
 
 // IsInterfaceNil -

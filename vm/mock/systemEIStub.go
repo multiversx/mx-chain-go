@@ -3,9 +3,9 @@ package mock
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // SystemEIStub -
@@ -133,7 +133,7 @@ func (s *SystemEIStub) SetSystemSCContainer(_ vm.SystemSCContainer) error {
 }
 
 // BlockChainHook -
-func (s *SystemEIStub) BlockChainHook() vmcommon.BlockchainHook {
+func (s *SystemEIStub) BlockChainHook() vm.BlockchainHook {
 	if s.BlockChainHookCalled != nil {
 		return s.BlockChainHookCalled()
 	}
