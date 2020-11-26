@@ -275,7 +275,6 @@ var (
 			"and re-process everything",
 		Value: "",
 	}
-
 	// importDbNoSigCheck defines a flag for the optional import DB no signature check option
 	importDbNoSigCheck = cli.BoolFlag{
 		Name:  "import-db-no-sig-check",
@@ -326,7 +325,6 @@ func getFlags() []cli.Flag {
 		keepOldEpochsData,
 		numEpochsToSave,
 		numActivePersisters,
-		fullArchive,
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
@@ -376,19 +374,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	}
 	if ctx.IsSet(fullArchive.Name) {
 		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
-	}
-
-	if ctx.IsSet(fullArchive.Name) {
-		cfgs.GeneralConfig.StoragePruning.FullArchive = ctx.GlobalBool(fullArchive.Name)
-	}
-	if ctx.IsSet(startInEpoch.Name) {
-		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
-	}
-	if ctx.IsSet(keepOldEpochsData.Name) {
-		cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
-	if ctx.IsSet(numEpochsToSave.Name) {
-		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)

@@ -143,7 +143,6 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 		KeyBaseIdentity:      hcf.prefs.Preferences.Identity,
 		HardforkTrigger:      hcf.hardforkTrigger,
 		CurrentBlockProvider: hcf.dataComponents.Blockchain(),
-		PeerSubType:          peerSubType,
 	}
 
 	hbc.sender, err = heartbeatProcess.NewSender(argSender)
@@ -209,7 +208,8 @@ func (hcf *heartbeatComponentsFactory) Create() (*heartbeatComponents, error) {
 
 	err = hcf.networkComponents.NetworkMessenger().RegisterMessageProcessor(
 		core.HeartbeatTopic,
-		core.DefaultInterceptorsIdentifier, hbc.monitor,
+		core.DefaultInterceptorsIdentifier,
+		hbc.monitor,
 	)
 	if err != nil {
 		return nil, err

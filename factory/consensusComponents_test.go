@@ -397,7 +397,6 @@ func getDefaultNetworkComponents() *mock.NetworkComponentsMock {
 		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
 		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
 		PeerBlackList:   &mock.PeerBlackListHandlerStub{},
-		PeerHonesty:     &mock.PeerHonestyHandlerStub{},
 	}
 }
 

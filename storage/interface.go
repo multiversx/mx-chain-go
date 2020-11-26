@@ -76,15 +76,6 @@ type Cacher interface {
 	IsInterfaceNil() bool
 }
 
-// RemoveNotifyCacher
-type RemoveNotifyCacher interface {
-	Cacher
-	// RegisterMethodHandler registers a new handler to be called when a method is called
-	RegisterMethodHandler(method string, handler func(key []byte, value interface{}), id string)
-	// UnRegisterMethodHandler deletes the handler for the method from the list
-	UnRegisterMethodHandler(method string, id string)
-}
-
 // BloomFilter provides services for filtering database requests
 type BloomFilter interface {
 	//Add adds the value to the bloom filter
