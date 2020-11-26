@@ -133,7 +133,7 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
 	ctx, cancel := context.WithCancel(context.Background())
-	go displayStatusMessage(fmt.Sprintf("user account state, shard %s", core.GetShardIDString(shardData.Epoch)), ctx)
+	go displayStatusMessage(fmt.Sprintf("user account state, shard %s", core.GetShardIDString(shardData.ShardID)), ctx)
 	defer cancel()
 
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
