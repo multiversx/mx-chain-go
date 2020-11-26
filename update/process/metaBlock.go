@@ -59,14 +59,14 @@ func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork)
 }
 
 // CreateBody will create a block body after hardfork import
-func (m *metaBlockCreator) CreateBody() (data.BodyHandler, []*update.MbInfo, error) {
+func (m *metaBlockCreator) CreateBody() (*block.Body, []*update.MbInfo, error) {
 	return &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}, nil, nil
 }
 
-// CreatePostBody will create a post block body from the given miniBlocks info
-func (m *metaBlockCreator) CreatePostBody(_ []*update.MbInfo) (data.BodyHandler, []*update.MbInfo, error) {
+// CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
+func (m *metaBlockCreator) CreatePostMiniBlocks(_ []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
 	return &block.Body{
 		MiniBlocks: make([]*block.MiniBlock, 0),
 	}, nil, nil
@@ -74,7 +74,7 @@ func (m *metaBlockCreator) CreatePostBody(_ []*update.MbInfo) (data.BodyHandler,
 
 // CreateBlock will create a block after hardfork import
 func (m *metaBlockCreator) CreateBlock(
-	_ data.BodyHandler,
+	_ *block.Body,
 	chainID string,
 	round uint64,
 	nonce uint64,

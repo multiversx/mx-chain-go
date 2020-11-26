@@ -262,3 +262,6 @@ var ErrDuplicatedMiniBlocksFound = errors.New("duplicated miniBlocks were found"
 
 // ErrPostProcessTransactionNotFound signals that the given transaction was not found in post process map
 var ErrPostProcessTransactionNotFound = errors.New("transaction was not found in post process map")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")

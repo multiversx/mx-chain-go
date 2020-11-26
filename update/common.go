@@ -2,12 +2,8 @@ package update
 
 import (
 	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 var log = logger.GetOrCreate("update")
@@ -129,36 +125,20 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []b
 }
 
 // CheckDuplicates checks if there are duplicated miniBlocks in the given map
-func CheckDuplicates(
-	shardIDs []uint32,
-	mapBodyHandler map[uint32]data.BodyHandler,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-) error {
-	miniBlocks := make([]*block.MiniBlock, 0)
-	for _, shardID := range shardIDs {
-		bodyHandler := mapBodyHandler[shardID]
-		blockBody, ok := bodyHandler.(*block.Body)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		miniBlocks = append(miniBlocks, blockBody.MiniBlocks...)
+func CheckDuplicates(headers map[uint32]data.HeaderHandler) error {
+	miniBlocksHashes := make([][]byte, 0)
+	for _, header := range headers {
+		miniBlocksHashes = append(miniBlocksHashes, header.GetMiniBlockHeadersHashes()...)
 	}
 
-	mapMiniBlocks := make(map[string]struct{})
-	for _, miniBlock := range miniBlocks {
-		mbHash, err := core.CalculateHash(marshalizer, hasher, miniBlock)
-		if err != nil {
-			return err
-		}
-
-		_, duplicatesFound := mapMiniBlocks[string(mbHash)]
+	mapMiniBlocksHashes := make(map[string]struct{})
+	for _, miniBlockHash := range miniBlocksHashes {
+		_, duplicatesFound := mapMiniBlocksHashes[string(miniBlockHash)]
 		if duplicatesFound {
 			return ErrDuplicatedMiniBlocksFound
 		}
 
-		mapMiniBlocks[string(mbHash)] = struct{}{}
+		mapMiniBlocksHashes[string(miniBlockHash)] = struct{}{}
 	}
 
 	return nil
@@ -167,7 +147,7 @@ func CheckDuplicates(
 // CreateBody will create a block body after hardfork import
 func CreateBody(
 	shardIDs []uint32,
-	mapBodies map[uint32]data.BodyHandler,
+	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
 ) ([]*MbInfo, error) {
 	mapPostMbs := make(map[uint32][]*MbInfo)
@@ -177,14 +157,9 @@ func CreateBody(
 			return nil, ErrNilHardForkBlockProcessor
 		}
 
-		bodyHandler, postMbs, err := hardForkBlockProcessor.CreateBody()
+		body, postMbs, err := hardForkBlockProcessor.CreateBody()
 		if err != nil {
 			return nil, err
-		}
-
-		body, ok := bodyHandler.(*block.Body)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
 		}
 
 		log.Debug("CreateBody",
@@ -193,17 +168,17 @@ func CreateBody(
 		)
 
 		mapPostMbs[shardID] = postMbs
-		mapBodies[shardID] = bodyHandler
+		mapBodies[shardID] = body
 	}
 
 	return getLastPostMbs(shardIDs, mapPostMbs), nil
 }
 
-// CreatePostBodies will create all the post block bodies after hardfork import
-func CreatePostBodies(
+// CreatePostMiniBlocks will create all the post miniBlocks after hardfork import
+func CreatePostMiniBlocks(
 	shardIDs []uint32,
 	lastPostMbs []*MbInfo,
-	mapBodies map[uint32]data.BodyHandler,
+	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
 ) error {
 	numPostMbs := len(lastPostMbs)
@@ -216,19 +191,14 @@ func CreatePostBodies(
 				return ErrNilHardForkBlockProcessor
 			}
 
-			postBodyHandler, postMbs, err := hardForkBlockProcessor.CreatePostBody(lastPostMbs)
+			postBody, postMbs, err := hardForkBlockProcessor.CreatePostMiniBlocks(lastPostMbs)
 			if err != nil {
 				return err
 			}
 
-			postBody, ok := postBodyHandler.(*block.Body)
+			currentBody, ok := mapBodies[shardID]
 			if !ok {
-				return process.ErrWrongTypeAssertion
-			}
-
-			currentBody, ok := mapBodies[shardID].(*block.Body)
-			if !ok {
-				return process.ErrWrongTypeAssertion
+				return ErrNilBlockBody
 			}
 
 			log.Debug("CreatePostBodies",

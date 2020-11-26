@@ -81,27 +81,23 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 }
 
 // CreateBody will create a block body after hardfork import
-func (s *shardBlockCreator) CreateBody() (data.BodyHandler, []*update.MbInfo, error) {
+func (s *shardBlockCreator) CreateBody() (*block.Body, []*update.MbInfo, error) {
 	mbsInfo, err := s.getPendingMbsAndTxsInCorrectOrder()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return s.CreatePostBody(mbsInfo)
+	return s.CreatePostMiniBlocks(mbsInfo)
 }
 
 // CreateBlock will create a block after hardfork import
 func (s *shardBlockCreator) CreateBlock(
-	bodyHandler data.BodyHandler,
+	body *block.Body,
 	chainID string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
 ) (data.HeaderHandler, error) {
-	blockBody, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
 	if len(chainID) == 0 {
 		return nil, update.ErrEmptyChainID
 	}
@@ -131,7 +127,7 @@ func (s *shardBlockCreator) CreateBlock(
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaders, err := s.createMiniBlockHeaders(blockBody)
+	totalTxCount, miniBlockHeaders, err := s.createMiniBlockHeaders(body)
 	if err != nil {
 		return nil, err
 	}
@@ -148,14 +144,14 @@ func (s *shardBlockCreator) CreateBlock(
 	shardHeader.AccumulatedFees = big.NewInt(0)
 	shardHeader.DeveloperFees = big.NewInt(0)
 
-	s.saveAllCreatedDestMeTransactionsToCache(shardHeader, blockBody)
-	s.saveAllTransactionsToStorageIfSelfShard(shardHeader, blockBody)
+	s.saveAllCreatedDestMeTransactionsToCache(shardHeader, body)
+	s.saveAllTransactionsToStorageIfSelfShard(shardHeader, body)
 
 	return shardHeader, nil
 }
 
-// CreatePostBody will create a post block body from the given miniBlocks info
-func (s *shardBlockCreator) CreatePostBody(mbsInfo []*update.MbInfo) (data.BodyHandler, []*update.MbInfo, error) {
+// CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
+func (s *shardBlockCreator) CreatePostMiniBlocks(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
 	s.txCoordinator.CreateBlockStarted()
 
 	body := &block.Body{
@@ -284,10 +280,10 @@ func (s *shardBlockCreator) createMiniBlockHeaders(body *block.Body) (int, []blo
 }
 
 func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
-	shardHdr *block.Header,
+	shardHeader *block.Header,
 	body *block.Body,
 ) {
-	if shardHdr.GetShardID() != s.selfShardID {
+	if shardHeader.GetShardID() != s.selfShardID {
 		return
 	}
 
@@ -304,7 +300,7 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 			continue
 		}
 
-		errNotCritical = s.storage.Put(dataRetriever.MiniBlockUnit, shardHdr.MiniBlockHeaders[i].Hash, marshalizedMiniBlock)
+		errNotCritical = s.storage.Put(dataRetriever.MiniBlockUnit, shardHeader.MiniBlockHeaders[i].Hash, marshalizedMiniBlock)
 		if errNotCritical != nil {
 			log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> MiniBlockUnit", "error", errNotCritical.Error())
 		}
@@ -315,7 +311,7 @@ func (s *shardBlockCreator) saveAllTransactionsToStorageIfSelfShard(
 		log.Warn("saveAllTransactionsToStorageIfSelfShard.CreateMarshalizedReceipts", "error", errNotCritical.Error())
 	} else {
 		if len(marshalizedReceipts) > 0 {
-			errNotCritical = s.storage.Put(dataRetriever.ReceiptsUnit, shardHdr.GetReceiptsHash(), marshalizedReceipts)
+			errNotCritical = s.storage.Put(dataRetriever.ReceiptsUnit, shardHeader.GetReceiptsHash(), marshalizedReceipts)
 			if errNotCritical != nil {
 				log.Warn("saveAllTransactionsToStorageIfSelfShard.Put -> ReceiptsUnit", "error", errNotCritical.Error())
 			}
@@ -362,11 +358,11 @@ func getUnitTypeFromMiniBlockType(mbType block.Type) dataRetriever.UnitType {
 }
 
 func (s *shardBlockCreator) saveAllCreatedDestMeTransactionsToCache(
-	shardHdr *block.Header,
+	shardHeader *block.Header,
 	body *block.Body,
 ) {
 	// no need to save from me, only from other genesis blocks which has results towards me
-	if shardHdr.GetShardID() == s.selfShardID {
+	if shardHeader.GetShardID() == s.selfShardID {
 		return
 	}
 
@@ -380,7 +376,7 @@ func (s *shardBlockCreator) saveAllCreatedDestMeTransactionsToCache(
 			continue
 		}
 
-		_ = s.dataPool.MiniBlocks().Put(shardHdr.MiniBlockHeaders[i].Hash, miniBlock, miniBlock.Size())
+		_ = s.dataPool.MiniBlocks().Put(shardHeader.MiniBlockHeaders[i].Hash, miniBlock, miniBlock.Size())
 		crossMiniBlocksToMe = append(crossMiniBlocksToMe, miniBlock)
 
 		if _, ok := mapBlockTypesTxs[miniBlock.Type]; !ok {

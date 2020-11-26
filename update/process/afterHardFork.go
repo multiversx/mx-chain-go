@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -64,9 +65,9 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	round uint64,
 	nonce uint64,
 	epoch uint32,
-) (map[uint32]data.HeaderHandler, map[uint32]data.BodyHandler, error) {
+) (map[uint32]data.HeaderHandler, map[uint32]*block.Body, error) {
 	mapHeaders := make(map[uint32]data.HeaderHandler)
-	mapBodies := make(map[uint32]data.BodyHandler)
+	mapBodies := make(map[uint32]*block.Body)
 
 	shardIDs := make([]uint32, a.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < a.shardCoordinator.NumberOfShards(); i++ {
@@ -79,17 +80,17 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 		return nil, nil, err
 	}
 
-	err = update.CreatePostBodies(shardIDs, lastPostMbs, mapBodies, a.mapBlockProcessors)
+	err = update.CreatePostMiniBlocks(shardIDs, lastPostMbs, mapBodies, a.mapBlockProcessors)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = update.CheckDuplicates(shardIDs, mapBodies, a.marshalizer, a.hasher)
+	err = a.createHeaders(shardIDs, mapBodies, mapHeaders, chainID, round, nonce, epoch)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = a.createHeader(shardIDs, mapBodies, mapHeaders, chainID, round, nonce, epoch)
+	err = update.CheckDuplicates(mapHeaders)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,9 +98,9 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	return mapHeaders, mapBodies, nil
 }
 
-func (a *afterHardFork) createHeader(
+func (a *afterHardFork) createHeaders(
 	shardIDs []uint32,
-	mapBodies map[uint32]data.BodyHandler,
+	mapBodies map[uint32]*block.Body,
 	mapHeaders map[uint32]data.HeaderHandler,
 	chainID string,
 	round uint64,

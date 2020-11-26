@@ -43,12 +43,12 @@ type deployedScMetrics struct {
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	bodyHandler data.BodyHandler,
+	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisBlockAfterHardFork(arg, bodyHandler, hardForkBlockProcessor)
+		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
 	genesisOverrideConfig := config.GeneralSettingsConfig{
@@ -140,7 +140,7 @@ func CreateShardGenesisBlock(
 
 func createShardGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-	bodyHandler data.BodyHandler,
+	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, error) {
 	if check.IfNil(hardForkBlockProcessor) {
@@ -148,7 +148,7 @@ func createShardGenesisBlockAfterHardFork(
 	}
 
 	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
-		bodyHandler,
+		body,
 		arg.ChainID,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,

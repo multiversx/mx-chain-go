@@ -38,12 +38,12 @@ import (
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	bodyHandler data.BodyHandler,
+	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
-		return createMetaGenesisBlockAfterHardFork(arg, bodyHandler, hardForkBlockProcessor)
+		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
 	genesisOverrideConfig := config.GeneralSettingsConfig{
@@ -128,7 +128,7 @@ func CreateMetaGenesisBlock(
 
 func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-	bodyHandler data.BodyHandler,
+	body *block.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, error) {
 	if check.IfNil(hardForkBlockProcessor) {
@@ -136,7 +136,7 @@ func createMetaGenesisBlockAfterHardFork(
 	}
 
 	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
-		bodyHandler,
+		body,
 		arg.ChainID,
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,

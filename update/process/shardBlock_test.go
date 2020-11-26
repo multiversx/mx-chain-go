@@ -528,4 +528,49 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldWork(t *testing.T) {
 	assert.Equal(t, []byte("tx_hash2"), mbsInfo[0].TxsInfo[1].TxHash)
 }
 
-//TODO: Add unit test for method createMiniBlockInfoForPostProcessMiniBlock
+func TestCreateMiniBlockInfoForPostProcessMiniBlock_ShouldErrPostProcessTransactionNotFound(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("tx_hash"),
+		},
+	}
+	mbHash := []byte("mb_hash")
+	_, err := shardBlockCreator.createMiniBlockInfoForPostProcessMiniBlock(mbHash, mb)
+	assert.Equal(t, update.ErrPostProcessTransactionNotFound, err)
+}
+
+func TestCreateMiniBlockInfoForPostProcessMiniBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+	txHash := []byte("tx_hash")
+	tx := &transaction.Transaction{Nonce: 1}
+	args.TxCoordinator = &mock.TransactionCoordinatorMock{
+		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
+			return map[string]data.TransactionHandler{
+				string(txHash): tx,
+			}
+		},
+	}
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	txHashes := [][]byte{txHash}
+	mb := &block.MiniBlock{
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        txHashes,
+	}
+	mbHash := []byte("mb_hash")
+	mbInfo, err := shardBlockCreator.createMiniBlockInfoForPostProcessMiniBlock(mbHash, mb)
+	assert.Nil(t, err)
+	assert.Equal(t, mbHash, mbInfo.MbHash)
+	require.Equal(t, 1, len(mbInfo.TxsInfo))
+	assert.Equal(t, txHash, mbInfo.TxsInfo[0].TxHash)
+	assert.Equal(t, tx, mbInfo.TxsInfo[0].Tx)
+}

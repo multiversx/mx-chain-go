@@ -259,7 +259,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
 	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
-	mapBodies := make(map[uint32]data.BodyHandler)
+	mapBodies := make(map[uint32]*block.Body)
 
 	err = createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, gbc.arg)
 	if err != nil {
@@ -268,7 +268,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 
 	if mustDoHardForkImportProcess(gbc.arg) {
 		selfShardID := gbc.arg.ShardCoordinator.SelfId()
-		err = createHarForkBlockProcessor(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
+		err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
 		if err != nil {
 			return nil, err
 		}
@@ -278,32 +278,33 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = update.CreatePostBodies(shardIDs, lastPostMbs, mapBodies, mapHardForkBlockProcessor)
-		if err != nil {
-			return nil, err
-		}
-
-		err = update.CheckDuplicates(shardIDs, mapBodies, gbc.arg.Marshalizer, gbc.arg.Hasher)
+		err = update.CreatePostMiniBlocks(shardIDs, lastPostMbs, mapBodies, mapHardForkBlockProcessor)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	err = gbc.createHeader(mapArgsGenesisBlockCreator, mapHardForkBlockProcessor, mapBodies, shardIDs, genesisBlocks)
+	err = gbc.createHeaders(mapArgsGenesisBlockCreator, mapHardForkBlockProcessor, mapBodies, shardIDs, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
 
+	if mustDoHardForkImportProcess(gbc.arg) {
+		err = update.CheckDuplicates(genesisBlocks)
+		if err != nil {
+			return nil, err
+		}
+	}
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil
 }
 
-func (gbc *genesisBlockCreator) createHeader(
+func (gbc *genesisBlockCreator) createHeaders(
 	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
 	mapHardForkBlockProcessor map[uint32]update.HardForkBlockProcessor,
-	mapBodies map[uint32]data.BodyHandler,
+	mapBodies map[uint32]*block.Body,
 	shardIDs []uint32,
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) error {
@@ -317,7 +318,7 @@ func (gbc *genesisBlockCreator) createHeader(
 
 	allScAddresses := make([][]byte, 0)
 	for _, shardID := range shardIDs {
-		log.Debug("genesisBlockCreator.createHeader", "shard", shardID)
+		log.Debug("genesisBlockCreator.createHeaders", "shard", shardID)
 
 		var genesisBlock data.HeaderHandler
 		var scResults [][]byte
@@ -359,7 +360,7 @@ func (gbc *genesisBlockCreator) createHeader(
 	for _, shardID := range shardIDs {
 		gb := genesisBlocks[shardID]
 
-		log.Info("genesisBlockCreator.createHeader",
+		log.Info("genesisBlockCreator.createHeaders",
 			"shard", gb.GetShardID(),
 			"nonce", gb.GetNonce(),
 			"round", gb.GetRound(),
@@ -521,7 +522,7 @@ func createArgsGenesisBlockCreator(
 	return nil
 }
 
-func createHarForkBlockProcessor(
+func createHardForkBlockProcessors(
 	selfShardID uint32,
 	shardIDs []uint32,
 	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
