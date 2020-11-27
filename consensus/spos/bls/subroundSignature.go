@@ -210,9 +210,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
-	isTimeOut := sr.remainingTime() <= 0
 
-	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && isTimeOut))
+	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
 	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
@@ -273,6 +272,8 @@ func (sr *subroundSignature) waitAllSignatures() {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
+
+	sr.WaitingAllSignaturesTimeOut = true
 
 	select {
 	case sr.ConsensusChannel() <- true:

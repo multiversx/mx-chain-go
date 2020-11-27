@@ -292,9 +292,10 @@ func (nf *nodeFacade) CreateTransaction(
 	signatureHex string,
 	chainID string,
 	version uint32,
+	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 
-	return nf.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, chainID, version)
+	return nf.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
 }
 
 // ValidateTransaction will validate a transaction
@@ -323,8 +324,8 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 }
 
 // GetTransaction gets the transaction with a specified hash
-func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash)
+func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+	return nf.node.GetTransaction(hash, withResults)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
