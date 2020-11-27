@@ -158,7 +158,7 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 	return staking, err
 }
 
-func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
+func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsValidatorSmartContract{
 		Eei:                scf.systemEI,
 		SigVerifier:        scf.sigVerifier,
@@ -170,8 +170,8 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 		EpochNotifier:      scf.epochNotifier,
 	}
-	auction, err := systemSmartContracts.NewValidatorSmartContract(args)
-	return auction, err
+	validator, err := systemSmartContracts.NewValidatorSmartContract(args)
+	return validator, err
 }
 
 func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error) {
@@ -198,7 +198,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		Hasher:              scf.hasher,
 		GovernanceSCAddress: vm.GovernanceSCAddress,
 		StakingSCAddress:    vm.StakingSCAddress,
-		AuctionSCAddress:    vm.ValidatorSCAddress,
+		ValidatorSCAddress:  vm.ValidatorSCAddress,
 		EpochNotifier:       scf.epochNotifier,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
@@ -230,7 +230,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		Eei:                    scf.systemEI,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.ValidatorSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,
@@ -251,12 +251,12 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	auction, err := scf.createAuctionContract()
+	validator, err := scf.createValidatorContract()
 	if err != nil {
 		return nil, err
 	}
 
-	err = scf.systemSCsContainer.Add(vm.ValidatorSCAddress, auction)
+	err = scf.systemSCsContainer.Add(vm.ValidatorSCAddress, validator)
 	if err != nil {
 		return nil, err
 	}

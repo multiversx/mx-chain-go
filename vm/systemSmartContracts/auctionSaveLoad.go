@@ -54,8 +54,8 @@ func (v *validatorSC) getConfig(epoch uint32) ValidatorConfig {
 		return v.baseConfig
 	}
 
-	auctionConfig := &ValidatorConfig{}
-	err := v.marshalizer.Unmarshal(auctionConfig, configData)
+	validatorConfig := &ValidatorConfig{}
+	err := v.marshalizer.Unmarshal(validatorConfig, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
@@ -63,7 +63,7 @@ func (v *validatorSC) getConfig(epoch uint32) ValidatorConfig {
 		return v.baseConfig
 	}
 
-	if v.checkConfigCorrectness(*auctionConfig) != nil {
+	if v.checkConfigCorrectness(*validatorConfig) != nil {
 		baseConfigData, errMarshal := v.marshalizer.Marshal(&v.baseConfig)
 		if errMarshal != nil {
 			log.Warn("marshal error on getConfig function, returning baseConfig", "error", errMarshal)
@@ -73,7 +73,7 @@ func (v *validatorSC) getConfig(epoch uint32) ValidatorConfig {
 		return v.baseConfig
 	}
 
-	return *auctionConfig
+	return *validatorConfig
 }
 
 func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2, error) {
@@ -103,12 +103,12 @@ func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2,
 	return registrationData, nil
 }
 
-func (v *validatorSC) saveRegistrationData(key []byte, auction *ValidatorDataV2) error {
+func (v *validatorSC) saveRegistrationData(key []byte, validator *ValidatorDataV2) error {
 	if !v.flagEnableTopUp.IsSet() {
-		return v.saveRegistrationDataV1(key, auction)
+		return v.saveRegistrationDataV1(key, validator)
 	}
 
-	data, err := v.marshalizer.Marshal(auction)
+	data, err := v.marshalizer.Marshal(validator)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function in saveRegistrationData",
 			"error", err.Error(),
@@ -120,19 +120,19 @@ func (v *validatorSC) saveRegistrationData(key []byte, auction *ValidatorDataV2)
 	return nil
 }
 
-func (v *validatorSC) saveRegistrationDataV1(key []byte, auction *ValidatorDataV2) error {
-	auctionDataV1 := &ValidatorDataV2{
-		RegisterNonce:   auction.RegisterNonce,
-		Epoch:           auction.Epoch,
-		RewardAddress:   auction.RewardAddress,
-		TotalStakeValue: auction.TotalStakeValue,
-		LockedStake:     auction.LockedStake,
-		MaxStakePerNode: auction.MaxStakePerNode,
-		BlsPubKeys:      auction.BlsPubKeys,
-		NumRegistered:   auction.NumRegistered,
+func (v *validatorSC) saveRegistrationDataV1(key []byte, validator *ValidatorDataV2) error {
+	validatorDataV1 := &ValidatorDataV2{
+		RegisterNonce:   validator.RegisterNonce,
+		Epoch:           validator.Epoch,
+		RewardAddress:   validator.RewardAddress,
+		TotalStakeValue: validator.TotalStakeValue,
+		LockedStake:     validator.LockedStake,
+		MaxStakePerNode: validator.MaxStakePerNode,
+		BlsPubKeys:      validator.BlsPubKeys,
+		NumRegistered:   validator.NumRegistered,
 	}
 
-	data, err := v.marshalizer.Marshal(auctionDataV1)
+	data, err := v.marshalizer.Marshal(validatorDataV1)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function in saveRegistrationDataV1",
 			"error", err.Error(),

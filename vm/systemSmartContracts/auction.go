@@ -203,8 +203,8 @@ func (v *validatorSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.Return
 		return vmcommon.UserError
 	}
 
-	auctionConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
-	totalUnJailPrice := big.NewInt(0).Mul(auctionConfig.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	totalUnJailPrice := big.NewInt(0).Mul(validatorConfig.UnJailPrice, big.NewInt(int64(len(args.Arguments))))
 
 	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
 		v.eei.AddReturnMessage("insufficient funds sent for unJail")
@@ -258,8 +258,8 @@ func (v *validatorSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	numBLSKeys := len(args.Arguments)
-	auctionConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
-	totalUnJailPrice := big.NewInt(0).Mul(auctionConfig.UnJailPrice, big.NewInt(int64(numBLSKeys)))
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	totalUnJailPrice := big.NewInt(0).Mul(validatorConfig.UnJailPrice, big.NewInt(int64(numBLSKeys)))
 
 	if totalUnJailPrice.Cmp(args.CallValue) != 0 {
 		v.eei.AddReturnMessage("wanted exact unjail price * numNodes")
@@ -288,7 +288,7 @@ func (v *validatorSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	for _, blsKey := range args.Arguments {
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unJail@" + hex.EncodeToString(blsKey)))
 		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
-			transferBack.Add(transferBack, auctionConfig.UnJailPrice)
+			transferBack.Add(transferBack, validatorConfig.UnJailPrice)
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
 			continue
@@ -675,7 +675,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	auctionConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
@@ -683,11 +683,11 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	}
 
 	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, args.CallValue)
-	if registrationData.TotalStakeValue.Cmp(auctionConfig.NodePrice) < 0 &&
+	if registrationData.TotalStakeValue.Cmp(validatorConfig.NodePrice) < 0 &&
 		!core.IsSmartContractAddress(args.CallerAddr) {
 		v.eei.AddReturnMessage(
 			fmt.Sprintf("insufficient stake value: expected %v, got %v",
-				auctionConfig.NodePrice.String(),
+				validatorConfig.NodePrice.String(),
 				registrationData.TotalStakeValue.String(),
 			),
 		)
@@ -730,7 +730,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.UserError
 	}
 
-	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, auctionConfig.NodePrice)
+	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, validatorConfig.NodePrice)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
 		v.eei.AddReturnMessage("insufficient funds")
 		return vmcommon.OutOfFunds
@@ -757,7 +757,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		blsKeys,
 		numQualified.Uint64(),
 		registrationData,
-		auctionConfig.NodePrice,
+		validatorConfig.NodePrice,
 		registrationData.RewardAddress,
 		args.CallerAddr,
 	)
@@ -1000,9 +1000,9 @@ func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]
 			continue
 		}
 
-		auctionConfig := v.getConfig(nodeData.UnStakedEpoch)
+		validatorConfig := v.getConfig(nodeData.UnStakedEpoch)
 		unBondedKeys = append(unBondedKeys, blsKey)
-		totalUnBond.Add(totalUnBond, auctionConfig.NodePrice)
+		totalUnBond.Add(totalUnBond, validatorConfig.NodePrice)
 		totalSlashed.Add(totalSlashed, nodeData.SlashValue)
 	}
 
@@ -1209,7 +1209,7 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 		return nil, vmcommon.UserError
 	}
 	if len(registrationData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("key is not registered, auction operation is not possible")
+		v.eei.AddReturnMessage("key is not registered, validator operation is not possible")
 		return nil, vmcommon.UserError
 	}
 	if registrationData.TotalUnstaked == nil {
@@ -1336,7 +1336,7 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 	}
 
 	if len(registrationData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("caller not registered in staking/auction sc")
+		v.eei.AddReturnMessage("caller not registered in staking/validator sc")
 		return vmcommon.UserError
 	}
 
@@ -1366,7 +1366,7 @@ func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmco
 	}
 
 	if len(registrationData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("caller not registered in staking/auction sc")
+		v.eei.AddReturnMessage("caller not registered in staking/validator sc")
 		return vmcommon.UserError
 	}
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)

@@ -31,7 +31,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		Eei:                    &mock.SystemEIStub{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.ValidatorSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -78,11 +78,11 @@ func TestNewDelegationManagerSystemSC_InvalidStakingSCAddressShouldErr(t *testin
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewDelegationManagerSystemSC_InvalidAuctionSCAddressShouldErr(t *testing.T) {
+func TestNewDelegationManagerSystemSC_InvalidValidatorSCAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	args.AuctionSCAddress = nil
+	args.ValidatorSCAddress = nil
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
@@ -313,9 +313,9 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 	argsStaking.Eei = eei
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
-	argsAuction := createMockArgumentsForAuction()
-	argsAuction.Eei = eei
-	auctionSC, _ := NewValidatorSmartContract(argsAuction)
+	argsValidator := createMockArgumentsForValidator()
+	argsValidator.Eei = eei
+	validatorSC, _ := NewValidatorSmartContract(argsValidator)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
 	delegationSCArgs.Eei = eei
@@ -327,7 +327,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 			case string(vm.StakingSCAddress):
 				return stakingSc, nil
 			case string(vm.ValidatorSCAddress):
-				return auctionSC, nil
+				return validatorSC, nil
 			case string(vm.FirstDelegationSCAddress):
 				return delegationSc, nil
 			}

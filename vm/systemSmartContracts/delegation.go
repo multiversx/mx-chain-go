@@ -360,7 +360,7 @@ func (d *delegation) delegateUser(
 	}
 
 	stakeArgs := d.makeStakeArgsIfAutomaticActivation(dConfig, dStatus, globalFund)
-	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", stakeArgs, callValue)
+	vmOutput, err := d.executeOnValidatorSC(recipientAddr, "stake", stakeArgs, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -730,7 +730,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -787,7 +787,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unStakeNodes", args.Arguments, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unStakeNodes", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -831,7 +831,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unBondNodes", args.Arguments, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unBondNodes", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -888,7 +888,7 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unJail", args.Arguments, args.CallValue)
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unJail", args.Arguments, args.CallValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1065,7 +1065,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnAuctionWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
+	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1303,12 +1303,12 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnAuctionWithValueInArgs(
+func (d *delegation) executeOnValidatorWithValueInArgs(
 	scAddress []byte,
 	functionToCall string,
 	actionValue *big.Int,
 ) ([][]byte, vmcommon.ReturnCode) {
-	vmOutput, err := d.executeOnAuctionSC(scAddress, functionToCall, [][]byte{actionValue.Bytes()}, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(scAddress, functionToCall, [][]byte{actionValue.Bytes()}, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return nil, vmcommon.UserError
@@ -1395,7 +1395,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnAuctionWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
+	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1755,12 +1755,12 @@ func (d *delegation) getClaimableRewards(args *vmcommon.ContractCallInput) vmcom
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnAuctionSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
-	auctionCall := function
+func (d *delegation) executeOnValidatorSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
+	validatorCall := function
 	for _, key := range args {
-		auctionCall += "@" + hex.EncodeToString(key)
+		validatorCall += "@" + hex.EncodeToString(key)
 	}
-	vmOutput, err := d.eei.ExecuteOnDestContext(d.validatorSCAddr, address, value, []byte(auctionCall))
+	vmOutput, err := d.eei.ExecuteOnDestContext(d.validatorSCAddr, address, value, []byte(validatorCall))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return nil, err
