@@ -39,7 +39,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 	}
 
 	if args.NumOfOldActivePersisters < 1 || args.NumOfOldActivePersisters > math.MaxInt32 {
-		return nil, err
+		return nil, storage.ErrInvalidNumberOfOldPersisters
 	}
 
 	oldEpochsActivePersisters, err := lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), onEvicted)
@@ -57,7 +57,7 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 }
 
 func onEvicted(key interface{}, value interface{}) {
-	pd, ok := value.(persisterData)
+	pd, ok := value.(*persisterData)
 	if ok {
 		err := pd.Close()
 		if err != nil {
@@ -68,22 +68,48 @@ func onEvicted(key interface{}, value interface{}) {
 
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	// TODO: this will be used when requesting from resolvers
-	v, ok := fhps.cacher.Get(key)
-	if ok {
-		return v.([]byte), nil
+	data, err := fhps.searchInEpoch(key, epoch)
+
+	if err == nil && data != nil {
+		return data, nil
 	}
+
+	return fhps.searchInEpoch(key, epoch+1)
+}
+
+func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([]byte, error) {
+	fhps.lock.RLock()
+	oldestEpochInCurrentSetting := fhps.activePersisters[len(fhps.activePersisters)-1].epoch
+	fhps.lock.RUnlock()
+
+	isActiveEpoch := epoch > oldestEpochInCurrentSetting-fhps.numOfActivePersisters
+	if isActiveEpoch {
+		return fhps.PruningStorer.Get(key)
+	}
+
+	data, err := fhps.getFromOldEpoch(key, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
 	epochString := fmt.Sprintf("%d", epoch)
+
 	fhps.lock.RLock()
 	pdata, exists := fhps.oldEpochsActivePersisters.Get([]byte(epochString))
 	fhps.lock.RUnlock()
 	if !exists {
-		p, err := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
-		if err != nil {
-			return nil, err
+		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
+		if errPersisterData != nil {
+			return nil, errPersisterData
 		}
 
-		fhps.oldEpochsActivePersisters.Put([]byte(epochString), p, 0)
+		fhps.oldEpochsActivePersisters.Put([]byte(epochString), newPdata, 0)
+		fhps.persistersMapByEpoch[epoch] = newPdata
+		pdata = newPdata
 	}
 	pd := pdata.(*persisterData)
 	persister, _, err := fhps.createAndInitPersisterIfClosed(pd)
@@ -104,5 +130,4 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 
 	return nil, fmt.Errorf("key %s not found in %s",
 		hex.EncodeToString(key), fhps.identifier)
-
 }
