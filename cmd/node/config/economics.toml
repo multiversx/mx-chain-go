@@ -21,11 +21,11 @@
     LeaderPercentage = 0.1 #fraction of value 1 - 10%
     DeveloperPercentage = 0.3 #fraction of value 1 - 30%
     ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
-    ProtocolSustainabilityAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+    ProtocolSustainabilityAddress = "erd135enn78u7fy352ny9mcl26a08wvu02mjdumfkt7cn587cwtnerksagqsfm"
 
 [FeeSettings]
-    MaxGasLimitPerBlock     = "1500000000"
-    MaxGasLimitPerMetaBlock = "15000000000"
+    MaxGasLimitPerBlock     = "750000000"
+    MaxGasLimitPerMetaBlock = "7500000000"
     MinGasPrice = "1000000000" #will yield min tx fee of 0.00005 eGLD
     MinGasLimit = "50000"
     GasPerDataByte = "1500"
