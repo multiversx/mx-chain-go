@@ -106,7 +106,7 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		return res, nil
 	}
 
-	log.Warn("GetFromEpoch persister",
+	log.Debug("GetFromEpoch persister",
 		"id", fhps.identifier,
 		"epoch", epoch,
 		"key", key,

@@ -382,6 +382,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
 	flagsConfig.IsInImportMode = isInImportMode
 	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
+	flagsConfig.ImportDbDirectory = importDbDirectoryValue
 
 	cfgs.FlagsConfig = flagsConfig
 
