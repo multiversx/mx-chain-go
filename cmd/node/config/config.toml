@@ -213,14 +213,13 @@
 [TrieEpochRootHashStorage]
     [TrieEpochRootHashStorage.Cache]
         Name = "TrieEpochRootHashCache"
-        Capacity = 10
-        Type = "SizeLRU"
-        SizeInBytes = 5242 #5MB
+        Capacity = 1000
+        Type = "LRU"
     [TrieEpochRootHashStorage.DB]
         FilePath = "TrieEpochRootHashStorageDB"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
-        MaxBatchSize = 20000
+        MaxBatchSize = 500
         MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]
