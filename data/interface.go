@@ -164,12 +164,11 @@ type Trie interface {
 	SetNewHashes(ModifiedHashes)
 	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
-	GetAllLeaves() (map[string][]byte, error)
-	GetAllLeavesOnChannel() chan core.KeyValueHolder
+	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
 	IsPruningEnabled() bool
-	EnterSnapshotMode()
-	ExitSnapshotMode()
+	EnterPruningBufferingMode()
+	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
 	ClosePersister() error
@@ -209,8 +208,8 @@ type StorageManager interface {
 	MarkForEviction([]byte, ModifiedHashes) error
 	GetSnapshotThatContainsHash(rootHash []byte) SnapshotDbHandler
 	IsPruningEnabled() bool
-	EnterSnapshotMode()
-	ExitSnapshotMode()
+	EnterPruningBufferingMode()
+	ExitPruningBufferingMode()
 	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
 }

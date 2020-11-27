@@ -6,14 +6,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const delegationConfigKey = "delegationConfig"
@@ -50,6 +51,7 @@ type delegation struct {
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
+	mutExecution           sync.RWMutex
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -139,6 +141,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 
 // Execute calls one of the functions from the delegation contract and runs the code according to the input
 func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	d.mutExecution.RLock()
+	defer d.mutExecution.RUnlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -2068,6 +2073,13 @@ func (d *delegation) getMinDeposit() (*big.Int, error) {
 	}
 
 	return managementData.MinDeposit, nil
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
+	d.mutExecution.Lock()
+	d.gasCost = gasCost
+	d.mutExecution.Unlock()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

@@ -13,6 +13,7 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -20,7 +21,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -211,7 +211,7 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
+		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -223,7 +223,7 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	tx, err := nf.GetTransaction(testHash)
+	tx, err := nf.GetTransaction(testHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, testTx, tx)
 }
@@ -246,7 +246,7 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
+		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -258,7 +258,7 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	tx, err := nf.GetTransaction("unknownHash")
+	tx, err := nf.GetTransaction("unknownHash", false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx)
 }

@@ -171,8 +171,12 @@ type EpochEconomicsDataProvider interface {
 
 // EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type EpochStartRewardsCreator interface {
-	CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateRewardsMiniBlocks(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocks(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalizedData(body *block.Body) map[string][][]byte

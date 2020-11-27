@@ -321,14 +321,19 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	totalNumBlocks := uint64(0)
 	var blocksInShard uint64
 	blocksPerShard := make(map[uint32]uint64)
-	for shardId := uint32(0); shardId < e.shardCoordinator.NumberOfShards(); shardId++ {
+	shardMap := createShardsMap(e.shardCoordinator)
+	for shardId := range shardMap {
 		blocksInShard = mapEndNonce[shardId] - mapStartNonce[shardId]
 		blocksPerShard[shardId] = blocksInShard
 		totalNumBlocks += blocksInShard
+		log.Debug("computeNumOfTotalCreatedBlocks",
+			"shardID", shardId,
+			"prevEpochLastNonce", mapEndNonce[shardId],
+			"epochLastNonce", mapStartNonce[shardId],
+			"nbBlocksEpoch", blocksPerShard[shardId],
+		)
 	}
-	blocksInShard = mapEndNonce[core.MetachainShardId] - mapStartNonce[core.MetachainShardId]
-	blocksPerShard[core.MetachainShardId] = blocksInShard
-	totalNumBlocks += blocksInShard
+
 	e.economicsDataNotified.SetNumberOfBlocks(totalNumBlocks)
 	e.economicsDataNotified.SetNumberOfBlocksPerShard(blocksPerShard)
 
@@ -375,14 +380,18 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (e *economics) VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error {
+func (e *economics) VerifyRewardsPerBlock(
+	metaBlock *block.MetaBlock,
+	correctedProtocolSustainability *big.Int,
+	computedEconomics *block.Economics,
+) error {
+	if computedEconomics == nil {
+		return epochStart.ErrNilEconomicsData
+	}
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
-	computedEconomics, err := e.ComputeEndOfEpochEconomics(metaBlock)
-	if err != nil {
-		return err
-	}
+
 	computedEconomics.RewardsForProtocolSustainability.Set(correctedProtocolSustainability)
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {

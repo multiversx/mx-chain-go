@@ -33,6 +33,7 @@
     DataCopyPerByte   = 1000
     PersistPerByte    = 10000
     CompilePerByte    = 300
+    AoTPreparePerByte = 50
 
 [ElrondAPICost]
     GetSCAddress       = 100

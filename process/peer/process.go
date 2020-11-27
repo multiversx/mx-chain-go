@@ -1,12 +1,11 @@
 package peer
 
 import (
-	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -412,7 +411,7 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 }
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
-	leaves map[string][]byte,
+	leavesChannel chan core.KeyValueHolder,
 ) (map[uint32][]*state.ValidatorInfo, error) {
 
 	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
@@ -421,14 +420,8 @@ func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	sliceLeaves := vs.convertMapToSortedSlice(leaves)
-
-	sort.Slice(sliceLeaves, func(i, j int) bool {
-		return bytes.Compare(sliceLeaves[i], sliceLeaves[j]) < 0
-	})
-
-	for _, pa := range sliceLeaves {
-		peerAccount, err := vs.unmarshalPeer(pa)
+	for pa := range leavesChannel {
+		peerAccount, err := vs.unmarshalPeer(pa.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -557,12 +550,13 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 		log.Debug("GetValidatorInfoForRootHash", sw.GetMeasurements()...)
 	}()
 
-	allLeaves, err := vs.peerAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := vs.peerAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	vInfos, err := vs.getValidatorDataFromLeaves(allLeaves)
+	vInfos, err := vs.getValidatorDataFromLeaves(leavesChannel)
 	if err != nil {
 		return nil, err
 	}

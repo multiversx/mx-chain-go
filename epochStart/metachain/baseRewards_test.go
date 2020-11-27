@@ -9,6 +9,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -324,11 +325,12 @@ func TestBaseRewardsCreator_CreateMarshalizedDataOnlyRewardsMiniblocksGetMarshal
 	require.Greater(t, len(result), 0)
 
 	readRwTx := &rewardTx.RewardTx{}
-	for _, data := range result {
-		for _, tx := range data {
+	var expectedTx data.TransactionHandler
+	for _, resData := range result {
+		for _, tx := range resData {
 			err = args.Marshalizer.Unmarshal(readRwTx, tx)
 			require.Nil(t, err)
-			expectedTx, err := rwd.currTxs.GetTx(dummyMiniBlock.TxHashes[0])
+			expectedTx, err = rwd.currTxs.GetTx(dummyMiniBlock.TxHashes[0])
 			require.Nil(t, err)
 			require.Equal(t, expectedTx, readRwTx)
 		}
@@ -461,6 +463,7 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 		block.ReceiptBlock,
 	}
 
+	var mb, mmb []byte
 	for _, mbType := range miniBlockTypes {
 		dummyMiniBlock.Type = mbType
 
@@ -470,10 +473,10 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 			},
 		})
 
-		mmb, err := args.Marshalizer.Marshal(dummyMiniBlock)
+		mmb, err = args.Marshalizer.Marshal(dummyMiniBlock)
 		require.Nil(t, err)
 		mbHash := args.Hasher.Compute(string(mmb))
-		mb, err := args.MiniBlockStorage.Get(mbHash)
+		mb, err = args.MiniBlockStorage.Get(mbHash)
 		require.Nil(t, mb)
 		require.NotNil(t, err)
 	}
@@ -485,10 +488,10 @@ func TestBaseRewardsCreator_SaveTxBlockToStorageNonRewardsMiniBlocksAreIgnored(t
 		},
 	})
 
-	mmb, err := args.Marshalizer.Marshal(dummyMiniBlock)
+	mmb, err = args.Marshalizer.Marshal(dummyMiniBlock)
 	require.Nil(t, err)
 	mbHash := args.Hasher.Compute(string(mmb))
-	mb, err := rwd.miniBlockStorage.Get(mbHash)
+	mb, err = rwd.miniBlockStorage.Get(mbHash)
 	require.Equal(t, mmb, mb)
 	require.Nil(t, err)
 
@@ -580,6 +583,8 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
 	}
+
+	var tx, mb []byte
 	for _, mbType := range miniBlockTypes {
 		dummyMb := createDummyRewardTxMiniblock(rwd)
 		dummyMb.Type = mbType
@@ -600,11 +605,11 @@ func TestBaseRewardsCreator_DeleteTxsFromStorageNonRewardsMiniBlocksIgnored(t *t
 		_ = rwd.miniBlockStorage.Put(mbHash, dummyMbMarshalled)
 
 		rwd.DeleteTxsFromStorage(metaBlk, &block.Body{MiniBlocks: block.MiniBlockSlice{dummyMb}})
-		tx, err := rwd.rewardsStorage.Get(rwTxHash)
+		tx, err = rwd.rewardsStorage.Get(rwTxHash)
 		require.Nil(t, err)
 		require.NotNil(t, tx)
 
-		mb, err := rwd.miniBlockStorage.Get(mbHash)
+		mb, err = rwd.miniBlockStorage.Get(mbHash)
 		require.Nil(t, err)
 		require.NotNil(t, mb)
 	}
@@ -866,7 +871,7 @@ func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *tes
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk)
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
@@ -945,8 +950,6 @@ func TestBaseRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *
 
 func TestBaseRewardsCreator_adjustProtocolSustainabilityRewardsNegValueNotAccepted(t *testing.T) {
 	t.Parallel()
-	// TODO: enable the test when rewards miniBlocks verification is refactored
-	t.Skip("skip until refactor")
 
 	args := getBaseRewardsArguments()
 	rwd, err := NewBaseRewardsCreator(args)
