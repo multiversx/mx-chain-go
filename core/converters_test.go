@@ -218,3 +218,21 @@ func TestConvertToEvenHexBigInt(t *testing.T) {
 		assert.Equal(t, i, int(recovered))
 	}
 }
+
+func TestConvertShardIDToUint32(t *testing.T) {
+	t.Parallel()
+
+	shardID, err := core.ConvertShardIDToUint32("metachain")
+	assert.NoError(t, err)
+	assert.Equal(t, core.MetachainShardId, shardID)
+
+	id := uint32(0)
+	shardIDStr := fmt.Sprintf("%d", id)
+	shardID, err = core.ConvertShardIDToUint32(shardIDStr)
+	assert.NoError(t, err)
+	assert.Equal(t, id, shardID)
+
+	shardID, err = core.ConvertShardIDToUint32("wrongID")
+	assert.Error(t, err)
+	assert.Equal(t, uint32(0), shardID)
+}
