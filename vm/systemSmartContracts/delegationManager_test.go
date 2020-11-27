@@ -31,7 +31,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		Eei:                    &mock.SystemEIStub{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.AuctionSCAddress,
+		AuctionSCAddress:       vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -315,7 +315,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 
 	argsAuction := createMockArgumentsForAuction()
 	argsAuction.Eei = eei
-	auctionSC, _ := NewStakingAuctionSmartContract(argsAuction)
+	auctionSC, _ := NewValidatorSmartContract(argsAuction)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
 	delegationSCArgs.Eei = eei
@@ -326,7 +326,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 			switch string(key) {
 			case string(vm.StakingSCAddress):
 				return stakingSc, nil
-			case string(vm.AuctionSCAddress):
+			case string(vm.ValidatorSCAddress):
 				return auctionSC, nil
 			case string(vm.FirstDelegationSCAddress):
 				return delegationSc, nil
@@ -405,7 +405,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	assert.Equal(t, []byte{10}, retrievedServiceFee)
 	assert.Equal(t, big.NewInt(250), dContractConfig.MaxDelegationCap)
 
-	marshalledData := eei.GetStorageFromAddress(vm.AuctionSCAddress, eei.scAddress)
+	marshalledData := eei.GetStorageFromAddress(vm.ValidatorSCAddress, eei.scAddress)
 	stakedData := &StakedDataV2_0{}
 	err := args.Marshalizer.Unmarshal(stakedData, marshalledData)
 	assert.Nil(t, err)

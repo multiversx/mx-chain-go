@@ -667,7 +667,7 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 }
 
 func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler, error) {
-	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.AuctionSCAddress)
+	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
 	if err != nil {
 		return nil, fmt.Errorf("%w when loading auction account", err)
 	}
@@ -698,8 +698,8 @@ func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount s
 		return nil, err
 	}
 	for leaf := range chLeaves {
-		auctionData := &systemSmartContracts.AuctionDataV2{}
-		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.AuctionSCAddress...))
+		auctionData := &systemSmartContracts.ValidatorDataV2{}
+		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
 		if errTrim != nil {
 			return nil, fmt.Errorf("%w for auction key %s", errTrim, hex.EncodeToString(leaf.Key()))
 		}
@@ -719,11 +719,11 @@ func (s *systemSCProcessor) callUpdateStakingV2(auctionAccounts [][]byte) error 
 	for _, auctionAccountKey := range auctionAccounts {
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
-				CallerAddr: vm.AuctionSCAddress,
+				CallerAddr: vm.ValidatorSCAddress,
 				CallValue:  big.NewInt(0),
 				Arguments:  [][]byte{auctionAccountKey},
 			},
-			RecipientAddr: vm.AuctionSCAddress,
+			RecipientAddr: vm.ValidatorSCAddress,
 			Function:      "updateStakingV2",
 		}
 		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
@@ -784,7 +784,7 @@ func (s *systemSCProcessor) initDelegationSystemSC() error {
 func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte) error {
 	contractsToUpdate := make([][]byte, 0)
 	contractsToUpdate = append(contractsToUpdate, vm.StakingSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.AuctionSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.ValidatorSCAddress)
 	contractsToUpdate = append(contractsToUpdate, vm.GovernanceSCAddress)
 	contractsToUpdate = append(contractsToUpdate, vm.ESDTSCAddress)
 	contractsToUpdate = append(contractsToUpdate, vm.DelegationManagerSCAddress)

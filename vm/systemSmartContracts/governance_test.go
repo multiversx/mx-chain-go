@@ -460,7 +460,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 
-	autionData := &AuctionDataV2{
+	autionData := &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{[]byte("blsPubKey")},
 	}
@@ -539,13 +539,13 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	validatorAddress2 := []byte("vala2")
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
-	auctionData := &AuctionDataV2{
+	auctionData := &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{blsKey1},
 	}
 	auctionDataBytes, _ := json.Marshal(auctionData)
 	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress1, auctionDataBytes)
-	auctionData = &AuctionDataV2{
+	auctionData = &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{blsKey2},
 	}

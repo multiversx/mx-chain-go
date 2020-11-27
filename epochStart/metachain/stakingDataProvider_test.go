@@ -237,7 +237,7 @@ func createStakingDataProviderWithMockArgs(
 			*numRunContractCalls++
 			switch input.Function {
 			case "getOwner":
-				assert.Equal(t, vm.AuctionSCAddress, input.VMInput.CallerAddr)
+				assert.Equal(t, vm.ValidatorSCAddress, input.VMInput.CallerAddr)
 				assert.Equal(t, vm.StakingSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
@@ -245,7 +245,7 @@ func createStakingDataProviderWithMockArgs(
 				}, nil
 			case "getTopUpTotalStaked":
 				assert.Equal(t, owner, input.VMInput.CallerAddr)
-				assert.Equal(t, vm.AuctionSCAddress, input.RecipientAddr)
+				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{[]byte(topUpVal.String()), []byte(stakingVal.String())},
