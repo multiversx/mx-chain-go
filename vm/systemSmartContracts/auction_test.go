@@ -338,7 +338,7 @@ func TestStakingValidatorSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 
-	rwdAddress := []byte("reward1")
+	rwdAddress := []byte("reward111")
 	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
@@ -891,7 +891,7 @@ func TestStakingValidatorSC_StakeShouldSetOwnerIfStakingV2IsEnabled(t *testing.T
 func TestStakingValidatorSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testing.T) {
 	t.Parallel()
 
-	stakerAddress := []byte("staker1")
+	stakerAddress := []byte("staker111")
 	stakerPubKey := []byte("bls1")
 
 	blockChainHook := &mock.BlockChainHookStub{}
@@ -924,7 +924,7 @@ func TestStakingValidatorSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testin
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
-	rewardAddress := []byte("staker2")
+	rewardAddress := []byte("staker222")
 	arguments.Function = "changeRewardAddress"
 	arguments.Arguments = [][]byte{rewardAddress}
 	arguments.CallValue = big.NewInt(0)
@@ -2383,7 +2383,6 @@ func TestValidatorStakingSC_SetConfig_InvalidParameters(t *testing.T) {
 	arguments.CallerAddr = ownerAddr
 	_ = sc.Execute(arguments)
 
-	numNodes := big.NewInt(10)
 	totalSupply := big.NewInt(10000000)
 	minStep := big.NewInt(100)
 	nodPrice := big.NewInt(20000)
@@ -2391,38 +2390,26 @@ func TestValidatorStakingSC_SetConfig_InvalidParameters(t *testing.T) {
 	unjailPrice := big.NewInt(100)
 	arguments.Function = "setConfig"
 
-	arguments.Arguments = [][]byte{zero.Bytes(), numNodes.Bytes(),
-		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), zero.Bytes(), minStep.Bytes(),
+		nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
 	retCode := sc.Execute(arguments)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinStakeValue.Error()))
-
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), zero.Bytes(),
-		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
-	retCode = sc.Execute(arguments)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinNumberOfNodes.Error()))
-
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
-		zero.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
-	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidGenesisTotalSupply.Error()))
 
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
-		totalSupply.Bytes(), zero.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), totalSupply.Bytes(), zero.Bytes(),
+		nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
 	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidMinStepValue.Error()))
 
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
-		totalSupply.Bytes(), minStep.Bytes(), zero.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), totalSupply.Bytes(), minStep.Bytes(),
+		zero.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
 	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNodePrice.Error()))
 
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
-		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), zero.Bytes(), epoch.Bytes()}
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), totalSupply.Bytes(), minStep.Bytes(),
+		nodPrice.Bytes(), zero.Bytes(), epoch.Bytes()}
 	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidUnJailCost.Error()))
@@ -2639,7 +2626,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	// change reward address should error wrong address
 	changeRewardAddress(t, sc, stakerAddress, []byte("wrongAddress"), vmcommon.UserError)
 	// change reward address should error because address is not belongs to any validator
-	newRewardAddr := []byte("newAddr")
+	newRewardAddr := []byte("newAddr11")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
 	//do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
@@ -3345,7 +3332,7 @@ func TestStakingValidatorSC_UpdateStakingV2CallValueNotZeroShouldError(t *testin
 	args.Eei = eei
 	sc, _ := NewValidatorSmartContract(args)
 
-	callFunctionAndCheckResult(t, "updateStakingV2", sc, sc.validatorSCAddress, [][]byte{[]byte("address")}, big.NewInt(1), vmcommon.UserError)
+	callFunctionAndCheckResult(t, "updateStakingV2", sc, sc.validatorSCAddress, [][]byte{[]byte("address11")}, big.NewInt(1), vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
@@ -3375,7 +3362,7 @@ func TestStakingValidatorSC_UpdateStakingV2ShouldWork(t *testing.T) {
 	}})
 
 	args.Eei = eei
-	owner := []byte("address")
+	owner := []byte("address11")
 	blsKeys := [][]byte{[]byte("blsKey1"), []byte("blsKey2")}
 	sc, _ := NewValidatorSmartContract(args)
 	_ = sc.saveRegistrationData(

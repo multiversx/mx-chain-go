@@ -16,7 +16,7 @@ func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	if len(args.Arguments) != 7 {
+	if len(args.Arguments) != 6 {
 		retMessage := fmt.Sprintf("setConfig function called with wrong number of arguments expected %d, got %d", 7, len(args.Arguments))
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError

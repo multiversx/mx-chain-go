@@ -104,9 +104,6 @@ var ErrNotEnoughGas = errors.New("not enough gas")
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 
-// ErrInvalidMinNumberOfNodes signals that provided minimum number of nodes is invalid
-var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
-
 // ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
 var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
 
