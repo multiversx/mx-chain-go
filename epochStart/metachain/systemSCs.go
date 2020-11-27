@@ -62,14 +62,14 @@ type systemSCProcessor struct {
 	hystNodesEnableEpoch      uint32
 	delegationEnableEpoch     uint32
 	stakingV2EnableEpoch      uint32
-	governanceV2EnableEpoch  uint32
+	governanceEnableEpoch     uint32
 	maxNodesEnableConfig      []config.MaxNodesChangeConfig
 	maxNodes                  uint32
 	flagSwitchJailedWaiting   atomic.Flag
 	flagHystNodesEnabled      atomic.Flag
 	flagDelegationEnabled     atomic.Flag
 	flagStakingV2Enabled      atomic.Flag
-	flagGovernanceV2Enabled   atomic.Flag
+	flagGovernanceEnabled     atomic.Flag
 	flagChangeMaxNodesEnabled atomic.Flag
 	mapNumSwitchedPerShard    map[uint32]uint32
 	mapNumSwitchablePerShard  map[uint32]uint32
@@ -145,7 +145,7 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
 		delegationEnableEpoch:    args.DelegationEnableEpoch,
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
-		governanceV2EnableEpoch:  args.GovernanceV2EnableEpoch,
+		governanceEnableEpoch:    args.GovernanceV2EnableEpoch,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))
@@ -200,7 +200,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
-	if s.flagGovernanceV2Enabled.IsSet() {
+	if s.flagGovernanceEnabled.IsSet() {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
@@ -677,13 +677,6 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {
-	sw := core.NewStopWatch()
-	sw.Start("systemSCProcessor")
-	defer func() {
-		sw.Stop("systemSCProcessor")
-		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
-	}()
-
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.GovernanceSCAddress,
@@ -951,6 +944,6 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 		"maxNodes", s.maxNodes,
 	)
 
-	s.flagGovernanceV2Enabled.Toggle(epoch == s.governanceV2EnableEpoch)
-	log.Debug("systemProcessor: governanceV2", "enabled", epoch >= s.governanceV2EnableEpoch)
+	s.flagGovernanceEnabled.Toggle(epoch == s.governanceEnableEpoch)
+	log.Debug("systemProcessor: governanceV2", "enabled", epoch >= s.governanceEnableEpoch)
 }
