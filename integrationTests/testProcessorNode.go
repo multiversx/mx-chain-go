@@ -1282,7 +1282,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
+				StakingV2Epoch:                       0,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,

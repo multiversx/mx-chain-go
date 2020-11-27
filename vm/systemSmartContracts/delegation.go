@@ -1385,6 +1385,11 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	if totalUnBondable.Cmp(zero) == 0 {
+		d.eei.AddReturnMessage("nothing to unBond")
+		return vmcommon.Ok
+	}
+
 	if globalFund.TotalUnStaked.Cmp(totalUnBondable) < 0 {
 		d.eei.AddReturnMessage("cannot unBond - contract error")
 		return vmcommon.UserError

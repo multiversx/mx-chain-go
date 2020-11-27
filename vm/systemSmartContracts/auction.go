@@ -1353,7 +1353,7 @@ func (s *stakingAuctionSC) unBondTokens(args *vmcommon.ContractCallInput) vmcomm
 	if len(args.Arguments) == 1 {
 		valueToUnBond = big.NewInt(0).SetBytes(args.Arguments[0])
 		if valueToUnBond.Cmp(zero) <= 0 {
-			s.eei.AddReturnMessage("cannot unBond negative value")
+			s.eei.AddReturnMessage("cannot unBond negative value or zero value")
 			return vmcommon.UserError
 		}
 	}
