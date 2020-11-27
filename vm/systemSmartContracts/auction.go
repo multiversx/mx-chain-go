@@ -686,7 +686,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	if registrationData.TotalStakeValue.Cmp(validatorConfig.NodePrice) < 0 &&
 		!core.IsSmartContractAddress(args.CallerAddr) {
 		v.eei.AddReturnMessage(
-			fmt.Sprintf("insufficient stake value: expected %v, got %v",
+			fmt.Sprintf("insufficient stake value: expected %s, got %s",
 				validatorConfig.NodePrice.String(),
 				registrationData.TotalStakeValue.String(),
 			),
@@ -797,14 +797,14 @@ func (v *validatorSC) activateStakingFor(
 			hex.EncodeToString(ownerAddress),
 		))
 		if err != nil {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %v, error %v", hex.EncodeToString(currentBLSKey), err.Error()))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), err.Error()))
 			v.eei.Finish(currentBLSKey)
 			v.eei.Finish([]byte{failed})
 			continue
 
 		}
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %v, error %v", hex.EncodeToString(currentBLSKey), vmOutput.ReturnCode.String()))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), vmOutput.ReturnCode.String()))
 			v.eei.Finish(currentBLSKey)
 			v.eei.Finish([]byte{failed})
 			continue
@@ -831,14 +831,14 @@ func (v *validatorSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error
 func (v *validatorSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool {
 	vmOutput, err := v.executeOnStakingSC([]byte("setOwner@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(ownerAddress)))
 	if err != nil {
-		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %v, error %v", hex.EncodeToString(blsKey), err.Error()))
+		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
 		v.eei.Finish(blsKey)
 		v.eei.Finish([]byte{failed})
 		return false
 
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %v, error %v", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
 		v.eei.Finish(blsKey)
 		v.eei.Finish([]byte{failed})
 		return false
@@ -884,14 +884,14 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	for _, blsKey := range blsKeys {
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if errExec != nil {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %v: %v", hex.EncodeToString(blsKey), errExec.Error()))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), errExec.Error()))
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
 			continue
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %v: %v", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unStake for key %s: %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
 			continue
@@ -986,7 +986,7 @@ func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]
 	for _, blsKey := range blsKeys {
 		nodeData, errGet := v.getStakedData(blsKey)
 		if errGet != nil {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %v, error: %v", hex.EncodeToString(blsKey), errGet.Error()))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), errGet.Error()))
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
 			continue
@@ -994,7 +994,7 @@ func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]
 		// returns what value is still under the selected bls key
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %v", hex.EncodeToString(blsKey)))
+			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s", hex.EncodeToString(blsKey)))
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
 			continue
