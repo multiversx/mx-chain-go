@@ -146,17 +146,17 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 
 func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string, targetShardID uint32) (dataRetriever.Resolver, error) {
 	//for each resolver we create a pseudo-intra shard topic as to make at least of half of the requests target the proper peers
-	//this pseud-intra shard topic is the consensus_targetShardID
+	//this pseudo-intra shard topic is the consensus_targetShardID
 	targetShardCoordinator, err := sharding.NewMultiShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
 	if err != nil {
 		return nil, err
 	}
 
-	targetConsensuStopic := core.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
+	targetConsensusStopic := core.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
 		rcf.messenger,
 		baseTopic,
-		targetConsensuStopic,
+		targetConsensusStopic,
 		factoryDataRetriever.EmptyExcludePeersOnTopic,
 	)
 	if err != nil {
