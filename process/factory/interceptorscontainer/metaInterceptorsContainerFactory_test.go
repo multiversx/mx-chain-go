@@ -293,6 +293,30 @@ func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilKeyGen, err)
 }
 
+func TestNewMetaInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxSignHasherField = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewMetaInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.EpochNotifierField = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
