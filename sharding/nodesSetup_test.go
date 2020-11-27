@@ -646,7 +646,7 @@ func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.
 		Adaptivity:                  false,
 		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
-		genesisMaxNumShards:         3,
+		genesisMaxNumShards:         100,
 	}
 
 	ns = createAndAssignNodes(*ns, 2169)
