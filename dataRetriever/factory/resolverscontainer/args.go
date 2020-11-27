@@ -22,4 +22,5 @@ type FactoryArgs struct {
 	TriesContainer             state.TriesHolder
 	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
+	IsFullHistoryNode          bool
 }

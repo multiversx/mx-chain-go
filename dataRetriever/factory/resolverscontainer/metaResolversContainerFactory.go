@@ -49,6 +49,7 @@ func NewMetaResolversContainerFactory(
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		throttler:                thr,
+		isFullHistoryNode:        args.IsFullHistoryNode,
 	}
 
 	err = base.checkParams()
@@ -192,6 +193,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		ShardCoordinator:     mrcf.shardCoordinator,
 		AntifloodHandler:     mrcf.inputAntifloodHandler,
 		Throttler:            mrcf.throttler,
+		IsFullHistoryNode:    mrcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {
@@ -240,6 +242,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 		ShardCoordinator:     mrcf.shardCoordinator,
 		AntifloodHandler:     mrcf.inputAntifloodHandler,
 		Throttler:            mrcf.throttler,
+		IsFullHistoryNode:    mrcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {
