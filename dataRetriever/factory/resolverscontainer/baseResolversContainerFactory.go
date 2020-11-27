@@ -23,7 +23,7 @@ const defaultTargetShardID = uint32(0)
 //TODO extract these in config
 const numCrossShardPeers = 2
 const numIntraShardPeers = 1
-const numFullHistoryPeers = 3
+const numFullHistoryPeers = 1
 
 type baseResolversContainerFactory struct {
 	container                dataRetriever.ResolversContainer
@@ -40,6 +40,7 @@ type baseResolversContainerFactory struct {
 	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
 	throttler                dataRetriever.ResolverThrottler
 	intraShardTopic          string
+	isFullHistoryNode        bool
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -134,13 +135,14 @@ func (brcf *baseResolversContainerFactory) createTxResolver(
 	}
 
 	arg := resolvers.ArgTxResolver{
-		SenderResolver:   resolverSender,
-		TxPool:           dataPool,
-		TxStorage:        txStorer,
-		Marshalizer:      brcf.marshalizer,
-		DataPacker:       brcf.dataPacker,
-		AntifloodHandler: brcf.inputAntifloodHandler,
-		Throttler:        brcf.throttler,
+		SenderResolver:    resolverSender,
+		TxPool:            dataPool,
+		TxStorage:         txStorer,
+		Marshalizer:       brcf.marshalizer,
+		DataPacker:        brcf.dataPacker,
+		AntifloodHandler:  brcf.inputAntifloodHandler,
+		Throttler:         brcf.throttler,
+		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewTxResolver(arg)
 	if err != nil {
@@ -206,13 +208,14 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(topic string
 	}
 
 	arg := resolvers.ArgMiniblockResolver{
-		SenderResolver:   resolverSender,
-		MiniBlockPool:    brcf.dataPools.MiniBlocks(),
-		MiniBlockStorage: miniBlocksStorer,
-		Marshalizer:      brcf.marshalizer,
-		AntifloodHandler: brcf.inputAntifloodHandler,
-		Throttler:        brcf.throttler,
-		DataPacker:       brcf.dataPacker,
+		SenderResolver:    resolverSender,
+		MiniBlockPool:     brcf.dataPools.MiniBlocks(),
+		MiniBlockStorage:  miniBlocksStorer,
+		Marshalizer:       brcf.marshalizer,
+		AntifloodHandler:  brcf.inputAntifloodHandler,
+		Throttler:         brcf.throttler,
+		DataPacker:        brcf.dataPacker,
+		IsFullHistoryNode: brcf.isFullHistoryNode,
 	}
 	txBlkResolver, err := resolvers.NewMiniblockResolver(arg)
 	if err != nil {

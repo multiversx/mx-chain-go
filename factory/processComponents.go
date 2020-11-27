@@ -908,6 +908,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory() (dataRet
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.numConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.config.StoragePruning.FullArchive,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -936,6 +937,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory() (dataRetr
 		InputAntifloodHandler:      pcf.network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:     pcf.network.OutputAntiFloodHandler(),
 		NumConcurrentResolvingJobs: pcf.numConcurrentResolverJobs,
+		IsFullHistoryNode:          pcf.config.StoragePruning.FullArchive,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
