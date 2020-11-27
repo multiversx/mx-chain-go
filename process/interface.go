@@ -5,13 +5,17 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
@@ -231,6 +235,7 @@ type BlockProcessor interface {
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
@@ -269,6 +274,7 @@ type TransactionLogProcessorDatabase interface {
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*state.ValidatorApiResponse
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // Checker provides functionality to checks the integrity and validity of a data structure
@@ -311,7 +317,6 @@ type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() core.NodeState
 	StartSyncingBlocks()
-	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -532,13 +537,43 @@ type BlockSizeThrottler interface {
 	IsInterfaceNil() bool
 }
 
-// RewardsHandler will return information about rewards
-type RewardsHandler interface {
+type rewardsHandler interface {
 	LeaderPercentage() float64
 	ProtocolSustainabilityPercentage() float64
 	ProtocolSustainabilityAddress() string
 	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
+}
+
+// RewardsHandler will return information about rewards
+type RewardsHandler interface {
+	rewardsHandler
+	IsInterfaceNil() bool
+}
+
+type feeHandler interface {
+	GenesisTotalSupply() *big.Int
+	DeveloperPercentage() float64
+	GasPerDataByte() uint64
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+}
+
+// FeeHandler is able to perform some economics calculation on a provided transaction
+type FeeHandler interface {
+	feeHandler
+	IsInterfaceNil() bool
+}
+
+// EconomicsHandler provides some economics related computation and read access to economics data
+type EconomicsHandler interface {
+	rewardsHandler
+	feeHandler
 	IsInterfaceNil() bool
 }
 
@@ -546,18 +581,6 @@ type RewardsHandler interface {
 type EndOfEpochEconomics interface {
 	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
 	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int) error
-	IsInterfaceNil() bool
-}
-
-// FeeHandler is able to perform some economics calculation on a provided transaction
-type FeeHandler interface {
-	DeveloperPercentage() float64
-	MaxGasLimitPerBlock(shardID uint32) uint64
-	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
-	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValues(tx TransactionWithFeeHandler) error
-	MinGasPrice() uint64
 	IsInterfaceNil() bool
 }
 
@@ -603,6 +626,15 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
+	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
+	IsInterfaceNil() bool
+}
+
+// NetworkShardingCollector defines the updating methods used by the network sharding component
+type NetworkShardingCollector interface {
+	UpdatePeerIdPublicKey(pid core.PeerID, pk []byte)
+	UpdatePublicKeyShardId(pk []byte, shardId uint32)
+	UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
 	IsInterfaceNil() bool
 }
@@ -663,12 +695,13 @@ type RequestBlockBodyHandler interface {
 // InterceptedHeaderSigVerifier is the interface needed at interceptors level to check that a header's signature is correct
 type InterceptedHeaderSigVerifier interface {
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
+	VerifyRandSeed(header data.HeaderHandler) error
+	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
-// HeaderIntegrityVerifier is the interface needed to check that a header's integrity
-// is correct
+// HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
 	GetVersion(epoch uint32) string
@@ -737,6 +770,7 @@ type P2PAntifloodHandler interface {
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // PeerValidatorMapper can determine the peer info from a peer id
@@ -797,8 +831,8 @@ type ValidityAttester interface {
 
 // MiniBlockProvider defines what a miniblock data provider should do
 type MiniBlockProvider interface {
-	GetMiniBlocks(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
-	GetMiniBlocksFromPool(hashes [][]byte) ([]*MiniblockAndHash, [][]byte)
+	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
+	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	IsInterfaceNil() bool
 }
 
@@ -896,12 +930,6 @@ type AntifloodDebugger interface {
 	IsInterfaceNil() bool
 }
 
-// MiniblockAndHash holds the info related to a miniblock and its hash
-type MiniblockAndHash struct {
-	Miniblock *block.MiniBlock
-	Hash      []byte
-}
-
 // PoolsCleaner defines the functionality to clean pools for old records
 type PoolsCleaner interface {
 	Close() error
@@ -953,5 +981,38 @@ type PayableHandler interface {
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
+	IsInterfaceNil() bool
+}
+
+// CoreComponentsHolder holds the core components needed by the interceptors
+type CoreComponentsHolder interface {
+	InternalMarshalizer() marshal.Marshalizer
+	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
+	TxMarshalizer() marshal.Marshalizer
+	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
+	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	AddressPubKeyConverter() core.PubkeyConverter
+	ValidatorPubKeyConverter() core.PubkeyConverter
+	PathHandler() storage.PathManagerHandler
+	ChainID() string
+	MinTransactionVersion() uint32
+	TxVersionChecker() TxVersionCheckerHandler
+	StatusHandler() core.AppStatusHandler
+	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
+	EpochNotifier() EpochNotifier
+	IsInterfaceNil() bool
+}
+
+// CryptoComponentsHolder holds the crypto components needed by the interceptors
+type CryptoComponentsHolder interface {
+	TxSignKeyGen() crypto.KeyGenerator
+	BlockSignKeyGen() crypto.KeyGenerator
+	TxSingleSigner() crypto.SingleSigner
+	BlockSigner() crypto.SingleSigner
+	MultiSigner() crypto.MultiSigner
+	SetMultiSigner(ms crypto.MultiSigner) error
+	PublicKey() crypto.PublicKey
+	Clone() interface{}
 	IsInterfaceNil() bool
 }

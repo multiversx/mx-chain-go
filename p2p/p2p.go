@@ -87,7 +87,7 @@ type Messenger interface {
 
 	// Bootstrap runs the initialization phase which includes peer discovery,
 	// setting up initial connections and self-announcement in the network.
-	Bootstrap() error
+	Bootstrap(numSecondsToWait uint32) error
 
 	// CreateTopic defines a new topic for sending messages, and optionally
 	// creates a channel in the LoadBalancer for this topic (otherwise, the topic

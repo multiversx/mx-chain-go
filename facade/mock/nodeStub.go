@@ -16,7 +16,6 @@ import (
 type NodeStub struct {
 	AddressHandler             func() (string, error)
 	ConnectToAddressesHandler  func([]string) error
-	StartConsensusHandler      func() error
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
@@ -77,11 +76,6 @@ func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock
 // DecodeAddressPubkey -
 func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 	return hex.DecodeString(pk)
-}
-
-// StartConsensus -
-func (ns *NodeStub) StartConsensus() error {
-	return ns.StartConsensusHandler()
 }
 
 // GetBalance -

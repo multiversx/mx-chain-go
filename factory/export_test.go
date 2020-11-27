@@ -1,16 +1,81 @@
 package factory
 
-// SetSkPkProviderHandler updates the handler for testing reasons
-func (cspf *cryptoSigningParamsLoader) SetSkPkProviderHandler(handler func() ([]byte, []byte, error)) {
-	cspf.skPkProviderHandler = handler
+import (
+	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+)
+
+// CreateStorerTemplatePaths -
+func (ccf *coreComponentsFactory) CreateStorerTemplatePaths() (string, string) {
+	return ccf.createStorerTemplatePaths()
 }
 
-// GetSkPk will call the inner function
-func (cspf *cryptoSigningParamsLoader) GetSkPk() ([]byte, []byte, error) {
-	return cspf.getSkPk()
+// GetSkPk -
+func (ccf *cryptoComponentsFactory) GetSkPk() ([]byte, []byte, error) {
+	return ccf.getSkPk()
 }
 
-// SetListenAddress will update the listen address for testing reasons
+// CreateSingleSigner -
+func (ccf *cryptoComponentsFactory) CreateSingleSigner(importModeNoSigCheck bool) (crypto.SingleSigner, error) {
+	return ccf.createSingleSigner(importModeNoSigCheck)
+}
+
+// GetMultiSigHasherFromConfig -
+func (ccf *cryptoComponentsFactory) GetMultiSigHasherFromConfig() (hashing.Hasher, error) {
+	return ccf.getMultiSigHasherFromConfig()
+}
+
+// CreateDummyCryptoParams
+func (ccf *cryptoComponentsFactory) CreateDummyCryptoParams() *cryptoParams {
+	return &cryptoParams{}
+}
+
+// CreateCryptoParams -
+func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.KeyGenerator) (*cryptoParams, error) {
+	return ccf.createCryptoParams(blockSignKeyGen)
+}
+
+// CreateMultiSigner -
+func (ccf *cryptoComponentsFactory) CreateMultiSigner(
+	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator, importModeNoSigCheck bool,
+) (crypto.MultiSigner, error) {
+	return ccf.createMultiSigner(h, cp, blSignKeyGen, importModeNoSigCheck)
+}
+
+// GetSuite -
+func (ccf *cryptoComponentsFactory) GetSuite() (crypto.Suite, error) {
+	return ccf.getSuite()
+}
+
+// SetListenAddress -
 func (ncf *networkComponentsFactory) SetListenAddress(address string) {
 	ncf.listenAddress = address
+}
+
+// NewBlockProcessor calls the unexported method with the same name in order to use it in tests
+func (pcf *processComponentsFactory) NewBlockProcessor(
+	requestHandler process.RequestHandler,
+	forkDetector process.ForkDetector,
+	epochStartTrigger epochStart.TriggerHandler,
+	bootStorer process.BootStorer,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	headerValidator process.HeaderConstructionValidator,
+	blockTracker process.BlockTracker,
+	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
+	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
+) (process.BlockProcessor, error) {
+	return pcf.newBlockProcessor(
+		requestHandler,
+		forkDetector,
+		epochStartTrigger,
+		bootStorer,
+		validatorStatisticsProcessor,
+		headerValidator,
+		blockTracker,
+		pendingMiniBlocksHandler,
+		txSimulatorProcessorArgs,
+	)
 }

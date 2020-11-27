@@ -19,7 +19,7 @@ import (
 type Facade struct {
 	ShouldErrorStart           bool
 	ShouldErrorStop            bool
-	TpsBenchmarkHandler        func() *statistics.TpsBenchmark
+	TpsBenchmarkHandler        func() statistics.TPSBenchmark
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
@@ -79,7 +79,7 @@ func (f *Facade) PprofEnabled() bool {
 }
 
 // TpsBenchmark is the mock implementation for retreiving the TpsBenchmark
-func (f *Facade) TpsBenchmark() *statistics.TpsBenchmark {
+func (f *Facade) TpsBenchmark() statistics.TPSBenchmark {
 	if f.TpsBenchmarkHandler != nil {
 		return f.TpsBenchmarkHandler()
 	}
@@ -213,6 +213,11 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	}
 
 	return 0
+}
+
+// Close -
+func (f *Facade) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

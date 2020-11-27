@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sort"
@@ -84,6 +85,7 @@ type interceptorResolver struct {
 	maxNumPrints         int
 	printEventFunc       func(data string)
 	timestampHandler     func() int64
+	cancelFunc           context.CancelFunc
 }
 
 // NewInterceptorResolver creates a new interceptorResolver able to hold requested-intercepted information
@@ -105,8 +107,9 @@ func NewInterceptorResolver(config config.InterceptorResolverDebugConfig) (*inte
 
 	ir.printEventFunc = ir.printEvent
 	if config.EnablePrint {
-		//TODO add context stopping mechanism here
-		go ir.printContinously()
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		ir.cancelFunc = cancelFunc
+		go ir.printContinously(ctx)
 	}
 
 	return ir, nil
@@ -141,20 +144,23 @@ func (ir *interceptorResolver) parseConfig(config config.InterceptorResolverDebu
 	return nil
 }
 
-func (ir *interceptorResolver) printContinously() {
+func (ir *interceptorResolver) printContinously(ctx context.Context) {
 	for {
-		time.Sleep(ir.intervalAutoPrint)
+		select {
+		case <-time.After(ir.intervalAutoPrint):
+			ir.incrementNumOfPrints()
 
-		ir.incrementNumOfPrints()
+			events := []string{"Requests pending and resolver fails:"}
+			events = append(events, ir.getStringEvents(ir.maxNumPrints)...)
+			if len(events) == 1 {
+				continue
+			}
 
-		events := []string{"Requests pending and resolver fails:"}
-		events = append(events, ir.getStringEvents(ir.maxNumPrints)...)
-		if len(events) == 1 {
-			continue
+			stringEvent := strings.Join(events, newLineChar)
+			ir.printEventFunc(stringEvent)
+		case <-ctx.Done():
+			return
 		}
-
-		stringEvent := strings.Join(events, newLineChar)
-		ir.printEventFunc(stringEvent)
 	}
 }
 
@@ -397,6 +403,13 @@ func (ir *interceptorResolver) LogSucceededToResolveData(topic string, hash []by
 	defer ir.mutCriticalArea.Unlock()
 
 	ir.cache.Remove(identifier)
+}
+
+// Close closes all underlying components
+func (ir *interceptorResolver) Close() error {
+	ir.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

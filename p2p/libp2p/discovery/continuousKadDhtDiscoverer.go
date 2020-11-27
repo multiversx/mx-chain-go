@@ -166,8 +166,13 @@ func (ckdd *ContinuousKadDhtDiscoverer) connectToInitialAndBootstrap(ctx context
 		ckdd.initialPeersList,
 	)
 
+	// TODO: needs refactor
 	go func() {
-		<-chanStartBootstrap
+		select {
+		case <-chanStartBootstrap:
+		case <-ctx.Done():
+			return
+		}
 		ckdd.bootstrap(ctx)
 	}()
 }
@@ -232,7 +237,8 @@ func (ckdd *ContinuousKadDhtDiscoverer) tryConnectToSeeder(
 			startIndex = startIndex % len(initialPeersList)
 			select {
 			case <-ckdd.context.Done():
-				break
+				log.Debug("context done in ContinuousKadDhtDiscoverer")
+				return
 			case <-time.After(intervalBetweenAttempts):
 				continue
 			}

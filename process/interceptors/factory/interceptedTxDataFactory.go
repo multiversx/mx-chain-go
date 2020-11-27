@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -44,22 +43,28 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if argument == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.ProtoMarshalizer) {
+	if check.IfNil(argument.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(argument.CryptoComponents) {
+		return nil, process.ErrNilCryptoComponentsHolder
+	}
+	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.TxSignMarshalizer) {
+	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.Hasher) {
+	if check.IfNil(argument.CoreComponents.Hasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.KeyGen) {
+	if check.IfNil(argument.CryptoComponents.TxSignKeyGen()) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(argument.Signer) {
+	if check.IfNil(argument.CryptoComponents.TxSingleSigner()) {
 		return nil, process.ErrNilSingleSigner
 	}
-	if check.IfNil(argument.AddressPubkeyConv) {
+	if check.IfNil(argument.CoreComponents.AddressPubKeyConverter()) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 	if check.IfNil(argument.ShardCoordinator) {
@@ -74,42 +79,42 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.ArgsParser) {
 		return nil, process.ErrNilArgumentParser
 	}
-	if len(argument.ChainID) == 0 {
+	if len(argument.CoreComponents.ChainID()) == 0 {
 		return nil, process.ErrInvalidChainID
 	}
-	if argument.MinTransactionVersion == 0 {
+	if argument.CoreComponents.MinTransactionVersion() == 0 {
 		return nil, process.ErrInvalidTransactionVersion
 	}
 	if check.IfNil(argument.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(argument.TxSignHasher) {
+	if check.IfNil(argument.CoreComponents.TxSignHasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.EpochNotifier) {
+	if check.IfNil(argument.CoreComponents.EpochNotifier()) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
 	interceptedTxDataFactory := &interceptedTxDataFactory{
-		protoMarshalizer:            argument.ProtoMarshalizer,
-		signMarshalizer:             argument.TxSignMarshalizer,
-		hasher:                      argument.Hasher,
-		keyGen:                      argument.KeyGen,
-		singleSigner:                argument.Signer,
-		pubkeyConverter:             argument.AddressPubkeyConv,
+		protoMarshalizer:            argument.CoreComponents.InternalMarshalizer(),
+		signMarshalizer:             argument.CoreComponents.TxMarshalizer(),
+		hasher:                      argument.CoreComponents.Hasher(),
+		keyGen:                      argument.CryptoComponents.TxSignKeyGen(),
+		singleSigner:                argument.CryptoComponents.TxSingleSigner(),
+		pubkeyConverter:             argument.CoreComponents.AddressPubKeyConverter(),
 		shardCoordinator:            argument.ShardCoordinator,
 		feeHandler:                  argument.FeeHandler,
 		whiteListerVerifiedTxs:      argument.WhiteListerVerifiedTxs,
 		argsParser:                  argument.ArgsParser,
-		chainID:                     argument.ChainID,
-		minTransactionVersion:       argument.MinTransactionVersion,
+		chainID:                     []byte(argument.CoreComponents.ChainID()),
+		minTransactionVersion:       argument.CoreComponents.MinTransactionVersion(),
 		epochStartTrigger:           argument.EpochStartTrigger,
 		enableSignedTxWithHashEpoch: argument.EnableSignTxWithHashEpoch,
-		txSignHasher:                argument.TxSignHasher,
-		txVersionChecker:            versioning.NewTxVersionChecker(argument.MinTransactionVersion),
+		txSignHasher:                argument.CoreComponents.TxSignHasher(),
+		txVersionChecker:            argument.CoreComponents.TxVersionChecker(),
 	}
 
-	argument.EpochNotifier.RegisterNotifyHandler(interceptedTxDataFactory)
+	argument.CoreComponents.EpochNotifier().RegisterNotifyHandler(interceptedTxDataFactory)
 
 	return interceptedTxDataFactory, nil
 }

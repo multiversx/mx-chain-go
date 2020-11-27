@@ -436,8 +436,6 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
 		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
 		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		ChainID:                     genesisNodesSetupHandler.GetChainId(),
-		MinTransactionVersion:       genesisNodesSetupHandler.GetMinTransactionVersion(),
 		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
 		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
 		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),

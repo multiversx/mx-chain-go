@@ -173,7 +173,7 @@ func (messenger *Messenger) TrimConnections() {
 }
 
 // Bootstrap does nothing, as it is not applicable to the in-memory messenger.
-func (messenger *Messenger) Bootstrap() error {
+func (messenger *Messenger) Bootstrap(_ uint32) error {
 	return nil
 }
 

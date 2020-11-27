@@ -92,6 +92,12 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrNilPubkeyConverter signals that nil address converter was provided
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
 
+// ErrNilCoreComponentsHolder signals that a nil core components holder was provided
+var ErrNilCoreComponentsHolder = errors.New("nil core components holder")
+
+// ErrNilCryptoComponentsHolder signals that a nil crypto components holder was provided
+var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
+
 // ErrRewardMiniBlocksNumDoesNotMatch signals that number of created and received rewards miniblocks is not equal
 var ErrRewardMiniBlocksNumDoesNotMatch = errors.New("number of created and received rewards miniblocks missmatch")
 
@@ -169,15 +175,6 @@ var ErrNilGenesisNodesConfig = errors.New("nil genesis nodes config")
 
 // ErrNilRater signals that a nil rater has been provided
 var ErrNilRater = errors.New("nil rater")
-
-// ErrInvalidDefaultDBPath signals that an invalid default database path has been provided
-var ErrInvalidDefaultDBPath = errors.New("invalid default db path")
-
-// ErrInvalidDefaultEpochString signals that an invalid default epoch string has been provided
-var ErrInvalidDefaultEpochString = errors.New("invalid default epoch string")
-
-// ErrInvalidDefaultShardString signals that an invalid default shard string has been provided
-var ErrInvalidDefaultShardString = errors.New("invalid default shard string")
 
 // ErrInvalidWorkingDir signals that an invalid working directory has been provided
 var ErrInvalidWorkingDir = errors.New("invalid working directory")

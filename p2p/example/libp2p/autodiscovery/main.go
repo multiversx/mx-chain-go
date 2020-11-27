@@ -46,13 +46,13 @@ func main() {
 	startingPort++
 	fmt.Printf("advertiser is %s\n", getConnectableAddress(advertiser))
 	peers := make([]p2p.Messenger, 0)
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	for i := 0; i < 99; i++ {
 		arg := createMockNetworkArgs()
 		arg.P2pConfig.KadDhtPeerDiscovery.InitialPeerList = []string{getConnectableAddress(advertiser)}
 		netPeer, _ := libp2p.NewNetworkMessenger(arg)
-		_ = netPeer.Bootstrap()
+		_ = netPeer.Bootstrap(0)
 
 		peers = append(peers, netPeer)
 

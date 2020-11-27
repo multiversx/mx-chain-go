@@ -59,6 +59,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		miniBlocksProvider:  arguments.MiniblocksProvider,
 		uint64Converter:     arguments.Uint64Converter,
 		poolsHolder:         arguments.PoolsHolder,
+		statusHandler:       arguments.AppStatusHandler,
 		indexer:             arguments.Indexer,
 	}
 
@@ -152,6 +153,15 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock() error {
 	return boot.syncBlock()
+}
+
+// Close closes the synchronization loop
+func (boot *MetaBootstrap) Close() error {
+	if !check.IfNil(boot.baseBootstrap) {
+		log.LogIfError(boot.baseBootstrap.Close())
+	}
+	boot.cancelFunc()
+	return nil
 }
 
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool

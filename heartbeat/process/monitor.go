@@ -2,6 +2,7 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 )
 
@@ -37,6 +37,7 @@ type ArgHeartbeatMonitor struct {
 	ValidatorPubkeyConverter           core.PubkeyConverter
 	HeartbeatRefreshIntervalInSec      uint32
 	HideInactiveValidatorIntervalInSec uint32
+	AppStatusHandler                   core.AppStatusHandler
 }
 
 // Monitor represents the heartbeat component that processes received heartbeat messages
@@ -45,7 +46,6 @@ type Monitor struct {
 	marshalizer                        marshal.Marshalizer
 	peerTypeProvider                   heartbeat.PeerTypeProviderHandler
 	mutHeartbeatMessages               sync.RWMutex
-	mutAppStatusHandler                sync.Mutex
 	heartbeatMessages                  map[string]*heartbeatMessageInfo
 	doubleSignerPeers                  map[string]process.TimeCacher
 	pubKeysMap                         map[uint32][]string
@@ -61,6 +61,7 @@ type Monitor struct {
 	validatorPubkeyConverter           core.PubkeyConverter
 	heartbeatRefreshIntervalInSec      uint32
 	hideInactiveValidatorIntervalInSec uint32
+	cancelFunc                         context.CancelFunc
 }
 
 // NewMonitor returns a new monitor instance
@@ -92,6 +93,9 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 	if check.IfNil(arg.ValidatorPubkeyConverter) {
 		return nil, heartbeat.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.AppStatusHandler) {
+		return nil, heartbeat.ErrNilAppStatusHandler
+	}
 	if arg.HeartbeatRefreshIntervalInSec == 0 {
 		return nil, heartbeat.ErrZeroHeartbeatRefreshIntervalInSec
 	}
@@ -99,12 +103,14 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		return nil, heartbeat.ErrZeroHideInactiveValidatorIntervalInSec
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	mon := &Monitor{
 		marshalizer:                        arg.Marshalizer,
 		heartbeatMessages:                  make(map[string]*heartbeatMessageInfo),
 		peerTypeProvider:                   arg.PeerTypeProvider,
 		maxDurationPeerUnresponsive:        arg.MaxDurationPeerUnresponsive,
-		appStatusHandler:                   &statusHandler.NilStatusHandler{},
+		appStatusHandler:                   arg.AppStatusHandler,
 		genesisTime:                        arg.GenesisTime,
 		messageHandler:                     arg.MessageHandler,
 		storer:                             arg.Storer,
@@ -115,6 +121,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		heartbeatRefreshIntervalInSec:      arg.HeartbeatRefreshIntervalInSec,
 		hideInactiveValidatorIntervalInSec: arg.HideInactiveValidatorIntervalInSec,
 		doubleSignerPeers:                  make(map[string]process.TimeCacher),
+		cancelFunc:                         cancelFunc,
 	}
 
 	err := mon.storer.UpdateGenesisTime(arg.GenesisTime)
@@ -132,7 +139,7 @@ func NewMonitor(arg ArgHeartbeatMonitor) (*Monitor, error) {
 		log.Debug("heartbeat can't load public keys from storage", "error", err.Error())
 	}
 
-	mon.startValidatorProcessing()
+	mon.startValidatorProcessing(ctx)
 
 	return mon, nil
 }
@@ -234,18 +241,6 @@ func (m *Monitor) loadHeartbeatsFromStorer(pubKey string) (*heartbeatMessageInfo
 	receivedHbmi.genesisTime = m.genesisTime
 
 	return receivedHbmi, nil
-}
-
-// SetAppStatusHandler will set the AppStatusHandler which will be used for monitoring
-func (m *Monitor) SetAppStatusHandler(ash core.AppStatusHandler) error {
-	if check.IfNil(ash) {
-		return heartbeat.ErrNilAppStatusHandler
-	}
-
-	m.mutAppStatusHandler.Lock()
-	m.appStatusHandler = ash
-	m.mutAppStatusHandler.Unlock()
-	return nil
 }
 
 // ProcessReceivedMessage satisfies the p2p.MessageProcessor interface so it can be called
@@ -404,10 +399,8 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutHeartbeatMessages.Unlock()
 	go m.SaveMultipleHeartbeatMessageInfos(hbChangedStateToInactiveMap)
 
-	m.mutAppStatusHandler.Lock()
 	m.appStatusHandler.SetUInt64Value(core.MetricLiveValidatorNodes, uint64(counterActiveValidators))
 	m.appStatusHandler.SetUInt64Value(core.MetricConnectedNodes, uint64(counterConnectedNodes))
-	m.mutAppStatusHandler.Unlock()
 }
 
 func (m *Monitor) computeInactiveHeartbeatMessages() {
@@ -493,6 +486,13 @@ func (m *Monitor) shouldSkipValidator(v *heartbeatMessageInfo) bool {
 	return false
 }
 
+// Close closes all underlying components
+func (m *Monitor) Close() error {
+	m.cancelFunc()
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *Monitor) IsInterfaceNil() bool {
 	return m == nil
@@ -548,13 +548,17 @@ func (m *Monitor) convertFromExportedStruct(hbDTO data.HeartbeatDTO, maxDuration
 }
 
 // startValidatorProcessing will start the updating of the information about the nodes
-func (m *Monitor) startValidatorProcessing() {
+func (m *Monitor) startValidatorProcessing(ctx context.Context) {
 	go func() {
 		refreshInterval := time.Duration(m.heartbeatRefreshIntervalInSec) * time.Second
 
 		for {
-			m.refreshHeartbeatMessageInfo()
-			time.Sleep(refreshInterval)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(refreshInterval):
+				m.refreshHeartbeatMessageInfo()
+			}
 		}
 	}()
 }
@@ -569,13 +573,13 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
 		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
-		tc.Add(string(hb.Pid))
+		_=tc.Add(string(hb.Pid))
 		m.doubleSignerPeers[pubKeyStr] = tc
 		return
 	}
 
 	tc.Sweep()
-	tc.Add(string(hb.Pid))
+	_=tc.Add(string(hb.Pid))
 }
 
 func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
@@ -587,6 +591,7 @@ func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
 	return uint64(tc.Len())
 }
 
+// Cleanup cleans the unnecessary messages
 func (m *Monitor) Cleanup() {
 	m.mutHeartbeatMessages.Lock()
 	for k, v := range m.heartbeatMessages {

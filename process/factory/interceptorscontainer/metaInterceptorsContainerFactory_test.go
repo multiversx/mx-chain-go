@@ -19,6 +19,7 @@ import (
 
 const maxTxNonceDeltaAllowed = 100
 
+var chainID = "chain ID"
 var errExpected = errors.New("expected error")
 
 func createMetaStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
@@ -86,7 +87,8 @@ func createMetaStore() *mock.ChainStorerMock {
 func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.ShardCoordinator = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -97,8 +99,11 @@ func TestNewMetaInterceptorsContainerFactory_NilShardCoordinatorShouldErr(t *tes
 func TestNewMetaInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.ChainID = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.ChainIdCalled = func() string {
+		return ""
+	}
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -108,8 +113,11 @@ func TestNewMetaInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.
 func TestNewMetaInterceptorsContainerFactory_InvalidMinTransactionVersionShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.MinTransactionVersion = 0
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.MinTransactionVersionCalled = func() uint32 {
+		return 0
+	}
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -119,7 +127,8 @@ func TestNewMetaInterceptorsContainerFactory_InvalidMinTransactionVersionShouldE
 func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.NodesCoordinator = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -130,7 +139,8 @@ func TestNewMetaInterceptorsContainerFactory_NilNodesCoordinatorShouldErr(t *tes
 func TestNewMetaInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -141,7 +151,8 @@ func TestNewMetaInterceptorsContainerFactory_NilTopicHandlerShouldErr(t *testing
 func TestNewMetaInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Store = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -152,8 +163,9 @@ func TestNewMetaInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.ProtoMarshalizer = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.IntMarsh = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -163,8 +175,9 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.
 func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.ProtoMarshalizer = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.IntMarsh = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.SizeCheckDelta = 1
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -175,8 +188,9 @@ func TestNewMetaInterceptorsContainerFactory_NilMarshalizerAndSizeCheckShouldErr
 func TestNewMetaInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.Hasher = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.Hash = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -186,7 +200,8 @@ func TestNewMetaInterceptorsContainerFactory_NilHasherShouldErr(t *testing.T) {
 func TestNewMetaInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderSigVerifier = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -197,7 +212,8 @@ func TestNewMetaInterceptorsContainerFactory_NilHeaderSigVerifierShouldErr(t *te
 func TestNewMetaInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.HeaderIntegrityVerifier = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -208,8 +224,9 @@ func TestNewMetaInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldErr
 func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.MultiSigner = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	cryptoComp.MultiSig = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -219,7 +236,8 @@ func TestNewMetaInterceptorsContainerFactory_NilMultiSignerShouldErr(t *testing.
 func TestNewMetaInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.DataPool = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -230,7 +248,8 @@ func TestNewMetaInterceptorsContainerFactory_NilDataPoolShouldErr(t *testing.T) 
 func TestNewMetaInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Accounts = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -241,8 +260,9 @@ func TestNewMetaInterceptorsContainerFactory_NilAccountsShouldErr(t *testing.T) 
 func TestNewMetaInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.AddressPubkeyConverter = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.AddrPubKeyConv = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -252,8 +272,9 @@ func TestNewMetaInterceptorsContainerFactory_NilAddrConvShouldErr(t *testing.T) 
 func TestNewMetaInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.SingleSigner = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	cryptoComp.TxSig = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -263,8 +284,9 @@ func TestNewMetaInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing
 func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.KeyGen = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	cryptoComp.TxKeyGen = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -274,8 +296,9 @@ func TestNewMetaInterceptorsContainerFactory_NilKeyGenShouldErr(t *testing.T) {
 func TestNewMetaInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.TxSignHasher = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxSignHasherField = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -285,8 +308,9 @@ func TestNewMetaInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing
 func TestNewMetaInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
-	args.EpochNotifier = nil
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.EpochNotifierField = nil
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -296,7 +320,8 @@ func TestNewMetaInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testin
 func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.TxFeeHandler = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -307,7 +332,8 @@ func TestNewMetaInterceptorsContainerFactory_NilFeeHandlerShouldErr(t *testing.T
 func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.BlackList = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -318,7 +344,8 @@ func TestNewMetaInterceptorsContainerFactory_NilBlackListHandlerShouldErr(t *tes
 func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.ValidityAttester = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -329,7 +356,8 @@ func TestNewMetaInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *tes
 func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.EpochStartTrigger = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -340,7 +368,8 @@ func TestNewMetaInterceptorsContainerFactory_EpochStartTriggerShouldErr(t *testi
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.NotNil(t, icf)
@@ -350,7 +379,8 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.SizeCheckDelta = 1
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -364,7 +394,8 @@ func TestNewMetaInterceptorsContainerFactory_ShouldWorkWithSizeCheck(t *testing.
 func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = createMetaStubTopicHandler(factory.MetachainBlocksTopic, "")
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -377,7 +408,8 @@ func TestMetaInterceptorsContainerFactory_CreateTopicMetablocksFailsShouldErr(t 
 func TestMetaInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = createMetaStubTopicHandler(factory.ShardBlocksTopic, "")
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -390,7 +422,8 @@ func TestMetaInterceptorsContainerFactory_CreateTopicShardHeadersForMetachainFai
 func TestMetaInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -403,7 +436,8 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterForMetablocksFailsShould
 func TestMetaInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachainFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = createMetaStubTopicHandler("", factory.MetachainBlocksTopic)
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -416,7 +450,8 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterShardHeadersForMetachain
 func TestMetaInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = createMetaStubTopicHandler("", factory.AccountTrieNodesTopic)
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -429,7 +464,8 @@ func TestMetaInterceptorsContainerFactory_CreateRegisterTrieNodesFailsShouldErr(
 func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.Messenger = &mock.TopicHandlerStub{
 		CreateTopicCalled: func(name string, createChannelForTopic bool) error {
 			return nil
@@ -462,7 +498,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		ShardId:            1,
 	}
 
-	args := getArgumentsMeta()
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsMeta(coreComp, cryptoComp)
 	args.ShardCoordinator = shardCoordinator
 	args.NodesCoordinator = nodesCoordinator
 	args.Messenger = &mock.TopicHandlerStub{
@@ -497,23 +534,19 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	assert.Equal(t, totalInterceptors+noOfShards, container.Len())
 }
 
-func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryArgs {
+func getArgumentsMeta(
+	coreComp *mock.CoreComponentsMock,
+	cryptoComp *mock.CryptoComponentsMock,
+) interceptorscontainer.MetaInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
+		CoreComponents:          coreComp,
+		CryptoComponents:        cryptoComp,
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		NodesCoordinator:        mock.NewNodesCoordinatorMock(),
 		Messenger:               &mock.TopicHandlerStub{},
 		Store:                   createMetaStore(),
-		ProtoMarshalizer:        &mock.MarshalizerMock{},
-		TxSignMarshalizer:       &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherMock{},
-		MultiSigner:             mock.NewMultiSigner(),
 		DataPool:                createMetaDataPools(),
 		Accounts:                &mock.AccountsStub{},
-		AddressPubkeyConverter:  mock.NewPubkeyConverterMock(32),
-		SingleSigner:            &mock.SignerMock{},
-		BlockSingleSigner:       &mock.SignerMock{},
-		KeyGen:                  &mock.SingleSignKeyGenMock{},
-		BlockKeyGen:             &mock.SingleSignKeyGenMock{},
 		MaxTxNonceDeltaAllowed:  maxTxNonceDeltaAllowed,
 		TxFeeHandler:            &mock.FeeHandlerStub{},
 		BlackList:               &mock.BlackListHandlerStub{},
@@ -526,9 +559,5 @@ func getArgumentsMeta() interceptorscontainer.MetaInterceptorsContainerFactoryAr
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
-		ChainID:                 []byte("chainID"),
-		MinTransactionVersion:   1,
-		TxSignHasher:            mock.HasherMock{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

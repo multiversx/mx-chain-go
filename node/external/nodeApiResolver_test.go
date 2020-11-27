@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -29,7 +30,7 @@ func TestNewNodeApiResolver_NilStatusMetricsShouldErr(t *testing.T) {
 	assert.Equal(t, external.ErrNilStatusMetrics, err)
 }
 
-func TestNewNodeApiResolver_NilTransactionCostEstsimator(t *testing.T) {
+func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	nar, err := external.NewNodeApiResolver(&mock.SCQueryServiceStub{}, &mock.StatusMetricsStub{}, nil)
@@ -45,6 +46,44 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(nar))
+}
+
+func TestNodeApiResolver_Close_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	calledClose := false
+
+	nar, _ := external.NewNodeApiResolverWithContainer(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{},
+		&mock.TransactionCostEstimatorMock{},
+		&mock.VMContainerMock{
+			CloseCalled: func() error {
+				calledClose = true
+				return nil
+			},
+		})
+
+	err := nar.Close()
+	assert.Nil(t, err)
+	assert.True(t, calledClose)
+}
+
+func TestNodeApiResolver_Close_OnErrorShouldError(t *testing.T) {
+	t.Parallel()
+
+	nar, _ := external.NewNodeApiResolverWithContainer(
+		&mock.SCQueryServiceStub{},
+		&mock.StatusMetricsStub{},
+		&mock.TransactionCostEstimatorMock{},
+		&mock.VMContainerMock{
+			CloseCalled: func() error {
+				return fmt.Errorf("error")
+			},
+		})
+
+	err := nar.Close()
+	assert.NotNil(t, err)
 }
 
 func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {

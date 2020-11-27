@@ -19,7 +19,7 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	numMetachainNodes := 3
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 
 	nodes := integrationTests.CreateNodes(
 		numOfShards,

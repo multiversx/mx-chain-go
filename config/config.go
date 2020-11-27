@@ -58,6 +58,11 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32
 }
 
+// ConsensusConfig holds the consensus configuration parameters
+type ConsensusConfig struct {
+	Type string
+}
+
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
 	Hosts               []string
@@ -148,7 +153,7 @@ type Config struct {
 	Heartbeat           HeartbeatConfig
 	ValidatorStatistics ValidatorStatisticsConfig
 	GeneralSettings     GeneralSettingsConfig
-	Consensus           TypeConfig
+	Consensus           ConsensusConfig
 	StoragePruning      StoragePruningConfig
 	TxLogsStorage       StorageConfig
 
@@ -206,6 +211,8 @@ type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
 	MaxComputableRounds                    uint64
 	StartInEpochEnabled                    bool
+	ChainID                                string
+	MinTransactionVersion                  uint32
 	SCDeployEnableEpoch                    uint32
 	BuiltInFunctionsEnableEpoch            uint32
 	RelayedTransactionsEnableEpoch         uint32
@@ -426,4 +433,26 @@ type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
 	Cache            CacheConfig
+}
+
+// Configs is a holder for the node configuration parameters
+type Configs struct {
+	GeneralConfig                    *Config
+	ApiRoutesConfig                  *ApiRoutesConfig
+	EconomicsConfig                  *EconomicsConfig
+	SystemSCConfig                   *SystemSmartContractsConfig
+	RatingsConfig                    *RatingsConfig
+	PreferencesConfig                *Preferences
+	ExternalConfig                   *ExternalConfig
+	P2pConfig                        *P2PConfig
+	FlagsConfig                      *ContextFlagsConfig
+	ConfigurationFileName            string
+	ConfigurationApiRoutesFileName   string
+	ConfigurationEconomicsFileName   string
+	ConfigurationSystemSCFilename    string
+	ConfigurationRatingsFileName     string
+	ConfigurationPreferencesFileName string
+	ConfigurationExternalFileName    string
+	P2pConfigurationFileName         string
+	ConfigurationGasScheduleFileName string
 }

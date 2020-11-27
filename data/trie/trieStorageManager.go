@@ -1,7 +1,9 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -37,6 +39,7 @@ type trieStorageManager struct {
 	pruningBuffer      atomicBuffer
 	snapshotInProgress uint32
 	maxSnapshots       uint32
+	cancelFunc         context.CancelFunc
 
 	dbEvictionWaitingList data.DBRemoveCacher
 	storageOperationMutex sync.RWMutex
@@ -74,6 +77,8 @@ func NewTrieStorageManager(
 		log.Debug("get snapshot", "error", err.Error())
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	tsm := &trieStorageManager{
 		db:                    db,
 		snapshots:             snapshots,
@@ -84,17 +89,20 @@ func NewTrieStorageManager(
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
 		snapshotInProgress:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
+		cancelFunc:            cancelFunc,
 	}
 
-	go tsm.storageProcessLoop(marshalizer, hasher)
+	go tsm.storageProcessLoop(ctx, marshalizer, hasher)
 	return tsm, nil
 }
 
-func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh hashing.Hasher) {
+func (tsm *trieStorageManager) storageProcessLoop(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
 		case snapshot := <-tsm.snapshotReq:
 			tsm.takeSnapshot(snapshot, msh, hsh)
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -555,6 +563,31 @@ func (tsm *trieStorageManager) IsPruningEnabled() bool {
 // GetSnapshotDbBatchDelay returns the batch write delay in seconds
 func (tsm *trieStorageManager) GetSnapshotDbBatchDelay() int {
 	return tsm.snapshotDbCfg.BatchDelaySeconds
+}
+
+// Close - closes all underlying components
+func (tsm *trieStorageManager) Close() error {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+
+	tsm.cancelFunc()
+
+	err1 := tsm.db.Close()
+	err2 := tsm.dbEvictionWaitingList.Close()
+
+	for _, sdb := range tsm.snapshots {
+		log.LogIfError(sdb.Close())
+	}
+
+	if err1 != nil || err2 != nil {
+		errorStr := ""
+		if err2 != nil {
+			errorStr = err2.Error()
+		}
+		return fmt.Errorf("trieStorageManager close failed: %w , %s", err1, errorStr)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

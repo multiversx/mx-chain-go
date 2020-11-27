@@ -13,36 +13,25 @@ import (
 func TestNewMetaChain_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	mc := blockchain.NewMetaChain()
+	mc, err := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 
+	assert.Nil(t, err)
 	assert.False(t, check.IfNil(mc))
 }
 
-func TestMetaChain_SetNilAppStatusHandlerShouldErr(t *testing.T) {
+func TestMetaChain_NilAppStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	mc := blockchain.NewMetaChain()
-
-	err := mc.SetAppStatusHandler(nil)
+	mc, err := blockchain.NewMetaChain(nil)
 
 	assert.Equal(t, blockchain.ErrNilAppStatusHandler, err)
-}
-
-func TestMetaChain_SetAppStatusHandlerShouldWork(t *testing.T) {
-	t.Parallel()
-
-	mc := blockchain.NewMetaChain()
-
-	ash := &mock.AppStatusHandlerStub{}
-	err := mc.SetAppStatusHandler(ash)
-
-	assert.Nil(t, err)
+	assert.Nil(t, mc)
 }
 
 func TestMetaChain_SettersAndGetters(t *testing.T) {
 	t.Parallel()
 
-	mc := blockchain.NewMetaChain()
+	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 
 	hdr := &block.MetaBlock{
 		Nonce: 4,
@@ -75,7 +64,7 @@ func TestMetaChain_SettersAndGetters(t *testing.T) {
 func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 	t.Parallel()
 
-	mc := blockchain.NewMetaChain()
+	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 
 	err := mc.SetGenesisHeader(nil)
 	assert.Nil(t, err)
@@ -90,7 +79,7 @@ func TestMetaChain_SettersAndGettersNilValues(t *testing.T) {
 func TestMetaChain_CreateNewHeader(t *testing.T) {
 	t.Parallel()
 
-	mc := blockchain.NewMetaChain()
+	mc, _ := blockchain.NewMetaChain(&mock.AppStatusHandlerStub{})
 
 	assert.Equal(t, &block.MetaBlock{}, mc.CreateNewHeader())
 }

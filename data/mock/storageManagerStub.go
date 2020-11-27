@@ -90,6 +90,11 @@ func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 	return 0
 }
 
+// Close -
+func (sms *StorageManagerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil --
 func (sms *StorageManagerStub) IsInterfaceNil() bool {
 	return sms == nil

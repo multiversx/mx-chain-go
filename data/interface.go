@@ -172,7 +172,6 @@ type Trie interface {
 	ExitSnapshotMode()
 	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
-	ClosePersister() error
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
@@ -190,6 +189,7 @@ type DBRemoveCacher interface {
 	Evict([]byte) (ModifiedHashes, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
 	IsInterfaceNil() bool
+	Close() error
 }
 
 // TrieSyncer synchronizes the trie, asking on the network for the missing nodes
@@ -212,6 +212,7 @@ type StorageManager interface {
 	EnterSnapshotMode()
 	ExitSnapshotMode()
 	GetSnapshotDbBatchDelay() int
+	Close() error
 	IsInterfaceNil() bool
 }
 

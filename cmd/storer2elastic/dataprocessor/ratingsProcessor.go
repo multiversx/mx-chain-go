@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -129,7 +128,7 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 
 	pathTemplateForStaticStorer := filepath.Join(
 		rp.dbPathWithChainID,
-		nodeFactory.DefaultStaticDbString,
+		core.DefaultStaticDbString,
 		fmt.Sprintf("%s_%s", "Shard", core.PathShardPlaceholder),
 		core.PathIdentifierPlaceholder)
 	pathManager, err := pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)

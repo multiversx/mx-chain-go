@@ -162,3 +162,26 @@ func ConvertToEvenHexBigInt(value *big.Int) string {
 
 	return str
 }
+
+// ProcessDestinationShardAsObserver returns the shardID given the destination as observer string
+func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uint32, error) {
+	destShard := strings.ToLower(destinationShardIdAsObserver)
+	if len(destShard) == 0 {
+		return 0, fmt.Errorf("option DestinationShardAsObserver is not set in prefs.toml")
+	}
+
+	if destShard == NotSetDestinationShardID {
+		return DisabledShardIDAsObserver, nil
+	}
+
+	if destShard == MetachainShardName {
+		return MetachainShardId, nil
+	}
+
+	val, err := strconv.ParseUint(destShard, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing DestinationShardAsObserver option: " + err.Error())
+	}
+
+	return uint32(val), err
+}

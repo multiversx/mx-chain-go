@@ -40,15 +40,6 @@ func (ts *TrieStub) EnterSnapshotMode() {
 func (ts *TrieStub) ExitSnapshotMode() {
 }
 
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	if ts.ClosePersisterCalled != nil {
-		return ts.ClosePersisterCalled()
-	}
-
-	return nil
-}
-
 // Get -
 func (ts *TrieStub) Get(key []byte) ([]byte, error) {
 	if ts.GetCalled != nil {
