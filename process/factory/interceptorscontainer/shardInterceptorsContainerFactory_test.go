@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -145,8 +146,8 @@ func TestNewShardInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testi
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.EpochNotifierField = nil
 	args := getArgumentsShard(coreComp, cryptoComp)
-	args.EpochNotifier = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -602,6 +603,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
+		EpochNotifierField: &mock.EpochNotifierStub{},
+		TxVersionCheckField: versioning.NewTxVersionChecker(1),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},
@@ -639,6 +642,5 @@ func getArgumentsShard(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

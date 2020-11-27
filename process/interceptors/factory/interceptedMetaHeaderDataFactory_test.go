@@ -92,7 +92,6 @@ func createMockArgument(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
-		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }
 

@@ -228,13 +228,20 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 	}
 
-	n, _ := NewNode(
-		WithAddressPubkeyConverter(&mock.PubkeyConverterMock{}),
-		WithInternalMarshalizer(marshalizer, 0),
-		WithDataStore(chainStorer),
-		WithHistoryRepository(historyRepo),
-		WithDataPool(testscommon.NewPoolsHolderMock()),
-		WithShardCoordinator(&mock.ShardCoordinatorMock{}),
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = marshalizer
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterMock{}
+	dataComponents := getDefaultDataComponents()
+	dataComponents.DataPool = testscommon.NewPoolsHolderMock()
+	dataComponents.Store = chainStorer
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{}
+	processComponents.HistoryRepositoryInternal = historyRepo
+
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithProcessComponents(processComponents),
 	)
 
 	expectedTx := &transaction.ApiTransactionResult{

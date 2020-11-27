@@ -172,8 +172,8 @@ func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.EpochNotifierField = nil
 	arg := createMockArgument(coreComponents, cryptoComponents)
-	arg.EpochNotifier = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
