@@ -169,6 +169,7 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
+// StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
 // TestKeyPair holds a pair of private/public Keys
