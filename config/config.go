@@ -140,6 +140,7 @@ type Config struct {
 	Marshalizer                 MarshalizerConfig
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
+	TxSignHasher                TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig
@@ -220,6 +221,7 @@ type GeneralSettingsConfig struct {
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
+	TransactionSignedWithTxHashEnableEpoch uint32
 	GenesisString                          string
 }
 
@@ -368,6 +370,7 @@ type DbLookupExtensionsConfig struct {
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
 	EpochByHashStorageConfig           StorageConfig
+	ResultsHashesByTxHashStorageConfig StorageConfig
 }
 
 // DebugConfig will hold debugging configuration

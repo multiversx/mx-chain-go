@@ -14,12 +14,15 @@ import (
 type interceptedDataCoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	TxMarshalizer() marshal.Marshalizer
+	TxVersionChecker() process.TxVersionCheckerHandler
 	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
+	EpochNotifier() process.EpochNotifier
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
@@ -36,15 +39,16 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents          interceptedDataCoreComponentsHolder
-	CryptoComponents        interceptedDataCryptoComponentsHolder
-	ShardCoordinator        sharding.Coordinator
-	NodesCoordinator        sharding.NodesCoordinator
-	FeeHandler              process.FeeHandler
-	WhiteListerVerifiedTxs  process.WhiteListHandler
-	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
-	ValidityAttester        process.ValidityAttester
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	EpochStartTrigger       process.EpochStartTriggerHandler
-	ArgsParser              process.ArgumentsParser
+	CoreComponents            interceptedDataCoreComponentsHolder
+	CryptoComponents          interceptedDataCryptoComponentsHolder
+	ShardCoordinator          sharding.Coordinator
+	NodesCoordinator          sharding.NodesCoordinator
+	FeeHandler                process.FeeHandler
+	WhiteListerVerifiedTxs    process.WhiteListHandler
+	HeaderSigVerifier         process.InterceptedHeaderSigVerifier
+	ValidityAttester          process.ValidityAttester
+	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
+	EpochStartTrigger         process.EpochStartTriggerHandler
+	ArgsParser                process.ArgumentsParser
+	EnableSignTxWithHashEpoch uint32
 }

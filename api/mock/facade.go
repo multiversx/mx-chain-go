@@ -24,9 +24,9 @@ type Facade struct {
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction) error
 	SendBulkTransactionsHandler             func(txs []*transaction.Transaction) (uint64, error)
@@ -122,13 +122,14 @@ func (f *Facade) CreateTransaction(
 	signatureHex string,
 	chainID string,
 	version uint32,
+	options uint32,
 ) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version)
+	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
-func (f *Facade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return f.GetTransactionHandler(hash)
+func (f *Facade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+	return f.GetTransactionHandler(hash, withResults)
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method

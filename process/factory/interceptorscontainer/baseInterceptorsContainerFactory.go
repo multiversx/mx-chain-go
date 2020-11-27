@@ -70,6 +70,15 @@ func checkBaseParams(
 	if check.IfNil(coreComponents.Hasher()) {
 		return process.ErrNilHasher
 	}
+	if check.IfNil(coreComponents.TxSignHasher()) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(coreComponents.TxVersionChecker()) {
+		return process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(coreComponents.EpochNotifier()) {
+		return process.ErrNilEpochNotifier
+	}
 	if len(coreComponents.ChainID()) == 0 {
 		return process.ErrInvalidChainID
 	}

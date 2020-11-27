@@ -94,6 +94,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CurrentNetworkEpochSetter) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilCurrentNetworkEpochSetter)
 	}
+	if check.IfNil(args.CoreComponentsHolder.TxSignHasher()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
+	}
+	if check.IfNil(args.CoreComponentsHolder.EpochNotifier()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEpochNotifier)
+	}
 
 	return nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/alarm"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	stateFactory "github.com/ElrondNetwork/elrond-go/data/state/factory"
@@ -58,6 +59,7 @@ type coreComponentsFactory struct {
 // coreComponents is the DTO used for core components
 type coreComponents struct {
 	hasher                        hashing.Hasher
+	txSignHasher                  hashing.Hasher
 	internalMarshalizer           marshal.Marshalizer
 	vmMarshalizer                 marshal.Marshalizer
 	txSignMarshalizer             marshal.Marshalizer
@@ -75,10 +77,11 @@ type coreComponents struct {
 	ratingsData                   process.RatingsInfoHandler
 	rater                         sharding.PeerAccountListAndRatingHandler
 	nodesShuffler                 sharding.NodesShuffler
+	txVersionChecker              process.TxVersionCheckerHandler
 	genesisTime                   time.Time
 	chainID                       string
 	minTransactionVersion         uint32
-	epochNotifier                 EpochNotifier
+	epochNotifier                 process.EpochNotifier
 	epochStartNotifierWithConfirm EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 }
@@ -116,6 +119,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	txSignMarshalizer, err := marshalizerFactory.NewMarshalizer(ccf.config.TxSignMarshalizer.Type)
 	if err != nil {
 		return nil, fmt.Errorf("%w (tx sign): %s", errors.ErrMarshalizerCreation, err.Error())
+	}
+
+	txSignHasher, err := hasherFactory.NewHasher(ccf.config.TxSignHasher.Type)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", errors.ErrHasherCreation, err.Error())
 	}
 
 	uint64ByteSliceConverter := uint64ByteSlice.NewBigEndianConverter()
@@ -234,8 +242,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		true,
 	)
 
+	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
+
 	return &coreComponents{
 		hasher:                        hasher,
+		txSignHasher:                  txSignHasher,
 		internalMarshalizer:           internalMarshalizer,
 		vmMarshalizer:                 vmMarshalizer,
 		txSignMarshalizer:             txSignMarshalizer,
@@ -253,6 +264,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ratingsData:                   ratingsData,
 		rater:                         rater,
 		nodesShuffler:                 nodesShuffler,
+		txVersionChecker:              txVersionChecker,
 		genesisTime:                   genesisTime,
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,

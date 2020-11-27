@@ -90,6 +90,8 @@ type epochStartBootstrap struct {
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
+	enableSignTxWithHashEpoch  uint32
+	epochNotifier              process.EpochNotifier
 	currentNetworkEpochSetter  CurrentNetworkEpochSetter
 
 	// created components
@@ -176,6 +178,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
+		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 		currentNetworkEpochSetter:  args.CurrentNetworkEpochSetter,
 	}
 
@@ -467,16 +471,18 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		Messenger:               e.messenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		CoreComponents:            e.coreComponentsHolder,
+		CryptoComponents:          e.cryptoComponentsHolder,
+		Config:                    e.generalConfig,
+		ShardCoordinator:          e.shardCoordinator,
+		Messenger:                 e.messenger,
+		DataPool:                  e.dataPool,
+		WhiteListHandler:          e.whiteListHandler,
+		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
+		ArgumentsParser:           e.argumentsParser,
+		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
+		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		EpochNotifier:             e.epochNotifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
