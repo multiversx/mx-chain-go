@@ -205,7 +205,7 @@ func TestOptimizedKadDhtDiscoverer_ReconnectToNetwork(t *testing.T) {
 	)
 
 	err := okdd.Bootstrap()
-	okdd.ReconnectToNetwork()
+	okdd.ReconnectToNetwork(context.Background())
 	time.Sleep(time.Millisecond * 500) //the value is chosen as such as to avoid edgecases on select statement
 	cancelFunc()
 

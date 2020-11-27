@@ -1,16 +1,18 @@
 package mock
 
+import "context"
+
 // ReconnecterStub -
 type ReconnecterStub struct {
-	ReconnectToNetworkCalled func()
+	ReconnectToNetworkCalled func(ctx context.Context)
 	PauseCall                func()
 	ResumeCall               func()
 }
 
 // ReconnectToNetwork -
-func (rs *ReconnecterStub) ReconnectToNetwork() {
+func (rs *ReconnecterStub) ReconnectToNetwork(ctx context.Context) {
 	if rs.ReconnectToNetworkCalled != nil {
-		rs.ReconnectToNetworkCalled()
+		rs.ReconnectToNetworkCalled(ctx)
 	}
 }
 

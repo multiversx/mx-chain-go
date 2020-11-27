@@ -1,6 +1,7 @@
 package connectionMonitor
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -47,7 +48,7 @@ func TestNewLibp2pConnectionMonitorSimple_OnDisconnectedUnderThresholdShouldCall
 	chReconnectCalled := make(chan struct{}, 1)
 
 	rs := mock.ReconnecterStub{
-		ReconnectToNetworkCalled: func() {
+		ReconnectToNetworkCalled: func(ctx context.Context) {
 			chReconnectCalled <- struct{}{}
 		},
 	}

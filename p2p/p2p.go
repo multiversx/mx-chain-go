@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/hex"
 	"io"
 	"time"
@@ -42,7 +43,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork()
+	ReconnectToNetwork(ctx context.Context)
 	IsInterfaceNil() bool
 }
 

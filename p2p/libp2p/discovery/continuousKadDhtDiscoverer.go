@@ -187,7 +187,7 @@ func (ckdd *ContinuousKadDhtDiscoverer) bootstrap(ctx context.Context) {
 		shouldReconnect := kadDht != nil && kbucket.ErrLookupFailure == kadDht.Bootstrap(ckdd.context)
 		if shouldReconnect {
 			log.Debug("pausing the p2p bootstrapping process")
-			ckdd.ReconnectToNetwork()
+			ckdd.ReconnectToNetwork(ctx)
 			log.Debug("resuming the p2p bootstrapping process")
 		}
 
@@ -257,8 +257,12 @@ func (ckdd *ContinuousKadDhtDiscoverer) Name() string {
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork() {
-	<-ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList)
+func (ckdd *ContinuousKadDhtDiscoverer) ReconnectToNetwork(ctx context.Context) {
+	select {
+	case <-ckdd.connectToOnePeerFromInitialPeersList(ckdd.peersRefreshInterval, ckdd.initialPeersList):
+	case <-ctx.Done():
+		return
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

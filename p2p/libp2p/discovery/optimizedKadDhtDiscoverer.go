@@ -220,9 +220,19 @@ func (okdd *optimizedKadDhtDiscoverer) Name() string {
 }
 
 // ReconnectToNetwork will try to connect to one peer from the initial peer list
-func (okdd *optimizedKadDhtDiscoverer) ReconnectToNetwork() {
-	okdd.chanConnectToSeeders <- struct{}{}
-	<-okdd.chanDoneConnectToSeeders
+func (okdd *optimizedKadDhtDiscoverer) ReconnectToNetwork(ctx context.Context) {
+	select {
+	case okdd.chanConnectToSeeders <- struct{}{}:
+	case <-ctx.Done():
+		return
+	}
+
+	select {
+	case <-okdd.chanDoneConnectToSeeders:
+	case <-ctx.Done():
+		return
+	}
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
