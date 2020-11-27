@@ -25,7 +25,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	numOfShards := 2
 	nodesPerShard := 2
-	numMetachainNodes := 2
+	numMetachainNodes := 1
 	shardConsensusGroupSize := 1
 	metaConsensusGroupSize := 1
 
@@ -86,7 +86,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	for _, node := range nodes {
 		txData := "changeRewardAddress" + "@" + hex.EncodeToString(rewardAddress)
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, integrationTests.AdditionalGasLimit)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
 		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(1000000))
 	}
 	time.Sleep(time.Second)
@@ -99,9 +99,11 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	checkRewardsUpdatedInDelegationSC(t, nodes, rewardAddress, epochs)
 
 	balancesBeforeClaimRewards := getNodesBalances(nodes)
-	for _, node := range nodes {
+	balanceToConsumeForGas := core.SafeMul(integrationTests.MinTxGasPrice, core.MinMetaTxExtraGasCost)
+	for i, node := range nodes {
 		txData := "claimRewards"
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), rewardAddress, txData, 10)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), rewardAddress, txData, core.MinMetaTxExtraGasCost)
+		balancesBeforeClaimRewards[i].Sub(balancesBeforeClaimRewards[i], balanceToConsumeForGas)
 	}
 	time.Sleep(time.Second)
 
@@ -191,8 +193,8 @@ func createNewDelegationSystemSC(
 	node *integrationTests.TestProcessorNode,
 	nodes []*integrationTests.TestProcessorNode,
 ) []byte {
-	txData := "createNewDelegationContract" + "@" + hex.EncodeToString(big.NewInt(0).Bytes()) + "@" + hex.EncodeToString(big.NewInt(0).Bytes())
-	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, integrationTests.AdditionalGasLimit)
+	txData := "createNewDelegationContract" + "@00@00"
+	integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(10000), vm.DelegationManagerSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	rewardAddress := make([]byte, len(vm.FirstDelegationSCAddress))
 	copy(rewardAddress, vm.FirstDelegationSCAddress)
@@ -208,5 +210,5 @@ func delegateToSystemSC(
 	value *big.Int,
 ) {
 	txData := "delegate"
-	integrationTests.CreateAndSendTransaction(node, nodes, value, address, txData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(node, nodes, value, address, txData, core.MinMetaTxExtraGasCost)
 }

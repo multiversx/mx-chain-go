@@ -103,6 +103,9 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 
 // Execute calls one of the functions from the delegation manager contract and runs the code according to the input
 func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	d.mutExecution.RLock()
+	defer d.mutExecution.RUnlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
