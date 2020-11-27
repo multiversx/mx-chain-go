@@ -8,15 +8,16 @@ import (
 	"math"
 	"math/big"
 	"strconv"
+	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var log = logger.GetOrCreate("vm/systemsmartcontracts")
@@ -45,6 +46,7 @@ type stakingSC struct {
 	flagStakingV2            atomic.Flag
 	stakingV2Epoch           uint32
 	walletAddressLen         int
+	mutExecution             sync.RWMutex
 }
 
 // ArgsNewStakingSmartContract holds the arguments needed to create a StakingSmartContract
@@ -133,6 +135,8 @@ func NewStakingSmartContract(
 
 // Execute calls one of the functions from the staking smart contract and runs the code according to the input
 func (r *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	r.mutExecution.RLock()
+	defer r.mutExecution.RUnlock()
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
@@ -1546,6 +1550,13 @@ func (r *stakingSC) EpochConfirmed(epoch uint32) {
 // CanUseContract returns true if contract can be used
 func (r *stakingSC) CanUseContract() bool {
 	return true
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (r *stakingSC) SetNewGasCost(gasCost vm.GasCost) {
+	r.mutExecution.Lock()
+	r.gasCost = gasCost
+	r.mutExecution.Unlock()
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

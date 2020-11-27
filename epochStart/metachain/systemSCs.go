@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -11,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // ArgsNewEpochStartSystemSCProcessing defines the arguments structure for the end of epoch system sc processor
@@ -685,7 +686,17 @@ func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler,
 
 func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount state.UserAccountHandler) ([][]byte, error) {
 	auctionAccounts := make([][]byte, 0)
-	chLeaves := userAuctionAccount.DataTrie().GetAllLeavesOnChannel()
+
+	rootHash, err := userAuctionAccount.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAuctionAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
 	for leaf := range chLeaves {
 		auctionData := &systemSmartContracts.AuctionDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.AuctionSCAddress...))

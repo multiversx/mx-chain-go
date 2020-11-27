@@ -22,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -30,7 +31,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 // DefaultRestInterface is the default interface the rest API will start on if not specified
@@ -269,6 +269,16 @@ func (nf *nodeFacade) GetValueForKey(address string, key string) (string, error)
 	return nf.node.GetValueForKey(address, key)
 }
 
+// GetESDTBalance returns the ESDT balance and if it is frozen
+func (nf *nodeFacade) GetESDTBalance(address string, key string) (string, string, error) {
+	return nf.node.GetESDTBalance(address, key)
+}
+
+// GetAllESDTTokens returns all the esdt tokens for a given address
+func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
+	return nf.node.GetAllESDTTokens(address)
+}
+
 // CreateTransaction creates a transaction from all needed fields
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,
@@ -313,8 +323,8 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 }
 
 // GetTransaction gets the transaction with a specified hash
-func (nf *nodeFacade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return nf.node.GetTransaction(hash)
+func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+	return nf.node.GetTransaction(hash, withResults)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

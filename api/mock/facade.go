@@ -24,7 +24,7 @@ type Facade struct {
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
-	GetTransactionHandler      func(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
@@ -43,6 +43,8 @@ type Facade struct {
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
+	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
+	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 }
 
 // GetUsername -
@@ -105,6 +107,24 @@ func (f *Facade) GetValueForKey(address string, key string) (string, error) {
 	return "", nil
 }
 
+// GetESDTBalance -
+func (f *Facade) GetESDTBalance(address string, key string) (string, string, error) {
+	if f.GetESDTBalanceCalled != nil {
+		return f.GetESDTBalanceCalled(address, key)
+	}
+
+	return "", "", nil
+}
+
+// GetAllESDTTokens -
+func (f *Facade) GetAllESDTTokens(address string) ([]string, error) {
+	if f.GetAllESDTTokensCalled != nil {
+		return f.GetAllESDTTokensCalled(address)
+	}
+
+	return []string{""}, nil
+}
+
 // GetAccount is the mock implementation of a handler's GetAccount method
 func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
@@ -128,8 +148,8 @@ func (f *Facade) CreateTransaction(
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
-func (f *Facade) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return f.GetTransactionHandler(hash)
+func (f *Facade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
+	return f.GetTransactionHandler(hash, withResults)
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method

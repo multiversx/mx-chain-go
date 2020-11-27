@@ -204,3 +204,6 @@ var ErrDifferentSenderShardId = errors.New("different shard ID between the trans
 
 // ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
 var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
+
+// ErrNilDataTrie signals that user account has a nil data trie
+var ErrNilDataTrie = errors.New("nil data trie")

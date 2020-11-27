@@ -10,11 +10,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -181,7 +181,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalInvalidValueShouldErr(t *tes
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
@@ -206,7 +206,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalAtGenesisShouldWork(t *testi
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 0
@@ -246,7 +246,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldWork(t *testing.T) {
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
@@ -294,7 +294,7 @@ func TestGovernanceContract_ExecuteWhiteListProposalShouldNOTWorkDisabled(t *tes
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
