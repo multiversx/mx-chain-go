@@ -71,6 +71,7 @@ type NodesSetup struct {
 
 	InitialNodes []*InitialNode `json:"initialNodes"`
 
+	genesisMaxNumShards      uint32
 	nrOfShards               uint32
 	nrOfNodes                uint32
 	nrOfMetaChainNodes       uint32
@@ -85,6 +86,7 @@ func NewNodesSetup(
 	nodesFilePath string,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
+	genesisMaxNumShards uint32,
 ) (*NodesSetup, error) {
 
 	if check.IfNil(addressPubkeyConverter) {
@@ -93,10 +95,14 @@ func NewNodesSetup(
 	if check.IfNil(validatorPubkeyConverter) {
 		return nil, fmt.Errorf("%w for validatorPubkeyConverter", ErrNilPubkeyConverter)
 	}
+	if genesisMaxNumShards < 1 {
+		return nil, fmt.Errorf("%w for genesisMaxNumShards", ErrInvalidMaximumNumberOfShards)
+	}
 
 	nodes := &NodesSetup{
 		addressPubkeyConverter:   addressPubkeyConverter,
 		validatorPubkeyConverter: validatorPubkeyConverter,
+		genesisMaxNumShards:      genesisMaxNumShards,
 	}
 
 	err := core.LoadJsonFile(nodes, nodesFilePath)
@@ -200,6 +206,10 @@ func (ns *NodesSetup) processMetaChainAssigment() {
 	hystShard := uint32(float32(ns.MinNodesPerShard) * ns.Hysteresis)
 
 	ns.nrOfShards = (ns.nrOfNodes - ns.nrOfMetaChainNodes - hystMeta) / (ns.MinNodesPerShard + hystShard)
+
+	if ns.nrOfShards > ns.genesisMaxNumShards {
+		ns.nrOfShards = ns.genesisMaxNumShards
+	}
 }
 
 func (ns *NodesSetup) processShardAssignment() {

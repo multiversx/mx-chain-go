@@ -635,6 +635,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		generalConfig.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return err

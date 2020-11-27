@@ -55,6 +55,7 @@ func createNodesSetupOneShardOneNodeWithOneMeta() *NodesSetup {
 	ns := &NodesSetup{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:      100,
 	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 1
@@ -108,6 +109,7 @@ func createNodesSetupTwoShardTwoNodesWithOneMeta() *NodesSetup {
 	ns := &NodesSetup{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:      100,
 	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
@@ -126,6 +128,7 @@ func createNodesSetupTwoShard5NodesWithMeta() *NodesSetup {
 	ns := &NodesSetup{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:      100,
 	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
@@ -144,6 +147,7 @@ func createNodesSetupTwoShard6NodesMeta() *NodesSetup {
 	ns := &NodesSetup{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:      100,
 	}
 	ns.ConsensusGroupSize = 1
 	ns.MinNodesPerShard = 2
@@ -164,6 +168,7 @@ func TestNodesSetup_NewNodesSetupWrongFile(t *testing.T) {
 		"",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
+		100,
 	)
 
 	assert.Nil(t, ns)
@@ -177,6 +182,7 @@ func TestNodesSetup_NewNodesSetupWrongDataInFile(t *testing.T) {
 		"mock/invalidNodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
+		100,
 	)
 
 	assert.Nil(t, ns)
@@ -190,6 +196,7 @@ func TestNodesSetup_NewNodesShouldWork(t *testing.T) {
 		"mock/nodesSetupMock.json",
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
+		100,
 	)
 
 	assert.NotNil(t, ns)
@@ -466,6 +473,7 @@ func TestNodesSetup_InitialNodesPubKeysWithHysteresis(t *testing.T) {
 		Adaptivity:                  false,
 		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:         100,
 	}
 
 	ns = createAndAssignNodes(*ns, 3000)
@@ -590,6 +598,7 @@ func TestNodesSetup_MinNumberOfNodes(t *testing.T) {
 		Adaptivity:                  false,
 		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:         100,
 	}
 
 	ns = createAndAssignNodes(*ns, 2169)
@@ -607,5 +616,114 @@ func TestNodesSetup_MinNumberOfNodes(t *testing.T) {
 	assert.Equal(t, uint32(80), minHysteresisNodesShard)
 
 	minHysteresisNodesMeta := ns.MinMetaHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesMeta)
+}
+
+func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ns, err := NewNodesSetup(
+		"",
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+		0,
+	)
+
+	assert.Nil(t, ns)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), ErrInvalidMaximumNumberOfShards.Error())
+}
+
+func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.T) {
+	t.Parallel()
+
+	ns := &NodesSetup{
+		ConsensusGroupSize:          63,
+		MinNodesPerShard:            400,
+		MetaChainConsensusGroupSize: 400,
+		MetaChainMinNodes:           400,
+		Hysteresis:                  0.2,
+		Adaptivity:                  false,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:         3,
+	}
+
+	ns = createAndAssignNodes(*ns, 2169)
+
+	ns2 := &(*ns)
+	ns2.genesisMaxNumShards = 3
+	ns2 = createAndAssignNodes(*ns2, 2169)
+
+	assert.Equal(t, 4, len(ns.eligible))
+	assert.Equal(t, 4, len(ns2.eligible))
+	for shard, shardNodes := range ns.eligible {
+		assert.Equal(t, len(shardNodes), len(ns2.eligible[shard]))
+		assert.Equal(t, len(ns.waiting[shard]), len(ns2.waiting[shard]))
+		assert.GreaterOrEqual(t, len(ns.waiting[shard]), 142)
+		assert.Equal(t, len(ns.waiting[shard]), len(ns2.waiting[shard]))
+		for i, node := range shardNodes {
+			assert.Equal(t, node, ns2.eligible[shard][i])
+		}
+		for i, node := range ns.waiting[shard] {
+			assert.Equal(t, node, ns2.waiting[shard][i])
+		}
+	}
+
+	minNumNodes := ns.MinNumberOfNodes()
+	assert.Equal(t, minNumNodes, ns2.MinNumberOfNodes())
+
+	minHysteresisNodesShard := ns.MinShardHysteresisNodes()
+	assert.Equal(t, minHysteresisNodesShard, ns2.MinShardHysteresisNodes())
+
+	minHysteresisNodesMeta := ns.MinMetaHysteresisNodes()
+	assert.Equal(t, minHysteresisNodesMeta, ns2.MinMetaHysteresisNodes())
+}
+
+func TestNodesSetup_NodesAboveMaxShardLimit(t *testing.T) {
+	t.Parallel()
+
+	ns := &NodesSetup{
+		ConsensusGroupSize:          63,
+		MinNodesPerShard:            400,
+		MetaChainConsensusGroupSize: 400,
+		MetaChainMinNodes:           400,
+		Hysteresis:                  0.2,
+		Adaptivity:                  false,
+		addressPubkeyConverter:      mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter:    mock.NewPubkeyConverterMock(96),
+		genesisMaxNumShards:         3,
+	}
+
+	ns = createAndAssignNodes(*ns, 3200)
+
+	assert.Equal(t, 4, len(ns.eligible))
+	for shard, shardNodes := range ns.eligible {
+		assert.Equal(t, 400, len(shardNodes))
+		assert.Equal(t, len(ns.waiting[shard]), 400)
+	}
+
+	minNumNodes := ns.MinNumberOfNodes()
+	assert.Equal(t, uint32(1600), minNumNodes)
+
+	minHysteresisNodesShard := ns.MinShardHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesShard)
+
+	minHysteresisNodesMeta := ns.MinMetaHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesMeta)
+
+	ns = createAndAssignNodes(*ns, 3600)
+	for shard, shardNodes := range ns.eligible {
+		assert.Equal(t, 400, len(shardNodes))
+		assert.Equal(t, len(ns.waiting[shard]), 500)
+	}
+
+	minNumNodes = ns.MinNumberOfNodes()
+	assert.Equal(t, uint32(1600), minNumNodes)
+
+	minHysteresisNodesShard = ns.MinShardHysteresisNodes()
+	assert.Equal(t, uint32(80), minHysteresisNodesShard)
+
+	minHysteresisNodesMeta = ns.MinMetaHysteresisNodes()
 	assert.Equal(t, uint32(80), minHysteresisNodesMeta)
 }
