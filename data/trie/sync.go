@@ -100,11 +100,6 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 		numUnResolved := ts.requestNodes()
 		if !shouldRetryAfterRequest && numUnResolved == 0 {
-			err = ts.trie.Commit()
-			if err != nil {
-				return err
-			}
-
 			return nil
 		}
 
@@ -148,11 +143,6 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				}
 			}
 
-			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
-				ts.trie.root = currentNode
-				ts.rootFound = true
-			}
-
 			checkedNodes[nodeHash] = struct{}{}
 
 			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
@@ -186,6 +176,22 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			newElement = newElement || tmpNewElement
 
 			delete(ts.nodesForTrie, nodeHash)
+
+			err = encodeNodeAndCommitToDB(currentNode, ts.trie.Database())
+			if err != nil {
+				return false, err
+			}
+
+			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
+				var collapsedRoot node
+				collapsedRoot, err = currentNode.getCollapsed()
+				if err != nil {
+					return false, err
+				}
+
+				ts.trie.root = collapsedRoot
+				ts.rootFound = true
+			}
 		}
 	}
 
