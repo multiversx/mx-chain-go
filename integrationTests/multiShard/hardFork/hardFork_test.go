@@ -558,6 +558,7 @@ func createHardForkExporter(
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
+		coreComponents.TxSignHasherField = integrationTests.TestTxSignHasher
 		coreComponents.Uint64ByteSliceConverterField = integrationTests.TestUint64Converter
 		coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 		coreComponents.ValidatorPubKeyConverterField = integrationTests.TestValidatorPubkeyConverter

@@ -286,4 +286,15 @@ func TestWithNodeStopChannel_OkNodeStopChannelShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TODO: add the missing options tests
+func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+
+	epochEnable := uint32(10)
+	opt := WithEnableSignTxWithHashEpoch(epochEnable)
+	err := opt(node)
+
+	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
+	assert.Nil(t, err)
+}

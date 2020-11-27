@@ -47,6 +47,7 @@ func NewShardResolversContainerFactory(
 		inputAntifloodHandler:    args.InputAntifloodHandler,
 		outputAntifloodHandler:   args.OutputAntifloodHandler,
 		throttler:                thr,
+		isFullHistoryNode:        args.IsFullHistoryNode,
 	}
 
 	err = base.checkParams()
@@ -140,6 +141,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		ShardCoordinator:     srcf.shardCoordinator,
 		AntifloodHandler:     srcf.inputAntifloodHandler,
 		Throttler:            srcf.throttler,
+		IsFullHistoryNode:    srcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {
@@ -178,6 +180,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		ShardCoordinator:     srcf.shardCoordinator,
 		AntifloodHandler:     srcf.inputAntifloodHandler,
 		Throttler:            srcf.throttler,
+		IsFullHistoryNode:    srcf.isFullHistoryNode,
 	}
 	resolver, err := resolvers.NewHeaderResolver(arg)
 	if err != nil {

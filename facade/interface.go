@@ -27,7 +27,7 @@ type NodeHandler interface {
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 
 	//ValidateTransaction will validate a transaction
 	ValidateTransaction(tx *transaction.Transaction) error
@@ -37,7 +37,7 @@ type NodeHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address

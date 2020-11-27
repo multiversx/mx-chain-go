@@ -1032,8 +1032,8 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		CoreComponentsHolder:                 managedCoreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            &core.KeyLoader{},
-		UseDisabledSigVerifier:               configs.FlagsConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.FlagsConfig.IsInImportMode,
+		ImportModeNoSigCheck:                 configs.FlagsConfig.ImportDbNoSigCheckFlag,
 	}
 
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
