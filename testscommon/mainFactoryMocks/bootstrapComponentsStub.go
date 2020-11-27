@@ -2,17 +2,17 @@ package mainFactoryMocks
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper         mainFactory.EpochStartBootstrapper
-	BootstrapParams      mainFactory.BootstrapParamsHolder
+	Bootstrapper         factory.EpochStartBootstrapper
+	BootstrapParams      factory.BootstrapParamsHolder
 	NodeRole             core.NodeType
 	ShCoordinator        sharding.Coordinator
-	HdrIntegrityVerifier mainFactory.HeaderIntegrityVerifierHandler
+	HdrIntegrityVerifier factory.HeaderIntegrityVerifierHandler
 }
 
 // Create -
@@ -31,12 +31,12 @@ func (bcs *BootstrapComponentsStub) CheckSubcomponents() error {
 }
 
 // EpochStartBootstrapper -
-func (bcs *BootstrapComponentsStub) EpochStartBootstrapper() mainFactory.EpochStartBootstrapper {
+func (bcs *BootstrapComponentsStub) EpochStartBootstrapper() factory.EpochStartBootstrapper {
 	return bcs.Bootstrapper
 }
 
 // EpochBootstrapParams -
-func (bcs *BootstrapComponentsStub) EpochBootstrapParams() mainFactory.BootstrapParamsHolder {
+func (bcs *BootstrapComponentsStub) EpochBootstrapParams() factory.BootstrapParamsHolder {
 	return bcs.BootstrapParams
 }
 
@@ -51,7 +51,7 @@ func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator{
 }
 
 // HeaderIntegrityVerifier -
-func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() mainFactory.HeaderIntegrityVerifierHandler{
+func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler {
 	return bcs.HdrIntegrityVerifier
 }
 

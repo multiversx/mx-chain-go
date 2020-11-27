@@ -897,7 +897,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
-			TxSignHasher:            TestHasher,
 			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
@@ -953,7 +952,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
-			TxSignHasher:            TestTxSignHasher,
 			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
@@ -1604,6 +1602,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return tpn.MinTransactionVersion
 	}
+	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
@@ -1655,9 +1654,6 @@ func (tpn *TestProcessorNode) initNode() {
 		node.WithNetworkShardingCollector(tpn.NetworkShardingCollector),
 		node.WithTxAccumulator(txAccumulator),
 		node.WithHardforkTrigger(&mock.HardforkTriggerStub{}),
-		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
-		node.WithTxSignHasher(TestTxSignHasher),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(tpn.MinTransactionVersion)),
 	)
 	log.LogIfError(err)
 
@@ -2220,6 +2216,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		TxMarshalizerField:            TestTxSignMarshalizer,
 		VmMarshalizerField:            TestVmMarshalizer,
 		HasherField:                   TestHasher,
+		TxSignHasherField:             TestTxSignHasher,
 		Uint64ByteSliceConverterField: TestUint64Converter,
 		AddressPubKeyConverterField:   TestAddressPubkeyConverter,
 		ValidatorPubKeyConverterField: TestValidatorPubkeyConverter,

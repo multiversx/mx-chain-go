@@ -14,7 +14,9 @@ import (
 type interceptedDataCoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
 	TxMarshalizer() marshal.Marshalizer
+	TxVersionChecker() process.TxVersionCheckerHandler
 	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ChainID() string
@@ -48,6 +50,5 @@ type ArgInterceptedDataFactory struct {
 	EpochStartTrigger         process.EpochStartTriggerHandler
 	ArgsParser                process.ArgumentsParser
 	EnableSignTxWithHashEpoch uint32
-	TxSignHasher              hashing.Hasher
 	EpochNotifier             process.EpochNotifier
 }

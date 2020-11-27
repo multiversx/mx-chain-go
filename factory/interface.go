@@ -85,14 +85,6 @@ type ComponentHandler interface {
 	CheckSubcomponents() error
 }
 
-// EpochNotifier can notify upon an epoch change and provide the current epoch
-type EpochNotifier interface {
-	RegisterNotifyHandler(handler core.EpochSubscriberHandler)
-	CurrentEpoch() uint32
-	CheckEpoch(epoch uint32)
-	IsInterfaceNil() bool
-}
-
 // CoreComponentsHolder holds the core components
 type CoreComponentsHolder interface {
 	InternalMarshalizer() marshal.Marshalizer
@@ -100,6 +92,7 @@ type CoreComponentsHolder interface {
 	TxMarshalizer() marshal.Marshalizer
 	VmMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
@@ -115,12 +108,13 @@ type CoreComponentsHolder interface {
 	Rater() sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	NodesShuffler() sharding.NodesShuffler
-	EpochNotifier() EpochNotifier
+	EpochNotifier() process.EpochNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
+	TxVersionChecker() process.TxVersionCheckerHandler
 	IsInterfaceNil() bool
 }
 

@@ -91,7 +91,6 @@ type epochStartBootstrap struct {
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	enableSignTxWithHashEpoch  uint32
-	txSignHasher               hashing.Hasher
 	epochNotifier              process.EpochNotifier
 
 	// created components
@@ -149,8 +148,6 @@ type ArgsEpochStartBootstrap struct {
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
-	TxSignHasher               hashing.Hasher
-	EpochNotifier              process.EpochNotifier
 }
 
 // NewEpochStartBootstrap will return a new instance of epochStartBootstrap
@@ -179,9 +176,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		txSignHasher:               args.TxSignHasher,
 		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
-		epochNotifier:              args.EpochNotifier,
+		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -451,18 +447,17 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		Messenger:               e.messenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		CoreComponents:            e.coreComponentsHolder,
+		CryptoComponents:          e.cryptoComponentsHolder,
+		Config:                    e.generalConfig,
+		ShardCoordinator:          e.shardCoordinator,
+		Messenger:                 e.messenger,
+		DataPool:                  e.dataPool,
+		WhiteListHandler:          e.whiteListHandler,
+		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
+		ArgumentsParser:           e.argumentsParser,
+		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
-		TxSignHasher:              e.txSignHasher,
 		EpochNotifier:             e.epochNotifier,
 	}
 

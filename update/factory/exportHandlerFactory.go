@@ -61,8 +61,6 @@ type ArgsExporter struct {
 	Rounder                   process.Rounder
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
-	TxSignHasher              hashing.Hasher
-	EpochNotifier             process.EpochNotifier
 }
 
 type exportHandlerFactory struct {
@@ -96,8 +94,6 @@ type exportHandlerFactory struct {
 	rounder                   process.Rounder
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
-	txSignHasher              hashing.Hasher
-	epochNotifier             process.EpochNotifier
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -195,10 +191,10 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.Rounder) {
 		return nil, update.ErrNilRounder
 	}
-	if check.IfNil(args.TxSignHasher) {
+	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.CoreComponents.EpochNotifier()) {
 		return nil, update.ErrNilEpochNotifier
 	}
 	e := &exportHandlerFactory{
@@ -230,8 +226,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		rounder:                   args.Rounder,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		txSignHasher:              args.TxSignHasher,
-		epochNotifier:             args.EpochNotifier,
 	}
 
 	return e, nil
@@ -482,8 +476,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		InterceptorsContainer:     e.interceptorsContainer,
 		AntifloodHandler:          e.inputAntifloodHandler,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
-		TxSignHasher:              e.txSignHasher,
-		EpochNotifier:             e.epochNotifier,
+		EpochNotifier:             e.CoreComponents.EpochNotifier(),
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

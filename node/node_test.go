@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
@@ -813,6 +812,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	version := uint32(1)
 	expectedHash := []byte("expected hash")
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -823,6 +823,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 			return expectedHash
 		},
 	}
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
 	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
 		DecodeCalled: func(hexAddress string) ([]byte, error) {
 			return []byte(hexAddress), nil
@@ -832,6 +833,11 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	stateComponents.Accounts = &mock.AccountsStub{}
 
 	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
 
 	networkComponents := getDefaultNetworkComponents()
 	cryptoComponents := getDefaultCryptoComponents()
@@ -845,13 +851,6 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		node.WithNetworkComponents(networkComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithBootstrapComponents(bootstrapComponents),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -884,51 +883,70 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 
 	expectedHash := []byte("expected hash")
 	crtShardID := uint32(1)
-	chainID := []byte("chain ID")
+	chainID := "chain ID"
 	version := uint32(1)
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+	coreComponents.TxSignHasherField = &mock.HasherMock{}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+
+	feeHandler := &mock.EconomicsHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+	coreComponents.EconomicsHandler = feeHandler
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID
+		},
+		SelfShardId: crtShardID,
+	}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{}
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = &mock.SingleSignerMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -941,7 +959,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	signature := "617eff4f"
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, chainID, version, options)
 
 	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
@@ -952,59 +970,77 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 
 	expectedHash := []byte("expected hash")
 	crtShardID := uint32(1)
-	chainID := []byte("chain ID")
+	chainID := "chain ID"
 	version := uint32(1)
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.TxMarsh = getMarshalizer()
+	coreComponents.Hash = mock.HasherMock{
+		ComputeCalled: func(s string) []byte {
+			return expectedHash
+		},
+	}
+	coreComponents.TxSignHasherField = mock.HasherMock{}
+	coreComponents.ChainIdCalled = func() string {
+		return chainID
+	}
+	coreComponents.MinTransactionVersionCalled = func() uint32 {
+		return version
+	}
+	coreComponents.AddrPubKeyConv = &mock.PubkeyConverterStub{
+		DecodeCalled: func(hexAddress string) ([]byte, error) {
+			return []byte(hexAddress), nil
+		},
+	}
+
+	feeHandler := &mock.EconomicsHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return nil
+		},
+	}
+	coreComponents.EconomicsHandler = feeHandler
+	coreComponents.TxVersionCheckHandler = versioning.NewTxVersionChecker(version)
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = &mock.AccountsStub{}
+
+	bootstrapComponents := getDefaultBootstrapComponents()
+	bootstrapComponents.ShCoordinator = &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(i []byte) uint32 {
+			return crtShardID
+		},
+		SelfShardId: crtShardID,
+	}
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.EpochTrigger = &mock.EpochStartTriggerStub{
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	processComponents.WhiteListerVerifiedTxsInternal = &mock.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return false
+		},
+	}
+	processComponents.WhiteListHandlerInternal = &mock.WhiteListHandlerStub{}
+
+	cryptoComponents := getDefaultCryptoComponents()
+	cryptoComponents.TxSig = &mock.SingleSignerMock{}
+	cryptoComponents.TxKeyGen = &mock.KeyGenMock{
+		PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+			return nil, nil
+		},
+	}
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithTxSignMarshalizer(getMarshalizer()),
-		node.WithHasher(
-			mock.HasherMock{
-				ComputeCalled: func(s string) []byte {
-					return expectedHash
-				},
-			},
-		),
-		node.WithAddressPubkeyConverter(
-			&mock.PubkeyConverterStub{
-				DecodeCalled: func(hexAddress string) ([]byte, error) {
-					return []byte(hexAddress), nil
-				},
-			}),
-		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(i []byte) uint32 {
-				return crtShardID
-			},
-			SelfShardId: crtShardID,
-		}),
-		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
-		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{
-			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
-				return false
-			},
-		}),
-		node.WithKeyGenForAccounts(&mock.KeyGenMock{
-			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
-				return nil, nil
-			},
-		}),
-		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
-		node.WithTxFeeHandler(&mock.FeeHandlerStub{
-			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
-				return nil
-			},
-		}),
-		node.WithChainID(chainID),
-		node.WithMinTransactionVersion(version),
-		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return 1
-			},
-		}),
+		node.WithCoreComponents(coreComponents),
+		node.WithBootstrapComponents(bootstrapComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithProcessComponents(processComponents),
+		node.WithCryptoComponents(cryptoComponents),
 		node.WithEnableSignTxWithHashEpoch(2),
-		node.WithTxSignHasher(&mock.HasherMock{}),
-		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -1017,7 +1053,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	signature := "617eff4f"
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, chainID, version+1, options)
 
 	err := n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)

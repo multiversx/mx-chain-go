@@ -47,8 +47,9 @@ func TestNewInterceptedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 func TestNewInterceptedTxDataFactory_NilTxSignHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
-	arg.TxSignHasher = nil
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.TxSignHasherField = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
 
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
@@ -58,7 +59,8 @@ func TestNewInterceptedTxDataFactory_NilTxSignHasherShouldErr(t *testing.T) {
 func TestNewInterceptedTxDataFactory_NilEpochStartTriggerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.EpochStartTrigger = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)
@@ -169,7 +171,8 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument()
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
 	arg.EpochNotifier = nil
 
 	imh, err := NewInterceptedTxDataFactory(arg)

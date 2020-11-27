@@ -63,9 +63,6 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(args.TxSignHasher) {
-		return nil, process.ErrNilHasher
-	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
@@ -83,7 +80,6 @@ func NewShardInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		TxSignHasher:              args.TxSignHasher,
 		EpochNotifier:             args.EpochNotifier,
 	}
 

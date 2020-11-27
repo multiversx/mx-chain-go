@@ -37,7 +37,6 @@ type ArgsEpochStartInterceptorContainer struct {
 	ArgumentsParser           process.ArgumentsParser
 	HeaderIntegrityVerifier   process.HeaderIntegrityVerifier
 	EnableSignTxWithHashEpoch uint32
-	TxSignHasher              hashing.Hasher
 	EpochNotifier             process.EpochNotifier
 }
 
@@ -93,7 +92,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		AntifloodHandler:          antiFloodHandler,
 		ArgumentsParser:           args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		TxSignHasher:              args.TxSignHasher,
 		EpochNotifier:             args.EpochNotifier,
 	}
 

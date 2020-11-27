@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -55,11 +56,14 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
 		Hash:                mock.HasherMock{},
+		TxSignHasherField:   mock.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      createMockPubkeyConverter(),
 		ChainIdCalled: func() string {
 			return "chainID"
 		},
+		TxVersionCheckField: versioning.NewTxVersionChecker(1),
+		EpochNotifierField: &mock.EpochNotifierStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: createMockSigner(),
@@ -88,7 +92,6 @@ func createMockArgument(
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgsParser:              &mock.ArgumentParserMock{},
-		TxSignHasher:            mock.HasherMock{},
 		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

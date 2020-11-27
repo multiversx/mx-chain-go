@@ -22,7 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/facade"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	heartbeatData "github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -76,20 +76,19 @@ type Node struct {
 
 	mutQueryHandlers    syncGo.RWMutex
 	queryHandlers       map[string]debug.QueryHandler
-	bootstrapComponents mainFactory.BootstrapComponentsHolder
-	consensusComponents mainFactory.ConsensusComponentsHolder
-	coreComponents      mainFactory.CoreComponentsHolder
-	cryptoComponents    mainFactory.CryptoComponentsHolder
-	dataComponents      mainFactory.DataComponentsHolder
-	heartbeatComponents mainFactory.HeartbeatComponentsHolder
-	networkComponents   mainFactory.NetworkComponentsHolder
-	processComponents   mainFactory.ProcessComponentsHolder
-	stateComponents     mainFactory.StateComponentsHolder
-	statusComponents    mainFactory.StatusComponentsHolder
+	bootstrapComponents factory2.BootstrapComponentsHolder
+	consensusComponents factory2.ConsensusComponentsHolder
+	coreComponents      factory2.CoreComponentsHolder
+	cryptoComponents    factory2.CryptoComponentsHolder
+	dataComponents      factory2.DataComponentsHolder
+	heartbeatComponents factory2.HeartbeatComponentsHolder
+	networkComponents   factory2.NetworkComponentsHolder
+	processComponents   factory2.ProcessComponentsHolder
+	stateComponents     factory2.StateComponentsHolder
+	statusComponents    factory2.StatusComponentsHolder
 
-	closableComponents []mainFactory.Closer
+	closableComponents []factory2.Closer
 	enableSignTxWithHashEpoch uint32
-	txSignHasher              hashing.Hasher
 	txVersionChecker          process.TxVersionCheckerHandler
 }
 
@@ -114,7 +113,7 @@ func NewNode(opts ...Option) (*Node, error) {
 		queryHandlers:            make(map[string]debug.QueryHandler),
 	}
 
-	node.closableComponents = make([]mainFactory.Closer, 0)
+	node.closableComponents = make([]factory2.Closer, 0)
 
 	err := node.ApplyOptions(opts...)
 	if err != nil {
@@ -403,7 +402,7 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		return nil, nil, err
 	}
 
-	currentEpoch := n.epochStartTrigger.Epoch()
+	currentEpoch := n.coreComponents.EpochNotifier().CurrentEpoch()
 	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
 
 	argumentParser := smartContract.NewArgumentParser()
@@ -420,9 +419,8 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.processComponents.WhiteListerVerifiedTxs(),
 		argumentParser,
 		[]byte(n.coreComponents.ChainID()),
-		n.coreComponents.MinTransactionVersion(),
 		enableSignWithTxHash,
-		n.txSignHasher,
+		n.coreComponents.TxSignHasher(),
 		n.txVersionChecker,
 	)
 	if err != nil {
@@ -714,52 +712,52 @@ func (n *Node) GetHardforkTrigger() HardforkTrigger {
 }
 
 // GetCoreComponents returns the core components
-func (n *Node) GetCoreComponents() mainFactory.CoreComponentsHolder {
+func (n *Node) GetCoreComponents() factory2.CoreComponentsHolder {
 	return n.coreComponents
 }
 
 // GetCryptoComponents returns the crypto components
-func (n *Node) GetCryptoComponents() mainFactory.CryptoComponentsHolder {
+func (n *Node) GetCryptoComponents() factory2.CryptoComponentsHolder {
 	return n.cryptoComponents
 }
 
 // GetConsensusComponents returns the consensus components
-func (n *Node) GetConsensusComponents() mainFactory.ConsensusComponentsHolder {
+func (n *Node) GetConsensusComponents() factory2.ConsensusComponentsHolder {
 	return n.consensusComponents
 }
 
 // GetBootstrapComponents returns the bootstrap components
-func (n *Node) GetBootstrapComponents() mainFactory.BootstrapComponentsHolder {
+func (n *Node) GetBootstrapComponents() factory2.BootstrapComponentsHolder {
 	return n.bootstrapComponents
 }
 
 // GetDataComponents returns the data components
-func (n *Node) GetDataComponents() mainFactory.DataComponentsHolder {
+func (n *Node) GetDataComponents() factory2.DataComponentsHolder {
 	return n.dataComponents
 }
 
 // GetHeartbeatComponents returns the heartbeat components
-func (n *Node) GetHeartbeatComponents() mainFactory.HeartbeatComponentsHolder {
+func (n *Node) GetHeartbeatComponents() factory2.HeartbeatComponentsHolder {
 	return n.heartbeatComponents
 }
 
 // GetNetworkComponents returns the network components
-func (n *Node) GetNetworkComponents() mainFactory.NetworkComponentsHolder {
+func (n *Node) GetNetworkComponents() factory2.NetworkComponentsHolder {
 	return n.networkComponents
 }
 
 // GetProcessComponents returns the process components
-func (n *Node) GetProcessComponents() mainFactory.ProcessComponentsHolder {
+func (n *Node) GetProcessComponents() factory2.ProcessComponentsHolder {
 	return n.processComponents
 }
 
 // GetStateComponents returns the state components
-func (n *Node) GetStateComponents() mainFactory.StateComponentsHolder {
+func (n *Node) GetStateComponents() factory2.StateComponentsHolder {
 	return n.stateComponents
 }
 
 // GetStatusComponents returns the status components
-func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
+func (n *Node) GetStatusComponents() factory2.StatusComponentsHolder {
 	return n.statusComponents
 }
 

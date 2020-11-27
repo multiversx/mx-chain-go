@@ -231,8 +231,8 @@ func TestNewShardInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testin
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxSignHasherField = nil
 	args := getArgumentsShard(coreComp, cryptoComp)
-	args.TxSignHasher = nil
 	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -592,6 +592,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
+		TxSignHasherField:   &mock.HasherMock{},
 		Hash:                &mock.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
@@ -638,7 +639,6 @@ func getArgumentsShard(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
-		TxSignHasher:            mock.HasherMock{},
 		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

@@ -68,27 +68,23 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	if check.IfNil(args.TxSignHasher) {
-		return nil, process.ErrNilHasher
-	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        args.CryptoComponents,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        args.NodesCoordinator,
-		FeeHandler:              args.TxFeeHandler,
-		HeaderSigVerifier:       args.HeaderSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:        args.ValidityAttester,
-		EpochStartTrigger:       args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		ArgsParser:              args.ArgumentsParser,
+		CoreComponents:            args.CoreComponents,
+		CryptoComponents:          args.CryptoComponents,
+		ShardCoordinator:          args.ShardCoordinator,
+		NodesCoordinator:          args.NodesCoordinator,
+		FeeHandler:                args.TxFeeHandler,
+		HeaderSigVerifier:         args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:   args.HeaderIntegrityVerifier,
+		ValidityAttester:          args.ValidityAttester,
+		EpochStartTrigger:         args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
+		ArgsParser:                args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		TxSignHasher:              args.TxSignHasher,
 		EpochNotifier:             args.EpochNotifier,
 	}
 

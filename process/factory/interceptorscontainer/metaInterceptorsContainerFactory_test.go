@@ -297,8 +297,8 @@ func TestNewMetaInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing
 	t.Parallel()
 
 	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxSignHasherField = nil
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.TxSignHasher = nil
 	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	assert.Nil(t, icf)
@@ -559,7 +559,6 @@ func getArgumentsMeta(
 		WhiteListHandler:        &mock.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:  &mock.WhiteListHandlerStub{},
 		ArgumentsParser:         &mock.ArgumentParserMock{},
-		TxSignHasher:            mock.HasherMock{},
 		EpochNotifier:           &mock.EpochNotifierStub{},
 	}
 }

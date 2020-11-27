@@ -91,10 +91,10 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.HeaderIntegrityVerifier) {
 		return epochStart.ErrNilHeaderIntegrityVerifier
 	}
-	if check.IfNil(args.TxSignHasher) {
+	if check.IfNil(args.CoreComponentsHolder.TxSignHasher()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilHasher)
 	}
-	if check.IfNil(args.EpochNotifier) {
+	if check.IfNil(args.CoreComponentsHolder.EpochNotifier()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEpochNotifier)
 	}
 

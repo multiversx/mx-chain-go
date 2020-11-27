@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -89,7 +88,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(argument.TxSignHasher) {
+	if check.IfNil(argument.CoreComponents.TxSignHasher()) {
 		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(argument.EpochNotifier) {
@@ -111,8 +110,8 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		minTransactionVersion:       argument.CoreComponents.MinTransactionVersion(),
 		epochStartTrigger:           argument.EpochStartTrigger,
 		enableSignedTxWithHashEpoch: argument.EnableSignTxWithHashEpoch,
-		txSignHasher:                argument.TxSignHasher,
-		txVersionChecker:            versioning.NewTxVersionChecker(argument.MinTransactionVersion),
+		txSignHasher:                argument.CoreComponents.TxSignHasher(),
+		txVersionChecker:            argument.CoreComponents.TxVersionChecker(),
 	}
 
 	argument.EpochNotifier.RegisterNotifyHandler(interceptedTxDataFactory)

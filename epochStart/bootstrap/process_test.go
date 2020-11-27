@@ -42,6 +42,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			IntMarsh:            &mock.MarshalizerMock{},
 			Marsh:               &mock.MarshalizerMock{},
 			Hash:                &mock.HasherMock{},
+			TxSignHasherField:   &mock.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
 			PathHdl:             &mock.PathManagerStub{},
@@ -142,7 +143,6 @@ func createMockEpochStartBootstrapArgs(
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
-		TxSignHasher:               &mock.HasherMock{},
 		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 }
@@ -161,8 +161,9 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 func TestNewEpochStartBootstrap_NilTxSignHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockEpochStartBootstrapArgs()
-	args.TxSignHasher = nil
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	coreComp.TxSignHasherField = nil
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, epochStartProvider)
@@ -172,7 +173,8 @@ func TestNewEpochStartBootstrap_NilTxSignHasherShouldErr(t *testing.T) {
 func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockEpochStartBootstrapArgs()
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.EpochNotifier = nil
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)

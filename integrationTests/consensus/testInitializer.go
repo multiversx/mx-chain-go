@@ -27,7 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
 	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	factory2 "github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -245,7 +245,7 @@ func createConsensusOnlyNode(
 	pubKeys []crypto.PublicKey,
 	testKeyGen crypto.KeyGenerator,
 	consensusType string,
-	epochStartRegistrationHandler mainFactory.EpochStartNotifier,
+	epochStartRegistrationHandler factory2.EpochStartNotifier,
 ) (
 	*node.Node,
 	p2p.Messenger,

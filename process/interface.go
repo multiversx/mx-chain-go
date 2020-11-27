@@ -990,14 +990,17 @@ type CoreComponentsHolder interface {
 	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
 	TxMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	MinTransactionVersion() uint32
+	TxVersionChecker() TxVersionCheckerHandler
 	StatusHandler() core.AppStatusHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
+	EpochNotifier() EpochNotifier
 	IsInterfaceNil() bool
 }
 
