@@ -65,6 +65,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 		TotalStakeValue: big.NewInt(0).SetUint64(totalStakeValue),
 		LockedStake:     big.NewInt(0).SetUint64(totalStakeValue),
 		MaxStakePerNode: big.NewInt(0).SetUint64(maxStakePerNode),
+		NumRegistered:   numBlsKeys,
 	}
 
 	keys := make([][]byte, 0)
@@ -3197,25 +3198,88 @@ func TestStakingAuctionSC_UnbondTokensNotEnabledShouldError(t *testing.T) {
 	assert.Equal(t, "invalid method to call", vmOutput.ReturnMessage)
 }
 
-func TestStakingAuctionSC_UnbondTokensOneArgumentShouldError(t *testing.T) {
+func TestStakingAuctionSC_UnbondTokensOneArgument(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
-	blockChainHook := &mock.BlockChainHookStub{}
+	startNonce := uint64(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return startNonce + unbondPeriod
+		},
+	}
 	args := createMockArgumentsForAuction()
 	args.StakingSCConfig.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriod = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
 	sc, _ := NewStakingAuctionSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&AuctionDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1000),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: startNonce - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+				{
+					UnstakedNonce: startNonce - 1,
+					UnstakedValue: big.NewInt(2),
+				},
+				{
+					UnstakedNonce: startNonce,
+					UnstakedValue: big.NewInt(3),
+				},
+				{
+					UnstakedNonce: startNonce + 1,
+					UnstakedValue: big.NewInt(4),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
 
-	registrationData := &AuctionDataV2{RewardAddress: caller}
-	marshaledData, _ := args.Marshalizer.Marshal(registrationData)
-	eei.SetStorage(caller, marshaledData)
-	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{[]byte("argument")}, zero, vmcommon.UserError)
-	vmOutput := eei.CreateVMOutput()
-	assert.Equal(t, "should have not specified any arguments", vmOutput.ReturnMessage)
+	unBondRequest := big.NewInt(4)
+	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, [][]byte{unBondRequest.Bytes()}, zero, vmcommon.Ok)
+
+	expected := &AuctionDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   caller,
+		TotalStakeValue: big.NewInt(1000),
+		LockedStake:     big.NewInt(1000),
+		MaxStakePerNode: big.NewInt(0),
+		BlsPubKeys:      [][]byte{[]byte("key")},
+		NumRegistered:   1,
+		UnstakedInfo: []*UnstakedValue{
+			{
+				UnstakedNonce: startNonce,
+				UnstakedValue: big.NewInt(2),
+			},
+			{
+				UnstakedNonce: startNonce + 1,
+				UnstakedValue: big.NewInt(4),
+			},
+		},
+		TotalUnstaked: big.NewInt(6),
+	}
+
+	recovered, err := sc.getOrCreateRegistrationData(caller)
+	require.Nil(t, err)
+	assert.Equal(t, expected, recovered)
+
+	outTransferValue := eei.outputAccounts[string(caller)].OutputTransfers[0].Value
+	assert.True(t, unBondRequest.Cmp(outTransferValue) == 0)
 }
 
 func TestStakingAuctionSC_UnbondTokensWithCallValueShouldError(t *testing.T) {
