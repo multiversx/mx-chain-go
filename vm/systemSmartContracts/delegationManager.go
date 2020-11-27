@@ -59,7 +59,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		return nil, fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.AuctionSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)

@@ -38,7 +38,7 @@ type delegation struct {
 	sigVerifier            vm.MessageSignVerifier
 	delegationMgrSCAddress []byte
 	stakingSCAddr          []byte
-	auctionSCAddr          []byte
+	validatorSCAddr        []byte
 	endOfEpochAddr         []byte
 	gasCost                vm.GasCost
 	marshalizer            marshal.Marshalizer
@@ -62,7 +62,7 @@ type ArgsNewDelegation struct {
 	SigVerifier            vm.MessageSignVerifier
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
-	AuctionSCAddress       []byte
+	ValidatorSCAddress     []byte
 	EndOfEpochAddress      []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
@@ -77,8 +77,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if len(args.StakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.AuctionSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	if len(args.ValidatorSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
@@ -102,7 +102,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	d := &delegation{
 		eei:                    args.Eei,
 		stakingSCAddr:          args.StakingSCAddress,
-		auctionSCAddr:          args.AuctionSCAddress,
+		validatorSCAddr:        args.ValidatorSCAddress,
 		delegationMgrSCAddress: args.DelegationMgrSCAddress,
 		gasCost:                args.GasCost,
 		marshalizer:            args.Marshalizer,
@@ -1760,7 +1760,7 @@ func (d *delegation) executeOnAuctionSC(address []byte, function string, args []
 	for _, key := range args {
 		auctionCall += "@" + hex.EncodeToString(key)
 	}
-	vmOutput, err := d.eei.ExecuteOnDestContext(d.auctionSCAddr, address, value, []byte(auctionCall))
+	vmOutput, err := d.eei.ExecuteOnDestContext(d.validatorSCAddr, address, value, []byte(auctionCall))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return nil, err

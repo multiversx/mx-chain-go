@@ -24,11 +24,10 @@ func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 	validatorConfig := &ValidatorConfig{
 		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
-		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
-		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
-		MinStep:       big.NewInt(0).SetBytes(args.Arguments[3]),
-		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[4]),
-		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
+		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[1]),
+		MinStep:       big.NewInt(0).SetBytes(args.Arguments[2]),
+		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[3]),
+		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[4]),
 	}
 
 	code := v.verifyConfig(validatorConfig)
@@ -42,7 +41,7 @@ func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	epochBytes := args.Arguments[6]
+	epochBytes := args.Arguments[5]
 	v.eei.SetStorage(epochBytes, configData)
 
 	return vmcommon.Ok
@@ -94,7 +93,7 @@ func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2,
 	if len(data) > 0 {
 		err := v.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
-			log.Debug("unmarshal error on auction SC stake function",
+			log.Debug("unmarshal error on validator SC stake function",
 				"error", err.Error(),
 			)
 			return nil, err
@@ -160,7 +159,7 @@ func (v *validatorSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
 	if len(data) > 0 {
 		err := v.marshalizer.Unmarshal(stakedData, data)
 		if err != nil {
-			log.Debug("unmarshal error on auction SC getStakedData function",
+			log.Debug("unmarshal error on validator SC getStakedData function",
 				"error", err.Error(),
 			)
 			return nil, err

@@ -74,7 +74,7 @@ var ErrNilKeyGenerator = errors.New("nil key generator")
 // ErrSingleSigner signals that single signer is nil
 var ErrSingleSigner = errors.New("nil single signer")
 
-// ErrIncorrectConfig signals that auction config is incorrect
+// ErrIncorrectConfig signals that the config is incorrect
 var ErrIncorrectConfig = errors.New("config incorrect")
 
 // ErrNilMessageSignVerifier signals that message sign verifier is nil
@@ -89,8 +89,8 @@ var ErrNilArgumentsParser = errors.New("nil arguments parser")
 // ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
 var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
-// ErrNilValidatorSmartContractAddress signals that auction smart contract address is nil
-var ErrNilValidatorSmartContractAddress = errors.New("nil auction smart contract address")
+// ErrNilValidatorSmartContractAddress signals that validator smart contract address is nil
+var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contract address")
 
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")

@@ -86,7 +86,7 @@ func TestNewDelegationManagerSystemSC_InvalidAuctionSCAddressShouldErr(t *testin
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	assert.Equal(t, expectedErr, err)
 }
 

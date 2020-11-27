@@ -29,9 +29,8 @@ func createMockArgumentsForAuction() ArgsValidatorSmartContract {
 	args := ArgsValidatorSmartContract{
 		Eei:                &mock.SystemEIStub{},
 		SigVerifier:        &mock.MessageSignVerifierMock{},
-		ValidatorSCAddress: []byte("auction"),
+		ValidatorSCAddress: []byte("validator"),
 		StakingSCAddress:   []byte("staking"),
-		NumOfNodesToSelect: 10,
 		StakingSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "1000",
 			UnJailValue:                          "10",
@@ -44,7 +43,6 @@ func createMockArgumentsForAuction() ArgsValidatorSmartContract {
 			MaximumPercentageToBleed:             1,
 			BleedPercentagePerRound:              1,
 			MaxNumberOfNodesForStake:             10,
-			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
 		},
@@ -205,17 +203,6 @@ func TestNewStakingAuctionSmartContract_NilSigVerifier(t *testing.T) {
 	require.Equal(t, vm.ErrNilMessageSignVerifier, err)
 }
 
-func TestNewStakingAuctionSmartContract_InvalidNumNodesToSelect(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockArgumentsForAuction()
-	arguments.NumOfNodesToSelect = 0
-
-	asc, err := NewValidatorSmartContract(arguments)
-	require.Nil(t, asc)
-	require.True(t, errors.Is(err, vm.ErrInvalidMinNumberOfNodes))
-}
-
 func TestNewStakingAuctionSmartContract_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
@@ -273,7 +260,6 @@ func TestStakingAuctionSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T) {
 	}
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.NumOfNodesToSelect = 5
 
 	stakingAuctionSc, _ := NewValidatorSmartContract(args)
 
@@ -307,7 +293,7 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
-	eei.SetSCAddress([]byte("auction"))
+	eei.SetSCAddress([]byte("validator"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
 		return stakingSc, nil
 	}})
@@ -315,7 +301,6 @@ func TestStakingAuctionSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {
 	args.Eei = eei
 	eei.SetStorage(arguments.CallerAddr, auctionDataBytes)
 	args.StakingSCConfig = argsStaking.StakingSCConfig
-	args.NumOfNodesToSelect = 5
 
 	stakingAuctionSc, _ := NewValidatorSmartContract(args)
 
@@ -455,7 +440,6 @@ func TestStakingAuctionSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 
 	args := createMockArgumentsForAuction()
 	args.Eei = eei
-	args.NumOfNodesToSelect = 5
 
 	stakingAuctionSc, _ := NewValidatorSmartContract(args)
 
@@ -2150,7 +2134,7 @@ func TestAuctionStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
 
-	smartcontractAddress := "auction"
+	smartcontractAddress := "validator"
 	eei.SetSCAddress([]byte(smartcontractAddress))
 
 	args := createMockArgumentsForAuction()
@@ -2325,7 +2309,7 @@ func TestAuctionStakingSC_Claim(t *testing.T) {
 
 // Test scenario
 // 1 -- call setConfig with wrong owner address should return error
-// 2 -- call auction smart contract init and after that call setConfig with wrong number of arguments should return error
+// 2 -- call validator smart contract init and after that call setConfig with wrong number of arguments should return error
 // 3 -- call setConfig after init was done successfully should work and config should be set correctly
 func TestAuctionStakingSC_SetConfig(t *testing.T) {
 	t.Parallel()
@@ -2345,7 +2329,7 @@ func TestAuctionStakingSC_SetConfig(t *testing.T) {
 	retCode := sc.Execute(arguments)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	// call auction smart contract init
+	// call validator smart contract init
 	arguments.Function = core.SCDeployInitFunctionName
 	arguments.CallerAddr = ownerAddr
 	retCode = sc.Execute(arguments)
@@ -2357,26 +2341,24 @@ func TestAuctionStakingSC_SetConfig(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 
 	// call setConfig
-	numNodes := big.NewInt(10)
 	totalSupply := big.NewInt(10000000)
 	minStep := big.NewInt(100)
 	nodPrice := big.NewInt(20000)
 	epoch := big.NewInt(1)
 	unjailPrice := big.NewInt(100)
 	arguments.Function = "setConfig"
-	arguments.Arguments = [][]byte{minStakeValue.Bytes(), numNodes.Bytes(),
-		totalSupply.Bytes(), minStep.Bytes(), nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
+	arguments.Arguments = [][]byte{minStakeValue.Bytes(), totalSupply.Bytes(), minStep.Bytes(),
+		nodPrice.Bytes(), unjailPrice.Bytes(), epoch.Bytes()}
 	retCode = sc.Execute(arguments)
 	require.Equal(t, vmcommon.Ok, retCode)
 
-	auctionConfig := sc.getConfig(1)
-	require.NotNil(t, auctionConfig)
-	require.Equal(t, uint32(numNodes.Int64()), auctionConfig.NumNodes)
-	require.Equal(t, totalSupply, auctionConfig.TotalSupply)
-	require.Equal(t, minStep, auctionConfig.MinStep)
-	require.Equal(t, nodPrice, auctionConfig.NodePrice)
-	require.Equal(t, unjailPrice, auctionConfig.UnJailPrice)
-	require.Equal(t, minStakeValue, auctionConfig.MinStakeValue)
+	validatorConfig := sc.getConfig(1)
+	require.NotNil(t, validatorConfig)
+	require.Equal(t, totalSupply, validatorConfig.TotalSupply)
+	require.Equal(t, minStep, validatorConfig.MinStep)
+	require.Equal(t, nodPrice, validatorConfig.NodePrice)
+	require.Equal(t, unjailPrice, validatorConfig.UnJailPrice)
+	require.Equal(t, minStakeValue, validatorConfig.MinStakeValue)
 }
 
 func TestAuctionStakingSC_SetConfig_InvalidParameters(t *testing.T) {
@@ -2396,7 +2378,7 @@ func TestAuctionStakingSC_SetConfig_InvalidParameters(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "setConfig"
 
-	// call auction smart contract init
+	// call validator smart contract init
 	arguments.Function = core.SCDeployInitFunctionName
 	arguments.CallerAddr = ownerAddr
 	_ = sc.Execute(arguments)

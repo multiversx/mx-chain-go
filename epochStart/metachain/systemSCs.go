@@ -648,17 +648,17 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
 	}()
 
-	userAuctionAccount, err := s.getAuctionSystemAccount()
+	userValidatorAccount, err := s.getValidatorSystemAccount()
 	if err != nil {
 		return err
 	}
 
-	auctionAccounts, err := s.getValidAuctionUserAccountsKeys(userAuctionAccount)
+	validatorAccounts, err := s.getValidValidatorUserAccountsKeys(userValidatorAccount)
 	if err != nil {
 		return err
 	}
 
-	err = s.callUpdateStakingV2(auctionAccounts)
+	err = s.callUpdateStakingV2(validatorAccounts)
 	if err != nil {
 		return err
 	}
@@ -666,72 +666,72 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	return nil
 }
 
-func (s *systemSCProcessor) getAuctionSystemAccount() (state.UserAccountHandler, error) {
-	auctionAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
+func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandler, error) {
+	validatorAccount, err := s.userAccountsDB.LoadAccount(vm.ValidatorSCAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w when loading auction account", err)
+		return nil, fmt.Errorf("%w when loading validator account", err)
 	}
 
-	userAuctionAccount, ok := auctionAccount.(state.UserAccountHandler)
+	userValidatorAccount, ok := validatorAccount.(state.UserAccountHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w when loading auction account", epochStart.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w when loading validator account", epochStart.ErrWrongTypeAssertion)
 	}
 
-	if check.IfNil(userAuctionAccount.DataTrie()) {
+	if check.IfNil(userValidatorAccount.DataTrie()) {
 		return nil, epochStart.ErrNilDataTrie
 	}
 
-	return userAuctionAccount, nil
+	return userValidatorAccount, nil
 }
 
-func (s *systemSCProcessor) getValidAuctionUserAccountsKeys(userAuctionAccount state.UserAccountHandler) ([][]byte, error) {
-	auctionAccounts := make([][]byte, 0)
+func (s *systemSCProcessor) getValidValidatorUserAccountsKeys(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
+	validatorAccounts := make([][]byte, 0)
 
-	rootHash, err := userAuctionAccount.DataTrie().Root()
+	rootHash, err := userValidatorAccount.DataTrie().Root()
 	if err != nil {
 		return nil, err
 	}
 
 	ctx := context.Background()
-	chLeaves, err := userAuctionAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	chLeaves, err := userValidatorAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
 	if err != nil {
 		return nil, err
 	}
 	for leaf := range chLeaves {
-		auctionData := &systemSmartContracts.ValidatorDataV2{}
+		validatorData := &systemSmartContracts.ValidatorDataV2{}
 		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
 		if errTrim != nil {
-			return nil, fmt.Errorf("%w for auction key %s", errTrim, hex.EncodeToString(leaf.Key()))
+			return nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
 		}
 
-		err := s.marshalizer.Unmarshal(auctionData, value)
-		dataIsNotValid := err != nil || len(auctionData.BlsPubKeys) == 0
+		err := s.marshalizer.Unmarshal(validatorData, value)
+		dataIsNotValid := err != nil || len(validatorData.BlsPubKeys) == 0
 		if dataIsNotValid {
 			continue
 		}
-		auctionAccounts = append(auctionAccounts, leaf.Key())
+		validatorAccounts = append(validatorAccounts, leaf.Key())
 	}
 
-	return auctionAccounts, nil
+	return validatorAccounts, nil
 }
 
-func (s *systemSCProcessor) callUpdateStakingV2(auctionAccounts [][]byte) error {
-	for _, auctionAccountKey := range auctionAccounts {
+func (s *systemSCProcessor) callUpdateStakingV2(validatorAccounts [][]byte) error {
+	for _, validatorAccountKey := range validatorAccounts {
 		vmInput := &vmcommon.ContractCallInput{
 			VMInput: vmcommon.VMInput{
 				CallerAddr: vm.ValidatorSCAddress,
 				CallValue:  big.NewInt(0),
-				Arguments:  [][]byte{auctionAccountKey},
+				Arguments:  [][]byte{validatorAccountKey},
 			},
 			RecipientAddr: vm.ValidatorSCAddress,
 			Function:      "updateStakingV2",
 		}
 		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
 		if errRun != nil {
-			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(auctionAccountKey))
+			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(validatorAccountKey))
 		}
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(auctionAccountKey))
+			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(validatorAccountKey))
 		}
 
 		err := s.processSCOutputAccounts(vmOutput)

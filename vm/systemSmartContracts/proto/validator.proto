@@ -37,10 +37,9 @@ message ValidatorDataV2 {
 }
 
 message ValidatorConfig {
-    uint32 NumNodes      = 1 [(gogoproto.jsontag) = "NumNodes"];
-    bytes  MinStakeValue = 2 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  TotalSupply   = 3 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  MinStep       = 4 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  NodePrice     = 5 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  UnJailPrice   = 6 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  MinStakeValue = 1 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  TotalSupply   = 2 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  MinStep       = 3 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  NodePrice     = 4 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  UnJailPrice   = 5 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }

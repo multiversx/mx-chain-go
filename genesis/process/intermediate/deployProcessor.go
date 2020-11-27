@@ -15,7 +15,7 @@ import (
 
 // codeMetadataHexForInitialSC used for initial SC deployment, set to upgrade-able
 const codeMetadataHexForInitialSC = "0100"
-const auctionScAddressPlaceholder = "%auction_sc_address%"
+const validatorScAddressPlaceholder = "%validator_sc_address%"
 const versionFunction = "version"
 
 // ArgDeployProcessor is the argument used to create a deployProcessor instance
@@ -80,8 +80,8 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) ([][]b
 }
 
 func applyCommonPlaceholders(txData string) string {
-	//replace all placeholders containing auctionScAddressPlaceholder with the real hex address
-	txData = strings.Replace(txData, auctionScAddressPlaceholder, hex.EncodeToString(vm.ValidatorSCAddress), -1)
+	//replace all placeholders containing validatorScAddressPlaceholder with the real hex address
+	txData = strings.Replace(txData, validatorScAddressPlaceholder, hex.EncodeToString(vm.ValidatorSCAddress), -1)
 
 	return txData
 }

@@ -49,11 +49,10 @@ type validatorSC struct {
 	mutExecution          sync.RWMutex
 }
 
-// ArgsValidatorSmartContract is the arguments structure to create a new StakingAuctionSmartContract
+// ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
 type ArgsValidatorSmartContract struct {
 	StakingSCConfig    config.StakingSystemSCConfig
 	GenesisTotalSupply *big.Int
-	NumOfNodesToSelect uint64
 	Eei                vm.SystemEI
 	SigVerifier        vm.MessageSignVerifier
 	StakingSCAddress   []byte
@@ -63,7 +62,7 @@ type ArgsValidatorSmartContract struct {
 	EpochNotifier      vm.EpochNotifier
 }
 
-// NewValidatorSmartContract creates an auction smart contract
+// NewValidatorSmartContract creates an validator smart contract
 func NewValidatorSmartContract(
 	args ArgsValidatorSmartContract,
 ) (*validatorSC, error) {
@@ -75,9 +74,6 @@ func NewValidatorSmartContract(
 	}
 	if len(args.ValidatorSCAddress) == 0 {
 		return nil, vm.ErrNilValidatorSmartContractAddress
-	}
-	if args.NumOfNodesToSelect < 1 {
-		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinNumberOfNodes, args.NumOfNodesToSelect)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
@@ -93,7 +89,6 @@ func NewValidatorSmartContract(
 	}
 
 	baseConfig := ValidatorConfig{
-		NumNodes:    uint32(args.NumOfNodesToSelect),
 		TotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
 	}
 
@@ -139,7 +134,7 @@ func NewValidatorSmartContract(
 	return reg, nil
 }
 
-// Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
+// Execute calls one of the functions from the validator smart contract and runs the code according to the input
 func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	v.mutExecution.RLock()
 	defer v.mutExecution.RUnlock()
@@ -485,34 +480,29 @@ func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) verifyConfig(auctionConfig *ValidatorConfig) vmcommon.ReturnCode {
-	if auctionConfig.MinStakeValue.Cmp(zero) <= 0 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, auctionConfig.MinStakeValue).Error()
+func (v *validatorSC) verifyConfig(validatorConfig *ValidatorConfig) vmcommon.ReturnCode {
+	if validatorConfig.MinStakeValue.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStakeValue, validatorConfig.MinStakeValue).Error()
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
-	if auctionConfig.NumNodes < 1 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinNumberOfNodes, auctionConfig.NumNodes).Error()
+	if validatorConfig.TotalSupply.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, validatorConfig.TotalSupply).Error()
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
-	if auctionConfig.TotalSupply.Cmp(zero) <= 0 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, auctionConfig.TotalSupply).Error()
+	if validatorConfig.MinStep.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStepValue, validatorConfig.MinStep).Error()
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
-	if auctionConfig.MinStep.Cmp(zero) <= 0 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidMinStepValue, auctionConfig.MinStep).Error()
+	if validatorConfig.NodePrice.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, validatorConfig.NodePrice).Error()
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
-	if auctionConfig.NodePrice.Cmp(zero) <= 0 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidNodePrice, auctionConfig.NodePrice).Error()
-		v.eei.AddReturnMessage(retMessage)
-		return vmcommon.UserError
-	}
-	if auctionConfig.UnJailPrice.Cmp(zero) <= 0 {
-		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, auctionConfig.UnJailPrice).Error()
+	if validatorConfig.UnJailPrice.Cmp(zero) <= 0 {
+		retMessage := fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, validatorConfig.UnJailPrice).Error()
 		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}

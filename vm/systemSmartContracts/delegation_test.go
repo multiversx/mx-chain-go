@@ -36,7 +36,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		SigVerifier:            &mock.MessageSignVerifierMock{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.ValidatorSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -133,9 +133,9 @@ func TestNewDelegationSystemSC_InvalidStakingSCAddrShouldErr(t *testing.T) {
 func TestNewDelegationSystemSC_InvalidAuctionSCAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	args := createMockArgumentsForDelegation()
-	args.AuctionSCAddress = []byte{}
+	args.ValidatorSCAddress = []byte{}
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
@@ -1122,7 +1122,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	stkNodes, _ := d.marshalizer.Marshal(stakingNodesConfig)
 	stakingMap[nodesConfigKey] = stkNodes
 
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
+	eei.storageUpdate[string(args.ValidatorSCAddress)] = auctionMap
 	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	vmInput := getDefaultVmInputForFunc("unStakeNodes", [][]byte{blsKey1, blsKey2})
@@ -1428,7 +1428,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
 	stakingMap["blsKey2"] = regData
 
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
+	eei.storageUpdate[string(args.ValidatorSCAddress)] = auctionMap
 	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	output := d.Execute(vmInput)

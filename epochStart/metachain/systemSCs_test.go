@@ -434,7 +434,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             5,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 			},

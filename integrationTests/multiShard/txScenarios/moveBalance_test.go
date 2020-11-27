@@ -99,7 +99,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	assert.Equal(t, players[0].Nonce, senderAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	// check balance account that send money to AuctionSC
+	// check balance account that send money to ValidatorSC
 	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx3)
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	senderAccount = getUserAccount(nodes, players[4].Address)
@@ -107,7 +107,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	// check balance account that send money to AuctionSC with data field
+	// check balance account that send money to ValidatorSC with data field
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimitTxWithData), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
@@ -123,7 +123,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	// check balance account that send money to AuctionSC with data field should refund money back
+	// check balance account that send money to ValidatorSC with data field should refund money back
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 	assert.Equal(t, players[6].Nonce, senderAccount.GetNonce())
