@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
+	"github.com/ElrondNetwork/elrond-go/storage/mock"
 	"github.com/ElrondNetwork/elrond-go/storage/pruning"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,9 +103,26 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Skip()
-
+	persistersByPath := make(map[string]storage.Persister)
+	persistersByPath["Epoch_0"] = memorydb.New()
 	args := getDefaultArgs()
+	args.DbPath = "Epoch_0"
+	args.PersisterFactory = &mock.PersisterFactoryStub{
+		// simulate an opening of an existing database from the file path by saving activePersisters in a map based on their path
+		CreateCalled: func(path string) (storage.Persister, error) {
+			if _, ok := persistersByPath[path]; ok {
+				return persistersByPath[path], nil
+			}
+			newPers := memorydb.New()
+			persistersByPath[path] = newPers
+
+			return newPers, nil
+		},
+	}
+	args.NumOfActivePersisters = 1
+	args.CleanOldEpochsData = true
+	args.NumOfEpochsToKeep = 2
+
 	fhArgs := &pruning.FullHistoryStorerArgs{
 		StorerArgs:               args,
 		NumOfOldActivePersisters: 2,
@@ -125,9 +144,10 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
-	// init persister for epoch 9
+	// init persister for epoch 9 and 10
 	_, _ = fhps.GetFromEpoch(testKey, 9)
 
+	// get from evicted epoch 7
 	res, err = fhps.GetFromEpoch(testKey, testEpoch)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
