@@ -16,6 +16,7 @@ import (
 
 const maxNumPidsPerPk = 3
 const uint32Size = 4
+const defaultShardId = uint32(0)
 
 var log = logger.GetOrCreate("sharding/networksharding")
 
@@ -31,11 +32,10 @@ var _ p2p.PeerShardResolver = (*PeerShardMapper)(nil)
 // The mapping between shard id and public key is done by the nodes coordinator implementation but the fallbackPkShard
 // fallback map is only used whenever nodes coordinator has a wrong view about the peers in a shard.
 type PeerShardMapper struct {
-	peerIdPk         storage.Cacher
-	pkPeerId         storage.Cacher
-	fallbackPkShard  storage.Cacher
-	fallbackPidShard storage.Cacher
-
+	peerIdPk                 storage.Cacher
+	pkPeerId                 storage.Cacher
+	fallbackPkShard          storage.Cacher
+	fallbackPidShard         storage.Cacher
 	mutUpdatePeerIdPublicKey sync.Mutex
 
 	mutEpoch         sync.RWMutex
@@ -43,42 +43,45 @@ type PeerShardMapper struct {
 	nodesCoordinator sharding.NodesCoordinator
 }
 
-// NewPeerShardMapper creates a new peerShardMapper instance
-func NewPeerShardMapper(
-	peerIdPk storage.Cacher,
-	fallbackPkShard storage.Cacher,
-	fallbackPidShard storage.Cacher,
-	nodesCoordinator sharding.NodesCoordinator,
-	epochStart uint32,
-) (*PeerShardMapper, error) {
+// ArgPeerShardMapper is the initialization structure for the PeerShardMapper implementation
+type ArgPeerShardMapper struct {
+	PeerIdPk         storage.Cacher
+	FallbackPkShard  storage.Cacher
+	FallbackPidShard storage.Cacher
+	NodesCoordinator sharding.NodesCoordinator
+	EpochStart       uint32
+}
 
-	if check.IfNil(nodesCoordinator) {
+// NewPeerShardMapper creates a new peerShardMapper instance
+func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
+
+	if check.IfNil(arg.NodesCoordinator) {
 		return nil, sharding.ErrNilNodesCoordinator
 	}
-	if check.IfNil(peerIdPk) {
+	if check.IfNil(arg.PeerIdPk) {
 		return nil, sharding.ErrNilCacher
 	}
-	if check.IfNil(fallbackPkShard) {
+	if check.IfNil(arg.FallbackPkShard) {
 		return nil, sharding.ErrNilCacher
 	}
-	if check.IfNil(fallbackPidShard) {
+	if check.IfNil(arg.FallbackPidShard) {
 		return nil, sharding.ErrNilCacher
 	}
 
-	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
+	pkPeerId, err := lrucache.NewCache(arg.PeerIdPk.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("peerShardMapper epoch", "epoch", epochStart)
+	log.Debug("peerShardMapper epoch", "epoch", arg.EpochStart)
 
 	return &PeerShardMapper{
-		peerIdPk:         peerIdPk,
+		peerIdPk:         arg.PeerIdPk,
 		pkPeerId:         pkPeerId,
-		fallbackPkShard:  fallbackPkShard,
-		fallbackPidShard: fallbackPidShard,
-		nodesCoordinator: nodesCoordinator,
-		epoch:            epochStart,
+		fallbackPkShard:  arg.FallbackPkShard,
+		fallbackPidShard: arg.FallbackPidShard,
+		nodesCoordinator: arg.NodesCoordinator,
+		epoch:            arg.EpochStart,
 	}, nil
 }
 
@@ -151,8 +154,6 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
-	defaultShardId := uint32(0)
-
 	if len(pkBuff) == 0 {
 		return defaultShardId, false
 	}

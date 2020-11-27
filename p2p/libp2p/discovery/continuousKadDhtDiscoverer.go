@@ -31,7 +31,7 @@ type ArgKadDht struct {
 	InitialPeersList            []string
 	BucketSize                  uint32
 	RoutingTableRefresh         time.Duration
-	KddSharder                  p2p.CommonSharder
+	KddSharder                  p2p.Sharder
 }
 
 // ContinuousKadDhtDiscoverer is the kad-dht discovery type implementation
@@ -59,6 +59,8 @@ func NewContinuousKadDhtDiscoverer(arg ArgKadDht) (*ContinuousKadDhtDiscoverer, 
 	if err != nil {
 		return nil, err
 	}
+
+	sharder.SetSeeders(arg.InitialPeersList)
 
 	return &ContinuousKadDhtDiscoverer{
 		context:              arg.Context,

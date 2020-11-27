@@ -53,7 +53,7 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 	pDiscoverer, err := factory.NewPeerDiscoverer(
 		context.Background(),
 		&mock.ConnectableHostStub{},
-		&mock.SharderStub{},
+		&mock.KadSharderStub{},
 		p2pConfig,
 	)
 	_, ok := pDiscoverer.(*discovery.ContinuousKadDhtDiscoverer)
@@ -81,7 +81,7 @@ func TestNewPeerDiscoverer_OptimizedKadDhtShouldWork(t *testing.T) {
 	pDiscoverer, err := factory.NewPeerDiscoverer(
 		context.Background(),
 		&mock.ConnectableHostStub{},
-		&mock.SharderStub{},
+		&mock.KadSharderStub{},
 		p2pConfig,
 	)
 

@@ -47,6 +47,8 @@ func NewOptimizedKadDhtDiscoverer(arg ArgKadDht) (*optimizedKadDhtDiscoverer, er
 		return nil, p2p.ErrInvalidSeedersReconnectionInterval
 	}
 
+	sharder.SetSeeders(arg.InitialPeersList)
+
 	okdd := &optimizedKadDhtDiscoverer{
 		sharder:                     sharder,
 		peersRefreshInterval:        arg.PeersRefreshInterval,
