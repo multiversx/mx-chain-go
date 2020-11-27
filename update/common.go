@@ -2,8 +2,12 @@ package update
 
 import (
 	"github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 var log = logger.GetOrCreate("update")
@@ -124,33 +128,15 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []b
 	return mbHdrs
 }
 
-// CheckDuplicates checks if there are duplicated miniBlocks in the given map
-func CheckDuplicates(headers map[uint32]data.HeaderHandler) error {
-	miniBlocksHashes := make([][]byte, 0)
-	for _, header := range headers {
-		miniBlocksHashes = append(miniBlocksHashes, header.GetMiniBlockHeadersHashes()...)
-	}
-
-	mapMiniBlocksHashes := make(map[string]struct{})
-	for _, miniBlockHash := range miniBlocksHashes {
-		_, duplicatesFound := mapMiniBlocksHashes[string(miniBlockHash)]
-		if duplicatesFound {
-			return ErrDuplicatedMiniBlocksFound
-		}
-
-		mapMiniBlocksHashes[string(miniBlockHash)] = struct{}{}
-	}
-
-	return nil
-}
-
 // CreateBody will create a block body after hardfork import
 func CreateBody(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	shardIDs []uint32,
 	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
 ) ([]*MbInfo, error) {
-	mapPostMbs := make(map[uint32][]*MbInfo)
+	allPostMbs := make([]*MbInfo, 0)
 	for _, shardID := range shardIDs {
 		hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
 		if !ok {
@@ -167,24 +153,27 @@ func CreateBody(
 			"postMbs", len(postMbs),
 		)
 
-		mapPostMbs[shardID] = postMbs
+		allPostMbs = append(allPostMbs, postMbs...)
 		mapBodies[shardID] = body
 	}
 
-	return getLastPostMbs(shardIDs, mapPostMbs), nil
+	return CleanDuplicates(hasher, marshalizer, shardIDs, mapBodies, allPostMbs)
 }
 
 // CreatePostMiniBlocks will create all the post miniBlocks after hardfork import
 func CreatePostMiniBlocks(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 	shardIDs []uint32,
 	lastPostMbs []*MbInfo,
 	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
 ) error {
+	var err error
 	numPostMbs := len(lastPostMbs)
 	for numPostMbs > 0 {
 		log.Debug("CreatePostBodies", "numPostMbs", numPostMbs)
-		mapPostMbs := make(map[uint32][]*MbInfo)
+		currentPostMbs := make([]*MbInfo, 0)
 		for _, shardID := range shardIDs {
 			hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
 			if !ok {
@@ -209,21 +198,63 @@ func CreatePostMiniBlocks(
 			)
 
 			currentBody.MiniBlocks = append(currentBody.MiniBlocks, postBody.MiniBlocks...)
-			mapPostMbs[shardID] = postMbs
+			currentPostMbs = append(currentPostMbs, postMbs...)
 			mapBodies[shardID] = currentBody
 		}
 
-		lastPostMbs = getLastPostMbs(shardIDs, mapPostMbs)
+		lastPostMbs, err = CleanDuplicates(hasher, marshalizer, shardIDs, mapBodies, currentPostMbs)
+		if err != nil {
+			return err
+		}
+
 		numPostMbs = len(lastPostMbs)
 	}
 
 	return nil
 }
 
-func getLastPostMbs(shardIDs []uint32, mapPostMbs map[uint32][]*MbInfo) []*MbInfo {
-	lastPostMbs := make([]*MbInfo, 0)
-	for _, shardID := range shardIDs {
-		lastPostMbs = append(lastPostMbs, mapPostMbs[shardID]...)
+// CleanDuplicates cleans from the post miniBlocks map, the already existing miniBlocks in bodies map
+func CleanDuplicates(
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
+	shardIDs []uint32,
+	mapBodies map[uint32]*block.Body,
+	postMbs []*MbInfo,
+) ([]*MbInfo, error) {
+	if check.IfNil(hasher) {
+		return nil, ErrNilHasher
 	}
-	return lastPostMbs
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+
+	mapMiniBlocksHashes := make(map[string]struct{})
+	for _, shardID := range shardIDs {
+		currentBody, ok := mapBodies[shardID]
+		if !ok {
+			return nil, ErrNilBlockBody
+		}
+
+		for _, miniBlock := range currentBody.MiniBlocks {
+			miniBlockHash, err := core.CalculateHash(marshalizer, hasher, miniBlock)
+			if err != nil {
+				return nil, err
+			}
+
+			mapMiniBlocksHashes[string(miniBlockHash)] = struct{}{}
+		}
+	}
+
+	cleanedPostMbs := make([]*MbInfo, 0)
+	for _, postMb := range postMbs {
+		_, ok := mapMiniBlocksHashes[string(postMb.MbHash)]
+		if ok {
+			log.Debug("CleanDuplicates: found duplicated miniBlock", "hash", postMb.MbHash)
+			continue
+		}
+
+		cleanedPostMbs = append(cleanedPostMbs, postMb)
+	}
+
+	return cleanedPostMbs, nil
 }

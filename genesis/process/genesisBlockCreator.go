@@ -234,6 +234,7 @@ func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.Head
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
 	var err error
+	var lastPostMbs []*update.MbInfo
 
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createEmptyGenesisBlocks()
@@ -273,12 +274,25 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		lastPostMbs, err := update.CreateBody(shardIDs, mapBodies, mapHardForkBlockProcessor)
+		lastPostMbs, err = update.CreateBody(
+			gbc.arg.Hasher,
+			gbc.arg.Marshalizer,
+			shardIDs,
+			mapBodies,
+			mapHardForkBlockProcessor,
+		)
 		if err != nil {
 			return nil, err
 		}
 
-		err = update.CreatePostMiniBlocks(shardIDs, lastPostMbs, mapBodies, mapHardForkBlockProcessor)
+		err = update.CreatePostMiniBlocks(
+			gbc.arg.Hasher,
+			gbc.arg.Marshalizer,
+			shardIDs,
+			lastPostMbs,
+			mapBodies,
+			mapHardForkBlockProcessor,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -290,12 +304,6 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		return nil, err
 	}
 
-	if mustDoHardForkImportProcess(gbc.arg) {
-		err = update.CheckDuplicates(genesisBlocks)
-		if err != nil {
-			return nil, err
-		}
-	}
 	//TODO call here trie pruning on all roothashes not from current shard
 
 	return genesisBlocks, nil

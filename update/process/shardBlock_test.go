@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -57,7 +56,6 @@ func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorA
 		Marshalizer:        &mock.MarshalizerMock{},
 		Hasher:             &mock.HasherMock{},
 		Storage:            initStore(),
-		DataPool:           testscommon.CreatePoolsHolder(1, 0),
 	}
 }
 

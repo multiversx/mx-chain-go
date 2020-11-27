@@ -257,11 +257,11 @@ var ErrNilEpochStartMetaBlock = errors.New("nil epoch start metaBlock was provid
 // ErrNilUnFinishedMetaBlocksMap signals that a nil unFinished metaBlocks map was provided
 var ErrNilUnFinishedMetaBlocksMap = errors.New("nil unFinished metaBlocks map was provided")
 
-// ErrDuplicatedMiniBlocksFound signals that duplicated miniBlocks were found
-var ErrDuplicatedMiniBlocksFound = errors.New("duplicated miniBlocks were found")
-
 // ErrPostProcessTransactionNotFound signals that the given transaction was not found in post process map
 var ErrPostProcessTransactionNotFound = errors.New("transaction was not found in post process map")
 
 // ErrNilBlockBody signals that a nil block body has been provided
 var ErrNilBlockBody = errors.New("nil block body")
+
+// ErrNilHeaderHandler signals that a nil header handler has been provided
+var ErrNilHeaderHandler = errors.New("nil header handler")

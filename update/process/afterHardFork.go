@@ -75,22 +75,17 @@ func (a *afterHardFork) CreateAllBlocksAfterHardfork(
 	}
 	shardIDs[a.shardCoordinator.NumberOfShards()] = core.MetachainShardId
 
-	lastPostMbs, err := update.CreateBody(shardIDs, mapBodies, a.mapBlockProcessors)
+	lastPostMbs, err := update.CreateBody(a.hasher, a.marshalizer, shardIDs, mapBodies, a.mapBlockProcessors)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = update.CreatePostMiniBlocks(shardIDs, lastPostMbs, mapBodies, a.mapBlockProcessors)
+	err = update.CreatePostMiniBlocks(a.hasher, a.marshalizer, shardIDs, lastPostMbs, mapBodies, a.mapBlockProcessors)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	err = a.createHeaders(shardIDs, mapBodies, mapHeaders, chainID, round, nonce, epoch)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = update.CheckDuplicates(mapHeaders)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -198,7 +198,6 @@ func createArgsShardBlockCreatorAfterHardFork(
 		ImportHandler:      arg.importHandler,
 		Marshalizer:        arg.Marshalizer,
 		Hasher:             arg.Hasher,
-		DataPool:           arg.DataPool,
 		Storage:            arg.Store,
 		SelfShardID:        selfShardId,
 	}
