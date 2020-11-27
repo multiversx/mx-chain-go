@@ -18,6 +18,7 @@ type NodeConfig struct {
 // KadDhtPeerDiscoveryConfig will hold the kad-dht discovery config settings
 type KadDhtPeerDiscoveryConfig struct {
 	Enabled                          bool
+	Type                             string
 	RefreshIntervalInSec             uint32
 	ProtocolID                       string
 	InitialPeerList                  []string

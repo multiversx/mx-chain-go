@@ -11,6 +11,7 @@ import (
 type ConnectableHost interface {
 	host.Host
 	ConnectToPeer(ctx context.Context, address string) error
+	AddressToPeerInfo(address string) (*peer.AddrInfo, error)
 	IsInterfaceNil() bool
 }
 
@@ -19,4 +20,9 @@ type Sharder interface {
 	ComputeEvictionList(pidList []peer.ID) []peer.ID
 	Has(pid peer.ID, list []peer.ID) bool
 	IsInterfaceNil() bool
+}
+
+// KadDhtHandler defines the behavior of a component that can find new peers in a p2p network through kad dht mechanism
+type KadDhtHandler interface {
+	Bootstrap(ctx context.Context) error
 }
