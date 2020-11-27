@@ -1121,7 +1121,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
-		EpochNotifier:             pcf.coreData.EpochNotifier(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1160,7 +1159,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		ArgumentsParser:           smartContract.NewArgumentParser(),
 		SizeCheckDelta:            pcf.sizeCheckDelta,
 		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
-		EpochNotifier:             pcf.coreData.EpochNotifier(),
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {

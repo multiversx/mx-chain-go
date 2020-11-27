@@ -849,6 +849,8 @@ func (tpn *TestProcessorNode) initInterceptors() {
 	coreComponents.MinTransactionVersionCalled = func() uint32 {
 		return tpn.MinTransactionVersion
 	}
+	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
+	coreComponents.EpochNotifierField = &mock.EpochNotifierStub{}
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PubKey = nil
@@ -897,7 +899,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
-			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaIntercContFactArgs)
 
@@ -952,7 +953,6 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			WhiteListerVerifiedTxs:  tpn.WhiteListerVerifiedTxs,
 			AntifloodHandler:        &mock.NilAntifloodHandler{},
 			ArgumentsParser:         smartContract.NewArgumentParser(),
-			EpochNotifier:           tpn.EpochNotifier,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterContFactArgs)
 
@@ -1606,6 +1606,7 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.SyncTimerField = &mock.SyncTimerMock{}
+	coreComponents.EpochNotifierField = tpn.EpochNotifier
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tpn.BlockChain
@@ -2237,6 +2238,8 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		RaterField:             &testscommon.RaterMock{},
 		GenesisNodesSetupField: &testscommon.NodesSetupStub{},
 		GenesisTimeField:       time.Time{},
+		EpochNotifierField:     &mock.EpochNotifierStub{},
+		TxVersionCheckField:    versioning.NewTxVersionChecker(MinTransactionVersion),
 	}
 }
 

@@ -621,7 +621,6 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			EpochNotifier: &mock.EpochNotifierStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

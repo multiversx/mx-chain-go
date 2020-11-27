@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -46,6 +47,8 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
 			PathHdl:             &mock.PathManagerStub{},
+			EpochNotifierField: &mock.EpochNotifierStub{},
+			TxVersionCheckField: versioning.NewTxVersionChecker(1),
 		}, &mock.CryptoComponentsMock{
 			PubKey:   &mock.PublicKeyMock{},
 			BlockSig: &mock.SignerStub{},
@@ -143,7 +146,6 @@ func createMockEpochStartBootstrapArgs(
 		ArgumentsParser:            &mock.ArgumentParserMock{},
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
-		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 }
 
@@ -174,8 +176,8 @@ func TestNewEpochStartBootstrap_NilEpochNotifierShouldErr(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
+	coreComp.EpochNotifierField = nil
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.EpochNotifier = nil
 
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	assert.Nil(t, epochStartProvider)

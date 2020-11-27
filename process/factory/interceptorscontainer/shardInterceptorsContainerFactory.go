@@ -63,9 +63,6 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.EpochStartTrigger) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:            args.CoreComponents,
@@ -80,7 +77,6 @@ func NewShardInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                args.ArgumentsParser,
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		EpochNotifier:             args.EpochNotifier,
 	}
 
 	container := containers.NewInterceptorsContainer()

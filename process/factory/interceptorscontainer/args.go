@@ -30,7 +30,6 @@ type ShardInterceptorsContainerFactoryArgs struct {
 	ArgumentsParser           process.ArgumentsParser
 	SizeCheckDelta            uint32
 	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
 }
 
 // MetaInterceptorsContainerFactoryArgs holds the arguments needed for MetaInterceptorsContainerFactory
@@ -56,5 +55,4 @@ type MetaInterceptorsContainerFactoryArgs struct {
 	ArgumentsParser           process.ArgumentsParser
 	SizeCheckDelta            uint32
 	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
 }

@@ -476,7 +476,6 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		InterceptorsContainer:     e.interceptorsContainer,
 		AntifloodHandler:          e.inputAntifloodHandler,
 		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
-		EpochNotifier:             e.CoreComponents.EpochNotifier(),
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

@@ -91,7 +91,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 	if check.IfNil(argument.CoreComponents.TxSignHasher()) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(argument.EpochNotifier) {
+	if check.IfNil(argument.CoreComponents.EpochNotifier()) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
@@ -114,7 +114,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		txVersionChecker:            argument.CoreComponents.TxVersionChecker(),
 	}
 
-	argument.EpochNotifier.RegisterNotifyHandler(interceptedTxDataFactory)
+	argument.CoreComponents.EpochNotifier().RegisterNotifyHandler(interceptedTxDataFactory)
 
 	return interceptedTxDataFactory, nil
 }

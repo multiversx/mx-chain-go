@@ -65,7 +65,6 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	InterceptorsContainer     process.InterceptorsContainer
 	AntifloodHandler          process.P2PAntifloodHandler
 	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -119,9 +118,6 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, process.ErrNilEpochNotifier
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:            args.CoreComponents,
@@ -136,7 +132,6 @@ func NewFullSyncInterceptorsContainerFactory(
 		WhiteListerVerifiedTxs:    args.WhiteListerVerifiedTxs,
 		ArgsParser:                smartContract.NewArgumentParser(),
 		EnableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
-		EpochNotifier:             args.EpochNotifier,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

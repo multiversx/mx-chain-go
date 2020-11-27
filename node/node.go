@@ -89,7 +89,6 @@ type Node struct {
 
 	closableComponents []factory2.Closer
 	enableSignTxWithHashEpoch uint32
-	txVersionChecker          process.TxVersionCheckerHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -421,7 +420,7 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		[]byte(n.coreComponents.ChainID()),
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
-		n.txVersionChecker,
+		n.coreComponents.TxVersionChecker(),
 	)
 	if err != nil {
 		return nil, nil, err

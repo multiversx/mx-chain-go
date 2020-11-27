@@ -22,6 +22,7 @@ type interceptedDataCoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
+	EpochNotifier() process.EpochNotifier
 }
 
 // interceptedDataCryptoComponentsHolder holds the crypto components required by the intercepted data factory
@@ -50,5 +51,4 @@ type ArgInterceptedDataFactory struct {
 	EpochStartTrigger         process.EpochStartTriggerHandler
 	ArgsParser                process.ArgumentsParser
 	EnableSignTxWithHashEpoch uint32
-	EpochNotifier             process.EpochNotifier
 }
