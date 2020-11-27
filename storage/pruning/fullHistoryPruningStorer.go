@@ -96,23 +96,7 @@ func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([
 }
 
 func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) ([]byte, error) {
-	epochString := fmt.Sprintf("%d", epoch)
-
-	fhps.lock.RLock()
-	pdata, exists := fhps.oldEpochsActivePersisters.Get([]byte(epochString))
-	fhps.lock.RUnlock()
-	if !exists {
-		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
-		if errPersisterData != nil {
-			return nil, errPersisterData
-		}
-
-		fhps.oldEpochsActivePersisters.Put([]byte(epochString), newPdata, 0)
-		fhps.persistersMapByEpoch[epoch] = newPdata
-		pdata = newPdata
-	}
-	pd := pdata.(*persisterData)
-	persister, _, err := fhps.createAndInitPersisterIfClosed(pd)
+	persister, err := fhps.getPersister(epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -130,4 +114,43 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 
 	return nil, fmt.Errorf("key %s not found in %s",
 		hex.EncodeToString(key), fhps.identifier)
+}
+
+func (fhps *FullHistoryPruningStorer) getPersister(epoch uint32) (storage.Persister, error) {
+	epochString := fmt.Sprintf("%d", epoch)
+
+	fhps.lock.RLock()
+	pdata, exists := fhps.oldEpochsActivePersisters.Get([]byte(epochString))
+	fhps.lock.RUnlock()
+
+	var pd *persisterData
+	if exists {
+		pd = pdata.(*persisterData)
+		isClosed := pd.getIsClosed()
+		if !isClosed {
+			return pd.persister, nil
+		}
+	}
+
+	fhps.lock.Lock()
+	defer fhps.lock.Unlock()
+
+	pdata, exists = fhps.oldEpochsActivePersisters.Get([]byte(epochString))
+	if !exists {
+		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
+		if errPersisterData != nil {
+			return nil, errPersisterData
+		}
+
+		fhps.oldEpochsActivePersisters.Put([]byte(epochString), newPdata, 0)
+		fhps.persistersMapByEpoch[epoch] = newPdata
+		pdata = newPdata
+	}
+	pd = pdata.(*persisterData)
+	persister, _, err := fhps.createAndInitPersisterIfClosed(pd)
+	if err != nil {
+		return nil, err
+	}
+
+	return persister, nil
 }

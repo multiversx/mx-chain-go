@@ -871,13 +871,10 @@ func (ps *PruningStorer) closeAndDestroyPersisters(epoch uint32) error {
 	ps.lock.Unlock()
 
 	for _, pd := range persistersToClose {
-		//TODO: check if this should return the error or try to close all other persisters first like other methods
-		err := pd.persister.Close()
+		err := pd.Close()
 		if err != nil {
-			log.Error("error closing persister", "error", err.Error(), "id", ps.identifier)
-			return err
+			log.Warn("error closing persister", "error", err.Error(), "id", ps.identifier)
 		}
-		pd.setIsClosed(true)
 	}
 
 	for _, pd := range persistersToDestroy {

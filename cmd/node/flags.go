@@ -382,26 +382,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
 	flagsConfig.IsInImportMode = isInImportMode
 	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
-	flagsConfig.ImportDbDirectory = importDbDirectoryValue
-
-	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if cfgs.GeneralConfig.StoragePruning.FullArchive {
-		log.Debug("full archive node is enabled")
-		if cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
-			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-		}
-		if cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData {
-			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			cfgs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
-		}
-		if !cfgs.GeneralConfig.StoragePruning.Enabled {
-			log.Warn("StoragePruning is overridden by FullArchive and set to true")
-			cfgs.GeneralConfig.StoragePruning.Enabled = true
-		}
-		log.Warn("NumEpochsToKeep is overridden by FullArchive")
-		cfgs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
-	}
 
 	cfgs.FlagsConfig = flagsConfig
 
