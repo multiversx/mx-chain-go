@@ -9,14 +9,8 @@ type baseFullHistoryResolver struct {
 }
 
 func (bfhr *baseFullHistoryResolver) getFromStorage(key []byte, epoch uint32) ([]byte, error) {
-	//we first try to find it in specified epoch
-	buff, err := bfhr.storer.GetFromEpoch(key, epoch)
-	if err == nil {
-		return buff, nil
-	}
-
-	//there might be an epoch change edge-case and worth searching in the next epoch
-	return bfhr.storer.GetFromEpoch(key, epoch+1)
+	//we just call the storer to search in the provided epoch. (it will search automatically also in the next epoch)
+	return bfhr.storer.GetFromEpoch(key, epoch)
 }
 
 func (bfhr *baseFullHistoryResolver) searchFirst(key []byte) ([]byte, error) {
