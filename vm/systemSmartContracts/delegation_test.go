@@ -80,6 +80,7 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 						UnstakedValue: big.NewInt(80),
 					},
 				},
+				NumRegistered: 2,
 			})
 			auctionSc.unBondPeriod = 50
 			return auctionSc, nil
@@ -418,8 +419,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dGlobalFund.ActiveFunds))
 	assert.Equal(t, 0, len(dGlobalFund.UnStakedFunds))
-	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStakedFromNodes)
-	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnBondedFromNodes)
 	assert.Equal(t, callValue, dGlobalFund.TotalActive)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStaked)
 
@@ -1102,7 +1101,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		StakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
 	auctionMap := map[string][]byte{}
@@ -1133,9 +1132,6 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.StakedKeys))
-
-	dGlobalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(200), dGlobalFund.TotalUnStakedFromNodes)
 }
 
 func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
@@ -1244,34 +1240,30 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		UnStakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
 	addAuctionAndStakingScToVmContext(eei)
 
-	auctionMap := map[string][]byte{}
 	registrationDataAuction := &AuctionDataV2{
 		BlsPubKeys:      [][]byte{blsKey1, blsKey2},
 		RewardAddress:   []byte("rewardAddr"),
 		LockedStake:     big.NewInt(300),
-		TotalStakeValue: big.NewInt(500),
+		TotalStakeValue: big.NewInt(1000),
+		NumRegistered:   2,
 	}
 	regData, _ := d.marshalizer.Marshal(registrationDataAuction)
-	auctionMap["addr"] = regData
+	eei.SetStorageForAddress(vm.AuctionSCAddress, []byte("addr"), regData)
 
-	stakingMap := map[string][]byte{}
 	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr")}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking)
-	stakingMap["blsKey1"] = regData
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte("blsKey1"), regData)
 
 	registrationDataStaking2 := &StakedDataV2_0{RewardAddress: []byte("rewardAddr")}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
-	stakingMap["blsKey2"] = regData
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte("blsKey2"), regData)
 
 	stakingNodesConfig := &StakingNodesConfig{StakedNodes: 5}
 	stkNodes, _ := d.marshalizer.Marshal(stakingNodesConfig)
-	stakingMap[nodesConfigKey] = stkNodes
-
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
-	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte(nodesConfigKey), stkNodes)
 
 	vmInput := getDefaultVmInputForFunc("unBondNodes", [][]byte{blsKey1, blsKey2})
 	output := d.Execute(vmInput)
@@ -1280,9 +1272,6 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.NotStakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
-
-	dGlobalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(200), dGlobalFund.TotalUnBondedFromNodes)
 }
 
 func TestDelegationSystemSC_ExecuteUnJailNodesUserErrors(t *testing.T) {
@@ -1666,10 +1655,9 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{},
-		TotalActive:            big.NewInt(100),
-		TotalUnStaked:          big.NewInt(0),
-		TotalUnStakedFromNodes: big.NewInt(0),
+		UnStakedFunds: [][]byte{},
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -1724,11 +1712,10 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{},
-		TotalActive:            big.NewInt(100),
-		TotalUnStaked:          big.NewInt(0),
-		TotalUnStakedFromNodes: big.NewInt(0),
-		ActiveFunds:            [][]byte{fundKey},
+		UnStakedFunds: [][]byte{},
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+		ActiveFunds:   [][]byte{fundKey},
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -1858,10 +1845,9 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		UnBondPeriod: 50,
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{fundKey1, fundKey2},
-		TotalUnBondedFromNodes: big.NewInt(0),
-		TotalUnStaked:          big.NewInt(140),
-		TotalActive:            big.NewInt(0),
+		UnStakedFunds: [][]byte{fundKey1, fundKey2},
+		TotalUnStaked: big.NewInt(140),
+		TotalActive:   big.NewInt(0),
 	})
 
 	output := d.Execute(vmInput)
@@ -3212,142 +3198,6 @@ func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
 	assert.Equal(t, blsKey3, eei.output[4])
 	assert.Equal(t, []byte("unStaked"), eei.output[5])
 	assert.Equal(t, blsKey4, eei.output[6])
-}
-
-func TestDelegation_ExecuteGetTotalUnStakedFromNodesUserErrors(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnStakedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	vmInput.CallValue = big.NewInt(10)
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
-
-	vmInput.CallValue = big.NewInt(0)
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.OutOfGas, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
-
-	vmInput.Arguments = [][]byte{[]byte("address")}
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
-
-	vmInput.Arguments = [][]byte{}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-}
-
-func TestDelegation_ExecuteGetTotalUnStakedFromNodes(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnStakedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	totalUnStakedFromNodes := big.NewInt(200)
-	_ = d.saveGlobalFundData(&GlobalFundData{
-		TotalUnStakedFromNodes: totalUnStakedFromNodes,
-		TotalActive:            big.NewInt(0),
-	})
-
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, totalUnStakedFromNodes, big.NewInt(0).SetBytes(eei.output[0]))
-}
-
-func TestDelegation_ExecuteGetTotalUnBondedFromNodesUserErrors(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnBondedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	vmInput.CallValue = big.NewInt(10)
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
-
-	vmInput.CallValue = big.NewInt(0)
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.OutOfGas, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
-
-	vmInput.Arguments = [][]byte{[]byte("address")}
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
-
-	vmInput.Arguments = [][]byte{}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-}
-
-func TestDelegation_ExecuteGetTotalUnBondedFromNodes(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnBondedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	totalUnBondedFromNodes := big.NewInt(200)
-	_ = d.saveGlobalFundData(&GlobalFundData{
-		TotalUnBondedFromNodes: totalUnBondedFromNodes,
-		TotalActive:            big.NewInt(0),
-	})
-
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, totalUnBondedFromNodes, big.NewInt(0).SetBytes(eei.output[0]))
 }
 
 func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
