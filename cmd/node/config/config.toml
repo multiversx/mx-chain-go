@@ -214,7 +214,8 @@
     [TrieEpochRootHashStorage.Cache]
         Name = "TrieEpochRootHashCache"
         Capacity = 1000
-        Type = "LRU"
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
     [TrieEpochRootHashStorage.DB]
         FilePath = "TrieEpochRootHashStorageDB"
         Type = "LvlDBSerial"
