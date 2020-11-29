@@ -201,9 +201,9 @@ func (ei *elasticProcessor) createIndexPolicies(indexPolicies map[string]*bytes.
 }
 
 func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]*bytes.Buffer) error {
-	opendistroTemplate := getTemplateByName("opendistro", indexTemplates)
+	opendistroTemplate := getTemplateByName(openDistroIndex, indexTemplates)
 	if opendistroTemplate != nil {
-		err := ei.elasticClient.CheckAndCreateTemplate("opendistro", opendistroTemplate)
+		err := ei.elasticClient.CheckAndCreateTemplate(openDistroIndex, opendistroTemplate)
 		if err != nil {
 			return err
 		}

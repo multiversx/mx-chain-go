@@ -121,7 +121,6 @@ func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map
 	accountsESDTMap := make(map[string]*types.AccountInfo)
 	for _, accountESDT := range accounts {
 		address := ap.addressPubkeyConverter.Encode(accountESDT.Account.AddressBytes())
-
 		balance, properties, err := ap.getESDTInfo(accountESDT)
 		if err != nil {
 			log.Warn("cannot get esdt info from account",

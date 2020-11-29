@@ -40,14 +40,12 @@ func (etp *esdtTransactionProcessor) initESDTOperations() {
 
 func (etp *esdtTransactionProcessor) isESDTTx(tx data.TransactionHandler) bool {
 	txData := tx.GetData()
-
 	function, _, err := etp.argumentParser.ParseData(string(txData))
 	if err != nil {
 		return false
 	}
 
 	_, ok := etp.esdtOperations[function]
-
 	return ok
 }
 
@@ -65,7 +63,6 @@ func (etp *esdtTransactionProcessor) getTokenIdentifierAndValue(
 	}
 	if len(arguments) >= 2 {
 		bigValue := big.NewInt(0).SetBytes(arguments[1])
-
 		value = bigValue.String()
 		if value == "0" {
 			value = ""

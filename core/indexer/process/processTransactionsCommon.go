@@ -121,7 +121,7 @@ func getRewardsTransaction(txPool map[string]data.TransactionHandler,
 
 func getGasUsedFromReceipt(rec *receipt.Receipt, tx *types.Transaction) uint64 {
 	if rec.Data != nil && string(rec.Data) == processTransaction.RefundGasMessage {
-		// in this gas receipt contains the refunded value
+		// this receipts contains the gas that needs to be refunded
 		gasUsed := big.NewInt(0).SetUint64(tx.GasPrice)
 		gasUsed.Mul(gasUsed, big.NewInt(0).SetUint64(tx.GasLimit))
 		gasUsed.Sub(gasUsed, rec.Value)

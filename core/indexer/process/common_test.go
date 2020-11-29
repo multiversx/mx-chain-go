@@ -11,7 +11,7 @@ func TestGetElasticTemplatesAndPolicies_NoKibana(t *testing.T) {
 	t.Parallel()
 
 	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates/noKibana"
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
+	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
 		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 
 	indexTemplates, _, err := GetElasticTemplatesAndPolicies(pathToConfig, false)
@@ -30,7 +30,7 @@ func TestGetElasticTemplatesAndPolicies_WithKibana(t *testing.T) {
 	t.Parallel()
 
 	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates/withKibana"
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
+	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
 		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 
 	indexTemplates, indexPolicies, err := GetElasticTemplatesAndPolicies(pathToConfig, true)

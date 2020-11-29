@@ -15,6 +15,8 @@ const (
 	accountsESDTIndex        = "accountsesdt"
 	accountsESDTHistoryIndex = "accountsesdthistory"
 
+	openDistroIndex = "opendistro"
+
 	txPolicy                  = "transactions_policy"
 	blockPolicy               = "blocks_policy"
 	miniblocksPolicy          = "miniblocks_policy"

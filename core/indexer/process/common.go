@@ -16,7 +16,7 @@ func GetElasticTemplatesAndPolicies(path string, useKibana bool) (map[string]*by
 	indexPolicies := make(map[string]*bytes.Buffer)
 	var err error
 
-	indexes := []string{"opendistro", txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
+	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
 		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 	for _, index := range indexes {
 		indexTemplates[index], err = getTemplateByIndex(path, index)

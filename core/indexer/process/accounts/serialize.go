@@ -9,7 +9,11 @@ import (
 )
 
 // SerializeAccounts will serialize the provided accounts in a way that Elastic Search expects a bulk request
-func SerializeAccounts(accounts map[string]*types.AccountInfo, bulkSizeThreshold int, areESDTAccounts bool) ([]bytes.Buffer, error) {
+func SerializeAccounts(
+	accounts map[string]*types.AccountInfo,
+	bulkSizeThreshold int,
+	areESDTAccounts bool,
+) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
@@ -51,7 +55,11 @@ func SerializeAccounts(accounts map[string]*types.AccountInfo, bulkSizeThreshold
 	return buffSlice, nil
 }
 
-func prepareSerializedAccountInfo(address string, account *types.AccountInfo, isESDTAccount bool) ([]byte, []byte, error) {
+func prepareSerializedAccountInfo(
+	address string,
+	account *types.AccountInfo,
+	isESDTAccount bool,
+) ([]byte, []byte, error) {
 	id := address
 	if isESDTAccount {
 		id += fmt.Sprintf("_%s", account.TokenIdentifier)
@@ -70,7 +78,10 @@ func prepareSerializedAccountInfo(address string, account *types.AccountInfo, is
 }
 
 // SerializeAccountsHistory will serialize accounts history in a way that Elastic Search expects a bulk request
-func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, bulkSizeThreshold int) ([]bytes.Buffer, error) {
+func SerializeAccountsHistory(
+	accounts map[string]*types.AccountBalanceHistory,
+	bulkSizeThreshold int,
+) ([]bytes.Buffer, error) {
 	var err error
 
 	var buff bytes.Buffer
@@ -112,7 +123,10 @@ func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, 
 	return buffSlice, nil
 }
 
-func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory) ([]byte, []byte, error) {
+func prepareSerializedAccountBalanceHistory(
+	address string,
+	account *types.AccountBalanceHistory,
+) ([]byte, []byte, error) {
 	// no '_id' is specified because an elastic client would never search after the identifier for this index.
 	// this is also an improvement: more details here:
 	// https://www.elastic.co/guide/en/elasticsearch/reference/master/tune-for-indexing-speed.html#_use_auto_generated_ids
