@@ -3,9 +3,11 @@ package accounts
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -51,7 +53,32 @@ func TestAccountsProcessor_ComputeBalanceAsFloat(t *testing.T) {
 	}
 }
 
+func TestGetESDTInfo_CannotRetriveValueShoudError(t *testing.T) {
+	t.Parallel()
+
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), &mock.AccountsStub{})
+	require.NotNil(t, ap)
+
+	localErr := errors.New("local error")
+	wrapAccount := &AccountESDT{
+		Account: &mock.UserAccountStub{
+			DataTrieTrackerCalled: func() state.DataTrieTracker {
+				return &mock.DataTrieTrackerStub{
+					RetrieveValueCalled: func(key []byte) ([]byte, error) {
+						return nil, localErr
+					},
+				}
+			},
+		},
+		TokenIdentifier: "token",
+	}
+	_, _, err := ap.getESDTInfo(wrapAccount)
+	require.Equal(t, localErr, err)
+}
+
 func TestGetESDTInfo(t *testing.T) {
+	t.Parallel()
+
 	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), &mock.AccountsStub{})
 	require.NotNil(t, ap)
 
@@ -77,4 +104,132 @@ func TestGetESDTInfo(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(1000), balance)
 	require.Equal(t, hex.EncodeToString([]byte("ok")), prop)
+}
+
+func TestAccountsProcessor_GetAccountsEGLDAccounts(t *testing.T) {
+	t.Parallel()
+
+	addr := "aaaabbbb"
+	mockAccount := &mock.UserAccountStub{}
+	accountsStub := &mock.AccountsStub{
+		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			return mockAccount, nil
+		},
+	}
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
+	require.NotNil(t, ap)
+
+	alteredAccounts := map[string]*AlteredAccount{
+		addr: {
+			IsESDTOperation: false,
+			IsESDTSender:    false,
+			TokenIdentifier: "",
+		},
+	}
+	accounts, esdtAccounts := ap.GetAccounts(alteredAccounts)
+	require.Equal(t, 0, len(esdtAccounts))
+	require.Equal(t, []state.UserAccountHandler{
+		mockAccount,
+	}, accounts)
+}
+
+func TestAccountsProcessor_GetAccountsESDTAccount(t *testing.T) {
+	t.Parallel()
+
+	addr := "aaaabbbb"
+	mockAccount := &mock.UserAccountStub{}
+	accountsStub := &mock.AccountsStub{
+		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			return mockAccount, nil
+		},
+	}
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
+	require.NotNil(t, ap)
+
+	alteredAccounts := map[string]*AlteredAccount{
+		addr: {
+			IsESDTOperation: true,
+			IsESDTSender:    false,
+			TokenIdentifier: "token",
+		},
+	}
+	accounts, esdtAccounts := ap.GetAccounts(alteredAccounts)
+	require.Equal(t, 0, len(accounts))
+	require.Equal(t, []*AccountESDT{
+		{Account: mockAccount, TokenIdentifier: "token"},
+	}, esdtAccounts)
+}
+
+func TestAccountsProcessor_PrepareAccountsMapEGLD(t *testing.T) {
+	t.Parallel()
+
+	addr := "aaaabbbb"
+	mockAccount := &mock.UserAccountStub{
+		GetNonceCalled: func() uint64 {
+			return 1
+		},
+		GetBalanceCalled: func() *big.Int {
+			return big.NewInt(1000)
+		},
+		AddressBytesCalled: func() []byte {
+			return []byte(addr)
+		},
+	}
+	accountsStub := &mock.AccountsStub{
+		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			return mockAccount, nil
+		},
+	}
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
+	require.NotNil(t, ap)
+
+	res := ap.PrepareAccountsMapEGLD([]state.UserAccountHandler{mockAccount})
+	require.Equal(t, map[string]*types.AccountInfo{
+		hex.EncodeToString([]byte(addr)): {
+			Nonce:      1,
+			Balance:    "1000",
+			BalanceNum: ap.computeBalanceAsFloat(big.NewInt(1000)),
+		},
+	}, res)
+}
+
+func TestAccountsProcessor_PrepareAccountsMapESDT(t *testing.T) {
+	t.Parallel()
+
+	esdtToken := &esdt.ESDigitalToken{
+		Value:      big.NewInt(1000),
+		Properties: []byte("ok"),
+	}
+
+	addr := "aaaabbbb"
+	mockAccount := &mock.UserAccountStub{
+		DataTrieTrackerCalled: func() state.DataTrieTracker {
+			return &mock.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, error) {
+					return json.Marshal(esdtToken)
+				},
+			}
+		},
+		AddressBytesCalled: func() []byte {
+			return []byte(addr)
+		},
+	}
+	accountsStub := &mock.AccountsStub{
+		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
+			return mockAccount, nil
+		},
+	}
+	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
+	require.NotNil(t, ap)
+
+	res := ap.PrepareAccountsMapESDT([]*AccountESDT{{Account: mockAccount, TokenIdentifier: "token"}})
+	require.Equal(t, map[string]*types.AccountInfo{
+		hex.EncodeToString([]byte(addr)): {
+			Address:         hex.EncodeToString([]byte(addr)),
+			Balance:         "1000",
+			BalanceNum:      ap.computeBalanceAsFloat(big.NewInt(1000)),
+			TokenIdentifier: "token",
+			Properties:      hex.EncodeToString([]byte("ok")),
+		},
+	}, res)
 }

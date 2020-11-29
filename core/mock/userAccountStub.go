@@ -13,6 +13,9 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 type UserAccountStub struct {
 	AddToBalanceCalled    func(value *big.Int) error
 	DataTrieTrackerCalled func() state.DataTrieTracker
+	GetBalanceCalled      func() *big.Int
+	GetNonceCalled        func() uint64
+	AddressBytesCalled    func() []byte
 }
 
 // SetUserName -
@@ -39,6 +42,9 @@ func (u *UserAccountStub) SubFromBalance(_ *big.Int) error {
 
 // GetBalance -
 func (u *UserAccountStub) GetBalance() *big.Int {
+	if u.GetBalanceCalled != nil {
+		return u.GetBalanceCalled()
+	}
 	return nil
 }
 
@@ -74,6 +80,9 @@ func (u *UserAccountStub) GetOwnerAddress() []byte {
 
 // AddressBytes -
 func (u *UserAccountStub) AddressBytes() []byte {
+	if u.AddressBytesCalled != nil {
+		return u.AddressBytesCalled()
+	}
 	return nil
 }
 
@@ -83,6 +92,9 @@ func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 
 // GetNonce -
 func (u *UserAccountStub) GetNonce() uint64 {
+	if u.GetNonceCalled != nil {
+		return u.GetNonceCalled()
+	}
 	return 0
 }
 
