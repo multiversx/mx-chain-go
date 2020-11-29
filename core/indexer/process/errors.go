@@ -1,4 +1,4 @@
-package errors
+package process
 
 import (
 	"errors"
@@ -6,12 +6,6 @@ import (
 
 // ErrBackOff signals that an error was received from the server
 var ErrBackOff = errors.New("back off something is not working well")
-
-// ErrNoElasticUrlProvided -
-var ErrNoElasticUrlProvided = errors.New("no elastic url provided")
-
-// ErrCouldNotCreatePolicy -
-var ErrCouldNotCreatePolicy = errors.New("could not create policy")
 
 // ErrNilPubkeyConverter signals that an operation has been attempted to or with a nil public key converter implementation
 var ErrNilPubkeyConverter = errors.New("nil pubkey converter")
@@ -48,6 +42,3 @@ var ErrReadPolicyFile = errors.New("error while reading policy file")
 
 // ErrWriteToBuffer signals that a write error occurred
 var ErrWriteToBuffer = errors.New("error while writing to buffer")
-
-// ErrNilDataTrie signals that user account has a nil data trie
-var ErrNilDataTrie = errors.New("nil data trie")

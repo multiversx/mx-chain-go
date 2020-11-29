@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -115,7 +114,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		enabledIndexesMap[index] = struct{}{}
 	}
 	if len(enabledIndexesMap) == 0 {
-		return nil, errors.ErrEmptyEnabledIndexes
+		return nil, indexer.ErrEmptyEnabledIndexes
 	}
 
 	esIndexerArgs := process.ArgElasticProcessor{
@@ -140,13 +139,13 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if arguments.IndexerCacheSize < 0 {
-		return errors.ErrNegativeCacheSize
+		return indexer.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", errors.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", process.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", errors.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", process.ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl

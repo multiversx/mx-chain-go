@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
@@ -186,7 +186,7 @@ func (dp *dataProcessor) indexData(data *storer2ElasticData.HeaderData) error {
 }
 
 func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.HeaderHandler) {
-	ri := workItems.RoundInfo{
+	ri := indexerTypes.RoundInfo{
 		Index:            hdr.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -194,7 +194,7 @@ func (dp *dataProcessor) indexRoundInfo(signersIndexes []uint64, hdr data.Header
 		Timestamp:        time.Duration(hdr.GetTimeStamp()),
 	}
 
-	dp.elasticIndexer.SaveRoundsInfo([]workItems.RoundInfo{ri})
+	dp.elasticIndexer.SaveRoundsInfo([]indexerTypes.RoundInfo{ri})
 }
 
 func (dp *dataProcessor) computeSignersIndexes(hdr data.HeaderHandler) ([]uint64, error) {

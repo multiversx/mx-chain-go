@@ -61,7 +61,7 @@ func TestGetESDTInfo(t *testing.T) {
 	}
 
 	tokenIdentifier := "token-001"
-	wrapAccount := &WrappedUserAccount{
+	wrapAccount := &AccountESDT{
 		Account: &mock.UserAccountStub{
 			DataTrieTrackerCalled: func() state.DataTrieTracker {
 				return &mock.DataTrieTrackerStub{

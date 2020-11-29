@@ -6,7 +6,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
-// DatabaseClientHandler is an interface that do requests to elasticsearch server
+// DatabaseClientHandler defines the actions that a component that does request should do
 type DatabaseClientHandler interface {
 	DoRequest(req *esapi.IndexRequest) error
 	DoBulkRequest(buff *bytes.Buffer, index string) error

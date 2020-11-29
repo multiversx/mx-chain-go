@@ -1,14 +1,15 @@
 package indexer
 
 import (
-	goErrors "errors"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ func TestNewDataDispatcher_InvalidCacheSize(t *testing.T) {
 	dataDist, err := NewDataDispatcher(-1)
 
 	require.Nil(t, dataDist)
-	require.Equal(t, errors.ErrNegativeCacheSize, err)
+	require.Equal(t, ErrNegativeCacheSize, err)
 }
 
 func TestNewDataDispatcher(t *testing.T) {
@@ -42,13 +43,13 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &mock.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			called = true
 			wg.Done()
 			return nil
 		},
 	}
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []workItems.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
 	wg.Wait()
 
 	require.True(t, called)
@@ -68,10 +69,10 @@ func TestDataDispatcher_Add(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &mock.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
-				return fmt.Errorf("%w: wrapped error", errors.ErrBackOff)
+				return fmt.Errorf("%w: wrapped error", client.ErrBackOff)
 			}
 
 			atomic.AddUint32(&calledCount, 1)
@@ -81,7 +82,7 @@ func TestDataDispatcher_Add(t *testing.T) {
 	}
 
 	start := time.Now()
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []workItems.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
 	wg.Wait()
 
 	timePassed := time.Since(start)
@@ -104,10 +105,10 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	elasticProc := &mock.ElasticProcessorStub{
-		SaveRoundsInfoCalled: func(infos []workItems.RoundInfo) error {
+		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
-				return goErrors.New("generic error")
+				return errors.New("generic error")
 			}
 
 			atomic.AddUint32(&calledCount, 1)
@@ -117,7 +118,7 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 	}
 
 	start := time.Now()
-	dispatcher.Add(workItems.NewItemRounds(elasticProc, []workItems.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
 	wg.Wait()
 
 	timePassed := time.Since(start)

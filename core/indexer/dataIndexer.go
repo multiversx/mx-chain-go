@@ -3,7 +3,6 @@ package indexer
 import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -16,7 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-//ArgDataIndexer is struct that is used to store all components that are needed to create a indexer
+// ArgDataIndexer is a structure that is used to store all components that are needed to create a indexer
 type ArgDataIndexer struct {
 	ShardCoordinator   sharding.Coordinator
 	Marshalizer        marshal.Marshalizer
@@ -61,10 +60,10 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 
 func checkIndexerArgs(arguments ArgDataIndexer) error {
 	if check.IfNil(arguments.DataDispatcher) {
-		return errors.ErrNilDataDispatcher
+		return ErrNilDataDispatcher
 	}
 	if check.IfNil(arguments.ElasticProcessor) {
-		return errors.ErrNilElasticProcessor
+		return ErrNilElasticProcessor
 	}
 	if check.IfNil(arguments.NodesCoordinator) {
 		return core.ErrNilNodesCoordinator
@@ -76,7 +75,7 @@ func checkIndexerArgs(arguments ArgDataIndexer) error {
 		return core.ErrNilMarshalizer
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
-		return errors.ErrNilShardCoordinator
+		return ErrNilShardCoordinator
 	}
 
 	return nil
@@ -137,13 +136,13 @@ func (di *dataIndexer) RevertIndexedBlock(header data.HeaderHandler, body data.B
 }
 
 // SaveRoundsInfo will save data about a slice of rounds in elasticsearch
-func (di *dataIndexer) SaveRoundsInfo(roundsInfo []workItems.RoundInfo) {
+func (di *dataIndexer) SaveRoundsInfo(roundsInfo []types.RoundInfo) {
 	wi := workItems.NewItemRounds(di.elasticProcessor, roundsInfo)
 	di.dispatcher.Add(wi)
 }
 
 // SaveValidatorsRating will save all validators rating info to elasticsearch
-func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []workItems.ValidatorRatingInfo) {
+func (di *dataIndexer) SaveValidatorsRating(indexID string, validatorsRatingInfo []types.ValidatorRatingInfo) {
 	wi := workItems.NewItemRating(
 		di.elasticProcessor,
 		indexID,

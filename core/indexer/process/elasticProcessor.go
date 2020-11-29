@@ -9,10 +9,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -104,7 +102,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, erro
 
 func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	if check.IfNil(arguments.DBClient) {
-		return errors.ErrNilDatabaseClient
+		return ErrNilDatabaseClient
 	}
 	if check.IfNil(arguments.Marshalizer) {
 		return core.ErrNilMarshalizer
@@ -113,19 +111,19 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 		return core.ErrNilHasher
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return errors.ErrNilPubkeyConverter
+		return ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return errors.ErrNilPubkeyConverter
+		return ErrNilPubkeyConverter
 	}
 	if check.IfNil(arguments.AccountsDB) {
-		return errors.ErrNilAccountsDB
+		return ErrNilAccountsDB
 	}
 	if arguments.Options == nil {
-		return errors.ErrNilOptions
+		return ErrNilOptions
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
-		return errors.ErrNilShardCoordinator
+		return ErrNilShardCoordinator
 	}
 
 	return nil
@@ -450,7 +448,7 @@ func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBench
 }
 
 // SaveValidatorsRating will save validators rating
-func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) error {
+func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
 	if !ei.isIndexEnabled(ratingIndex) {
 		return nil
 	}
@@ -511,7 +509,7 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 }
 
 // SaveRoundsInfo will prepare and save information about a slice of rounds in elasticsearch server
-func (ei *elasticProcessor) SaveRoundsInfo(infos []workItems.RoundInfo) error {
+func (ei *elasticProcessor) SaveRoundsInfo(infos []types.RoundInfo) error {
 	if !ei.isIndexEnabled(roundIndex) {
 		return nil
 	}
@@ -551,7 +549,7 @@ func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*acc
 	return ei.saveAccountsESDT(accountsToIndexESDT)
 }
 
-func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*accounts.WrappedUserAccount) error {
+func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*accounts.AccountESDT) error {
 	if !ei.isIndexEnabled(accountsESDTIndex) {
 		return nil
 	}

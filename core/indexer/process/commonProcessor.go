@@ -17,7 +17,7 @@ import (
 )
 
 type commonProcessor struct {
-	esdtProc                 *esdtTransactionProc
+	esdtProc                 *esdtTransactionProcessor
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
 	minGasLimit              uint64

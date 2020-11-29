@@ -10,14 +10,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-type esdtTransactionProc struct {
+type esdtTransactionProcessor struct {
 	esdtOperations      map[string]struct{}
 	argumentParser      process.CallArgumentsParser
 	internalMarshalizer marshal.Marshalizer
 }
 
-func newEsdtTransactionHandler() *esdtTransactionProc {
-	esdtTxProc := &esdtTransactionProc{
+func newEsdtTransactionHandler() *esdtTransactionProcessor {
+	esdtTxProc := &esdtTransactionProcessor{
 		argumentParser: parsers.NewCallArgsParser(),
 	}
 
@@ -26,7 +26,7 @@ func newEsdtTransactionHandler() *esdtTransactionProc {
 	return esdtTxProc
 }
 
-func (etp *esdtTransactionProc) initESDTOperations() {
+func (etp *esdtTransactionProcessor) initESDTOperations() {
 	etp.esdtOperations = map[string]struct{}{
 		core.BuiltInFunctionESDTTransfer: {},
 		core.BuiltInFunctionESDTBurn:     {},
@@ -38,7 +38,7 @@ func (etp *esdtTransactionProc) initESDTOperations() {
 	}
 }
 
-func (etp *esdtTransactionProc) isESDTTx(tx data.TransactionHandler) bool {
+func (etp *esdtTransactionProcessor) isESDTTx(tx data.TransactionHandler) bool {
 	txData := tx.GetData()
 
 	function, _, err := etp.argumentParser.ParseData(string(txData))
@@ -51,7 +51,7 @@ func (etp *esdtTransactionProc) isESDTTx(tx data.TransactionHandler) bool {
 	return ok
 }
 
-func (etp *esdtTransactionProc) getTokenIdentifierAndValue(
+func (etp *esdtTransactionProcessor) getTokenIdentifierAndValue(
 	tx data.TransactionHandler,
 ) (tokenIdentifier string, value string) {
 	txData := tx.GetData()

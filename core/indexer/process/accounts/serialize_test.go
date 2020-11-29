@@ -1,9 +1,10 @@
 package accounts
 
 import (
+	"testing"
+
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSerializeAccounts(t *testing.T) {
@@ -20,7 +21,9 @@ func TestSerializeAccounts(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedRes := "{ \"index\" : { \"_id\" : \"addr1\" } }\n{\"address\":\"addr1\",\"nonce\":1,\"balance\":\"\",\"balanceNum\":0}\n"
+	expectedRes := `{ "index" : { "_id" : "addr1" } }
+{"address":"addr1","nonce":1,"balance":"","balanceNum":0}
+`
 	require.Equal(t, expectedRes, res[0].String())
 }
 
@@ -40,7 +43,9 @@ func TestSerializeAccountsESDT(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedRes := "{ \"index\" : { \"_id\" : \"addr1_token-0001\" } }\n{\"address\":\"addr1\",\"nonce\":1,\"balance\":\"\",\"balanceNum\":0,\"token\":\"token-0001\",\"properties\":\"000\"}\n"
+	expectedRes := `{ "index" : { "_id" : "addr1_token-0001" } }
+{"address":"addr1","nonce":1,"balance":"","balanceNum":0,"token":"token-0001","properties":"000"}
+`
 	require.Equal(t, expectedRes, res[0].String())
 }
 
@@ -60,6 +65,8 @@ func TestSerializeAccountsHistory(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedRes := "{ \"index\" : { } }\n{\"address\":\"account1\",\"timestamp\":10,\"balance\":\"123\",\"token\":\"token-0001\"}\n"
+	expectedRes := `{ "index" : { } }
+{"address":"account1","timestamp":10,"balance":"123","token":"token-0001"}
+`
 	require.Equal(t, expectedRes, res[0].String())
 }

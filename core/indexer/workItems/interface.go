@@ -1,6 +1,7 @@
 package workItems
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -20,7 +21,7 @@ type saveBlockIndexer interface {
 }
 
 type saveRatingIndexer interface {
-	SaveValidatorsRating(index string, validatorsRatingInfo []ValidatorRatingInfo) error
+	SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
 }
 
 type removeIndexer interface {
@@ -29,7 +30,7 @@ type removeIndexer interface {
 }
 
 type saveRounds interface {
-	SaveRoundsInfo(infos []RoundInfo) error
+	SaveRoundsInfo(infos []types.RoundInfo) error
 }
 
 type saveTpsBenchmark interface {

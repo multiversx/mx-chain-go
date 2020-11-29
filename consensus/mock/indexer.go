@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -34,7 +34,7 @@ func (im *IndexerMock) Close() error {
 }
 
 // SaveValidatorsRating --
-func (im *IndexerMock) SaveValidatorsRating(_ string, _ []workItems.ValidatorRatingInfo) {
+func (im *IndexerMock) SaveValidatorsRating(_ string, _ []indexerTypes.ValidatorRatingInfo) {
 
 }
 
@@ -44,7 +44,7 @@ func (im *IndexerMock) UpdateTPS(_ statistics.TPSBenchmark) {
 }
 
 // SaveRoundsInfo -
-func (im *IndexerMock) SaveRoundsInfo(_ []workItems.RoundInfo) {
+func (im *IndexerMock) SaveRoundsInfo(_ []indexerTypes.RoundInfo) {
 	panic("implement me")
 }
 

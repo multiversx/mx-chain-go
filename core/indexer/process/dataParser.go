@@ -9,7 +9,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -131,7 +130,7 @@ func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body)
 	return miniblocks
 }
 
-func serializeRoundInfo(info workItems.RoundInfo) ([]byte, []byte) {
+func serializeRoundInfo(info types.RoundInfo) ([]byte, []byte) {
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d_%d", "_type" : "%s" } }%s`,
 		info.ShardId, info.Index, "_doc", "\n"))
 

@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -13,10 +13,10 @@ type ElasticIndexerStub struct {
 	SetTxLogsProcessorCalled func(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveBlockCalled          func(body data.BodyHandler, header data.HeaderHandler,
 		txPool map[string]data.TransactionHandler, signersIndexes []uint64, notarizedHeadersHashes []string, headerHash []byte)
-	SaveRoundsInfosCalled       func(roundsInfos []workItems.RoundInfo)
+	SaveRoundsInfosCalled       func(roundsInfos []indexerTypes.RoundInfo)
 	UpdateTPSCalled             func(tpsBenchmark statistics.TPSBenchmark)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys map[uint32][][]byte, epoch uint32)
-	SaveValidatorsRatingCalled  func(indexID string, infoRating []workItems.ValidatorRatingInfo)
+	SaveValidatorsRatingCalled  func(indexID string, infoRating []indexerTypes.ValidatorRatingInfo)
 }
 
 // SetTxLogsProcessor -
@@ -35,7 +35,7 @@ func (e *ElasticIndexerStub) SaveBlock(body data.BodyHandler, header data.Header
 }
 
 // SaveRoundsInfo -
-func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []workItems.RoundInfo) {
+func (e *ElasticIndexerStub) SaveRoundsInfo(roundsInfos []indexerTypes.RoundInfo) {
 	if e.SaveRoundsInfosCalled != nil {
 		e.SaveRoundsInfosCalled(roundsInfos)
 	}
@@ -56,7 +56,7 @@ func (e *ElasticIndexerStub) SaveValidatorsPubKeys(validatorsPubKeys map[uint32]
 }
 
 // SaveValidatorsRating -
-func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []workItems.ValidatorRatingInfo) {
+func (e *ElasticIndexerStub) SaveValidatorsRating(indexID string, infoRating []indexerTypes.ValidatorRatingInfo) {
 	if e.SaveValidatorsRatingCalled != nil {
 		e.SaveValidatorsRatingCalled(indexID, infoRating)
 	}

@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
@@ -72,7 +71,7 @@ func TestDataIndexer_NewIndexerWithNilDataDispatcherShouldErr(t *testing.T) {
 	ei, err := NewDataIndexer(arguments)
 
 	require.Nil(t, ei)
-	require.Equal(t, errors.ErrNilDataDispatcher, err)
+	require.Equal(t, ErrNilDataDispatcher, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
@@ -81,7 +80,7 @@ func TestDataIndexer_NewIndexerWithNilElasticProcessorShouldErr(t *testing.T) {
 	ei, err := NewDataIndexer(arguments)
 
 	require.Nil(t, ei)
-	require.Equal(t, errors.ErrNilElasticProcessor, err)
+	require.Equal(t, ErrNilElasticProcessor, err)
 }
 
 func TestDataIndexer_NewIndexerWithNilMarshalizerShouldErr(t *testing.T) {
@@ -176,7 +175,7 @@ func TestDataIndexer_SaveRoundInfo(t *testing.T) {
 	ei, _ := NewDataIndexer(arguments)
 	_ = ei.Close()
 
-	ei.SaveRoundsInfo([]workItems.RoundInfo{})
+	ei.SaveRoundsInfo([]types.RoundInfo{})
 	require.True(t, called)
 }
 
@@ -212,7 +211,7 @@ func TestDataIndexer_SaveValidatorsRating(t *testing.T) {
 	}
 	ei, _ := NewDataIndexer(arguments)
 
-	ei.SaveValidatorsRating("ID", []workItems.ValidatorRatingInfo{
+	ei.SaveValidatorsRating("ID", []types.ValidatorRatingInfo{
 		{Rating: 1}, {Rating: 2},
 	})
 	require.True(t, called)

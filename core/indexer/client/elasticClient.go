@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -31,7 +30,7 @@ type elasticClient struct {
 // NewElasticClient will create a new instance of elasticClient
 func NewElasticClient(cfg elasticsearch.Config) (*elasticClient, error) {
 	if len(cfg.Addresses) == 0 {
-		return nil, errors.ErrNoElasticUrlProvided
+		return nil, ErrNoElasticUrlProvided
 	}
 
 	es, err := elasticsearch.NewClient(cfg)
@@ -293,7 +292,7 @@ func (ec *elasticClient) createPolicy(policyName string, policy *bytes.Buffer) e
 	}
 
 	if !existsRes.Ok && !strings.Contains(existsRes.Error, errPolicyAlreadyExists) {
-		return errors.ErrCouldNotCreatePolicy
+		return ErrCouldNotCreatePolicy
 	}
 
 	return nil

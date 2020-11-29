@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
@@ -221,7 +221,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.Rounder().Index()
 
-	roundInfo := workItems.RoundInfo{
+	roundInfo := indexerTypes.RoundInfo{
 		Index:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
@@ -229,7 +229,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
 	}
 
-	sr.indexer.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+	sr.indexer.SaveRoundsInfo([]indexerTypes.RoundInfo{roundInfo})
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

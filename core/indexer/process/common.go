@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
@@ -47,13 +46,13 @@ func getTemplateByIndex(path string, index string) (*bytes.Buffer, error) {
 	filePath := filepath.Join(path, fileName)
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", errors.ErrReadTemplatesFile, filePath, err.Error())
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrReadTemplatesFile, filePath, err.Error())
 	}
 
 	indexTemplate.Grow(len(fileBytes))
 	_, err = indexTemplate.Write(fileBytes)
 	if err != nil {
-		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", errors.ErrWriteToBuffer, filePath, err.Error())
+		return nil, fmt.Errorf("getTemplateByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
 	}
 
 	return indexTemplate, nil
@@ -66,13 +65,13 @@ func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
 	filePath := filepath.Join(path, fileName)
 	fileBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", errors.ErrReadPolicyFile, filePath, err.Error())
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrReadPolicyFile, filePath, err.Error())
 	}
 
 	indexPolicy.Grow(len(fileBytes))
 	_, err = indexPolicy.Write(fileBytes)
 	if err != nil {
-		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", errors.ErrWriteToBuffer, filePath, err.Error())
+		return nil, fmt.Errorf("getPolicyByIndex: %w, path %s, error %s", ErrWriteToBuffer, filePath, err.Error())
 	}
 
 	return indexPolicy, nil

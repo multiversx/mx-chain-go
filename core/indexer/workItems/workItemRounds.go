@@ -1,25 +1,16 @@
 package workItems
 
 import (
-	"time"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 )
-
-// RoundInfo is a structure containing block signers and shard id
-type RoundInfo struct {
-	Index            uint64        `json:"round"`
-	SignersIndexes   []uint64      `json:"signersIndexes"`
-	BlockWasProposed bool          `json:"blockWasProposed"`
-	ShardId          uint32        `json:"shardId"`
-	Timestamp        time.Duration `json:"timestamp"`
-}
 
 type itemRounds struct {
 	indexer    saveRounds
-	roundsInfo []RoundInfo
+	roundsInfo []types.RoundInfo
 }
 
 // NewItemRounds will create a new instance of itemRounds
-func NewItemRounds(indexer saveRounds, roundsInfo []RoundInfo) WorkItemHandler {
+func NewItemRounds(indexer saveRounds, roundsInfo []types.RoundInfo) WorkItemHandler {
 	return &itemRounds{
 		indexer:    indexer,
 		roundsInfo: roundsInfo,

@@ -7,7 +7,6 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 )
 
@@ -141,7 +140,7 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 	return buff
 }
 
-func serializeValidatorsRating(index string, validatorsRatingInfo []workItems.ValidatorRatingInfo) ([]bytes.Buffer, error) {
+func serializeValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) ([]bytes.Buffer, error) {
 	var err error
 	var buff bytes.Buffer
 

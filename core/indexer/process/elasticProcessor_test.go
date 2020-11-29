@@ -17,7 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -303,7 +302,7 @@ func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
 	docID := "0_1"
 	localErr := errors.New("localErr")
 
-	blsKey := "blablabla"
+	blsKey := "bls"
 
 	arguments := createMockElasticProcessorArgs()
 	arguments.DBClient = &mock.DatabaseWriterStub{
@@ -316,7 +315,7 @@ func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
 
 	err := elasticProc.SaveValidatorsRating(
 		docID,
-		[]workItems.ValidatorRatingInfo{
+		[]types.ValidatorRatingInfo{
 			{
 				PublicKey: blsKey,
 				Rating:    100,
@@ -428,7 +427,7 @@ func TestElasticsearch_saveShardStatistics(t *testing.T) {
 }
 
 func TestElasticsearch_saveRoundInfo(t *testing.T) {
-	roundInfo := workItems.RoundInfo{
+	roundInfo := types.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
 	arguments := createMockElasticProcessorArgs()
@@ -440,12 +439,12 @@ func TestElasticsearch_saveRoundInfo(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo})
 	require.Nil(t, err)
 }
 
 func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
-	roundInfo := workItems.RoundInfo{}
+	roundInfo := types.RoundInfo{}
 	localError := errors.New("local err")
 	arguments := createMockElasticProcessorArgs()
 	dbWriter := &mock.DatabaseWriterStub{
@@ -455,7 +454,7 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 	}
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
-	err := elasticDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo})
+	err := elasticDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo})
 	require.Equal(t, localError, err)
 
 }
@@ -533,17 +532,17 @@ func TestSaveRoundsInfo(t *testing.T) {
 
 	esDatabase, _ := NewElasticProcessor(args)
 
-	roundInfo1 := workItems.RoundInfo{
+	roundInfo1 := types.RoundInfo{
 		Index: 1, ShardId: 0, BlockWasProposed: true,
 	}
-	roundInfo2 := workItems.RoundInfo{
+	roundInfo2 := types.RoundInfo{
 		Index: 2, ShardId: 0, BlockWasProposed: true,
 	}
-	roundInfo3 := workItems.RoundInfo{
+	roundInfo3 := types.RoundInfo{
 		Index: 3, ShardId: 0, BlockWasProposed: true,
 	}
 
-	_ = esDatabase.SaveRoundsInfo([]workItems.RoundInfo{roundInfo1, roundInfo2, roundInfo3})
+	_ = esDatabase.SaveRoundsInfo([]types.RoundInfo{roundInfo1, roundInfo2, roundInfo3})
 }
 
 func TestUpdateTransaction(t *testing.T) {
@@ -837,7 +836,7 @@ func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transacti
 			GasPrice:  200000000000,
 			GasLimit:  20000,
 			Data:      randomByteArray,
-			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d59bcfeb313ca5cddf2a9d1d06f9894ec"),
+			Signature: []byte("443e79a8d99ba093262c1db48c58ab3d"),
 		}
 		hashes[i] = fmt.Sprintf("%v", time.Now())
 	}

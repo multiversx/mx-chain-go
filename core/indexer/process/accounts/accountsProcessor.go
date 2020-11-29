@@ -19,20 +19,20 @@ var log = logger.GetOrCreate("indexer/process/accounts")
 
 const numDecimalsInFloatBalance = 10
 
-// WrappedUserAccount is structure that is needed for ESDT accounts
-type WrappedUserAccount struct {
+// AccountESDT is a structure that is needed for ESDT accounts
+type AccountESDT struct {
 	Account         state.UserAccountHandler
 	TokenIdentifier string
 }
 
-// AlteredAccount is structure that holds information about an altered account
+// AlteredAccount is a structure that holds information about an altered account
 type AlteredAccount struct {
 	IsESDTSender    bool
 	IsESDTOperation bool
 	TokenIdentifier string
 }
 
-// AccountsProcessor is structure responsible for processing accounts
+// AccountsProcessor a is structure responsible for processing accounts
 type AccountsProcessor struct {
 	dividerForDenomination float64
 	balancePrecision       float64
@@ -58,9 +58,9 @@ func NewAccountsProcessor(
 }
 
 // GetAccounts will get accounts for egld operations and esdt operations
-func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAccount) ([]state.UserAccountHandler, []*WrappedUserAccount) {
+func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAccount) ([]state.UserAccountHandler, []*AccountESDT) {
 	accountsToIndexEGLD := make([]state.UserAccountHandler, 0)
-	accountsToIndexESDT := make([]*WrappedUserAccount, 0)
+	accountsToIndexESDT := make([]*AccountESDT, 0)
 	for address, info := range alteredAccounts {
 		addressBytes, err := ap.addressPubkeyConverter.Decode(address)
 		if err != nil {
@@ -81,7 +81,7 @@ func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAcco
 		}
 
 		if info.IsESDTOperation {
-			accountsToIndexESDT = append(accountsToIndexESDT, &WrappedUserAccount{
+			accountsToIndexESDT = append(accountsToIndexESDT, &AccountESDT{
 				Account:         userAccount,
 				TokenIdentifier: info.TokenIdentifier,
 			})
@@ -117,12 +117,12 @@ func (ap *AccountsProcessor) PrepareAccountsMapEGLD(accounts []state.UserAccount
 }
 
 // PrepareAccountsMapESDT will preaparare a map of accounts with ESDT tokens
-func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*WrappedUserAccount) map[string]*types.AccountInfo {
+func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map[string]*types.AccountInfo {
 	accountsESDTMap := make(map[string]*types.AccountInfo)
-	for _, wrappedUserAccount := range accounts {
-		address := ap.addressPubkeyConverter.Encode(wrappedUserAccount.Account.AddressBytes())
+	for _, accountESDT := range accounts {
+		address := ap.addressPubkeyConverter.Encode(accountESDT.Account.AddressBytes())
 
-		balance, properties, err := ap.getESDTInfo(wrappedUserAccount)
+		balance, properties, err := ap.getESDTInfo(accountESDT)
 		if err != nil {
 			log.Warn("cannot get esdt info from account",
 				"address", address,
@@ -132,7 +132,7 @@ func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*WrappedUserAccou
 
 		acc := &types.AccountInfo{
 			Address:         address,
-			TokenIdentifier: wrappedUserAccount.TokenIdentifier,
+			TokenIdentifier: accountESDT.TokenIdentifier,
 			Balance:         balance.String(),
 			BalanceNum:      ap.computeBalanceAsFloat(balance),
 			Properties:      properties,
@@ -144,7 +144,7 @@ func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*WrappedUserAccou
 	return accountsESDTMap
 }
 
-// PrepareAccountsHistory will prepare a map of accounts history balance form a map of accounts
+// PrepareAccountsHistory will prepare a map of accounts history balance from a map of accounts
 func (ap *AccountsProcessor) PrepareAccountsHistory(accounts map[string]*types.AccountInfo) map[string]*types.AccountBalanceHistory {
 	currentTimestamp := time.Now().Unix()
 	accountsMap := make(map[string]*types.AccountBalanceHistory)
@@ -162,21 +162,21 @@ func (ap *AccountsProcessor) PrepareAccountsHistory(accounts map[string]*types.A
 	return accountsMap
 }
 
-func (ap *AccountsProcessor) getESDTInfo(wrappedUserAccount *WrappedUserAccount) (*big.Int, string, error) {
-	if wrappedUserAccount.TokenIdentifier == "" {
+func (ap *AccountsProcessor) getESDTInfo(accountESDT *AccountESDT) (*big.Int, string, error) {
+	if accountESDT.TokenIdentifier == "" {
 		return nil, "", nil
 	}
 
-	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + wrappedUserAccount.TokenIdentifier
-	valueBytes, err := wrappedUserAccount.Account.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + accountESDT.TokenIdentifier
+	valueBytes, err := accountESDT.Account.DataTrieTracker().RetrieveValue([]byte(tokenKey))
 	if err != nil {
-		return nil, "", nil
+		return nil, "", err
 	}
 
 	esdtToken := &esdt.ESDigitalToken{}
 	err = ap.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
 	if err != nil {
-		return nil, "", nil
+		return nil, "", err
 	}
 
 	return esdtToken.Value, hex.EncodeToString(esdtToken.Properties), nil

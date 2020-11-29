@@ -1,14 +1,13 @@
 package client
 
 import (
-	goErrors "errors"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core/indexer/errors"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +31,7 @@ func TestLoadResponseBody_NilBodyNotNilDest(t *testing.T) {
 func TestElasticDefaultErrorResponseHandler_ReadAllFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := goErrors.New("expected error")
+	expectedErr := errors.New("expected error")
 	resp := &esapi.Response{
 		StatusCode: 0,
 		Header:     nil,
@@ -45,7 +44,7 @@ func TestElasticDefaultErrorResponseHandler_ReadAllFailsShouldErr(t *testing.T) 
 
 	err := elasticDefaultErrorResponseHandler(resp)
 
-	assert.True(t, goErrors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, expectedErr))
 }
 
 func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithHttpForbiddenErrorShouldSignalBackOffErr(t *testing.T) {
@@ -55,7 +54,7 @@ func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithHttpForbiddenError
 	resp := createMockEsapiResponseWithText(httpErrString)
 	err := elasticDefaultErrorResponseHandler(resp)
 
-	assert.True(t, goErrors.Is(err, errors.ErrBackOff))
+	assert.True(t, errors.Is(err, ErrBackOff))
 }
 
 func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithHttpTooManyRequestsErrorShouldSignalBackOffErr(t *testing.T) {
@@ -65,7 +64,7 @@ func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithHttpTooManyRequest
 	resp := createMockEsapiResponseWithText(httpErrString)
 	err := elasticDefaultErrorResponseHandler(resp)
 
-	assert.True(t, goErrors.Is(err, errors.ErrBackOff))
+	assert.True(t, errors.Is(err, ErrBackOff))
 }
 
 func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithGenericError(t *testing.T) {

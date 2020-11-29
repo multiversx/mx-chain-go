@@ -46,7 +46,11 @@ func TestSerializeScResults(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedRes := "{ \"index\" : { \"_id\" : \"hash1\" } }\n{\"nonce\":1,\"gasLimit\":50,\"gasPrice\":10,\"value\":\"\",\"sender\":\"\",\"receiver\":\"\",\"prevTxHash\":\"\",\"originalTxHash\":\"\",\"callType\":\"\",\"timestamp\":0}\n{ \"index\" : { \"_id\" : \"hash2\" } }\n{\"nonce\":2,\"gasLimit\":50,\"gasPrice\":10,\"value\":\"\",\"sender\":\"\",\"receiver\":\"\",\"prevTxHash\":\"\",\"originalTxHash\":\"\",\"callType\":\"\",\"timestamp\":0}\n"
+	expectedRes := `{ "index" : { "_id" : "hash1" } }
+{"nonce":1,"gasLimit":50,"gasPrice":10,"value":"","sender":"","receiver":"","prevTxHash":"","originalTxHash":"","callType":"","timestamp":0}
+{ "index" : { "_id" : "hash2" } }
+{"nonce":2,"gasLimit":50,"gasPrice":10,"value":"","sender":"","receiver":"","prevTxHash":"","originalTxHash":"","callType":"","timestamp":0}
+`
 	require.Equal(t, expectedRes, res[0].String())
 }
 
@@ -70,6 +74,10 @@ func TestSerializeReceipts(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 
-	expectedRes := "{ \"index\" : { \"_id\" : \"recHash1\" } }\n{\"value\":\"\",\"sender\":\"sender1\",\"txHash\":\"txHash1\",\"timestamp\":0}\n{ \"index\" : { \"_id\" : \"recHash2\" } }\n{\"value\":\"\",\"sender\":\"sender2\",\"txHash\":\"txHash2\",\"timestamp\":0}\n"
+	expectedRes := `{ "index" : { "_id" : "recHash1" } }
+{"value":"","sender":"sender1","txHash":"txHash1","timestamp":0}
+{ "index" : { "_id" : "recHash2" } }
+{"value":"","sender":"sender2","txHash":"txHash2","timestamp":0}
+`
 	require.Equal(t, expectedRes, res[0].String())
 }

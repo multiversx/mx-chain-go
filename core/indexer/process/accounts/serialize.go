@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 )
 
-// SerializeAccounts wil serialize accounts
+// SerializeAccounts will serialize the provided accounts in a way that Elastic Search expects a bulk request
 func SerializeAccounts(accounts map[string]*types.AccountInfo, bulkSizeThreshold int, areESDTAccounts bool) ([]bytes.Buffer, error) {
 	var err error
 
@@ -17,7 +17,7 @@ func SerializeAccounts(accounts map[string]*types.AccountInfo, bulkSizeThreshold
 	for address, acc := range accounts {
 		meta, serializedData, errPrepareAcc := prepareSerializedAccountInfo(address, acc, areESDTAccounts)
 		if len(meta) == 0 {
-			log.Warn("cannot prepare serializes account info", "error", errPrepareAcc)
+			log.Warn("cannot prepare serialized account info", "error", errPrepareAcc)
 			return nil, err
 		}
 
@@ -69,7 +69,7 @@ func prepareSerializedAccountInfo(address string, account *types.AccountInfo, is
 	return meta, serializedData, nil
 }
 
-// SerializeAccountsHistory wil serialize accounts history
+// SerializeAccountsHistory will serialize accounts history in a way that Elastic Search expects a bulk request
 func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, bulkSizeThreshold int) ([]bytes.Buffer, error) {
 	var err error
 
@@ -78,7 +78,7 @@ func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, 
 	for address, acc := range accounts {
 		meta, serializedData, errPrepareAcc := prepareSerializedAccountBalanceHistory(address, acc)
 		if errPrepareAcc != nil {
-			log.Warn("cannot prepare serializes account balance history", "error", err)
+			log.Warn("cannot prepare serialized account balance history", "error", err)
 			return nil, err
 		}
 
@@ -113,7 +113,11 @@ func SerializeAccountsHistory(accounts map[string]*types.AccountBalanceHistory, 
 }
 
 func prepareSerializedAccountBalanceHistory(address string, account *types.AccountBalanceHistory) ([]byte, []byte, error) {
+	// no '_id' is specified because an elastic client would never search after the identifier for this index.
+	// this is also an improvement: more details here:
+	// https://www.elastic.co/guide/en/elasticsearch/reference/master/tune-for-indexing-speed.html#_use_auto_generated_ids
 	meta := []byte(fmt.Sprintf(`{ "index" : { } }%s`, "\n"))
+
 	serializedData, err := json.Marshal(account)
 	if err != nil {
 		log.Debug("indexer: marshal",
