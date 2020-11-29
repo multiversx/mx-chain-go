@@ -92,8 +92,8 @@ VERSION:
 
 	argsConfig = &cfg{}
 
-	walletKeyFileName    = "walletKey.pem"
-	validatorKeyFileName = "validatorKey.pem"
+	walletKeyFileNameTemplate    = "walletKey%s.pem"
+	validatorKeyFileNameTemplate = "validatorKey%s.pem"
 
 	log = logger.GetOrCreate("keygenerator")
 
@@ -280,13 +280,13 @@ func saveKeys(validatorKeys []key, walletKeys []key, noSplit bool) error {
 
 	var errFound error
 	if len(validatorKeys) > 0 {
-		err := saveSliceKeys(validatorKeyFileName, validatorKeys, validatorPubKeyConverter, noSplit)
+		err := saveSliceKeys(validatorKeyFileNameTemplate, validatorKeys, validatorPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
 	}
 	if len(walletKeys) > 0 {
-		err := saveSliceKeys(walletKeyFileName, walletKeys, walletPubKeyConverter, noSplit)
+		err := saveSliceKeys(walletKeyFileNameTemplate, walletKeys, walletPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
@@ -295,13 +295,13 @@ func saveKeys(validatorKeys []key, walletKeys []key, noSplit bool) error {
 	return errFound
 }
 
-func saveSliceKeys(baseFilename string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
+func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
 	var file *os.File
 	var err error
 	for i, k := range keys {
 		shouldCreateFile := !noSplit || i == 0
 		if shouldCreateFile {
-			file, err = generateFile(i, len(keys), noSplit, baseFilename)
+			file, err = generateFile(i, len(keys), noSplit, baseFilenameTemplate)
 			if err != nil {
 				return err
 			}
@@ -326,14 +326,16 @@ func saveSliceKeys(baseFilename string, keys []key, pubkeyConverter core.PubkeyC
 	return nil
 }
 
-func generateFile(index int, numKeys int, noSplit bool, baseFilename string) (*os.File, error) {
+func generateFile(index int, numKeys int, noSplit bool, baseFilenameTemplate string) (*os.File, error) {
 	folder, err := generateFolder(index, numKeys, noSplit)
 	if err != nil {
 		return nil, err
 	}
 
-	filename := filepath.Join(folder, baseFilename)
+	filename := filepath.Join(folder, baseFilenameTemplate)
 	backupFileIfExists(filename)
+	//replace the %s with empty string
+	filename = fmt.Sprintf(filename, "")
 	err = os.Remove(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
@@ -363,12 +365,13 @@ func generateFolder(index int, numKeys int, noSplit bool) (string, error) {
 	return absPath, nil
 }
 
-func backupFileIfExists(filename string) {
-	if _, err := os.Stat(filename); err != nil {
+func backupFileIfExists(filenameTemplate string) {
+	existingFilename := fmt.Sprintf(filenameTemplate, "")
+	if _, err := os.Stat(existingFilename); err != nil {
 		if os.IsNotExist(err) {
 			return
 		}
 	}
 	//if we reached here the file probably exists, make a timestamped backup
-	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
+	_ = os.Rename(existingFilename, fmt.Sprintf(filenameTemplate, fmt.Sprintf("_%d", time.Now().Unix())))
 }
