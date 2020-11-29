@@ -301,7 +301,7 @@ func saveSliceKeys(baseFilename string, keys []key, pubkeyConverter core.PubkeyC
 	for i, k := range keys {
 		shouldCreateFile := !noSplit || i == 0
 		if shouldCreateFile {
-			file, err = generateFile(i, len(keys), baseFilename)
+			file, err = generateFile(i, len(keys), noSplit, baseFilename)
 			if err != nil {
 				return err
 			}
@@ -326,8 +326,8 @@ func saveSliceKeys(baseFilename string, keys []key, pubkeyConverter core.PubkeyC
 	return nil
 }
 
-func generateFile(index int, numKeys int, baseFilename string) (*os.File, error) {
-	folder, err := generateFolder(index, numKeys)
+func generateFile(index int, numKeys int, noSplit bool, baseFilename string) (*os.File, error) {
+	folder, err := generateFolder(index, numKeys, noSplit)
 	if err != nil {
 		return nil, err
 	}
@@ -342,13 +342,14 @@ func generateFile(index int, numKeys int, baseFilename string) (*os.File, error)
 	return os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
 }
 
-func generateFolder(index int, numKeys int) (string, error) {
+func generateFolder(index int, numKeys int, noSplit bool) (string, error) {
 	absPath, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
 
-	if numKeys > 1 {
+	shouldCreateDirectory := numKeys > 1 && !noSplit
+	if shouldCreateDirectory {
 		absPath = filepath.Join(absPath, fmt.Sprintf(keysFolderPattern, index))
 	}
 
@@ -371,99 +372,3 @@ func backupFileIfExists(filename string) {
 	//if we reached here the file probably exists, make a timestamped backup
 	_ = os.Rename(filename, filename+"."+fmt.Sprintf("%d", time.Now().Unix()))
 }
-
-//
-//func generateAllFiles() error {
-//	for i := 0; i < argsConfig.numKeys; i++ {
-//		err := generateOneSetOfFiles(i)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//
-//	return nil
-//}
-//
-//func generateOneSetOfFiles(index int) error {
-//	switch argsConfig.keyType {
-//	case "validator":
-//		return generateBlockKey(index, argsConfig.numKeys, argsConfig.consoleOut)
-//	case "wallet":
-//		return generateTxKey(index, argsConfig.numKeys, argsConfig.consoleOut)
-//	case "both":
-//		err := generateBlockKey(index, argsConfig.numKeys, argsConfig.consoleOut)
-//		if err != nil {
-//			return err
-//		}
-//
-//		return generateTxKey(index, argsConfig.numKeys, argsConfig.consoleOut)
-//	default:
-//		return fmt.Errorf("unknown key type %s", argsConfig.keyType)
-//	}
-//}
-//
-//func generateBlockKey(index int, numKeys int, consoleOut bool) error {
-//	pubkeyConverter, err := factory.NewPubkeyConverter(
-//		config.PubkeyConfig{
-//			Length: blsPubkeyLen,
-//			Type:   factory.HexFormat,
-//		},
-//	)
-//	if err != nil {
-//		return err
-//	}
-//
-//
-//
-//	return generateAndSave(index, numKeys, consoleOut, validatorKeyFileName, genForBlockSigningSk, pubkeyConverter)
-//}
-//
-//func generateTxKey(index int, numKeys int, consoleOut bool) error {
-//	pubkeyConverter, err := factory.NewPubkeyConverter(
-//		config.PubkeyConfig{
-//			Length: txSignPubkeyLen,
-//			Type:   factory.Bech32Format,
-//		},
-//	)
-//	if err != nil {
-//		return err
-//	}
-//
-//
-//
-//	return generateAndSave(index, numKeys, consoleOut, walletKeyFileName, genForBlockSigningSk, pubkeyConverter)
-//}
-//
-//func generateAndSave(index int, numKeys int, baseFilename string, genForBlockSigningSk crypto.KeyGenerator, pubkeyConverter core.PubkeyConverter) error {
-//	folder, err := generateFolder(index, numKeys)
-//	if err != nil {
-//		return err
-//	}
-//
-//	filename := filepath.Join(folder, baseFilename)
-//	backupFileIfExists(filename)
-//
-//	err = os.Remove(filename)
-//	if err != nil && !os.IsNotExist(err) {
-//		return err
-//	}
-//
-//	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, core.FileModeUserReadWrite)
-//	if err != nil {
-//		return err
-//	}
-//
-//	defer func() {
-//		_ = file.Close()
-//	}()
-//
-//	sk, pk, err := generateKeys(genForBlockSigningSk)
-//	if err != nil {
-//		return err
-//	}
-//
-//	pkString := pubkeyConverter.Encode(pk)
-//
-//	return core.SaveSkToPemFile(file, pkString, []byte(hex.EncodeToString(sk)))
-//}
-//
