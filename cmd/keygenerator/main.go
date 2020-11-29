@@ -92,8 +92,8 @@ VERSION:
 
 	argsConfig = &cfg{}
 
-	walletKeyFileNameTemplate    = "walletKey%s.pem"
-	validatorKeyFileNameTemplate = "validatorKey%s.pem"
+	walletKeyFilenameTemplate    = "walletKey%s.pem"
+	validatorKeyFilenameTemplate = "validatorKey%s.pem"
 
 	log = logger.GetOrCreate("keygenerator")
 
@@ -280,13 +280,13 @@ func saveKeys(validatorKeys []key, walletKeys []key, noSplit bool) error {
 
 	var errFound error
 	if len(validatorKeys) > 0 {
-		err := saveSliceKeys(validatorKeyFileNameTemplate, validatorKeys, validatorPubKeyConverter, noSplit)
+		err := saveSliceKeys(validatorKeyFilenameTemplate, validatorKeys, validatorPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
 	}
 	if len(walletKeys) > 0 {
-		err := saveSliceKeys(walletKeyFileNameTemplate, walletKeys, walletPubKeyConverter, noSplit)
+		err := saveSliceKeys(walletKeyFilenameTemplate, walletKeys, walletPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
