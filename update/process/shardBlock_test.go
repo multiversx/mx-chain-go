@@ -49,13 +49,13 @@ func initStore() dataRetriever.StorageService {
 
 func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorAfterHardFork {
 	return ArgsNewShardBlockCreatorAfterHardFork{
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		TxCoordinator:      &mock.TransactionCoordinatorMock{},
-		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},
+		Hasher:             &mock.HasherMock{},
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
-		Hasher:             &mock.HasherMock{},
+		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},
+		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Storage:            initStore(),
+		TxCoordinator:      &mock.TransactionCoordinatorMock{},
 	}
 }
 

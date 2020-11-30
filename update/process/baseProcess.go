@@ -24,6 +24,69 @@ type baseProcessor struct {
 	selfShardID        uint32
 }
 
+// CreateBody will create a block body after hardfork import
+func (b *baseProcessor) CreateBody() (*block.Body, []*update.MbInfo, error) {
+	mbsInfo, err := b.getPendingMbsAndTxsInCorrectOrder()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return b.CreatePostMiniBlocks(mbsInfo)
+}
+
+func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, error) {
+	hardForkMetaBlock := b.importHandler.GetHardForkMetaBlock()
+	unFinishedMetaBlocks := b.importHandler.GetUnFinishedMetaBlocks()
+	pendingMiniBlocks, err := update.GetPendingMiniBlocks(hardForkMetaBlock, unFinishedMetaBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	importedMiniBlocksMap := b.importHandler.GetMiniBlocks()
+	if len(importedMiniBlocksMap) != len(pendingMiniBlocks) {
+		return nil, update.ErrWrongImportedMiniBlocksMap
+	}
+
+	numPendingTransactions := 0
+	importedTransactionsMap := b.importHandler.GetTransactions()
+	mbsInfo := make([]*update.MbInfo, len(pendingMiniBlocks))
+
+	for mbIndex, pendingMiniBlock := range pendingMiniBlocks {
+		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.Hash)]
+		if !miniBlockFound {
+			return nil, update.ErrMiniBlockNotFoundInImportedMap
+		}
+
+		numPendingTransactions += len(miniBlock.TxHashes)
+		txsInfo := make([]*update.TxInfo, len(miniBlock.TxHashes))
+		for txIndex, txHash := range miniBlock.TxHashes {
+			tx, transactionFound := importedTransactionsMap[string(txHash)]
+			if !transactionFound {
+				return nil, update.ErrTransactionNotFoundInImportedMap
+			}
+
+			txsInfo[txIndex] = &update.TxInfo{
+				TxHash: txHash,
+				Tx:     tx,
+			}
+		}
+
+		mbsInfo[mbIndex] = &update.MbInfo{
+			MbHash:          pendingMiniBlock.Hash,
+			SenderShardID:   pendingMiniBlock.SenderShardID,
+			ReceiverShardID: pendingMiniBlock.ReceiverShardID,
+			Type:            pendingMiniBlock.Type,
+			TxsInfo:         txsInfo,
+		}
+	}
+
+	if len(importedTransactionsMap) != numPendingTransactions {
+		return nil, update.ErrWrongImportedTransactionsMap
+	}
+
+	return mbsInfo, nil
+}
+
 // CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
 func (b *baseProcessor) CreatePostMiniBlocks(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
 	b.txCoordinator.CreateBlockStarted()
@@ -134,17 +197,23 @@ func (b *baseProcessor) saveAllBlockDataToStorageForSelfShard(
 	body *block.Body,
 ) {
 	if check.IfNil(headerHandler) {
-		log.Warn("SaveAllBlockDataToStorageForSelfShard", "error", update.ErrNilHeaderHandler)
+		log.Warn("saveAllBlockDataToStorageForSelfShard", "error", update.ErrNilHeaderHandler)
 		return
 	}
 	if body == nil {
-		log.Warn("SaveAllBlockDataToStorageForSelfShard", "error", update.ErrNilBlockBody)
+		log.Warn("saveAllBlockDataToStorageForSelfShard", "error", update.ErrNilBlockBody)
 		return
 	}
 	if headerHandler.GetShardID() != b.selfShardID {
 		return
 	}
 
+	b.saveMiniBlocks(headerHandler, body)
+	b.saveReceipts(headerHandler)
+	b.saveTransactions(body)
+}
+
+func (b *baseProcessor) saveMiniBlocks(headerHandler data.HeaderHandler, body *block.Body) {
 	miniBlockHeadersHashes := headerHandler.GetMiniBlockHeadersHashes()
 	mapBlockTypesTxs := make(map[block.Type]map[string]data.TransactionHandler)
 	for i := 0; i < len(body.MiniBlocks); i++ {
@@ -155,60 +224,72 @@ func (b *baseProcessor) saveAllBlockDataToStorageForSelfShard(
 
 		marshalizedMiniBlock, errNotCritical := b.marshalizer.Marshal(miniBlock)
 		if errNotCritical != nil {
-			log.Warn("SaveAllBlockDataToStorageForSelfShard.Marshal -> MiniBlock",
+			log.Warn("saveMiniBlocks.Marshal -> MiniBlock",
 				"error", errNotCritical.Error())
 			continue
 		}
 
 		errNotCritical = b.storage.Put(dataRetriever.MiniBlockUnit, miniBlockHeadersHashes[i], marshalizedMiniBlock)
 		if errNotCritical != nil {
-			log.Warn("SaveAllBlockDataToStorageForSelfShard.Put -> MiniBlockUnit",
+			log.Warn("saveMiniBlocks.Put -> MiniBlockUnit",
 				"error", errNotCritical.Error())
 		}
 	}
+}
 
+func (b *baseProcessor) saveReceipts(headerHandler data.HeaderHandler) {
 	marshalizedReceipts, errNotCritical := b.txCoordinator.CreateMarshalizedReceipts()
 	if errNotCritical != nil {
-		log.Warn("SaveAllBlockDataToStorageForSelfShard.CreateMarshalizedReceipts",
+		log.Warn("saveReceipts.CreateMarshalizedReceipts",
 			"error", errNotCritical.Error())
-	} else {
-		if len(marshalizedReceipts) > 0 {
-			errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts)
-			if errNotCritical != nil {
-				log.Warn("SaveAllBlockDataToStorageForSelfShard.Put -> ReceiptsUnit",
-					"error", errNotCritical.Error())
-			}
-		}
+		return
 	}
 
+	if len(marshalizedReceipts) > 0 {
+		errNotCritical = b.storage.Put(dataRetriever.ReceiptsUnit, headerHandler.GetReceiptsHash(), marshalizedReceipts)
+		if errNotCritical != nil {
+			log.Warn("saveReceipts.Put -> ReceiptsUnit",
+				"error", errNotCritical.Error())
+		}
+	}
+}
+
+func (b *baseProcessor) saveTransactions(body *block.Body) {
 	mapTxs := b.importHandler.GetTransactions()
 	for _, miniBlock := range body.MiniBlocks {
 		for _, txHash := range miniBlock.TxHashes {
 			tx, ok := mapTxs[string(txHash)]
 			if !ok {
-				log.Warn("SaveAllBlockDataToStorageForSelfShard",
+				log.Warn("saveTransactions",
 					"error", update.ErrTransactionNotFoundInImportedMap)
 				continue
 			}
 
-			unitType := getUnitTypeFromMiniBlockType(miniBlock.Type)
+			unitType, errNotCritical := getUnitTypeFromMiniBlockType(miniBlock.Type)
+			if errNotCritical != nil {
+				log.Warn("saveTransactions.getUnitTypeFromMiniBlockType",
+					"error", errNotCritical.Error())
+				continue
+			}
+
 			marshaledData, errNotCritical := b.marshalizer.Marshal(tx)
 			if errNotCritical != nil {
-				log.Warn("SaveAllBlockDataToStorageForSelfShard.Marshal -> Transaction",
+				log.Warn("saveTransactions.Marshal -> Transaction",
 					"error", errNotCritical.Error())
 				continue
 			}
 
 			errNotCritical = b.storage.Put(unitType, txHash, marshaledData)
 			if errNotCritical != nil {
-				log.Warn("SaveAllBlockDataToStorageForSelfShard.Put -> Transaction",
+				log.Warn("saveTransactions.Put -> Transaction",
 					"error", errNotCritical.Error())
 			}
 		}
 	}
 }
 
-func getUnitTypeFromMiniBlockType(mbType block.Type) dataRetriever.UnitType {
+func getUnitTypeFromMiniBlockType(mbType block.Type) (dataRetriever.UnitType, error) {
+	var err error
 	unitType := dataRetriever.TransactionUnit
 	switch mbType {
 	case block.TxBlock:
@@ -217,9 +298,11 @@ func getUnitTypeFromMiniBlockType(mbType block.Type) dataRetriever.UnitType {
 		unitType = dataRetriever.RewardTransactionUnit
 	case block.SmartContractResultBlock:
 		unitType = dataRetriever.UnsignedTransactionUnit
+	default:
+		err = update.ErrInvalidMiniBlockType
 	}
 
-	return unitType
+	return unitType, err
 }
 
 func checkBlockCreatorAfterHardForkNilParameters(

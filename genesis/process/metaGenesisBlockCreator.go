@@ -167,16 +167,38 @@ func createMetaGenesisBlockAfterHardFork(
 
 func createArgsMetaBlockCreatorAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork, error) {
+	selfShardID uint32,
+) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, *arg.GeneralConfig)
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
 
-	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
-		ImportHandler:     arg.importHandler,
-		Marshalizer:       arg.Marshalizer,
-		Hasher:            arg.Hasher,
-		ShardCoordinator:  arg.ShardCoordinator,
-		ValidatorAccounts: tmpArg.ValidatorAccounts,
+	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
+		Accounts:         tmpArg.Accounts,
+		TxProcessor:      processors.txProcessor,
+		RwdTxProcessor:   &disabled.RewardTxProcessor{},
+		ScrTxProcessor:   processors.scrProcessor,
+		PubKeyConv:       arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+	}
+	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
+
+	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{
+		Hasher:             arg.Hasher,
+		ImportHandler:      arg.importHandler,
+		Marshalizer:        arg.Marshalizer,
+		PendingTxProcessor: pendingTxProcessor,
+		ShardCoordinator:   arg.ShardCoordinator,
+		Storage:            arg.Store,
+		TxCoordinator:      processors.txCoordinator,
+		ValidatorAccounts:  tmpArg.ValidatorAccounts,
+		SelfShardID:        selfShardID,
 	}
 
 	return argsMetaBlockCreatorAfterHardFork, nil

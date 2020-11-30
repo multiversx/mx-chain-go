@@ -58,7 +58,7 @@ func CreateShardGenesisBlock(
 		PenalizedTooMuchGasEnableEpoch: 0,
 	}
 
-	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForShardGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -169,11 +169,11 @@ func createShardGenesisBlockAfterHardFork(
 
 func createArgsShardBlockCreatorAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-	selfShardId uint32,
+	selfShardID uint32,
 ) (hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
+	processors, err := createProcessorsForShardGenesisBlock(tmpArg, *arg.GeneralConfig)
 	if err != nil {
 		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
 	}
@@ -192,14 +192,14 @@ func createArgsShardBlockCreatorAfterHardFork(
 	}
 
 	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
-		ShardCoordinator:   arg.ShardCoordinator,
-		TxCoordinator:      processors.txCoordinator,
-		PendingTxProcessor: pendingTxProcessor,
+		Hasher:             arg.Hasher,
 		ImportHandler:      arg.importHandler,
 		Marshalizer:        arg.Marshalizer,
-		Hasher:             arg.Hasher,
+		PendingTxProcessor: pendingTxProcessor,
+		ShardCoordinator:   arg.ShardCoordinator,
 		Storage:            arg.Store,
-		SelfShardID:        selfShardId,
+		TxCoordinator:      processors.txCoordinator,
+		SelfShardID:        selfShardID,
 	}
 
 	return argsShardBlockCreatorAfterHardFork, nil
@@ -243,7 +243,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          arg.GasSchedule,
 		MapDNSAddresses:      make(map[string]struct{}),

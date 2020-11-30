@@ -27,6 +27,13 @@ type TxInfo struct {
 	Tx     data.TransactionHandler
 }
 
+// ArgsHardForkProcessor defines the arguments structure needed by hardfork processor methods
+type ArgsHardForkProcessor struct {
+	Hasher      hashing.Hasher
+	Marshalizer marshal.Marshalizer
+	ShardIDs    []uint32
+}
+
 // GetPendingMiniBlocks get all the pending miniBlocks from epoch start metaBlock and unFinished metaBlocks
 func GetPendingMiniBlocks(
 	epochStartMetaBlock *block.MetaBlock,
@@ -130,14 +137,12 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []b
 
 // CreateBody will create a block body after hardfork import
 func CreateBody(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	shardIDs []uint32,
+	args ArgsHardForkProcessor,
 	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
 ) ([]*MbInfo, error) {
 	allPostMbs := make([]*MbInfo, 0)
-	for _, shardID := range shardIDs {
+	for _, shardID := range args.ShardIDs {
 		hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
 		if !ok {
 			return nil, ErrNilHardForkBlockProcessor
@@ -157,14 +162,12 @@ func CreateBody(
 		mapBodies[shardID] = body
 	}
 
-	return CleanDuplicates(hasher, marshalizer, shardIDs, mapBodies, allPostMbs)
+	return CleanDuplicates(args, mapBodies, allPostMbs)
 }
 
 // CreatePostMiniBlocks will create all the post miniBlocks after hardfork import
 func CreatePostMiniBlocks(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	shardIDs []uint32,
+	args ArgsHardForkProcessor,
 	lastPostMbs []*MbInfo,
 	mapBodies map[uint32]*block.Body,
 	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
@@ -174,7 +177,7 @@ func CreatePostMiniBlocks(
 	for numPostMbs > 0 {
 		log.Debug("CreatePostBodies", "numPostMbs", numPostMbs)
 		currentPostMbs := make([]*MbInfo, 0)
-		for _, shardID := range shardIDs {
+		for _, shardID := range args.ShardIDs {
 			hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
 			if !ok {
 				return ErrNilHardForkBlockProcessor
@@ -202,7 +205,7 @@ func CreatePostMiniBlocks(
 			mapBodies[shardID] = currentBody
 		}
 
-		lastPostMbs, err = CleanDuplicates(hasher, marshalizer, shardIDs, mapBodies, currentPostMbs)
+		lastPostMbs, err = CleanDuplicates(args, mapBodies, currentPostMbs)
 		if err != nil {
 			return err
 		}
@@ -215,28 +218,26 @@ func CreatePostMiniBlocks(
 
 // CleanDuplicates cleans from the post miniBlocks map, the already existing miniBlocks in bodies map
 func CleanDuplicates(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	shardIDs []uint32,
+	args ArgsHardForkProcessor,
 	mapBodies map[uint32]*block.Body,
 	postMbs []*MbInfo,
 ) ([]*MbInfo, error) {
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
 
 	mapMiniBlocksHashes := make(map[string]struct{})
-	for _, shardID := range shardIDs {
+	for _, shardID := range args.ShardIDs {
 		currentBody, ok := mapBodies[shardID]
 		if !ok {
 			return nil, ErrNilBlockBody
 		}
 
 		for _, miniBlock := range currentBody.MiniBlocks {
-			miniBlockHash, err := core.CalculateHash(marshalizer, hasher, miniBlock)
+			miniBlockHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, miniBlock)
 			if err != nil {
 				return nil, err
 			}

@@ -265,3 +265,6 @@ var ErrNilBlockBody = errors.New("nil block body")
 
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
+
+// ErrInvalidMiniBlockType signals that an invalid miniBlock type has been provided
+var ErrInvalidMiniBlockType = errors.New("invalid miniBlock type")

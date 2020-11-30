@@ -61,16 +61,6 @@ func NewShardBlockCreatorAfterHardFork(args ArgsNewShardBlockCreatorAfterHardFor
 	}, nil
 }
 
-// CreateBody will create a block body after hardfork import
-func (s *shardBlockCreator) CreateBody() (*block.Body, []*update.MbInfo, error) {
-	mbsInfo, err := s.getPendingMbsAndTxsInCorrectOrder()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return s.CreatePostMiniBlocks(mbsInfo)
-}
-
 // CreateBlock will create a block after hardfork import
 func (s *shardBlockCreator) CreateBlock(
 	body *block.Body,
@@ -100,6 +90,7 @@ func (s *shardBlockCreator) CreateBlock(
 		PrevHash:        rootHash,
 		PrevRandSeed:    rootHash,
 		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 		PubKeysBitmap:   []byte{1},
 	}
 
@@ -122,65 +113,10 @@ func (s *shardBlockCreator) CreateBlock(
 	}
 
 	shardHeader.MetaBlockHashes = [][]byte{metaBlockHash}
-	shardHeader.AccumulatedFees = big.NewInt(0)
-	shardHeader.DeveloperFees = big.NewInt(0)
 
 	s.saveAllBlockDataToStorageForSelfShard(shardHeader, body)
 
 	return shardHeader, nil
-}
-
-func (s *shardBlockCreator) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, error) {
-	hardForkMetaBlock := s.importHandler.GetHardForkMetaBlock()
-	unFinishedMetaBlocks := s.importHandler.GetUnFinishedMetaBlocks()
-	pendingMiniBlocks, err := update.GetPendingMiniBlocks(hardForkMetaBlock, unFinishedMetaBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	importedMiniBlocksMap := s.importHandler.GetMiniBlocks()
-	if len(importedMiniBlocksMap) != len(pendingMiniBlocks) {
-		return nil, update.ErrWrongImportedMiniBlocksMap
-	}
-
-	numPendingTransactions := 0
-	importedTransactionsMap := s.importHandler.GetTransactions()
-	mbsInfo := make([]*update.MbInfo, len(pendingMiniBlocks))
-
-	for mbIndex, pendingMiniBlock := range pendingMiniBlocks {
-		miniBlock, miniBlockFound := importedMiniBlocksMap[string(pendingMiniBlock.Hash)]
-		if !miniBlockFound {
-			return nil, update.ErrMiniBlockNotFoundInImportedMap
-		}
-
-		numPendingTransactions += len(miniBlock.TxHashes)
-		txsInfo := make([]*update.TxInfo, len(miniBlock.TxHashes))
-		for txIndex, txHash := range miniBlock.TxHashes {
-			tx, transactionFound := importedTransactionsMap[string(txHash)]
-			if !transactionFound {
-				return nil, update.ErrTransactionNotFoundInImportedMap
-			}
-
-			txsInfo[txIndex] = &update.TxInfo{
-				TxHash: txHash,
-				Tx:     tx,
-			}
-		}
-
-		mbsInfo[mbIndex] = &update.MbInfo{
-			MbHash:          pendingMiniBlock.Hash,
-			SenderShardID:   pendingMiniBlock.SenderShardID,
-			ReceiverShardID: pendingMiniBlock.ReceiverShardID,
-			Type:            pendingMiniBlock.Type,
-			TxsInfo:         txsInfo,
-		}
-	}
-
-	if len(importedTransactionsMap) != numPendingTransactions {
-		return nil, update.ErrWrongImportedTransactionsMap
-	}
-
-	return mbsInfo, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

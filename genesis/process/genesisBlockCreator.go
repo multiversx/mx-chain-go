@@ -274,10 +274,14 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
+		args := update.ArgsHardForkProcessor{
+			Hasher:      gbc.arg.Hasher,
+			Marshalizer: gbc.arg.Marshalizer,
+			ShardIDs:    shardIDs,
+		}
+
 		lastPostMbs, err = update.CreateBody(
-			gbc.arg.Hasher,
-			gbc.arg.Marshalizer,
-			shardIDs,
+			args,
 			mapBodies,
 			mapHardForkBlockProcessor,
 		)
@@ -286,9 +290,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 
 		err = update.CreatePostMiniBlocks(
-			gbc.arg.Hasher,
-			gbc.arg.Marshalizer,
-			shardIDs,
+			args,
 			lastPostMbs,
 			mapBodies,
 			mapHardForkBlockProcessor,
@@ -521,7 +523,7 @@ func createArgsGenesisBlockCreator(
 	arg ArgsGenesisBlockCreator,
 ) error {
 	for _, shardID := range shardIDs {
-		log.Debug("createArgsGenesisBlockCreator", "shard ID", shardID)
+		log.Debug("createArgsGenesisBlockCreator", "shard", shardID)
 		newArgument, err := getNewArgForShard(shardID, arg)
 		if err != nil {
 			return fmt.Errorf("'%w' while creating new argument for shard %d", err, shardID)
@@ -542,9 +544,9 @@ func createHardForkBlockProcessors(
 	var hardForkBlockProcessor update.HardForkBlockProcessor
 	var err error
 	for _, shardID := range shardIDs {
-		log.Debug("createHarForkBlockProcessor", "shard ID", shardID)
+		log.Debug("createHarForkBlockProcessor", "shard", shardID)
 		if shardID == core.MetachainShardId {
-			argsMetaBlockCreatorAfterHardFork, errCreate := createArgsMetaBlockCreatorAfterHardFork(mapArgsGenesisBlockCreator[shardID])
+			argsMetaBlockCreatorAfterHardFork, errCreate := createArgsMetaBlockCreatorAfterHardFork(mapArgsGenesisBlockCreator[shardID], selfShardID)
 			if errCreate != nil {
 				return errCreate
 			}
