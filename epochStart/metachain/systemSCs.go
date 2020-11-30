@@ -653,7 +653,7 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 		return err
 	}
 
-	validatorAccounts, err := s.getValidValidatorUserAccountsKeys(userValidatorAccount)
+	validatorAccounts, err := s.getValidatorUserAccountsKeys(userValidatorAccount)
 	if err != nil {
 		return err
 	}
@@ -684,7 +684,7 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandle
 	return userValidatorAccount, nil
 }
 
-func (s *systemSCProcessor) getValidValidatorUserAccountsKeys(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
+func (s *systemSCProcessor) getValidatorUserAccountsKeys(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	validatorAccounts := make([][]byte, 0)
 
 	rootHash, err := userValidatorAccount.DataTrie().Root()

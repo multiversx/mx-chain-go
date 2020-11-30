@@ -992,9 +992,7 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 	if numActiveKeys > 0 {
 		return fmt.Errorf("%w cannot unDelegate from initial owner funds as nodes are active", vm.ErrOwnerCannotUnDelegate)
 	}
-
-	allDelegationLeft := big.NewInt(0).Add(activeFund.Value, delegationConfig.InitialOwnerFunds)
-	if allDelegationLeft.Cmp(valueToUnDelegate) != 0 {
+	if remainingFunds.Cmp(zero) != 0 {
 		return fmt.Errorf("%w must undelegate all", vm.ErrOwnerCannotUnDelegate)
 	}
 
@@ -1065,7 +1063,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1303,7 +1301,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnValidatorWithValueInArgs(
+func (d *delegation) executeOnValidatorSCWithValueInArgs(
 	scAddress []byte,
 	functionToCall string,
 	actionValue *big.Int,
@@ -1395,7 +1393,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1957,7 +1955,7 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	if err != nil {
 		return err
 	}
-	if minDeposit.Cmp(callValue) < 0 {
+	if callValue.Cmp(minDeposit) < 0 {
 		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
 	}
 

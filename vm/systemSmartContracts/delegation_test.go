@@ -45,7 +45,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 }
 
 func addValidatorAndStakingScToVmContext(eei *vmContext) {
-	validatorArgs := createMockArgumentsForValidator()
+	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress

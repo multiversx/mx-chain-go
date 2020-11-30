@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgumentsForValidator() ArgsValidatorSmartContract {
+func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 	args := ArgsValidatorSmartContract{
 		Eei:                &mock.SystemEIStub{},
 		SigVerifier:        &mock.MessageSignVerifierMock{},
@@ -78,7 +78,7 @@ func createABid(totalStakeValue uint64, numBlsKeys uint32, maxStakePerNode uint6
 func TestNewStakingValidatorSmartContract_InvalidUnJailValue(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 
 	arguments.StakingSCConfig.UnJailValue = ""
 	asc, err := NewValidatorSmartContract(arguments)
@@ -99,7 +99,7 @@ func TestNewStakingValidatorSmartContract_InvalidUnJailValue(t *testing.T) {
 func TestNewStakingValidatorSmartContract_InvalidMinStakeValue(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 
 	arguments.StakingSCConfig.MinStakeValue = ""
 	asc, err := NewValidatorSmartContract(arguments)
@@ -120,7 +120,7 @@ func TestNewStakingValidatorSmartContract_InvalidMinStakeValue(t *testing.T) {
 func TestNewStakingValidatorSmartContract_InvalidGenesisNodePrice(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 
 	arguments.StakingSCConfig.GenesisNodePrice = ""
 	asc, err := NewValidatorSmartContract(arguments)
@@ -141,7 +141,7 @@ func TestNewStakingValidatorSmartContract_InvalidGenesisNodePrice(t *testing.T) 
 func TestNewStakingValidatorSmartContract_InvalidMinStepValue(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 
 	arguments.StakingSCConfig.MinStepValue = ""
 	asc, err := NewValidatorSmartContract(arguments)
@@ -162,7 +162,7 @@ func TestNewStakingValidatorSmartContract_InvalidMinStepValue(t *testing.T) {
 func TestNewStakingValidatorSmartContract_NilSystemEnvironmentInterface(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.Eei = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -173,7 +173,7 @@ func TestNewStakingValidatorSmartContract_NilSystemEnvironmentInterface(t *testi
 func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.StakingSCAddress = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -184,7 +184,7 @@ func TestNewStakingValidatorSmartContract_NilStakingSmartContractAddress(t *test
 func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.ValidatorSCAddress = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -195,7 +195,7 @@ func TestNewStakingValidatorSmartContract_NilValidatorSmartContractAddress(t *te
 func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.SigVerifier = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -206,7 +206,7 @@ func TestNewStakingValidatorSmartContract_NilSigVerifier(t *testing.T) {
 func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.Marshalizer = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -217,7 +217,7 @@ func TestNewStakingValidatorSmartContract_NilMarshalizer(t *testing.T) {
 func TestNewStakingValidatorSmartContract_InvalidGenesisTotalSupply(t *testing.T) {
 	t.Parallel()
 
-	arguments := createMockArgumentsForValidator()
+	arguments := createMockArgumentsForValidatorSC()
 	arguments.GenesisTotalSupply = nil
 
 	asc, err := NewValidatorSmartContract(arguments)
@@ -258,7 +258,7 @@ func TestStakingValidatorSC_ExecuteStakeWithoutArgumentsShouldWork(t *testing.T)
 			assert.Equal(t, big.NewInt(26000000), validatorDataRecovered.TotalStakeValue)
 		}
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
@@ -282,7 +282,7 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 	rewardAddr := []byte("tralala2")
 	maxStakePerNonce := big.NewInt(500)
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -319,7 +319,7 @@ func TestStakingValidatorSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	stakerPubKey := []byte("stakerBLSPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -363,7 +363,7 @@ func TestStakingValidatorSC_ExecuteStakeUnJail(t *testing.T) {
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -438,7 +438,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeOneBlsPubKey(t *testing.T) {
 		assert.Equal(t, false, stakedDataRecovered.Staked)
 	}
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
@@ -456,7 +456,7 @@ func TestStakingValidatorSC_ExecuteStakeStakeClaim(t *testing.T) {
 	stakerPubKey := big.NewInt(100)
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -528,7 +528,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeStakeClaim(t *testing.T) {
 			return 10
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -594,7 +594,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeOneBlsPubKeyAndRestake(t *testing
 	stakerPubKey := big.NewInt(100)
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -674,7 +674,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondUnStakeUnBondOneBlsPubKey(t
 
 	unBondPeriod := uint64(5)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -772,7 +772,7 @@ func TestStakingValidatorSC_StakeUnStake3XUnBond2xWaitingList(t *testing.T) {
 	stakerPubKey3 := []byte("blsKey3")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -852,7 +852,7 @@ func TestStakingValidatorSC_StakeShouldSetOwnerIfStakingV2IsEnabled(t *testing.T
 	blsKey := []byte("blsKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	atArgParser := parsers.NewCallArgsParser()
@@ -895,7 +895,7 @@ func TestStakingValidatorSC_ExecuteStakeChangeRewardAddresStakeUnStake(t *testin
 	stakerPubKey := []byte("bls1")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -971,7 +971,7 @@ func TestStakingValidatorSC_ExecuteStakeUnStakeUnBondBlsPubKeyAndReStake(t *test
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -1070,7 +1070,7 @@ func TestStakingValidatorSC_ExecuteUnBound(t *testing.T) {
 		return nil
 	}
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
@@ -1087,7 +1087,7 @@ func TestValidatorStakingSC_ExecuteInit(t *testing.T) {
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1112,7 +1112,7 @@ func TestValidatorStakingSC_ExecuteInitTwoTimeShouldReturnUserError(t *testing.T
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1137,7 +1137,7 @@ func TestValidatorStakingSC_ExecuteStakeOutOfGasShouldErr(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	args.GasCost.MetaChainSystemSCsCost.Stake = 10
 	stakingSmartContract, err := NewValidatorSmartContract(args)
@@ -1163,7 +1163,7 @@ func TestValidatorStakingSC_ExecuteStakeWrongStakeValueShouldErr(t *testing.T) {
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	args.StakingSCConfig.GenesisNodePrice = "10"
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1187,7 +1187,7 @@ func TestValidatorStakingSC_ExecuteStakeWrongUnmarshalDataShouldErr(t *testing.T
 	eei.GetStorageCalled = func(key []byte) []byte {
 		return []byte("data")
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1213,7 +1213,7 @@ func TestValidatorStakingSC_ExecuteStakeAlreadyStakedShouldNotErr(t *testing.T) 
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	argsStaking := createMockStakingScArguments()
@@ -1281,7 +1281,7 @@ func TestValidatorStakingSC_ExecuteStakeStakedInStakingButNotInValidatorShouldEr
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	argsStaking := createMockStakingScArguments()
@@ -1343,7 +1343,7 @@ func TestValidatorStakingSC_ExecuteStakeWithMaxStakePerNode(t *testing.T) {
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	argsStaking := createMockStakingScArguments()
@@ -1404,7 +1404,7 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughArgsShouldErr(t *testing.T) {
 		registrationDataMarshalized, _ := json.Marshal(&StakedDataV2_0{})
 		return registrationDataMarshalized
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1419,7 +1419,7 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughFundsForMultipleNodesShouldErr(
 	t.Parallel()
 	stakerPubKey1 := big.NewInt(101)
 	stakerPubKey2 := big.NewInt(102)
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	blockChainHook := &mock.BlockChainHookStub{}
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
@@ -1458,7 +1458,7 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughGasForMultipleNodesShouldErr(t 
 	t.Parallel()
 	stakerPubKey1 := big.NewInt(101)
 	stakerPubKey2 := big.NewInt(102)
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	blockChainHook := &mock.BlockChainHookStub{
 		GetUserAccountCalled: func(address []byte) (vmcommon.UserAccountHandler, error) {
@@ -1502,7 +1502,7 @@ func TestValidatorStakingSC_ExecuteStakeNotEnoughGasForMultipleNodesShouldErr(t 
 func TestValidatorStakingSC_ExecuteStakeOneKeyFailsOneRegisterStakeSCShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	stakerAddress := big.NewInt(100)
 	stakerPubKey := big.NewInt(100)
@@ -1565,7 +1565,7 @@ func TestValidatorStakingSC_ExecuteStakeBeforeValidatorEnableNonce(t *testing.T)
 			return 99
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 100
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	expectedRegistrationData := ValidatorDataV2{
@@ -1618,7 +1618,7 @@ func TestValidatorStakingSC_ExecuteStake(t *testing.T) {
 	stakerPubKey := big.NewInt(100)
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	expectedRegistrationData := ValidatorDataV2{
 		RewardAddress:   stakerAddress.Bytes(),
@@ -1667,7 +1667,7 @@ func TestValidatorStakingSC_ExecuteUnStakeValueNotZeroShouldErr(t *testing.T) {
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1685,7 +1685,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAddressNotStakedShouldErr(t *testing.T
 
 	notFoundkey := []byte("abc")
 	eei := &mock.SystemEIStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1706,7 +1706,7 @@ func TestValidatorStakingSC_ExecuteUnStakeUnmarshalErr(t *testing.T) {
 	eei.GetStorageCalled = func(key []byte) []byte {
 		return []byte("data")
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	args.Marshalizer = &mock.MarshalizerMock{Fail: true}
 
@@ -1734,7 +1734,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAlreadyUnStakedAddrShouldNotErr(t *tes
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	argsStaking := createMockStakingScArguments()
@@ -1792,7 +1792,7 @@ func TestValidatorStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
 	eei.SetSCAddress([]byte("addr"))
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1810,7 +1810,7 @@ func TestValidatorStakingSC_ExecuteUnStakeFailsWithWrongCaller(t *testing.T) {
 func TestValidatorStakingSC_ExecuteUnStake(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.UnBondPeriod = 10
 	callerAddress := []byte("caller")
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
@@ -1901,7 +1901,7 @@ func TestValidatorStakingSC_ExecuteUnBoundUnmarshalErr(t *testing.T) {
 	eei.GetStorageCalled = func(key []byte) []byte {
 		return []byte("data")
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1935,7 +1935,7 @@ func TestValidatorStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testin
 			return 10000
 		}}
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -1961,7 +1961,7 @@ func TestValidatorStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing
 				return 100
 			}}
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakeEnableEpoch = eei.BlockChainHook().CurrentEpoch() + uint32(1)
 	args.Eei = eei
 
@@ -2013,7 +2013,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	eei.SetSCAddress([]byte("addr"))
 	eei.SetStorage([]byte(ownerKey), []byte("data"))
 	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -2053,7 +2053,7 @@ func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
 	eei.SetSCAddress(scAddress)
 	eei.SetStorage([]byte(ownerKey), scAddress)
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	args.StakingSCConfig.GenesisNodePrice = stakeValue.Text(10)
 	args.StakingSCConfig.UnBondPeriod = unBondPeriod
@@ -2111,7 +2111,7 @@ func TestValidatorStakingSC_ExecuteSlashOwnerAddrNotOkShouldErr(t *testing.T) {
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -2137,7 +2137,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 	smartcontractAddress := "validator"
 	eei.SetSCAddress([]byte(smartcontractAddress))
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = unBondPeriod
 	args.StakingSCConfig.GenesisNodePrice = valueStakedByTheCaller.Text(10)
@@ -2235,7 +2235,7 @@ func TestValidatorStakingSC_ExecuteGetShouldReturnUserErr(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "get"
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -2251,7 +2251,7 @@ func TestValidatorStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	arguments.Function = "get"
 	arguments.Arguments = [][]byte{arguments.CallerAddr}
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), parsers.NewCallArgsParser(), &mock.AccountsStub{}, &mock.RaterMock{})
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewValidatorSmartContract(args)
@@ -2285,7 +2285,7 @@ func TestValidatorStakingSC_Claim(t *testing.T) {
 		},
 	}
 
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	sc, _ := NewValidatorSmartContract(args)
@@ -2319,7 +2319,7 @@ func TestValidatorStakingSC_SetConfig(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	sc, _ := NewValidatorSmartContract(args)
@@ -2369,7 +2369,7 @@ func TestValidatorStakingSC_SetConfig_InvalidParameters(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -2422,7 +2422,7 @@ func TestValidatorStakingSC_getBlsStatusWrongCaller(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -2442,7 +2442,7 @@ func TestValidatorStakingSC_getBlsStatusWrongNumOfArguments(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -2461,7 +2461,7 @@ func TestValidatorStakingSC_getBlsStatusWrongRegistrationData(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	wrongStorageEntry := make(map[string][]byte)
@@ -2485,7 +2485,7 @@ func TestValidatorStakingSC_getBlsStatusNoBlsKeys(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 	args.Eei = eei
 
@@ -2505,7 +2505,7 @@ func TestValidatorStakingSC_getBlsStatusShouldWork(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	firstAddr := "addr 1"
@@ -2564,7 +2564,7 @@ func TestValidatorStakingSC_getBlsStatusShouldWorkEvenIfAnErrorOccursForOneOfThe
 	minStakeValue := big.NewInt(1000)
 	unboundPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	firstAddr := "addr 1"
@@ -2617,7 +2617,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	unboundPeriod := uint64(10)
 	nodesToRunBytes := big.NewInt(1).Bytes()
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.Eei = createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
 
 	sc, _ := NewValidatorSmartContract(args)
@@ -2645,7 +2645,7 @@ func TestStakingValidatorSC_UnstakeTokensNotEnabledShouldError(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
@@ -2662,7 +2662,7 @@ func TestStakingValidatorSC_UnstakeTokensInvalidArgumentsShouldError(t *testing.
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2693,7 +2693,7 @@ func TestStakingValidatorSC_UnstakeTokensWithCallValueShouldError(t *testing.T) 
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2718,7 +2718,7 @@ func TestStakingValidatorSC_UnstakeTokensOverMaxShouldUnStake(t *testing.T) {
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2761,7 +2761,7 @@ func TestStakingValidatorSC_UnstakeTokensUnderMinimumAllowedShouldErr(t *testing
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingSCConfig.MinUnstakeTokensValue = "2"
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
@@ -2802,7 +2802,7 @@ func TestStakingValidatorSC_UnstakeTokensShouldWork(t *testing.T) {
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2868,7 +2868,7 @@ func TestStakingValidatorSC_UnstakeTokensHavingUnstakedShouldWork(t *testing.T) 
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2938,7 +2938,7 @@ func TestStakingValidatorSC_UnstakeAllTokensShouldWork(t *testing.T) {
 			return nonce
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -2992,7 +2992,7 @@ func TestStakingValidatorSC_UnbondTokensNotEnabledShouldError(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
@@ -3014,7 +3014,7 @@ func TestStakingValidatorSC_UnbondTokensOneArgument(t *testing.T) {
 			return startNonce + unbondPeriod
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingSCConfig.UnBondPeriod = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
@@ -3093,7 +3093,7 @@ func TestStakingValidatorSC_UnbondTokensWithCallValueShouldError(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3116,7 +3116,7 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 			return startNonce + unbondPeriod
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingSCConfig.UnBondPeriod = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
@@ -3193,7 +3193,7 @@ func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
 			return startNonce + unbondPeriod + 1
 		},
 	}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	args.StakingSCConfig.UnBondPeriod = unbondPeriod
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
@@ -3260,7 +3260,7 @@ func TestStakingValidatorSC_UpdateStakingV2NotEnabledShouldError(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 10
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3278,7 +3278,7 @@ func TestStakingValidatorSC_UpdateStakingV2InvalidCallerShouldError(t *testing.T
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3296,7 +3296,7 @@ func TestStakingValidatorSC_UpdateStakingV2InvalidArgumentsShouldError(t *testin
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3313,7 +3313,7 @@ func TestStakingValidatorSC_UpdateStakingV2NotAnAddressShouldError(t *testing.T)
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3330,7 +3330,7 @@ func TestStakingValidatorSC_UpdateStakingV2CallValueNotZeroShouldError(t *testin
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3347,7 +3347,7 @@ func TestStakingValidatorSC_UpdateStakingV2ShouldWork(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 
 	atArgParser := parsers.NewCallArgsParser()
@@ -3407,7 +3407,7 @@ func TestStakingValidatorSC_GetTopUpNotEnabledShouldError(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
 	caller := []byte("caller")
@@ -3424,7 +3424,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedWithValueShouldError(t *testing.T
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3442,7 +3442,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedInsufficientGasShouldError(t *tes
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3461,7 +3461,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedCallerDoesNotExistShouldError(t *
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
@@ -3479,7 +3479,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 	minStakeValue := big.NewInt(1000)
 	unbondPeriod := uint64(10)
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 	args.StakingSCConfig.StakingV2Epoch = 0
 	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
 	args.Eei = eei
