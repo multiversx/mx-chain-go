@@ -992,9 +992,7 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 	if numActiveKeys > 0 {
 		return fmt.Errorf("%w cannot unDelegate from initial owner funds as nodes are active", vm.ErrOwnerCannotUnDelegate)
 	}
-
-	allDelegationLeft := big.NewInt(0).Add(activeFund.Value, delegationConfig.InitialOwnerFunds)
-	if allDelegationLeft.Cmp(valueToUnDelegate) != 0 {
+	if remainingFunds.Cmp(zero) != 0 {
 		return fmt.Errorf("%w must undelegate all", vm.ErrOwnerCannotUnDelegate)
 	}
 
@@ -1957,7 +1955,7 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	if err != nil {
 		return err
 	}
-	if minDeposit.Cmp(callValue) < 0 {
+	if callValue.Cmp(minDeposit) < 0 {
 		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
 	}
 
