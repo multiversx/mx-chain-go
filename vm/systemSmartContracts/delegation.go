@@ -1065,7 +1065,7 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1303,7 +1303,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnValidatorWithValueInArgs(
+func (d *delegation) executeOnValidatorSCWithValueInArgs(
 	scAddress []byte,
 	functionToCall string,
 	actionValue *big.Int,
@@ -1395,7 +1395,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.executeOnValidatorWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}

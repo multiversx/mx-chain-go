@@ -20,7 +20,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(
@@ -87,7 +87,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(
@@ -170,7 +170,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForValidator()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(

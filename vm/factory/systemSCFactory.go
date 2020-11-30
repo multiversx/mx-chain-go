@@ -170,8 +170,8 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 		EpochNotifier:      scf.epochNotifier,
 	}
-	validator, err := systemSmartContracts.NewValidatorSmartContract(args)
-	return validator, err
+	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
+	return validatorSC, err
 }
 
 func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error) {
@@ -251,12 +251,12 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	validator, err := scf.createValidatorContract()
+	validatorSC, err := scf.createValidatorContract()
 	if err != nil {
 		return nil, err
 	}
 
-	err = scf.systemSCsContainer.Add(vm.ValidatorSCAddress, validator)
+	err = scf.systemSCsContainer.Add(vm.ValidatorSCAddress, validatorSC)
 	if err != nil {
 		return nil, err
 	}
