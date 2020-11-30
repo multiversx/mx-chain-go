@@ -870,14 +870,9 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 }
 
 func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
-	existingTrie := e.trieContainer.Get([]byte(trieType))
-	if !check.IfNil(existingTrie) {
-		err := existingTrie.ClosePersister()
-		if err != nil {
-			log.Warn("failed to close existing trie", "error", err)
-		}
-	}
+	e.mutTrieStorageManagers.RLock()
 	existingStorageManager := e.trieStorageManagers[trieType]
+	e.mutTrieStorageManagers.RUnlock()
 	if !check.IfNil(existingStorageManager) {
 		err := existingStorageManager.Close()
 		if err != nil {
