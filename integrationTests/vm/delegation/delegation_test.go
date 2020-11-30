@@ -86,7 +86,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	for _, node := range nodes {
 		txData := "changeRewardAddress" + "@" + hex.EncodeToString(rewardAddress)
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 		delegateToSystemSC(node, nodes, rewardAddress, big.NewInt(1000000))
 	}
 	time.Sleep(time.Second)

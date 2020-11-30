@@ -7,7 +7,7 @@ option (gogoproto.stable_marshaler_all) = true;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
-message AuctionDataV1 {
+message ValidatorDataV1 {
     uint64   RegisterNonce    = 1  [(gogoproto.jsontag) = "RegisterNonce"];
     uint32   Epoch            = 2  [(gogoproto.jsontag) = "Epoch"];
     bytes    RewardAddress    = 3  [(gogoproto.jsontag) = "RewardAddress"];
@@ -23,7 +23,7 @@ message UnstakedValue{
     bytes    UnstakedValue = 2  [(gogoproto.jsontag) = "UnstakedValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
-message AuctionDataV2 {
+message ValidatorDataV2 {
     uint64   RegisterNonce              = 1  [(gogoproto.jsontag) = "RegisterNonce"];
     uint32   Epoch                      = 2  [(gogoproto.jsontag) = "Epoch"];
     bytes    RewardAddress              = 3  [(gogoproto.jsontag) = "RewardAddress"];
@@ -36,11 +36,10 @@ message AuctionDataV2 {
     bytes    TotalUnstaked              = 10 [(gogoproto.jsontag) = "TotalUnstaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
-message AuctionConfig {
-    uint32 NumNodes      = 1 [(gogoproto.jsontag) = "NumNodes"];
-    bytes  MinStakeValue = 2 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  TotalSupply   = 3 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  MinStep       = 4 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  NodePrice     = 5 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes  UnJailPrice   = 6 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+message ValidatorConfig {
+    bytes  MinStakeValue = 1 [(gogoproto.jsontag) = "MinStakeValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  TotalSupply   = 2 [(gogoproto.jsontag) = "TotalSupply", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  MinStep       = 3 [(gogoproto.jsontag) = "MinStep", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  NodePrice     = 4 [(gogoproto.jsontag) = "NodePrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes  UnJailPrice   = 5 [(gogoproto.jsontag) = "UnJailPrice", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }

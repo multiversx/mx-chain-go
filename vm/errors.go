@@ -56,9 +56,6 @@ var ErrInvalidMinStepValue = errors.New("invalid min step value")
 // ErrInvalidMinUnstakeTokensValue signals that an invalid min unstake tokens value was provided
 var ErrInvalidMinUnstakeTokensValue = errors.New("invalid min unstake tokens value")
 
-// ErrNotEnoughQualifiedNodes signals that there are insufficient number of qualified nodes
-var ErrNotEnoughQualifiedNodes = errors.New("not enough qualified nodes")
-
 // ErrBLSPublicKeyMismatch signals that public keys do not match
 var ErrBLSPublicKeyMismatch = errors.New("public key mismatch")
 
@@ -77,7 +74,7 @@ var ErrNilKeyGenerator = errors.New("nil key generator")
 // ErrSingleSigner signals that single signer is nil
 var ErrSingleSigner = errors.New("nil single signer")
 
-// ErrIncorrectConfig signals that auction config is incorrect
+// ErrIncorrectConfig signals that the config is incorrect
 var ErrIncorrectConfig = errors.New("config incorrect")
 
 // ErrNilMessageSignVerifier signals that message sign verifier is nil
@@ -92,8 +89,8 @@ var ErrNilArgumentsParser = errors.New("nil arguments parser")
 // ErrOnExecutionAtStakingSC signals that there was an error at staking sc call
 var ErrOnExecutionAtStakingSC = errors.New("execution error at staking sc")
 
-// ErrNilAuctionSmartContractAddress signals that auction smart contract address is nil
-var ErrNilAuctionSmartContractAddress = errors.New("nil auction smart contract address")
+// ErrNilValidatorSmartContractAddress signals that validator smart contract address is nil
+var ErrNilValidatorSmartContractAddress = errors.New("nil validator smart contract address")
 
 // ErrInvalidStakingAccessAddress signals that invalid staking access address was provided
 var ErrInvalidStakingAccessAddress = errors.New("invalid staking access address")
@@ -106,9 +103,6 @@ var ErrNotEnoughGas = errors.New("not enough gas")
 
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
-
-// ErrInvalidMinNumberOfNodes signals that provided minimum number of nodes is invalid
-var ErrInvalidMinNumberOfNodes = errors.New("invalid min number of nodes")
 
 // ErrInvalidBaseIssuingCost signals that invalid base issuing cost has been provided
 var ErrInvalidBaseIssuingCost = errors.New("invalid base issuing cost")
@@ -202,9 +196,6 @@ var ErrDataNotFoundUnderKey = errors.New("data was not found under requested key
 
 // ErrInvalidBLSKeys signals that invalid bls keys has been provided
 var ErrInvalidBLSKeys = errors.New("invalid bls keys")
-
-// ErrNoTokenWithGivenName signals that token does not exists with given name
-var ErrNoTokenWithGivenName = errors.New("no token with given name")
 
 // ErrInvalidNumOfArguments signals that invalid number of arguments has been provided
 var ErrInvalidNumOfArguments = errors.New("invalid number of arguments")

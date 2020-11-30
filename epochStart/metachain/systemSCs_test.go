@@ -161,7 +161,7 @@ func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
 func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsKey []byte, expectedOwner []byte) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.AuctionSCAddress,
+			CallerAddr: vm.ValidatorSCAddress,
 			Arguments:  [][]byte{blsKey},
 			CallValue:  big.NewInt(0),
 		},
@@ -192,7 +192,7 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 			CallValue:   big.NewInt(0).Mul(big.NewInt(int64(numBlsKeys)), nodePrice),
 			GasProvided: math.MaxUint64,
 		},
-		RecipientAddr: vm.AuctionSCAddress,
+		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
 	}
 
@@ -434,7 +434,6 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             5,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 			},

@@ -35,7 +35,7 @@ type ArgsNewGovernanceContract struct {
 	Hasher              hashing.Hasher
 	GovernanceSCAddress []byte
 	StakingSCAddress    []byte
-	AuctionSCAddress    []byte
+	ValidatorSCAddress  []byte
 	EpochNotifier       vm.EpochNotifier
 }
 
@@ -46,7 +46,7 @@ type governanceContract struct {
 	ownerAddress        []byte
 	governanceSCAddress []byte
 	stakingSCAddress    []byte
-	auctionSCAddress    []byte
+	validatorSCAddress  []byte
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
 	governanceConfig    config.GovernanceSystemSCConfig
@@ -82,7 +82,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		ownerAddress:        nil,
 		governanceSCAddress: args.GovernanceSCAddress,
 		stakingSCAddress:    args.StakingSCAddress,
-		auctionSCAddress:    args.AuctionSCAddress,
+		validatorSCAddress:  args.ValidatorSCAddress,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
@@ -795,19 +795,19 @@ func (g *governanceContract) revokeVotePower(_ *vmcommon.ContractCallInput) vmco
 }
 
 func (g *governanceContract) numOfStakedNodes(address []byte) (uint32, error) {
-	marshaledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
+	marshaledData := g.eei.GetStorageFromAddress(g.validatorSCAddress, address)
 	if len(marshaledData) == 0 {
 		return 0, nil
 	}
 
-	auctionData := &AuctionDataV2{}
-	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
+	validatorData := &ValidatorDataV2{}
+	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
 		return 0, err
 	}
 
 	numStakedNodes := uint32(0)
-	for _, blsKey := range auctionData.BlsPubKeys {
+	for _, blsKey := range validatorData.BlsPubKeys {
 		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
 		if len(marshaledData) == 0 {
 			continue

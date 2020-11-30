@@ -25,7 +25,7 @@ import (
 func createMockStakingScArguments() ArgsNewStakingSmartContract {
 	return ArgsNewStakingSmartContract{
 		Eei:                  &mock.SystemEIStub{},
-		StakingAccessAddr:    []byte("auction"),
+		StakingAccessAddr:    []byte("validator"),
 		JailAccessAddr:       []byte("jail"),
 		EndOfEpochAccessAddr: []byte("endOfEpoch"),
 		MinNumNodes:          1,
@@ -42,7 +42,6 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
 			MaxNumberOfNodesForStake:             10,
-			NodesToSelectInAuction:               100,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
 		},
@@ -53,7 +52,7 @@ func createMockStakingScArguments() ArgsNewStakingSmartContract {
 func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 	return &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  []byte("auction"),
+			CallerAddr:  []byte("validator"),
 			Arguments:   nil,
 			CallValue:   big.NewInt(0),
 			GasPrice:    0,
@@ -280,7 +279,7 @@ func TestStakingSC_ExecuteStake(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 	arguments.Arguments = [][]byte{stakerPubKey.Bytes(), stakerAddress.Bytes(), stakerAddress.Bytes()}
 	arguments.CallValue = big.NewInt(100)
 
@@ -431,7 +430,7 @@ func TestStakingSC_ExecuteUnStakeShouldErrorNotEnoughNodes(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
 	arguments.Arguments = [][]byte{[]byte("abc"), callerAddress}
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
 	stakingSmartContract.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
@@ -482,7 +481,7 @@ func TestStakingSC_ExecuteUnStake(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "unStake"
 	arguments.Arguments = [][]byte{[]byte("abc"), callerAddress}
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 	marshalizedExpectedRegData, _ := json.Marshal(&stakedRegistrationData)
 	stakingSmartContract.eei.SetStorage(arguments.Arguments[0], marshalizedExpectedRegData)
 	stakingSmartContract.setConfig(&StakingNodesConfig{MinNumNodes: 5, StakedNodes: 10})
@@ -600,7 +599,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: unstakedNonce,
-		RewardAddress: []byte("auction"),
+		RewardAddress: []byte("validator"),
 		StakeValue:    big.NewInt(100),
 		JailedRound:   math.MaxUint64,
 	}
@@ -632,7 +631,7 @@ func TestStakingSC_ExecuteUnBoundStillValidator(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 	arguments.Function = "unBond"
 	arguments.Arguments = [][]byte{[]byte("abc")}
 
@@ -652,7 +651,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 		RegisterNonce: 0,
 		Staked:        false,
 		UnStakedNonce: unstakedNonce,
-		RewardAddress: []byte("auction"),
+		RewardAddress: []byte("validator"),
 		StakeValue:    big.NewInt(100),
 		JailedRound:   math.MaxUint64,
 	}
@@ -674,7 +673,7 @@ func TestStakingSC_ExecuteUnBound(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 	arguments.Function = "unBond"
 	arguments.Arguments = [][]byte{[]byte("abc")}
 
@@ -840,7 +839,7 @@ func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Arguments = [][]byte{stakerPubKey, stakerAddress}
-	arguments.CallerAddr = []byte("auction")
+	arguments.CallerAddr = []byte("validator")
 
 	stakedRegistrationData := StakedDataV2_0{
 		RegisterNonce: 0,
@@ -933,7 +932,7 @@ func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
 		RegisterNonce: 50,
 		Staked:        true,
 		UnStakedNonce: 0,
-		RewardAddress: []byte("auction"),
+		RewardAddress: []byte("validator"),
 		StakeValue:    stakeValue,
 		JailedRound:   math.MaxUint64,
 		SlashValue:    big.NewInt(0),

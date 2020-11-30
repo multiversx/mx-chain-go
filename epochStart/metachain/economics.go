@@ -164,10 +164,9 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		TotalNewlyMinted:                 big.NewInt(0).Set(newTokens),
 		RewardsPerBlock:                  rwdPerBlock,
 		RewardsForProtocolSustainability: rewardsForProtocolSustainability,
-		// TODO: get actual nodePrice from auction smart contract (currently on another feature branch, and not all features enabled)
-		NodePrice:           big.NewInt(0).Set(prevEpochEconomics.NodePrice),
-		PrevEpochStartRound: prevEpochStart.GetRound(),
-		PrevEpochStartHash:  prevEpochStartHash,
+		NodePrice:                        big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		PrevEpochStartRound:              prevEpochStart.GetRound(),
+		PrevEpochStartHash:               prevEpochStartHash,
 	}
 
 	e.printEconomicsData(

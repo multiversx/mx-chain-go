@@ -25,7 +25,7 @@ type delegationManager struct {
 	eei                      vm.SystemEI
 	delegationMgrSCAddress   []byte
 	stakingSCAddr            []byte
-	auctionSCAddr            []byte
+	validatorSCAddr          []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
 	delegationMgrEnabled     atomic.Flag
@@ -44,7 +44,7 @@ type ArgsNewDelegationManager struct {
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
-	AuctionSCAddress       []byte
+	ValidatorSCAddress     []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	EpochNotifier          vm.EpochNotifier
@@ -58,8 +58,8 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	if len(args.StakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.AuctionSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	if len(args.ValidatorSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
@@ -84,7 +84,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	d := &delegationManager{
 		eei:                      args.Eei,
 		stakingSCAddr:            args.StakingSCAddress,
-		auctionSCAddr:            args.AuctionSCAddress,
+		validatorSCAddr:          args.ValidatorSCAddress,
 		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,

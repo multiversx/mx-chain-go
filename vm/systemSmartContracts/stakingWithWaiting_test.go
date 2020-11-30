@@ -20,7 +20,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForAuction()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(
@@ -45,7 +45,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnStake(t *testing.T) {
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.Eei = eei
 
-	sc, _ := NewStakingAuctionSmartContract(args)
+	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = stakerAddress
@@ -87,7 +87,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForAuction()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(
@@ -112,7 +112,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeWaitingUnBondFromWaiting(t *testing.T
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.Eei = eei
 
-	sc, _ := NewStakingAuctionSmartContract(args)
+	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = stakerAddress
@@ -170,7 +170,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	stakerPubKey := []byte("blsPubKey")
 
 	blockChainHook := &mock.BlockChainHookStub{}
-	args := createMockArgumentsForAuction()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(
@@ -195,7 +195,7 @@ func TestStakingWaitingSC_ExecuteStakeStakeUnStakeStakeUnstake(t *testing.T) {
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.Eei = eei
 
-	sc, _ := NewStakingAuctionSmartContract(args)
+	sc, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "stake"
 	arguments.CallerAddr = stakerAddress

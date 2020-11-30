@@ -9,77 +9,76 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 )
 
-func (s *stakingAuctionSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	ownerAddress := s.eei.GetStorage([]byte(ownerKey))
+func (v *validatorSC) setConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	ownerAddress := v.eei.GetStorage([]byte(ownerKey))
 	if !bytes.Equal(ownerAddress, args.CallerAddr) {
-		s.eei.AddReturnMessage("setConfig function was not called by the owner address")
+		v.eei.AddReturnMessage("setConfig function was not called by the owner address")
 		return vmcommon.UserError
 	}
 
-	if len(args.Arguments) != 7 {
+	if len(args.Arguments) != 6 {
 		retMessage := fmt.Sprintf("setConfig function called with wrong number of arguments expected %d, got %d", 7, len(args.Arguments))
-		s.eei.AddReturnMessage(retMessage)
+		v.eei.AddReturnMessage(retMessage)
 		return vmcommon.UserError
 	}
 
-	auctionConfig := &AuctionConfig{
+	validatorConfig := &ValidatorConfig{
 		MinStakeValue: big.NewInt(0).SetBytes(args.Arguments[0]),
-		NumNodes:      uint32(big.NewInt(0).SetBytes(args.Arguments[1]).Uint64()),
-		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[2]),
-		MinStep:       big.NewInt(0).SetBytes(args.Arguments[3]),
-		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[4]),
-		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[5]),
+		TotalSupply:   big.NewInt(0).SetBytes(args.Arguments[1]),
+		MinStep:       big.NewInt(0).SetBytes(args.Arguments[2]),
+		NodePrice:     big.NewInt(0).SetBytes(args.Arguments[3]),
+		UnJailPrice:   big.NewInt(0).SetBytes(args.Arguments[4]),
 	}
 
-	code := s.verifyConfig(auctionConfig)
+	code := v.verifyConfig(validatorConfig)
 	if code != vmcommon.Ok {
 		return code
 	}
 
-	configData, err := s.marshalizer.Marshal(auctionConfig)
+	configData, err := v.marshalizer.Marshal(validatorConfig)
 	if err != nil {
-		s.eei.AddReturnMessage("setConfig marshal auctionConfig error")
+		v.eei.AddReturnMessage("setConfig marshal validatorConfig error")
 		return vmcommon.UserError
 	}
 
-	epochBytes := args.Arguments[6]
-	s.eei.SetStorage(epochBytes, configData)
+	epochBytes := args.Arguments[5]
+	v.eei.SetStorage(epochBytes, configData)
 
 	return vmcommon.Ok
 }
 
-func (s *stakingAuctionSC) getConfig(epoch uint32) AuctionConfig {
+func (v *validatorSC) getConfig(epoch uint32) ValidatorConfig {
 	epochKey := big.NewInt(int64(epoch)).Bytes()
-	configData := s.eei.GetStorage(epochKey)
+	configData := v.eei.GetStorage(epochKey)
 	if len(configData) == 0 {
-		return s.baseConfig
+		return v.baseConfig
 	}
 
-	auctionConfig := &AuctionConfig{}
-	err := s.marshalizer.Unmarshal(auctionConfig, configData)
+	validatorConfig := &ValidatorConfig{}
+	err := v.marshalizer.Unmarshal(validatorConfig, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
 		)
-		return s.baseConfig
+		return v.baseConfig
 	}
 
-	if s.checkConfigCorrectness(*auctionConfig) != nil {
-		baseConfigData, errMarshal := s.marshalizer.Marshal(&s.baseConfig)
+	if v.checkConfigCorrectness(*validatorConfig) != nil {
+		baseConfigData, errMarshal := v.marshalizer.Marshal(&v.baseConfig)
 		if errMarshal != nil {
 			log.Warn("marshal error on getConfig function, returning baseConfig", "error", errMarshal)
-			return s.baseConfig
+			return v.baseConfig
 		}
-		s.eei.SetStorage(epochKey, baseConfigData)
-		return s.baseConfig
+		v.eei.SetStorage(epochKey, baseConfigData)
+		return v.baseConfig
 	}
 
-	return *auctionConfig
+	return *validatorConfig
 }
 
-func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionDataV2, error) {
-	data := s.eei.GetStorage(key)
-	registrationData := &AuctionDataV2{
+func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2, error) {
+	data := v.eei.GetStorage(key)
+	registrationData := &ValidatorDataV2{
 		RewardAddress:   nil,
 		RegisterNonce:   0,
 		Epoch:           0,
@@ -92,9 +91,9 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 	}
 
 	if len(data) > 0 {
-		err := s.marshalizer.Unmarshal(registrationData, data)
+		err := v.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
-			log.Debug("unmarshal error on auction SC stake function",
+			log.Debug("unmarshal error on validator SC stake function",
 				"error", err.Error(),
 			)
 			return nil, err
@@ -104,12 +103,12 @@ func (s *stakingAuctionSC) getOrCreateRegistrationData(key []byte) (*AuctionData
 	return registrationData, nil
 }
 
-func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionDataV2) error {
-	if !s.flagEnableTopUp.IsSet() {
-		return s.saveRegistrationDataV1(key, auction)
+func (v *validatorSC) saveRegistrationData(key []byte, validator *ValidatorDataV2) error {
+	if !v.flagEnableTopUp.IsSet() {
+		return v.saveRegistrationDataV1(key, validator)
 	}
 
-	data, err := s.marshalizer.Marshal(auction)
+	data, err := v.marshalizer.Marshal(validator)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function in saveRegistrationData",
 			"error", err.Error(),
@@ -117,23 +116,23 @@ func (s *stakingAuctionSC) saveRegistrationData(key []byte, auction *AuctionData
 		return err
 	}
 
-	s.eei.SetStorage(key, data)
+	v.eei.SetStorage(key, data)
 	return nil
 }
 
-func (s *stakingAuctionSC) saveRegistrationDataV1(key []byte, auction *AuctionDataV2) error {
-	auctionDataV1 := &AuctionDataV1{
-		RegisterNonce:   auction.RegisterNonce,
-		Epoch:           auction.Epoch,
-		RewardAddress:   auction.RewardAddress,
-		TotalStakeValue: auction.TotalStakeValue,
-		LockedStake:     auction.LockedStake,
-		MaxStakePerNode: auction.MaxStakePerNode,
-		BlsPubKeys:      auction.BlsPubKeys,
-		NumRegistered:   auction.NumRegistered,
+func (v *validatorSC) saveRegistrationDataV1(key []byte, validator *ValidatorDataV2) error {
+	validatorDataV1 := &ValidatorDataV2{
+		RegisterNonce:   validator.RegisterNonce,
+		Epoch:           validator.Epoch,
+		RewardAddress:   validator.RewardAddress,
+		TotalStakeValue: validator.TotalStakeValue,
+		LockedStake:     validator.LockedStake,
+		MaxStakePerNode: validator.MaxStakePerNode,
+		BlsPubKeys:      validator.BlsPubKeys,
+		NumRegistered:   validator.NumRegistered,
 	}
 
-	data, err := s.marshalizer.Marshal(auctionDataV1)
+	data, err := v.marshalizer.Marshal(validatorDataV1)
 	if err != nil {
 		log.Debug("marshal error on staking SC stake function in saveRegistrationDataV1",
 			"error", err.Error(),
@@ -141,12 +140,12 @@ func (s *stakingAuctionSC) saveRegistrationDataV1(key []byte, auction *AuctionDa
 		return err
 	}
 
-	s.eei.SetStorage(key, data)
+	v.eei.SetStorage(key, data)
 	return nil
 }
 
-func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
-	data := s.eei.GetStorageFromAddress(s.stakingSCAddress, key)
+func (v *validatorSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
+	data := v.eei.GetStorageFromAddress(v.stakingSCAddress, key)
 	stakedData := &StakedDataV2_0{
 		RegisterNonce: 0,
 		Staked:        false,
@@ -158,9 +157,9 @@ func (s *stakingAuctionSC) getStakedData(key []byte) (*StakedDataV2_0, error) {
 	}
 
 	if len(data) > 0 {
-		err := s.marshalizer.Unmarshal(stakedData, data)
+		err := v.marshalizer.Unmarshal(stakedData, data)
 		if err != nil {
-			log.Debug("unmarshal error on auction SC getStakedData function",
+			log.Debug("unmarshal error on validator SC getStakedData function",
 				"error", err.Error(),
 			)
 			return nil, err

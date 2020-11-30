@@ -175,7 +175,7 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.AuctionSCAddress,
+			CallerAddr: vm.ValidatorSCAddress,
 			Arguments:  [][]byte{blsKey},
 			CallValue:  big.NewInt(0),
 		},
@@ -238,7 +238,7 @@ func (sdp *stakingDataProvider) getTopUpValueAndTotalStaked(validatorAddress str
 			CallValue:   big.NewInt(0),
 			GasProvided: math.MaxUint64,
 		},
-		RecipientAddr: vm.AuctionSCAddress,
+		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "getTopUpTotalStaked",
 	}
 
