@@ -135,10 +135,10 @@ func signTransaction(t *testing.T, senderSeedHex string, tx *Transaction) []byte
 	privateKey, err := keyGenerator.PrivateKeyFromByteArray(senderSeed)
 	require.Nil(t, err)
 
-	jsonToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer)
+	dataToSign, err := tx.GetDataForSigning(addressEncoder, signingMarshalizer)
 	require.Nil(t, err)
 
-	signature, err := signer.Sign(privateKey, jsonToSign)
+	signature, err := signer.Sign(privateKey, dataToSign)
 	require.Nil(t, err)
 
 	return signature
