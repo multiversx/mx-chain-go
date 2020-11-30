@@ -172,6 +172,7 @@ func getAddressOfPubkey(pubkey []byte) string {
 
 func computeTransactionHash(tx *Transaction) []byte {
 	data := marshalTransactionToProto(tx)
-	txHash := (&blake2b.Blake2b{}).Compute(string(data))
+	hasher := &blake2b.Blake2b{}
+	txHash := hasher.Compute(string(data))
 	return txHash
 }
