@@ -1041,18 +1041,15 @@ func (v *validatorSC) updateRegistrationDataAfterUnBond(
 	unBondedKeys [][]byte,
 	callerAddr []byte,
 ) vmcommon.ReturnCode {
-	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
-		v.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
-		return vmcommon.UserError
-	}
-
 	if registrationData.NumRegistered < uint32(len(unBondedKeys)) {
 		v.eei.AddReturnMessage("contract error on unBond function, missing nodes")
 		return vmcommon.UserError
 	}
 
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	registrationData.NumRegistered -= uint32(len(unBondedKeys))
-	registrationData.LockedStake.Sub(registrationData.LockedStake, totalUnBond)
+	registrationData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+
 	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, totalUnBond)
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("contract error on unBond function, total stake < 0")
@@ -1368,8 +1365,13 @@ func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmco
 		v.eei.AddReturnMessage("caller not registered in staking/validator sc")
 		return vmcommon.UserError
 	}
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	stakeForNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
-	topUp.Sub(topUp, registrationData.LockedStake)
+	topUp.Sub(topUp, stakeForNodes)
+
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")
 		return vmcommon.UserError
