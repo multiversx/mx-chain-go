@@ -313,7 +313,7 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 	argsStaking.Eei = eei
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
-	argsValidator := createMockArgumentsForValidator()
+	argsValidator := createMockArgumentsForValidatorSC()
 	argsValidator.Eei = eei
 	validatorSC, _ := NewValidatorSmartContract(argsValidator)
 
