@@ -1059,7 +1059,7 @@ func (v *validatorSC) updateRegistrationDataAfterUnBond(
 		return vmcommon.UserError
 	}
 
-	if registrationData.LockedStake.Cmp(zero) == 0 && registrationData.TotalStakeValue.Cmp(zero) == 0 {
+	if registrationData.TotalStakeValue.Cmp(zero) == 0 {
 		v.eei.SetStorage(callerAddr, nil)
 	} else {
 		v.deleteUnBondedKeys(registrationData, unBondedKeys)
@@ -1149,16 +1149,15 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	maxValUnstake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(maxValUnstake) == 0
+	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(registrationData.TotalStakeValue) == 0
 	if !unstakeValueIsOk {
 		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
 			"is not the value left to be unStaked")
 		return vmcommon.UserError
 	}
-	if unStakeValue.Cmp(maxValUnstake) > 0 {
-		v.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + maxValUnstake.String())
+	if unStakeValue.Cmp(registrationData.TotalStakeValue) > 0 {
+		v.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + registrationData.TotalStakeValue.String())
 		return vmcommon.UserError
 	}
 
