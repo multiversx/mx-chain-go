@@ -27,5 +27,6 @@ type ContextFlagsConfig struct {
 	Version                          string
 	IsInImportMode                   bool
 	ImportDbNoSigCheckFlag           bool
+	ImportDbDirectory                string
 	ElasticSearchTemplatesPath       string
 }

@@ -3,6 +3,7 @@ package pruning
 import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
 func (ps *PruningStorer) ChangeEpoch(hdr data.HeaderHandler) error {
@@ -31,6 +32,10 @@ func (ps *PruningStorer) GetActivePersistersEpochs() []uint32 {
 	}
 
 	return sliceToRet
+}
+
+func (ps *FullHistoryPruningStorer) GetOldEpochsActivePersisters() storage.Cacher {
+	return ps.oldEpochsActivePersistersCache
 }
 
 func RemoveDirectoryIfEmpty(path string) {
