@@ -211,7 +211,7 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
+		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -223,7 +223,7 @@ func TestNodeFacade_GetTransactionWithValidInputsShouldNotReturnError(t *testing
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	tx, err := nf.GetTransaction(testHash)
+	tx, err := nf.GetTransaction(testHash, false)
 	assert.Nil(t, err)
 	assert.Equal(t, testTx, tx)
 }
@@ -246,7 +246,7 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	testHash := "testHash"
 	testTx := &transaction.ApiTransactionResult{}
 	node := &mock.NodeStub{
-		GetTransactionHandler: func(hash string) (*transaction.ApiTransactionResult, error) {
+		GetTransactionHandler: func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
 			if hash == testHash {
 				return testTx, nil
 			}
@@ -258,7 +258,7 @@ func TestNodeFacade_GetTransactionWithUnknowHashShouldReturnNilAndNoError(t *tes
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	tx, err := nf.GetTransaction("unknownHash")
+	tx, err := nf.GetTransaction("unknownHash", false)
 	assert.Nil(t, err)
 	assert.Nil(t, tx)
 }
@@ -489,7 +489,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 
 	nodeCreateTxWasCalled := false
 	node := &mock.NodeStub{
-		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _ uint32) (*transaction.Transaction, []byte, error) {
+		CreateTransactionHandler: func(_ uint64, _ string, _ string, _ string, _ uint64, _ uint64, _ []byte, _ string, _ string, _, _ uint32) (*transaction.Transaction, []byte, error) {
 			nodeCreateTxWasCalled = true
 			return nil, nil, nil
 		},
@@ -498,7 +498,7 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0", "chainID", 1)
+	_, _, _ = nf.CreateTransaction(0, "0", "0", "0", 0, 0, []byte("0"), "0", "chainID", 1, 0)
 
 	assert.True(t, nodeCreateTxWasCalled)
 }

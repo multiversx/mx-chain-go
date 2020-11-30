@@ -30,7 +30,8 @@ func TestPrepareEpochFromStorage(t *testing.T) {
 func TestGetEpochStartMetaFromStorage(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
 	epochStartProvider.initializeFromLocalStorage()
 
 	meta := &block.MetaBlock{Nonce: 1}

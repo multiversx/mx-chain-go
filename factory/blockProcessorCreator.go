@@ -628,6 +628,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		DataPool:                      pcf.data.Datapool(),
 		ProtocolSustainabilityAddress: pcf.economicsData.ProtocolSustainabilityAddress(),
 		NodesConfigProvider:           pcf.nodesCoordinator,
+		RewardsFix1EpochEnable:        generalSettingsConfig.SwitchJailWaitingEnableEpoch,
 	}
 	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
 	if err != nil {

@@ -43,6 +43,7 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 			Enabled:                          true,
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 300,
+			Type:                             "legacy",
 		},
 		Sharding: config.ShardingConfig{
 			Type: p2p.ListsSharder,
@@ -62,7 +63,34 @@ func TestNewPeerDiscoverer_ListsSharderShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewPeerDiscoverer_UnknownShouldErr(t *testing.T) {
+func TestNewPeerDiscoverer_OptimizedKadDhtShouldWork(t *testing.T) {
+	t.Parallel()
+
+	p2pConfig := config.P2PConfig{
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 300,
+			Type:                             "optimized",
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.ListsSharder,
+		},
+	}
+
+	pDiscoverer, err := factory.NewPeerDiscoverer(
+		context.Background(),
+		&mock.ConnectableHostStub{},
+		&mock.SharderStub{},
+		p2pConfig,
+	)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, pDiscoverer)
+	assert.Equal(t, "optimized kad-dht discovery", pDiscoverer.Name())
+}
+
+func TestNewPeerDiscoverer_UnknownSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	p2pConfig := config.P2PConfig{
@@ -84,4 +112,30 @@ func TestNewPeerDiscoverer_UnknownShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(pDiscoverer))
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+}
+
+func TestNewPeerDiscoverer_UnknownKadDhtShouldErr(t *testing.T) {
+	t.Parallel()
+
+	p2pConfig := config.P2PConfig{
+		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
+			Enabled:                          true,
+			RefreshIntervalInSec:             1,
+			RoutingTableRefreshIntervalInSec: 300,
+			Type:                             "unknown",
+		},
+		Sharding: config.ShardingConfig{
+			Type: p2p.ListsSharder,
+		},
+	}
+
+	pDiscoverer, err := factory.NewPeerDiscoverer(
+		context.Background(),
+		&mock.ConnectableHostStub{},
+		&mock.SharderStub{},
+		p2pConfig,
+	)
+
+	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
+	assert.True(t, check.IfNil(pDiscoverer))
 }
