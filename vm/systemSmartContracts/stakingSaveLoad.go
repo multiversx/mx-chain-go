@@ -7,32 +7,32 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 )
 
-func (r *stakingSC) getConfig() *StakingNodesConfig {
+func (s *stakingSC) getConfig() *StakingNodesConfig {
 	stakeConfig := &StakingNodesConfig{
-		MinNumNodes: int64(r.minNumNodes),
-		MaxNumNodes: int64(r.maxNumNodes),
+		MinNumNodes: int64(s.minNumNodes),
+		MaxNumNodes: int64(s.maxNumNodes),
 	}
-	configData := r.eei.GetStorage([]byte(nodesConfigKey))
+	configData := s.eei.GetStorage([]byte(nodesConfigKey))
 	if len(configData) == 0 {
 		return stakeConfig
 	}
 
-	err := r.marshalizer.Unmarshal(stakeConfig, configData)
+	err := s.marshalizer.Unmarshal(stakeConfig, configData)
 	if err != nil {
 		log.Warn("unmarshal error on getConfig function, returning baseConfig",
 			"error", err.Error(),
 		)
 		return &StakingNodesConfig{
-			MinNumNodes: int64(r.minNumNodes),
-			MaxNumNodes: int64(r.maxNumNodes),
+			MinNumNodes: int64(s.minNumNodes),
+			MaxNumNodes: int64(s.maxNumNodes),
 		}
 	}
 
 	return stakeConfig
 }
 
-func (r *stakingSC) setConfig(config *StakingNodesConfig) {
-	configData, err := r.marshalizer.Marshal(config)
+func (s *stakingSC) setConfig(config *StakingNodesConfig) {
+	configData, err := s.marshalizer.Marshal(config)
 	if err != nil {
 		log.Warn("marshal error on setConfig function",
 			"error", err.Error(),
@@ -40,10 +40,10 @@ func (r *stakingSC) setConfig(config *StakingNodesConfig) {
 		return
 	}
 
-	r.eei.SetStorage([]byte(nodesConfigKey), configData)
+	s.eei.SetStorage([]byte(nodesConfigKey), configData)
 }
 
-func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, error) {
+func (s *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, error) {
 	registrationData := &StakedDataV2_0{
 		RegisterNonce: 0,
 		Staked:        false,
@@ -58,9 +58,9 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, erro
 		SlashValue:    big.NewInt(0),
 	}
 
-	data := r.eei.GetStorage(key)
+	data := s.eei.GetStorage(key)
 	if len(data) > 0 {
-		err := r.marshalizer.Unmarshal(registrationData, data)
+		err := s.marshalizer.Unmarshal(registrationData, data)
 		if err != nil {
 			log.Debug("unmarshal error on staking SC stake function",
 				"error", err.Error(),
@@ -75,15 +75,15 @@ func (r *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, erro
 	return registrationData, nil
 }
 
-func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) error {
-	if !r.flagEnableStaking.IsSet() {
-		return r.saveAsStakingDataV1P0(key, stakedData)
+func (s *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) error {
+	if !s.flagEnableStaking.IsSet() {
+		return s.saveAsStakingDataV1P0(key, stakedData)
 	}
-	if !r.flagStakingV2.IsSet() {
-		return r.saveAsStakingDataV1P1(key, stakedData)
+	if !s.flagStakingV2.IsSet() {
+		return s.saveAsStakingDataV1P1(key, stakedData)
 	}
 
-	data, err := r.marshalizer.Marshal(stakedData)
+	data, err := s.marshalizer.Marshal(stakedData)
 	if err != nil {
 		log.Debug("marshal error in saveStakingData ",
 			"error", err.Error(),
@@ -91,11 +91,11 @@ func (r *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) erro
 		return err
 	}
 
-	r.eei.SetStorage(key, data)
+	s.eei.SetStorage(key, data)
 	return nil
 }
 
-func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2_0) error {
+func (s *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2_0) error {
 	stakedDataV1 := &StakedDataV1_0{
 		RegisterNonce: stakedData.RegisterNonce,
 		StakedNonce:   stakedData.StakedNonce,
@@ -111,7 +111,7 @@ func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2_0
 		Waiting:       stakedData.Waiting,
 	}
 
-	data, err := r.marshalizer.Marshal(stakedDataV1)
+	data, err := s.marshalizer.Marshal(stakedDataV1)
 	if err != nil {
 		log.Debug("marshal error in saveAsStakingDataV1P0 ",
 			"error", err.Error(),
@@ -119,11 +119,11 @@ func (r *stakingSC) saveAsStakingDataV1P0(key []byte, stakedData *StakedDataV2_0
 		return err
 	}
 
-	r.eei.SetStorage(key, data)
+	s.eei.SetStorage(key, data)
 	return nil
 }
 
-func (r *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2_0) error {
+func (s *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2_0) error {
 	stakedDataV1 := &StakedDataV1_1{
 		RegisterNonce: stakedData.RegisterNonce,
 		StakedNonce:   stakedData.StakedNonce,
@@ -141,7 +141,7 @@ func (r *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2_0
 		SlashValue:    stakedData.SlashValue,
 	}
 
-	data, err := r.marshalizer.Marshal(stakedDataV1)
+	data, err := s.marshalizer.Marshal(stakedDataV1)
 	if err != nil {
 		log.Debug("marshal error in saveAsStakingDataV1P1 ",
 			"error", err.Error(),
@@ -149,6 +149,6 @@ func (r *stakingSC) saveAsStakingDataV1P1(key []byte, stakedData *StakedDataV2_0
 		return err
 	}
 
-	r.eei.SetStorage(key, data)
+	s.eei.SetStorage(key, data)
 	return nil
 }

@@ -100,6 +100,13 @@ func (v *validatorSC) getOrCreateRegistrationData(key []byte) (*ValidatorDataV2,
 		}
 	}
 
+	if registrationData.TotalUnstaked == nil {
+		registrationData.TotalUnstaked = big.NewInt(0)
+	}
+	if registrationData.UnstakedInfo == nil {
+		registrationData.UnstakedInfo = make([]*UnstakedValue, 0)
+	}
+
 	return registrationData, nil
 }
 
