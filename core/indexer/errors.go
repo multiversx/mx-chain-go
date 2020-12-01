@@ -10,7 +10,7 @@ var ErrNilDataDispatcher = errors.New("nil data dispatcher")
 // ErrNilElasticProcessor signals that an operation has been attempted to or with a nil elastic processor implementation
 var ErrNilElasticProcessor = errors.New("nil elastic processor")
 
-// ErrNegativeCacheSize signals that a invalid cache size has been provided
+// ErrNegativeCacheSize signals that an invalid cache size has been provided
 var ErrNegativeCacheSize = errors.New("negative cache size")
 
 // ErrEmptyEnabledIndexes signals that an empty slice of enables indexes has been provided
