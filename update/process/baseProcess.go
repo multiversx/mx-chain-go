@@ -57,20 +57,12 @@ func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, e
 			return nil, update.ErrMiniBlockNotFoundInImportedMap
 		}
 
-		numPendingTransactions += len(miniBlock.TxHashes)
-		txsInfo := make([]*update.TxInfo, len(miniBlock.TxHashes))
-		for txIndex, txHash := range miniBlock.TxHashes {
-			tx, transactionFound := importedTransactionsMap[string(txHash)]
-			if !transactionFound {
-				return nil, update.ErrTransactionNotFoundInImportedMap
-			}
-
-			txsInfo[txIndex] = &update.TxInfo{
-				TxHash: txHash,
-				Tx:     tx,
-			}
+		txsInfo, err := b.getTxsInfoFromMiniBlock(miniBlock, importedTransactionsMap)
+		if err != nil {
+			return nil, err
 		}
 
+		numPendingTransactions += len(miniBlock.TxHashes)
 		mbsInfo[mbIndex] = &update.MbInfo{
 			MbHash:          pendingMiniBlock.Hash,
 			SenderShardID:   pendingMiniBlock.SenderShardID,
@@ -85,6 +77,26 @@ func (b *baseProcessor) getPendingMbsAndTxsInCorrectOrder() ([]*update.MbInfo, e
 	}
 
 	return mbsInfo, nil
+}
+
+func (b *baseProcessor) getTxsInfoFromMiniBlock(
+	miniBlock *block.MiniBlock,
+	mapHashTx map[string]data.TransactionHandler,
+) ([]*update.TxInfo, error) {
+	txsInfo := make([]*update.TxInfo, len(miniBlock.TxHashes))
+	for txIndex, txHash := range miniBlock.TxHashes {
+		tx, transactionFound := mapHashTx[string(txHash)]
+		if !transactionFound {
+			return nil, update.ErrTransactionNotFoundInImportedMap
+		}
+
+		txsInfo[txIndex] = &update.TxInfo{
+			TxHash: txHash,
+			Tx:     tx,
+		}
+	}
+
+	return txsInfo, nil
 }
 
 // CreatePostMiniBlocks will create all the post miniBlocks from the given miniBlocks info
@@ -200,7 +212,7 @@ func (b *baseProcessor) saveAllBlockDataToStorageForSelfShard(
 		log.Warn("saveAllBlockDataToStorageForSelfShard", "error", update.ErrNilHeaderHandler)
 		return
 	}
-	if body == nil {
+	if check.IfNil(body) {
 		log.Warn("saveAllBlockDataToStorageForSelfShard", "error", update.ErrNilBlockBody)
 		return
 	}

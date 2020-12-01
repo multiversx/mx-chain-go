@@ -275,26 +275,20 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 
 		args := update.ArgsHardForkProcessor{
-			Hasher:      gbc.arg.Hasher,
-			Marshalizer: gbc.arg.Marshalizer,
-			ShardIDs:    shardIDs,
+			Hasher:                    gbc.arg.Hasher,
+			Marshalizer:               gbc.arg.Marshalizer,
+			ShardIDs:                  shardIDs,
+			MapBodies:                 mapBodies,
+			MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 		}
 
-		lastPostMbs, err = update.CreateBody(
-			args,
-			mapBodies,
-			mapHardForkBlockProcessor,
-		)
+		lastPostMbs, err = update.CreateBody(args)
 		if err != nil {
 			return nil, err
 		}
 
-		err = update.CreatePostMiniBlocks(
-			args,
-			lastPostMbs,
-			mapBodies,
-			mapHardForkBlockProcessor,
-		)
+		args.PostMbs = lastPostMbs
+		err = update.CreatePostMiniBlocks(args)
 		if err != nil {
 			return nil, err
 		}

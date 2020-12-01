@@ -21,11 +21,7 @@ func TestCreateBody_ShouldErrNilHardForkBlockProcessor(t *testing.T) {
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
 	}
-	_, err := update.CreateBody(
-		args,
-		nil,
-		nil,
-	)
+	_, err := update.CreateBody(args)
 	assert.Equal(t, update.ErrNilHardForkBlockProcessor, err)
 }
 
@@ -46,15 +42,12 @@ func TestCreateBody_ShouldErrWhenCreateBodyFails(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    &mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	_, err := update.CreateBody(
-		args,
-		nil,
-		mapHardForkBlockProcessor,
-	)
+	_, err := update.CreateBody(args)
 	assert.Equal(t, errExpected, err)
 }
 
@@ -75,15 +68,13 @@ func TestCreateBody_ShouldErrWhenCleanDuplicatesFails(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      nil,
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    nil,
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		MapBodies:                 mapBodies,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	_, err := update.CreateBody(
-		args,
-		mapBodies,
-		mapHardForkBlockProcessor,
-	)
+	_, err := update.CreateBody(args)
 	assert.Equal(t, update.ErrNilHasher, err)
 }
 
@@ -136,15 +127,13 @@ func TestCreateBody_ShouldWork(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    &mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		MapBodies:                 mapBodies,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	postMbs, err := update.CreateBody(
-		args,
-		mapBodies,
-		mapHardForkBlockProcessor,
-	)
+	postMbs, err := update.CreateBody(args)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapBodies))
 	require.Equal(t, 2, len(postMbs))
@@ -164,13 +153,9 @@ func TestCreatePostMiniBlocks_ShouldErrNilHardForkBlockProcessor(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
+		PostMbs:     lastPostMbs,
 	}
-	err := update.CreatePostMiniBlocks(
-		args,
-		lastPostMbs,
-		nil,
-		nil,
-	)
+	err := update.CreatePostMiniBlocks(args)
 	assert.Equal(t, update.ErrNilHardForkBlockProcessor, err)
 }
 
@@ -194,16 +179,13 @@ func TestCreatePostMiniBlocks_ShouldErrWhenCreatePostMiniBlocksFails(t *testing.
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    &mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		PostMbs:                   lastPostMbs,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	err := update.CreatePostMiniBlocks(
-		args,
-		lastPostMbs,
-		nil,
-		mapHardForkBlockProcessor,
-	)
+	err := update.CreatePostMiniBlocks(args)
 	assert.Equal(t, errExpected, err)
 }
 
@@ -226,16 +208,13 @@ func TestCreatePostMiniBlocks_ShouldErrNilBlockBody(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    &mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		PostMbs:                   lastPostMbs,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	err := update.CreatePostMiniBlocks(
-		args,
-		lastPostMbs,
-		nil,
-		mapHardForkBlockProcessor,
-	)
+	err := update.CreatePostMiniBlocks(args)
 	assert.Equal(t, update.ErrNilBlockBody, err)
 }
 
@@ -265,16 +244,14 @@ func TestCreatePostMiniBlocks_ShouldErrWhenCleanDuplicatesFails(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      nil,
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    nil,
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		PostMbs:                   lastPostMbs,
+		MapBodies:                 mapBodies,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	err := update.CreatePostMiniBlocks(
-		args,
-		lastPostMbs,
-		mapBodies,
-		mapHardForkBlockProcessor,
-	)
+	err := update.CreatePostMiniBlocks(args)
 	assert.Equal(t, update.ErrNilHasher, err)
 }
 
@@ -366,16 +343,14 @@ func TestCreatePostMiniBlocks_ShouldWork(t *testing.T) {
 	}
 
 	args := update.ArgsHardForkProcessor{
-		Hasher:      &mock.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
-		ShardIDs:    shardIDs,
+		Hasher:                    &mock.HasherMock{},
+		Marshalizer:               &mock.MarshalizerMock{},
+		ShardIDs:                  shardIDs,
+		PostMbs:                   lastPostMbs,
+		MapBodies:                 mapBodies,
+		MapHardForkBlockProcessor: mapHardForkBlockProcessor,
 	}
-	err := update.CreatePostMiniBlocks(
-		args,
-		lastPostMbs,
-		mapBodies,
-		mapHardForkBlockProcessor,
-	)
+	err := update.CreatePostMiniBlocks(args)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapBodies))
 
@@ -403,8 +378,10 @@ func TestCleanDuplicates_ShouldErrNilHasher(t *testing.T) {
 		Hasher:      nil,
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
+		MapBodies:   mapBodies,
+		PostMbs:     postMbs,
 	}
-	_, err := update.CleanDuplicates(args, mapBodies, postMbs)
+	_, err := update.CleanDuplicates(args)
 	assert.Equal(t, update.ErrNilHasher, err)
 }
 
@@ -423,8 +400,10 @@ func TestCleanDuplicates_ShouldErrNilMarshalizer(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: nil,
 		ShardIDs:    shardIDs,
+		MapBodies:   mapBodies,
+		PostMbs:     postMbs,
 	}
-	_, err := update.CleanDuplicates(args, mapBodies, postMbs)
+	_, err := update.CleanDuplicates(args)
 	assert.Equal(t, update.ErrNilMarshalizer, err)
 }
 
@@ -439,8 +418,9 @@ func TestCleanDuplicates_ShouldErrNilBlockBody(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
+		PostMbs:     postMbs,
 	}
-	_, err := update.CleanDuplicates(args, nil, postMbs)
+	_, err := update.CleanDuplicates(args)
 	assert.Equal(t, update.ErrNilBlockBody, err)
 }
 
@@ -463,8 +443,10 @@ func TestCleanDuplicates_ShouldErrWhenCalculateHashFails(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{Fail: true},
 		ShardIDs:    shardIDs,
+		MapBodies:   mapBodies,
+		PostMbs:     postMbs,
 	}
-	_, err := update.CleanDuplicates(args, mapBodies, postMbs)
+	_, err := update.CleanDuplicates(args)
 	assert.NotNil(t, err)
 }
 
@@ -504,8 +486,10 @@ func TestCleanDuplicates_ShouldWork(t *testing.T) {
 		Hasher:      &mock.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		ShardIDs:    shardIDs,
+		MapBodies:   mapBodies,
+		PostMbs:     postMbs,
 	}
-	cleanedMbs, err := update.CleanDuplicates(args, mapBodies, postMbs)
+	cleanedMbs, err := update.CleanDuplicates(args)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(cleanedMbs))
 	assert.Equal(t, cleanedMbs[0].MbHash, []byte("hash1"))

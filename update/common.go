@@ -29,9 +29,12 @@ type TxInfo struct {
 
 // ArgsHardForkProcessor defines the arguments structure needed by hardfork processor methods
 type ArgsHardForkProcessor struct {
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
-	ShardIDs    []uint32
+	Hasher                    hashing.Hasher
+	Marshalizer               marshal.Marshalizer
+	ShardIDs                  []uint32
+	MapBodies                 map[uint32]*block.Body
+	MapHardForkBlockProcessor map[uint32]HardForkBlockProcessor
+	PostMbs                   []*MbInfo
 }
 
 // GetPendingMiniBlocks get all the pending miniBlocks from epoch start metaBlock and unFinished metaBlocks
@@ -136,14 +139,10 @@ func getAllMiniBlocksWithDst(metaBlock *block.MetaBlock, destShardID uint32) []b
 }
 
 // CreateBody will create a block body after hardfork import
-func CreateBody(
-	args ArgsHardForkProcessor,
-	mapBodies map[uint32]*block.Body,
-	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
-) ([]*MbInfo, error) {
+func CreateBody(args ArgsHardForkProcessor) ([]*MbInfo, error) {
 	allPostMbs := make([]*MbInfo, 0)
 	for _, shardID := range args.ShardIDs {
-		hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
+		hardForkBlockProcessor, ok := args.MapHardForkBlockProcessor[shardID]
 		if !ok {
 			return nil, ErrNilHardForkBlockProcessor
 		}
@@ -159,36 +158,32 @@ func CreateBody(
 		)
 
 		allPostMbs = append(allPostMbs, postMbs...)
-		mapBodies[shardID] = body
+		args.MapBodies[shardID] = body
 	}
 
-	return CleanDuplicates(args, mapBodies, allPostMbs)
+	args.PostMbs = allPostMbs
+	return CleanDuplicates(args)
 }
 
 // CreatePostMiniBlocks will create all the post miniBlocks after hardfork import
-func CreatePostMiniBlocks(
-	args ArgsHardForkProcessor,
-	lastPostMbs []*MbInfo,
-	mapBodies map[uint32]*block.Body,
-	mapHardForkBlockProcessor map[uint32]HardForkBlockProcessor,
-) error {
+func CreatePostMiniBlocks(args ArgsHardForkProcessor) error {
 	var err error
-	numPostMbs := len(lastPostMbs)
+	numPostMbs := len(args.PostMbs)
 	for numPostMbs > 0 {
 		log.Debug("CreatePostBodies", "numPostMbs", numPostMbs)
 		currentPostMbs := make([]*MbInfo, 0)
 		for _, shardID := range args.ShardIDs {
-			hardForkBlockProcessor, ok := mapHardForkBlockProcessor[shardID]
+			hardForkBlockProcessor, ok := args.MapHardForkBlockProcessor[shardID]
 			if !ok {
 				return ErrNilHardForkBlockProcessor
 			}
 
-			postBody, postMbs, err := hardForkBlockProcessor.CreatePostMiniBlocks(lastPostMbs)
+			postBody, postMbs, err := hardForkBlockProcessor.CreatePostMiniBlocks(args.PostMbs)
 			if err != nil {
 				return err
 			}
 
-			currentBody, ok := mapBodies[shardID]
+			currentBody, ok := args.MapBodies[shardID]
 			if !ok {
 				return ErrNilBlockBody
 			}
@@ -202,26 +197,23 @@ func CreatePostMiniBlocks(
 
 			currentBody.MiniBlocks = append(currentBody.MiniBlocks, postBody.MiniBlocks...)
 			currentPostMbs = append(currentPostMbs, postMbs...)
-			mapBodies[shardID] = currentBody
+			args.MapBodies[shardID] = currentBody
 		}
 
-		lastPostMbs, err = CleanDuplicates(args, mapBodies, currentPostMbs)
+		args.PostMbs = currentPostMbs
+		args.PostMbs, err = CleanDuplicates(args)
 		if err != nil {
 			return err
 		}
 
-		numPostMbs = len(lastPostMbs)
+		numPostMbs = len(args.PostMbs)
 	}
 
 	return nil
 }
 
 // CleanDuplicates cleans from the post miniBlocks map, the already existing miniBlocks in bodies map
-func CleanDuplicates(
-	args ArgsHardForkProcessor,
-	mapBodies map[uint32]*block.Body,
-	postMbs []*MbInfo,
-) ([]*MbInfo, error) {
+func CleanDuplicates(args ArgsHardForkProcessor) ([]*MbInfo, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
@@ -231,7 +223,7 @@ func CleanDuplicates(
 
 	mapMiniBlocksHashes := make(map[string]struct{})
 	for _, shardID := range args.ShardIDs {
-		currentBody, ok := mapBodies[shardID]
+		currentBody, ok := args.MapBodies[shardID]
 		if !ok {
 			return nil, ErrNilBlockBody
 		}
@@ -247,7 +239,7 @@ func CleanDuplicates(
 	}
 
 	cleanedPostMbs := make([]*MbInfo, 0)
-	for _, postMb := range postMbs {
+	for _, postMb := range args.PostMbs {
 		_, ok := mapMiniBlocksHashes[string(postMb.MbHash)]
 		if ok {
 			log.Debug("CleanDuplicates: found duplicated miniBlock", "hash", postMb.MbHash)
