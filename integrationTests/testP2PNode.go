@@ -79,11 +79,11 @@ func NewTestP2PNode(
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	startInEpoch := uint32(0)
 	arg := networksharding.ArgPeerShardMapper{
-		PeerIdPk:         pidPk,
-		FallbackPkShard:  pkShardId,
-		FallbackPidShard: pidShardId,
-		NodesCoordinator: coordinator,
-		EpochStart:       startInEpoch,
+		PeerIdPkCache:         pidPk,
+		FallbackPkShardCache:  pkShardId,
+		FallbackPidShardCache: pidShardId,
+		NodesCoordinator:      coordinator,
+		StartEpoch:            startInEpoch,
 	}
 	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
 	if err != nil {

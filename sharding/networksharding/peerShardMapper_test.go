@@ -22,11 +22,11 @@ const epochZero = uint32(0)
 
 func createMockArgumentForPeerShardMapper() networksharding.ArgPeerShardMapper {
 	return networksharding.ArgPeerShardMapper{
-		PeerIdPk:         testscommon.NewCacherMock(),
-		FallbackPkShard:  testscommon.NewCacherMock(),
-		FallbackPidShard: testscommon.NewCacherMock(),
-		NodesCoordinator: &nodesCoordinatorStub{},
-		EpochStart:       epochZero,
+		PeerIdPkCache:         testscommon.NewCacherMock(),
+		FallbackPkShardCache:  testscommon.NewCacherMock(),
+		FallbackPidShardCache: testscommon.NewCacherMock(),
+		NodesCoordinator:      &nodesCoordinatorStub{},
+		StartEpoch:            epochZero,
 	}
 }
 
@@ -50,33 +50,33 @@ func TestNewPeerShardMapper_NilCacherForPeerIdPkShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgumentForPeerShardMapper()
-	arg.PeerIdPk = nil
+	arg.PeerIdPkCache = nil
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_NilCacherForPkShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgumentForPeerShardMapper()
-	arg.FallbackPkShard = nil
+	arg.FallbackPkShardCache = nil
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_NilCacherForPeerIdShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgumentForPeerShardMapper()
-	arg.FallbackPidShard = nil
+	arg.FallbackPidShardCache = nil
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.True(t, check.IfNil(psm))
-	assert.Equal(t, sharding.ErrNilCacher, err)
+	assert.True(t, errors.Is(err, sharding.ErrNilCacher))
 }
 
 func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
@@ -84,7 +84,7 @@ func TestNewPeerShardMapper_ShouldWork(t *testing.T) {
 
 	epoch := uint32(8843)
 	arg := createMockArgumentForPeerShardMapper()
-	arg.EpochStart = epoch
+	arg.StartEpoch = epoch
 	psm, err := networksharding.NewPeerShardMapper(arg)
 
 	assert.False(t, check.IfNil(psm))

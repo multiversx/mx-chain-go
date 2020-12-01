@@ -1237,11 +1237,11 @@ func createNetworkShardingCollector(
 	}
 
 	arg := networksharding.ArgPeerShardMapper{
-		PeerIdPk:         cachePkPid,
-		FallbackPkShard:  cachePkShardID,
-		FallbackPidShard: cachePidShardID,
-		NodesCoordinator: nodesCoordinator,
-		EpochStart:       epochStart,
+		PeerIdPkCache:         cachePkPid,
+		FallbackPkShardCache:  cachePkShardID,
+		FallbackPidShardCache: cachePidShardID,
+		NodesCoordinator:      nodesCoordinator,
+		StartEpoch:            epochStart,
 	}
 	psm, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
