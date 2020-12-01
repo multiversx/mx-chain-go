@@ -44,6 +44,12 @@ func addToAlteredAddresses(
 			TokenIdentifier: tx.EsdtTokenIdentifier,
 		}
 	}
+
+	if tx.Status == transaction.TxStatusInvalid.String() {
+		// ignore receiver if we have an invalid transaction
+		return
+	}
+
 	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
 		alteredAddresses[tx.Receiver] = &accounts.AlteredAccount{
 			IsESDTSender:    false,
