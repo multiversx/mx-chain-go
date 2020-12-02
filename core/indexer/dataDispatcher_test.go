@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -50,7 +51,7 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 			return nil
 		},
 		SaveAccountsCalled: func(acc []state.UserAccountHandler) error {
-			time.Sleep(10 * time.Second)
+			time.Sleep(7 * time.Second)
 			return nil
 		},
 		SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
@@ -143,4 +144,46 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 
 	err = dispatcher.Close()
 	require.NoError(t, err)
+}
+
+func TestDataDispatcher_Close(t *testing.T) {
+	t.Parallel()
+
+	dispatcher, err := NewDataDispatcher(100)
+	require.NoError(t, err)
+	dispatcher.StartIndexData()
+
+	elasticProc := &mock.ElasticProcessorStub{
+		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+			time.Sleep(time.Millisecond + 200*time.Microsecond)
+			return nil
+		},
+	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	go func(c context.Context, w *sync.WaitGroup) {
+		count := 0
+		for {
+			select {
+			case <-c.Done():
+				return
+			default:
+				count++
+				if count == 50 {
+					w.Done()
+				}
+				dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+				time.Sleep(time.Millisecond)
+			}
+		}
+	}(ctx, wg)
+
+	wg.Wait()
+
+	err = dispatcher.Close()
+	require.NoError(t, err)
+
+	cancelFunc()
 }
