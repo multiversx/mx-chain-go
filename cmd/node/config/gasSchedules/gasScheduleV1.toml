@@ -15,13 +15,21 @@
     ChangeRewardAddress = 5000000
     ChangeValidatorKeys = 5000000
     UnJail              = 5000000
+    ESDTIssue           = 50000000
+    ESDTOperations      = 50000000
+    Proposal            = 5000000
+    Vote                = 500000
+    DelegateVote        = 1000000
+    RevokeVote          = 500000
+    CloseProposal       = 1000000
 
 [BaseOperationCost]
     StorePerByte      = 50000
     ReleasePerByte    = 10000
     DataCopyPerByte   = 1000
     PersistPerByte    = 10000
-    CompilePerByte    = 200
+    CompilePerByte    = 300
+    AoTPreparePerByte = 50
 
 [ElrondAPICost]
     GetSCAddress       = 100
@@ -56,7 +64,7 @@
     ExecuteOnDestContext = 160000
     DelegateExecution    = 160000
     AsyncCallStep        = 200000
-    AsyncCallbackGasLock = 2000000
+    AsyncCallbackGasLock = 20000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
     GetReturnData        = 100

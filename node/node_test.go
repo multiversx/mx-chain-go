@@ -20,11 +20,13 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -214,6 +216,74 @@ func TestGetUsername(t *testing.T) {
 	username, err := n.GetUsername(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
+}
+
+func TestNode_GetESDTBalance(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData.Value.String(), value)
+}
+
+func TestNode_GetAllESDTTokens(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, marshalledData)
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, esdtToken, value[0])
 }
 
 //------- GenerateTransaction

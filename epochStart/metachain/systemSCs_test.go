@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -281,18 +282,22 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
 	blockChain := blockchain.NewMetaChain()
+	dataPool := testscommon.NewPoolsHolderMock()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         userAccountsDB,
-		PubkeyConv:       &mock.PubkeyConverterMock{},
-		StorageService:   &mock.ChainStorerStub{},
-		BlockChain:       blockChain,
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		Accounts:           userAccountsDB,
+		PubkeyConv:         &mock.PubkeyConverterMock{},
+		StorageService:     &mock.ChainStorerStub{},
+		BlockChain:         blockChain,
+		ShardCoordinator:   &mock.ShardCoordinatorStub{},
+		Marshalizer:        marshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           dataPool,
+		CompiledSCPool:     dataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
@@ -301,7 +306,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 		argsHook,
 		createEconomicsData(),
 		signVerifer,
-		gasSchedule,
+		mock.NewGasScheduleNotifierMock(gasSchedule),
 		nodesSetup,
 		hasher,
 		marshalizer,

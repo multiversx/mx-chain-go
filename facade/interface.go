@@ -5,13 +5,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 //NodeHandler contains all functions that a node should contain.
@@ -27,6 +27,12 @@ type NodeHandler interface {
 
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
+
+	// GetESDTBalance returns the esdt balance and properties from a given account
+	GetESDTBalance(address string, key string) (string, string, error)
+
+	// GetAllESDTTokens returns the value of a key from a given account
+	GetAllESDTTokens(address string) ([]string, error)
 
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,

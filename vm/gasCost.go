@@ -2,11 +2,12 @@ package vm
 
 // BaseOperationCost defines cost for base operation cost
 type BaseOperationCost struct {
-	StorePerByte    uint64
-	ReleasePerByte  uint64
-	DataCopyPerByte uint64
-	PersistPerByte  uint64
-	CompilePerByte  uint64
+	StorePerByte      uint64
+	ReleasePerByte    uint64
+	DataCopyPerByte   uint64
+	PersistPerByte    uint64
+	CompilePerByte    uint64
+	AoTPreparePerByte uint64
 }
 
 // MetaChainSystemSCsCost defines the cost of system staking SCs methods
