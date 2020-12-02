@@ -219,7 +219,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 			return err
 		}
 
-		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds()
+		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds(validatorInfos)
 		if err != nil {
 			return err
 		}
@@ -233,7 +233,11 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 	return nil
 }
 
-func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds() (uint32, error) {
+func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(validatorInfos map[uint32][]*state.ValidatorInfo) (uint32, error) {
+	nodesToUnStake, _, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorInfos)
+	if err != nil {
+		return 0, err
+	}
 
 	return 0, nil
 }
