@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math"
 	"math/big"
 	"testing"
@@ -23,6 +24,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/update"
+	updateMock "github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -330,4 +333,100 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
+}
+
+func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {
+	shardIDs := []uint32{0, 1}
+	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
+	arg := ArgsGenesisBlockCreator{
+		ShardCoordinator: &mock.ShardCoordinatorMock{SelfShardId: 1},
+	}
+
+	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	assert.True(t, errors.Is(err, trie.ErrNilTrieStorage))
+}
+
+func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
+	shardIDs := []uint32{0, 1}
+	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
+
+	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	assert.Nil(t, err)
+	require.Equal(t, 2, len(mapArgsGenesisBlockCreator))
+	assert.Equal(t, uint32(0), mapArgsGenesisBlockCreator[0].ShardCoordinator.SelfId())
+	assert.Equal(t, uint32(1), mapArgsGenesisBlockCreator[1].ShardCoordinator.SelfId())
+}
+
+func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
+	selfShardID := uint32(0)
+	shardIDs := []uint32{1, core.MetachainShardId}
+	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
+	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
+	initialNodesSetup := &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
+	arg.importHandler = &updateMock.ImportHandlerStub{
+		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
+			return &mock.AccountsStub{}
+		},
+	}
+
+	_ = createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+
+	err := createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
+	assert.Nil(t, err)
+	require.Equal(t, 2, len(mapHardForkBlockProcessor))
 }
