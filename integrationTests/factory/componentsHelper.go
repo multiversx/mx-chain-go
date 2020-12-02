@@ -54,14 +54,14 @@ func CreateDefaultConfig() *config.Configs {
 	configs.P2pConfig = p2pConfig
 	configs.ExternalConfig = externalConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir:                       "workingDir",
-		UseLogView:                       true,
-		ValidatorKeyPemFileName:          ValidatorKeyPemPath,
-		GasScheduleConfigurationFileName: GasSchedule,
-		Version:                          Version,
-		GenesisFileName:                  GenesisPath,
-		SmartContractsFileName:           GenesisSmartContracts,
-		NodesFileName:                    NodesSetupPath,
+		WorkingDir:                        "workingDir",
+		UseLogView:                        true,
+		ValidatorKeyPemFileName:           ValidatorKeyPemPath,
+		GasScheduleConfigurationDirectory: GasSchedule,
+		Version:                           Version,
+		GenesisFileName:                   GenesisPath,
+		SmartContractsFileName:            GenesisSmartContracts,
+		NodesFileName:                     NodesSetupPath,
 	}
 
 	return configs

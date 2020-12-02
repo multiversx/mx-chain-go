@@ -232,7 +232,7 @@ func (n *Node) GetESDTBalance(address string, tokenName string) (string, string,
 	}
 
 	esdtToken := &esdt.ESDigitalToken{}
-	err = n.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
+	err = n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, valueBytes)
 	if err != nil {
 		return "", "", err
 	}

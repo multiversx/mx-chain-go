@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -70,7 +70,12 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, managedStatusComponents)
 
-	gasSchedule, err := core.LoadGasScheduleConfig(configs.FlagsConfig.GasScheduleConfigurationFileName)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+		ConfigDir:         configs.FlagsConfig.GasScheduleConfigurationDirectory,
+		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(
 		managedCoreComponents,
@@ -80,7 +85,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedStateComponents,
 		managedDataComponents,
 		managedStatusComponents,
-		gasSchedule,
+		gasScheduleNotifier,
 		nodesCoordinator,
 	)
 	require.Nil(t, err)

@@ -443,24 +443,24 @@ type VersionsConfig struct {
 
 // Configs is a holder for the node configuration parameters
 type Configs struct {
-	GeneralConfig                    *Config
-	ApiRoutesConfig                  *ApiRoutesConfig
-	EconomicsConfig                  *EconomicsConfig
-	SystemSCConfig                   *SystemSmartContractsConfig
-	RatingsConfig                    *RatingsConfig
-	PreferencesConfig                *Preferences
-	ExternalConfig                   *ExternalConfig
-	P2pConfig                        *P2PConfig
-	FlagsConfig                      *ContextFlagsConfig
-	ConfigurationFileName            string
-	ConfigurationApiRoutesFileName   string
-	ConfigurationEconomicsFileName   string
-	ConfigurationSystemSCFilename    string
-	ConfigurationRatingsFileName     string
-	ConfigurationPreferencesFileName string
-	ConfigurationExternalFileName    string
-	P2pConfigurationFileName         string
-	ConfigurationGasScheduleFileName string
+	GeneralConfig                         *Config
+	ApiRoutesConfig                       *ApiRoutesConfig
+	EconomicsConfig                       *EconomicsConfig
+	SystemSCConfig                        *SystemSmartContractsConfig
+	RatingsConfig                         *RatingsConfig
+	PreferencesConfig                     *Preferences
+	ExternalConfig                        *ExternalConfig
+	P2pConfig                             *P2PConfig
+	FlagsConfig                           *ContextFlagsConfig
+	ConfigurationFileName                 string
+	ConfigurationApiRoutesFileName        string
+	ConfigurationEconomicsFileName        string
+	ConfigurationSystemSCFilename         string
+	ConfigurationRatingsFileName          string
+	ConfigurationPreferencesFileName      string
+	ConfigurationExternalFileName         string
+	P2pConfigurationFileName              string
+	ConfigurationGasScheduleDirectoryName string
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

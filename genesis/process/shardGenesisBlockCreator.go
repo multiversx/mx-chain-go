@@ -252,8 +252,8 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		Marshalizer:        arg.Core.InternalMarshalizer(),
 		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
 		BuiltInFunctions:   builtInFuncs,
-		DataPool:           arg.DataPool,
-		CompiledSCPool:     arg.DataPool.SmartContracts(),
+		DataPool:           arg.Data.Datapool(),
+		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
 		NilCompiledSCStore: true,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
