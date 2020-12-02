@@ -167,7 +167,11 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 }
 
 // ProcessSystemSmartContract does all the processing at end of epoch in case of system smart contract
-func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error {
+func (s *systemSCProcessor) ProcessSystemSmartContract(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	nonce uint64,
+	epoch uint32,
+) error {
 	if s.flagHystNodesEnabled.IsSet() {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
@@ -219,7 +223,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 			return err
 		}
 
-		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds(validatorInfos)
+		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds(validatorInfos, epoch)
 		if err != nil {
 			return err
 		}
@@ -233,10 +237,51 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 	return nil
 }
 
-func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(validatorInfos map[uint32][]*state.ValidatorInfo) (uint32, error) {
+func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
+	validatorInfos map[uint32][]*state.ValidatorInfo,
+	epoch uint32,
+) (uint32, error) {
 	nodesToUnStake, _, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorInfos)
 	if err != nil {
 		return 0, err
+	}
+
+	var vmOutput *vmcommon.VMOutput
+	for _, blsKey := range nodesToUnStake {
+		vmInput := &vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: s.endOfEpochCallerAddress,
+				Arguments:  [][]byte{blsKey},
+				CallValue:  big.NewInt(0),
+			},
+			RecipientAddr: s.stakingSCAddress,
+			Function:      "unStakeAtEndOfEpoch",
+		}
+
+		vmOutput, err = s.systemVM.RunSmartContractCall(vmInput)
+		if err != nil {
+			return 0, err
+		}
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return 0, epochStart.ErrUnStakeExecuteError
+		}
+
+		err = s.processSCOutputAccounts(vmOutput)
+		if err != nil {
+			return 0, err
+		}
+
+		peerAccount, errGet := s.getPeerAccount(blsKey)
+		if errGet != nil {
+			return 0, errGet
+		}
+
+		peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())
+		peerAccount.SetUnStakedEpoch(epoch)
+		err = s.peerAccountsDB.SaveAccount(peerAccount)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return 0, nil

@@ -71,7 +71,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 	}
 	validatorInfos[0] = append(validatorInfos[0], vInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(validatorInfos[0]), 1)
@@ -104,7 +104,7 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
 	validatorsInfo[0] = append(validatorsInfo[0], jailed...)
 
-	err := s.ProcessSystemSmartContract(validatorsInfo, 0)
+	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
 	assert.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
 		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
@@ -522,7 +522,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	s.flagDelegationEnabled.Set()
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
 	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
@@ -658,7 +658,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	prepareStakingContractWithData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	err := s.ProcessSystemSmartContract(validatorInfos, 0)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))

@@ -190,6 +190,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.updateConfigMaxNodes(args)
 	case "stakeNodesFromWaitingList":
 		return s.stakeNodesFromWaitingList(args)
+	case "unStakeAtEndOfEpoch":
+		return s.unStakeAtEndOfEpoch(args)
 	}
 
 	return vmcommon.UserError
@@ -530,6 +532,45 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 	stakingData.UnStakedEpoch = core.DefaultUnstakedEpoch
 	stakingData.UnStakedNonce = 0
 	stakingData.Waiting = false
+}
+
+func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
+		// backward compatibility - no need for return message
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		s.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegisteredData(args.Arguments[0])
+	if err != nil {
+		s.eei.AddReturnMessage("cannot get or create registered data: error " + err.Error())
+		return vmcommon.UserError
+	}
+	if len(registrationData.RewardAddress) == 0 {
+		s.eei.AddReturnMessage("cannot unStake a key that is not registered")
+		return vmcommon.UserError
+	}
+	if !registrationData.Staked {
+		s.eei.AddReturnMessage("cannot unStake node which was already unStaked")
+		return vmcommon.UserError
+	}
+
+	s.removeFromStakedNodes()
+	registrationData.Staked = false
+	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+	registrationData.Waiting = false
+
+	err = s.saveStakingData(args.Arguments[0], registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
