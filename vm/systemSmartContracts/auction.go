@@ -32,18 +32,20 @@ const (
 )
 
 type stakingAuctionSC struct {
-	eei                vm.SystemEI
-	unBondPeriod       uint64
-	sigVerifier        vm.MessageSignVerifier
-	baseConfig         AuctionConfig
-	enableAuctionEpoch uint32
-	stakingSCAddress   []byte
-	auctionSCAddress   []byte
-	enableStakingEpoch uint32
-	gasCost            vm.GasCost
-	marshalizer        marshal.Marshalizer
-	flagStake          atomic.Flag
-	flagAuction        atomic.Flag
+	eei                  vm.SystemEI
+	unBondPeriod         uint64
+	sigVerifier          vm.MessageSignVerifier
+	baseConfig           AuctionConfig
+	enableAuctionEpoch   uint32
+	stakingSCAddress     []byte
+	auctionSCAddress     []byte
+	enableStakingEpoch   uint32
+	enableDoubleKeyEpoch uint32
+	gasCost              vm.GasCost
+	marshalizer          marshal.Marshalizer
+	flagStake            atomic.Flag
+	flagAuction          atomic.Flag
+	flagDoubleKey        atomic.Flag
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -113,16 +115,17 @@ func NewStakingAuctionSmartContract(
 	}
 
 	reg := &stakingAuctionSC{
-		eei:                args.Eei,
-		unBondPeriod:       args.StakingSCConfig.UnBondPeriod,
-		sigVerifier:        args.SigVerifier,
-		baseConfig:         baseConfig,
-		enableAuctionEpoch: args.StakingSCConfig.AuctionEnableEpoch,
-		enableStakingEpoch: args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:   args.StakingSCAddress,
-		auctionSCAddress:   args.AuctionSCAddress,
-		gasCost:            args.GasCost,
-		marshalizer:        args.Marshalizer,
+		eei:                  args.Eei,
+		unBondPeriod:         args.StakingSCConfig.UnBondPeriod,
+		sigVerifier:          args.SigVerifier,
+		baseConfig:           baseConfig,
+		enableAuctionEpoch:   args.StakingSCConfig.AuctionEnableEpoch,
+		enableStakingEpoch:   args.StakingSCConfig.StakeEnableEpoch,
+		stakingSCAddress:     args.StakingSCAddress,
+		auctionSCAddress:     args.AuctionSCAddress,
+		gasCost:              args.GasCost,
+		marshalizer:          args.Marshalizer,
+		enableDoubleKeyEpoch: args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -708,6 +711,19 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	return blsKeys
 }
 
+func checkDoubleBLSKeys(blsKeys [][]byte) bool {
+	mapKeys := make(map[string]struct{})
+	for _, blsKey := range blsKeys {
+		_, found := mapKeys[string(blsKey)]
+		if found {
+			return true
+		}
+
+		mapKeys[string(blsKey)] = struct{}{}
+	}
+	return false
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
@@ -773,6 +789,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	blsKeys, err := s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if s.flagDoubleKey.IsSet() && checkDoubleBLSKeys(blsKeys) {
+		s.eei.AddReturnMessage("invalid arguments, same bls key twice")
 		return vmcommon.UserError
 	}
 
@@ -1388,6 +1409,9 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 
 	s.flagAuction.Toggle(epoch >= s.enableAuctionEpoch)
 	log.Debug("stakingAuctionSC: auction", "enabled", s.flagAuction.IsSet())
+
+	s.flagDoubleKey.Toggle(epoch >= s.enableDoubleKeyEpoch)
+	log.Debug("stakingAuctionSC: doubleKeyProtection", "enabled", s.flagDoubleKey.IsSet())
 }
 
 func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
