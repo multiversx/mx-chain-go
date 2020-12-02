@@ -1479,18 +1479,15 @@ func (s *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 		}
 
 		// remove from waiting list
-		inWaitingListKey := s.createWaitingListKey(blsKey)
-		s.eei.SetStorage(inWaitingListKey, nil)
+		err = s.removeFromWaitingList(blsKey)
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
 
 		// return the change key
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)
-	}
-
-	err = s.updateWaitingListToNewFirstKey(waitingListData)
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
@@ -1528,32 +1525,6 @@ func (s *stakingSC) checkValidatorFunds(
 	mapCheckedOwners[string(owner)] = uint32(maxQualified - numRegisteredKeys)
 
 	return true, nil
-}
-
-func (s *stakingSC) updateWaitingListToNewFirstKey(waitingListData *waitingListReturnData) error {
-	waitingListHead, err := s.getWaitingListHead()
-	if err != nil {
-		return err
-	}
-	if waitingListHead.Length == 0 {
-		return nil
-	}
-	if len(waitingListData.lastKey) == 0 {
-		s.eei.SetStorage([]byte(waitingListHeadKey), nil)
-		return nil
-	}
-	if waitingListData.afterLastjailed {
-		waitingListHead.LastJailedKey = nil
-	}
-
-	waitingListHead.Length = waitingListHead.Length - uint32(len(waitingListData.blsKeys))
-	waitingListHead.FirstKey = waitingListData.lastKey
-	err = s.saveWaitingListHead(waitingListHead)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingListReturnData, error) {
