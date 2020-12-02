@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var _ process.EpochStartRewardsCreator = (*rewardsCreatorV2)(nil)
+var _ process.RewardsCreator = (*rewardsCreatorV2)(nil)
 
 type nodeRewardsData struct {
 	baseReward   *big.Int
@@ -41,8 +41,8 @@ type rewardsCreatorV2 struct {
 	topUpGradientPoint    *big.Int
 }
 
-// NewEpochStartRewardsCreatorV2 creates a new rewards creator object
-func NewEpochStartRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
+// NewRewardsCreatorV2 creates a new rewards creator object
+func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	brc, err := NewBaseRewardsCreator(args.BaseRewardsCreatorArgs)
 	if err != nil {
 		return nil, err

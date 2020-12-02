@@ -761,8 +761,8 @@ type EpochStartDataCreator interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
-type EpochStartRewardsCreator interface {
+// RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
 		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)

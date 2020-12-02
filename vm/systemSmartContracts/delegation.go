@@ -825,7 +825,9 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	foundAll := verifyIfAllBLSPubKeysExist(status.UnStakedKeys, args.Arguments)
+	// even some staked keys can be unbonded - as they could have been forced unstaked by protocol because of not enough funds
+	listToCheck := append(status.UnStakedKeys, status.StakedKeys...)
+	foundAll := verifyIfAllBLSPubKeysExist(listToCheck, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError

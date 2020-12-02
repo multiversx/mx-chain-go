@@ -174,8 +174,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.unJail(args)
 	case "getTotalStaked":
 		return v.getTotalStaked(args)
-	case "getTopUpTotalStaked":
-		return v.getTopUpTotalStaked(args)
+	case "getTotalStakedTopUpBlsKeys":
+		return v.getTotalStakedTopUpBlsKeys(args)
 	case "getBlsKeysStatus":
 		return v.getBlsKeysStatus(args)
 	case "updateStakingV2":
@@ -1400,7 +1400,7 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !v.flagEnableTopUp.IsSet() {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
@@ -1439,6 +1439,11 @@ func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmco
 
 	v.eei.Finish([]byte(topUp.String()))
 	v.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
+
+	for _, blsKey := range registrationData.BlsPubKeys {
+		v.eei.Finish(blsKey)
+	}
+
 	return vmcommon.Ok
 }
 

@@ -26,77 +26,77 @@ const (
 	fRewards  = "fullRewards"
 )
 
-func TestNewEpochStartRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
+func TestNewRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.BaseRewardsCreatorArgs.NodesConfigProvider = nil
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrNilNodesConfigProvider, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilStakingDataProvider(t *testing.T) {
+func TestNewRewardsCreator_NilStakingDataProvider(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.StakingDataProvider = nil
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrNilStakingDataProvider, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilEconomicsDataProvider(t *testing.T) {
+func TestNewRewardsCreator_NilEconomicsDataProvider(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.EconomicsDataProvider = nil
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrNilEconomicsDataProvider, err)
 }
 
-func TestNewEpochStartRewardsCreator_NegativeGradientPointShouldErr(t *testing.T) {
+func TestNewRewardsCreator_NegativeGradientPointShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.TopUpGradientPoint = big.NewInt(-1)
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrInvalidRewardsTopUpGradientPoint, err)
 }
 
-func TestNewEpochStartRewardsCreator_NegativeTopUpRewardFactorShouldErr(t *testing.T) {
+func TestNewRewardsCreator_NegativeTopUpRewardFactorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.TopUpRewardFactor = -1
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrInvalidRewardsTopUpFactor, err)
 }
 
-func TestNewEpochStartRewardsCreator_SupraUnitaryTopUpRewardFactorShouldErr(t *testing.T) {
+func TestNewRewardsCreator_SupraUnitaryTopUpRewardFactorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	args.TopUpRewardFactor = 1.5
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.True(t, check.IfNil(rwd))
 	require.Equal(t, epochStart.ErrInvalidRewardsTopUpFactor, err)
 }
 
-func TestNewEpochStartRewardsCreatorOK(t *testing.T) {
+func TestNewRewardsCreatorOK(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 }
@@ -113,7 +113,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocksV2ComputeErrorsShouldErr(t *testi
 			return expectedErr
 		},
 	}
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
@@ -135,9 +135,9 @@ func TestRewardsCreator_CreateRewardsMiniBlocksV2ComputeErrorsShouldErr(t *testi
 	require.Equal(t, 1, numComputeRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_getEligibleNodesKeyMap(t *testing.T) {
+func TestNewRewardsCreatorV2_getEligibleNodesKeyMap(t *testing.T) {
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -151,11 +151,11 @@ func TestNewEpochStartRewardsCreatorV2_getEligibleNodesKeyMap(t *testing.T) {
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *testing.T) {
+func TestNewRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -179,11 +179,11 @@ func TestNewEpochStartRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *test
 	require.Equal(t, 0, len(rwd.mapBaseRewardsPerBlockPerValidator))
 }
 
-func TestNewEpochStartRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
+func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -206,7 +206,7 @@ func TestNewEpochStartRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T) {
+func TestNewRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
@@ -217,7 +217,7 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T)
 			return topUp, nil
 		},
 	}
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -234,7 +234,7 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T)
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *testing.T) {
+func TestNewRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
@@ -249,7 +249,7 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFound
 			return topUp, nil
 		},
 	}
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -274,11 +274,11 @@ func TestNewEpochStartRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFound
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_aggregateBaseAndTopUpRewardsPerNode(t *testing.T) {
+func TestNewRewardsCreatorV2_aggregateBaseAndTopUpRewardsPerNode(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -304,11 +304,11 @@ func TestNewEpochStartRewardsCreatorV2_aggregateBaseAndTopUpRewardsPerNode(t *te
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeNodePowerInShardOfflineNodeZeroPower(t *testing.T) {
+func TestNewRewardsCreatorV2_computeNodePowerInShardOfflineNodeZeroPower(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -331,11 +331,11 @@ func TestNewEpochStartRewardsCreatorV2_computeNodePowerInShardOfflineNodeZeroPow
 	require.Equal(t, big.NewInt(0), power)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeNodePowerInShard(t *testing.T) {
+func TestNewRewardsCreatorV2_computeNodePowerInShard(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -359,11 +359,11 @@ func TestNewEpochStartRewardsCreatorV2_computeNodePowerInShard(t *testing.T) {
 	require.Equal(t, expectedPower, power)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
+func TestNewRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -384,11 +384,11 @@ func TestNewEpochStartRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeShardsPower(t *testing.T) {
+func TestNewRewardsCreatorV2_computeShardsPower(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -412,11 +412,11 @@ func TestNewEpochStartRewardsCreatorV2_computeShardsPower(t *testing.T) {
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeRewardsForPowerPerShardZeroTotalPower(t *testing.T) {
+func TestNewRewardsCreatorV2_computeRewardsForPowerPerShardZeroTotalPower(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -431,11 +431,11 @@ func TestNewEpochStartRewardsCreatorV2_computeRewardsForPowerPerShardZeroTotalPo
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeRewardsForPowerPerShard(t *testing.T) {
+func TestNewRewardsCreatorV2_computeRewardsForPowerPerShard(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -456,11 +456,11 @@ func TestNewEpochStartRewardsCreatorV2_computeRewardsForPowerPerShard(t *testing
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShard(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShard(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -479,11 +479,11 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShar
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -517,11 +517,11 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T)
 	}
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsZeroTopup(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsZeroTopup(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -533,11 +533,11 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsZeroTopup(t *testing.T
 	require.Equal(t, big.NewInt(0), topUpRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsNegativeToDistribute(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsNegativeToDistribute(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -549,11 +549,11 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsNegativeToDistribute(t
 	require.Equal(t, big.NewInt(0), topUpRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -587,13 +587,13 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	require.True(t, topUpRewards.Cmp(ninetyNinePercentLimit) > 0)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
-	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
+	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
@@ -609,7 +609,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) 
 			return nil, fmt.Errorf("not found")
 		},
 	}
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -637,7 +637,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) 
 	require.Equal(t, topUpRewards, sumTopUpRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys(t *testing.T) {
+func TestNewRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
@@ -648,7 +648,7 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys
 			return nil, fmt.Errorf("not found")
 		},
 	}
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -677,11 +677,11 @@ func TestNewEpochStartRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys
 	require.Equal(t, topUpRewards, sumTopUpRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
+func TestNewRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -717,13 +717,13 @@ func TestNewEpochStartRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 	require.Equal(t, big.NewInt(0).Add(sumRwds, dust), baseRewards)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
+func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
-	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
+	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
@@ -754,7 +754,7 @@ func TestNewEpochStartRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	rewardsForBlocks, _ := big.NewInt(0).SetString("5000000000000000000000", 10)
 	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(rewardsForBlocks)
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -774,18 +774,18 @@ func TestNewEpochStartRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	require.Equal(t, rewardsForBlocks, big.NewInt(0).Add(sumRwds, accumulatedDust))
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) {
+func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
 	nbEligiblePerShard := uint32(400)
 	proposerFee := uint32(100)
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee)
-	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
+	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(valInfo)
 	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
 
@@ -807,11 +807,11 @@ func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *t
 	require.Equal(t, expectedSumFees, sumFees)
 }
 
-func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineValidators(t *testing.T) {
+func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineValidators(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -857,11 +857,11 @@ func TestNewEpochStartRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithO
 	require.Equal(t, expectedSumFees, sumFees)
 }
 
-func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
+func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -900,13 +900,13 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testin
 	require.Equal(t, sumRewards, big.NewInt(0).Add(sumFees, totalRwd))
 }
 
-func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDelegationDisabled(t *testing.T) {
+func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDelegationDisabled(t *testing.T) {
 	t.Parallel()
 
 	addrInMeta := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255}
 	args := getRewardsCreatorV2Arguments()
 	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
@@ -951,12 +951,12 @@ func TestNewEpochStartRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInM
 	require.Equal(t, big.NewInt(0).Add(sumRewards, accumulatedDust), big.NewInt(0).Add(sumFees, totalRwd))
 }
 
-func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
+func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
-	dummyRwd, _ := NewEpochStartRewardsCreatorV2(args)
+	dummyRwd, _ := NewRewardsCreatorV2(args)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
 	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
@@ -989,7 +989,7 @@ func TestNewEpochStartRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	rewardsForBlocks, _ := big.NewInt(0).SetString("5000000000000000000000", 10)
 	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(rewardsForBlocks)
 
-	rwd, err := NewEpochStartRewardsCreatorV2(args)
+	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 

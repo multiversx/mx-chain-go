@@ -30,7 +30,7 @@ type metaProcessor struct {
 	scToProtocol                 process.SmartContractToProtocolHandler
 	epochStartDataCreator        process.EpochStartDataCreator
 	epochEconomics               process.EndOfEpochEconomics
-	epochRewardsCreator          process.EpochStartRewardsCreator
+	epochRewardsCreator          process.RewardsCreator
 	validatorInfoCreator         process.EpochStartValidatorInfoCreator
 	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
@@ -66,7 +66,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochEconomics
 	}
 	if check.IfNil(arguments.EpochRewardsCreator) {
-		return nil, process.ErrNilEpochStartRewardsCreator
+		return nil, process.ErrNilRewardsCreator
 	}
 	if check.IfNil(arguments.EpochValidatorInfoCreator) {
 		return nil, process.ErrNilEpochStartValidatorInfoCreator

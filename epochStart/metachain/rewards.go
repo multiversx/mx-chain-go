@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
+var _ process.RewardsCreator = (*rewardsCreator)(nil)
 
 var zero = big.NewInt(0)
 
@@ -31,8 +31,8 @@ type rewardInfoData struct {
 	protocolRewards *big.Int
 }
 
-// NewEpochStartRewardsCreator creates a new rewards creator object
-func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
+// NewRewardsCreator creates a new rewards creator object
+func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	brc, err := NewBaseRewardsCreator(args.BaseRewardsCreatorArgs)
 	if err != nil {
 		return nil, err

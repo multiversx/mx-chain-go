@@ -213,6 +213,43 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		if err != nil {
 			return err
 		}
+
+		err = s.fillStakingDataForNonEligible(validatorInfos)
+		if err != nil {
+			return err
+		}
+
+		numUnStaked, err := s.unStakeNodesWithNotEnoughFunds()
+		if err != nil {
+			return err
+		}
+
+		err = s.stakeNodesFromWaitingList(numUnStaked, nonce)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds() (uint32, error) {
+
+	return 0, nil
+}
+
+func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uint32][]*state.ValidatorInfo) error {
+	for _, validatorsInfoSlice := range validatorInfos {
+		for _, validatorInfo := range validatorsInfoSlice {
+			if validatorInfo.List == string(core.EligibleList) {
+				continue
+			}
+
+			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.PublicKey)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
@@ -221,7 +258,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 func (s *systemSCProcessor) prepareRewardsData(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 ) error {
-	eligibleNodesKeys := s.getNodesKeyMapOfType(validatorsInfo, string(core.EligibleList))
+	eligibleNodesKeys := s.getEligibleNodesKeyMapOfType(validatorsInfo)
 	err := s.prepareStakingDataForRewards(eligibleNodesKeys)
 	if err != nil {
 		return err
@@ -241,15 +278,14 @@ func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[u
 	return s.stakingDataProvider.PrepareStakingDataForRewards(eligibleNodesKeys)
 }
 
-func (s *systemSCProcessor) getNodesKeyMapOfType(
+func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
-	validatorType string,
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == validatorType {
+			if validatorInfo.List == string(core.EligibleList) {
 				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
 			}
 		}
