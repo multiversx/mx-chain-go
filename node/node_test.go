@@ -17,12 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -253,12 +251,19 @@ func TestNode_GetESDTBalance(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
@@ -294,12 +299,19 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
 		return acc, nil
 	}
+
+	coreComponents := getDefaultCoreComponents()
+	coreComponents.IntMarsh = getMarshalizer()
+	coreComponents.VmMarsh = getMarshalizer()
+	coreComponents.Hash = getHasher()
+	coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+
+	stateComponents := getDefaultStateComponents()
+	stateComponents.Accounts = accDB
+
 	n, _ := node.NewNode(
-		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
-		node.WithVmMarshalizer(getMarshalizer()),
-		node.WithHasher(getHasher()),
-		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
-		node.WithAccountsAdapter(accDB),
+		node.WithCoreComponents(coreComponents),
+		node.WithStateComponents(stateComponents),
 	)
 
 	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))

@@ -134,14 +134,14 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruning
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, _ context.Context) {
 	if as.SnapshotStateCalled != nil {
 		as.SnapshotStateCalled(rootHash)
 	}
 }
 
 // SetStateCheckpoint -
-func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, _ context.Context) {
 	if as.SetStateCheckpointCalled != nil {
 		as.SetStateCheckpointCalled(rootHash)
 	}
@@ -157,7 +157,7 @@ func (as *AccountsStub) IsPruningEnabled() bool {
 }
 
 // RecreateAllTries -
-func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+func (as *AccountsStub) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
 	if as.RecreateAllTriesCalled != nil {
 		return as.RecreateAllTriesCalled(rootHash)
 	}
