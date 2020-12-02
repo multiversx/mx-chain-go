@@ -40,7 +40,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
-	numPlayers := 5
+	numPlayers := 1
 	numShards := nodes[0].ShardCoordinator.NumberOfShards()
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {

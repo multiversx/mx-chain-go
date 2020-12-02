@@ -2,6 +2,7 @@ package relayedTx
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -34,7 +35,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		}
 	}()
 
-	sendValue := big.NewInt(5)
+	relayerBalanceBefore := relayer.Balance.Int64()
+
+	sendValue := big.NewInt(relayerBalanceBefore / 10)
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -43,12 +46,15 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
-	nrRoundsToTest := int64(5)
+	singlePlayer := players[0]
+
+	singlePlayerBalanceBefore := singlePlayer.Balance.Int64()
+
+	nrRoundsToTest := int64(1)
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		for _, player := range players {
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-		}
+
+		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, singlePlayer, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, singlePlayer, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -70,6 +76,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	finalBalance.Mul(finalBalance, sendValue)
 	assert.Equal(t, receiver1.GetBalance().Cmp(finalBalance), 0)
 	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
+
+	relayerBalanceAfter := relayer.Balance.Int64()
+	singlePlayerBalanceAfter := singlePlayer.Balance.Int64()
+
+	fmt.Printf("relayer balance before %d after %d\n", relayerBalanceBefore, relayerBalanceAfter)
+	fmt.Printf("player balance before %d after %d\n", singlePlayerBalanceBefore, singlePlayerBalanceAfter)
 
 	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
