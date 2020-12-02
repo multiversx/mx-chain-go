@@ -70,6 +70,10 @@ func (d *dataDispatcher) startWorker(ctx context.Context) {
 
 // Close will close the endless running go routine
 func (d *dataDispatcher) Close() error {
+	if d.wasClosed.IsSet() {
+		return nil
+	}
+
 	start := time.Now()
 	d.wasClosed.Set()
 
