@@ -1,11 +1,12 @@
 package networksharding
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var _ p2p.CommonSharder = (*nilListSharder)(nil)
+var _ p2p.Sharder = (*nilListSharder)(nil)
 
 // nilListSharder will not cause connections trimming
 type nilListSharder struct{}
@@ -28,6 +29,15 @@ func (nls *nilListSharder) Has(_ peer.ID, _ []peer.ID) bool {
 // SetPeerShardResolver will do nothing
 func (nls *nilListSharder) SetPeerShardResolver(_ p2p.PeerShardResolver) error {
 	return nil
+}
+
+// SetSeeders does nothing
+func (nls *nilListSharder) SetSeeders(_ []string) {
+}
+
+// IsSeeder returns false
+func (nls *nilListSharder) IsSeeder(_ core.PeerID) bool {
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

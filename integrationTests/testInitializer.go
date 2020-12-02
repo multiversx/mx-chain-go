@@ -1929,7 +1929,7 @@ func ProposeAndSyncOneBlock(
 // WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
 // number of peers that each node is connected to
 func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
-	log.Info("Waiting %v for peer discovery...", "time", durationBootstrapingTime)
+	log.Info("Waiting for peer discovery...", "time", durationBootstrapingTime)
 	time.Sleep(durationBootstrapingTime)
 
 	strs := []string{"Connected peers:"}

@@ -78,13 +78,14 @@ func NewTestP2PNode(
 	pkShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageUnit.NewCache(storageUnit.CacheConfig{Type: storageUnit.LRUCache, Capacity: 1000})
 	startInEpoch := uint32(0)
-	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(
-		pidPk,
-		pkShardId,
-		pidShardId,
-		coordinator,
-		startInEpoch,
-	)
+	arg := networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         pidPk,
+		FallbackPkShardCache:  pkShardId,
+		FallbackPidShardCache: pidShardId,
+		NodesCoordinator:      coordinator,
+		StartEpoch:            startInEpoch,
+	}
+	tP2pNode.NetworkShardingUpdater, err = networksharding.NewPeerShardMapper(arg)
 	if err != nil {
 		fmt.Printf("Error creating NewPeerShardMapper: %s\n", err.Error())
 	}
@@ -409,7 +410,7 @@ func createCryptoPair() TestKeyPair {
 
 // MakeDisplayTableForP2PNodes will output a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
@@ -428,13 +429,14 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 					fmt.Sprintf("%d", n.CountGlobalMessages()),
 					fmt.Sprintf("%d", n.CountIntraShardMessages()),
 					fmt.Sprintf("%d", n.CountCrossShardMessages()),
-					fmt.Sprintf("%d/%d/%d/%d/%d/%d",
+					fmt.Sprintf("%d/%d/%d/%d/%d/%d/%d",
 						len(n.Messenger.ConnectedPeers()),
 						peerInfo.NumIntraShardValidators,
 						peerInfo.NumCrossShardValidators,
 						peerInfo.NumIntraShardObservers,
 						peerInfo.NumCrossShardObservers,
 						len(peerInfo.UnknownPeers),
+						len(peerInfo.Seeders),
 					),
 				},
 			)

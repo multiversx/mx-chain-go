@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("p2p/discovery/factory")
 func NewPeerDiscoverer(
 	context context.Context,
 	host discovery.ConnectableHost,
-	sharder p2p.CommonSharder,
+	sharder p2p.Sharder,
 	p2pConfig config.P2PConfig,
 ) (p2p.PeerDiscoverer, error) {
 	if p2pConfig.KadDhtPeerDiscovery.Enabled {
@@ -36,7 +36,7 @@ func NewPeerDiscoverer(
 func createKadDhtPeerDiscoverer(
 	context context.Context,
 	host discovery.ConnectableHost,
-	sharder p2p.CommonSharder,
+	sharder p2p.Sharder,
 	p2pConfig config.P2PConfig,
 ) (p2p.PeerDiscoverer, error) {
 	arg := discovery.ArgKadDht{
