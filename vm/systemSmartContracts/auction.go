@@ -793,7 +793,7 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	if s.flagDoubleKey.IsSet() && checkDoubleBLSKeys(blsKeys) {
-		s.eei.AddReturnMessage("invalid arguments, same bls key twice")
+		s.eei.AddReturnMessage("invalid arguments, found same bls key twice")
 		return vmcommon.UserError
 	}
 
