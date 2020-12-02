@@ -5,11 +5,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BuiltinFunction = (*esdtFreezeWipe)(nil)
@@ -33,12 +33,16 @@ func NewESDTFreezeWipeFunc(
 
 	e := &esdtFreezeWipe{
 		marshalizer: marshalizer,
-		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:   []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		freeze:      freeze,
 		wipe:        wipe,
 	}
 
 	return e, nil
+}
+
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtFreezeWipe) SetNewGasConfig(_ *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT transfer function call
