@@ -151,7 +151,7 @@ type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	PrepareStakingData(keys map[uint32][][]byte) error
+	PrepareStakingDataForRewards(keys map[uint32][][]byte) error
 	Clean()
 	IsInterfaceNil() bool
 }

@@ -41,8 +41,7 @@ func NewStakingDataProvider(
 	systemVM vmcommon.VMExecutionHandler,
 	minNodePrice string,
 ) (*stakingDataProvider, error) {
-	//TODO make vmcommon.VMExecutionHandler implement NilInterfaceChecker
-	if check.IfNilReflect(systemVM) {
+	if check.IfNil(systemVM) {
 		return nil, epochStart.ErrNilSystemVmInstance
 	}
 
@@ -107,7 +106,7 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 }
 
 // PrepareStakingData prepares the staking data for the given map of node keys per shard
-func (sdp *stakingDataProvider) PrepareStakingData(keys map[uint32][][]byte) error {
+func (sdp *stakingDataProvider) PrepareStakingDataForRewards(keys map[uint32][][]byte) error {
 	sdp.Clean()
 
 	for _, keysList := range keys {

@@ -43,8 +43,10 @@ type ArgsNewEpochStartSystemSCProcessing struct {
 	StakingV2EnableEpoch                   uint32
 	MaxNodesEnableConfig                   []config.MaxNodesChangeConfig
 
-	GenesisNodesConfig sharding.GenesisNodesSetupHandler
-	EpochNotifier      process.EpochNotifier
+	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
+	EpochNotifier       process.EpochNotifier
+	NodesConfigProvider epochStart.NodesConfigProvider
+	StakingDataProvider epochStart.StakingDataProvider
 }
 
 type systemSCProcessor struct {
@@ -56,6 +58,8 @@ type systemSCProcessor struct {
 	startRating               uint32
 	validatorInfoCreator      epochStart.ValidatorInfoCreator
 	genesisNodesConfig        sharding.GenesisNodesSetupHandler
+	nodesConfigProvider       epochStart.NodesConfigProvider
+	stakingDataProvider       epochStart.StakingDataProvider
 	endOfEpochCallerAddress   []byte
 	stakingSCAddress          []byte
 	switchEnableEpoch         uint32
@@ -67,8 +71,9 @@ type systemSCProcessor struct {
 	flagSwitchJailedWaiting   atomic.Flag
 	flagHystNodesEnabled      atomic.Flag
 	flagDelegationEnabled     atomic.Flag
-	flagStakingV2Enabled      atomic.Flag
+	flagSetOwnerEnabled       atomic.Flag
 	flagChangeMaxNodesEnabled atomic.Flag
+	flagStakingV2Enabled      atomic.Flag
 	mapNumSwitchedPerShard    map[uint32]uint32
 	mapNumSwitchablePerShard  map[uint32]uint32
 }
@@ -124,6 +129,12 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	}
 	if check.IfNil(args.GenesisNodesConfig) {
 		return nil, epochStart.ErrNilGenesisNodesConfig
+	}
+	if check.IfNil(args.NodesConfigProvider) {
+		return nil, epochStart.ErrNilNodesConfigProvider
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return nil, epochStart.ErrNilStakingDataProvider
 	}
 
 	s := &systemSCProcessor{
@@ -190,14 +201,61 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(validatorInfos map[uint32
 		}
 	}
 
-	if s.flagStakingV2Enabled.IsSet() {
+	if s.flagSetOwnerEnabled.IsSet() {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
 		}
 	}
 
+	if s.flagStakingV2Enabled.IsSet() {
+		err := s.prepareRewardsData(validatorInfos)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func (s *systemSCProcessor) prepareRewardsData(
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+) error {
+	eligibleNodesKeys := s.getNodesKeyMapOfType(validatorsInfo, string(core.EligibleList))
+	err := s.prepareStakingDataForRewards(eligibleNodesKeys)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[uint32][][]byte) error {
+	sw := core.NewStopWatch()
+	sw.Start("prepareStakingDataForRewards")
+	defer func() {
+		sw.Stop("prepareStakingDataForRewards")
+		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements())
+	}()
+
+	return s.stakingDataProvider.PrepareStakingDataForRewards(eligibleNodesKeys)
+}
+
+func (s *systemSCProcessor) getNodesKeyMapOfType(
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorType string,
+) map[uint32][][]byte {
+	eligibleNodesKeys := make(map[uint32][][]byte)
+	for shardID, validatorsInfoSlice := range validatorsInfo {
+		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
+		for _, validatorInfo := range validatorsInfoSlice {
+			if validatorInfo.List == validatorType {
+				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
+			}
+		}
+	}
+
+	return eligibleNodesKeys
 }
 
 func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBlock {
@@ -704,7 +762,7 @@ func (s *systemSCProcessor) getValidatorUserAccountsKeys(userValidatorAccount st
 			return nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
 		}
 
-		err := s.marshalizer.Unmarshal(validatorData, value)
+		err = s.marshalizer.Unmarshal(validatorData, value)
 		dataIsNotValid := err != nil || len(validatorData.BlsPubKeys) == 0
 		if dataIsNotValid {
 			continue
@@ -910,7 +968,8 @@ func (s *systemSCProcessor) EpochConfirmed(epoch uint32) {
 	s.flagDelegationEnabled.Toggle(epoch == s.delegationEnableEpoch)
 	log.Debug("systemSCProcessor: delegation", "enabled", epoch >= s.delegationEnableEpoch)
 
-	s.flagStakingV2Enabled.Toggle(epoch == s.stakingV2EnableEpoch)
+	s.flagSetOwnerEnabled.Toggle(epoch == s.stakingV2EnableEpoch)
+	s.flagStakingV2Enabled.Toggle(epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor: stakingV2", "enabled", epoch >= s.stakingV2EnableEpoch)
 	log.Debug("systemSCProcessor:change of maximum number of nodes and/or shuffling percentage",
 		"enabled", s.flagChangeMaxNodesEnabled.IsSet(),

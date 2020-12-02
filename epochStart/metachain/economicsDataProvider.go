@@ -13,6 +13,7 @@ type epochEconomicsStatistics struct {
 	mutEconomicsStatistics          sync.RWMutex
 }
 
+// NewEpochEconomicsStatistics creates the end of epoch economics statistics
 func NewEpochEconomicsStatistics() *epochEconomicsStatistics {
 	return &epochEconomicsStatistics{
 		numberOfBlocksPerShard:          make(map[uint32]uint64),
