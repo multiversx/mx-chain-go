@@ -369,7 +369,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Hasher:               e.hasher,
 		Marshalizer:          e.marshalizer,
 		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:             time.Minute,
+		WaitTime:             update.MaxTimeSpanToSyncTries,
 		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)

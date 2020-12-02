@@ -14,10 +14,7 @@ import (
 )
 
 var _ update.StateSyncer = (*syncState)(nil)
-
 var log = logger.GetOrCreate("update/genesis")
-
-const maxTimeSpanToSyncTries = time.Hour * 2
 
 type syncState struct {
 	syncingEpoch uint32
@@ -100,7 +97,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		errSync := ss.tries.SyncTriesFrom(meta, maxTimeSpanToSyncTries)
+		errSync := ss.tries.SyncTriesFrom(meta, update.MaxTimeSpanToSyncTries)
 		if errSync != nil {
 			mutErr.Lock()
 			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncTriesFrom", errSync)
