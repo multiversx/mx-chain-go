@@ -435,7 +435,7 @@ func hardForkImport(
 			Economics:            node.EconomicsData.EconomicsData,
 			ShardCoordinator:     node.ShardCoordinator,
 			ValidatorAccounts:    node.PeerState,
-			GasMap:               gasSchedule,
+			GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
 			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{

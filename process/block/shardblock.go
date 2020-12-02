@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math/big"
 	"time"
@@ -1051,7 +1052,8 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header *block.Header) {
 
 			rootHash := epochStartShData.RootHash
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			ctx := context.Background()
+			accounts.SnapshotState(rootHash, ctx)
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 		}
 	}

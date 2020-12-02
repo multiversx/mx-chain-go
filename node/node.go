@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -209,6 +211,76 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return hex.EncodeToString(valueBytes), nil
+}
+
+// GetESDTBalance returns the esdt balance and properties from a given account
+func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return "", "", err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return "", "", ErrAccountNotFound
+	}
+
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
+	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	if err != nil {
+		return "0", "", nil
+	}
+
+	esdtToken := &esdt.ESDigitalToken{}
+	err = n.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	return esdtToken.Value.String(), hex.EncodeToString(esdtToken.Properties), nil
+}
+
+// GetAllESDTTokens returns the value of a key from a given account
+func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return []string{}, nil
+	}
+
+	foundTokens := make([]string, 0)
+
+	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	lenESDTPrefix := len(esdtPrefix)
+
+	rootHash, err := userAccount.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+	for leaf := range chLeaves {
+		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
+			continue
+		}
+
+		tokenName := string(leaf.Key()[lenESDTPrefix:])
+		foundTokens = append(foundTokens, tokenName)
+	}
+
+	return foundTokens, nil
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {

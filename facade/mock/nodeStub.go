@@ -38,6 +38,8 @@ type NodeStub struct {
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
 	GetUsernameCalled                              func(address string) (string, error)
+	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
+	GetAllESDTTokensCalled                         func(address string) ([]string, error)
 }
 
 // GetUsername -
@@ -151,6 +153,24 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return make([]core.QueryP2PPeerInfo, 0), nil
+}
+
+// GetESDTBalance -
+func (ns *NodeStub) GetESDTBalance(address string, key string) (string, string, error) {
+	if ns.GetESDTBalanceCalled != nil {
+		return ns.GetESDTBalanceCalled(address, key)
+	}
+
+	return "", "", nil
+}
+
+// GetAllESDTTokens -
+func (ns *NodeStub) GetAllESDTTokens(address string) ([]string, error) {
+	if ns.GetAllESDTTokensCalled != nil {
+		return ns.GetAllESDTTokensCalled(address)
+	}
+
+	return []string{""}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

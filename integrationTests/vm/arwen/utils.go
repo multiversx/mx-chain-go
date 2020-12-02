@@ -14,7 +14,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -34,9 +36,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // GasSchedulePath --
-var GasSchedulePath = "../gasSchedule.toml"
+var GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
 
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
@@ -99,6 +100,7 @@ type testParticipant struct {
 	BalanceSnapshot *big.Int
 }
 
+// RewardsProcessor -
 type RewardsProcessor interface {
 	ProcessRewardTransaction(rTx *rewardTx.RewardTx) error
 }
@@ -157,26 +159,31 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          context.GasSchedule,
+		GasSchedule:     mock.NewGasScheduleNotifierMock(context.GasSchedule),
 		MapDNSAddresses: DNSAddresses,
 		Marshalizer:     marshalizer,
 		Accounts:        context.Accounts,
 	}
-
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	require.Nil(context.T, err)
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	require.Nil(context.T, err)
+
 	blockchainMock := &mock.BlockChainMock{}
 	chainStorer := &mock.ChainStorerMock{}
-
+	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
-		Accounts:         context.Accounts,
-		PubkeyConv:       pkConverter,
-		StorageService:   chainStorer,
-		BlockChain:       blockchainMock,
-		ShardCoordinator: oneShardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           context.Accounts,
+		PubkeyConv:         pkConverter,
+		StorageService:     chainStorer,
+		BlockChain:         blockchainMock,
+		ShardCoordinator:   oneShardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -184,7 +191,13 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 	}
 
-	vmFactory, err := shard.NewVMContainerFactory(vmFactoryConfig, maxGasLimit, context.GasSchedule, args, 0)
+	vmFactory, err := shard.NewVMContainerFactory(
+		vmFactoryConfig,
+		maxGasLimit,
+		mock.NewGasScheduleNotifierMock(context.GasSchedule),
+		args,
+		0,
+		0)
 	require.Nil(context.T, err)
 
 	context.VMContainer, err = vmFactory.Create()
@@ -226,7 +239,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      gasSchedule,
+		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions: context.BlockchainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),

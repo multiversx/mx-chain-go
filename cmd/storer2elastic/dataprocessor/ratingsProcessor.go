@@ -1,6 +1,7 @@
 package dataprocessor
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -94,7 +95,8 @@ func (rp *ratingsProcessor) IndexRatingsForEpochStartMetaBlock(metaBlock *block.
 	}
 
 	rootHash := metaBlock.ValidatorStatsRootHash
-	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leaves, err := rp.peerAdapter.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		log.Error("ratingsProcessor -> GetAllLeaves error", "error", err, "root hash", rootHash)
 		// don't return error because if the trie is prunned this kind of data will be available only for the last 3 epochs
@@ -172,10 +174,10 @@ func (rp *ratingsProcessor) createPeerAdapter() error {
 	return nil
 }
 
-func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leaves map[string][]byte) (map[uint32][]workItems.ValidatorRatingInfo, error) {
+func (rp *ratingsProcessor) getValidatorsRatingFromLeaves(leavesChannel chan core.KeyValueHolder) (map[uint32][]workItems.ValidatorRatingInfo, error) {
 	validatorsRatingInfo := make(map[uint32][]workItems.ValidatorRatingInfo)
-	for _, pa := range leaves {
-		peerAccount, err := unmarshalPeer(pa, rp.marshalizer)
+	for pa := range leavesChannel {
+		peerAccount, err := unmarshalPeer(pa.Value(), rp.marshalizer)
 		if err != nil {
 			continue
 		}
