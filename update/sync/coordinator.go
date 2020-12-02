@@ -15,6 +15,7 @@ import (
 
 var _ update.StateSyncer = (*syncState)(nil)
 var log = logger.GetOrCreate("update/genesis")
+var defaultIntervalToPrintStatus = time.Second * 20
 
 type syncState struct {
 	syncingEpoch uint32
@@ -156,6 +157,20 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	}
 
 	return errFound
+}
+
+func displayStatusMessage(message string, ctx context.Context) {
+	log.Info(message, "status", "syncing...please wait")
+	for {
+		select {
+		case <-time.After(defaultIntervalToPrintStatus):
+			log.Info(message, "status", "syncing...please wait")
+
+		case <-ctx.Done():
+			log.Info(message, "status", "done")
+			return
+		}
+	}
 }
 
 func (ss *syncState) printMetablockInfo(metaBlock *block.MetaBlock) {
