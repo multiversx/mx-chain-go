@@ -71,17 +71,17 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	}
 
 	ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
-	go displayStatusMessage("syncing epoch start metablock", ctxDisplay)
+	go displayStatusMessage("getting epoch start metablock", ctxDisplay)
 	meta, err := ss.headers.GetEpochStartMetaBlock()
 	cancelDisplay()
 	if err != nil {
-		return fmt.Errorf("%w in syncState.SyncAllState - GetEpochStartMetaBlock", err)
+		return fmt.Errorf("%w in syncState.SyncAllState - GetEpochStartMetaBlock for epoch %d", err, epoch)
 	}
 
 	ss.printMetablockInfo(meta)
 
 	ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
-	go displayStatusMessage("syncing un-finished metablocks", ctxDisplay)
+	go displayStatusMessage("getting un-finished metablocks", ctxDisplay)
 	unFinished, err := ss.headers.GetUnFinishedMetaBlocks()
 	cancelDisplay()
 	if err != nil {
@@ -111,7 +111,6 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 
 		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
 		go displayStatusMessage(fmt.Sprintf("syncing pending miniblocks for epoch %d", epoch), ctxDisplay)
-
 		ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 		errSync := ss.miniBlocks.SyncPendingMiniBlocksFromMeta(meta, unFinished, ctx)
 		cancelDisplay()
@@ -124,7 +123,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		}
 
 		ctxDisplay, cancelDisplay = context.WithCancel(context.Background())
-		go displayStatusMessage("syncing miniblocks", ctxDisplay)
+		go displayStatusMessage("getting miniblocks", ctxDisplay)
 		syncedMiniBlocks, errGet := ss.miniBlocks.GetMiniBlocks()
 		cancelDisplay()
 		if errGet != nil {
@@ -138,8 +137,8 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 		go displayStatusMessage(fmt.Sprintf("syncing pending transactions for epoch %d", epoch), ctxDisplay)
 		ctx, cancel = context.WithTimeout(context.Background(), time.Hour)
 		errSync = ss.transactions.SyncPendingTransactionsFor(syncedMiniBlocks, ss.syncingEpoch, ctx)
-		cancel()
 		cancelDisplay()
+		cancel()
 		if errSync != nil {
 			mutErr.Lock()
 			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncPendingTransactionsFor", errSync)
