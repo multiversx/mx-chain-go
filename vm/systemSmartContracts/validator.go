@@ -153,13 +153,13 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	case "unStake":
 		return v.unStake(args)
 	case "unStakeNodes":
-		return v.unStake(args)
+		return v.unStakeNodes(args)
 	case "unStakeTokens":
 		return v.unStakeTokens(args)
 	case "unBond":
 		return v.unBond(args)
 	case "unBondNodes":
-		return v.unBondNodesOnly(args)
+		return v.unBondNodes(args)
 	case "unBondTokens":
 		return v.unBondTokens(args)
 	case "claim":
@@ -847,40 +847,44 @@ func (v *validatorSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool 
 	return true
 }
 
-func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (v *validatorSC) basicChecksForUnStakeNodes(args *vmcommon.ContractCallInput) (*ValidatorDataV2, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 	if len(args.Arguments) == 0 {
 		v.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
-
 	if !v.flagEnableStaking.IsSet() {
 		v.eei.AddReturnMessage(vm.UnStakeNotEnabled)
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	err = v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.UnStake * uint64(len(args.Arguments)))
 	if err != nil {
 		v.eei.AddReturnMessage(vm.InsufficientGasLimit)
-		return vmcommon.OutOfGas
+		return nil, vmcommon.OutOfGas
 	}
 
 	blsKeys := args.Arguments
 	err = verifyBLSPublicKeys(registrationData, blsKeys)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetAllBlsKeysFromRegistrationData + err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
+	return registrationData, vmcommon.Ok
+}
+
+func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationData *ValidatorDataV2) uint64 {
+	numSuccess := uint64(0)
 	for _, blsKey := range blsKeys {
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(registrationData.RewardAddress)))
 		if errExec != nil {
@@ -896,9 +900,38 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			v.eei.Finish([]byte{failed})
 			continue
 		}
+
+		numSuccess++
 	}
 
-	err = v.saveRegistrationData(args.CallerAddr, registrationData)
+	return numSuccess
+}
+
+// This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
+func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, returnCode := v.basicChecksForUnStakeNodes(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	numSuccess := v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
+	if !v.flagEnableTopUp.IsSet() {
+		return vmcommon.Ok
+	}
+
+	// continue by unstaking tokens as well
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	unStakeFromNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numSuccess))
+	if unStakeFromNodes.Cmp(registrationData.TotalStakeValue) > 0 {
+		unStakeFromNodes.Set(registrationData.TotalStakeValue)
+	}
+
+	returnCode = v.processUnStakeValue(registrationData, unStakeFromNodes)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := v.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
 		return vmcommon.UserError
@@ -907,15 +940,22 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) unStakeNodeOneNodeFromStakingSC(blsKey []byte, rewardAddress []byte) vmcommon.ReturnCode {
-	vmOutput, errExec := v.executeOnStakingSC([]byte("unStake@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(rewardAddress)))
-	if errExec != nil {
+func (v *validatorSC) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagEnableTopUp.IsSet() {
+		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	return vmOutput.ReturnCode
+	registrationData, returnCode := v.basicChecksForUnStakeNodes(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	_ = v.unStakeNodesFromStakingSC(args.Arguments, registrationData)
+
+	return vmcommon.Ok
 }
 
-func (v *validatorSC) unBondNodesOnly(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (v *validatorSC) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !v.flagEnableTopUp.IsSet() {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
@@ -925,20 +965,10 @@ func (v *validatorSC) unBondNodesOnly(args *vmcommon.ContractCallInput) vmcommon
 		return returnCode
 	}
 
-	totalUnBond, unBondedKeys := v.unBondNodesFromStakingSC(args.Arguments)
-	if registrationData.NumRegistered < uint32(len(unBondedKeys)) {
-		v.eei.AddReturnMessage("contract error on unBond function, missing nodes")
-		return vmcommon.UserError
-	}
-
-	registrationData.NumRegistered -= uint32(len(unBondedKeys))
-	registrationData.TotalStakeValue.Add(registrationData.TotalStakeValue, totalUnBond)
-
-	v.deleteUnBondedKeys(registrationData, unBondedKeys)
-	err := v.saveRegistrationData(args.CallerAddr, registrationData)
-	if err != nil {
-		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
-		return vmcommon.UserError
+	unBondedKeys := v.unBondNodesFromStakingSC(args.Arguments)
+	returnCode = v.updateRegistrationDataAfterUnBond(registrationData, unBondedKeys, args.CallerAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
 	}
 
 	return vmcommon.Ok
@@ -979,19 +1009,9 @@ func (v *validatorSC) checkUnBondArguments(args *vmcommon.ContractCallInput) (*V
 	return registrationData, vmcommon.Ok
 }
 
-func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]byte) {
+func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) [][]byte {
 	unBondedKeys := make([][]byte, 0)
-	totalUnBond := big.NewInt(0)
-	totalSlashed := big.NewInt(0)
 	for _, blsKey := range blsKeys {
-		nodeData, errGet := v.getStakedData(blsKey)
-		if errGet != nil {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s, error: %s", hex.EncodeToString(blsKey), errGet.Error()))
-			v.eei.Finish(blsKey)
-			v.eei.Finish([]byte{failed})
-			continue
-		}
-		// returns what value is still under the selected bls key
 		vmOutput, errExec := v.executeOnStakingSC([]byte("unBond@" + hex.EncodeToString(blsKey)))
 		if errExec != nil || vmOutput.ReturnCode != vmcommon.Ok {
 			v.eei.AddReturnMessage(fmt.Sprintf("cannot do unBond for key: %s", hex.EncodeToString(blsKey)))
@@ -1000,47 +1020,22 @@ func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) (*big.Int, [][]
 			continue
 		}
 
-		validatorConfig := v.getConfig(nodeData.UnStakedEpoch)
 		unBondedKeys = append(unBondedKeys, blsKey)
-		totalUnBond.Add(totalUnBond, validatorConfig.NodePrice)
-		totalSlashed.Add(totalSlashed, nodeData.SlashValue)
 	}
 
-	totalUnBond.Sub(totalUnBond, totalSlashed)
-	if totalUnBond.Cmp(zero) < 0 {
-		totalUnBond.Set(zero)
-	}
-
-	return totalUnBond, unBondedKeys
+	return unBondedKeys
 }
 
-func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (v *validatorSC) unBondV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	registrationData, returnCode := v.checkUnBondArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	totalUnBond, unBondedKeys := v.unBondNodesFromStakingSC(args.Arguments)
-	returnCode = v.updateRegistrationDataAfterUnBond(registrationData, totalUnBond, unBondedKeys, args.CallerAddr)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
+	unBondedKeys := v.unBondNodesFromStakingSC(args.Arguments)
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	totalUnBond := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(int64(len(unBondedKeys))))
 
-	err := v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
-	if err != nil {
-		v.eei.AddReturnMessage("transfer error on unBond function")
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (v *validatorSC) updateRegistrationDataAfterUnBond(
-	registrationData *ValidatorDataV2,
-	totalUnBond *big.Int,
-	unBondedKeys [][]byte,
-	callerAddr []byte,
-) vmcommon.ReturnCode {
 	if registrationData.LockedStake.Cmp(totalUnBond) < 0 {
 		v.eei.AddReturnMessage("contract error on unBond function, lockedStake < totalUnBond")
 		return vmcommon.UserError
@@ -1060,6 +1055,73 @@ func (v *validatorSC) updateRegistrationDataAfterUnBond(
 	}
 
 	if registrationData.LockedStake.Cmp(zero) == 0 && registrationData.TotalStakeValue.Cmp(zero) == 0 {
+		v.eei.SetStorage(args.CallerAddr, nil)
+	} else {
+		v.deleteUnBondedKeys(registrationData, unBondedKeys)
+		errSave := v.saveRegistrationData(args.CallerAddr, registrationData)
+		if errSave != nil {
+			v.eei.AddReturnMessage("cannot save registration data: error " + errSave.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	err := v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
+	if err != nil {
+		v.eei.AddReturnMessage("transfer error on unBond function")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagEnableTopUp.IsSet() {
+		return v.unBondV1(args)
+	}
+
+	registrationData, returnCode := v.checkUnBondArguments(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	unBondedKeys := v.unBondNodesFromStakingSC(args.Arguments)
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	totalUnBond := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(int64(len(unBondedKeys))))
+	totalUnBond, returnCode = v.unBondTokensFromRegistrationData(registrationData, totalUnBond)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	returnCode = v.updateRegistrationDataAfterUnBond(registrationData, unBondedKeys, args.CallerAddr)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
+	if err != nil {
+		v.eei.AddReturnMessage("transfer error on unBond function")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) updateRegistrationDataAfterUnBond(
+	registrationData *ValidatorDataV2,
+	unBondedKeys [][]byte,
+	callerAddr []byte,
+) vmcommon.ReturnCode {
+	if registrationData.NumRegistered < uint32(len(unBondedKeys)) {
+		v.eei.AddReturnMessage("contract error on unBond function, missing nodes")
+		return vmcommon.UserError
+	}
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	registrationData.NumRegistered -= uint32(len(unBondedKeys))
+	registrationData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+
+	if registrationData.TotalStakeValue.Cmp(zero) == 0 {
 		v.eei.SetStorage(callerAddr, nil)
 	} else {
 		v.deleteUnBondedKeys(registrationData, unBondedKeys)
@@ -1149,20 +1211,8 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	maxValUnstake := big.NewInt(0).Sub(registrationData.TotalStakeValue, registrationData.LockedStake)
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
-	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(maxValUnstake) == 0
-	if !unstakeValueIsOk {
-		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
-			"is not the value left to be unStaked")
-		return vmcommon.UserError
-	}
-	if unStakeValue.Cmp(maxValUnstake) > 0 {
-		v.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + maxValUnstake.String())
-		return vmcommon.UserError
-	}
-
-	returnCode = v.unStakeValue(registrationData, unStakeValue)
+	returnCode = v.processUnStakeValue(registrationData, unStakeValue)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1176,13 +1226,19 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) unStakeValue(registrationData *ValidatorDataV2, unStakeValue *big.Int) vmcommon.ReturnCode {
-	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, unStakeValue)
-	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
-		v.eei.AddReturnMessage("contract error on unStakeTokens function, total stake < unstake value")
+func (v *validatorSC) processUnStakeValue(registrationData *ValidatorDataV2, unStakeValue *big.Int) vmcommon.ReturnCode {
+	unstakeValueIsOk := unStakeValue.Cmp(v.minUnstakeTokensValue) >= 0 || unStakeValue.Cmp(registrationData.TotalStakeValue) == 0
+	if !unstakeValueIsOk {
+		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
+			"is not the value left to be unStaked")
+		return vmcommon.UserError
+	}
+	if unStakeValue.Cmp(registrationData.TotalStakeValue) > 0 {
+		v.eei.AddReturnMessage("can not unstake a bigger value than the possible allowed value which is " + registrationData.TotalStakeValue.String())
 		return vmcommon.UserError
 	}
 
+	registrationData.TotalStakeValue.Sub(registrationData.TotalStakeValue, unStakeValue)
 	registrationData.TotalUnstaked.Add(registrationData.TotalUnstaked, unStakeValue)
 	registrationData.UnstakedInfo = append(
 		registrationData.UnstakedInfo,
@@ -1311,7 +1367,7 @@ func (v *validatorSC) unBondTokensFromRegistrationData(
 	registrationData.UnstakedInfo = registrationData.UnstakedInfo[index:]
 	registrationData.TotalUnstaked.Sub(registrationData.TotalUnstaked, totalUnBond)
 	if registrationData.TotalUnstaked.Cmp(zero) < 0 {
-		v.eei.AddReturnMessage("contract error on unBondTokens function, total unstaked < total unbond")
+		v.eei.AddReturnMessage("too much requested to unBond")
 		return nil, vmcommon.UserError
 	}
 
@@ -1369,8 +1425,13 @@ func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmco
 		v.eei.AddReturnMessage("caller not registered in staking/validator sc")
 		return vmcommon.UserError
 	}
+
+	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
+	stakeForNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
-	topUp.Sub(topUp, registrationData.LockedStake)
+	topUp.Sub(topUp, stakeForNodes)
+
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")
 		return vmcommon.UserError
@@ -1378,6 +1439,12 @@ func (v *validatorSC) getTopUpTotalStaked(args *vmcommon.ContractCallInput) vmco
 
 	v.eei.Finish([]byte(topUp.String()))
 	v.eei.Finish([]byte(registrationData.TotalStakeValue.String()))
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	// TODO: implement this. It is needed as last component of slashing. Slashing should happen to the funds of the
+	// validator which is running the nodes
 	return vmcommon.Ok
 }
 

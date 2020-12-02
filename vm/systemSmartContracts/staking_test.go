@@ -779,40 +779,6 @@ func TestStakingSC_ExecuteSlashNotStake(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestStakingSC_ExecuteSlashStaked(t *testing.T) {
-	t.Parallel()
-
-	stakeValue := big.NewInt(100)
-	eei := &mock.SystemEIStub{}
-	eei.GetStorageCalled = func(key []byte) []byte {
-		switch {
-		case bytes.Equal(key, []byte(ownerKey)):
-			return []byte("data")
-		default:
-			registrationDataMarshalized, _ := json.Marshal(
-				&StakedDataV2_0{
-					StakeValue:    big.NewInt(100),
-					Staked:        true,
-					RewardAddress: []byte("reward"),
-				})
-			return registrationDataMarshalized
-		}
-	}
-
-	args := createMockStakingScArguments()
-	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.Eei = eei
-	stakingSmartContract, _ := NewStakingSmartContract(args)
-
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "slash"
-	arguments.CallerAddr = []byte("data")
-	arguments.Arguments = [][]byte{big.NewInt(100).Bytes(), big.NewInt(100).Bytes()}
-
-	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-}
-
 func TestStakingSC_ExecuteUnStakeAndUnBoundStake(t *testing.T) {
 	t.Parallel()
 
@@ -920,58 +886,6 @@ func TestStakingSC_ExecuteGetShouldOk(t *testing.T) {
 	err := stakingSmartContract.Execute(arguments)
 
 	assert.Equal(t, vmcommon.Ok, err)
-}
-
-func TestStakingSc_ExecuteSlashTwoTime(t *testing.T) {
-	t.Parallel()
-
-	stakeValue := big.NewInt(100)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
-
-	stakedRegistrationData := StakedDataV2_0{
-		RegisterNonce: 50,
-		Staked:        true,
-		UnStakedNonce: 0,
-		RewardAddress: []byte("validator"),
-		StakeValue:    stakeValue,
-		JailedRound:   math.MaxUint64,
-		SlashValue:    big.NewInt(0),
-	}
-
-	args := createMockStakingScArguments()
-	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
-	args.Eei = eei
-	stakingSmartContract, _ := NewStakingSmartContract(args)
-
-	arguments := CreateVmContractCallInput()
-	arguments.Function = "slash"
-	arguments.CallerAddr = []byte("data")
-	marshalizedStakedDataV2, _ := json.Marshal(&stakedRegistrationData)
-	stakingSmartContract.eei.SetStorage(arguments.CallerAddr, marshalizedStakedDataV2)
-	stakingSmartContract.eei.SetStorage([]byte(ownerKey), arguments.CallerAddr)
-
-	slashValue := big.NewInt(70)
-	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
-	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-
-	dataBytes := stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
-	var registrationData StakedDataV2_0
-	err := json.Unmarshal(dataBytes, &registrationData)
-	assert.Nil(t, err)
-
-	assert.Equal(t, slashValue, registrationData.SlashValue)
-
-	arguments.Arguments = [][]byte{arguments.CallerAddr, slashValue.Bytes()}
-	retCode = stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.Ok, retCode)
-
-	dataBytes = stakingSmartContract.eei.GetStorage(arguments.CallerAddr)
-	err = json.Unmarshal(dataBytes, &registrationData)
-	assert.Nil(t, err)
-
-	expectedSlashValue := big.NewInt(0).Add(slashValue, slashValue)
-	assert.Equal(t, expectedSlashValue, registrationData.SlashValue)
 }
 
 func TestStakingSc_ExecuteNilArgs(t *testing.T) {

@@ -2182,6 +2182,7 @@ func TestValidatorStakingSC_ExecuteUnStakeAndUnBondStake(t *testing.T) {
 		LockedStake:     valueStakedByTheCaller,
 		MaxStakePerNode: valueStakedByTheCaller,
 		NumRegistered:   1,
+		TotalUnstaked:   big.NewInt(0),
 	}
 	marshaledRegistrationData, _ := json.Marshal(validatorData)
 	eei.SetSCAddress(args.ValidatorSCAddress)
@@ -2704,7 +2705,7 @@ func TestStakingValidatorSC_UnstakeTokensWithCallValueShouldError(t *testing.T) 
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
 
-func TestStakingValidatorSC_UnstakeTokensOverMaxShouldErr(t *testing.T) {
+func TestStakingValidatorSC_UnstakeTokensOverMaxShouldUnStake(t *testing.T) {
 	t.Parallel()
 
 	minStakeValue := big.NewInt(1000)
@@ -2739,9 +2740,12 @@ func TestStakingValidatorSC_UnstakeTokensOverMaxShouldErr(t *testing.T) {
 		},
 	)
 
-	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.UserError)
-	vmOutput := eei.CreateVMOutput()
-	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake a bigger value than the possible allowed value which is"))
+	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.Ok)
+
+	registrationData, _ := sc.getOrCreateRegistrationData(caller)
+	assert.Equal(t, 1, len(registrationData.UnstakedInfo))
+	assert.True(t, big.NewInt(999).Cmp(registrationData.TotalStakeValue) == 0)
+	assert.True(t, registrationData.UnstakedInfo[0].UnstakedValue.Cmp(big.NewInt(11)) == 0)
 }
 
 func TestStakingValidatorSC_UnstakeTokensUnderMinimumAllowedShouldErr(t *testing.T) {
@@ -3502,8 +3506,9 @@ func TestStakingValidatorSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 
 	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
 	vmOutput := eei.CreateVMOutput()
-	topUp := big.NewInt(0).Set(totalStake)
-	assert.Equal(t, topUp.Sub(topUp, lockedStake).String(), string(vmOutput.ReturnData[0]))
+
+	// nodePrice is 1000 and there is 1 registered node - the rest is topup
+	assert.Equal(t, big.NewInt(32827).String(), string(vmOutput.ReturnData[0]))
 	assert.Equal(t, totalStake.String(), string(vmOutput.ReturnData[1]))
 }
 

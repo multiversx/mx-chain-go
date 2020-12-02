@@ -34,6 +34,7 @@ message ValidatorDataV2 {
     uint32   NumRegistered              = 8  [(gogoproto.jsontag) = "NumRegistered"];
     repeated UnstakedValue UnstakedInfo = 9  [(gogoproto.jsontag) = "UnstakedInfo"];
     bytes    TotalUnstaked              = 10 [(gogoproto.jsontag) = "TotalUnstaked", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
+    bytes    TotalSlashed               = 11  [(gogoproto.jsontag) = "TotalSlashed", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
 }
 
 message ValidatorConfig {
