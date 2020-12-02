@@ -6,6 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
@@ -16,14 +17,16 @@ var log = logger.GetOrCreate("core/indexer")
 const durationBetweenErrorRetry = time.Second * 3
 
 const (
-	backOffTime = time.Second * 10
-	maxBackOff  = time.Minute * 5
+	closeTimeout = time.Second * 5
+	backOffTime  = time.Second * 10
+	maxBackOff   = time.Minute * 5
 )
 
 type dataDispatcher struct {
 	backOffTime   time.Duration
 	chanWorkItems chan workItems.WorkItemHandler
 	cancelFunc    func()
+	wasClosed     atomic.Flag
 }
 
 // NewDataDispatcher creates a new dataDispatcher instance, capable of saving sequentially data in elasticsearch database
@@ -34,6 +37,7 @@ func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
 
 	dd := &dataDispatcher{
 		chanWorkItems: make(chan workItems.WorkItemHandler, cacheSize),
+		wasClosed:     atomic.Flag{},
 	}
 
 	return dd, nil
@@ -54,15 +58,30 @@ func (d *dataDispatcher) startWorker(ctx context.Context) {
 			log.Debug("dispatcher's go routine is stopping...")
 			return
 		case wi := <-d.chanWorkItems:
-			d.doWork(wi)
+			d.doWork(wi, 0)
 		}
 	}
 }
 
 // Close will close the endless running go routine
 func (d *dataDispatcher) Close() error {
+	start := time.Now()
 	if d.cancelFunc != nil {
 		d.cancelFunc()
+	}
+
+	d.wasClosed.Set()
+	close(d.chanWorkItems)
+	for wi := range d.chanWorkItems {
+		if time.Since(start) > closeTimeout {
+			log.Warn("cannot write all items from the queue",
+				"error", "timeout",
+			)
+			return nil
+		}
+
+		remainingTime := closeTimeout - time.Since(start)
+		d.doWork(wi, remainingTime)
 	}
 
 	return nil
@@ -74,12 +93,24 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 		log.Warn("dataDispatcher.Add nil item: will do nothing")
 		return
 	}
+	if d.wasClosed.IsSet() {
+		return
+	}
 
 	d.chanWorkItems <- item
 }
 
-func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) {
+func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler, timeout time.Duration) {
+	start := time.Now()
 	for {
+		isTimeout := time.Since(start) > timeout
+		// if timeout is 0 should be ignored
+		if isTimeout && timeout != 0 {
+			log.Warn("dataDispatcher.doWork could not index item",
+				"error", "timeout")
+			return
+		}
+
 		err := wi.Save()
 		if errors.Is(err, client.ErrBackOff) {
 			log.Warn("dataDispatcher.doWork could not index item",
