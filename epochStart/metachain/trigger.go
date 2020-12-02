@@ -78,13 +78,13 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilEpochStartSettings
 	}
 	if args.Settings.RoundsPerEpoch < 1 {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if args.Settings.MinRoundsBetweenEpochs < 1 {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
@@ -168,12 +168,14 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
+	if t.nextEpochStartRound >= t.currEpochStartRound+t.roundsPerEpoch {
+		t.nextEpochStartRound = math.MaxUint64
+		log.Debug("can not force epoch start because the resulting round is in the next epoch")
+
+		return
+	}
 	if t.currentRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
 		t.nextEpochStartRound = t.currEpochStartRound + t.minRoundsBetweenEpochs
-	}
-	if t.nextEpochStartRound >= t.currEpochStartRound+t.roundsPerEpoch {
-		//no need for forced epoch start, this epoch is about to end
-		t.nextEpochStartRound = math.MaxUint64
 	}
 
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
