@@ -254,8 +254,17 @@ var ErrTransactionNotFoundInImportedMap = errors.New("transaction was not found 
 // ErrNilEpochStartMetaBlock signals that a nil epoch start metaBlock was provided
 var ErrNilEpochStartMetaBlock = errors.New("nil epoch start metaBlock was provided")
 
-//ErrNilUnFinishedMetaBlocksMap signals that a nil unFinished metaBlocks map was provided
+// ErrNilUnFinishedMetaBlocksMap signals that a nil unFinished metaBlocks map was provided
 var ErrNilUnFinishedMetaBlocksMap = errors.New("nil unFinished metaBlocks map was provided")
 
-//ErrDuplicatedMiniBlocksFound signals that duplicated miniBlocks were found
-var ErrDuplicatedMiniBlocksFound = errors.New("duplicated miniBlocks were found")
+// ErrPostProcessTransactionNotFound signals that the given transaction was not found in post process map
+var ErrPostProcessTransactionNotFound = errors.New("transaction was not found in post process map")
+
+// ErrNilBlockBody signals that a nil block body has been provided
+var ErrNilBlockBody = errors.New("nil block body")
+
+// ErrNilHeaderHandler signals that a nil header handler has been provided
+var ErrNilHeaderHandler = errors.New("nil header handler")
+
+// ErrInvalidMiniBlockType signals that an invalid miniBlock type has been provided
+var ErrInvalidMiniBlockType = errors.New("invalid miniBlock type")

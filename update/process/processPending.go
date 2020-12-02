@@ -1,9 +1,6 @@
 package process
 
 import (
-	"fmt"
-	"sort"
-
 	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -70,20 +67,16 @@ func NewPendingTransactionProcessor(args ArgsPendingTransactionProcessor) (*pend
 }
 
 // ProcessTransactionsDstMe processes all the transactions in which destination is the current shard
-func (p *pendingProcessor) ProcessTransactionsDstMe(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
-	mapMiniBlocks := make(map[string]*block.MiniBlock)
-	for _, txInfo := range txsInfo {
-		sndShardID := core.MetachainShardId
-		if len(txInfo.Tx.GetSndAddr()) > 0 {
-			sndShardID = p.shardCoordinator.ComputeId(txInfo.Tx.GetSndAddr())
-		}
+func (p *pendingProcessor) ProcessTransactionsDstMe(mbInfo *update.MbInfo) (*block.MiniBlock, error) {
+	miniBlock := &block.MiniBlock{
+		TxHashes:        make([][]byte, 0),
+		ReceiverShardID: mbInfo.ReceiverShardID,
+		SenderShardID:   mbInfo.SenderShardID,
+		Type:            mbInfo.Type,
+	}
 
-		dstShardID := p.shardCoordinator.ComputeId(txInfo.Tx.GetRcvAddr())
-		if dstShardID != p.shardCoordinator.SelfId() {
-			continue
-		}
-
-		blockType, err := p.processSingleTransaction(txInfo)
+	for _, txInfo := range mbInfo.TxsInfo {
+		err := p.processSingleTransaction(txInfo)
 		if err != nil {
 			log.Debug("could not process transaction",
 				"err", err,
@@ -94,80 +87,51 @@ func (p *pendingProcessor) ProcessTransactionsDstMe(txsInfo []*update.TxInfo) (b
 			continue
 		}
 
-		localID := fmt.Sprintf("%d_%d_%d", sndShardID, dstShardID, blockType)
-		mb, ok := mapMiniBlocks[localID]
-		if !ok {
-			mb = &block.MiniBlock{
-				TxHashes:        make([][]byte, 0),
-				ReceiverShardID: dstShardID,
-				SenderShardID:   sndShardID,
-				Type:            blockType,
-			}
-			mapMiniBlocks[localID] = mb
-		}
-
-		mb.TxHashes = append(mb.TxHashes, txInfo.TxHash)
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txInfo.TxHash)
 	}
 
-	_, err := p.accounts.Commit()
-	if err != nil {
-		return nil, err
-	}
-
-	miniBlocks := getSortedSliceFromMbsMap(mapMiniBlocks)
-	return miniBlocks, nil
+	return miniBlock, nil
 }
 
-func getSortedSliceFromMbsMap(mbsMap map[string]*block.MiniBlock) block.MiniBlockSlice {
-	miniBlocks := make(block.MiniBlockSlice, 0, len(mbsMap))
-	for _, mb := range mbsMap {
-		miniBlocks = append(miniBlocks, mb)
-	}
-
-	sort.Slice(miniBlocks, func(i, j int) bool {
-		if miniBlocks[i].SenderShardID == miniBlocks[j].SenderShardID {
-			return miniBlocks[i].Type < miniBlocks[j].Type
-		}
-		return miniBlocks[i].SenderShardID < miniBlocks[j].SenderShardID
-	})
-
-	return miniBlocks
-}
-
-func (p *pendingProcessor) processSingleTransaction(txInfo *update.TxInfo) (block.Type, error) {
+func (p *pendingProcessor) processSingleTransaction(txInfo *update.TxInfo) error {
 	rwdTx, ok := txInfo.Tx.(*rewardTx.RewardTx)
 	if ok {
 		err := p.rwdTxProcessor.ProcessRewardTransaction(rwdTx)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		return block.RewardsBlock, nil
+		return nil
 	}
 
 	scrTx, ok := txInfo.Tx.(*smartContractResult.SmartContractResult)
 	if ok {
 		_, err := p.scrTxProcessor.ProcessSmartContractResult(scrTx)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		return block.SmartContractResultBlock, nil
+		return nil
 	}
 
 	tx, ok := txInfo.Tx.(*transaction.Transaction)
 	if ok {
 		_, err := p.txProcessor.ProcessTransaction(tx)
 		if err != nil {
-			return 0, err
+			return err
 		}
-		return block.TxBlock, nil
+		return nil
 	}
 
-	return block.InvalidBlock, nil
+	return nil
 }
 
 // RootHash returns the roothash of the accounts
 func (p *pendingProcessor) RootHash() ([]byte, error) {
 	return p.accounts.RootHash()
+}
+
+// Commit commits the changes of the accounts
+func (p *pendingProcessor) Commit() ([]byte, error) {
+	return p.accounts.Commit()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

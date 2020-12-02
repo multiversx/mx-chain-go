@@ -26,7 +26,7 @@ startTxGen_NewAccounts() {
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
 
-  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -num-shards $SHARDCOUNT -new-accounts |& tee stdout.txt" $1
+  runCommandInTerminal "./txgen -num-accounts $NUMACCOUNTS -new-accounts |& tee stdout.txt" $1
 }
 
 startTxGen_ExistingAccounts() {
