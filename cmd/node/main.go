@@ -2142,7 +2142,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:    network.OutputAntifloodHandler,
 		ValidityAttester:          process.BlockTracker,
 		ChainID:                   coreData.ChainID,
-		Rounder:                   process.Rounder,
+		RoundHandler:              process.Rounder,
 		GenesisNodesSetupHandler:  nodesSetup,
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		MinTxVersion:              coreData.MinTransactionVersion,
@@ -2168,6 +2168,7 @@ func createHardForkTrigger(
 		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
+		RoundHandler:              process.Rounder,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

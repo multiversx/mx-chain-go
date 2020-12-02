@@ -227,8 +227,8 @@ var ErrImportingData = errors.New("error importing data")
 // ErrKeyTypeMismatch signals that key type was mismatch during import
 var ErrKeyTypeMismatch = errors.New("key type mismatch while importing")
 
-// ErrNilRounder signals that nil rounder has been provided
-var ErrNilRounder = errors.New("nil rounder")
+// ErrNilRoundHandler signals that nil round handler has been provided
+var ErrNilRoundHandler = errors.New("nil round handler")
 
 // ErrEmptyExportFolderPath signals that the provided export folder's length is empty
 var ErrEmptyExportFolderPath = errors.New("empty export folder path")

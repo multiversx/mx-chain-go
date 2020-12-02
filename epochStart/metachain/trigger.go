@@ -163,13 +163,17 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart sets the round at which the new epoch will start
-func (t *trigger) ForceEpochStart() {
+func (t *trigger) ForceEpochStart(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.nextEpochStartRound = t.currentRound
+	t.nextEpochStartRound = round
 	if t.currentRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
 		t.nextEpochStartRound = t.currEpochStartRound + t.minRoundsBetweenEpochs
+	}
+	if t.nextEpochStartRound >= t.currEpochStartRound+t.roundsPerEpoch {
+		//no need for forced epoch start, this epoch is about to end
+		t.nextEpochStartRound = math.MaxUint64
 	}
 
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
