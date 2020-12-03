@@ -167,6 +167,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.getTotalStaked(args)
 	case "getBlsKeysStatus":
 		return s.getBlsKeysStatus(args)
+	case "cleanRegisteredData":
+		return s.cleanRegisteredData(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -722,6 +724,63 @@ func checkDoubleBLSKeys(blsKeys [][]byte) bool {
 		mapKeys[string(blsKey)] = struct{}{}
 	}
 	return false
+}
+
+func (s *stakingAuctionSC) cleanRegisteredData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagDoubleKey.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
+		return vmcommon.OutOfGas
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage("must be called with 0 value")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("must be called with 0 arguments")
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.BlsPubKeys) == 0 {
+		return vmcommon.Ok
+	}
+
+	changesMade := false
+	newList := make([][]byte, 0)
+	mapExistingKeys := make(map[string]struct{})
+	for _, blsKey := range registrationData.BlsPubKeys {
+		if _, found := mapExistingKeys[string(blsKey)]; found {
+			changesMade = true
+			continue
+		}
+
+		mapExistingKeys[string(blsKey)] = struct{}{}
+		newList = append(newList, blsKey)
+	}
+
+	registrationData.BlsPubKeys = make([][]byte, 0, len(newList))
+	registrationData.BlsPubKeys = newList
+
+	if changesMade {
+		err = s.saveRegistrationData(args.CallerAddr, registrationData)
+		if err != nil {
+			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
 }
 
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
