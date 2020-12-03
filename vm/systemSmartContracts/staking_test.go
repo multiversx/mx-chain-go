@@ -1757,9 +1757,10 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	assert.Equal(t, oldHead.Length, newHead.Length)
 
 	validatorData := &ValidatorDataV2{
-		TotalStakeValue: big.NewInt(100000000),
+		TotalStakeValue: big.NewInt(400),
 		TotalUnstaked:   big.NewInt(0),
 		RewardAddress:   stakerAddress,
+		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirdKey"), []byte("fourthKey")},
 	}
 	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
 	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)

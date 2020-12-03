@@ -1454,7 +1454,7 @@ func (s *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 	}
 
 	stakedNodes := uint64(0)
-	mapCheckedOwners := make(map[string]uint32)
+	mapCheckedOwners := make(map[string]bool)
 	for i, blsKey := range waitingListData.blsKeys {
 		stakedData := waitingListData.stakedDataList[i]
 		if stakedNodes >= numNodesToStake {
@@ -1470,7 +1470,6 @@ func (s *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 			continue
 		}
 
-		mapCheckedOwners[string(stakedData.OwnerAddress)]--
 		s.activeStakingFor(stakedData)
 		err = s.saveStakingData(blsKey, stakedData)
 		if err != nil {
@@ -1494,17 +1493,17 @@ func (s *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) 
 }
 
 func (s *stakingSC) checkValidatorFunds(
-	mapCheckedOwners map[string]uint32,
+	mapCheckedOwners map[string]bool,
 	owner []byte,
 ) (bool, error) {
-	numNodes, okInMap := mapCheckedOwners[string(owner)]
+	hasFunds, okInMap := mapCheckedOwners[string(owner)]
 	if okInMap {
-		return numNodes > 0, nil
+		return hasFunds, nil
 	}
 
 	marshaledData := s.eei.GetStorageFromAddress(s.stakeAccessAddr, owner)
 	if len(marshaledData) == 0 {
-		mapCheckedOwners[string(owner)] = 0
+		mapCheckedOwners[string(owner)] = false
 		return false, nil
 	}
 
@@ -1515,14 +1514,14 @@ func (s *stakingSC) checkValidatorFunds(
 	}
 
 	numRegisteredKeys := int64(len(validatorData.BlsPubKeys))
-	maxQualified := big.NewInt(0).Div(validatorData.TotalStakeValue, s.minNodePrice).Int64()
+	numQualified := big.NewInt(0).Div(validatorData.TotalStakeValue, s.minNodePrice).Int64()
 
-	if maxQualified <= numRegisteredKeys {
-		mapCheckedOwners[string(owner)] = 0
+	if numQualified < numRegisteredKeys {
+		mapCheckedOwners[string(owner)] = false
 		return false, nil
 	}
 
-	mapCheckedOwners[string(owner)] = uint32(maxQualified - numRegisteredKeys)
+	mapCheckedOwners[string(owner)] = true
 
 	return true, nil
 }
