@@ -184,6 +184,19 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage: config.StorageConfig{
+			Cache: config.CacheConfig{
+				Name:     "SmartContractsStorage",
+				Type:     "LRU",
+				Capacity: 100,
+			},
+			DB: config.DBConfig{
+				FilePath:          "SmartContractsStorage",
+				Type:              "LvlDBSerial",
+				BatchDelaySeconds: 2,
+				MaxBatchSize:      100,
+			},
+		},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{

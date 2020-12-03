@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -18,6 +19,7 @@ import (
 func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second)
+	logger.SetLogLevel("*:DEBUG")
 
 	nrBefore := runtime.NumGoroutine()
 	factory.PrintStack()

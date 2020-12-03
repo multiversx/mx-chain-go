@@ -64,5 +64,14 @@ func CreateDefaultConfig() *config.Configs {
 		NodesFileName:                     NodesSetupPath,
 	}
 
+	configs.ConfigurationGasScheduleDirectoryName = GasSchedule
+	configs.ConfigurationSystemSCFilename = SystemSCConfigPath
+	configs.ConfigurationExternalFileName = ExternalPath
+	configs.ConfigurationFileName = ConfigPath
+	configs.ConfigurationEconomicsFileName = EconomicsPath
+	configs.ConfigurationRatingsFileName = RatingsPath
+	configs.ConfigurationPreferencesFileName = PrefsPath
+	configs.P2pConfigurationFileName = P2pPath
+
 	return configs
 }

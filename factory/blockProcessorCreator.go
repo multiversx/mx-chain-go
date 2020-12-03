@@ -115,6 +115,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		WorkingDir:         pcf.workingDir,
 		NilCompiledSCStore: false,
+		ConfigSCStorage:    pcf.config.SmartContractsStorage,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(
 		pcf.config.VirtualMachine.Execution,

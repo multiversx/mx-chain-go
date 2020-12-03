@@ -175,6 +175,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -261,6 +262,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, testHasher)
@@ -303,6 +305,7 @@ func CreateVMAndBlockchainHook(
 		DataPool:           datapool,
 		CompiledSCPool:     datapool.SmartContracts(),
 		NilCompiledSCStore: true,
+		ConfigSCStorage:    *defaultStorageConfig(),
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -644,5 +647,21 @@ func CreateMoveBalanceTx(
 		SndAddr:  sndAddress,
 		GasPrice: 1,
 		GasLimit: gasLimit,
+	}
+}
+
+func defaultStorageConfig() *config.StorageConfig {
+	return &config.StorageConfig{
+		Cache: config.CacheConfig{
+			Name:     "SmartContractsStorage",
+			Type:     "LRU",
+			Capacity: 100,
+		},
+		DB: config.DBConfig{
+			FilePath:          "SmartContractsStorage",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      100,
+		},
 	}
 }
