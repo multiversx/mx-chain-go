@@ -250,6 +250,9 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 
 	for _, blsKey := range nodesToUnStake {
 		err = s.unStakeOneNode(blsKey, epoch)
+		if err != nil {
+			return 0, err
+		}
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
@@ -259,7 +262,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		validatorInfo.List = string(core.LeavingList)
 	}
 
-	return 0, nil
+	return uint32(len(nodesToUnStake)), nil
 }
 
 func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {

@@ -135,9 +135,14 @@ func (sdp *stakingDataProvider) processStakingData() {
 
 	for _, owner := range sdp.cache {
 		ownerEligibleNodes := big.NewInt(int64(owner.numEligible))
-		ownerStakePerNode := big.NewInt(0).Div(owner.totalStaked, big.NewInt(int64(owner.numStakedNodes)))
-		ownerEligibleStake := big.NewInt(0).Mul(ownerStakePerNode, ownerEligibleNodes)
+		ownerStakePerNode := big.NewInt(0)
+		if owner.numStakedNodes == 0 {
+			ownerStakePerNode.Set(sdp.minNodePrice)
+		} else {
+			ownerStakePerNode.Div(owner.totalStaked, big.NewInt(int64(owner.numStakedNodes)))
+		}
 
+		ownerEligibleStake := big.NewInt(0).Mul(ownerStakePerNode, ownerEligibleNodes)
 		owner.eligibleBaseStake = big.NewInt(0).Mul(ownerEligibleNodes, sdp.minNodePrice)
 		owner.eligibleTopUpStake = big.NewInt(0).Sub(ownerEligibleStake, owner.eligibleBaseStake)
 
@@ -235,10 +240,10 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 	}
 
 	ownerBaseNodesStake := big.NewInt(0).Sub(totalStakedValue, topUpValue)
-	numStakedNodes := big.NewInt(0).Div(ownerBaseNodesStake, sdp.minNodePrice)
+	numStakedNodes := big.NewInt(0).Div(ownerBaseNodesStake, sdp.minNodePrice).Int64()
 	ownerData := &ownerStats{
 		numEligible:    0,
-		numStakedNodes: int(numStakedNodes.Int64()),
+		numStakedNodes: int(numStakedNodes),
 		topUpValue:     topUpValue,
 		totalStaked:    totalStakedValue,
 	}
@@ -314,6 +319,10 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 
 		numKeysToUnStake := totalActive - maxQualified.Int64()
 		selectedKeys := selectKeysToUnStake(sortedKeys, numKeysToUnStake)
+		if int64(len(selectedKeys)) != numKeysToUnStake {
+			return nil, nil, epochStart.ErrInvalidNumOfKeysToUnStake
+		}
+
 		keysToUnStake = append(keysToUnStake, selectedKeys...)
 		ownersWithNotEnoughFunds = append(ownersWithNotEnoughFunds, []byte(ownerAddress))
 	}
@@ -353,7 +362,7 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 	}
 
 	eligibleKeys := sortedKeys[string(core.EligibleList)]
-	if len(waitingKeys) > 0 {
+	if len(eligibleKeys) > 0 {
 		selectedKeys = append(selectedKeys, eligibleKeys...)
 	}
 

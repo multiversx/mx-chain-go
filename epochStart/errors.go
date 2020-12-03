@@ -280,3 +280,6 @@ var ErrInvalidSystemSCReturn = errors.New("invalid system sc return")
 
 // ErrUnStakeExecuteError signals that unstaked returned with error
 var ErrUnStakeExecuteError = errors.New("unstake execution error")
+
+// ErrInvalidNumOfKeysToUnStake signals that invalid number of keys were selected to unstake
+var ErrInvalidNumOfKeysToUnStake = errors.New("invalid number of keys to unstake")
