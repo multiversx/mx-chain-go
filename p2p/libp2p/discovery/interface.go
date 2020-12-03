@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -19,6 +20,8 @@ type ConnectableHost interface {
 type Sharder interface {
 	ComputeEvictionList(pidList []peer.ID) []peer.ID
 	Has(pid peer.ID, list []peer.ID) bool
+	SetSeeders(addresses []string)
+	IsSeeder(pid core.PeerID) bool
 	IsInterfaceNil() bool
 }
 

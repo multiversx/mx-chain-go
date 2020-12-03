@@ -33,11 +33,12 @@ func createDefaultConfig() config.P2PConfig {
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 	p2pConfig := createDefaultConfig()
 	p2pConfig.Sharding = config.ShardingConfig{
-		TargetPeerCount:         10,
+		TargetPeerCount:         11,
 		MaxIntraShardValidators: 6,
 		MaxCrossShardValidators: 1,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
 	}
 
@@ -102,7 +103,7 @@ func testConnectionsInNetworkSharding(t *testing.T, p2pConfig config.P2PConfig) 
 	}
 
 	testCounters(t, nodesMap, 1, 1, numShards*2)
-	testUnknownPeers(t, nodesMap)
+	testUnknownSeederPeers(t, nodesMap)
 }
 
 func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests.TestP2PNode) {
@@ -184,14 +185,15 @@ func testCounters(
 	}
 }
 
-func testUnknownPeers(
+func testUnknownSeederPeers(
 	t *testing.T,
 	nodesMap map[uint32][]*integrationTests.TestP2PNode,
 ) {
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
 		}
 	}
 }

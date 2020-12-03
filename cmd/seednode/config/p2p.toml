@@ -74,6 +74,7 @@
     TargetPeerCount = 0
     MaxIntraShard = 0
     MaxCrossShard = 0
+    MaxSeeders = 0
     #available options:
     #  `ListsSharder` will split the peers based on the shard membership (intra, cross or unknown)
     #  `OneListSharder` will do just the connection triming (upto TargetPeerCount value) not taking into account
