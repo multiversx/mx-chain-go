@@ -18,7 +18,7 @@ var log = logger.GetOrCreate("core/indexer")
 const durationBetweenErrorRetry = time.Second * 3
 
 const (
-	closeTimeout = time.Second * 5
+	closeTimeout = time.Second * 20
 	backOffTime  = time.Second * 10
 	maxBackOff   = time.Minute * 5
 )
@@ -126,10 +126,6 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 }
 
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) bool {
-	if wi == nil {
-		return false
-	}
-
 	for {
 		if d.exitIfTimeout() {
 			log.Warn("dataDispatcher.doWork could not index item",
