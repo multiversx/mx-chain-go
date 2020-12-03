@@ -752,7 +752,7 @@ func (s *stakingAuctionSC) cleanRegisteredData(args *vmcommon.ContractCallInput)
 		return vmcommon.UserError
 	}
 
-	if len(registrationData.BlsPubKeys) == 0 {
+	if len(registrationData.BlsPubKeys) <= 1 {
 		return vmcommon.Ok
 	}
 
@@ -760,7 +760,8 @@ func (s *stakingAuctionSC) cleanRegisteredData(args *vmcommon.ContractCallInput)
 	newList := make([][]byte, 0)
 	mapExistingKeys := make(map[string]struct{})
 	for _, blsKey := range registrationData.BlsPubKeys {
-		if _, found := mapExistingKeys[string(blsKey)]; found {
+		_, found := mapExistingKeys[string(blsKey)]
+		if found {
 			changesMade = true
 			continue
 		}
@@ -769,15 +770,17 @@ func (s *stakingAuctionSC) cleanRegisteredData(args *vmcommon.ContractCallInput)
 		newList = append(newList, blsKey)
 	}
 
+	if !changesMade {
+		return vmcommon.Ok
+	}
+
 	registrationData.BlsPubKeys = make([][]byte, 0, len(newList))
 	registrationData.BlsPubKeys = newList
 
-	if changesMade {
-		err = s.saveRegistrationData(args.CallerAddr, registrationData)
-		if err != nil {
-			s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
-			return vmcommon.UserError
-		}
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok
