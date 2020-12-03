@@ -108,22 +108,10 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
 	crossPeers := trs.peerListCreator.PeerList()
-	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
-	data := make([]interface{}, 0)
-	for _, peer := range crossPeers {
-		data = append(data, "cross peer")
-		data = append(data, peer.Pretty())
-	}
+	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers, "cross peer")
 
 	intraPeers := trs.peerListCreator.IntraShardPeerList()
-	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
-	for _, peer := range intraPeers {
-		data = append(data, "intra peer")
-		data = append(data, peer.Pretty())
-	}
-
-	//TODO remove this
-	log.Warn("requests are sent to", data...)
+	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers, "intra peer")
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
@@ -154,7 +142,7 @@ func createIndexList(listLength int) []int {
 	return indexes
 }
 
-func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
+func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendRequest string, buff []byte, maxToSend int, peerType string) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
 	}
@@ -162,6 +150,7 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 	indexes := createIndexList(len(peerList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 
+	logData := make([]interface{}, 0)
 	msgSentCounter := 0
 	for idx := range shuffledIndexes {
 		peer := peerList[idx]
@@ -171,11 +160,15 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 			continue
 		}
 
+		logData = append(logData, peerType)
+		logData = append(logData, peer.Pretty())
 		msgSentCounter++
 		if msgSentCounter == maxToSend {
 			break
 		}
 	}
+	//TODO remove this
+	log.Warn("requests are sent to", logData...)
 
 	return msgSentCounter
 }
