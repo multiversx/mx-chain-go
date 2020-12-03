@@ -155,7 +155,7 @@ func TestDataDispatcher_Close(t *testing.T) {
 
 	elasticProc := &mock.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
-			time.Sleep(time.Millisecond + 200*time.Microsecond)
+			time.Sleep(1000*time.Millisecond + 200*time.Microsecond)
 			return nil
 		},
 	}
@@ -171,11 +171,11 @@ func TestDataDispatcher_Close(t *testing.T) {
 				return
 			default:
 				count++
-				if count == 50 {
+				if count == 105 {
 					w.Done()
 				}
 				dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
-				time.Sleep(time.Millisecond)
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}(ctx, wg)

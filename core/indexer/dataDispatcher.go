@@ -24,11 +24,13 @@ const (
 )
 
 type dataDispatcher struct {
-	backOffTime   time.Duration
-	chanWorkItems chan workItems.WorkItemHandler
-	cancelFunc    func()
-	wasClosed     atomic.Flag
-	writeMutex    sync.Mutex
+	backOffTime         time.Duration
+	chanWorkItems       chan workItems.WorkItemHandler
+	cancelFunc          func()
+	wasClosed           *atomic.Flag
+	currentWriteDone    chan struct{}
+	closeStartTime      time.Time
+	mutexCloseStartTime sync.RWMutex
 }
 
 // NewDataDispatcher creates a new dataDispatcher instance, capable of saving sequentially data in elasticsearch database
@@ -38,9 +40,10 @@ func NewDataDispatcher(cacheSize int) (*dataDispatcher, error) {
 	}
 
 	dd := &dataDispatcher{
-		chanWorkItems: make(chan workItems.WorkItemHandler, cacheSize),
-		wasClosed:     atomic.Flag{},
-		writeMutex:    sync.Mutex{},
+		chanWorkItems:       make(chan workItems.WorkItemHandler, cacheSize),
+		wasClosed:           &atomic.Flag{},
+		currentWriteDone:    make(chan struct{}),
+		mutexCloseStartTime: sync.RWMutex{},
 	}
 
 	return dd, nil
@@ -58,58 +61,54 @@ func (d *dataDispatcher) startWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("dispatcher's go routine is stopping...")
+			d.stopWorked()
 			return
 		case wi := <-d.chanWorkItems:
-			d.writeMutex.Lock()
-			d.doWork(wi, 0)
-			d.writeMutex.Unlock()
+			timeout := d.doWork(wi)
+			if timeout {
+				d.stopWorked()
+				return
+			}
 		}
 	}
 }
 
+func (d *dataDispatcher) stopWorked() {
+	log.Debug("dispatcher's go routine is stopping...")
+	d.currentWriteDone <- struct{}{}
+}
+
 // Close will close the endless running go routine
 func (d *dataDispatcher) Close() error {
-	if d.wasClosed.IsSet() {
+	if d.wasClosed.Set() {
 		return nil
 	}
 
-	start := time.Now()
-	d.wasClosed.Set()
+	d.mutexCloseStartTime.Lock()
+	d.closeStartTime = time.Now()
+	d.mutexCloseStartTime.Unlock()
 
 	if d.cancelFunc != nil {
 		d.cancelFunc()
 	}
 
-	d.writeMutex.Lock()
-	defer d.writeMutex.Unlock()
+	<-d.currentWriteDone
+	d.consumeRemainingItems()
+	return nil
+}
+
+func (d *dataDispatcher) consumeRemainingItems() {
 	for {
 		select {
 		case wi := <-d.chanWorkItems:
-			isTimeout := d.consumeItem(wi, start)
+			isTimeout := d.doWork(wi)
 			if isTimeout {
-				return nil
+				return
 			}
-
 		default:
-			return nil
+			return
 		}
 	}
-}
-
-func (d *dataDispatcher) consumeItem(wi workItems.WorkItemHandler, start time.Time) bool {
-	timeSinceStart := time.Since(start)
-	if timeSinceStart >= closeTimeout {
-		log.Warn("cannot write all items from the queue",
-			"error", "timeout",
-		)
-		return true
-	}
-
-	remainingTime := closeTimeout - timeSinceStart
-	d.doWork(wi, remainingTime)
-
-	return false
 }
 
 // Add will add a new item in queue
@@ -124,29 +123,18 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 	}
 
 	d.chanWorkItems <- item
-
-	if d.wasClosed.IsSet() {
-		close(d.chanWorkItems)
-	}
 }
 
-func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler, timeout time.Duration) {
+func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) bool {
 	if wi == nil {
-		return
+		return false
 	}
 
-	start := time.Now()
 	for {
-		if timeout < 0 {
-			log.Warn("dataDispatcher.doWork could not index item",
-				"error", "negative timeout")
-			return
-		}
-		// if timeout is 0 should be ignored
-		if timeout > 0 && time.Since(start) > timeout {
+		if d.exitIfTimeout() {
 			log.Warn("dataDispatcher.doWork could not index item",
 				"error", "timeout")
-			return
+			return true
 		}
 
 		err := wi.Save()
@@ -168,9 +156,24 @@ func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler, timeout time.Durat
 			continue
 		}
 
-		return
+		return false
 	}
 
+}
+
+func (d *dataDispatcher) exitIfTimeout() bool {
+	if !d.wasClosed.IsSet() {
+		return false
+	}
+
+	d.mutexCloseStartTime.RLock()
+	passedTime := time.Since(d.closeStartTime)
+	d.mutexCloseStartTime.RUnlock()
+	if passedTime > closeTimeout {
+		return true
+	}
+
+	return false
 }
 
 func (d *dataDispatcher) increaseBackOffTime() {
