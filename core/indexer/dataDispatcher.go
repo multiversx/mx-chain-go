@@ -83,22 +83,33 @@ func (d *dataDispatcher) Close() error {
 
 	d.writeMutex.Lock()
 	defer d.writeMutex.Unlock()
+	for {
+		select {
+		case wi := <-d.chanWorkItems:
+			isTimeout := d.consumeItem(wi, start)
+			if isTimeout {
+				return nil
+			}
 
-	close(d.chanWorkItems)
-	for wi := range d.chanWorkItems {
-		timeSinceStart := time.Since(start)
-		if timeSinceStart >= closeTimeout {
-			log.Warn("cannot write all items from the queue",
-				"error", "timeout",
-			)
+		default:
 			return nil
 		}
+	}
+}
 
-		remainingTime := closeTimeout - timeSinceStart
-		d.doWork(wi, remainingTime)
+func (d *dataDispatcher) consumeItem(wi workItems.WorkItemHandler, start time.Time) bool {
+	timeSinceStart := time.Since(start)
+	if timeSinceStart >= closeTimeout {
+		log.Warn("cannot write all items from the queue",
+			"error", "timeout",
+		)
+		return true
 	}
 
-	return nil
+	remainingTime := closeTimeout - timeSinceStart
+	d.doWork(wi, remainingTime)
+
+	return false
 }
 
 // Add will add a new item in queue
@@ -113,6 +124,10 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 	}
 
 	d.chanWorkItems <- item
+
+	if d.wasClosed.IsSet() {
+		close(d.chanWorkItems)
+	}
 }
 
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler, timeout time.Duration) {
