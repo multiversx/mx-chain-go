@@ -457,6 +457,9 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 
 	vmContainer, _ := metaVmFactory.Create()
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
+
+	stakingSCprovider, _ := NewStakingDataProvider(systemVM, "1000")
+
 	args := ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
 		UserAccountsDB:          userAccountsDB,
@@ -470,6 +473,15 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32) (Args
 		EpochNotifier:           epochNotifier,
 		GenesisNodesConfig:      nodesSetup,
 		StakingV2EnableEpoch:    1000000,
+		StakingDataProvider:     stakingSCprovider,
+		NodesConfigProvider: &mock.NodesCoordinatorStub{
+			ConsensusGroupSizeCalled: func(shardID uint32) int {
+				if shardID == core.MetachainShardId {
+					return 400
+				}
+				return 63
+			},
+		},
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }

@@ -135,50 +135,6 @@ func TestRewardsCreator_CreateRewardsMiniBlocksV2ComputeErrorsShouldErr(t *testi
 	require.Equal(t, 1, numComputeRewards)
 }
 
-func TestNewRewardsCreatorV2_getEligibleNodesKeyMap(t *testing.T) {
-	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewRewardsCreatorV2(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	valInfo := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100)
-	nodesKeyMap := rwd.getEligibleNodesKeyMap(valInfo)
-
-	for shardID, nodesListInfo := range valInfo {
-		for i, nodeInfo := range nodesListInfo {
-			require.Equal(t, nodesKeyMap[shardID][i], nodeInfo.PublicKey)
-		}
-	}
-}
-
-func TestNewRewardsCreatorV2_prepareRewardsDataCleansLocalData(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsCreatorV2Arguments()
-	rwd, err := NewRewardsCreatorV2(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	rwd.accumulatedRewards = big.NewInt(10)
-	rwd.protocolSustainabilityValue = big.NewInt(10)
-	rwd.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
-	rwd.mapBaseRewardsPerBlockPerValidator[0] = big.NewInt(10)
-	rwd.mapBaseRewardsPerBlockPerValidator[1] = big.NewInt(10)
-	rwd.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(10)
-
-	valInfo := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100)
-	metaBlk := &block.MetaBlock{
-		EpochStart:     getDefaultEpochStart(),
-		DevFeesInEpoch: big.NewInt(0),
-	}
-
-	err = rwd.prepareRewardsData(metaBlk, valInfo)
-	require.Nil(t, err)
-	require.Equal(t, big.NewInt(0), rwd.accumulatedRewards)
-	require.Equal(t, big.NewInt(0), rwd.protocolSustainabilityValue)
-	require.Equal(t, 0, len(rwd.mapBaseRewardsPerBlockPerValidator))
-}
-
 func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	t.Parallel()
 

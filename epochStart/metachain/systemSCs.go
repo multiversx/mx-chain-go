@@ -154,6 +154,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		hystNodesEnableEpoch:     args.SwitchHysteresisForMinNodesEnableEpoch,
 		delegationEnableEpoch:    args.DelegationEnableEpoch,
 		stakingV2EnableEpoch:     args.StakingV2EnableEpoch,
+		stakingDataProvider:      args.StakingDataProvider,
+		nodesConfigProvider:      args.NodesConfigProvider,
 	}
 
 	s.maxNodesEnableConfig = make([]config.MaxNodesChangeConfig, len(args.MaxNodesEnableConfig))

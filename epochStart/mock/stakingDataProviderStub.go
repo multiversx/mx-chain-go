@@ -1,6 +1,10 @@
 package mock
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data/state"
+)
 
 // StakingDataProviderStub -
 type StakingDataProviderStub struct {
@@ -9,6 +13,24 @@ type StakingDataProviderStub struct {
 	GetTotalStakeEligibleNodesCalled      func() *big.Int
 	GetTotalTopUpStakeEligibleNodesCalled func() *big.Int
 	GetNodeStakedTopUpCalled              func(blsKey []byte) (*big.Int, error)
+	FillValidatorInfoCalled               func(blsKey []byte) error
+	ComputeUnQualifiedNodesCalled         func(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error)
+}
+
+// FillValidatorInfo -
+func (sdps *StakingDataProviderStub) FillValidatorInfo(blsKey []byte) error {
+	if sdps.FillValidatorInfoCalled != nil {
+		return sdps.FillValidatorInfoCalled(blsKey)
+	}
+	return nil
+}
+
+// ComputeUnQualifiedNodes -
+func (sdps *StakingDataProviderStub) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error) {
+	if sdps.ComputeUnQualifiedNodesCalled != nil {
+		return sdps.ComputeUnQualifiedNodesCalled(validatorInfos)
+	}
+	return nil, nil, nil
 }
 
 // GetTotalStakeEligibleNodes -
