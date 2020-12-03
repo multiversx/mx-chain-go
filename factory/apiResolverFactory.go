@@ -152,5 +152,13 @@ func CreateApiResolver(
 		return nil, err
 	}
 
-	return external.NewNodeApiResolverWithContainer(scQueryService, statusMetrics, txCostHandler, vmContainer)
+	apiResolverArgs := external.ApiResolverArgs{
+		ScQueryService: scQueryService,
+		StatusMetrics:  statusMetrics,
+		TxCostHandler:  txCostHandler,
+		VmFactory:      vmFactory,
+		VmContainer:    vmContainer,
+	}
+
+	return external.NewNodeApiResolver(apiResolverArgs)
 }

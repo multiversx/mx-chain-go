@@ -119,6 +119,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
+// Close closes the vm container factory
+func (vmf *vmContainerFactory) Close() error {
+	return vmf.blockChainHookImpl.Close()
+}
+
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(

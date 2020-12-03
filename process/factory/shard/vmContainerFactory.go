@@ -83,6 +83,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
+// Close closes the vm container factory
+func (vmf *vmContainerFactory) Close() error{
+	return vmf.blockChainHookImpl.Close()
+}
+
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
 	if vmf.config.OutOfProcessEnabled {
 		return vmf.createOutOfProcessArwenVM()

@@ -111,4 +111,5 @@ type BlockchainHook interface {
 	IsPayable(address []byte) (bool, error)
 	NumberOfShards() uint32
 	CurrentRandomSeed() []byte
+	Close() error
 }

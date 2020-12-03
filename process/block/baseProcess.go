@@ -76,11 +76,12 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer       indexer.Indexer
-	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   dblookupext.HistoryRepository
-	epochNotifier process.EpochNotifier
-	vmContainer   process.VirtualMachinesContainer
+	indexer            indexer.Indexer
+	tpsBenchmark       statistics.TPSBenchmark
+	historyRepo        dblookupext.HistoryRepository
+	epochNotifier      process.EpochNotifier
+	vmContainerFactory process.VirtualMachinesContainerFactory
+	vmContainer        process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -1256,8 +1257,15 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 
 // Close - closes all underlying components
 func (bp *baseProcessor) Close() error {
+	var err1, err2 error
 	if !check.IfNil(bp.vmContainer) {
-		return bp.vmContainer.Close()
+		err1 = bp.vmContainer.Close()
+	}
+	if !check.IfNil(bp.vmContainerFactory) {
+		err2 = bp.vmContainerFactory.Close()
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("vmContainer close error: %w, vmContainerFactory close error: %w", err1, err2)
 	}
 
 	return nil

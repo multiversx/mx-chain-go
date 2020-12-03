@@ -79,6 +79,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainerFactory:      arguments.VMContainersFactory,
 		vmContainer:             arguments.VmContainer,
 	}
 

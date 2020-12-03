@@ -354,6 +354,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EpochNotifier:           pcf.epochNotifier,
 		HeaderIntegrityVerifier: pcf.headerIntegrityVerifier,
 		AppStatusHandler:        pcf.coreData.StatusHandler(),
+		VMContainersFactory:     vmFactory,
 		VmContainer:             vmContainer,
 	}
 	arguments := block.ArgShardProcessor{
@@ -693,6 +694,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochNotifier:           pcf.epochNotifier,
 		HeaderIntegrityVerifier: pcf.headerIntegrityVerifier,
 		AppStatusHandler:        pcf.coreData.StatusHandler(),
+		VMContainersFactory:     vmFactory,
 		VmContainer:             vmContainer,
 	}
 	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)

@@ -129,6 +129,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		return nil, nil, err
 	}
 
+	err = processors.vmContainersFactory.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return header, scAddresses, nil
 }
 
@@ -181,6 +186,16 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = processors.vmContainersFactory.Close()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -454,15 +469,16 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	return &genesisProcessors{
-		txCoordinator:  txCoordinator,
-		systemSCs:      nil,
-		txProcessor:    transactionProcessor,
-		scProcessor:    scProcessor,
-		scrProcessor:   scProcessor,
-		rwdProcessor:   rewardsTxProcessor,
-		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
-		queryService:   queryService,
-		vmContainer:    vmContainer,
+		txCoordinator:       txCoordinator,
+		systemSCs:           nil,
+		txProcessor:         transactionProcessor,
+		scProcessor:         scProcessor,
+		scrProcessor:        scProcessor,
+		rwdProcessor:        rewardsTxProcessor,
+		blockchainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		queryService:        queryService,
+		vmContainersFactory: vmFactoryImpl,
+		vmContainer:         vmContainer,
 	}, nil
 }
 

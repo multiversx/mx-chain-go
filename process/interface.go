@@ -408,6 +408,7 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
+	Close() error
 	BlockChainHookImpl() BlockChainHookHandler
 	IsInterfaceNil() bool
 }

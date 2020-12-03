@@ -107,6 +107,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainerFactory:      arguments.VMContainersFactory,
+		vmContainer:             arguments.VmContainer,
 	}
 
 	mp := metaProcessor{
