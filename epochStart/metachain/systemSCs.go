@@ -248,42 +248,8 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
-	var vmOutput *vmcommon.VMOutput
 	for _, blsKey := range nodesToUnStake {
-		vmInput := &vmcommon.ContractCallInput{
-			VMInput: vmcommon.VMInput{
-				CallerAddr: s.endOfEpochCallerAddress,
-				Arguments:  [][]byte{blsKey},
-				CallValue:  big.NewInt(0),
-			},
-			RecipientAddr: s.stakingSCAddress,
-			Function:      "unStakeAtEndOfEpoch",
-		}
-
-		vmOutput, err = s.systemVM.RunSmartContractCall(vmInput)
-		if err != nil {
-			return 0, err
-		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			return 0, epochStart.ErrUnStakeExecuteError
-		}
-
-		err = s.processSCOutputAccounts(vmOutput)
-		if err != nil {
-			return 0, err
-		}
-
-		peerAccount, errGet := s.getPeerAccount(blsKey)
-		if errGet != nil {
-			return 0, errGet
-		}
-
-		peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())
-		peerAccount.SetUnStakedEpoch(epoch)
-		err = s.peerAccountsDB.SaveAccount(peerAccount)
-		if err != nil {
-			return 0, err
-		}
+		err = s.unStakeOneNode(blsKey, epoch)
 
 		validatorInfo := getValidatorInfoWithBLSKey(validatorInfos, blsKey)
 		if validatorInfo == nil {
@@ -294,6 +260,45 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	return 0, nil
+}
+
+func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  [][]byte{blsKey},
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: s.stakingSCAddress,
+		Function:      "unStakeAtEndOfEpoch",
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrUnStakeExecuteError
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	peerAccount, errGet := s.getPeerAccount(blsKey)
+	if errGet != nil {
+		return errGet
+	}
+
+	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(core.LeavingList), peerAccount.GetIndexInList())
+	peerAccount.SetUnStakedEpoch(epoch)
+	err = s.peerAccountsDB.SaveAccount(peerAccount)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getValidatorInfoWithBLSKey(validatorInfos map[uint32][]*state.ValidatorInfo, blsKey []byte) *state.ValidatorInfo {

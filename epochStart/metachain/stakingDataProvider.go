@@ -49,7 +49,7 @@ func NewStakingDataProvider(
 	}
 
 	nodePrice, ok := big.NewInt(0).SetString(minNodePrice, 10)
-	if !ok || nodePrice.Cmp(big.NewInt(0)) < 0 {
+	if !ok || nodePrice.Cmp(big.NewInt(0)) <= 0 {
 		return nil, epochStart.ErrInvalidMinNodePrice
 	}
 
