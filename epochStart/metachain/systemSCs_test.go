@@ -313,6 +313,7 @@ func prepareStakingContractWithData(
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Staked:        true,
 		RewardAddress: []byte("rewardAddress"),
+		OwnerAddress:  []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
@@ -321,6 +322,7 @@ func prepareStakingContractWithData(
 	stakedData = &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
 		RewardAddress: []byte("rewardAddress"),
+		OwnerAddress:  []byte("rewardAddress"),
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ = marshalizer.Marshal(stakedData)
@@ -346,7 +348,19 @@ func prepareStakingContractWithData(
 	_ = accountsDB.SaveAccount(stakingSCAcc)
 
 	validatorSC := createSCAccount(accountsDB, vm.ValidatorSCAddress)
+	validatorData := &systemSmartContracts.ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   []byte("rewardAddress"),
+		TotalStakeValue: big.NewInt(10000000000),
+		LockedStake:     big.NewInt(10000000000),
+		TotalUnstaked:   big.NewInt(0),
+	}
 
+	marshaledData, _ = marshalizer.Marshal(validatorData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue([]byte("rewardAddress"), marshaledData)
+
+	_ = accountsDB.SaveAccount(validatorSC)
 }
 
 func createAccountsDB(
