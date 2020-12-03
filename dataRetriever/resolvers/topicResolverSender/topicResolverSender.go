@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
@@ -20,6 +21,7 @@ const topicRequestSuffix = "_REQUEST"
 const minPeersToQuery = 2
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
+var log = logger.GetOrCreate("dataretriever/resolverstopicresolversender")
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
@@ -107,9 +109,21 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 
 	crossPeers := trs.peerListCreator.PeerList()
 	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
+	data := make([]interface{}, 0)
+	for _, peer := range crossPeers {
+		data = append(data, "cross peer")
+		data = append(data, peer.Pretty())
+	}
 
 	intraPeers := trs.peerListCreator.IntraShardPeerList()
 	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
+	for _, peer := range intraPeers {
+		data = append(data, "intra peer")
+		data = append(data, peer.Pretty())
+	}
+
+	//TODO remove this
+	log.Warn("requests are sent to", data...)
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
