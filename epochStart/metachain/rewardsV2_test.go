@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -99,40 +98,6 @@ func TestNewRewardsCreatorOK(t *testing.T) {
 	rwd, err := NewRewardsCreatorV2(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
-}
-
-func TestRewardsCreator_CreateRewardsMiniBlocksV2ComputeErrorsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsCreatorV2Arguments()
-	numComputeRewards := 0
-	expectedErr := errors.New("expected error")
-	args.StakingDataProvider = &mock.StakingDataProviderStub{
-		PrepareStakingDataCalled: func(keys map[uint32][][]byte) error {
-			numComputeRewards += len(keys)
-			return expectedErr
-		},
-	}
-	rwd, err := NewRewardsCreatorV2(args)
-	require.Nil(t, err)
-
-	mb := &block.MetaBlock{
-		EpochStart:     getDefaultEpochStart(),
-		DevFeesInEpoch: big.NewInt(0),
-	}
-	valInfo := make(map[uint32][]*state.ValidatorInfo)
-	valInfo[0] = []*state.ValidatorInfo{
-		{
-			PublicKey:       []byte("pubkey"),
-			ShardId:         0,
-			AccumulatedFees: big.NewInt(100),
-		},
-	}
-	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
-	require.NotNil(t, err)
-	require.Equal(t, expectedErr, err)
-	require.Nil(t, bdy)
-	require.Equal(t, 1, numComputeRewards)
 }
 
 func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {

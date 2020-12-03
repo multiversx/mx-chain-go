@@ -132,7 +132,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "getTopUp function should have returned exactly two values"))
+	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpBlsKeys function should have at least two values"))
 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)

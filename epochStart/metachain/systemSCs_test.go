@@ -97,7 +97,7 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	numEligible := 9
 	numWaiting := 5
 	numJailed := 8
-	stakingScAcc := createStakingScAcc(args.UserAccountsDB)
+	stakingScAcc := createSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
 	createEligibleNodes(numEligible, stakingScAcc, args.Marshalizer)
 	_ = createWaitingNodes(numWaiting, stakingScAcc, args.UserAccountsDB, args.Marshalizer)
 	jailed := createJailedNodes(numJailed, stakingScAcc, args.UserAccountsDB, args.PeerAccountsDB, args.Marshalizer)
@@ -203,8 +203,8 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 	saveOutputAccounts(t, accountsDB, vmOutput)
 }
 
-func createStakingScAcc(accountsDB state.AccountsAdapter) state.UserAccountHandler {
-	acc, _ := accountsDB.LoadAccount(vm.StakingSCAddress)
+func createSCAccount(accountsDB state.AccountsAdapter, address []byte) state.UserAccountHandler {
+	acc, _ := accountsDB.LoadAccount(address)
 	stakingSCAcc := acc.(state.UserAccountHandler)
 
 	return stakingSCAcc
@@ -308,7 +308,7 @@ func prepareStakingContractWithData(
 	waitingKey []byte,
 	marshalizer marshal.Marshalizer,
 ) {
-	stakingSCAcc := createStakingScAcc(accountsDB)
+	stakingSCAcc := createSCAccount(accountsDB, vm.StakingSCAddress)
 
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Staked:        true,
@@ -344,6 +344,9 @@ func prepareStakingContractWithData(
 	_ = stakingSCAcc.DataTrieTracker().SaveKeyValue(waitingKeyInList, marshaledData)
 
 	_ = accountsDB.SaveAccount(stakingSCAcc)
+
+	validatorSC := createSCAccount(accountsDB, vm.ValidatorSCAddress)
+
 }
 
 func createAccountsDB(
