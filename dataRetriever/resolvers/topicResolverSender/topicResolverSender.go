@@ -152,8 +152,8 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
-	for idx := range shuffledIndexes {
-		peer := peerList[idx]
+	for _, shuffledIndex := range shuffledIndexes {
+		peer := peerList[shuffledIndex]
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
@@ -167,8 +167,7 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 			break
 		}
 	}
-	//TODO remove this
-	log.Warn("requests are sent to", logData...)
+	log.Trace("requests are sent to", logData...)
 
 	return msgSentCounter
 }
