@@ -352,7 +352,7 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart does nothing in this implementation
-func (t *trigger) ForceEpochStart() {
+func (t *trigger) ForceEpochStart(_ uint64) {
 }
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
