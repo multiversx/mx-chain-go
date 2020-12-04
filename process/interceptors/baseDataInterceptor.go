@@ -10,16 +10,17 @@ import (
 )
 
 type baseDataInterceptor struct {
-	throttler        process.InterceptorThrottler
-	antifloodHandler process.P2PAntifloodHandler
-	topic            string
-	currentPeerId    core.PeerID
-	processor        process.InterceptorProcessor
-	mutDebugHandler  sync.RWMutex
-	debugHandler     process.InterceptedDebugger
+	throttler                        process.InterceptorThrottler
+	antifloodHandler                 process.P2PAntifloodHandler
+	topic                            string
+	currentPeerId                    core.PeerID
+	processor                        process.InterceptorProcessor
+	mutDebugHandler                  sync.RWMutex
+	debugHandler                     process.InterceptedDebugger
+	whiteListSpeculativeCheckHandler func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) bool
 }
 
-func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (bdi *baseDataInterceptor) preProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
 	if message == nil {
 		return process.ErrNilMessage
 	}
@@ -38,7 +39,17 @@ func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromCon
 		}
 
 		if !bdi.throttler.CanProcess() {
-			return process.ErrSystemBusy
+			if bdi.whiteListSpeculativeCheckHandler == nil {
+				//TODO remove print
+				log.Warn("throttler system busy (whiteListSpeculativeCheckHandler is nil)", "topic", bdi.topic)
+				return process.ErrSystemBusy
+			}
+			if !bdi.whiteListSpeculativeCheckHandler(message, fromConnectedPeer) {
+				log.Warn("throttler system busy (message does not contain whitelisted data)", "topic", bdi.topic)
+				return process.ErrSystemBusy
+			}
+
+			log.Warn("throttler system busy but will process the data", "topic", bdi.topic)
 		}
 	}
 

@@ -73,6 +73,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 	}
+	multiDataIntercept.whiteListSpeculativeCheckHandler = multiDataIntercept.isWhiteListSpeculativeCheck
 
 	return multiDataIntercept, nil
 }
@@ -80,7 +81,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-	err := mdi.preProcessMesage(message, fromConnectedPeer)
+	err := mdi.preProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
@@ -162,6 +163,30 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}()
 
 	return nil
+}
+
+func (mdi *MultiDataInterceptor) isWhiteListSpeculativeCheck(message p2p.MessageP2P, fromConnectedPeer core.PeerID) bool {
+	b := batch.Batch{}
+	err := mdi.marshalizer.Unmarshal(&b, message.Data())
+	if err != nil {
+		//TODO remove print
+		log.Warn("internal error on isWhiteListSpeculativeCheck", "error", err)
+		return false
+	}
+
+	var interceptedData process.InterceptedData
+	for _, buff := range b.Data {
+		interceptedData, err = mdi.interceptedData(buff, message.Peer(), fromConnectedPeer)
+		if err != nil {
+			continue
+		}
+
+		if mdi.whiteListRequest.IsWhiteListed(interceptedData) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

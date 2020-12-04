@@ -34,7 +34,7 @@ func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
 	bdi := newBaseDataInterceptorForPreProcess(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{})
-	err := bdi.preProcessMesage(nil, fromConnectedPeer)
+	err := bdi.preProcessMessage(nil, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -44,7 +44,7 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 
 	msg := &mock.P2PMessageMock{}
 	bdi := newBaseDataInterceptorForPreProcess(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{})
-	err := bdi.preProcessMesage(msg, fromConnectedPeer)
+	err := bdi.preProcessMessage(msg, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
@@ -68,7 +68,7 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 	}
 
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
-	err := bdi.preProcessMesage(msg, fromConnectedPeer)
+	err := bdi.preProcessMessage(msg, fromConnectedPeer)
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -92,7 +92,7 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 	}
 
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
-	err := bdi.preProcessMesage(msg, fromConnectedPeer)
+	err := bdi.preProcessMessage(msg, fromConnectedPeer)
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -111,7 +111,7 @@ func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
-	err := bdi.preProcessMesage(msg, fromConnectedPeer)
+	err := bdi.preProcessMessage(msg, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
@@ -128,7 +128,7 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 		},
 	}
 	bdi := newBaseDataInterceptorForPreProcess(throttler, &mock.P2PAntifloodHandlerStub{})
-	err := bdi.preProcessMesage(msg, fromConnectedPeer)
+	err := bdi.preProcessMessage(msg, fromConnectedPeer)
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
@@ -162,7 +162,7 @@ func TestPreProcessMessage_CanProcessFromSelf(t *testing.T) {
 	}
 	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
 	bdi.currentPeerId = currentPeerID
-	err := bdi.preProcessMesage(msg, currentPeerID)
+	err := bdi.preProcessMessage(msg, currentPeerID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())

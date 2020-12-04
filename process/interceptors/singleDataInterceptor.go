@@ -72,7 +72,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	sdi.mutDebugHandler.RLock()
 	defer sdi.mutDebugHandler.RUnlock()
 
-	err := sdi.preProcessMesage(message, fromConnectedPeer)
+	err := sdi.preProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
 	}
