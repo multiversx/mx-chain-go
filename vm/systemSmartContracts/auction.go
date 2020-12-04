@@ -33,18 +33,20 @@ const (
 )
 
 type stakingAuctionSC struct {
-	eei                vm.SystemEI
-	unBondPeriod       uint64
-	sigVerifier        vm.MessageSignVerifier
-	baseConfig         AuctionConfig
-	enableAuctionEpoch uint32
-	stakingSCAddress   []byte
-	auctionSCAddress   []byte
-	enableStakingEpoch uint32
-	gasCost            vm.GasCost
-	marshalizer        marshal.Marshalizer
-	flagStake          atomic.Flag
-	flagAuction        atomic.Flag
+	eei                  vm.SystemEI
+	unBondPeriod         uint64
+	sigVerifier          vm.MessageSignVerifier
+	baseConfig           AuctionConfig
+	enableAuctionEpoch   uint32
+	stakingSCAddress     []byte
+	auctionSCAddress     []byte
+	enableStakingEpoch   uint32
+	enableDoubleKeyEpoch uint32
+	gasCost              vm.GasCost
+	marshalizer          marshal.Marshalizer
+	flagStake            atomic.Flag
+	flagAuction          atomic.Flag
+	flagDoubleKey        atomic.Flag
 	mutExecution       sync.RWMutex
 }
 
@@ -115,16 +117,17 @@ func NewStakingAuctionSmartContract(
 	}
 
 	reg := &stakingAuctionSC{
-		eei:                args.Eei,
-		unBondPeriod:       args.StakingSCConfig.UnBondPeriod,
-		sigVerifier:        args.SigVerifier,
-		baseConfig:         baseConfig,
-		enableAuctionEpoch: args.StakingSCConfig.AuctionEnableEpoch,
-		enableStakingEpoch: args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:   args.StakingSCAddress,
-		auctionSCAddress:   args.AuctionSCAddress,
-		gasCost:            args.GasCost,
-		marshalizer:        args.Marshalizer,
+		eei:                  args.Eei,
+		unBondPeriod:         args.StakingSCConfig.UnBondPeriod,
+		sigVerifier:          args.SigVerifier,
+		baseConfig:           baseConfig,
+		enableAuctionEpoch:   args.StakingSCConfig.AuctionEnableEpoch,
+		enableStakingEpoch:   args.StakingSCConfig.StakeEnableEpoch,
+		stakingSCAddress:     args.StakingSCAddress,
+		auctionSCAddress:     args.AuctionSCAddress,
+		gasCost:              args.GasCost,
+		marshalizer:          args.Marshalizer,
+		enableDoubleKeyEpoch: args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -169,6 +172,8 @@ func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.Re
 		return s.getTotalStaked(args)
 	case "getBlsKeysStatus":
 		return s.getBlsKeysStatus(args)
+	case "cleanRegisteredData":
+		return s.cleanRegisteredData(args)
 	}
 
 	s.eei.AddReturnMessage("invalid method to call")
@@ -713,6 +718,79 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	return blsKeys
 }
 
+func checkDoubleBLSKeys(blsKeys [][]byte) bool {
+	mapKeys := make(map[string]struct{})
+	for _, blsKey := range blsKeys {
+		_, found := mapKeys[string(blsKey)]
+		if found {
+			return true
+		}
+
+		mapKeys[string(blsKey)] = struct{}{}
+	}
+	return false
+}
+
+func (s *stakingAuctionSC) cleanRegisteredData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagDoubleKey.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+
+	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.InsufficientGasLimit)
+		return vmcommon.OutOfGas
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage("must be called with 0 value")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("must be called with 0 arguments")
+		return vmcommon.UserError
+	}
+
+	registrationData, err := s.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		s.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.BlsPubKeys) <= 1 {
+		return vmcommon.Ok
+	}
+
+	changesMade := false
+	newList := make([][]byte, 0)
+	mapExistingKeys := make(map[string]struct{})
+	for _, blsKey := range registrationData.BlsPubKeys {
+		_, found := mapExistingKeys[string(blsKey)]
+		if found {
+			changesMade = true
+			continue
+		}
+
+		mapExistingKeys[string(blsKey)] = struct{}{}
+		newList = append(newList, blsKey)
+	}
+
+	if !changesMade {
+		return vmcommon.Ok
+	}
+
+	registrationData.BlsPubKeys = make([][]byte, 0, len(newList))
+	registrationData.BlsPubKeys = newList
+
+	err = s.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		s.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := s.eei.UseGas(s.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
@@ -778,6 +856,11 @@ func (s *stakingAuctionSC) stake(args *vmcommon.ContractCallInput) vmcommon.Retu
 	blsKeys, err := s.registerBLSKeys(registrationData, args.CallerAddr, args.Arguments)
 	if err != nil {
 		s.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	if s.flagDoubleKey.IsSet() && checkDoubleBLSKeys(blsKeys) {
+		s.eei.AddReturnMessage("invalid arguments, found same bls key twice")
 		return vmcommon.UserError
 	}
 
@@ -1393,6 +1476,9 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 
 	s.flagAuction.Toggle(epoch >= s.enableAuctionEpoch)
 	log.Debug("stakingAuctionSC: auction", "enabled", s.flagAuction.IsSet())
+
+	s.flagDoubleKey.Toggle(epoch >= s.enableDoubleKeyEpoch)
+	log.Debug("stakingAuctionSC: doubleKeyProtection", "enabled", s.flagDoubleKey.IsSet())
 }
 
 func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

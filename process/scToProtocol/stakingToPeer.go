@@ -2,6 +2,7 @@ package scToProtocol
 
 import (
 	"bytes"
+	"encoding/hex"
 	"math"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -178,7 +179,9 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		// no data under key -> peer can be deleted from trie
 		if len(data) == 0 {
 			err = stp.peerState.RemoveAccount(blsPubKey)
-			log.LogIfError(err, "staking to protocol RemoveAccount blsPubKey", blsPubKey)
+			if err != nil {
+				log.Debug("staking to protocol RemoveAccount", "error", err, "blsPubKey", hex.EncodeToString(blsPubKey))
+			}
 
 			continue
 		}
