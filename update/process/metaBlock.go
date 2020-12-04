@@ -3,92 +3,95 @@ package process
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
 )
 
-// ArgsNewMetaBlockCreatorAfterHardfork defines the arguments structure for new metablock creator after hardfork
-type ArgsNewMetaBlockCreatorAfterHardfork struct {
-	ImportHandler     update.ImportHandler
-	Marshalizer       marshal.Marshalizer
-	Hasher            hashing.Hasher
-	ShardCoordinator  sharding.Coordinator
-	ValidatorAccounts state.AccountsAdapter
+// ArgsNewMetaBlockCreatorAfterHardFork defines the arguments structure for new metablock creator after hardfork
+type ArgsNewMetaBlockCreatorAfterHardFork struct {
+	Hasher             hashing.Hasher
+	ImportHandler      update.ImportHandler
+	Marshalizer        marshal.Marshalizer
+	PendingTxProcessor update.PendingTransactionProcessor
+	ShardCoordinator   sharding.Coordinator
+	Storage            dataRetriever.StorageService
+	TxCoordinator      process.TransactionCoordinator
+	ValidatorAccounts  state.AccountsAdapter
+	SelfShardID        uint32
 }
 
 type metaBlockCreator struct {
-	importHandler     update.ImportHandler
-	marshalizer       marshal.Marshalizer
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
+	*baseProcessor
 	validatorAccounts state.AccountsAdapter
 }
 
 // NewMetaBlockCreatorAfterHardfork creates the after hardfork metablock creator
-func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardfork) (*metaBlockCreator, error) {
-	if check.IfNil(args.ImportHandler) {
-		return nil, update.ErrNilImportHandler
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, update.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, update.ErrNilHasher
-	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, update.ErrNilShardCoordinator
+func NewMetaBlockCreatorAfterHardfork(args ArgsNewMetaBlockCreatorAfterHardFork) (*metaBlockCreator, error) {
+	err := checkBlockCreatorAfterHardForkNilParameters(
+		args.Hasher,
+		args.ImportHandler,
+		args.Marshalizer,
+		args.PendingTxProcessor,
+		args.ShardCoordinator,
+		args.Storage,
+		args.TxCoordinator,
+	)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(args.ValidatorAccounts) {
 		return nil, update.ErrNilAccounts
 	}
 
+	base := &baseProcessor{
+		hasher:             args.Hasher,
+		importHandler:      args.ImportHandler,
+		marshalizer:        args.Marshalizer,
+		pendingTxProcessor: args.PendingTxProcessor,
+		shardCoordinator:   args.ShardCoordinator,
+		storage:            args.Storage,
+		txCoordinator:      args.TxCoordinator,
+		selfShardID:        args.SelfShardID,
+	}
+
 	return &metaBlockCreator{
-		importHandler:     args.ImportHandler,
-		marshalizer:       args.Marshalizer,
-		hasher:            args.Hasher,
-		shardCoordinator:  args.ShardCoordinator,
+		baseProcessor:     base,
 		validatorAccounts: args.ValidatorAccounts,
 	}, nil
 }
 
-// CreateNewBlock will create a new block after hardfork import
-func (m *metaBlockCreator) CreateNewBlock(
+// CreateBlock will create a block after hardfork import
+func (m *metaBlockCreator) CreateBlock(
+	body *block.Body,
 	chainID string,
 	round uint64,
 	nonce uint64,
 	epoch uint32,
-) (data.HeaderHandler, data.BodyHandler, error) {
+) (data.HeaderHandler, error) {
 	if len(chainID) == 0 {
-		return nil, nil, update.ErrEmptyChainID
+		return nil, update.ErrEmptyChainID
 	}
 
 	validatorRootHash, err := m.validatorAccounts.Commit()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	accounts := m.importHandler.GetAccountsDBForShard(core.MetachainShardId)
-	if check.IfNil(accounts) {
-		return nil, nil, update.ErrNilAccounts
-	}
-
-	rootHash, err := accounts.Commit()
+	rootHash, err := m.pendingTxProcessor.RootHash()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	hardForkMeta := m.importHandler.GetHardForkMetaBlock()
-	blockBody := &block.Body{
-		MiniBlocks: make([]*block.MiniBlock, 0),
-	}
-	metaHdr := &block.MetaBlock{
+	metaHeader := &block.MetaBlock{
 		Nonce:                  nonce,
 		Round:                  round,
 		PrevRandSeed:           rootHash,
@@ -106,7 +109,22 @@ func (m *metaBlockCreator) CreateNewBlock(
 		PubKeysBitmap:          []byte{1},
 	}
 
-	return metaHdr, blockBody, nil
+	metaHeader.ReceiptsHash, err = m.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, err
+	}
+
+	totalTxCount, miniBlockHeaders, err := m.createMiniBlockHeaders(body)
+	if err != nil {
+		return nil, err
+	}
+
+	metaHeader.MiniBlockHeaders = miniBlockHeaders
+	metaHeader.TxCount = uint32(totalTxCount)
+
+	m.saveAllBlockDataToStorageForSelfShard(metaHeader, body)
+
+	return metaHeader, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

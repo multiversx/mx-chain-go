@@ -20,7 +20,8 @@ func init() {
 
 // NewAddressMock generates a new address
 func NewAddressMock() *AddressMock {
-	buff := make([]byte, HasherMock{}.Size())
+	hasherMock := &HasherMock{}
+	buff := make([]byte, hasherMock.Size())
 
 	mutex.Lock()
 	_, _ = r.Read(buff)
