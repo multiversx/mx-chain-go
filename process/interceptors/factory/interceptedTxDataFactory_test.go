@@ -44,6 +44,30 @@ func TestNewInterceptedTxDataFactory_NilSignMarshalizerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
+func TestNewInterceptedTxDataFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.TxSignHasherField = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewInterceptedTxDataFactory_NilEpochStartTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	arg := createMockArgument(coreComponents, cryptoComponents)
+	arg.EpochStartTrigger = nil
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
+}
+
 func TestNewInterceptedTxDataFactory_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -142,6 +166,18 @@ func TestNewInterceptedTxDataFactory_NilEconomicsFeeHandlerShouldErr(t *testing.
 	imh, err := NewInterceptedTxDataFactory(arg)
 	assert.Nil(t, imh)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewInterceptedTxDataFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, cryptoComponents := createMockComponentHolders()
+	coreComponents.EpochNotifierField = nil
+	arg := createMockArgument(coreComponents, cryptoComponents)
+
+	imh, err := NewInterceptedTxDataFactory(arg)
+	assert.Nil(t, imh)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
 func TestInterceptedTxDataFactory_ShouldWorkAndCreate(t *testing.T) {

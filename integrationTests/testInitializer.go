@@ -118,6 +118,7 @@ func createP2PConfig(initialPeerList []string) config.P2PConfig {
 		},
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
 			ProtocolID:                       "/erd/kad/1.0.0",
 			InitialPeerList:                  initialPeerList,
@@ -531,8 +532,7 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = arwenConfig.MakeGasMapForTests()
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -563,7 +563,7 @@ func CreateFullGenesisBlocks(
 		Economics:            economics,
 		ShardCoordinator:     shardCoordinator,
 		ValidatorAccounts:    validatorAccounts,
-		GasMap:               gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		TrieStorageManagers:  trieStorageManagers,
@@ -633,7 +633,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -657,7 +657,7 @@ func CreateGenesisMetaBlock(
 		ShardCoordinator:     shardCoordinator,
 		Economics:            economics,
 		ValidatorAccounts:    validatorAccounts,
-		GasMap:               gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		HardForkConfig:       config.HardforkConfig{},
@@ -1928,13 +1928,15 @@ func ProposeAndSyncOneBlock(
 // WaitForBootstrapAndShowConnected will delay a given duration in order to wait for bootstraping  and print the
 // number of peers that each node is connected to
 func WaitForBootstrapAndShowConnected(peers []p2p.Messenger, durationBootstrapingTime time.Duration) {
-	fmt.Printf("Waiting %v for peer discovery...\n", durationBootstrapingTime)
+	log.Info("Waiting for peer discovery...", "time", durationBootstrapingTime)
 	time.Sleep(durationBootstrapingTime)
 
-	fmt.Println("Connected peers:")
+	strs := []string{"Connected peers:"}
 	for _, peer := range peers {
-		fmt.Printf("Peer %s is connected to %d peers\n", peer.ID().Pretty(), len(peer.ConnectedPeers()))
+		strs = append(strs, fmt.Sprintf("Peer %s is connected to %d peers", peer.ID().Pretty(), len(peer.ConnectedPeers())))
 	}
+
+	log.Info(strings.Join(strs, "\n"))
 }
 
 // PubKeysMapFromKeysMap returns a map of public keys per shard from the key pairs per shard map.

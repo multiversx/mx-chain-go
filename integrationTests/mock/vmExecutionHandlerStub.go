@@ -1,34 +1,23 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-vm-common"
 	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 )
 
 // VMExecutionHandlerStub -
 type VMExecutionHandlerStub struct {
-	G0CreateCalled               func(input *vmcommon.ContractCreateInput) (*big.Int, error)
-	G0CallCalled                 func(input *vmcommon.ContractCallInput) (*big.Int, error)
 	RunSmartContractCreateCalled func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error)
 	RunSmartContractCallCalled   func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	GasScheduleChangeCalled      func(gasSchedule map[string]map[string]uint64)
 }
 
-// G0Create yields the initial gas cost of creating a new smart contract
-func (vm *VMExecutionHandlerStub) G0Create(input *vmcommon.ContractCreateInput) (*big.Int, error) {
-	if vm.G0CreateCalled == nil {
-		return big.NewInt(0), nil
+// GasScheduleChange -
+func (vm *VMExecutionHandlerStub) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	if vm.GasScheduleChangeCalled != nil {
+		vm.GasScheduleChangeCalled(gasSchedule)
 	}
-
-	return vm.G0CreateCalled(input)
-}
-
-// G0Call yields the initial gas cost of calling an existing smart contract
-func (vm *VMExecutionHandlerStub) G0Call(input *vmcommon.ContractCallInput) (*big.Int, error) {
-	if vm.G0CallCalled == nil {
-		return big.NewInt(0), nil
-	}
-
-	return vm.G0CallCalled(input)
 }
 
 // RunSmartContractCreate --
@@ -53,4 +42,9 @@ func (vm *VMExecutionHandlerStub) RunSmartContractCall(input *vmcommon.ContractC
 	}
 
 	return vm.RunSmartContractCallCalled(input)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (vm *VMExecutionHandlerStub) IsInterfaceNil() bool {
+	return vm == nil
 }

@@ -1,9 +1,7 @@
 package genesis
 
 import (
-	"bytes"
 	"math/big"
-	"sort"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -13,7 +11,7 @@ import (
 
 // TODO: create a structure or use this function also in process/peer/process.go
 func getValidatorDataFromLeaves(
-	leaves map[string][]byte,
+	leavesChannel chan core.KeyValueHolder,
 	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
 ) (map[uint32][]*state.ValidatorInfo, error) {
@@ -24,14 +22,8 @@ func getValidatorDataFromLeaves(
 	}
 	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
 
-	sliceLeaves := convertMapToSortedSlice(leaves)
-
-	sort.Slice(sliceLeaves, func(i, j int) bool {
-		return bytes.Compare(sliceLeaves[i], sliceLeaves[j]) < 0
-	})
-
-	for _, pa := range sliceLeaves {
-		peerAccount, err := unmarshalPeer(pa, marshalizer)
+	for pa := range leavesChannel {
+		peerAccount, err := unmarshalPeer(pa.Value(), marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -42,17 +34,6 @@ func getValidatorDataFromLeaves(
 	}
 
 	return validators, nil
-}
-
-func convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	newLeaves := make([][]byte, len(leaves))
-	i := 0
-	for _, pa := range leaves {
-		newLeaves[i] = pa
-		i++
-	}
-
-	return newLeaves
 }
 
 func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
