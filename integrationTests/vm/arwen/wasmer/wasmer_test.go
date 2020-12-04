@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +47,7 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 }
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort/test_abort.wasm")
 	defer closeVM(wasmvm)
 
 	// Run testFunc with argument 0, which will not abort execution, leading to a
@@ -68,7 +68,7 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 }
 
 func TestSCAbortExecution_Abort(t *testing.T) {
-	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort.wasm")
+	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort/test_abort.wasm")
 	defer closeVM(wasmvm)
 
 	arguments := make([][]byte, 0)

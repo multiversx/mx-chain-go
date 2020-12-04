@@ -505,9 +505,6 @@ const ElrondProtectedKeyPrefix = "ELROND"
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
-// DefaultLogsPath is the default path for the node logs
-const DefaultLogsPath = "logs"
-
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
 
@@ -525,6 +522,9 @@ const MetachainShardName = "metachain"
 
 // SecondsToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
 const SecondsToWaitForP2PBootstrap = 20
+
+// ESDTKeyIdentifier is the key prefix for esdt tokens
+const ESDTKeyIdentifier = "esdt"
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
@@ -585,6 +585,9 @@ const MultiplyFactorForScCall = 3
 // before a special action to be applied
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
+// MinMetaTxExtraGasCost is the constant defined for minimum gas value to be sent in meta transaction
+const MinMetaTxExtraGasCost = uint64(1_000_000)
+
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
 const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
 
@@ -604,7 +607,3 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
-
-// ConsensusPercentageForInterceptedEpochStartMetaBlocks represents the minimum number of peers required to send the
-// same epoch start meta block in order to consider it correct
-const ConsensusPercentageForInterceptedEpochStartMetaBlocks = 51

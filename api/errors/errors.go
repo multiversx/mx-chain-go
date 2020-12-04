@@ -25,6 +25,12 @@ var ErrGetUsername = errors.New("get username error")
 // ErrGetValueForKey signals an error in getting the value of a key for an account
 var ErrGetValueForKey = errors.New("get value for key error")
 
+// ErrGetESDTTokens signals an error in getting esdt tokens for a given address
+var ErrGetESDTTokens = errors.New("get esdt tokens for account error")
+
+// ErrGetESDTBalance signals an error in getting esdt balance for given address
+var ErrGetESDTBalance = errors.New("get esdt balance for account error")
+
 // ErrEmptyAddress signals an empty address was provided
 var ErrEmptyAddress = errors.New("address is empty")
 

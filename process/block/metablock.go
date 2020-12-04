@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -106,6 +107,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		headerIntegrityVerifier: arguments.HeaderIntegrityVerifier,
 		historyRepo:             arguments.HistoryRepository,
 		epochNotifier:           arguments.EpochNotifier,
+		vmContainerFactory:      arguments.VMContainersFactory,
+		vmContainer:             arguments.VmContainer,
 	}
 
 	mp := metaProcessor{
@@ -1254,8 +1257,9 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 
 	if lastMetaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
+		ctx := context.Background()
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
 	}
 
 	mp.updateStateStorage(
