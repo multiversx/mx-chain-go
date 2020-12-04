@@ -1265,7 +1265,7 @@ func (bp *baseProcessor) Close() error {
 		err2 = bp.vmContainerFactory.Close()
 	}
 	if err1 != nil || err2 != nil {
-		return fmt.Errorf("vmContainer close error: %w, vmContainerFactory close error: %w", err1, err2)
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
 	}
 
 	return nil

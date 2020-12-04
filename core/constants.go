@@ -499,9 +499,6 @@ const ElrondProtectedKeyPrefix = "ELROND"
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
-// DefaultLogsPath is the default path for the node logs
-const DefaultLogsPath = "logs"
-
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
 
