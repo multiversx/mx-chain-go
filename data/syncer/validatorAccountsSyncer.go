@@ -5,6 +5,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -39,6 +40,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		cacher:               args.Cacher,
 		rootHash:             nil,
 		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
+		name:                 "peer accounts",
 	}
 
 	u := &validatorAccountsSyncer{
@@ -56,5 +58,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), v.waitTime)
 	defer cancel()
 
-	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
+	tss := statistics.NewTrieSyncStatistics()
+	go v.printStatistics(tss, ctx)
+
+	return v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, tss, ctx)
 }

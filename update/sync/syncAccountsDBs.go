@@ -17,7 +17,6 @@ import (
 )
 
 var _ update.EpochStartTriesSyncHandler = (*syncAccountsDBs)(nil)
-var defaultIntervalToPrintStatus = time.Second * 20
 
 type syncAccountsDBs struct {
 	tries              *concurrentTriesMap
@@ -114,10 +113,6 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 }
 
 func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	go displayStatusMessage(fmt.Sprintf("user account & validator state, shard %s", core.GetShardIDString(core.MetachainShardId)), ctx)
-	defer cancel()
-
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.RootHash)
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: meta", err)
@@ -132,29 +127,11 @@ func (st *syncAccountsDBs) syncMeta(meta *block.MetaBlock) error {
 }
 
 func (st *syncAccountsDBs) syncShard(shardData block.EpochStartShardData) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	go displayStatusMessage(fmt.Sprintf("user account state, shard %s", core.GetShardIDString(shardData.ShardID)), ctx)
-	defer cancel()
-
 	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, shardData.ShardID, shardData.RootHash)
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: %d", err, shardData.ShardID)
 	}
 	return nil
-}
-
-func displayStatusMessage(message string, ctx context.Context) {
-	log.Info(message, "status", "syncing...please wait")
-	for {
-		select {
-		case <-time.After(defaultIntervalToPrintStatus):
-			log.Info(message, "status", "syncing...please wait")
-
-		case <-ctx.Done():
-			log.Info(message, "status", "done")
-			return
-		}
-	}
 }
 
 func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID state.AccountsDbIdentifier, shardId uint32, rootHash []byte) error {
