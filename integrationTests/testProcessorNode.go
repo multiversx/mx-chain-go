@@ -2078,6 +2078,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		RoundHandler:              &mock.RounderMock{},
 	}
 	var err error
 	if len(heartbeatPk) > 0 {

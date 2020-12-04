@@ -24,6 +24,7 @@ const minDebugLineExpiration = 1
 const newLineChar = "\n"
 const numIntsInEventStruct = 6
 const intSize = 8
+const maxKeysToDisplay = 200
 
 var log = logger.GetOrCreate("debug/resolver")
 
@@ -323,7 +324,9 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 	defer ir.mutCriticalArea.RUnlock()
 
 	keys := ir.cache.Keys()
+
 	events := make([]string, 0, len(keys))
+	trimmed := false
 	for _, key := range keys {
 		obj, ok := ir.cache.Get(key)
 		if !ok {
@@ -344,11 +347,19 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 		}
 
 		events = append(events, ev.String())
+		if len(events) == maxKeysToDisplay {
+			trimmed = true
+			break
+		}
 	}
 
 	sort.Slice(events, func(i, j int) bool {
 		return events[i] < events[j]
 	})
+
+	if trimmed {
+		events = append(events, fmt.Sprintf("[Not all keys are shown here. Showing %d]", len(events)))
+	}
 
 	return events
 }

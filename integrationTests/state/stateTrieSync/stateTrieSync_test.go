@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -89,12 +90,34 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	)
 
 	waitTime := 100 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
+	tss := statistics.NewTrieSyncStatistics()
+	trieSyncer, _ := trie.NewTrieSyncer(
+		requestHandler,
+		nRequester.DataPool.TrieNodes(),
+		requesterTrie,
+		shardID,
+		factory.AccountTrieNodesTopic,
+		tss,
+	)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
+	ctxPrint, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctxPrint.Done():
+				fmt.Printf("Sync done: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+				return
+			case <-time.After(time.Millisecond * 100):
+				fmt.Printf("Sync in progress: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+			}
+		}
+	}()
+
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
+	cancel()
 
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
