@@ -3431,7 +3431,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedWithValueShouldError(t *testing.T
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(1), vmcommon.UserError)
+	callFunctionAndCheckResult(t, "getTotalStakedTopUpBlsKeys", sc, caller, nil, big.NewInt(1), vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, vm.TransactionValueMustBeZero, vmOutput.ReturnMessage)
 }
@@ -3450,7 +3450,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedInsufficientGasShouldError(t *tes
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.OutOfGas)
+	callFunctionAndCheckResult(t, "getTotalStakedTopUpBlsKeys", sc, caller, nil, big.NewInt(0), vmcommon.OutOfGas)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, vm.InsufficientGasLimit, vmOutput.ReturnMessage)
 }
@@ -3468,7 +3468,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedCallerDoesNotExistShouldError(t *
 	caller := []byte("caller")
 	sc, _ := NewValidatorSmartContract(args)
 
-	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.UserError)
+	callFunctionAndCheckResult(t, "getTotalStakedTopUpBlsKeys", sc, caller, nil, big.NewInt(0), vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, "caller not registered in staking/validator sc", vmOutput.ReturnMessage)
 }
@@ -3504,7 +3504,7 @@ func TestStakingValidatorSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 		},
 	)
 
-	callFunctionAndCheckResult(t, "getTopUpTotalStaked", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
+	callFunctionAndCheckResult(t, "getTotalStakedTopUpBlsKeys", sc, caller, nil, big.NewInt(0), vmcommon.Ok)
 	vmOutput := eei.CreateVMOutput()
 
 	// nodePrice is 1000 and there is 1 registered node - the rest is topup

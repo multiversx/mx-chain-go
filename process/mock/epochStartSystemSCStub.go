@@ -8,14 +8,14 @@ import (
 
 // EpochStartSystemSCStub -
 type EpochStartSystemSCStub struct {
-	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error
+	ProcessSystemSmartContractCalled func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error
 	ProcessDelegationRewardsCalled   func(miniBlocks block.MiniBlockSlice, txCache epochStart.TransactionCacher) error
 }
 
 // ProcessSystemSmartContract -
-func (e *EpochStartSystemSCStub) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error {
+func (e *EpochStartSystemSCStub) ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
 	if e.ProcessSystemSmartContractCalled != nil {
-		return e.ProcessSystemSmartContractCalled(validatorInfos, nonce)
+		return e.ProcessSystemSmartContractCalled(validatorInfos, nonce, epoch)
 	}
 	return nil
 }

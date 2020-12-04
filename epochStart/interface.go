@@ -151,7 +151,9 @@ type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	PrepareStakingData(keys map[uint32][][]byte) error
+	PrepareStakingDataForRewards(keys map[uint32][][]byte) error
+	FillValidatorInfo(blsKey []byte) error
+	ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error)
 	Clean()
 	IsInterfaceNil() bool
 }
@@ -169,8 +171,8 @@ type EpochEconomicsDataProvider interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
-type EpochStartRewardsCreator interface {
+// RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
 		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)

@@ -761,8 +761,8 @@ type EpochStartDataCreator interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartRewardsCreator defines the functionality for the metachain to create rewards at end of epoch
-type EpochStartRewardsCreator interface {
+// RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
+type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
 		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
@@ -791,7 +791,7 @@ type EpochStartValidatorInfoCreator interface {
 
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
-	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error
+	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error
 	ProcessDelegationRewards(
 		miniBlocks block.MiniBlockSlice,
 		rewardTxs epochStart.TransactionCacher,

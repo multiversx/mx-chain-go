@@ -307,7 +307,7 @@ func TestRewardsCreatorProxy_RemoveBlockDataFromPools(t *testing.T) {
 func TestRewardsCreatorProxy_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	var rewardsCreatorProxy epochStart.EpochStartRewardsCreator
+	var rewardsCreatorProxy epochStart.RewardsCreator
 	require.True(t, check.IfNil(rewardsCreatorProxy))
 
 	rewardCreatorV1 := &mock.RewardsCreatorStub{}

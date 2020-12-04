@@ -13,7 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-var _ process.EpochStartRewardsCreator = (*rewardsCreatorV2)(nil)
+var _ process.RewardsCreator = (*rewardsCreatorV2)(nil)
 
 type nodeRewardsData struct {
 	baseReward   *big.Int
@@ -41,8 +41,8 @@ type rewardsCreatorV2 struct {
 	topUpGradientPoint    *big.Int
 }
 
-// NewEpochStartRewardsCreatorV2 creates a new rewards creator object
-func NewEpochStartRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
+// NewRewardsCreatorV2 creates a new rewards creator object
+func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	brc, err := NewBaseRewardsCreator(args.BaseRewardsCreatorArgs)
 	if err != nil {
 		return nil, err
@@ -83,7 +83,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
-	if computedEconomics == nil{
+	if computedEconomics == nil {
 		return nil, epochStart.ErrNilEconomicsData
 	}
 
@@ -101,11 +101,8 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	)
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
-
-	err := rc.prepareRewardsData(metaBlock, validatorsInfo)
-	if err != nil {
-		return nil, err
-	}
+	rc.clean()
+	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
 
 	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
@@ -229,34 +226,6 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 // IsInterfaceNil return true if underlying object is nil
 func (rc *rewardsCreatorV2) IsInterfaceNil() bool {
 	return rc == nil
-}
-
-func (rc *rewardsCreatorV2) prepareStakingData(eligibleNodesKeys map[uint32][][]byte) error {
-	sw := core.NewStopWatch()
-	sw.Start("prepareRewardsFromStakingSC")
-	defer func() {
-		sw.Stop("prepareRewardsFromStakingSC")
-		log.Debug("rewardsCreator.prepareRewardsFromStakingSC time measurements", sw.GetMeasurements())
-	}()
-
-	return rc.stakingDataProvider.PrepareStakingData(eligibleNodesKeys)
-}
-
-func (rc *rewardsCreatorV2) getEligibleNodesKeyMap(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) map[uint32][][]byte {
-
-	eligibleNodesKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo {
-		eligibleNodesKeys[shardID] = make([][]byte, 0, rc.nodesConfigProvider.ConsensusGroupSize(shardID))
-		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == string(core.EligibleList) {
-				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
-			}
-		}
-	}
-
-	return eligibleNodesKeys
 }
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
@@ -520,21 +489,6 @@ func (rc *rewardsCreatorV2) getTopUpForAllEligibleNodes(
 			}
 		}
 	}
-}
-
-func (rc *rewardsCreatorV2) prepareRewardsData(
-	metaBlock *block.MetaBlock,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
-) error {
-	rc.clean()
-	rc.flagDelegationSystemSCEnabled.Toggle(metaBlock.GetEpoch() >= rc.delegationSystemSCEnableEpoch)
-	eligibleNodesKeys := rc.getEligibleNodesKeyMap(validatorsInfo)
-	err := rc.prepareStakingData(eligibleNodesKeys)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func createShardsMap(shardCoordinator sharding.Coordinator) map[uint32]struct{} {

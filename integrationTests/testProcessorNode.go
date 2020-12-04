@@ -1567,6 +1567,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
 			StakingV2EnableEpoch:    StakingV2Epoch,
+			StakingDataProvider:     stakingDataProvider,
+			NodesConfigProvider:     tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
