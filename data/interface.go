@@ -265,7 +265,7 @@ type MiniBlockInfo struct {
 	Round         uint64
 }
 
-// SyncStatisticsHandler defines the method for a component able to store the sync statistics for a trie
+// SyncStatisticsHandler defines the methods for a component able to store the sync statistics for a trie
 type SyncStatisticsHandler interface {
 	Reset()
 	AddNumReceived(value int)

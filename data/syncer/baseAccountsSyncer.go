@@ -104,14 +104,14 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
 	return clonedMap
 }
 
-func (b *baseAccountsSyncer) printStatistics(tss data.SyncStatisticsHandler, ctx context.Context) {
+func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("finished trie sync", "name", b.name, "num received", tss.NumReceived(), "num missing", tss.NumMissing())
+			log.Info("finished trie sync", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
-			log.Info("trie sync in progress", "name", b.name, "num received", tss.NumReceived(), "num missing", tss.NumMissing())
+			log.Info("trie sync in progress", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
 		}
 	}
 }
