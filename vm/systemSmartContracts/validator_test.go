@@ -3538,6 +3538,83 @@ func TestMarshalingBetweenValidatorV1AndValidatorV2(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestValidatorStakingSC_UnStakeUnBondPaused(t *testing.T) {
+	t.Parallel()
+
+	receiverAddr := []byte("receiverAddress")
+	stakerAddress := []byte("stakerAddr")
+	stakerPubKey := []byte("stakerPubKey")
+	minStakeValue := big.NewInt(1000)
+	unboundPeriod := uint64(10)
+	nodesToRunBytes := big.NewInt(1).Bytes()
+
+	nonce := uint64(0)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			defer func() {
+				nonce++
+			}()
+			return nonce
+		},
+	}
+
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	eei := createVmContextWithStakingSc(minStakeValue, unboundPeriod, blockChainHook)
+	args.Eei = eei
+
+	sc, _ := NewValidatorSmartContract(args)
+
+	//do stake
+	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
+	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
+
+	togglePauseUnStakeUnBond(t, sc, true)
+
+	expectedReturnMessage := "unStake/unBond is paused as not enough total staked in protocol"
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unStake"
+	arguments.CallerAddr = stakerAddress
+	arguments.Arguments = [][]byte{stakerPubKey}
+
+	eei.returnMessage = ""
+	errCode := sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	arguments.Function = "unStakeNodes"
+	eei.returnMessage = ""
+	errCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	arguments.Function = "unStakeTokens"
+	eei.returnMessage = ""
+	errCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	arguments.Function = "unBond"
+	eei.returnMessage = ""
+	errCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	arguments.Function = "unBondNodes"
+	eei.returnMessage = ""
+	errCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	arguments.Function = "unBondTokens"
+	eei.returnMessage = ""
+	errCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+	assert.Equal(t, eei.returnMessage, expectedReturnMessage)
+
+	togglePauseUnStakeUnBond(t, sc, false)
+}
+
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -3576,6 +3653,22 @@ func stake(t *testing.T, asc *validatorSC, stakeValue *big.Int, receiverAdd, sta
 
 	retCode := asc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+func togglePauseUnStakeUnBond(t *testing.T, v *validatorSC, value bool) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "unPauseUnStakeUnBond"
+	arguments.CallerAddr = v.endOfEpochAddress
+	arguments.CallValue = big.NewInt(0)
+
+	if value {
+		arguments.Function = "pauseUnStakeUnBond"
+	}
+
+	retCode := v.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	assert.Equal(t, value, v.isUnStakeUnBondPaused())
 }
 
 func changeRewardAddress(t *testing.T, asc *validatorSC, callerAddr, newRewardAddr []byte, expectedCode vmcommon.ReturnCode) {
