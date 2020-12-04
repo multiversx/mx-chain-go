@@ -358,7 +358,7 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 	})
 
 	if trimmed {
-		events = append(events, fmt.Sprintf("[Not all keys are shown here. Showing %d]", len(keys)))
+		events = append(events, fmt.Sprintf("[Not all keys are shown here. Showing %d]", len(events)))
 	}
 
 	return events

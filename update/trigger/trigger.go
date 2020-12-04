@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
 const deltaRoundsForForcedEpoch = uint64(10)
+const disabledRoundForForceEpochStart = math.MaxInt64
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
 var log = logger.GetOrCreate("update/trigger")
@@ -211,7 +213,7 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 
 func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 	if !withEarlyEndOfEpoch {
-		return 0
+		return disabledRoundForForceEpochStart
 	}
 
 	currentRound := t.roundHandler.Index()
@@ -357,7 +359,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	earlyEndOfEpochRound := int64(0)
+	earlyEndOfEpochRound := int64(disabledRoundForForceEpochStart)
 	withEarlyEndOfEpoch := false
 	if len(arguments) == 4 {
 		withEarlyEndOfEpoch = t.getBoolFromArgument(string(arguments[2]))

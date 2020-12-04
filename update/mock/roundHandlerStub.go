@@ -6,8 +6,7 @@ import (
 
 // RoundHandlerStub -
 type RoundHandlerStub struct {
-	RoundIndex int64
-
+	RoundIndex          int64
 	IndexCalled         func() int64
 	TimeDurationCalled  func() time.Duration
 	TimeStampCalled     func() time.Time
