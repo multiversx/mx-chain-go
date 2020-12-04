@@ -326,6 +326,7 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 	keys := ir.cache.Keys()
 
 	events := make([]string, 0, len(keys))
+	trimmed := false
 	for _, key := range keys {
 		obj, ok := ir.cache.Get(key)
 		if !ok {
@@ -346,21 +347,18 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 		}
 
 		events = append(events, ev.String())
-	}
-
-	totalEvents := len(events)
-	if len(events) > maxKeysToDisplay {
-		events = events[:maxKeysToDisplay]
+		if len(events) == maxKeysToDisplay {
+			trimmed = true
+			break
+		}
 	}
 
 	sort.Slice(events, func(i, j int) bool {
 		return events[i] < events[j]
 	})
 
-	if totalEvents != len(events) {
-		events = append(events,
-			fmt.Sprintf("[Not all keys are shown here. Total keys: %d, displayed: %d.]",
-				totalEvents, len(keys)))
+	if trimmed {
+		events = append(events, fmt.Sprintf("[Not all keys are shown here. Showing %d]", len(events)))
 	}
 
 	return events
