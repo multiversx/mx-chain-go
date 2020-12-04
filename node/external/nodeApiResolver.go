@@ -73,7 +73,7 @@ func (nar *NodeApiResolver) Close() error {
 		err2 = nar.vmFactory.Close()
 	}
 	if err1 != nil || err2 != nil {
-		return fmt.Errorf("err closing vmContainer: %w, err closing vmFactory: %w", err1, err2)
+		return fmt.Errorf("err closing vmContainer: %v, err closing vmFactory: %v", err1, err2)
 	}
 	return nil
 }
