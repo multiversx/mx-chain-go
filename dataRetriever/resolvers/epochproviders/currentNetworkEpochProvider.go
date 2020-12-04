@@ -1,6 +1,7 @@
 package epochproviders
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sync"
@@ -27,17 +28,23 @@ type ArgsCurrentNetworkProvider struct {
 	Messenger                      dataRetriever.Messenger
 	EpochStartMetaBlockInterceptor process.Interceptor
 	NumActivePersisters            int
+	DurationBetweenMetablockChecks time.Duration
 }
 
 type currentNetworkEpochProvider struct {
+	mutLastMetablockCheckpoint     sync.RWMutex
+	lastMetablockCheckpoint        time.Time
+	durationBetweenMetablockChecks time.Duration
 	currentEpoch                   uint32
-	isSynced                       bool
 	mutCurrentEpoch                sync.RWMutex
 	requestHandler                 process.RequestHandler
 	epochStartMetaBlockInterceptor process.Interceptor
 	messenger                      dataRetriever.Messenger
+	mutReceivedMetablock           sync.RWMutex
 	receivedMetaBlock              *block.MetaBlock
 	numActivePersisters            int
+	ctx                            context.Context
+	cancelFunc                     func()
 }
 
 // NewCurrentNetworkEpochProvider will return a new instance of currentNetworkEpochProvider
@@ -47,18 +54,27 @@ func NewCurrentNetworkEpochProvider(args ArgsCurrentNetworkProvider) (*currentNe
 		return nil, err
 	}
 
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
 	return &currentNetworkEpochProvider{
 		currentEpoch:                   uint32(0),
-		isSynced:                       false,
 		numActivePersisters:            args.NumActivePersisters,
 		requestHandler:                 args.RequestHandler,
 		messenger:                      args.Messenger,
 		epochStartMetaBlockInterceptor: args.EpochStartMetaBlockInterceptor,
+		ctx:                            ctx,
+		cancelFunc:                     cancelFunc,
+		durationBetweenMetablockChecks: args.DurationBetweenMetablockChecks,
 	}, nil
 }
 
 // SetNetworkEpochAtBootstrap will update the component's current epoch at bootstrap
 func (cnep *currentNetworkEpochProvider) SetNetworkEpochAtBootstrap(epoch uint32) {
+	cnep.updateCurrentEpoch(epoch)
+	cnep.updateLastMetablockCheckpoint()
+}
+
+func (cnep *currentNetworkEpochProvider) updateCurrentEpoch(epoch uint32) {
 	cnep.mutCurrentEpoch.Lock()
 	cnep.currentEpoch = epoch
 	cnep.mutCurrentEpoch.Unlock()
@@ -66,31 +82,34 @@ func (cnep *currentNetworkEpochProvider) SetNetworkEpochAtBootstrap(epoch uint32
 
 // EpochIsActiveInNetwork returns true if the persister for the given epoch is active in the network
 func (cnep *currentNetworkEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
-	if cnep.isSynced {
-		return true
-	}
-
 	cnep.mutCurrentEpoch.RLock()
 	defer cnep.mutCurrentEpoch.RUnlock()
 
-	isSynced := cnep.isEpochInRange(epoch)
-	if !isSynced {
-		return false
+	if cnep.shouldCheckCurrentMetablockOnNetwork() {
+		err := cnep.syncCurrentEpochFromNetwork()
+		if err != nil {
+			log.Warn("cannot sync current epoch from network", "error", err)
+			return false
+		}
+		//update only if the operation succeeded
+		cnep.updateLastMetablockCheckpoint()
 	}
 
-	// epoch is in range. confirm with the network if it is already synced or in process of syncing
-	err := cnep.syncCurrentEpochFromNetwork()
-	if err != nil {
-		log.Warn("cannot sync current epoch from network", "error", err)
-		return false
-	}
+	return cnep.isEpochInRange(epoch)
+}
 
-	if cnep.isEpochInRange(epoch) {
-		cnep.isSynced = true
-		return true
-	}
+func (cnep *currentNetworkEpochProvider) shouldCheckCurrentMetablockOnNetwork() bool {
+	cnep.mutLastMetablockCheckpoint.RLock()
+	checkpoint := cnep.lastMetablockCheckpoint.Add(cnep.durationBetweenMetablockChecks)
+	cnep.mutLastMetablockCheckpoint.RUnlock()
 
-	return false
+	return checkpoint.Unix() < time.Now().Unix()
+}
+
+func (cnep *currentNetworkEpochProvider) updateLastMetablockCheckpoint() {
+	cnep.mutLastMetablockCheckpoint.Lock()
+	cnep.lastMetablockCheckpoint = time.Now()
+	cnep.mutLastMetablockCheckpoint.Unlock()
 }
 
 func (cnep *currentNetworkEpochProvider) isEpochInRange(epoch uint32) bool {
@@ -106,11 +125,6 @@ func (cnep *currentNetworkEpochProvider) CurrentEpoch() uint32 {
 	defer cnep.mutCurrentEpoch.RUnlock()
 
 	return cnep.currentEpoch
-}
-
-// SetRequestHandler will update the inner request handler
-func (cnep *currentNetworkEpochProvider) SetRequestHandler(rh process.RequestHandler) {
-	cnep.requestHandler = rh
 }
 
 func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
@@ -132,24 +146,39 @@ func (cnep *currentNetworkEpochProvider) syncCurrentEpochFromNetwork() error {
 	}
 
 	numTries := 0
-
 	for {
 		numTries++
-		if cnep.receivedMetaBlock == nil {
+		cnep.mutReceivedMetablock.RLock()
+		currentMetablock := cnep.receivedMetaBlock
+		cnep.mutReceivedMetablock.RUnlock()
+
+		if currentMetablock == nil {
 			if numTries > maxNumTriesForFetchingEpoch {
 				return ErrCannotGetLatestEpochStartMetaBlock
 			}
-			time.Sleep(durationBetweenChecks)
+
+			select {
+			case <-time.After(durationBetweenChecks):
+			case <-cnep.ctx.Done():
+				return ErrComponentClosing
+			}
+
+			err = cnep.requestEpochStartMetaBlockFromNetwork()
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
-		cnep.currentEpoch = cnep.receivedMetaBlock.Epoch
+		cnep.currentEpoch = currentMetablock.Epoch
 		return nil
-
 	}
 }
 
 func (cnep *currentNetworkEpochProvider) requestEpochStartMetaBlockFromNetwork() error {
+	log.Debug("currentNetworkEpochProvider requesting current start of epoch metablock from network")
+
 	originalIntra, originalCross, err := cnep.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
 	if err != nil {
 		return err
@@ -186,7 +215,16 @@ func (cnep *currentNetworkEpochProvider) handlerEpochStartMetaBlock(_ string, _ 
 		return
 	}
 
+	cnep.mutReceivedMetablock.Lock()
 	cnep.receivedMetaBlock = metaBlock
+	cnep.mutReceivedMetablock.Unlock()
+}
+
+// Close will interrupt any check current epoch processes
+func (cnep *currentNetworkEpochProvider) Close() error {
+	cnep.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

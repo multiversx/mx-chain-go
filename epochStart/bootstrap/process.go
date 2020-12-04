@@ -288,18 +288,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
 		log.Warn("fast bootstrap is disabled")
 
-		err := e.initEpochStartMetaBlockSyncer()
-		if err != nil {
-			return Parameters{}, nil
-		}
-
-		epochStartMb, err := e.epochStartMetaBlockSyncer.SyncEpochStartMeta(timeToWait)
-		if err != nil {
-			return Parameters{}, nil
-		}
-
-		e.currentNetworkEpochSetter.SetNetworkEpochAtBootstrap(epochStartMb.Epoch)
-
 		e.initializeFromLocalStorage()
 		if !e.baseData.storageExists {
 			err := e.createTriesComponentsForShardId(e.genesisShardCoordinator.SelfId())

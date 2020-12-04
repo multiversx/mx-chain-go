@@ -24,6 +24,7 @@ const timeToAccumulateTrieHashes = 100 * time.Millisecond
 //TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
+	mutEpoch              sync.RWMutex
 	epoch                 uint32
 	shardID               uint32
 	maxTxsToRequest       int
@@ -83,7 +84,12 @@ func NewResolverRequestHandler(
 
 // SetEpoch will update the current epoch so the request handler will make requests for this received epoch
 func (rrh *resolverRequestHandler) SetEpoch(epoch uint32) {
+	rrh.mutEpoch.Lock()
+	if rrh.epoch != epoch {
+		log.Debug("resolverRequestHandler.SetEpoch", "old epoch", rrh.epoch, "new epoch", epoch)
+	}
 	rrh.epoch = epoch
+	rrh.mutEpoch.Unlock()
 }
 
 // RequestTransaction method asks for transactions from the connected peers
@@ -142,12 +148,15 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 		)
 	}
 
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
 	for _, batch := range sliceBatches {
-		err = resolver.RequestDataFromHashArray(batch, rrh.epoch)
+		err = resolver.RequestDataFromHashArray(batch, epoch)
 		if err != nil {
 			log.Debug("requestByHashes.RequestDataFromHashArray",
 				"error", err.Error(),
-				"epoch", rrh.epoch,
+				"epoch", epoch,
 				"batch size", len(batch),
 			)
 		}
@@ -188,11 +197,14 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	rrh.whiteList.Add([][]byte{miniblockHash})
 
-	err = resolver.RequestDataFromHash(miniblockHash, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = resolver.RequestDataFromHash(miniblockHash, epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlock.RequestDataFromHash",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"hash", miniblockHash,
 		)
 		return
@@ -231,11 +243,14 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = miniBlocksResolver.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = miniBlocksResolver.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
 		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"num mbs", len(unrequestedHashes),
 		)
 		return
@@ -266,11 +281,14 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	err = headerResolver.RequestDataFromHash(hash, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = headerResolver.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestShardHeader.RequestDataFromHash",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"hash", hash,
 		)
 		return
@@ -300,11 +318,14 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	err = resolver.RequestDataFromHash(hash, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = resolver.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeader.RequestDataFromHash",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"hash", hash,
 		)
 		return
@@ -336,11 +357,14 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 	rrh.whiteList.Add([][]byte{key})
 
-	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = headerResolver.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
 		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"nonce", nonce,
 		)
 		return
@@ -432,11 +456,14 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 	rrh.whiteList.Add([][]byte{key})
 
-	err = headerResolver.RequestDataFromNonce(nonce, rrh.epoch)
+	rrh.mutEpoch.RLock()
+	epoch := rrh.epoch
+	rrh.mutEpoch.RUnlock()
+	err = headerResolver.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
 		log.Debug("RequestMetaHeaderByNonce.RequestDataFromNonce",
 			"error", err.Error(),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 			"nonce", nonce,
 		)
 		return

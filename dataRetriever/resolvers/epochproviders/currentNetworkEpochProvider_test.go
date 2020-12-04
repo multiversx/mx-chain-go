@@ -3,6 +3,7 @@ package epochproviders_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -144,5 +145,6 @@ func getArgs() epochproviders.ArgsCurrentNetworkProvider {
 		},
 		EpochStartMetaBlockInterceptor: &mock.InterceptorStub{},
 		NumActivePersisters:            2,
+		DurationBetweenMetablockChecks: time.Minute,
 	}
 }

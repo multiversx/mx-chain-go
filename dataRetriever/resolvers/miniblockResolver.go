@@ -202,7 +202,7 @@ func (mbRes *miniblockResolver) RequestDataFromHash(hash []byte, epoch uint32) e
 }
 
 // RequestDataFromHashArray requests a block body from other peers having input the block body hash
-func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint32) error {
+func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	b := &batch.Batch{
 		Data: hashes,
 	}
@@ -216,6 +216,7 @@ func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
 			Value: hash,
+			Epoch: epoch,
 		},
 		[][]byte{hash},
 	)

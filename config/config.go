@@ -179,11 +179,12 @@ type LogsConfig struct {
 
 // StoragePruningConfig will hold settings related to storage pruning
 type StoragePruningConfig struct {
-	Enabled             bool
-	CleanOldEpochsData  bool
-	NumEpochsToKeep     uint64
-	NumActivePersisters uint64
-	FullArchive         bool
+	Enabled                        bool
+	CleanOldEpochsData             bool
+	NumEpochsToKeep                uint64
+	NumActivePersisters            uint64
+	FullArchive                    bool
+	FullArchiveNumActivePersisters uint32
 }
 
 // ResourceStatsConfig will hold all resource stats settings

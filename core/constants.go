@@ -505,9 +505,6 @@ const ElrondProtectedKeyPrefix = "ELROND"
 // DefaultStatsPath is the default path where the node stats are logged
 const DefaultStatsPath = "stats"
 
-// DefaultLogsPath is the default path for the node logs
-const DefaultLogsPath = "logs"
-
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
 
@@ -604,7 +601,3 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
-
-// ConsensusPercentageForInterceptedEpochStartMetaBlocks represents the minimum number of peers required to send the
-// same epoch start meta block in order to consider it correct
-const ConsensusPercentageForInterceptedEpochStartMetaBlocks = 51

@@ -449,6 +449,8 @@ func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, lo
 		}
 		log.Warn("NumEpochsToKeep is overridden by FullArchive")
 		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
+		//TODO remove the set below
+		//p2pConfig.Node.ThresholdMinConnectedPeers = 0
 	}
 }
 

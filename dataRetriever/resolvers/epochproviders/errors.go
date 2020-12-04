@@ -13,3 +13,6 @@ var ErrNilMessenger = errors.New("nil messenger")
 
 // ErrCannotGetLatestEpochStartMetaBlock signals that the latest epoch start meta block cannot be fetched from the network
 var ErrCannotGetLatestEpochStartMetaBlock = errors.New("cannot fetch the latest epoch start meta block from the network: timeout")
+
+// ErrComponentClosing signals that the latest epoch start meta block cannot be fetched from network because the component is closing
+var ErrComponentClosing = errors.New("cannot fetch the latest epoch start meta block from the network: context closing")

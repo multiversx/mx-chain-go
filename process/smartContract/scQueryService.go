@@ -71,7 +71,7 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
-	log.Debug("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
+	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())

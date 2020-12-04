@@ -208,7 +208,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 	}
 	subType, ok := subTypeObj.(core.P2PPeerSubType)
 	if !ok {
-		log.Warn("PeerShardMapper.getShardIDSearchingPidInFallbackCache: the contained element should have been of type uint32")
+		log.Warn("PeerShardMapper.getPeerInfoSearchingPidInFallbackCache: the contained element should have been of type P2PPeerSubType")
 
 		return &core.P2PPeerInfo{
 			PeerType: core.ObserverPeer,
@@ -311,7 +311,7 @@ func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32)
 
 // UpdatePeerIdSubType updates the peerIdSubType search map containing peer IDs and peer subtypes
 func (psm *PeerShardMapper) UpdatePeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType) {
-	psm.peerIdSubType.HasOrAdd([]byte(pid), uint32(peerSubType), uint32Size)
+	psm.peerIdSubType.HasOrAdd([]byte(pid), peerSubType, uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change
