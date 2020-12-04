@@ -1,6 +1,7 @@
 package indexer
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,12 +50,26 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 			wg.Done()
 			return nil
 		},
+		SaveAccountsCalled: func(acc []state.UserAccountHandler) error {
+			time.Sleep(7 * time.Second)
+			return nil
+		},
+		SaveValidatorsRatingCalled: func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error {
+			time.Sleep(6 * time.Second)
+			return nil
+		},
 	}
 	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
 	wg.Wait()
 
 	require.True(t, called)
 
+	dispatcher.Add(workItems.NewItemAccounts(elasticProc, nil))
+	wg.Add(1)
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+	dispatcher.Add(workItems.NewItemRating(elasticProc, "", nil))
+	wg.Add(1)
+	dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
 	err = dispatcher.Close()
 	require.NoError(t, err)
 }
@@ -128,4 +144,46 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 
 	err = dispatcher.Close()
 	require.NoError(t, err)
+}
+
+func TestDataDispatcher_Close(t *testing.T) {
+	t.Parallel()
+
+	dispatcher, err := NewDataDispatcher(100)
+	require.NoError(t, err)
+	dispatcher.StartIndexData()
+
+	elasticProc := &mock.ElasticProcessorStub{
+		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
+			time.Sleep(1000*time.Millisecond + 200*time.Microsecond)
+			return nil
+		},
+	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	go func(c context.Context, w *sync.WaitGroup) {
+		count := 0
+		for {
+			select {
+			case <-c.Done():
+				return
+			default:
+				count++
+				if count == 105 {
+					w.Done()
+				}
+				dispatcher.Add(workItems.NewItemRounds(elasticProc, []types.RoundInfo{}))
+				time.Sleep(50 * time.Millisecond)
+			}
+		}
+	}(ctx, wg)
+
+	wg.Wait()
+
+	err = dispatcher.Close()
+	require.NoError(t, err)
+
+	cancelFunc()
 }
