@@ -10,6 +10,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -831,6 +832,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+	e.tryCloseExisting(factory.UserAccountTrie)
+	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
@@ -876,6 +879,18 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.mutTrieStorageManagers.Unlock()
 
 	return nil
+}
+
+func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
+	e.mutTrieStorageManagers.RLock()
+	existingStorageManager := e.trieStorageManagers[trieType]
+	e.mutTrieStorageManagers.RUnlock()
+	if !check.IfNil(existingStorageManager) {
+		err := existingStorageManager.Close()
+		if err != nil {
+			log.Warn("failed to close existing storage manager", "error", err)
+		}
+	}
 }
 
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {

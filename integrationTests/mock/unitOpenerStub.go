@@ -8,7 +8,7 @@ type UnitOpenerStub struct {
 
 // GetMostRecentBootstrapStorageUnit -
 func (u *UnitOpenerStub) GetMostRecentBootstrapStorageUnit() (storage.Storer, error) {
-	return &StorerMock{}, nil
+	return NewStorerMock(), nil
 }
 
 // IsInterfaceNil -

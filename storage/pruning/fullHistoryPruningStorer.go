@@ -13,9 +13,9 @@ import (
 // which creates a new persister for each epoch and removes older activePersisters
 type FullHistoryPruningStorer struct {
 	*PruningStorer
-	args                      *StorerArgs
-	shardId                   string
-	oldEpochsActivePersisters storage.Cacher
+	args                           *StorerArgs
+	shardId                        string
+	oldEpochsActivePersistersCache storage.Cacher
 }
 
 // NewFullHistoryPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -42,17 +42,17 @@ func initFullHistoryPruningStorer(args *FullHistoryStorerArgs, shardId string) (
 		return nil, storage.ErrInvalidNumberOfOldPersisters
 	}
 
-	oldEpochsActivePersisters, err := lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), onEvicted)
+	oldEpochsActivePersistersCache, err := lrucache.NewCacheWithEviction(int(args.NumOfOldActivePersisters), onEvicted)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &FullHistoryPruningStorer{
-		PruningStorer:             ps,
-		args:                      args.StorerArgs,
-		shardId:                   shardId,
-		oldEpochsActivePersisters: oldEpochsActivePersisters,
+		PruningStorer:                  ps,
+		args:                           args.StorerArgs,
+		shardId:                        shardId,
+		oldEpochsActivePersistersCache: oldEpochsActivePersistersCache,
 	}, nil
 }
 
@@ -120,7 +120,7 @@ func (fhps *FullHistoryPruningStorer) getPersister(epoch uint32) (storage.Persis
 	epochString := fmt.Sprintf("%d", epoch)
 
 	fhps.lock.RLock()
-	pdata, exists := fhps.oldEpochsActivePersisters.Get([]byte(epochString))
+	pdata, exists := fhps.oldEpochsActivePersistersCache.Get([]byte(epochString))
 	fhps.lock.RUnlock()
 
 	var pd *persisterData
@@ -135,14 +135,14 @@ func (fhps *FullHistoryPruningStorer) getPersister(epoch uint32) (storage.Persis
 	fhps.lock.Lock()
 	defer fhps.lock.Unlock()
 
-	pdata, exists = fhps.oldEpochsActivePersisters.Get([]byte(epochString))
+	pdata, exists = fhps.oldEpochsActivePersistersCache.Get([]byte(epochString))
 	if !exists {
 		newPdata, errPersisterData := createPersisterDataForEpoch(fhps.args, epoch, fhps.shardId)
 		if errPersisterData != nil {
 			return nil, errPersisterData
 		}
 
-		fhps.oldEpochsActivePersisters.Put([]byte(epochString), newPdata, 0)
+		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), newPdata, 0)
 		fhps.persistersMapByEpoch[epoch] = newPdata
 		pdata = newPdata
 	}

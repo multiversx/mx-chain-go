@@ -1,42 +1,67 @@
 package process
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type systemVM struct {
-	systemEI        vm.ContextHandler
-	vmType          []byte
-	systemContracts vm.SystemSCContainer
+	systemEI             vm.ContextHandler
+	vmType               []byte
+	systemContracts      vm.SystemSCContainer
+	asyncCallbackGasLock uint64
+	asyncCallStepCost    uint64
+	mutGasLock           sync.RWMutex
+}
+
+// ArgsNewSystemVM defines the needed arguments to create a new system vm
+type ArgsNewSystemVM struct {
+	SystemEI        vm.ContextHandler
+	SystemContracts vm.SystemSCContainer
+	VmType          []byte
+	GasSchedule     core.GasScheduleNotifier
 }
 
 // NewSystemVM instantiates the system VM which is capable of running in protocol smart contracts
-func NewSystemVM(
-	systemEI vm.ContextHandler,
-	systemContracts vm.SystemSCContainer,
-	vmType []byte,
-) (*systemVM, error) {
-	if check.IfNil(systemEI) {
+func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
+	if check.IfNil(args.SystemEI) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
-	if check.IfNil(systemContracts) {
+	if check.IfNil(args.SystemContracts) {
 		return nil, vm.ErrNilSystemContractsContainer
 	}
-	if len(vmType) == 0 { // no need for nil check, len() for nil returns 0
+	if len(args.VmType) == 0 { // no need for nil check, len() for nil returns 0
 		return nil, vm.ErrNilVMType
 	}
-
-	sVm := &systemVM{
-		systemEI:        systemEI,
-		systemContracts: systemContracts,
-		vmType:          make([]byte, len(vmType)),
+	if check.IfNil(args.GasSchedule) {
+		return nil, vm.ErrNilGasSchedule
 	}
-	copy(sVm.vmType, vmType)
 
-	return sVm, nil
+	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	if apiCosts == nil {
+		return nil, vm.ErrNilGasSchedule
+	}
+
+	s := &systemVM{
+		systemEI:             args.SystemEI,
+		systemContracts:      args.SystemContracts,
+		vmType:               make([]byte, len(args.VmType)),
+		asyncCallStepCost:    apiCosts[core.AsyncCallStepField],
+		asyncCallbackGasLock: apiCosts[core.AsyncCallbackGasLockField],
+	}
+	copy(s.vmType, args.VmType)
+
+	if s.asyncCallStepCost == 0 || s.asyncCallbackGasLock == 0 {
+		return nil, vm.ErrNilGasSchedule
+	}
+
+	args.GasSchedule.RegisterNotifyHandler(s)
+
+	return s, nil
 }
 
 // RunSmartContractCreate creates and saves a new smart contract to the trie
@@ -92,9 +117,27 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	returnCode := contract.Execute(input)
-
 	vmOutput := s.systemEI.CreateVMOutput()
 	vmOutput.ReturnCode = returnCode
 
 	return vmOutput, nil
+}
+
+// GasScheduleChange sets the new gas schedule where it is needed
+func (s *systemVM) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	s.mutGasLock.Lock()
+	defer s.mutGasLock.Unlock()
+
+	apiCosts := gasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return
+	}
+
+	s.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
+	s.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *systemVM) IsInterfaceNil() bool {
+	return s == nil
 }

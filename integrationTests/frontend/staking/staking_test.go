@@ -109,7 +109,7 @@ func TestSignatureOnStaking(t *testing.T) {
 		vm.AuctionSCAddress,
 		nodePrice,
 		txData,
-		integrationTests.MinTxGasLimit+uint64(len(txData))+1,
+		integrationTests.MinTxGasLimit+uint64(len(txData))+1+core.MinMetaTxExtraGasCost,
 	)
 
 	time.Sleep(time.Second)

@@ -1,11 +1,22 @@
 package external
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
+
+// ApiResolverArgs holds the arguments for a node API resolver
+type ApiResolverArgs struct {
+	ScQueryService SCQueryService
+	StatusMetrics  StatusMetricsHandler
+	TxCostHandler  TransactionCostHandler
+	VmFactory      process.VirtualMachinesContainerFactory
+	VmContainer    process.VirtualMachinesContainer
+}
 
 // NodeApiResolver can resolve API requests
 type NodeApiResolver struct {
@@ -13,39 +24,27 @@ type NodeApiResolver struct {
 	statusMetricsHandler StatusMetricsHandler
 	txCostHandler        TransactionCostHandler
 	vmContainer          process.VirtualMachinesContainer
+	vmFactory            process.VirtualMachinesContainerFactory
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolver(
-	scQueryService SCQueryService,
-	statusMetricsHandler StatusMetricsHandler,
-	txCostHandler TransactionCostHandler,
-) (*NodeApiResolver, error) {
-	return NewNodeApiResolverWithContainer(scQueryService, statusMetricsHandler, txCostHandler, nil)
-}
-
-// NewNodeApiResolver creates a new NodeApiResolver instance
-func NewNodeApiResolverWithContainer(
-	scQueryService SCQueryService,
-	statusMetricsHandler StatusMetricsHandler,
-	txCostHandler TransactionCostHandler,
-	vmContainer process.VirtualMachinesContainer,
-) (*NodeApiResolver, error) {
-	if check.IfNil(scQueryService) {
+func NewNodeApiResolver(args ApiResolverArgs) (*NodeApiResolver, error) {
+	if check.IfNil(args.ScQueryService) {
 		return nil, ErrNilSCQueryService
 	}
-	if check.IfNil(statusMetricsHandler) {
+	if check.IfNil(args.StatusMetrics) {
 		return nil, ErrNilStatusMetrics
 	}
-	if check.IfNil(txCostHandler) {
+	if check.IfNil(args.TxCostHandler) {
 		return nil, ErrNilTransactionCostHandler
 	}
 
 	return &NodeApiResolver{
-		scQueryService:       scQueryService,
-		statusMetricsHandler: statusMetricsHandler,
-		txCostHandler:        txCostHandler,
-		vmContainer:          vmContainer,
+		scQueryService:       args.ScQueryService,
+		statusMetricsHandler: args.StatusMetrics,
+		txCostHandler:        args.TxCostHandler,
+		vmContainer:          args.VmContainer,
+		vmFactory:            args.VmFactory,
 	}, nil
 }
 
@@ -66,8 +65,15 @@ func (nar *NodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transacti
 
 // Close closes all underlying components
 func (nar *NodeApiResolver) Close() error {
+	var err1, err2 error
 	if !check.IfNil(nar.vmContainer) {
-		return nar.vmContainer.Close()
+		err1 = nar.vmContainer.Close()
+	}
+	if !check.IfNil(nar.vmFactory) {
+		err2 = nar.vmFactory.Close()
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("err closing vmContainer: %v, err closing vmFactory: %v", err1, err2)
 	}
 	return nil
 }

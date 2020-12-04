@@ -509,6 +509,9 @@ var ErrInvalidInflationPercentages = errors.New("invalid inflation percentages")
 // ErrInvalidNonceRequest signals that invalid nonce was requested
 var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
+// ErrInvalidBlockRequestOldEpoch signals that invalid block was requested from old epoch
+var ErrInvalidBlockRequestOldEpoch = errors.New("invalid block request from old epoch")
+
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 
