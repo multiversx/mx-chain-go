@@ -37,6 +37,9 @@ var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 // ErrNilPubkeyConverter signals that a nil public key converter has been provided
 var ErrNilPubkeyConverter = errors.New("trying to set nil pubkey converter")
 
+// ErrInvalidMaximumNumberOfShards signals that an invalid maximum number of shards has been provided
+var ErrInvalidMaximumNumberOfShards = errors.New("trying to set an invalid maximum number of shards")
+
 // ErrCouldNotParsePubKey signals that a given public key could not be parsed
 var ErrCouldNotParsePubKey = errors.New("could not parse node's public key")
 

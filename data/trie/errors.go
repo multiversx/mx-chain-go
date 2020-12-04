@@ -87,3 +87,6 @@ var ErrInvalidIdentifier = errors.New("invalid identifier")
 
 // ErrInvalidLevelValue signals that the given value for maxTrieLevelInMemory is invalid
 var ErrInvalidLevelValue = errors.New("invalid trie level in memory value")
+
+// ErrNilTrieSyncStatistics signals that a nil trie sync statistics handler was provided
+var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics handler")

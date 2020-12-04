@@ -8,7 +8,8 @@ import (
 func GetGeneralConfig() config.Config {
 	return config.Config{
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled: true,
+			StartInEpochEnabled:      true,
+			GenesisMaxNumberOfShards: 100,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,

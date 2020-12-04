@@ -312,6 +312,56 @@ func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) 
 	assert.Equal(t, vmcommon.Ok, errCode)
 }
 
+func TestStakingAuctionSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+
+	key1 := []byte("Key1")
+	args := createMockArgumentsForAuction()
+
+	atArgParser := parsers.NewCallArgsParser()
+	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
+
+	argsStaking := createMockStakingScArguments()
+	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
+	argsStaking.Eei = eei
+	argsStaking.StakingSCConfig.UnBondPeriod = 100000
+	stakingSC, _ := NewStakingSmartContract(argsStaking)
+
+	eei.SetSCAddress([]byte("auction"))
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		return stakingSC, nil
+	}})
+
+	args.Eei = eei
+	args.StakingSCConfig = argsStaking.StakingSCConfig
+	args.StakingSCConfig.DoubleKeyProtectionEnableEpoch = 1000
+	auctionSC, _ := NewStakingAuctionSmartContract(args)
+
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
+	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key1, []byte("msg1")}
+
+	errCode := auctionSC.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, errCode)
+
+	registeredData := &AuctionData{}
+	_ = auctionSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	assert.Equal(t, 2, len(registeredData.BlsPubKeys))
+
+	auctionSC.flagDoubleKey.Set()
+	arguments.Function = "cleanRegisteredData"
+	arguments.CallValue = big.NewInt(0)
+	arguments.Arguments = [][]byte{}
+
+	errCode = auctionSC.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, errCode)
+
+	_ = auctionSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	assert.Equal(t, 1, len(registeredData.BlsPubKeys))
+}
+
 func TestStakingValidatorSC_ExecuteStakeWithRewardAddress(t *testing.T) {
 	t.Parallel()
 

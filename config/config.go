@@ -229,6 +229,7 @@ type GeneralSettingsConfig struct {
 	AheadOfTimeGasUsageEnableEpoch         uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
+	GenesisMaxNumberOfShards               uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the main ElrondFacade
