@@ -104,16 +104,8 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 
 	if err != nil {
-		mbRes.ResolverDebugHandler().LogFailedToResolveData(
-			mbRes.topic,
-			rd.Value,
-			err,
-		)
-
 		err = fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
-
-	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, rd.Value)
 
 	return err
 }
@@ -141,7 +133,20 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte) ([]byte, error) 
 		return mbRes.marshalizer.Marshal(value)
 	}
 
-	return mbRes.miniBlockStorage.Get(hash)
+	buff, err := mbRes.miniBlockStorage.SearchFirst(hash)
+	if err != nil {
+		mbRes.ResolverDebugHandler().LogFailedToResolveData(
+			mbRes.topic,
+			hash,
+			err,
+		)
+
+		return nil, err
+	}
+
+	mbRes.ResolverDebugHandler().LogSucceededToResolveData(mbRes.topic, hash)
+
+	return buff, nil
 }
 
 func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID) error {
@@ -205,7 +210,7 @@ func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint
 	b := &batch.Batch{
 		Data: hashes,
 	}
-	hash, err := mbRes.marshalizer.Marshal(b)
+	batchBytes, err := mbRes.marshalizer.Marshal(b)
 
 	if err != nil {
 		return err
@@ -214,9 +219,9 @@ func (mbRes *miniblockResolver) RequestDataFromHashArray(hashes [][]byte, _ uint
 	return mbRes.SendOnRequestTopic(
 		&dataRetriever.RequestData{
 			Type:  dataRetriever.HashArrayType,
-			Value: hash,
+			Value: batchBytes,
 		},
-		[][]byte{hash},
+		hashes,
 	)
 }
 
