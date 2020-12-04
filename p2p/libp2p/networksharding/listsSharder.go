@@ -22,7 +22,6 @@ var _ p2p.Sharder = (*listsSharder)(nil)
 const minAllowedConnectedPeersListSharder = 5
 const minAllowedValidators = 1
 const minAllowedObservers = 1
-const minAllowedFullHistoryNodes = 0
 const minUnknownPeers = 1
 
 const intraShardValidators = 0
@@ -82,6 +81,7 @@ type ArgListsSharder struct {
 	MaxCrossShardValidators uint32
 	MaxIntraShardObservers  uint32
 	MaxCrossShardObservers  uint32
+	MaxFullHistoryObservers uint32
 	MaxSeeders              uint32
 }
 
@@ -126,15 +126,12 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 	if arg.MaxCrossShardObservers < minAllowedObservers {
 		return nil, fmt.Errorf("%w, maxCrossShardObservers should be at least %d", p2p.ErrInvalidValue, minAllowedObservers)
 	}
-	if arg.MaxCrossShardObservers+arg.MaxIntraShardObservers+maxFullHistoryObservers == 0 {
+	if arg.MaxCrossShardObservers+arg.MaxIntraShardObservers+arg.MaxFullHistoryObservers == 0 {
 		log.Warn("no connections to observers are possible")
-	}
-	if maxFullHistoryObservers < minAllowedFullHistoryNodes {
-		return nil, fmt.Errorf("%w, maxFullHistoryObservers should be at least %d", p2p.ErrInvalidValue, minAllowedFullHistoryNodes)
 	}
 
 	providedPeers := arg.MaxIntraShardValidators + arg.MaxCrossShardValidators +
-		arg.MaxIntraShardObservers + arg.MaxCrossShardObservers + arg.MaxSeeders + maxFullHistoryObservers
+		arg.MaxIntraShardObservers + arg.MaxCrossShardObservers + arg.MaxSeeders + arg.MaxFullHistoryObservers
 	if providedPeers+minUnknownPeers > arg.MaxPeerCount {
 		return nil, fmt.Errorf("%w, maxValidators + maxObservers should be less than %d", p2p.ErrInvalidValue, arg.MaxPeerCount)
 	}
@@ -149,7 +146,7 @@ func NewListsSharder(arg ArgListsSharder) (*listsSharder, error) {
 		maxIntraShardObservers:  int(arg.MaxIntraShardObservers),
 		maxCrossShardObservers:  int(arg.MaxCrossShardObservers),
 		maxSeeders:              int(arg.MaxSeeders),
-		maxFullHistoryObservers: int(maxFullHistoryObservers),
+		maxFullHistoryObservers: int(arg.MaxFullHistoryObservers),
 	}
 
 	ls.maxUnknown = int(arg.MaxPeerCount - providedPeers)
@@ -230,8 +227,8 @@ func (ls *listsSharder) splitPeerIds(peers []peer.ID) map[int]sorting.PeerDistan
 		intraShardObservers:  {},
 		crossShardValidators: {},
 		crossShardObservers:  {},
-		seeders:              {},
 		fullHistoryObservers: {},
+		seeders:              {},
 		unknown:              {},
 	}
 

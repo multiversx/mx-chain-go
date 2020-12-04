@@ -147,6 +147,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
+		cancelFunc()
 		return nil, err
 	}
 
@@ -327,7 +328,7 @@ func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error 
 		MaxIntraShardObservers:  p2pConfig.Sharding.MaxIntraShardObservers,
 		MaxCrossShardObservers:  p2pConfig.Sharding.MaxCrossShardObservers,
 		MaxSeeders:              p2pConfig.Sharding.MaxSeeders,
-		MaxFullHistoryObservers: int(p2pConfig.Sharding.MaxFullHistoryObservers),
+		MaxFullHistoryObservers: p2pConfig.Sharding.MaxFullHistoryObservers,
 		Type:                    p2pConfig.Sharding.Type,
 	}
 

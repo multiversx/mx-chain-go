@@ -435,7 +435,7 @@ func MakeDisplayTableForP2PNodes(nodes map[uint32][]*TestP2PNode) string {
 						peerInfo.NumCrossShardValidators,
 						peerInfo.NumIntraShardObservers,
 						peerInfo.NumCrossShardObservers,
-						len(peerInfo.FullHistoryObservers),
+						peerInfo.NumFullHistoryObservers,
 						len(peerInfo.UnknownPeers),
 						len(peerInfo.Seeders),
 					),
