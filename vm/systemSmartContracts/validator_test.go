@@ -318,7 +318,7 @@ func TestStakingAuctionSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	arguments := CreateVmContractCallInput()
 
 	key1 := []byte("Key1")
-	args := createMockArgumentsForAuction()
+	args := createMockArgumentsForValidatorSC()
 
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(&mock.BlockChainHookStub{}, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
@@ -337,28 +337,28 @@ func TestStakingAuctionSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.StakingSCConfig.DoubleKeyProtectionEnableEpoch = 1000
-	auctionSC, _ := NewStakingAuctionSmartContract(args)
+	validatorSC, _ := NewValidatorSmartContract(args)
 
 	arguments.Function = "stake"
 	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
 	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key1, []byte("msg1")}
 
-	errCode := auctionSC.Execute(arguments)
+	errCode := validatorSC.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
 
-	registeredData := &AuctionData{}
-	_ = auctionSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	registeredData := &ValidatorDataV2{}
+	_ = validatorSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 2, len(registeredData.BlsPubKeys))
 
-	auctionSC.flagDoubleKey.Set()
+	validatorSC.flagDoubleKey.Set()
 	arguments.Function = "cleanRegisteredData"
 	arguments.CallValue = big.NewInt(0)
 	arguments.Arguments = [][]byte{}
 
-	errCode = auctionSC.Execute(arguments)
+	errCode = validatorSC.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
 
-	_ = auctionSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	_ = validatorSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 1, len(registeredData.BlsPubKeys))
 }
 
