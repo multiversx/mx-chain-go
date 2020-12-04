@@ -25,7 +25,7 @@ const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
 const deltaRoundsForForcedEpoch = uint64(10)
-const disabledRoundForForceEpochStart = math.MaxInt64
+const disabledRoundForForceEpochStart = uint64(math.MaxUint64)
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
 var log = logger.GetOrCreate("update/trigger")
@@ -359,11 +359,11 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	earlyEndOfEpochRound := int64(disabledRoundForForceEpochStart)
+	earlyEndOfEpochRound := disabledRoundForForceEpochStart
 	withEarlyEndOfEpoch := false
 	if len(arguments) == 4 {
 		withEarlyEndOfEpoch = t.getBoolFromArgument(string(arguments[2]))
-		earlyEndOfEpochRound, err = t.getIntFromArgument(string(arguments[3]))
+		earlyEndOfEpochRound, err = t.getUintFromArgument(string(arguments[3]))
 		if err != nil {
 			return true, err
 		}
@@ -374,7 +374,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, withEarlyEndOfEpoch, uint64(earlyEndOfEpochRound))
+	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, withEarlyEndOfEpoch, earlyEndOfEpochRound)
 	if err != nil {
 		log.Debug("received trigger", "status", err)
 		return true, nil
@@ -403,6 +403,18 @@ func (t *trigger) callClose() {
 
 func (t *trigger) getIntFromArgument(value string) (int64, error) {
 	n, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%w, convert error, `%s` is not a valid int",
+			update.ErrIncorrectHardforkMessage,
+			value,
+		)
+	}
+
+	return n, nil
+}
+
+func (t *trigger) getUintFromArgument(value string) (uint64, error) {
+	n, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("%w, convert error, `%s` is not a valid int",
 			update.ErrIncorrectHardforkMessage,

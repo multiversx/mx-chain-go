@@ -175,7 +175,7 @@ func TestTrigger_ForceEpochStartCloseToNormalEpochStartShouldNotForce(t *testing
 	epochStartTrigger.currentRound = 20
 
 	epochStartTrigger.ForceEpochStart(201)
-	assert.Equal(t, uint64(math.MaxInt64), epochStartTrigger.nextEpochStartRound)
+	assert.Equal(t, uint64(math.MaxUint64), epochStartTrigger.nextEpochStartRound)
 }
 
 func TestTrigger_ForceEpochStartUnderMinimumBetweenEpochs(t *testing.T) {

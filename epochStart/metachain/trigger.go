@@ -33,7 +33,7 @@ var _ process.EpochBootstrapper = (*trigger)(nil)
 var _ closing.Closer = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
-const disabledRoundForForceEpochStart = math.MaxInt64
+const disabledRoundForForceEpochStart = math.MaxUint64
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
