@@ -195,8 +195,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.getOwner(args)
 	case "updateConfigMaxNodes":
 		return s.updateConfigMaxNodes(args)
-	case "stakeNodesFromWaitingList":
-		return s.stakeNodesFromWaitingList(args)
+	case "stakeNodesFromQueue":
+		return s.stakeNodesFromQueue(args)
 	case "unStakeAtEndOfEpoch":
 		return s.unStakeAtEndOfEpoch(args)
 	}
@@ -1428,7 +1428,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	return vmcommon.Ok
 }
 
-func (s *stakingSC) stakeNodesFromWaitingList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagStakingV2.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError

@@ -230,7 +230,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 			return err
 		}
 
-		err = s.stakeNodesFromWaitingList(validatorInfos, numUnStaked, nonce)
+		err = s.stakeNodesFromQueue(validatorInfos, numUnStaked, nonce)
 		if err != nil {
 			return err
 		}
@@ -461,7 +461,7 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
-	err = s.stakeNodesFromWaitingList(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce)
+	err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce)
 	if err != nil {
 		return err
 	}
@@ -980,7 +980,7 @@ func (s *systemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte)
 	return nil
 }
 
-func (s *systemSCProcessor) stakeNodesFromWaitingList(
+func (s *systemSCProcessor) stakeNodesFromQueue(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	nodesToStake uint32,
 	nonce uint64,
@@ -997,7 +997,7 @@ func (s *systemSCProcessor) stakeNodesFromWaitingList(
 			Arguments:  [][]byte{nodesToStakeAsBigInt.Bytes()},
 		},
 		RecipientAddr: vm.StakingSCAddress,
-		Function:      "stakeNodesFromWaitingList",
+		Function:      "stakeNodesFromQueue",
 	}
 	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
 	if errRun != nil {

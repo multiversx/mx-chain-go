@@ -1746,7 +1746,7 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	oldHead, _ := stakingSmartContract.getWaitingListHead()
 
 	currentOutPutIndex := len(eei.output)
-	arguments.Function = "stakeNodesFromWaitingList"
+	arguments.Function = "stakeNodesFromQueue"
 	retCode = stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
