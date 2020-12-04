@@ -8,9 +8,9 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +37,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		Hasher:              &mock.HasherMock{},
 		GovernanceSCAddress: []byte("governanceSC"),
 		StakingSCAddress:    []byte("stakingSC"),
-		AuctionSCAddress:    []byte("auctionSC"),
+		ValidatorSCAddress:  []byte("validatorgSC"),
 		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 }
@@ -515,7 +515,7 @@ func TestGovernanceContract_ValidatorVoteInvalidProposal(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 16
@@ -562,7 +562,7 @@ func TestGovernanceContract_ValidatorVoteInvalidVote(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -609,7 +609,7 @@ func TestGovernanceContract_ValidatorVoteInvalidDelegated(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -660,7 +660,7 @@ func TestGovernanceContract_ValidatorVoteComputePowerError(t *testing.T) {
 		GetStorageFromAddressCalled: func(_ []byte, _ []byte) []byte {
 			return []byte("invalid proposal bytes")
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -718,8 +718,8 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 			return nil
 		},
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
-			if bytes.Equal(address, args.AuctionSCAddress) && bytes.Equal(key, callerAddress) {
-				auctionBytes, _ := args.Marshalizer.Marshal(&AuctionDataV2{
+			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
+				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
 					BlsPubKeys: mockValidatorBlsKeys,
 				})
 
@@ -737,7 +737,7 @@ func TestGovernanceContract_ValidatorVoteVoteSetError(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -793,8 +793,8 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 			returnMessage = msg
 		},
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
-			if bytes.Equal(address, args.AuctionSCAddress) && bytes.Equal(key, callerAddress) {
-				auctionBytes, _ := args.Marshalizer.Marshal(&AuctionDataV2{
+			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
+				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
 					BlsPubKeys: mockValidatorBlsKeys,
 				})
 
@@ -812,7 +812,7 @@ func TestGovernanceContract_ValidatorVoteVoteNotEnoughPower(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -870,8 +870,8 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 			return nil
 		},
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
-			if bytes.Equal(address, args.AuctionSCAddress) && bytes.Equal(key, callerAddress) {
-				auctionBytes, _ := args.Marshalizer.Marshal(&AuctionDataV2{
+			if bytes.Equal(address, args.ValidatorSCAddress) && bytes.Equal(key, callerAddress) {
+				auctionBytes, _ := args.Marshalizer.Marshal(&ValidatorDataV2{
 					BlsPubKeys: mockValidatorBlsKeys,
 				})
 
@@ -898,7 +898,7 @@ func TestGovernanceContract_ValidatorVoteVote(t *testing.T) {
 				_ = args.Marshalizer.Unmarshal(finalProposal, value)
 			}
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
@@ -962,7 +962,7 @@ func TestGovernanceContract_ClaimFundsStillLocked(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 11
@@ -1008,7 +1008,7 @@ func TestGovernanceContract_ClaimFundsAlreadyClaimed(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 9
@@ -1055,7 +1055,7 @@ func TestGovernanceContract_ClaimFundsNothingToClaim(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 9
@@ -1104,7 +1104,7 @@ func TestGovernanceContract_ClaimFunds(t *testing.T) {
 
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 9
@@ -1147,7 +1147,7 @@ func TestGovernanceContract_WhiteListProposal(t *testing.T) {
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
 	args := createMockGovernanceArgs()
 	args.Eei = &mock.SystemEIStub{
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 1
@@ -1352,7 +1352,7 @@ func TestGovernanceContract_GetValidProposalNotStarted(t *testing.T) {
 			}
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 9
@@ -1386,7 +1386,7 @@ func TestGovernanceContract_GetValidProposalVotingFinished(t *testing.T) {
 			}
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 16
@@ -1420,7 +1420,7 @@ func TestGovernanceContract_GetValidProposal(t *testing.T) {
 			}
 			return nil
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 11
@@ -1589,7 +1589,7 @@ func TestGovernanceContract_SetLock(t *testing.T) {
 			storageKeyCalled = key
 			storageValueCalled = value
 		},
-		BlockChainHookCalled: func() vmcommon.BlockchainHook {
+		BlockChainHookCalled: func() vm.BlockchainHook {
 			return &mock.BlockChainHookStub{
 				CurrentNonceCalled: func() uint64 {
 					return 14
