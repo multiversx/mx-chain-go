@@ -11,11 +11,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +36,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		SigVerifier:            &mock.MessageSignVerifierMock{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.AuctionSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -44,12 +44,12 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 	}
 }
 
-func addAuctionAndStakingScToVmContext(eei *vmContext) {
-	auctionArgs := createMockArgumentsForAuction()
-	auctionArgs.Eei = eei
-	auctionArgs.StakingSCConfig.GenesisNodePrice = "100"
-	auctionArgs.StakingSCAddress = vm.StakingSCAddress
-	auctionSc, _ := NewStakingAuctionSmartContract(auctionArgs)
+func addValidatorAndStakingScToVmContext(eei *vmContext) {
+	validatorArgs := createMockArgumentsForValidatorSC()
+	validatorArgs.Eei = eei
+	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
+	validatorArgs.StakingSCAddress = vm.StakingSCAddress
+	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
 	stakingArgs := createMockStakingScArguments()
 	stakingArgs.Eei = eei
@@ -62,9 +62,9 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 			return stakingSc, nil
 		}
 
-		if bytes.Equal(key, vm.AuctionSCAddress) {
-			auctionSc.flagEnableTopUp.Set()
-			_ = auctionSc.saveRegistrationData([]byte("addr"), &AuctionDataV2{
+		if bytes.Equal(key, vm.ValidatorSCAddress) {
+			validatorSc.flagEnableTopUp.Set()
+			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
 				LockedStake:     big.NewInt(500),
@@ -80,9 +80,10 @@ func addAuctionAndStakingScToVmContext(eei *vmContext) {
 						UnstakedValue: big.NewInt(80),
 					},
 				},
+				NumRegistered: 2,
 			})
-			auctionSc.unBondPeriod = 50
-			return auctionSc, nil
+			validatorSc.unBondPeriod = 50
+			return validatorSc, nil
 		}
 
 		return nil, nil
@@ -129,12 +130,12 @@ func TestNewDelegationSystemSC_InvalidStakingSCAddrShouldErr(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewDelegationSystemSC_InvalidAuctionSCAddrShouldErr(t *testing.T) {
+func TestNewDelegationSystemSC_InvalidValidatorSCAddrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	args := createMockArgumentsForDelegation()
-	args.AuctionSCAddress = []byte{}
+	args.ValidatorSCAddress = []byte{}
 
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
@@ -418,8 +419,6 @@ func TestDelegationSystemSC_ExecuteInitShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(dGlobalFund.ActiveFunds))
 	assert.Equal(t, 0, len(dGlobalFund.UnStakedFunds))
-	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStakedFromNodes)
-	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnBondedFromNodes)
 	assert.Equal(t, callValue, dGlobalFund.TotalActive)
 	assert.Equal(t, big.NewInt(0), dGlobalFund.TotalUnStaked)
 
@@ -927,7 +926,7 @@ func TestDelegationSystemSC_ExecuteStakeNodesVerifiesBothUnStakedAndNotStaked(t 
 		TotalActive: big.NewInt(200),
 	}
 	_ = d.saveGlobalFundData(globalFund)
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -976,7 +975,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 		InitialOwnerFunds:   big.NewInt(100),
 		AutomaticActivation: true,
 	})
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
 	vmInput.CallerAddr = []byte("delegator")
@@ -1102,13 +1101,13 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		StakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnStakedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
-	addAuctionAndStakingScToVmContext(eei)
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
+	addValidatorAndStakingScToVmContext(eei)
 
-	auctionMap := map[string][]byte{}
-	registrationDataAuction := &AuctionDataV2{BlsPubKeys: [][]byte{blsKey1, blsKey2}, RewardAddress: []byte("rewardAddr")}
-	regData, _ := d.marshalizer.Marshal(registrationDataAuction)
-	auctionMap["addr"] = regData
+	validatorMap := map[string][]byte{}
+	registrationDataValidator := &ValidatorDataV2{BlsPubKeys: [][]byte{blsKey1, blsKey2}, RewardAddress: []byte("rewardAddr")}
+	regData, _ := d.marshalizer.Marshal(registrationDataValidator)
+	validatorMap["addr"] = regData
 
 	stakingMap := map[string][]byte{}
 	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: true}
@@ -1123,7 +1122,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	stkNodes, _ := d.marshalizer.Marshal(stakingNodesConfig)
 	stakingMap[nodesConfigKey] = stkNodes
 
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
+	eei.storageUpdate[string(args.ValidatorSCAddress)] = validatorMap
 	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	vmInput := getDefaultVmInputForFunc("unStakeNodes", [][]byte{blsKey1, blsKey2})
@@ -1133,9 +1132,6 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.StakedKeys))
-
-	dGlobalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(200), dGlobalFund.TotalUnStakedFromNodes)
 }
 
 func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
@@ -1244,34 +1240,30 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	_ = d.saveDelegationStatus(&DelegationContractStatus{
 		UnStakedKeys: []*NodesData{key1, key2},
 	})
-	_ = d.saveGlobalFundData(&GlobalFundData{TotalUnBondedFromNodes: big.NewInt(0), TotalActive: big.NewInt(100)})
-	addAuctionAndStakingScToVmContext(eei)
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
+	addValidatorAndStakingScToVmContext(eei)
 
-	auctionMap := map[string][]byte{}
-	registrationDataAuction := &AuctionDataV2{
+	registrationDataValidator := &ValidatorDataV2{
 		BlsPubKeys:      [][]byte{blsKey1, blsKey2},
 		RewardAddress:   []byte("rewardAddr"),
 		LockedStake:     big.NewInt(300),
-		TotalStakeValue: big.NewInt(500),
+		TotalStakeValue: big.NewInt(1000),
+		NumRegistered:   2,
 	}
-	regData, _ := d.marshalizer.Marshal(registrationDataAuction)
-	auctionMap["addr"] = regData
+	regData, _ := d.marshalizer.Marshal(registrationDataValidator)
+	eei.SetStorageForAddress(vm.ValidatorSCAddress, []byte("addr"), regData)
 
-	stakingMap := map[string][]byte{}
 	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr")}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking)
-	stakingMap["blsKey1"] = regData
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte("blsKey1"), regData)
 
 	registrationDataStaking2 := &StakedDataV2_0{RewardAddress: []byte("rewardAddr")}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
-	stakingMap["blsKey2"] = regData
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte("blsKey2"), regData)
 
 	stakingNodesConfig := &StakingNodesConfig{StakedNodes: 5}
 	stkNodes, _ := d.marshalizer.Marshal(stakingNodesConfig)
-	stakingMap[nodesConfigKey] = stkNodes
-
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
-	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
+	eei.SetStorageForAddress(vm.StakingSCAddress, []byte(nodesConfigKey), stkNodes)
 
 	vmInput := getDefaultVmInputForFunc("unBondNodes", [][]byte{blsKey1, blsKey2})
 	output := d.Execute(vmInput)
@@ -1280,9 +1272,6 @@ func TestDelegationSystemSC_ExecuteUnBondNodes(t *testing.T) {
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.NotStakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
-
-	dGlobalFund, _ := d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(200), dGlobalFund.TotalUnBondedFromNodes)
 }
 
 func TestDelegationSystemSC_ExecuteUnJailNodesUserErrors(t *testing.T) {
@@ -1414,15 +1403,15 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 		UnStakedKeys: []*NodesData{key2},
 		Delegators:   [][]byte{vmInput.CallerAddr},
 	})
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
-	auctionMap := map[string][]byte{}
-	registrationDataAuction := &AuctionDataV2{
+	validatorMap := map[string][]byte{}
+	registrationDataValidator := &ValidatorDataV2{
 		BlsPubKeys:    [][]byte{blsKey1, blsKey2},
 		RewardAddress: []byte("rewardAddr"),
 	}
-	regData, _ := d.marshalizer.Marshal(registrationDataAuction)
-	auctionMap["addr"] = regData
+	regData, _ := d.marshalizer.Marshal(registrationDataValidator)
+	validatorMap["addr"] = regData
 
 	stakingMap := map[string][]byte{}
 	registrationDataStaking := &StakedDataV2_0{
@@ -1439,7 +1428,7 @@ func TestDelegationSystemSC_ExecuteUnJailNodes(t *testing.T) {
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
 	stakingMap["blsKey2"] = regData
 
-	eei.storageUpdate[string(args.AuctionSCAddress)] = auctionMap
+	eei.storageUpdate[string(args.ValidatorSCAddress)] = validatorMap
 	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
 	output := d.Execute(vmInput)
@@ -1521,7 +1510,7 @@ func TestDelegationSystemSC_ExecuteDelegate(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("delegate", [][]byte{})
 	vmInput.CallValue = big.NewInt(15)
@@ -1652,7 +1641,7 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{80}})
 	d, _ := NewDelegationSystemSC(args)
@@ -1666,10 +1655,9 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{},
-		TotalActive:            big.NewInt(100),
-		TotalUnStaked:          big.NewInt(0),
-		TotalUnStakedFromNodes: big.NewInt(0),
+		UnStakedFunds: [][]byte{},
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -1710,7 +1698,7 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("unDelegate", [][]byte{{100}})
 	d, _ := NewDelegationSystemSC(args)
@@ -1724,11 +1712,10 @@ func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
 		Value: big.NewInt(100),
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{},
-		TotalActive:            big.NewInt(100),
-		TotalUnStaked:          big.NewInt(0),
-		TotalUnStakedFromNodes: big.NewInt(0),
-		ActiveFunds:            [][]byte{fundKey},
+		UnStakedFunds: [][]byte{},
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+		ActiveFunds:   [][]byte{fundKey},
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
@@ -1834,7 +1821,7 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		&mock.RaterMock{},
 	)
 	args.Eei = eei
-	addAuctionAndStakingScToVmContext(eei)
+	addValidatorAndStakingScToVmContext(eei)
 
 	vmInput := getDefaultVmInputForFunc("withdraw", [][]byte{})
 	d, _ := NewDelegationSystemSC(args)
@@ -1858,10 +1845,9 @@ func TestDelegationSystemSC_ExecuteWithdraw(t *testing.T) {
 		UnBondPeriod: 50,
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{
-		UnStakedFunds:          [][]byte{fundKey1, fundKey2},
-		TotalUnBondedFromNodes: big.NewInt(0),
-		TotalUnStaked:          big.NewInt(140),
-		TotalActive:            big.NewInt(0),
+		UnStakedFunds: [][]byte{fundKey1, fundKey2},
+		TotalUnStaked: big.NewInt(140),
+		TotalActive:   big.NewInt(0),
 	})
 
 	output := d.Execute(vmInput)
@@ -3212,142 +3198,6 @@ func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
 	assert.Equal(t, blsKey3, eei.output[4])
 	assert.Equal(t, []byte("unStaked"), eei.output[5])
 	assert.Equal(t, blsKey4, eei.output[6])
-}
-
-func TestDelegation_ExecuteGetTotalUnStakedFromNodesUserErrors(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnStakedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	vmInput.CallValue = big.NewInt(10)
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
-
-	vmInput.CallValue = big.NewInt(0)
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.OutOfGas, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
-
-	vmInput.Arguments = [][]byte{[]byte("address")}
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
-
-	vmInput.Arguments = [][]byte{}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-}
-
-func TestDelegation_ExecuteGetTotalUnStakedFromNodes(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnStakedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	totalUnStakedFromNodes := big.NewInt(200)
-	_ = d.saveGlobalFundData(&GlobalFundData{
-		TotalUnStakedFromNodes: totalUnStakedFromNodes,
-		TotalActive:            big.NewInt(0),
-	})
-
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, totalUnStakedFromNodes, big.NewInt(0).SetBytes(eei.output[0]))
-}
-
-func TestDelegation_ExecuteGetTotalUnBondedFromNodesUserErrors(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnBondedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	vmInput.CallValue = big.NewInt(10)
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCallValueMustBeZero.Error()))
-
-	vmInput.CallValue = big.NewInt(0)
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.OutOfGas, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNotEnoughGas.Error()))
-
-	vmInput.Arguments = [][]byte{[]byte("address")}
-	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 0
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumOfArguments.Error()))
-
-	vmInput.Arguments = [][]byte{}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
-}
-
-func TestDelegation_ExecuteGetTotalUnBondedFromNodes(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgumentsForDelegation()
-	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
-		hooks.NewVMCryptoHook(),
-		&mock.ArgumentParserMock{},
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
-	)
-	args.Eei = eei
-
-	vmInput := getDefaultVmInputForFunc("getTotalUnBondedFromNodes", [][]byte{})
-	d, _ := NewDelegationSystemSC(args)
-
-	totalUnBondedFromNodes := big.NewInt(200)
-	_ = d.saveGlobalFundData(&GlobalFundData{
-		TotalUnBondedFromNodes: totalUnBondedFromNodes,
-		TotalActive:            big.NewInt(0),
-	})
-
-	output := d.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, totalUnBondedFromNodes, big.NewInt(0).SetBytes(eei.output[0]))
 }
 
 func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {

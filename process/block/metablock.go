@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -29,7 +30,7 @@ type metaProcessor struct {
 	scToProtocol                 process.SmartContractToProtocolHandler
 	epochStartDataCreator        process.EpochStartDataCreator
 	epochEconomics               process.EndOfEpochEconomics
-	epochRewardsCreator          process.EpochStartRewardsCreator
+	epochRewardsCreator          process.RewardsCreator
 	validatorInfoCreator         process.EpochStartValidatorInfoCreator
 	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
@@ -65,7 +66,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilEpochEconomics
 	}
 	if check.IfNil(arguments.EpochRewardsCreator) {
-		return nil, process.ErrNilEpochStartRewardsCreator
+		return nil, process.ErrNilRewardsCreator
 	}
 	if check.IfNil(arguments.EpochValidatorInfoCreator) {
 		return nil, process.ErrNilEpochStartValidatorInfoCreator
@@ -356,12 +357,17 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce)
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
 	if err != nil {
 		return err
 	}
 
-	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo)
+	computedEconomics, err := mp.epochEconomics.ComputeEndOfEpochEconomics(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
 	if err != nil {
 		return err
 	}
@@ -381,7 +387,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
@@ -753,12 +759,12 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce)
+	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo)
+	rewardMiniBlocks, err := mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
 	if err != nil {
 		return nil, err
 	}
@@ -1265,8 +1271,9 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 
 	if lastMetaBlock.IsStartOfEpochBlock() {
 		log.Debug("trie snapshot", "rootHash", lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
+		ctx := context.Background()
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
 	}
 
 	mp.updateStateStorage(

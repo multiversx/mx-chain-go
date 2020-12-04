@@ -9,11 +9,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		Eei:                    &mock.SystemEIStub{},
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.AuctionSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -78,15 +78,15 @@ func TestNewDelegationManagerSystemSC_InvalidStakingSCAddressShouldErr(t *testin
 	assert.Equal(t, expectedErr, err)
 }
 
-func TestNewDelegationManagerSystemSC_InvalidAuctionSCAddressShouldErr(t *testing.T) {
+func TestNewDelegationManagerSystemSC_InvalidValidatorSCAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForDelegationManager()
-	args.AuctionSCAddress = nil
+	args.ValidatorSCAddress = nil
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	assert.Equal(t, expectedErr, err)
 }
 
@@ -313,9 +313,9 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 	argsStaking.Eei = eei
 	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
-	argsAuction := createMockArgumentsForAuction()
-	argsAuction.Eei = eei
-	auctionSC, _ := NewStakingAuctionSmartContract(argsAuction)
+	argsValidator := createMockArgumentsForValidatorSC()
+	argsValidator.Eei = eei
+	validatorSC, _ := NewValidatorSmartContract(argsValidator)
 
 	delegationSCArgs := createMockArgumentsForDelegation()
 	delegationSCArgs.Eei = eei
@@ -326,8 +326,8 @@ func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
 			switch string(key) {
 			case string(vm.StakingSCAddress):
 				return stakingSc, nil
-			case string(vm.AuctionSCAddress):
-				return auctionSC, nil
+			case string(vm.ValidatorSCAddress):
+				return validatorSC, nil
 			case string(vm.FirstDelegationSCAddress):
 				return delegationSc, nil
 			}
@@ -405,7 +405,7 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContract(t *testing
 	assert.Equal(t, []byte{10}, retrievedServiceFee)
 	assert.Equal(t, big.NewInt(250), dContractConfig.MaxDelegationCap)
 
-	marshalledData := eei.GetStorageFromAddress(vm.AuctionSCAddress, eei.scAddress)
+	marshalledData := eei.GetStorageFromAddress(vm.ValidatorSCAddress, eei.scAddress)
 	stakedData := &StakedDataV2_0{}
 	err := args.Marshalizer.Unmarshal(stakedData, marshalledData)
 	assert.Nil(t, err)

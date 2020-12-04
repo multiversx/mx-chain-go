@@ -18,105 +18,105 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewEpochStartRewardsCreator_NilShardCoordinator(t *testing.T) {
+func TestNewRewardsCreator_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.ShardCoordinator = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilShardCoordinator, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilPubkeyConverter(t *testing.T) {
+func TestNewRewardsCreator_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.PubkeyConverter = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilPubkeyConverter, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilRewardsStorage(t *testing.T) {
+func TestNewRewardsCreator_NilRewardsStorage(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.RewardsStorage = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilStorage, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilMiniBlockStorage(t *testing.T) {
+func TestNewRewardsCreator_NilMiniBlockStorage(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.MiniBlockStorage = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilStorage, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilHasher(t *testing.T) {
+func TestNewRewardsCreator_NilHasher(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.Hasher = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilHasher, err)
 }
 
-func TestNewEpochStartRewardsCreator_NilMarshalizer(t *testing.T) {
+func TestNewRewardsCreator_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.Marshalizer = nil
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewEpochStartRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
+func TestNewRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.ProtocolSustainabilityAddress = ""
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
 }
 
-func TestNewEpochStartRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
+func TestNewRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
 	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
 
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 	assert.True(t, check.IfNil(rwd))
 	assert.NotNil(t, err)
 }
 
-func TestNewEpochStartRewardsCreator_OkValsShouldWork(t *testing.T) {
+func TestNewRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 
 	assert.False(t, check.IfNil(rwd))
 	assert.Nil(t, err)
@@ -126,7 +126,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, err := NewEpochStartRewardsCreator(args)
+	rwd, err := NewRewardsCreator(args)
 	require.Nil(t, err)
 
 	mb := &block.MetaBlock{
@@ -141,7 +141,7 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 			AccumulatedFees: big.NewInt(100),
 		},
 	}
-	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	bdy, err := rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
 	assert.NotNil(t, bdy)
 }
@@ -150,7 +150,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 
 	bdy := block.MiniBlock{
 		TxHashes:        [][]byte{},
@@ -184,7 +184,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 		},
 	}
 
-	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo)
+	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Equal(t, epochStart.ErrRewardMiniBlockHashDoesNotMatch, err)
 }
 
@@ -192,7 +192,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(100),
@@ -243,7 +243,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 		},
 	}
 
-	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo)
+	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Equal(t, epochStart.ErrRewardMiniBlocksNumDoesNotMatch, err)
 }
 
@@ -251,7 +251,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(100),
@@ -304,7 +304,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 		},
 	}
 
-	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo)
+	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
 }
 
@@ -321,7 +321,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		}}
 	args := getRewardsArguments()
 	args.ShardCoordinator = shardCoordinator
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(100),
@@ -374,7 +374,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 		},
 	}
 
-	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo)
+	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 	assert.Nil(t, err)
 }
 
@@ -382,7 +382,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -396,7 +396,7 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 			AccumulatedFees: big.NewInt(100),
 		},
 	}
-	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -439,7 +439,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			return nil
 		},
 	}
-	rwd, _ := NewEpochStartRewardsCreator(args)
+	rwd, _ := NewRewardsCreator(args)
 
 	mb := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -454,7 +454,7 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 			LeaderSuccess:   1,
 		},
 	}
-	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo)
+	_, _ = rwd.CreateRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
 
 	mb2 := block.MetaBlock{
 		MiniBlockHeaders: []block.MiniBlockHeader{
@@ -490,7 +490,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
+	rwdc, _ := NewRewardsCreator(args)
 
 	mb := &block.MetaBlock{
 		EpochStart: getDefaultEpochStart(),
@@ -542,7 +542,7 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 			return 63
 		},
 	}
-	rwdc, _ := NewEpochStartRewardsCreator(args)
+	rwdc, _ := NewRewardsCreator(args)
 
 	mb := &block.MetaBlock{
 		EpochStart: getDefaultEpochStart(),
@@ -585,7 +585,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
+	rwdc, _ := NewRewardsCreator(args)
 	mb := &block.MetaBlock{
 		EpochStart: getDefaultEpochStart(),
 	}
@@ -596,7 +596,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb, &mb.EpochStart.Economics)
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }
@@ -605,7 +605,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	t.Parallel()
 
 	args := getRewardsArguments()
-	rwdc, _ := NewEpochStartRewardsCreator(args)
+	rwdc, _ := NewRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
@@ -631,7 +631,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	metaBlk.EpochStart.Economics.RewardsForProtocolSustainability.Set(expectedRewardTx.Value)
 	metaBlk.EpochStart.Economics.TotalToDistribute.Set(expectedRewardTx.Value)
 
-	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo))
+	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, make(map[uint32][]*state.ValidatorInfo), &metaBlk.EpochStart.Economics)
 	assert.Nil(t, err)
 	assert.Equal(t, cloneMb, miniBlocks[0])
 }
@@ -642,7 +642,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	args := getRewardsArguments()
 	args.NodesConfigProvider = &mock.NodesCoordinatorStub{}
 	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(1, core.MetachainShardId)
-	rwdc, _ := NewEpochStartRewardsCreator(args)
+	rwdc, _ := NewRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
 		DevFeesInEpoch: big.NewInt(0),
@@ -671,7 +671,7 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 	_ = userAcc.DataTrieTracker().SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))
 	_ = args.UserAccountsDB.SaveAccount(userAcc)
 
-	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo)
+	miniBlocks, err := rwdc.CreateRewardsMiniBlocks(metaBlk, valInfo, &metaBlk.EpochStart.Economics)
 	assert.Nil(t, err)
 	assert.Equal(t, len(miniBlocks), 2)
 	assert.Equal(t, len(miniBlocks[0].TxHashes), 1)

@@ -18,6 +18,8 @@ const (
 	getBalancePath  = "/:address/balance"
 	getUsernamePath = "/:address/username"
 	getKeyPath      = "/:address/key/:key"
+	getESDTTokens   = "/:address/esdt"
+	getESDTBalance  = "/:address/esdt/:tokenIdentifier"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
@@ -26,6 +28,8 @@ type FacadeHandler interface {
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
 	GetAccount(address string) (state.UserAccountHandler, error)
+	GetESDTBalance(address string, key string) (string, string, error)
+	GetAllESDTTokens(address string) ([]string, error)
 	IsInterfaceNil() bool
 }
 
@@ -39,12 +43,20 @@ type accountResponse struct {
 	RootHash []byte `json:"rootHash"`
 }
 
+type esdtTokenData struct {
+	TokenIdentifier string `json:"tokenIdentifier"`
+	Balance         string `json:"balance"`
+	Properties      string `json:"properties"`
+}
+
 // Routes defines address related routes
 func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getAccountPath, GetAccount)
 	router.RegisterHandler(http.MethodGet, getBalancePath, GetBalance)
 	router.RegisterHandler(http.MethodGet, getUsernamePath, GetUsername)
 	router.RegisterHandler(http.MethodGet, getKeyPath, GetValueForKey)
+	router.RegisterHandler(http.MethodGet, getESDTBalance, GetESDTBalance)
+	router.RegisterHandler(http.MethodGet, getESDTTokens, GetESDTTokens)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -243,6 +255,111 @@ func GetValueForKey(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"value": value},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetESDTBalance returns the balance for the given address and esdt token
+func GetESDTBalance(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokenIdentifier := c.Param("tokenIdentifier")
+	if tokenIdentifier == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), errors.ErrEmptyKey.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	balance, freeze, err := facade.GetESDTBalance(addr, tokenIdentifier)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTBalance.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	tokenData := esdtTokenData{
+		TokenIdentifier: tokenIdentifier,
+		Balance:         balance,
+		Properties:      freeze,
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokenData": tokenData},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// GetESDTTokens returns the tokens list from this account
+func GetESDTTokens(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	addr := c.Param("address")
+	if addr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tokens, err := facade.GetAllESDTTokens(addr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetESDTTokens.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"tokens": tokens},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

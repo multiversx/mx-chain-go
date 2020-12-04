@@ -6,14 +6,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const delegationConfigKey = "delegationConfig"
@@ -37,7 +38,7 @@ type delegation struct {
 	sigVerifier            vm.MessageSignVerifier
 	delegationMgrSCAddress []byte
 	stakingSCAddr          []byte
-	auctionSCAddr          []byte
+	validatorSCAddr        []byte
 	endOfEpochAddr         []byte
 	gasCost                vm.GasCost
 	marshalizer            marshal.Marshalizer
@@ -50,6 +51,7 @@ type delegation struct {
 	nodePrice              *big.Int
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
+	mutExecution           sync.RWMutex
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -60,7 +62,7 @@ type ArgsNewDelegation struct {
 	SigVerifier            vm.MessageSignVerifier
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
-	AuctionSCAddress       []byte
+	ValidatorSCAddress     []byte
 	EndOfEpochAddress      []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
@@ -75,8 +77,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if len(args.StakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.AuctionSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	if len(args.ValidatorSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
@@ -100,7 +102,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	d := &delegation{
 		eei:                    args.Eei,
 		stakingSCAddr:          args.StakingSCAddress,
-		auctionSCAddr:          args.AuctionSCAddress,
+		validatorSCAddr:        args.ValidatorSCAddress,
 		delegationMgrSCAddress: args.DelegationMgrSCAddress,
 		gasCost:                args.GasCost,
 		marshalizer:            args.Marshalizer,
@@ -139,6 +141,9 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 
 // Execute calls one of the functions from the delegation contract and runs the code according to the input
 func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	d.mutExecution.RLock()
+	defer d.mutExecution.RUnlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -206,10 +211,6 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
 		return d.getAllNodeStates(args)
-	case "getTotalUnStakedFromNodes":
-		return d.getTotalUnStakedFromNodes(args)
-	case "getTotalUnBondedFromNodes":
-		return d.getTotalUnBondedFromNodes(args)
 	case "getContractConfig":
 		return d.getContractConfig(args)
 	}
@@ -271,12 +272,10 @@ func (d *delegation) init(args *vmcommon.ContractCallInput) vmcommon.ReturnCode 
 	}
 
 	globalFund := &GlobalFundData{
-		ActiveFunds:            make([][]byte, 0),
-		UnStakedFunds:          make([][]byte, 0),
-		TotalUnStakedFromNodes: big.NewInt(0),
-		TotalUnBondedFromNodes: big.NewInt(0),
-		TotalActive:            big.NewInt(0),
-		TotalUnStaked:          big.NewInt(0),
+		ActiveFunds:   make([][]byte, 0),
+		UnStakedFunds: make([][]byte, 0),
+		TotalActive:   big.NewInt(0),
+		TotalUnStaked: big.NewInt(0),
 	}
 
 	err = d.saveGlobalFundData(globalFund)
@@ -361,7 +360,7 @@ func (d *delegation) delegateUser(
 	}
 
 	stakeArgs := d.makeStakeArgsIfAutomaticActivation(dConfig, dStatus, globalFund)
-	vmOutput, err := d.executeOnAuctionSC(recipientAddr, "stake", stakeArgs, callValue)
+	vmOutput, err := d.executeOnValidatorSC(recipientAddr, "stake", stakeArgs, callValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -731,7 +730,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	stakeArgs := makeStakeArgs(listToCheck, args.Arguments)
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "stake", stakeArgs, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -788,7 +787,7 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unStake", args.Arguments, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unStakeNodes", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -803,20 +802,6 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	err = d.saveDelegationStatus(status)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	totalNewUnStakedValue := big.NewInt(0).Mul(big.NewInt(int64(len(successKeys))), d.nodePrice)
-	globalFundData, err := d.getGlobalFundData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	globalFundData.TotalUnStakedFromNodes.Add(globalFundData.TotalUnStakedFromNodes, totalNewUnStakedValue)
-	err = d.saveGlobalFundData(globalFundData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -840,13 +825,15 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	foundAll := verifyIfAllBLSPubKeysExist(status.UnStakedKeys, args.Arguments)
+	// even some staked keys can be unbonded - as they could have been forced unstaked by protocol because of not enough funds
+	listToCheck := append(status.UnStakedKeys, status.StakedKeys...)
+	foundAll := verifyIfAllBLSPubKeysExist(listToCheck, args.Arguments)
 	if !foundAll {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unBond", args.Arguments, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unBondNodes", args.Arguments, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -861,20 +848,6 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	err = d.saveDelegationStatus(status)
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	totalNewUnBondedValue := big.NewInt(0).Mul(big.NewInt(int64(len(successKeys))), d.nodePrice)
-	globalFundData, err := d.getGlobalFundData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	globalFundData.TotalUnBondedFromNodes.Add(globalFundData.TotalUnBondedFromNodes, totalNewUnBondedValue)
-	err = d.saveGlobalFundData(globalFundData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -917,7 +890,7 @@ func (d *delegation) unJailNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	vmOutput, err := d.executeOnAuctionSC(args.RecipientAddr, "unJail", args.Arguments, args.CallValue)
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "unJail", args.Arguments, args.CallValue)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -987,46 +960,14 @@ func (d *delegation) addValueToFund(key []byte, value *big.Int) error {
 func (d *delegation) resolveUnStakedUnBondResponse(
 	returnData [][]byte,
 	userVal *big.Int,
-	unStake bool,
-) (*big.Int, *big.Int, error) {
+) (*big.Int, error) {
 	lenReturnData := len(returnData)
 	if lenReturnData == 0 {
-		return userVal, big.NewInt(0), nil
+		return userVal, nil
 	}
 
 	totalReturn := big.NewInt(0).SetBytes(returnData[lenReturnData-1])
-
-	actualUserVal := big.NewInt(0).Set(userVal)
-	remainingVal := big.NewInt(0)
-	if totalReturn.Cmp(userVal) < 0 {
-		actualUserVal.Set(totalReturn)
-	} else {
-		remainingVal.Sub(totalReturn, userVal)
-	}
-
-	if lenReturnData == 1 {
-		return actualUserVal, remainingVal, nil
-	}
-
-	status, err := d.getDelegationStatus()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for i := 0; i < lenReturnData-1; i++ {
-		if unStake {
-			status.StakedKeys, status.UnStakedKeys = moveNodeFromList(status.StakedKeys, status.UnStakedKeys, returnData[i])
-		} else {
-			status.UnStakedKeys, status.NotStakedKeys = moveNodeFromList(status.UnStakedKeys, status.NotStakedKeys, returnData[i])
-		}
-	}
-
-	err = d.saveDelegationStatus(status)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return actualUserVal, remainingVal, nil
+	return totalReturn, nil
 }
 
 func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, valueToUnDelegate *big.Int) error {
@@ -1053,9 +994,7 @@ func (d *delegation) checkOwnerCanUnDelegate(address []byte, activeFund *Fund, v
 	if numActiveKeys > 0 {
 		return fmt.Errorf("%w cannot unDelegate from initial owner funds as nodes are active", vm.ErrOwnerCannotUnDelegate)
 	}
-
-	allDelegationLeft := big.NewInt(0).Add(activeFund.Value, delegationConfig.InitialOwnerFunds)
-	if allDelegationLeft.Cmp(valueToUnDelegate) != 0 {
+	if remainingFunds.Cmp(zero) != 0 {
 		return fmt.Errorf("%w must undelegate all", vm.ErrOwnerCannotUnDelegate)
 	}
 
@@ -1126,18 +1065,17 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unStakeTokensWithNodes", globalFund.TotalUnStakedFromNodes, valueToUnDelegate)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unStakeTokens", valueToUnDelegate)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	actualUserUnStake, unStakeFromNodes, err := d.resolveUnStakedUnBondResponse(returnData, valueToUnDelegate, true)
+	actualUserUnStake, err := d.resolveUnStakedUnBondResponse(returnData, valueToUnDelegate)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	globalFund.TotalUnStakedFromNodes.Add(globalFund.TotalUnStakedFromNodes, unStakeFromNodes)
 	activeFund.Value.Sub(activeFund.Value, actualUserUnStake)
 	err = d.saveFund(delegator.ActiveFund, activeFund)
 	if err != nil {
@@ -1365,21 +1303,12 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	return vmcommon.Ok
 }
 
-func (d *delegation) unStakeOrUnBondFromAuctionSC(
+func (d *delegation) executeOnValidatorSCWithValueInArgs(
 	scAddress []byte,
 	functionToCall string,
-	baseValue *big.Int,
 	actionValue *big.Int,
 ) ([][]byte, vmcommon.ReturnCode) {
-	if baseValue.Cmp(actionValue) >= 0 {
-		baseValue.Sub(baseValue, actionValue)
-		return nil, vmcommon.Ok
-	}
-
-	fundToUnStakeFromAuction := big.NewInt(0).Sub(actionValue, baseValue)
-	baseValue.SetUint64(0)
-
-	vmOutput, err := d.executeOnAuctionSC(scAddress, functionToCall, [][]byte{fundToUnStakeFromAuction.Bytes()}, big.NewInt(0))
+	vmOutput, err := d.executeOnValidatorSC(scAddress, functionToCall, [][]byte{actionValue.Bytes()}, big.NewInt(0))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return nil, vmcommon.UserError
@@ -1456,17 +1385,22 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+	if totalUnBondable.Cmp(zero) == 0 {
+		d.eei.AddReturnMessage("nothing to unBond")
+		return vmcommon.Ok
+	}
+
 	if globalFund.TotalUnStaked.Cmp(totalUnBondable) < 0 {
 		d.eei.AddReturnMessage("cannot unBond - contract error")
 		return vmcommon.UserError
 	}
 
-	returnData, returnCode := d.unStakeOrUnBondFromAuctionSC(args.RecipientAddr, "unBondTokensWithNodes", globalFund.TotalUnBondedFromNodes, totalUnBondable)
+	returnData, returnCode := d.executeOnValidatorSCWithValueInArgs(args.RecipientAddr, "unBondTokens", totalUnBondable)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
 
-	actualUserUnBond, unBondFromNodes, err := d.resolveUnStakedUnBondResponse(returnData, totalUnBondable, false)
+	actualUserUnBond, err := d.resolveUnStakedUnBondResponse(returnData, totalUnBondable)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1503,7 +1437,6 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	delegator.UnStakedFunds = tempUnStakedFunds
 
 	globalFund.TotalUnStaked.Sub(globalFund.TotalUnStaked, actualUserUnBond)
-	globalFund.TotalUnBondedFromNodes.Add(globalFund.TotalUnBondedFromNodes, unBondFromNodes)
 	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1675,22 +1608,6 @@ func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon
 	return vmcommon.Ok
 }
 
-func (d *delegation) getTotalUnStakedFromNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	globalFund, err := d.getGlobalFundData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	d.eei.Finish(globalFund.TotalUnStakedFromNodes.Bytes())
-	return vmcommon.Ok
-}
-
 func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkArgumentsForGeneralViewFunc(args)
 	if returnCode != vmcommon.Ok {
@@ -1731,22 +1648,6 @@ func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommo
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.CreatedNonce).Bytes())
 	d.eei.Finish(big.NewInt(0).SetUint64(delegationConfig.UnBondPeriod).Bytes())
 
-	return vmcommon.Ok
-}
-
-func (d *delegation) getTotalUnBondedFromNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
-	if returnCode != vmcommon.Ok {
-		return returnCode
-	}
-
-	globalFund, err := d.getGlobalFundData()
-	if err != nil {
-		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	d.eei.Finish(globalFund.TotalUnBondedFromNodes.Bytes())
 	return vmcommon.Ok
 }
 
@@ -1854,12 +1755,12 @@ func (d *delegation) getClaimableRewards(args *vmcommon.ContractCallInput) vmcom
 	return vmcommon.Ok
 }
 
-func (d *delegation) executeOnAuctionSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
-	auctionCall := function
+func (d *delegation) executeOnValidatorSC(address []byte, function string, args [][]byte, value *big.Int) (*vmcommon.VMOutput, error) {
+	validatorCall := function
 	for _, key := range args {
-		auctionCall += "@" + hex.EncodeToString(key)
+		validatorCall += "@" + hex.EncodeToString(key)
 	}
-	vmOutput, err := d.eei.ExecuteOnDestContext(d.auctionSCAddr, address, value, []byte(auctionCall))
+	vmOutput, err := d.eei.ExecuteOnDestContext(d.validatorSCAddr, address, value, []byte(validatorCall))
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return nil, err
@@ -2056,7 +1957,7 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	if err != nil {
 		return err
 	}
-	if minDeposit.Cmp(callValue) < 0 {
+	if callValue.Cmp(minDeposit) < 0 {
 		return fmt.Errorf("%w you must provide at least %s", vm.ErrNotEnoughInitialOwnerFunds, minDeposit.String())
 	}
 
@@ -2082,6 +1983,13 @@ func (d *delegation) getMinDeposit() (*big.Int, error) {
 	}
 
 	return managementData.MinDeposit, nil
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
+	d.mutExecution.Lock()
+	d.gasCost = gasCost
+	d.mutExecution.Unlock()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

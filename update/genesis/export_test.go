@@ -12,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -314,11 +315,22 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	}
 
 	trie := &mock.TrieStub{
-		GetAllLeavesCalled: func() (map[string][]byte, error) {
+		RootCalled: func() ([]byte, error) {
+			return []byte{}, nil
+		},
+		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+			ch := make(chan core.KeyValueHolder)
+
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(core.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
-			return map[string][]byte{"test": pacB}, nil
+
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+				close(ch)
+			}()
+
+			return ch, nil
 		},
 	}
 

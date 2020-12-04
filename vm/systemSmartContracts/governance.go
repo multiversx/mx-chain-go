@@ -5,15 +5,16 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const governanceConfigKey = "governanceConfig"
@@ -37,7 +38,7 @@ type ArgsNewGovernanceContract struct {
 	Hasher                     hashing.Hasher
 	GovernanceSCAddress        []byte
 	StakingSCAddress           []byte
-	AuctionSCAddress           []byte
+	ValidatorSCAddress  []byte
 	InitalWhiteListedAddresses [][]byte
 	EpochNotifier              vm.EpochNotifier
 }
@@ -49,13 +50,14 @@ type governanceContract struct {
 	ownerAddress                []byte
 	governanceSCAddress         []byte
 	stakingSCAddress            []byte
-	auctionSCAddress            []byte
+	validatorSCAddress  []byte
 	marshalizer                 marshal.Marshalizer
 	hasher                      hashing.Hasher
 	governanceConfig            config.GovernanceSystemSCConfig
 	initialWhiteListedAddresses [][]byte
 	enabledEpoch                uint32
 	flagEnabled                 atomic.Flag
+	mutExecution        sync.RWMutex
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -86,7 +88,7 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 		ownerAddress:        nil,
 		governanceSCAddress: args.GovernanceSCAddress,
 		stakingSCAddress:    args.StakingSCAddress,
-		auctionSCAddress:    args.AuctionSCAddress,
+		validatorSCAddress:  args.ValidatorSCAddress,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
 		governanceConfig:    args.GovernanceConfig,
@@ -106,6 +108,8 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 
 // Execute calls one of the functions from the governance smart contract and runs the code according to the input
 func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	g.mutExecution.RLock()
+	defer g.mutExecution.RUnlock()
 	if CheckIfNil(args) != nil {
 		return vmcommon.UserError
 	}
@@ -1120,18 +1124,18 @@ func (g *governanceContract) getEmptyVoteSet() *VoteSet {
 //  since unBond for this funds follow a different mechanism
 func (g *governanceContract) getTotalStake(address []byte) (*big.Int, error) {
 	totalStake := big.NewInt(0)
-	marshaledData := g.eei.GetStorageFromAddress(g.auctionSCAddress, address)
+	marshaledData := g.eei.GetStorageFromAddress(g.validatorSCAddress, address)
 	if len(marshaledData) == 0 {
 		return totalStake, nil
 	}
 
-	auctionData := &AuctionDataV2{}
-	err := g.marshalizer.Unmarshal(auctionData, marshaledData)
+	validatorData := &ValidatorDataV2{}
+	err := g.marshalizer.Unmarshal(validatorData, marshaledData)
 	if err != nil {
 		return totalStake, err
 	}
 
-	for _, blsKey := range auctionData.BlsPubKeys {
+	for _, blsKey := range validatorData.BlsPubKeys {
 		marshaledData = g.eei.GetStorageFromAddress(g.stakingSCAddress, blsKey)
 		if len(marshaledData) == 0 {
 			continue
@@ -1282,6 +1286,13 @@ func (g *governanceContract) EpochConfirmed(epoch uint32) {
 // CanUseContract returns true if contract is enabled
 func (g *governanceContract) CanUseContract() bool {
 	return true
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (g *governanceContract) SetNewGasCost(gasCost vm.GasCost) {
+	g.mutExecution.Lock()
+	g.gasCost = gasCost
+	g.mutExecution.Unlock()
 }
 
 // IsInterfaceNil returns true if underlying object is nil

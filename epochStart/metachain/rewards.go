@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ process.EpochStartRewardsCreator = (*rewardsCreator)(nil)
+var _ process.RewardsCreator = (*rewardsCreator)(nil)
 
 var zero = big.NewInt(0)
 
@@ -31,8 +31,8 @@ type rewardInfoData struct {
 	protocolRewards *big.Int
 }
 
-// NewEpochStartRewardsCreator creates a new rewards creator object
-func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
+// NewRewardsCreator creates a new rewards creator object
+func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	brc, err := NewBaseRewardsCreator(args.BaseRewardsCreatorArgs)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,11 @@ func NewEpochStartRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, e
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
-func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+func (rc *rewardsCreator) CreateRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
@@ -66,13 +70,13 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protocolSustainabilityRwdTx, protocolSustainabilityShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
 		return nil, err
 	}
 
 	rc.fillBaseRewardsPerBlockPerNode(economicsData.RewardsPerBlock)
-	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protocolSustainabilityRwdTx)
+	err = rc.addValidatorRewardsToMiniBlocks(validatorsInfo, metaBlock, miniBlocks, protSustRwdTx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +84,8 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
-	rc.adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx, difference)
-	err = rc.addProtocolRewardToMiniBlocks(protocolSustainabilityRwdTx, miniBlocks, protocolSustainabilityShardId)
+	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
+	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -177,12 +181,16 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
-func (rc *rewardsCreator) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rc *rewardsCreator) VerifyRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) error {
 	if check.IfNil(metaBlock) {
 		return epochStart.ErrNilHeaderHandler
 	}
 
-	createdMiniBlocks, err := rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo)
+	createdMiniBlocks, err := rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
 	if err != nil {
 		return err
 	}

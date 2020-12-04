@@ -15,8 +15,8 @@ type StorageManagerStub struct {
 	GetDbThatContainsHashCalled       func([]byte) data.DBWriteCacher
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
-	EnterSnapshotModeCalled           func()
-	ExitSnapshotModeCalled            func()
+	EnterPruningBufferingModeCalled   func()
+	ExitPruningBufferingModeCalled    func()
 	IsInterfaceNilCalled              func() bool
 }
 
@@ -73,17 +73,17 @@ func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// EnterSnapshotMode --
-func (sms *StorageManagerStub) EnterSnapshotMode() {
-	if sms.EnterSnapshotModeCalled != nil {
-		sms.EnterSnapshotModeCalled()
+// EnterPruningBufferingMode --
+func (sms *StorageManagerStub) EnterPruningBufferingMode() {
+	if sms.EnterPruningBufferingModeCalled != nil {
+		sms.EnterPruningBufferingModeCalled()
 	}
 }
 
-// ExitSnapshotMode --
-func (sms *StorageManagerStub) ExitSnapshotMode() {
-	if sms.ExitSnapshotModeCalled != nil {
-		sms.ExitSnapshotModeCalled()
+// ExitPruningBufferingMode --
+func (sms *StorageManagerStub) ExitPruningBufferingMode() {
+	if sms.ExitPruningBufferingModeCalled != nil {
+		sms.ExitPruningBufferingModeCalled()
 	}
 }
 

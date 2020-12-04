@@ -1,10 +1,7 @@
 package factory
 
 import (
-	"strconv"
-
 	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -47,17 +44,4 @@ func GetBloomFromConfig(cfg config.BloomFilterConfig) storageUnit.BloomConfig {
 		Size:     cfg.Size,
 		HashFunc: hashFuncs,
 	}
-}
-
-func convertShardIDToUint32(shardIDStr string) (uint32, error) {
-	if shardIDStr == "metachain" {
-		return core.MetachainShardId, nil
-	}
-
-	shardID, err := strconv.ParseInt(shardIDStr, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint32(shardID), nil
 }

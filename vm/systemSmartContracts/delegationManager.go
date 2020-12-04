@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const delegationManagementKey = "delegationManagement"
@@ -24,7 +25,7 @@ type delegationManager struct {
 	eei                      vm.SystemEI
 	delegationMgrSCAddress   []byte
 	stakingSCAddr            []byte
-	auctionSCAddr            []byte
+	validatorSCAddr          []byte
 	gasCost                  vm.GasCost
 	marshalizer              marshal.Marshalizer
 	delegationMgrEnabled     atomic.Flag
@@ -33,6 +34,7 @@ type delegationManager struct {
 	minCreationDeposit       *big.Int
 	minFee                   uint64
 	maxFee                   uint64
+	mutExecution             sync.RWMutex
 }
 
 // ArgsNewDelegationManager defines the arguments to create the delegation manager system smart contract
@@ -42,7 +44,7 @@ type ArgsNewDelegationManager struct {
 	Eei                    vm.SystemEI
 	DelegationMgrSCAddress []byte
 	StakingSCAddress       []byte
-	AuctionSCAddress       []byte
+	ValidatorSCAddress     []byte
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	EpochNotifier          vm.EpochNotifier
@@ -56,8 +58,8 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	if len(args.StakingSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
 	}
-	if len(args.AuctionSCAddress) < 1 {
-		return nil, fmt.Errorf("%w for auction sc address", vm.ErrInvalidAddress)
+	if len(args.ValidatorSCAddress) < 1 {
+		return nil, fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
 	}
 	if len(args.DelegationMgrSCAddress) < 1 {
 		return nil, fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
@@ -82,7 +84,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	d := &delegationManager{
 		eei:                      args.Eei,
 		stakingSCAddr:            args.StakingSCAddress,
-		auctionSCAddr:            args.AuctionSCAddress,
+		validatorSCAddr:          args.ValidatorSCAddress,
 		delegationMgrSCAddress:   args.DelegationMgrSCAddress,
 		gasCost:                  args.GasCost,
 		marshalizer:              args.Marshalizer,
@@ -101,6 +103,9 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 
 // Execute calls one of the functions from the delegation manager contract and runs the code according to the input
 func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	d.mutExecution.RLock()
+	defer d.mutExecution.RUnlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -378,6 +383,13 @@ func (d *delegationManager) saveDelegationContractList(list *DelegationContractL
 
 	d.eei.SetStorage([]byte(delegationContractsList), marshaledData)
 	return nil
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
+	d.mutExecution.Lock()
+	d.gasCost = gasCost
+	d.mutExecution.Unlock()
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed

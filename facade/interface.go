@@ -5,13 +5,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
 	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 //NodeHandler contains all functions that a node should contain.
@@ -28,6 +28,12 @@ type NodeHandler interface {
 	// GetValueForKey returns the value of a key from a given account
 	GetValueForKey(address string, key string) (string, error)
 
+	// GetESDTBalance returns the esdt balance and properties from a given account
+	GetESDTBalance(address string, key string) (string, string, error)
+
+	// GetAllESDTTokens returns the value of a key from a given account
+	GetAllESDTTokens(address string) ([]string, error)
+
 	//CreateTransaction will return a transaction from all needed fields
 	CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
@@ -40,7 +46,7 @@ type NodeHandler interface {
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
 	//GetTransaction will return a transaction based on the hash
-	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
 	// GetAccount returns an accountResponse containing information
 	//  about the account corelated with provided address

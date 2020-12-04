@@ -497,6 +497,9 @@ var ErrInvalidInflationPercentages = errors.New("invalid inflation percentages")
 // ErrInvalidNonceRequest signals that invalid nonce was requested
 var ErrInvalidNonceRequest = errors.New("invalid nonce request")
 
+// ErrInvalidBlockRequestOldEpoch signals that invalid block was requested from old epoch
+var ErrInvalidBlockRequestOldEpoch = errors.New("invalid block request from old epoch")
+
 // ErrNilBlockChainHook signals that nil blockchain hook has been provided
 var ErrNilBlockChainHook = errors.New("nil blockchain hook")
 
@@ -656,8 +659,8 @@ var ErrNilEpochEconomics = errors.New("nil epoch economics")
 // ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
 var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 
-// ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
-var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
+// ErrNilRewardsCreator signals that nil epoch start rewards creator was provided
+var ErrNilRewardsCreator = errors.New("nil epoch start rewards creator")
 
 // ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
 var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")

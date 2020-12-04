@@ -9,11 +9,11 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -132,7 +132,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "getTopUp function should have returned exactly two values"))
+	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpBlsKeys function should have at least two values"))
 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
@@ -237,15 +237,15 @@ func createStakingDataProviderWithMockArgs(
 			*numRunContractCalls++
 			switch input.Function {
 			case "getOwner":
-				assert.Equal(t, vm.AuctionSCAddress, input.VMInput.CallerAddr)
+				assert.Equal(t, vm.ValidatorSCAddress, input.VMInput.CallerAddr)
 				assert.Equal(t, vm.StakingSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{[]byte(hex.EncodeToString(owner))},
 				}, nil
-			case "getTopUpTotalStaked":
+			case "getTotalStakedTopUpBlsKeys":
 				assert.Equal(t, owner, input.VMInput.CallerAddr)
-				assert.Equal(t, vm.AuctionSCAddress, input.RecipientAddr)
+				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{[]byte(topUpVal.String()), []byte(stakingVal.String())},

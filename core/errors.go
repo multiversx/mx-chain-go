@@ -91,3 +91,6 @@ var ErrNilFeeConfig = errors.New("nil fee config")
 
 // ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
+
+// ErrInvalidGasScheduleConfig signals that invalid gas schedule config was provided
+var ErrInvalidGasScheduleConfig = errors.New("invalid gas schedule config")

@@ -21,6 +21,7 @@ type systemSCFactory struct {
 	hasher              hashing.Hasher
 	systemSCConfig      *config.SystemSmartContractsConfig
 	epochNotifier       vm.EpochNotifier
+	systemSCsContainer  vm.SystemSCContainer
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -29,7 +30,7 @@ type ArgsNewSystemSCFactory struct {
 	Economics           vm.EconomicsHandler
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
-	GasMap              map[string]map[string]uint64
+	GasSchedule         core.GasScheduleNotifier
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
 	SystemSCConfig      *config.SystemSmartContractsConfig
@@ -74,10 +75,13 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		epochNotifier:       args.EpochNotifier,
 	}
 
-	err := scf.createGasConfig(args.GasMap)
+	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
 	if err != nil {
 		return nil, err
 	}
+
+	scf.systemSCsContainer = NewSystemSCContainer()
+	args.GasSchedule.RegisterNotifyHandler(scf)
 
 	return scf, nil
 }
@@ -120,12 +124,30 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 	return nil
 }
 
+// GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
+func (scf *systemSCFactory) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	err := scf.createGasConfig(gasSchedule)
+	if err != nil {
+		return
+	}
+
+	var systemSC vm.SystemSmartContract
+	for _, key := range scf.systemSCsContainer.Keys() {
+		systemSC, err = scf.systemSCsContainer.Get(key)
+		if err != nil {
+			return
+		}
+
+		systemSC.SetNewGasCost(scf.gasCost)
+	}
+}
+
 func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, error) {
 	argsStaking := systemSmartContracts.ArgsNewStakingSmartContract{
 		MinNumNodes:          uint64(scf.nodesConfigProvider.MinNumberOfNodes()),
 		StakingSCConfig:      scf.systemSCConfig.StakingSystemSCConfig,
 		Eei:                  scf.systemEI,
-		StakingAccessAddr:    vm.AuctionSCAddress,
+		StakingAccessAddr:    vm.ValidatorSCAddress,
 		GovernanceSCAddress:  vm.GovernanceSCAddress,
 		JailAccessAddr:       vm.JailingAddress,
 		EndOfEpochAccessAddr: vm.EndOfEpochAddress,
@@ -137,21 +159,20 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 	return staking, err
 }
 
-func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
-	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
+func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, error) {
+	args := systemSmartContracts.ArgsValidatorSmartContract{
 		Eei:                scf.systemEI,
 		SigVerifier:        scf.sigVerifier,
 		StakingSCConfig:    scf.systemSCConfig.StakingSystemSCConfig,
 		StakingSCAddress:   vm.StakingSCAddress,
-		AuctionSCAddress:   vm.AuctionSCAddress,
+		ValidatorSCAddress: vm.ValidatorSCAddress,
 		GasCost:            scf.gasCost,
 		Marshalizer:        scf.marshalizer,
-		NumOfNodesToSelect: scf.systemSCConfig.StakingSystemSCConfig.NodesToSelectInAuction,
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 		EpochNotifier:      scf.epochNotifier,
 	}
-	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
-	return auction, err
+	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
+	return validatorSC, err
 }
 
 func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error) {
@@ -177,7 +198,7 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 		Hasher:              scf.hasher,
 		GovernanceSCAddress: vm.GovernanceSCAddress,
 		StakingSCAddress:    vm.StakingSCAddress,
-		AuctionSCAddress:    vm.AuctionSCAddress,
+		ValidatorSCAddress:  vm.ValidatorSCAddress,
 		EpochNotifier:       scf.epochNotifier,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
@@ -192,7 +213,7 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		SigVerifier:            scf.sigVerifier,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.AuctionSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,
@@ -209,7 +230,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		Eei:                    scf.systemEI,
 		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
 		StakingSCAddress:       vm.StakingSCAddress,
-		AuctionSCAddress:       vm.AuctionSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EpochNotifier:          scf.epochNotifier,
@@ -220,24 +241,22 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 
 // Create instantiates all the system smart contracts and returns a container
 func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
-	scContainer := NewSystemSCContainer()
-
 	staking, err := scf.createStakingContract()
 	if err != nil {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.StakingSCAddress, staking)
+	err = scf.systemSCsContainer.Add(vm.StakingSCAddress, staking)
 	if err != nil {
 		return nil, err
 	}
 
-	auction, err := scf.createAuctionContract()
+	validatorSC, err := scf.createValidatorContract()
 	if err != nil {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.AuctionSCAddress, auction)
+	err = scf.systemSCsContainer.Add(vm.ValidatorSCAddress, validatorSC)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +266,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.ESDTSCAddress, esdt)
+	err = scf.systemSCsContainer.Add(vm.ESDTSCAddress, esdt)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +276,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.GovernanceSCAddress, governance)
+	err = scf.systemSCsContainer.Add(vm.GovernanceSCAddress, governance)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +286,7 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.DelegationManagerSCAddress, delegationManager)
+	err = scf.systemSCsContainer.Add(vm.DelegationManagerSCAddress, delegationManager)
 	if err != nil {
 		return nil, err
 	}
@@ -277,17 +296,17 @@ func (scf *systemSCFactory) Create() (vm.SystemSCContainer, error) {
 		return nil, err
 	}
 
-	err = scContainer.Add(vm.FirstDelegationSCAddress, delegation)
+	err = scf.systemSCsContainer.Add(vm.FirstDelegationSCAddress, delegation)
 	if err != nil {
 		return nil, err
 	}
 
-	err = scf.systemEI.SetSystemSCContainer(scContainer)
+	err = scf.systemEI.SetSystemSCContainer(scf.systemSCsContainer)
 	if err != nil {
 		return nil, err
 	}
 
-	return scContainer, nil
+	return scf.systemSCsContainer, nil
 }
 
 // IsInterfaceNil checks whether the underlying object is nil

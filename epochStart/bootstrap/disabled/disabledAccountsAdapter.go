@@ -1,6 +1,9 @@
 package disabled
 
 import (
+	"context"
+
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -67,11 +70,11 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ data.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte) {
+func (a *accountsAdapter) SnapshotState(_ []byte, _ context.Context) {
 }
 
 // SetStateCheckpoint -
-func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
+func (a *accountsAdapter) SetStateCheckpoint(_ []byte, _ context.Context) {
 }
 
 // IsPruningEnabled -
@@ -85,12 +88,12 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ []byte) (map[string][]byte, error) {
+func (a *accountsAdapter) GetAllLeaves(_ []byte, _ context.Context) (chan core.KeyValueHolder, error) {
 	return nil, nil
 }
 
 // RecreateAllTries -
-func (a *accountsAdapter) RecreateAllTries(_ []byte) (map[string]data.Trie, error) {
+func (a *accountsAdapter) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
 	return nil, nil
 }
 

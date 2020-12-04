@@ -422,7 +422,7 @@ func hardForkImport(
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
 			ValidatorAccounts:        node.PeerState,
-			GasMap:                   gasSchedule,
+			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
@@ -461,7 +461,6 @@ func hardForkImport(
 					MaximumPercentageToBleed:             1,
 					BleedPercentagePerRound:              1,
 					MaxNumberOfNodesForStake:             100,
-					NodesToSelectInAuction:               100,
 					ActivateBLSPubKeyMessageVerification: false,
 					MinUnstakeTokensValue:                "1",
 				},

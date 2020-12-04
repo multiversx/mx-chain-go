@@ -83,7 +83,6 @@ func createMockArgument(
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             10,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 			},
@@ -140,9 +139,9 @@ func createMockArgument(
 		},
 	}
 
-	arg.GasMap = arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(arg.GasMap, 1)
-
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
 	ted := &economics.TestEconomicsData{
 		EconomicsData: &economics.EconomicsData{},
 	}

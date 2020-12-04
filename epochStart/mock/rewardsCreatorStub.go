@@ -11,8 +11,12 @@ import (
 
 // RewardsCreatorStub -
 type RewardsCreatorStub struct {
-	CreateRewardsMiniBlocksCalled          func(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyRewardsMiniBlocksCalled          func(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateRewardsMiniBlocksCalled func(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) (block.MiniBlockSlice, error)
+	VerifyRewardsMiniBlocksCalled func(
+		metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+	) error
 	GetProtocolSustainabilityRewardsCalled func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
 	CreateMarshalizedDataCalled            func(body *block.Body) map[string][][]byte
@@ -26,18 +30,23 @@ type RewardsCreatorStub struct {
 func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
 	metaBlock *block.MetaBlock,
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if rcs.CreateRewardsMiniBlocksCalled != nil {
-		return rcs.CreateRewardsMiniBlocksCalled(metaBlock, validatorsInfo)
+		return rcs.CreateRewardsMiniBlocksCalled(metaBlock, validatorsInfo, computedEconomics)
 	}
 
 	return nil, nil
 }
 
 // VerifyRewardsMiniBlocks -
-func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(metaBlock *block.MetaBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error {
+func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(
+	metaBlock *block.MetaBlock,
+	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	computedEconomics *block.Economics,
+) error {
 	if rcs.VerifyRewardsMiniBlocksCalled != nil {
-		return rcs.VerifyRewardsMiniBlocksCalled(metaBlock, validatorsInfo)
+		return rcs.VerifyRewardsMiniBlocksCalled(metaBlock, validatorsInfo, computedEconomics)
 	}
 	return nil
 }
@@ -96,7 +105,7 @@ func (rcs *RewardsCreatorStub) RemoveBlockDataFromPools(metaBlock *block.MetaBlo
 	}
 }
 
-// IsInterfaceNil
+// IsInterfaceNil -
 func (rcs *RewardsCreatorStub) IsInterfaceNil() bool {
 	return rcs == nil
 }

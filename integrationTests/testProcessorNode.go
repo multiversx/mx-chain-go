@@ -18,9 +18,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/peerSignatureHandler"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
@@ -83,8 +85,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 	vmProcess "github.com/ElrondNetwork/elrond-go/vm/process"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/pkg/errors"
 )
 
@@ -169,6 +169,7 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
+// StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
 const StakingV2Epoch = 1000
 
 // TestKeyPair holds a pair of private/public Keys
@@ -1054,15 +1055,17 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 		mapDNSAddresses, _ = tpn.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	}
 
-	gasSchedule := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasSchedule,
 		MapDNSAddresses: mapDNSAddresses,
 		Marshalizer:     TestMarshalizer,
 		Accounts:        tpn.AccntState,
 	}
-	builtInFuncs, _ := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 
 	for name, function := range TestBuiltinFunctions {
 		err := builtInFuncs.Add(name, function)
@@ -1070,24 +1073,28 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestAddressPubkeyConverter,
-		StorageService:   tpn.Storage,
-		BlockChain:       tpn.BlockChain,
-		ShardCoordinator: tpn.ShardCoordinator,
-		Marshalizer:      TestMarshalizer,
-		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           tpn.AccntState,
+		PubkeyConv:         TestAddressPubkeyConverter,
+		StorageService:     tpn.Storage,
+		BlockChain:         tpn.BlockChain,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		Marshalizer:        TestMarshalizer,
+		Uint64Converter:    TestUint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           tpn.DataPool,
+		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
 	vmFactory, _ := shard.NewVMContainerFactory(
 		config.VirtualMachineConfig{
-			OutOfProcessEnabled: true,
+			OutOfProcessEnabled: false,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 		},
 		maxGasLimitPerBlock,
 		gasSchedule,
 		argsHook,
+		0,
 		0,
 	)
 
@@ -1226,17 +1233,21 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         tpn.AccntState,
-		PubkeyConv:       TestAddressPubkeyConverter,
-		StorageService:   tpn.Storage,
-		BlockChain:       tpn.BlockChain,
-		ShardCoordinator: tpn.ShardCoordinator,
-		Marshalizer:      TestMarshalizer,
-		Uint64Converter:  TestUint64Converter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           tpn.AccntState,
+		PubkeyConv:         TestAddressPubkeyConverter,
+		StorageService:     tpn.Storage,
+		BlockChain:         tpn.BlockChain,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		Marshalizer:        TestMarshalizer,
+		Uint64Converter:    TestUint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           tpn.DataPool,
+		CompiledSCPool:     tpn.DataPool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
-	gasSchedule := make(map[string]map[string]uint64)
-	defaults.FillGasMapInternal(gasSchedule, 1)
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
 		signVerifier, _ = vmProcess.NewMessageSigVerifier(
@@ -1273,13 +1284,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				StakingV2Epoch:                       StakingV2Epoch,
+				StakingV2Epoch:                       0,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
 			},
@@ -1342,16 +1352,19 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = scProcessor
-	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(
-		TestHasher,
-		TestMarshalizer,
-		tpn.AccntState,
-		TestAddressPubkeyConverter,
-		tpn.ShardCoordinator,
-		tpn.ScProcessor,
-		txTypeHandler,
-		tpn.EconomicsData,
-	)
+	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
+		Hasher:           TestHasher,
+		Marshalizer:      TestMarshalizer,
+		Accounts:         tpn.AccntState,
+		PubkeyConv:       TestAddressPubkeyConverter,
+		ShardCoordinator: tpn.ShardCoordinator,
+		ScProcessor:      tpn.ScProcessor,
+		TxTypeHandler:    txTypeHandler,
+		EconomicsFee:     tpn.EconomicsData,
+		ESDTEnableEpoch:  0,
+		EpochNotifier:    tpn.EpochNotifier,
+	}
+	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
@@ -1555,6 +1568,8 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
 			StakingV2EnableEpoch:    StakingV2Epoch,
+			StakingDataProvider:     stakingDataProvider,
+			NodesConfigProvider:     tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
