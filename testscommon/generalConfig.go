@@ -8,7 +8,8 @@ import (
 func GetGeneralConfig() config.Config {
 	return config.Config{
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled: true,
+			StartInEpochEnabled:      true,
+			GenesisMaxNumberOfShards: 100,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -97,6 +98,7 @@ func GetGeneralConfig() config.Config {
 		TxBlockBodyDataPool:   getLRUCacheConfig(),
 		PeerBlockBodyDataPool: getLRUCacheConfig(),
 		TrieNodesDataPool:     getLRUCacheConfig(),
+		SmartContractDataPool: getLRUCacheConfig(),
 		TxStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -193,6 +195,16 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("StatusMetricsStorageDB"),
+				Type:              string(storageUnit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		SmartContractsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("SmartContractsStorage"),
 				Type:              string(storageUnit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

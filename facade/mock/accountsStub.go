@@ -1,8 +1,10 @@
 package mock
 
 import (
+	"context"
 	"errors"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 )
@@ -24,13 +26,13 @@ type AccountsStub struct {
 	SnapshotStateCalled      func(rootHash []byte)
 	SetStateCheckpointCalled func(rootHash []byte)
 	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	GetAllLeavesCalled       func(rootHash []byte) (chan core.KeyValueHolder, error)
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
 }
 
 // RecreateAllTries -
-func (as *AccountsStub) RecreateAllTries(rootHash []byte) (map[string]data.Trie, error) {
+func (as *AccountsStub) RecreateAllTries(rootHash []byte, _ context.Context) (map[string]data.Trie, error) {
 	if as.RecreateAllTriesCalled != nil {
 		return as.RecreateAllTriesCalled(rootHash)
 	}
@@ -54,7 +56,7 @@ func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
 	if as.GetAllLeavesCalled != nil {
 		return as.GetAllLeavesCalled(rootHash)
 	}
@@ -148,14 +150,14 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruning
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, _ context.Context) {
 	if as.SnapshotStateCalled != nil {
 		as.SnapshotStateCalled(rootHash)
 	}
 }
 
 // SetStateCheckpoint -
-func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, _ context.Context) {
 	if as.SetStateCheckpointCalled != nil {
 		as.SetStateCheckpointCalled(rootHash)
 	}

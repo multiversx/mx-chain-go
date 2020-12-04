@@ -33,7 +33,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/core/watchdog"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/mcl"
@@ -83,7 +85,6 @@ import (
 	exportFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/gops/agent"
 	"github.com/urfave/cli"
@@ -192,12 +193,11 @@ VERSION:
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
-	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
-	gasScheduleConfigurationFile = cli.StringFlag{
-		Name: "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
-			"gas costs used in SmartContract execution",
-		Value: "./config/gasSchedule.toml",
+	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
+	gasScheduleConfigurationDirectory = cli.StringFlag{
+		Name:  "gas-costs-config",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
+		Value: "./config/gasSchedules",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
@@ -353,20 +353,6 @@ VERSION:
 			"and will have a full history over epochs.",
 	}
 
-	numEpochsToSave = cli.Uint64Flag{
-		Name: "num-epochs-to-keep",
-		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
-			"the full archive flag is not set.",
-		Value: uint64(2),
-	}
-
-	numActivePersisters = cli.Uint64Flag{
-		Name: "num-active-persisters",
-		Usage: "This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. " +
-			"It is relevant even if the node is full archive or not.",
-		Value: uint64(2),
-	}
-
 	startInEpoch = cli.BoolFlag{
 		Name: "start-in-epoch",
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
@@ -426,7 +412,7 @@ func main() {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
-		gasScheduleConfigurationFile,
+		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -449,8 +435,6 @@ func main() {
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
-		numEpochsToSave,
-		numActivePersisters,
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
@@ -635,6 +619,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		generalConfig.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return err
@@ -988,6 +973,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              coreComponents.StatusHandler,
 		HeaderIntegrityVerifier:    headerIntegrityVerifier,
+		TxSignHasher:               coreComponents.TxSignHasher,
+		EpochNotifier:              epochNotifier,
 	}
 	bootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
@@ -1082,12 +1069,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating nodes coordinator")
 	if ctx.IsSet(keepOldEpochsData.Name) {
 		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
-	if ctx.IsSet(numEpochsToSave.Name) {
-		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
-	}
-	if ctx.IsSet(numActivePersisters.Name) {
-		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
 	if bootstrapParameters.NodesConfig != nil {
@@ -1213,8 +1194,13 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	gasScheduleConfigurationFileName := ctx.GlobalString(gasScheduleConfigurationFile.Name)
-	gasSchedule, err := core.LoadGasScheduleConfig(gasScheduleConfigurationFileName)
+	gasScheduleConfigurationFolderName := ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: generalConfig.GasSchedule,
+		ConfigDir:         gasScheduleConfigurationFolderName,
+		EpochNotifier:     epochNotifier,
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
 		return err
 	}
@@ -1274,7 +1260,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		smartContractParser,
 		economicsData,
 		genesisNodesConfig,
-		gasSchedule,
+		gasScheduleNotifier,
 		rounder,
 		shardCoordinator,
 		nodesCoordinator,
@@ -1343,6 +1329,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		importStartHandler,
 		genesisNodesConfig,
 		workingDir,
+		epochNotifier,
 	)
 	if err != nil {
 		return err
@@ -1413,19 +1400,21 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.PeerAccounts,
 		stateComponents.AddressPubkeyConverter,
 		dataComponents.Store,
+		dataComponents.Datapool,
 		dataComponents.Blkc,
 		coreComponents.InternalMarshalizer,
 		coreComponents.Hasher,
 		coreComponents.Uint64ByteSliceConverter,
 		shardCoordinator,
 		statusHandlersInfo.StatusMetrics,
-		gasSchedule,
+		gasScheduleNotifier,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
 		genesisNodesConfig,
 		systemSCConfig,
 		rater,
 		epochNotifier,
+		workingDir,
 	)
 	if err != nil {
 		return err
@@ -2076,10 +2065,11 @@ func createHardForkTrigger(
 	whiteListRequest process.WhiteListHandler,
 	whiteListerVerifiedTxs process.WhiteListHandler,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
-	epochNotifier factory.EpochStartNotifier,
+	epochStartNotifier factory.EpochStartNotifier,
 	importStartHandler update.ImportStartHandler,
 	nodesSetup update.GenesisNodesSetupHandler,
 	workingDir string,
+	epochNotifier process.EpochNotifier,
 ) (node.HardforkTrigger, error) {
 
 	selfPubKeyBytes, err := pubKey.ToByteArray()
@@ -2097,43 +2087,47 @@ func createHardForkTrigger(
 	hardForkConfig := config.Hardfork
 	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
 	argsExporter := exportFactory.ArgsExporter{
-		TxSignMarshalizer:        coreData.TxSignMarshalizer,
-		Marshalizer:              coreData.InternalMarshalizer,
-		Hasher:                   coreData.Hasher,
-		HeaderValidator:          process.HeaderValidator,
-		Uint64Converter:          coreData.Uint64ByteSliceConverter,
-		DataPool:                 data.Datapool,
-		StorageService:           data.Store,
-		RequestHandler:           process.RequestHandler,
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetMessenger,
-		ActiveAccountsDBs:        accountsDBs,
-		ExistingResolvers:        process.ResolversFinder,
-		ExportFolder:             exportFolder,
-		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
-		WhiteListHandler:         whiteListRequest,
-		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
-		InterceptorsContainer:    process.InterceptorsContainer,
-		MultiSigner:              crypto.MultiSigner,
-		NodesCoordinator:         nodesCoordinator,
-		SingleSigner:             crypto.TxSingleSigner,
-		AddressPubKeyConverter:   stateComponents.AddressPubkeyConverter,
-		ValidatorPubKeyConverter: stateComponents.ValidatorPubkeyConverter,
-		BlockKeyGen:              keyGen,
-		KeyGen:                   crypto.TxSignKeyGen,
-		BlockSigner:              crypto.SingleSigner,
-		HeaderSigVerifier:        process.HeaderSigVerifier,
-		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier,
-		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		InputAntifloodHandler:    network.InputAntifloodHandler,
-		OutputAntifloodHandler:   network.OutputAntifloodHandler,
-		ValidityAttester:         process.BlockTracker,
-		ChainID:                  coreData.ChainID,
-		Rounder:                  process.Rounder,
-		GenesisNodesSetupHandler: nodesSetup,
-		InterceptorDebugConfig:   config.Debug.InterceptorResolver,
+		TxSignMarshalizer:         coreData.TxSignMarshalizer,
+		Marshalizer:               coreData.InternalMarshalizer,
+		Hasher:                    coreData.Hasher,
+		HeaderValidator:           process.HeaderValidator,
+		Uint64Converter:           coreData.Uint64ByteSliceConverter,
+		DataPool:                  data.Datapool,
+		StorageService:            data.Store,
+		RequestHandler:            process.RequestHandler,
+		ShardCoordinator:          shardCoordinator,
+		Messenger:                 network.NetMessenger,
+		ActiveAccountsDBs:         accountsDBs,
+		ExistingResolvers:         process.ResolversFinder,
+		ExportFolder:              exportFolder,
+		ExportTriesStorageConfig:  hardForkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig:  hardForkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:     hardForkConfig.ExportKeysStorageConfig,
+		WhiteListHandler:          whiteListRequest,
+		WhiteListerVerifiedTxs:    whiteListerVerifiedTxs,
+		InterceptorsContainer:     process.InterceptorsContainer,
+		MultiSigner:               crypto.MultiSigner,
+		NodesCoordinator:          nodesCoordinator,
+		SingleSigner:              crypto.TxSingleSigner,
+		AddressPubKeyConverter:    stateComponents.AddressPubkeyConverter,
+		ValidatorPubKeyConverter:  stateComponents.ValidatorPubkeyConverter,
+		BlockKeyGen:               keyGen,
+		KeyGen:                    crypto.TxSignKeyGen,
+		BlockSigner:               crypto.SingleSigner,
+		HeaderSigVerifier:         process.HeaderSigVerifier,
+		HeaderIntegrityVerifier:   process.HeaderIntegrityVerifier,
+		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		InputAntifloodHandler:     network.InputAntifloodHandler,
+		OutputAntifloodHandler:    network.OutputAntifloodHandler,
+		ValidityAttester:          process.BlockTracker,
+		ChainID:                   coreData.ChainID,
+		RoundHandler:              process.Rounder,
+		GenesisNodesSetupHandler:  nodesSetup,
+		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
+		MinTxVersion:              coreData.MinTransactionVersion,
+		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		TxSignHasher:              coreData.TxSignHasher,
+		EpochNotifier:             epochNotifier,
 	}
 	hardForkExportFactory, err := exportFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
@@ -2150,9 +2144,10 @@ func createHardForkTrigger(
 		EpochProvider:             process.EpochStartTrigger,
 		ExportFactoryHandler:      hardForkExportFactory,
 		ChanStopNodeProcess:       chanStopNodeProcess,
-		EpochConfirmedNotifier:    epochNotifier,
+		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
+		RoundHandler:              process.Rounder,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
@@ -2248,6 +2243,8 @@ func createNode(
 		return nil, err
 	}
 
+	txVersionCheckerHandler := versioning.NewTxVersionChecker(coreData.MinTransactionVersion)
+
 	var nd *node.Node
 	nd, err = node.NewNode(
 		node.WithMessenger(network.NetMessenger),
@@ -2313,6 +2310,9 @@ func createNode(
 		node.WithWatchdogTimer(watchdogTimer),
 		node.WithPeerSignatureHandler(crypto.PeerSignatureHandler),
 		node.WithHistoryRepository(historyRepository),
+		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch),
+		node.WithTxSignHasher(coreData.TxSignHasher),
+		node.WithTxVersionChecker(txVersionCheckerHandler),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2412,43 +2412,60 @@ func createApiResolver(
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
 	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]map[string]uint64,
+	gasScheduleNotifier core.GasScheduleNotifier,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
+	workingDir string,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasScheduleNotifier,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg := storageFactory.GetCacherFromConfig(generalConfig.SmartContractDataPool)
+	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   storageService,
-		BlockChain:       blockChain,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  uint64Converter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     storageService,
+		BlockChain:         blockChain,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    uint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           dataPool,
+		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		CompiledSCPool:     smartContractsCache,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2456,7 +2473,7 @@ func createApiResolver(
 			argsHook,
 			economics,
 			messageSigVerifier,
-			gasSchedule,
+			gasScheduleNotifier,
 			nodesSetup,
 			hasher,
 			marshalizer,
@@ -2472,9 +2489,10 @@ func createApiResolver(
 		vmFactory, err = shard.NewVMContainerFactory(
 			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasSchedule,
+			gasScheduleNotifier,
 			argsHook,
 			generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 		)
 		if err != nil {
 			return nil, err
@@ -2507,7 +2525,7 @@ func createApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
 	if err != nil {
 		return nil, err
 	}

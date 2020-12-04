@@ -422,7 +422,7 @@ func hardForkImport(
 			Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 			DataPool:                 node.DataPool,
 			ValidatorAccounts:        node.PeerState,
-			GasMap:                   gasSchedule,
+			GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig:     config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
@@ -589,7 +589,7 @@ func createHardForkExporter(
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			Rounder:                  &mock.RounderMock{},
+			RoundHandler:             &mock.RounderMock{},
 			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
@@ -600,6 +600,8 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
+			TxSignHasher:  integrationTests.TestHasher,
+			EpochNotifier: &mock.EpochNotifierStub{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

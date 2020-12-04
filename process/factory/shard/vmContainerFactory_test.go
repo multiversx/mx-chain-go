@@ -11,24 +11,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
+	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		Marshalizer:      &mock.MarshalizerMock{},
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		PubkeyConv:         mock.NewPubkeyConverterMock(32),
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
+		Marshalizer:        &mock.MarshalizerMock{},
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	return arguments
 }
@@ -42,6 +47,7 @@ func TestNewVMContainerFactory_NilGasScheduleShouldErr(t *testing.T) {
 		nil,
 		createMockVMAccountsArguments(),
 		0,
+		0,
 	)
 
 	assert.Nil(t, vmf)
@@ -54,8 +60,9 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		config.VirtualMachineConfig{},
 		10000,
-		arwenConfig.MakeGasMapForTests(),
+		mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		createMockVMAccountsArguments(),
+		0,
 		0,
 	)
 
@@ -70,8 +77,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	vmf, err := NewVMContainerFactory(
 		config.VirtualMachineConfig{},
 		10000,
-		arwenConfig.MakeGasMapForTests(),
+		mock.NewGasScheduleNotifierMock(arwenConfig.MakeGasMapForTests()),
 		createMockVMAccountsArguments(),
+		0,
 		0,
 	)
 	assert.NotNil(t, vmf)

@@ -80,7 +80,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	sendValue := big.NewInt(5)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	receiverAddress := []byte("12345678901234567890123456789012")
@@ -210,6 +210,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),
+		TxSignHasher:               integrationTests.TestHasher,
+		EpochNotifier:              &mock.EpochNotifierStub{},
 	}
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
 	assert.Nil(t, err)

@@ -493,6 +493,9 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
 
+// ESDTKeyIdentifier is the key prefix for esdt tokens
+const ESDTKeyIdentifier = "esdt"
+
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
@@ -548,6 +551,9 @@ const MultiplyFactorForScCall = 3
 // MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
 // before a special action to be applied
 const MaxRoundsWithoutCommittedStartInEpochBlock = 50
+
+// MinMetaTxExtraGasCost is the constant defined for minimum gas value to be sent in meta transaction
+const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
 const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB

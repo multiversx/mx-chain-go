@@ -14,12 +14,12 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2118,7 +2118,7 @@ func TestAuctionStakingSC_ExecuteUnBoundValidatorNotUnStakeShouldErr(t *testing.
 			return registrationDataMarshalized
 		}
 	}
-	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
+	eei.BlockChainHookCalled = func() vm.BlockchainHook {
 		return &mock.BlockChainHookStub{CurrentNonceCalled: func() uint64 {
 			return 10000
 		}}
@@ -2140,7 +2140,7 @@ func TestAuctionStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing.T
 	t.Parallel()
 
 	eei := &mock.SystemEIStub{}
-	eei.BlockChainHookCalled = func() vmcommon.BlockchainHook {
+	eei.BlockChainHookCalled = func() vm.BlockchainHook {
 		return &mock.BlockChainHookStub{
 			CurrentEpochCalled: func() uint32 {
 				return 100
@@ -2886,7 +2886,7 @@ func TestAuctionStakingSC_ChangeValidatorKeys(t *testing.T) {
 	changeValidatorKeys(t, sc, nodesToRunBytes, stakerAddress, stakerPubKey, newKey, []byte("signed"), vmcommon.Ok)
 }
 
-func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vmcommon.BlockchainHook) *vmContext {
+func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
 

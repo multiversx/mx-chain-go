@@ -15,7 +15,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -531,8 +531,7 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = arwenConfig.MakeGasMapForTests()
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
@@ -551,7 +550,7 @@ func CreateFullGenesisBlocks(
 		Uint64ByteSliceConverter: TestUint64Converter,
 		DataPool:                 dataPool,
 		ValidatorAccounts:        validatorAccounts,
-		GasMap:                   gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		TrieStorageManagers:      trieStorageManagers,
@@ -621,7 +620,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsMetaGenesis := genesisProcess.ArgsGenesisBlockCreator{
@@ -640,7 +639,7 @@ func CreateGenesisMetaBlock(
 		DataPool:                 dataPool,
 		Economics:                economics,
 		ValidatorAccounts:        validatorAccounts,
-		GasMap:                   gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:          &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig:     config.VirtualMachineConfig{},
 		HardForkConfig:           config.HardforkConfig{},
@@ -704,7 +703,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler, shardCoordinator.SelfId())
+	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))

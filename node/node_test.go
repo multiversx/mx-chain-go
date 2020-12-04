@@ -20,10 +20,13 @@ import (
 	atomicCore "github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/batch"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -213,6 +216,74 @@ func TestGetUsername(t *testing.T) {
 	username, err := n.GetUsername(createDummyHexAddress(64))
 	assert.Nil(t, err)
 	assert.Equal(t, string(expectedUsername), username)
+}
+
+func TestNode_GetESDTBalance(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, _, err := n.GetESDTBalance(createDummyHexAddress(64), esdtToken)
+	assert.Nil(t, err)
+	assert.Equal(t, esdtData.Value.String(), value)
+}
+
+func TestNode_GetAllESDTTokens(t *testing.T) {
+	acc, _ := state.NewUserAccount([]byte("newaddress"))
+	esdtToken := "newToken"
+	esdtKey := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + esdtToken)
+
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(10)}
+	marshalledData, _ := getMarshalizer().Marshal(esdtData)
+	_ = acc.DataTrieTracker().SaveKeyValue(esdtKey, marshalledData)
+
+	acc.DataTrieTracker().SetDataTrie(
+		&mock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+				ch := make(chan core.KeyValueHolder)
+
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, marshalledData)
+					ch <- trieLeaf
+					close(ch)
+				}()
+
+				return ch, nil
+			},
+		})
+
+	accDB := &mock.AccountsStub{}
+	accDB.GetExistingAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acc, nil
+	}
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithHasher(getHasher()),
+		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
+		node.WithAccountsAdapter(accDB),
+	)
+
+	value, err := n.GetAllESDTTokens(createDummyHexAddress(64))
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(value))
+	assert.Equal(t, esdtToken, value[0])
 }
 
 //------- GenerateTransaction
@@ -464,7 +535,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -496,7 +567,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -530,7 +601,7 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -569,7 +640,7 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := []byte("-")
 	signature := "617eff4f"
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 1)
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 1, 0)
 	assert.Equal(t, node.ErrInvalidChainID, err)
 }
 
@@ -605,7 +676,7 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 	gasLimit := uint64(20)
 	txData := []byte("-")
 	signature := "617eff4f"
-	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 0)
+	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, "", 0, 0)
 	assert.Equal(t, node.ErrInvalidTransactionVersion, err)
 }
 
@@ -662,7 +733,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -716,6 +787,13 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		}),
 		node.WithChainID(chainID),
 		node.WithMinTransactionVersion(version),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return 1
+			},
+		}),
+		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
 	)
 
 	nonce := uint64(0)
@@ -727,7 +805,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
 	assert.NotNil(t, tx)
 	assert.Equal(t, expectedHash, txHash)
 	assert.Nil(t, err)
@@ -737,6 +815,150 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 
 	err = n.ValidateTransaction(tx)
 	assert.Nil(t, err)
+}
+
+func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	crtShardID := uint32(1)
+	chainID := []byte("chain ID")
+	version := uint32(1)
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithTxSignMarshalizer(getMarshalizer()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
+			ComputeIdCalled: func(i []byte) uint32 {
+				return crtShardID
+			},
+			SelfShardId: crtShardID,
+		}),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{}),
+		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
+		node.WithTxFeeHandler(&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+		}),
+		node.WithChainID(chainID),
+		node.WithMinTransactionVersion(version),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return 1
+			},
+		}),
+		node.WithEnableSignTxWithHashEpoch(2),
+		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := "617eff4f"
+
+	options := versioning.MaskSignedWithHash
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
+
+	err := n.ValidateTransaction(tx)
+	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
+}
+
+func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedHash := []byte("expected hash")
+	crtShardID := uint32(1)
+	chainID := []byte("chain ID")
+	version := uint32(1)
+	n, _ := node.NewNode(
+		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
+		node.WithVmMarshalizer(getMarshalizer()),
+		node.WithTxSignMarshalizer(getMarshalizer()),
+		node.WithHasher(
+			mock.HasherMock{
+				ComputeCalled: func(s string) []byte {
+					return expectedHash
+				},
+			},
+		),
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
+			ComputeIdCalled: func(i []byte) uint32 {
+				return crtShardID
+			},
+			SelfShardId: crtShardID,
+		}),
+		node.WithWhiteListHandler(&mock.WhiteListHandlerStub{}),
+		node.WithWhiteListHandlerVerified(&mock.WhiteListHandlerStub{
+			IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+				return false
+			},
+		}),
+		node.WithKeyGenForAccounts(&mock.KeyGenMock{
+			PublicKeyFromByteArrayMock: func(b []byte) (crypto.PublicKey, error) {
+				return nil, nil
+			},
+		}),
+		node.WithTxSingleSigner(&mock.SingleSignerMock{}),
+		node.WithTxFeeHandler(&mock.FeeHandlerStub{
+			CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+				return nil
+			},
+		}),
+		node.WithChainID(chainID),
+		node.WithMinTransactionVersion(version),
+		node.WithEpochStartTrigger(&mock.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return 1
+			},
+		}),
+		node.WithEnableSignTxWithHashEpoch(2),
+		node.WithTxSignHasher(&mock.HasherMock{}),
+		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
+	)
+
+	nonce := uint64(0)
+	value := new(big.Int).SetInt64(10)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := "617eff4f"
+
+	options := versioning.MaskSignedWithHash
+	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, sender, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
+
+	err := n.ValidateTransaction(tx)
+	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 }
 
 func TestSendBulkTransactions_NoTxShouldErr(t *testing.T) {

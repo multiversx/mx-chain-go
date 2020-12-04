@@ -1,6 +1,7 @@
 package node
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -27,6 +28,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -158,6 +160,10 @@ type Node struct {
 
 	watchdog          core.WatchdogTimer
 	historyRepository dblookupext.HistoryRepository
+
+	enableSignTxWithHashEpoch uint32
+	txSignHasher              hashing.Hasher
+	txVersionChecker          process.TxVersionCheckerHandler
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -448,6 +454,76 @@ func (n *Node) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return hex.EncodeToString(valueBytes), nil
+}
+
+// GetESDTBalance returns the esdt balance and properties from a given account
+func (n *Node) GetESDTBalance(address string, tokenName string) (string, string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return "", "", err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return "", "", ErrAccountNotFound
+	}
+
+	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + tokenName
+	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
+	if err != nil {
+		return "0", "", nil
+	}
+
+	esdtToken := &esdt.ESDigitalToken{}
+	err = n.internalMarshalizer.Unmarshal(esdtToken, valueBytes)
+	if err != nil {
+		return "", "", err
+	}
+
+	return esdtToken.Value.String(), hex.EncodeToString(esdtToken.Properties), nil
+}
+
+// GetAllESDTTokens returns the value of a key from a given account
+func (n *Node) GetAllESDTTokens(address string) ([]string, error) {
+	account, err := n.getAccountHandler(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := n.castAccountToUserAccount(account)
+	if !ok {
+		return nil, ErrAccountNotFound
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return []string{}, nil
+	}
+
+	foundTokens := make([]string, 0)
+
+	esdtPrefix := []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	lenESDTPrefix := len(esdtPrefix)
+
+	rootHash, err := userAccount.DataTrie().Root()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := context.Background()
+	chLeaves, err := userAccount.DataTrie().GetAllLeavesOnChannel(rootHash, ctx)
+	if err != nil {
+		return nil, err
+	}
+	for leaf := range chLeaves {
+		if !bytes.HasPrefix(leaf.Key(), esdtPrefix) {
+			continue
+		}
+
+		tokenName := string(leaf.Key()[lenESDTPrefix:])
+		foundTokens = append(foundTokens, tokenName)
+	}
+
+	return foundTokens, nil
 }
 
 func (n *Node) getAccountHandler(address string) (state.AccountHandler, error) {
@@ -875,6 +951,9 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		return nil, nil, err
 	}
 
+	currentEpoch := n.epochStartTrigger.Epoch()
+	enableSignWithTxHash := currentEpoch >= n.enableSignTxWithHashEpoch
+
 	argumentParser := smartContract.NewArgumentParser()
 	intTx, err := procTx.NewInterceptedTransaction(
 		marshalizedTx,
@@ -889,7 +968,9 @@ func (n *Node) commonTransactionValidation(tx *transaction.Transaction) (process
 		n.whiteListerVerifiedTxs,
 		argumentParser,
 		n.chainID,
-		n.minTransactionVersion,
+		enableSignWithTxHash,
+		n.txSignHasher,
+		n.txVersionChecker,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -962,6 +1043,7 @@ func (n *Node) CreateTransaction(
 	signatureHex string,
 	chainID string,
 	version uint32,
+	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
@@ -1007,6 +1089,7 @@ func (n *Node) CreateTransaction(
 		Signature: signatureBytes,
 		ChainID:   []byte(chainID),
 		Version:   version,
+		Options:   options,
 	}
 
 	var txHash []byte

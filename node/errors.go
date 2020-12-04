@@ -201,3 +201,9 @@ var ErrCannotRetrieveTransaction = errors.New("transaction cannot be retrieved")
 
 // ErrDifferentSenderShardId signals that a different shard ID was detected between the sender shard ID and the current node shard ID
 var ErrDifferentSenderShardId = errors.New("different shard ID between the transaction sender shard ID and current node shard ID")
+
+// ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
+var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
+
+// ErrNilDataTrie signals that user account has a nil data trie
+var ErrNilDataTrie = errors.New("nil data trie")

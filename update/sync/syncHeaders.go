@@ -180,7 +180,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 	h.chReceivedAll <- true
 }
 
-// SyncUnFinishedMetaHeaders syncs and validates all the unfinished metaHeaders for each shard
+// SyncUnFinishedMetaHeaders syncs and validates all the unFinished metaHeaders for each shard
 func (h *headersToSync) SyncUnFinishedMetaHeaders(epoch uint32) error {
 	// TODO: do this with context.Context
 	err := h.syncEpochStartMetaHeader(epoch, waitTimeForHeaders)
@@ -335,7 +335,7 @@ func (h *headersToSync) syncAllNeededMetaHeaders(waitTime time.Duration) error {
 	if requested {
 		err := WaitFor(h.chReceivedAll, waitTime)
 		if err != nil {
-			log.Warn("timeOut for requesting all unfinished metaBlocks")
+			log.Warn("timeOut for requesting all unFinished metaBlocks")
 			return err
 		}
 	}
@@ -414,8 +414,8 @@ func (h *headersToSync) GetEpochStartMetaBlock() (*block.MetaBlock, error) {
 	return nil, update.ErrNotSynced
 }
 
-// GetUnfinishedMetaBlocks returns the synced metablock
-func (h *headersToSync) GetUnfinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
+// GetUnFinishedMetaBlocks returns the synced metablock
+func (h *headersToSync) GetUnFinishedMetaBlocks() (map[string]*block.MetaBlock, error) {
 	h.mutMeta.Lock()
 	unFinished := make(map[string]*block.MetaBlock)
 	for hash, meta := range h.unFinishedMetaBlocks {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 )
@@ -31,10 +32,10 @@ func CalculateHash(
 	hasher hashing.Hasher,
 	object interface{},
 ) ([]byte, error) {
-	if marshalizer == nil || marshalizer.IsInterfaceNil() {
+	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if hasher == nil || hasher.IsInterfaceNil() {
+	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
 	}
 
@@ -88,6 +89,20 @@ func GetShardIDString(shardID uint32) string {
 	}
 
 	return fmt.Sprintf("%d", shardID)
+}
+
+// ConvertShardIDToUint32 converts shard id from string to uint32
+func ConvertShardIDToUint32(shardIDStr string) (uint32, error) {
+	if shardIDStr == "metachain" {
+		return MetachainShardId, nil
+	}
+
+	shardID, err := strconv.ParseInt(shardIDStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(shardID), nil
 }
 
 // EpochStartIdentifier returns the string for the epoch start identifier

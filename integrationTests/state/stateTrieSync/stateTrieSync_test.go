@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -55,15 +56,20 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 
 	resolverTrie := nResolver.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	//we have tested even with the 50000 value and found out that it worked in a reasonable amount of time ~21 seconds
-	for i := 0; i < 10000; i++ {
+	numTrieLeaves := 10000
+	for i := 0; i < numTrieLeaves; i++ {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
 	_ = resolverTrie.Commit()
 	rootHash, _ := resolverTrie.Root()
 
-	_, err = resolverTrie.GetAllLeaves()
-	assert.Nil(t, err)
+	leavesChannel, _ := resolverTrie.GetAllLeavesOnChannel(rootHash, context.Background())
+	numLeaves := 0
+	for range leavesChannel {
+		numLeaves++
+	}
+	assert.Equal(t, numTrieLeaves, numLeaves)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
 	nilRootHash, _ := requesterTrie.Root()
@@ -84,19 +90,45 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 	)
 
 	waitTime := 100 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
+	tss := statistics.NewTrieSyncStatistics()
+	trieSyncer, _ := trie.NewTrieSyncer(
+		requestHandler,
+		nRequester.DataPool.TrieNodes(),
+		requesterTrie,
+		shardID,
+		factory.AccountTrieNodesTopic,
+		tss,
+	)
 	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
 	defer cancel()
 
+	ctxPrint, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctxPrint.Done():
+				fmt.Printf("Sync done: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+				return
+			case <-time.After(time.Millisecond * 100):
+				fmt.Printf("Sync in progress: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+			}
+		}
+	}()
+
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	assert.Nil(t, err)
+	cancel()
 
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	_, err = requesterTrie.GetAllLeaves()
-	assert.Nil(t, err)
+	leavesChannel, _ = requesterTrie.GetAllLeavesOnChannel(newRootHash, context.Background())
+	numLeaves = 0
+	for range leavesChannel {
+		numLeaves++
+	}
+	assert.Equal(t, numTrieLeaves, numLeaves)
 }
 
 func TestMultipleDataTriesSync(t *testing.T) {
@@ -144,7 +176,9 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	}
 
 	rootHash, _ := accState.RootHash()
-	_, err = accState.GetAllLeaves(rootHash)
+	leavesChannel, err := accState.GetAllLeaves(rootHash, context.Background())
+	for range leavesChannel {
+	}
 	require.Nil(t, err)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(factory2.UserAccountTrie))
@@ -192,17 +226,25 @@ func TestMultipleDataTriesSync(t *testing.T) {
 	assert.NotEqual(t, nilRootHash, newRootHash)
 	assert.Equal(t, rootHash, newRootHash)
 
-	leaves, err := nRequester.AccntState.GetAllLeaves(rootHash)
+	leavesChannel, err = nRequester.AccntState.GetAllLeaves(rootHash, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, numAccounts, len(leaves))
+	numLeaves := 0
+	for range leavesChannel {
+		numLeaves++
+	}
+	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, nRequester.AccntState, dataTrieRootHashes)
 }
 
 func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, adb state.AccountsAdapter, dataTriesRootHashes [][]byte) {
 	for i := range dataTriesRootHashes {
-		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i])
+		dataTrieLeaves, err := adb.GetAllLeaves(dataTriesRootHashes[i], context.Background())
 		assert.Nil(t, err)
-		assert.Equal(t, numDataTrieLeaves, len(dataTrieLeaves))
+		numLeaves := 0
+		for range dataTrieLeaves {
+			numLeaves++
+		}
+		assert.Equal(t, numDataTrieLeaves, numLeaves)
 	}
 }
 

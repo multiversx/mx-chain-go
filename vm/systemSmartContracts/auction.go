@@ -8,14 +8,15 @@ import (
 	"math/big"
 	"math/rand"
 	"strings"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 const minArgsLenToChangeValidatorKey = 4
@@ -46,6 +47,7 @@ type stakingAuctionSC struct {
 	flagStake            atomic.Flag
 	flagAuction          atomic.Flag
 	flagDoubleKey        atomic.Flag
+	mutExecution       sync.RWMutex
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
@@ -135,6 +137,9 @@ func NewStakingAuctionSmartContract(
 
 // Execute calls one of the functions from the auction staking smart contract and runs the code according to the input
 func (s *stakingAuctionSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	s.mutExecution.RLock()
+	defer s.mutExecution.RUnlock()
+
 	err := CheckIfNil(args)
 	if err != nil {
 		s.eei.AddReturnMessage("nil arguments: " + err.Error())
@@ -1519,6 +1524,13 @@ func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vm
 	}
 
 	return vmcommon.Ok
+}
+
+// SetNewGasCost is called whenever a gas cost was changed
+func (s *stakingAuctionSC) SetNewGasCost(gasCost vm.GasCost) {
+	s.mutExecution.Lock()
+	s.gasCost = gasCost
+	s.mutExecution.Unlock()
 }
 
 // IsInterfaceNil verifies if the underlying object is nil or not

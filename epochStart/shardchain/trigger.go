@@ -352,7 +352,7 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart does nothing in this implementation
-func (t *trigger) ForceEpochStart() {
+func (t *trigger) ForceEpochStart(_ uint64) {
 }
 
 // RequestEpochStartIfNeeded request the needed epoch start block if metablock with new epoch was received
@@ -456,11 +456,14 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		return
 	}
 
-	_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
-	if t.metaEpoch == headerHandler.GetEpoch() && ok {
-		t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
-		return
+	if !t.isPreviousEpochStartMetaBlock(metaHdr, metaBlockHash) {
+		_, ok = t.mapFinalizedEpochs[metaHdr.Epoch]
+		if t.metaEpoch == headerHandler.GetEpoch() && ok {
+			t.changeEpochFinalityAttestingRoundIfNeeded(metaHdr, metaBlockHash)
+			return
+		}
 	}
+
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
 		return
 	}
@@ -494,6 +497,24 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(metaBlockHash))
 
 	t.updateTriggerFromMeta()
+}
+
+// call only if mutex is locked before
+func (t *trigger) isPreviousEpochStartMetaBlock(metaBlock *block.MetaBlock, metaBlockHash []byte) bool {
+	metaHdrHashesWithNonce := t.mapNonceHashes[metaBlock.Nonce+1]
+	for _, hash := range metaHdrHashesWithNonce {
+		epochStartMetaBlock, ok := t.mapEpochStartHdrs[hash]
+		if !ok {
+			continue
+		}
+		if !bytes.Equal(metaBlockHash, epochStartMetaBlock.PrevHash) {
+			continue
+		}
+
+		return true
+	}
+
+	return false
 }
 
 // call only if mutex is locked before
