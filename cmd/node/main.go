@@ -353,20 +353,6 @@ VERSION:
 			"and will have a full history over epochs.",
 	}
 
-	numEpochsToSave = cli.Uint64Flag{
-		Name: "num-epochs-to-keep",
-		Usage: "This flag represents the number of epochs which will kept in the databases. It is relevant only if " +
-			"the full archive flag is not set.",
-		Value: uint64(2),
-	}
-
-	numActivePersisters = cli.Uint64Flag{
-		Name: "num-active-persisters",
-		Usage: "This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. " +
-			"It is relevant even if the node is full archive or not.",
-		Value: uint64(2),
-	}
-
 	startInEpoch = cli.BoolFlag{
 		Name: "start-in-epoch",
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
@@ -449,8 +435,6 @@ func main() {
 		workingDirectory,
 		destinationShardAsObserver,
 		keepOldEpochsData,
-		numEpochsToSave,
-		numActivePersisters,
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
@@ -1085,12 +1069,6 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	log.Trace("creating nodes coordinator")
 	if ctx.IsSet(keepOldEpochsData.Name) {
 		generalConfig.StoragePruning.CleanOldEpochsData = !ctx.GlobalBool(keepOldEpochsData.Name)
-	}
-	if ctx.IsSet(numEpochsToSave.Name) {
-		generalConfig.StoragePruning.NumEpochsToKeep = ctx.GlobalUint64(numEpochsToSave.Name)
-	}
-	if ctx.IsSet(numActivePersisters.Name) {
-		generalConfig.StoragePruning.NumActivePersisters = ctx.GlobalUint64(numActivePersisters.Name)
 	}
 	log.Info("Bootstrap", "epoch", bootstrapParameters.Epoch)
 	if bootstrapParameters.NodesConfig != nil {
