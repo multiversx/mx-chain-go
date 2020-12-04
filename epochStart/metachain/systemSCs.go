@@ -239,6 +239,43 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	return nil
 }
 
+// ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
+func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
+	if !s.flagStakingV2Enabled.IsSet() {
+		return nil
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  nil,
+			CallValue:  big.NewInt(0),
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unPauseUnStakeUnBond",
+	}
+
+	if value {
+		vmInput.Function = "pauseUnStakeUnBond"
+	}
+
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
+
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrSystemValidatorSCCall
+	}
+
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	validatorInfos map[uint32][]*state.ValidatorInfo,
 	epoch uint32,

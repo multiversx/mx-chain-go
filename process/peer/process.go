@@ -297,6 +297,17 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	return nil
 }
 
+// SaveNodesCoordinatorUpdates saves the results from the nodes coordinator changes after end of epoch
+func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	nodeForcedToRemain, err := vs.saveNodesCoordinatorUpdates(epoch)
+	if err != nil {
+		log.Error("could not update info from nodesCoordinator")
+		return nodeForcedToRemain, err
+	}
+
+	return nodeForcedToRemain, nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
@@ -318,18 +329,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	}
 
 	epoch := computeEpoch(header)
-
-	var err error
-	nodeForcedToRemain := false
-	if previousHeader.IsStartOfEpochBlock() {
-		nodeForcedToRemain, err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
-		if err != nil {
-			log.Warn("could not update info from nodesCoordinator")
-			return nil, err
-		}
-	}
-
-	err = vs.checkForMissedBlocks(
+	err := vs.checkForMissedBlocks(
 		header.GetRound(),
 		previousHeader.GetRound(),
 		previousHeader.GetRandSeed(),
