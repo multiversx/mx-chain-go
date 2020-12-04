@@ -61,19 +61,19 @@ func (d *dataDispatcher) startWorker(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			d.stopWorked()
+			d.stopWorker()
 			return
 		case wi := <-d.chanWorkItems:
 			timeout := d.doWork(wi)
 			if timeout {
-				d.stopWorked()
+				d.stopWorker()
 				return
 			}
 		}
 	}
 }
 
-func (d *dataDispatcher) stopWorked() {
+func (d *dataDispatcher) stopWorker() {
 	log.Debug("dispatcher's go routine is stopping...")
 	d.currentWriteDone <- struct{}{}
 }
