@@ -28,7 +28,6 @@ type resolversContainerFactory struct {
 	intRandomizer          dataRetriever.IntRandomizer
 	dataTrieContainer      state.TriesHolder
 	container              dataRetriever.ResolversContainer
-	intraShardTopic        string
 	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
 	throttler              dataRetriever.ResolverThrottler
@@ -68,8 +67,6 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if err != nil {
 		return nil, err
 	}
-	intraShardTopic := core.ConsensusTopic +
-		args.ShardCoordinator.CommunicationIdentifier(args.ShardCoordinator.SelfId())
 	return &resolversContainerFactory{
 		shardCoordinator:       args.ShardCoordinator,
 		messenger:              args.Messenger,
@@ -77,7 +74,6 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
 		dataTrieContainer:      args.DataTrieContainer,
 		container:              args.ExistingResolvers,
-		intraShardTopic:        intraShardTopic,
 		inputAntifloodHandler:  args.InputAntifloodHandler,
 		outputAntifloodHandler: args.OutputAntifloodHandler,
 		throttler:              thr,
@@ -107,7 +103,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 		}
 
 		trieId := genesis.CreateTrieIdentifier(i, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, i)
 		if err != nil {
 			return err
 		}
@@ -119,7 +115,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, core.MetachainShardId)
 		if err != nil {
 			return err
 		}
@@ -131,7 +127,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.ValidatorAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID, core.MetachainShardId)
 		if err != nil {
 			return err
 		}
@@ -148,11 +144,19 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 	return err == nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string) (dataRetriever.Resolver, error) {
+func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string, targetShardID uint32) (dataRetriever.Resolver, error) {
+	//for each resolver we create a pseudo-intra shard topic as to make at least of half of the requests target the proper peers
+	//this pseudo-intra shard topic is the consensus_targetShardID
+	targetShardCoordinator, err := sharding.NewMultiShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
+	if err != nil {
+		return nil, err
+	}
+
+	targetConsensusStopic := core.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
 	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
 		rcf.messenger,
 		baseTopic,
-		rcf.intraShardTopic,
+		targetConsensusStopic,
 		factoryDataRetriever.EmptyExcludePeersOnTopic,
 	)
 	if err != nil {

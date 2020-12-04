@@ -13,7 +13,7 @@ import (
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
 	Close() error
-	ForceEpochStart()
+	ForceEpochStart(round uint64)
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32

@@ -34,6 +34,7 @@ func createMockArgHardforkTrigger() trigger.ArgHardforkTrigger {
 		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
 		EpochConfirmedNotifier:    &mock.EpochStartNotifierStub{},
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		RoundHandler:              &mock.RoundHandlerStub{},
 	}
 }
 
@@ -123,9 +124,17 @@ func TestTrigger_TriggerWithEarlyEndOfEpochEnabledShouldWork(t *testing.T) {
 
 	forceEpochStartWasCalled := false
 	arg := createMockArgHardforkTrigger()
+	recoveredRound := uint64(0)
 	arg.EpochProvider = &mock.EpochHandlerStub{
-		ForceEpochStartCalled: func() {
+		ForceEpochStartCalled: func(round uint64) {
 			forceEpochStartWasCalled = true
+			recoveredRound = round
+		},
+	}
+	currentRound := uint64(4433)
+	arg.RoundHandler = &mock.RoundHandlerStub{
+		IndexCalled: func() int64 {
+			return int64(currentRound)
 		},
 	}
 	trig, _ := trigger.NewTrigger(arg)
@@ -145,6 +154,7 @@ func TestTrigger_TriggerWithEarlyEndOfEpochEnabledShouldWork(t *testing.T) {
 	assert.Nil(t, payload)
 	assert.True(t, wasTriggered)
 	assert.True(t, forceEpochStartWasCalled)
+	assert.Equal(t, currentRound+trigger.DeltaRoundsForForcedEpoch, recoveredRound)
 }
 
 func TestTrigger_TriggerCalledTwiceShouldErr(t *testing.T) {
