@@ -412,16 +412,7 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 
-	fundsToTransfer := big.NewInt(0)
-	for _, vote := range currentVoteSet.VoteItems {
-		if vote.Type != Account {
-			continue
-		}
-
-		fundsToTransfer.Add(fundsToTransfer, vote.Balance)
-	}
-
-	if fundsToTransfer.Cmp(zero) != 1 {
+	if currentVoteSet.UsedBalance.Cmp(zero) != 1 {
 		g.eei.AddReturnMessage("no funds to claim for this proposal")
 		return vmcommon.UserError
 	}
@@ -433,7 +424,7 @@ func (g *governanceContract) claimFunds(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.ExecutionFailed
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, g.governanceSCAddress, fundsToTransfer, nil, 0)
+	err = g.eei.Transfer(args.CallerAddr, g.governanceSCAddress, currentVoteSet.UsedBalance, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage("transfer error on claimFunds function")
 		return vmcommon.ExecutionFailed
@@ -971,10 +962,7 @@ func (g *governanceContract) saveVoteSet(voter []byte, voteData *VoteSet, propos
 	marshaledProposal, err := g.marshalizer.Marshal(proposal)
 	g.eei.SetStorage(proposalKey, marshaledProposal)
 
-	err = g.setLock(voter, voteType, proposal)
-	if err != nil {
-		return nil
-	}
+	g.setLock(voter, voteType, proposal)
 
 	return nil
 }
@@ -994,7 +982,7 @@ func (g *governanceContract) storeVoteSet(voter []byte, voteData *VoteSet, propo
 }
 
 // setLock will set a storage key with the nonce until the funds for a specific voter are locked
-func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *GeneralProposal) error {
+func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *GeneralProposal) {
 	prefix := []byte(validatorLockPrefix)
 	if voteType == Account {
 		prefix = append([]byte(accountLockPrefix), proposal.GitHubCommit...)
@@ -1006,8 +994,6 @@ func (g *governanceContract) setLock(voter []byte, voteType VoteType, proposal *
 	lockNonce := big.NewInt(0).SetUint64(currentNonce + proposalDuration)
 
 	g.eei.SetStorage(lockKey, lockNonce.Bytes())
-
-	return nil
 }
 
 // getLock returns the lock nonce for a voter
@@ -1120,6 +1106,7 @@ func (g *governanceContract) getOrCreateVoteSet(proposal []byte, voter []byte) (
 func (g *governanceContract) getEmptyVoteSet() *VoteSet {
 	return &VoteSet{
 		UsedPower: big.NewInt(0),
+		UsedBalance: big.NewInt(0),
 		TotalYes: big.NewInt(0),
 		TotalNo: big.NewInt(0),
 		TotalVeto: big.NewInt(0),
