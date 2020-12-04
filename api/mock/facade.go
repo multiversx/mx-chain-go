@@ -43,6 +43,8 @@ type Facade struct {
 	SimulateTransactionExecutionHandler     func(tx *transaction.Transaction) (*transaction.SimulationResults, error)
 	GetNumCheckpointsFromAccountStateCalled func() uint32
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
+	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
+	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 }
 
 // GetUsername -
@@ -103,6 +105,24 @@ func (f *Facade) GetValueForKey(address string, key string) (string, error) {
 	}
 
 	return "", nil
+}
+
+// GetESDTBalance -
+func (f *Facade) GetESDTBalance(address string, key string) (string, string, error) {
+	if f.GetESDTBalanceCalled != nil {
+		return f.GetESDTBalanceCalled(address, key)
+	}
+
+	return "", "", nil
+}
+
+// GetAllESDTTokens -
+func (f *Facade) GetAllESDTTokens(address string) ([]string, error) {
+	if f.GetAllESDTTokensCalled != nil {
+		return f.GetAllESDTTokensCalled(address)
+	}
+
+	return []string{""}, nil
 }
 
 // GetAccount is the mock implementation of a handler's GetAccount method

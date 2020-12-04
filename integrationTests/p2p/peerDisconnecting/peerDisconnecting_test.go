@@ -18,6 +18,7 @@ func createDefaultConfig() config.P2PConfig {
 	return config.P2PConfig{
 		KadDhtPeerDiscovery: config.KadDhtPeerDiscoveryConfig{
 			Enabled:                          true,
+			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
 			ProtocolID:                       "/erd/kad/1.0.0",
@@ -35,6 +36,7 @@ func TestPeerDisconnectionWithOneAdvertiserWithShardingWithLists(t *testing.T) {
 		MaxCrossShardValidators: 40,
 		MaxIntraShardObservers:  1,
 		MaxCrossShardObservers:  1,
+		MaxSeeders:              1,
 		MaxFullHistoryObservers: 1,
 		Type:                    p2p.ListsSharder,
 	}

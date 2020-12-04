@@ -15,7 +15,7 @@ func TestDNS_Register(t *testing.T) {
 
 	var empty struct{}
 	arwen.DNSAddresses[string(expectedDNSAddress)] = empty
-	arwen.GasSchedulePath = "../../vm/arwen/gasSchedule.toml"
+	arwen.GasSchedulePath = "../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
 
 	context := arwen.SetupTestContext(t)
 	defer context.Close()
@@ -27,7 +27,7 @@ func TestDNS_Register(t *testing.T) {
 
 	name := "thisisalice398"
 	testname := hex.EncodeToString([]byte(name))
-	context.GasLimit = 40000000
+	context.GasLimit = 80000000
 	err = context.ExecuteSCWithValue(&context.Alice, "register@"+testname, big.NewInt(100))
 	require.Nil(t, err)
 

@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/latestData"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 )
 
@@ -222,7 +223,7 @@ func CreateLatestStorageDataProvider(
 ) (storage.LatestStorageDataProviderHandler, error) {
 	directoryReader := storageFactory.NewDirectoryReader()
 
-	latestStorageDataArgs := storageFactory.ArgsLatestDataProvider{
+	latestStorageDataArgs := latestData.ArgsLatestDataProvider{
 		GeneralConfig:         generalConfig,
 		BootstrapDataProvider: bootstrapDataProvider,
 		DirectoryReader:       directoryReader,
@@ -230,7 +231,7 @@ func CreateLatestStorageDataProvider(
 		DefaultEpochString:    defaultEpochString,
 		DefaultShardString:    defaultShardString,
 	}
-	return storageFactory.NewLatestDataProvider(latestStorageDataArgs)
+	return latestData.NewLatestDataProvider(latestStorageDataArgs)
 }
 
 // CreateUnitOpener will create a new unit opener handler
