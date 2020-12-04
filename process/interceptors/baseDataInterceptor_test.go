@@ -15,10 +15,26 @@ const fromConnectedPeer = "from connected peer"
 
 //------- preProcessMessage
 
+func newBaseDataInterceptorForPreProcess(throttler process.InterceptorThrottler, antifloodHandler process.P2PAntifloodHandler) *baseDataInterceptor {
+	return &baseDataInterceptor{
+		throttler:        throttler,
+		antifloodHandler: antifloodHandler,
+	}
+}
+
+func newBaseDataInterceptorForProcess(processor process.InterceptorProcessor, debugHandler process.InterceptedDebugger, topic string) *baseDataInterceptor {
+	return &baseDataInterceptor{
+		topic:        topic,
+		processor:    processor,
+		debugHandler: debugHandler,
+	}
+}
+
 func TestPreProcessMessage_NilMessageShouldErr(t *testing.T) {
 	t.Parallel()
 
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, nil, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{})
+	err := bdi.preProcessMesage(nil, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -27,7 +43,8 @@ func TestPreProcessMessage_NilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	msg := &mock.P2PMessageMock{}
-	err := preProcessMesage(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{}, msg, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(&mock.InterceptorThrottlerStub{}, &mock.P2PAntifloodHandlerStub{})
+	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrNilDataToProcess, err)
 }
@@ -50,7 +67,8 @@ func TestPreProcessMessage_AntifloodCanNotProcessShouldErr(t *testing.T) {
 		},
 	}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
+	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -73,7 +91,8 @@ func TestPreProcessMessage_AntifloodTopicCanNotProcessShouldErr(t *testing.T) {
 		},
 	}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
+	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -91,7 +110,8 @@ func TestPreProcessMessage_ThrottlerCanNotProcessShouldErr(t *testing.T) {
 	}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
+	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
 	assert.Equal(t, process.ErrSystemBusy, err)
 }
@@ -107,8 +127,8 @@ func TestPreProcessMessage_CanProcessReturnsNilAndCallsStartProcessing(t *testin
 			return true
 		},
 	}
-	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
-	err := preProcessMesage(throttler, antifloodHandler, msg, fromConnectedPeer, "", "")
+	bdi := newBaseDataInterceptorForPreProcess(throttler, &mock.P2PAntifloodHandlerStub{})
+	err := bdi.preProcessMesage(msg, fromConnectedPeer)
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
@@ -140,7 +160,9 @@ func TestPreProcessMessage_CanProcessFromSelf(t *testing.T) {
 			return nil
 		},
 	}
-	err := preProcessMesage(throttler, antifloodHandler, msg, currentPeerID, "", currentPeerID)
+	bdi := newBaseDataInterceptorForPreProcess(throttler, antifloodHandler)
+	bdi.currentPeerId = currentPeerID
+	err := bdi.preProcessMesage(msg, currentPeerID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
@@ -162,13 +184,8 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		},
 	}
 
-	processInterceptedData(
-		processor,
-		&mock.InterceptedDebugHandlerStub{},
-		&mock.InterceptedDataStub{},
-		"topic",
-		&mock.P2PMessageMock{},
-	)
+	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
+	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.False(t, processCalled)
 }
@@ -187,13 +204,8 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		},
 	}
 
-	processInterceptedData(
-		processor,
-		&mock.InterceptedDebugHandlerStub{},
-		&mock.InterceptedDataStub{},
-		"topic",
-		&mock.P2PMessageMock{},
-	)
+	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
+	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.True(t, processCalled)
 }
@@ -212,13 +224,8 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		},
 	}
 
-	processInterceptedData(
-		processor,
-		&mock.InterceptedDebugHandlerStub{},
-		&mock.InterceptedDataStub{},
-		"topic",
-		&mock.P2PMessageMock{},
-	)
+	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
+	bdi.processInterceptedData(&mock.InterceptedDataStub{}, &mock.P2PMessageMock{})
 
 	assert.True(t, processCalled)
 }
@@ -242,7 +249,10 @@ func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 		},
 	}
 
-	processDebugInterceptedData(dh, ids, "", nil)
+	bdi := &baseDataInterceptor{
+		debugHandler: dh,
+	}
+	bdi.processDebugInterceptedData(ids, nil)
 	assert.Equal(t, numCalls, numCalled)
 }
 
@@ -263,6 +273,9 @@ func TestReceivedDebugInterceptedData_ShouldWork(t *testing.T) {
 		},
 	}
 
-	receivedDebugInterceptedData(dh, ids, "")
+	bdi := &baseDataInterceptor{
+		debugHandler: dh,
+	}
+	bdi.receivedDebugInterceptedData(ids)
 	assert.Equal(t, numCalls, numCalled)
 }
