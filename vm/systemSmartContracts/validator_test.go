@@ -31,6 +31,7 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 		SigVerifier:        &mock.MessageSignVerifierMock{},
 		ValidatorSCAddress: []byte("validator"),
 		StakingSCAddress:   []byte("staking"),
+		EndOfEpochAddress:  []byte("endOfEpoch"),
 		StakingSCConfig: config.StakingSystemSCConfig{
 			GenesisNodePrice:                     "1000",
 			UnJailValue:                          "10",
