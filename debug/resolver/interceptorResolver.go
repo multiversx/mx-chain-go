@@ -323,15 +323,10 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 	ir.mutCriticalArea.RLock()
 	defer ir.mutCriticalArea.RUnlock()
 
-	totalKeys := ir.cache.Keys()
-	keys := make([][]byte, len(totalKeys))
-	copy(keys, totalKeys)
-
-	if len(keys) > maxKeysToDisplay {
-		keys = keys[:maxKeysToDisplay]
-	}
+	keys := ir.cache.Keys()
 
 	events := make([]string, 0, len(keys))
+	trimmed := false
 	for _, key := range keys {
 		obj, ok := ir.cache.Get(key)
 		if !ok {
@@ -352,16 +347,18 @@ func (ir *interceptorResolver) query(acceptEvent func(ev *event) bool, maxNumPri
 		}
 
 		events = append(events, ev.String())
+		if len(events) == maxKeysToDisplay {
+			trimmed = true
+			break
+		}
 	}
 
 	sort.Slice(events, func(i, j int) bool {
 		return events[i] < events[j]
 	})
 
-	if len(totalKeys) != len(keys) {
-		events = append(events,
-			fmt.Sprintf("[Not all keys are shown here. Total keys: %d, displayed: %d.]",
-				len(totalKeys), len(keys)))
+	if trimmed {
+		events = append(events, fmt.Sprintf("[Not all keys are shown here. Showing %d]", len(events)))
 	}
 
 	return events

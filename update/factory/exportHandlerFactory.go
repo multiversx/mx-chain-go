@@ -73,7 +73,7 @@ type ArgsExporter struct {
 	InputAntifloodHandler     process.P2PAntifloodHandler
 	OutputAntifloodHandler    process.P2PAntifloodHandler
 	ChainID                   []byte
-	Rounder                   process.Rounder
+	RoundHandler              update.RoundHandler
 	GenesisNodesSetupHandler  update.GenesisNodesSetupHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	MinTxVersion              uint32
@@ -120,7 +120,7 @@ type exportHandlerFactory struct {
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
 	chainID                   []byte
-	rounder                   process.Rounder
+	roundHandler              process.Rounder
 	genesisNodesSetupHandler  update.GenesisNodesSetupHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	minTxVersion              uint32
@@ -215,8 +215,8 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
-	if check.IfNil(args.Rounder) {
-		return nil, update.ErrNilRounder
+	if check.IfNil(args.RoundHandler) {
+		return nil, update.ErrNilRoundHandler
 	}
 	if check.IfNil(args.GenesisNodesSetupHandler) {
 		return nil, update.ErrNilGenesisNodesSetupHandler
@@ -264,7 +264,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		outputAntifloodHandler:    args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
 		chainID:                   args.ChainID,
-		rounder:                   args.Rounder,
+		roundHandler:              args.RoundHandler,
 		genesisNodesSetupHandler:  args.GenesisNodesSetupHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		minTxVersion:              args.MinTxVersion,
@@ -310,7 +310,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Validity:             process.MetaBlockValidity,
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		Rounder:              e.rounder,
+		Rounder:              e.roundHandler,
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {

@@ -193,7 +193,7 @@ type SigVerifier interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	MetaEpoch() uint32
-	ForceEpochStart()
+	ForceEpochStart(round uint64)
 	IsInterfaceNil() bool
 }
 
@@ -250,5 +250,12 @@ type GenesisNodesSetupHandler interface {
 	GetAdaptivity() bool
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
+	Index() int64
+	TimeStamp() time.Time
 	IsInterfaceNil() bool
 }
