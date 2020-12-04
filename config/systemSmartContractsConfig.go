@@ -16,6 +16,7 @@ type StakingSystemSCConfig struct {
 	UnBondPeriod                         uint64
 	AuctionEnableEpoch                   uint32
 	StakeEnableEpoch                     uint32
+	DoubleKeyProtectionEnableEpoch       uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
