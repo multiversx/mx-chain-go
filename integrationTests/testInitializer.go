@@ -532,8 +532,7 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
-	gasSchedule = arwenConfig.MakeGasMapForTests()
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -564,7 +563,7 @@ func CreateFullGenesisBlocks(
 		Economics:            economics,
 		ShardCoordinator:     shardCoordinator,
 		ValidatorAccounts:    validatorAccounts,
-		GasMap:               gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		TrieStorageManagers:  trieStorageManagers,
@@ -634,7 +633,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics *economics.EconomicsData,
 ) data.HeaderHandler {
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	coreComponents := GetDefaultCoreComponents()
@@ -658,7 +657,7 @@ func CreateGenesisMetaBlock(
 		ShardCoordinator:     shardCoordinator,
 		Economics:            economics,
 		ValidatorAccounts:    validatorAccounts,
-		GasMap:               gasSchedule,
+		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		HardForkConfig:       config.HardforkConfig{},

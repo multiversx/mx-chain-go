@@ -3,6 +3,7 @@ package metachain
 import (
 	"testing"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -11,24 +12,29 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
+	datapool := testscommon.NewPoolsHolderMock()
 	arguments := hooks.ArgBlockChainHook{
 		Accounts: &mock.AccountsStub{
 			GetExistingAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
 				return &mock.AccountWrapMock{}, nil
 			},
 		},
-		PubkeyConv:       mock.NewPubkeyConverterMock(32),
-		StorageService:   &mock.ChainStorerMock{},
-		BlockChain:       &mock.BlockChainMock{},
-		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
-		Marshalizer:      &mock.MarshalizerMock{},
-		Uint64Converter:  &mock.Uint64ByteSliceConverterMock{},
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
+		PubkeyConv:         mock.NewPubkeyConverterMock(32),
+		StorageService:     &mock.ChainStorerMock{},
+		BlockChain:         &mock.BlockChainMock{},
+		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
+		Marshalizer:        &mock.MarshalizerMock{},
+		Uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:           datapool,
+		CompiledSCPool:     datapool.SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	return arguments
 }
@@ -36,7 +42,7 @@ func createMockVMAccountsArguments() hooks.ArgBlockChainHook {
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
-	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule := makeGasSchedule()
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
 		&economics.EconomicsData{},
@@ -178,10 +184,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	assert.NotNil(t, acc)
 }
 
-func makeGasSchedule() map[string]map[string]uint64 {
-	gasSchedule := make(map[string]map[string]uint64)
+func makeGasSchedule() core.GasScheduleNotifier {
+	gasSchedule := arwenConfig.MakeGasMapForTests()
 	FillGasMapInternal(gasSchedule, 1)
-	return gasSchedule
+	return mock.NewGasScheduleNotifierMock(gasSchedule)
 }
 
 func FillGasMapInternal(gasMap map[string]map[string]uint64, value uint64) map[string]map[string]uint64 {
@@ -198,6 +204,7 @@ func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	gasMap["ReleasePerByte"] = value
 	gasMap["PersistPerByte"] = value
 	gasMap["CompilePerByte"] = value
+	gasMap["AoTPreparePerByte"] = value
 
 	return gasMap
 }

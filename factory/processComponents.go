@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -102,7 +103,7 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
-	GasSchedule               map[string]map[string]uint64
+	GasSchedule               core.GasScheduleNotifier
 	Rounder                   consensus.Rounder
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
@@ -145,7 +146,7 @@ type processComponentsFactory struct {
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
-	gasSchedule               map[string]map[string]uint64
+	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
@@ -666,7 +667,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		AccountsParser:       pcf.accountsParser,
 		SmartContractParser:  pcf.smartContractParser,
 		ValidatorAccounts:    pcf.state.PeerAccounts(),
-		GasMap:               pcf.gasSchedule,
+		GasSchedule:          pcf.gasSchedule,
 		VirtualMachineConfig: genesisVmConfig,
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		HardForkConfig:       pcf.config.Hardfork,
@@ -698,14 +699,15 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	leaves, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return err
 	}
 
 	genesisAccounts := make([]state.UserAccountHandler, 0)
-	for addressKey, userAccountsBytes := range leaves {
-		userAccount, errUnmarshal := pcf.unmarshalUserAccount([]byte(addressKey), userAccountsBytes)
+	for leaf := range leavesChannel {
+		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
 			continue

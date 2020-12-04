@@ -88,12 +88,11 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
-	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
-	gasScheduleConfigurationFile = cli.StringFlag{
-		Name: "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
-			"gas costs used in SmartContract execution",
-		Value: "./config/gasSchedule.toml",
+	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
+	gasScheduleConfigurationDirectory = cli.StringFlag{
+		Name:  "gas-costs-config",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
+		Value: "./config/gasSchedules",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
@@ -295,7 +294,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
-		gasScheduleConfigurationFile,
+		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -341,7 +340,7 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	flagsConfig.GenesisFileName = ctx.GlobalString(genesisFile.Name)
 	flagsConfig.CleanupStorage = ctx.GlobalBool(storageCleanup.Name)
 	flagsConfig.UseHealthService = ctx.GlobalBool(useHealthService.Name)
-	flagsConfig.GasScheduleConfigurationFileName = ctx.GlobalString(gasScheduleConfigurationFile.Name)
+	flagsConfig.GasScheduleConfigurationDirectory = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
 	flagsConfig.SmartContractsFileName = ctx.GlobalString(smartContractsFile.Name)
 	flagsConfig.BootstrapRoundIndex = ctx.GlobalUint64(bootstrapRoundIndex.Name)
 	flagsConfig.EnableRestAPIServerDebugMode = ctx.GlobalBool(restApiDebug.Name)

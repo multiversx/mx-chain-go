@@ -1,21 +1,20 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. esdt.proto
 package builtInFunctions
 
 import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/esdt"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
-
-const esdtKeyIdentifier = "esdt"
 
 var _ process.BuiltinFunction = (*esdtTransfer)(nil)
 
@@ -27,6 +26,7 @@ type esdtTransfer struct {
 	keyPrefix      []byte
 	pauseHandler   process.ESDTPauseHandler
 	payableHandler process.PayableHandler
+	mutExecution   sync.RWMutex
 }
 
 // NewESDTTransferFunc returns the esdt transfer built-in function component
@@ -45,7 +45,7 @@ func NewESDTTransferFunc(
 	e := &esdtTransfer{
 		funcGasCost:    funcGasCost,
 		marshalizer:    marshalizer,
-		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix:      []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pauseHandler:   pauseHandler,
 		payableHandler: &disabledPayableHandler{},
 	}
@@ -53,11 +53,21 @@ func NewESDTTransferFunc(
 	return e, nil
 }
 
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtTransfer) SetNewGasConfig(gasCost *process.GasCost) {
+	e.mutExecution.Lock()
+	e.funcGasCost = gasCost.BuiltInCost.ESDTTransfer
+	e.mutExecution.Unlock()
+}
+
 // ProcessBuiltinFunction resolves ESDT transfer function calls
 func (e *esdtTransfer) ProcessBuiltinFunction(
 	acntSnd, acntDst state.UserAccountHandler,
 	vmInput *vmcommon.ContractCallInput,
 ) (*vmcommon.VMOutput, error) {
+	e.mutExecution.RLock()
+	defer e.mutExecution.RUnlock()
+
 	if vmInput == nil {
 		return nil, process.ErrNilVmInput
 	}
@@ -118,6 +128,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				string(vmInput.Arguments[2]),
 				callArgs,
 				vmInput.RecipientAddr,
+				vmInput.GasLocked,
 				vmOutput)
 		}
 
@@ -130,6 +141,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			core.BuiltInFunctionESDTTransfer,
 			vmInput.Arguments,
 			vmInput.RecipientAddr,
+			vmInput.GasLocked,
 			vmOutput)
 	}
 
@@ -140,6 +152,7 @@ func addOutPutTransferToVMOutput(
 	function string,
 	arguments [][]byte,
 	recipient []byte,
+	gasLocked uint64,
 	vmOutput *vmcommon.VMOutput,
 ) {
 	esdtTransferTxData := function
@@ -147,16 +160,18 @@ func addOutPutTransferToVMOutput(
 		esdtTransferTxData += "@" + hex.EncodeToString(arg)
 	}
 	outTransfer := vmcommon.OutputTransfer{
-		Value:    big.NewInt(0),
-		GasLimit: 0,
-		Data:     []byte(esdtTransferTxData),
-		CallType: vmcommon.AsynchronousCall,
+		Value:     big.NewInt(0),
+		GasLimit:  vmOutput.GasRemaining,
+		GasLocked: gasLocked,
+		Data:      []byte(esdtTransferTxData),
+		CallType:  vmcommon.AsynchronousCall,
 	}
 	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 	vmOutput.OutputAccounts[string(recipient)] = &vmcommon.OutputAccount{
 		Address:         recipient,
 		OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 	}
+	vmOutput.GasRemaining = 0
 }
 
 func addToESDTBalance(
@@ -198,7 +213,7 @@ func addToESDTBalance(
 
 func saveESDTData(
 	userAcnt state.UserAccountHandler,
-	esdtData *ESDigitalToken,
+	esdtData *esdt.ESDigitalToken,
 	key []byte,
 	marshalizer marshal.Marshalizer,
 ) error {
@@ -215,8 +230,8 @@ func getESDTDataFromKey(
 	userAcnt state.UserAccountHandler,
 	key []byte,
 	marshalizer marshal.Marshalizer,
-) (*ESDigitalToken, error) {
-	esdtData := &ESDigitalToken{Value: big.NewInt(0)}
+) (*esdt.ESDigitalToken, error) {
+	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	marshaledData, err := userAcnt.DataTrieTracker().RetrieveValue(key)
 	if err != nil || len(marshaledData) == 0 {
 		return esdtData, nil

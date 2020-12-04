@@ -1,4 +1,4 @@
-package factory
+package latestData
 
 import (
 	"encoding/json"
