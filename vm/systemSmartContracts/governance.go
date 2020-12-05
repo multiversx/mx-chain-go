@@ -1236,12 +1236,12 @@ func (g *governanceContract) computeEndResults(proposal *GeneralProposal) error 
 		return nil
 	}
 
-	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) == 1 {
+	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
 		proposal.Voted = false
 		return nil
 	}
 
-	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) == 1 && proposal.Yes.Cmp(proposal.No) == 1 {
+	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) == 1 {
 		proposal.Voted = true
 		return nil
 	}
@@ -1286,13 +1286,6 @@ func (g *governanceContract) EpochConfirmed(epoch uint32) {
 // CanUseContract returns true if contract is enabled
 func (g *governanceContract) CanUseContract() bool {
 	return true
-}
-
-// SetNewGasCost is called whenever a gas cost was changed
-func (g *governanceContract) SetNewGasCost(gasCost vm.GasCost) {
-	g.mutExecution.Lock()
-	g.gasCost = gasCost
-	g.mutExecution.Unlock()
 }
 
 // IsInterfaceNil returns true if underlying object is nil
