@@ -469,16 +469,16 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) (*big.Int, *big.Int) {
-	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
 	if tx.GetGasLimit() > vmOutput.GasRemaining {
 		log.Error("gasLimit uint64 overflow line 474")
 	}
+	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
 
 	if !sc.isSelfShard(tx.GetSndAddr()) {
-		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
 		if consumedGas < sc.economicsFee.ComputeGasLimit(tx) {
 			log.Error("gasLimit uint64 overflow line 480")
 		}
+		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
 	}
 
 	for _, outAcc := range vmOutput.OutputAccounts {
@@ -487,19 +487,18 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 			for _, outTransfer := range outAcc.OutputTransfers {
 				sentGas += outTransfer.GasLimit
 			}
-			consumedGas -= sentGas
 			if consumedGas < sentGas {
 				log.Error("gasLimit uint64 overflow line 492")
 			}
+			consumedGas -= sentGas
 		}
 	}
 
 	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
-
-	consumedGas -= builtInFuncGasUsed
 	if consumedGas < builtInFuncGasUsed {
 		log.Error("gasLimit uint64 overflow line 501")
 	}
+	consumedGas -= builtInFuncGasUsed
 	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGas)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
