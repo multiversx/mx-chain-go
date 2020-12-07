@@ -35,7 +35,7 @@ func TestConstructTransaction_NoDataNoValue(t *testing.T) {
 		Version:  1,
 	}
 
-	tx.Signature = signTransaction(t, alicePrivateKeyHex, tx)
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
 	require.Equal(t, "b56769014f2bdc5cf9fc4a05356807d71fcf8775c819b0f1b0964625b679c918ffa64862313bfef86f99b38cb84fcdb16fa33ad6eb565276616723405cd8f109", hex.EncodeToString((tx.Signature)))
 
 	data, _ := contentMarshalizer.Marshal(tx)
@@ -58,7 +58,7 @@ func TestConstructTransaction_WithDataNoValue(t *testing.T) {
 		Version:  1,
 	}
 
-	tx.Signature = signTransaction(t, alicePrivateKeyHex, tx)
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
 	require.Equal(t, "e47fd437fc17ac9a69f7bf5f85bafa9e7628d851c4f69bd9fedc7e36029708b2e6d168d5cd652ea78beedd06d4440974ca46c403b14071a1a148d4188f6f2c0d", hex.EncodeToString((tx.Signature)))
 
 	data, _ := contentMarshalizer.Marshal(tx)
@@ -81,7 +81,7 @@ func TestConstructTransaction_WithDataWithValue(t *testing.T) {
 		Version:  1,
 	}
 
-	tx.Signature = signTransaction(t, alicePrivateKeyHex, tx)
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
 	require.Equal(t, "9074789e0b4f9b2ac24b1fd351a4dd840afcfeb427b0f93e2a2d429c28c65ee9f4c288ca4dbde79de0e5bcf8c1a5d26e1b1c86203faea923e0edefb0b5099b0c", hex.EncodeToString((tx.Signature)))
 
 	data, _ := contentMarshalizer.Marshal(tx)
@@ -104,7 +104,7 @@ func TestConstructTransaction_WithDataWithLargeValue(t *testing.T) {
 		Version:  1,
 	}
 
-	tx.Signature = signTransaction(t, alicePrivateKeyHex, tx)
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
 	require.Equal(t, "39938d15812708475dfc8125b5d41dbcea0b2e3e7aabbbfceb6ce4f070de3033676a218b73facd88b1432d7d4accab89c6130b3abe5cc7bbbb5146e61d355b03", hex.EncodeToString((tx.Signature)))
 
 	data, _ := contentMarshalizer.Marshal(tx)
@@ -126,7 +126,7 @@ func getPubkeyOfAddress(t *testing.T, address string) []byte {
 	return pubkey
 }
 
-func signTransaction(t *testing.T, senderSeedHex string, tx *Transaction) []byte {
+func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *Transaction) []byte {
 	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
 
 	senderSeed, err := hex.DecodeString(senderSeedHex)
@@ -140,6 +140,7 @@ func signTransaction(t *testing.T, senderSeedHex string, tx *Transaction) []byte
 
 	signature, err := signer.Sign(privateKey, dataToSign)
 	require.Nil(t, err)
+	require.Len(t, signature, 64)
 
 	return signature
 }
