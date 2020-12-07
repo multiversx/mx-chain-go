@@ -83,7 +83,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		return nil, process.ErrNegativeValue
 	}
 
-	gasRemaining := uint64(0)
+	gasRemaining := computeGasRemaining(acntSnd, vmInput.GasProvided, e.funcGasCost)
 	esdtTokenKey := append(e.keyPrefix, vmInput.Arguments[0]...)
 	log.Trace("esdtTransfer", "sender", vmInput.CallerAddr, "receiver", vmInput.RecipientAddr, "value", value, "token", esdtTokenKey)
 
@@ -93,14 +93,13 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, process.ErrNotEnoughGas
 		}
 
-		gasRemaining = vmInput.GasProvided - e.funcGasCost
 		err := addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, big.NewInt(0).Neg(value), e.marshalizer, e.pauseHandler)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
+	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
 		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
 		if mustVerifyPayable && len(vmInput.Arguments) == 2 {
