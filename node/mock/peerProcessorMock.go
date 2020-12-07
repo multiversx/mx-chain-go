@@ -19,6 +19,15 @@ type ValidatorStatisticsProcessorMock struct {
 	CommitCalled                             func() ([]byte, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
+}
+
+// SaveNodesCoordinatorUpdates -
+func (vsp *ValidatorStatisticsProcessorMock) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
+		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
+	}
+	return false, nil
 }
 
 // PeerAccountToValidatorInfo -

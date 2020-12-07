@@ -18,6 +18,15 @@ type ValidatorStatisticsProcessorStub struct {
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
+}
+
+// SaveNodesCoordinatorUpdates -
+func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
+		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
+	}
+	return false, nil
 }
 
 // PeerAccountToValidatorInfo -

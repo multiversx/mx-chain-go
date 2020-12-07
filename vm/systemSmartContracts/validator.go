@@ -20,6 +20,7 @@ import (
 
 const minArgsLenToChangeValidatorKey = 4
 const unJailedFunds = "unJailFunds"
+const unStakeUnBondPauseKey = "unStakeUnBondPause"
 
 var zero = big.NewInt(0)
 
@@ -49,6 +50,7 @@ type validatorSC struct {
 	flagDoubleKey         atomic.Flag
 	minUnstakeTokensValue *big.Int
 	mutExecution          sync.RWMutex
+	endOfEpochAddress     []byte
 }
 
 // ArgsValidatorSmartContract is the arguments structure to create a new ValidatorSmartContract
@@ -62,6 +64,7 @@ type ArgsValidatorSmartContract struct {
 	GasCost            vm.GasCost
 	Marshalizer        marshal.Marshalizer
 	EpochNotifier      vm.EpochNotifier
+	EndOfEpochAddress  []byte
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -88,6 +91,9 @@ func NewValidatorSmartContract(
 	}
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
+	}
+	if len(args.EndOfEpochAddress) < 1 {
+		return nil, vm.ErrInvalidEndOfEpochAccessAddress
 	}
 
 	baseConfig := ValidatorConfig{
@@ -130,6 +136,7 @@ func NewValidatorSmartContract(
 		minUnstakeTokensValue: minUnstakeTokensValue,
 		walletAddressLen:      len(args.ValidatorSCAddress),
 		enableDoubleKeyEpoch:  args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		endOfEpochAddress:     args.EndOfEpochAddress,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -185,10 +192,51 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.updateStakingV2(args)
 	case "cleanRegisteredData":
 		return v.cleanRegisteredData(args)
+	case "pauseUnStakeUnBond":
+		return v.pauseUnStakeUnBond(args)
+	case "unPauseUnStakeUnBond":
+		return v.unPauseStakeUnBond(args)
 	}
 
 	v.eei.AddReturnMessage("invalid method to call")
 	return vmcommon.UserError
+}
+
+func (v *validatorSC) pauseUnStakeUnBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagEnableTopUp.IsSet() {
+		v.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, v.endOfEpochAddress) {
+		v.eei.AddReturnMessage("only end of epoch address can call")
+		return vmcommon.UserError
+	}
+
+	v.eei.SetStorage([]byte(unStakeUnBondPauseKey), []byte{1})
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) unPauseStakeUnBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagEnableTopUp.IsSet() {
+		v.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, v.endOfEpochAddress) {
+		v.eei.AddReturnMessage("only end of epoch address can call")
+		return vmcommon.UserError
+	}
+
+	v.eei.SetStorage([]byte(unStakeUnBondPauseKey), []byte{0})
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) isUnStakeUnBondPaused() bool {
+	storageData := v.eei.GetStorage([]byte(unStakeUnBondPauseKey))
+	if len(storageData) == 0 {
+		return false
+	}
+
+	return storageData[0] == 1
 }
 
 func (v *validatorSC) addToUnJailFunds(value *big.Int) {
@@ -991,6 +1039,11 @@ func (v *validatorSC) unStakeNodesFromStakingSC(blsKeys [][]byte, registrationDa
 
 // This is the complete unStake - which after enabling economics V2 will create unStakedFunds on the registration data
 func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
+	}
+
 	registrationData, returnCode := v.basicChecksForUnStakeNodes(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1027,6 +1080,11 @@ func (v *validatorSC) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Re
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
+	}
+
 	registrationData, returnCode := v.basicChecksForUnStakeNodes(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1042,6 +1100,11 @@ func (v *validatorSC) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
+	}
+
 	registrationData, returnCode := v.checkUnBondArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1161,6 +1224,10 @@ func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return v.unBondV1(args)
 	}
 
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
+	}
 	registrationData, returnCode := v.checkUnBondArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
@@ -1283,6 +1350,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
+	}
+
 	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.InsufficientGasLimit)
@@ -1369,6 +1441,10 @@ func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.Re
 	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
+	}
+	if v.isUnStakeUnBondPaused() {
+		v.eei.AddReturnMessage("unStake/unBond is paused as not enough total staked in protocol")
+		return vmcommon.UserError
 	}
 	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.UnBondTokens)
 	if err != nil {
