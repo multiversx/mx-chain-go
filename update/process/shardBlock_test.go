@@ -8,13 +8,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateTestCache() storage.Cacher {
@@ -76,13 +79,46 @@ func TestCreateBody(t *testing.T) {
 
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 			return block.MiniBlockSlice{mb1, mb2}, nil
 		},
 	}
 	args.TxCoordinator = &mock.TransactionCoordinatorMock{
 		CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
 			return block.MiniBlockSlice{mb3, mb4}
+		},
+	}
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash": {},
+			}
 		},
 	}
 
@@ -143,7 +179,7 @@ func TestCreateNewBlock(t *testing.T) {
 	mb2 := &block.MiniBlock{SenderShardID: 3, ReceiverShardID: 4, TxHashes: [][]byte{hashTx2}}
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(mapTxs map[string]data.TransactionHandler) (block.MiniBlockSlice, error) {
+		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
 			return block.MiniBlockSlice{mb1}, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
@@ -156,12 +192,36 @@ func TestCreateNewBlock(t *testing.T) {
 		},
 	}
 
-	meta := &block.MetaBlock{}
-	metaHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, meta)
-
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+	metaHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, metaBlock)
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
 	args.ImportHandler = &mock.ImportHandlerStub{
 		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
-			return &block.MetaBlock{}
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash": {},
+			}
 		},
 	}
 
@@ -206,4 +266,260 @@ func TestCreateNewBlock(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedBody, body)
 	assert.Equal(t, expectedHeader, header)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWhenGetPendingMiniBlocksFails(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Equal(t, update.ErrNilEpochStartMetaBlock, err)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedMiniBlocksMap(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+	}
+
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Equal(t, update.ErrWrongImportedMiniBlocksMap, err)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrMiniBlockNotFoundInImportedMap(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash1"),
+						},
+					},
+				},
+			},
+		},
+	}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash2": {},
+			}
+		},
+	}
+
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Equal(t, update.ErrMiniBlockNotFoundInImportedMap, err)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrTransactionNotFoundInImportedMap(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash": {
+					TxHashes: [][]byte{
+						[]byte("tx_hash1"),
+						[]byte("tx_hash2"),
+					},
+				},
+			}
+		},
+	}
+
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Equal(t, update.ErrTransactionNotFoundInImportedMap, err)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedTransactionsMap(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash": {
+					TxHashes: [][]byte{
+						[]byte("tx_hash1"),
+						[]byte("tx_hash2"),
+					},
+				},
+			}
+		},
+		GetTransactionsCalled: func() map[string]data.TransactionHandler {
+			return map[string]data.TransactionHandler{
+				"tx_hash1": &transaction.Transaction{Nonce: 0},
+				"tx_hash2": &transaction.Transaction{Nonce: 1},
+				"tx_hash3": &transaction.Transaction{Nonce: 2},
+			}
+		},
+	}
+
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Equal(t, update.ErrWrongImportedTransactionsMap, err)
+}
+
+func TestGetPendingMbsAndTxsInCorrectOrder_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+
+	metaBlock := &block.MetaBlock{
+		Round: 2,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					FirstPendingMetaBlock: []byte("metaBlock_hash"),
+					PendingMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("miniBlock_hash"),
+						},
+					},
+				},
+			},
+		},
+	}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"metaBlock_hash": {Round: 1},
+	}
+	args.ImportHandler = &mock.ImportHandlerStub{
+		GetHardForkMetaBlockCalled: func() *block.MetaBlock {
+			return metaBlock
+		},
+		GetUnFinishedMetaBlocksCalled: func() map[string]*block.MetaBlock {
+			return unFinishedMetaBlocks
+		},
+		GetMiniBlocksCalled: func() map[string]*block.MiniBlock {
+			return map[string]*block.MiniBlock{
+				"miniBlock_hash": {
+					TxHashes: [][]byte{
+						[]byte("tx_hash1"),
+						[]byte("tx_hash2"),
+					},
+				},
+			}
+		},
+		GetTransactionsCalled: func() map[string]data.TransactionHandler {
+			return map[string]data.TransactionHandler{
+				"tx_hash1": &transaction.Transaction{Nonce: 0},
+				"tx_hash2": &transaction.Transaction{Nonce: 1},
+			}
+		},
+	}
+
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	pendingMiniBlocks, txsInfoPerPendingMiniBlock, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	assert.Nil(t, err)
+	require.Equal(t, 1, len(pendingMiniBlocks))
+	require.Equal(t, 1, len(txsInfoPerPendingMiniBlock))
+	require.Equal(t, 2, len(txsInfoPerPendingMiniBlock[0]))
+	assert.Equal(t, []byte("miniBlock_hash"), pendingMiniBlocks[0].Hash)
+	assert.Equal(t, []byte("tx_hash1"), txsInfoPerPendingMiniBlock[0][0].TxHash)
+	assert.Equal(t, []byte("miniBlock_hash"), txsInfoPerPendingMiniBlock[0][0].MbHash)
+	assert.Equal(t, []byte("tx_hash2"), txsInfoPerPendingMiniBlock[0][1].TxHash)
+	assert.Equal(t, []byte("miniBlock_hash"), txsInfoPerPendingMiniBlock[0][1].MbHash)
 }

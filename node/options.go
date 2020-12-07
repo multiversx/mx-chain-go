@@ -8,12 +8,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
 // WithBootstrapComponents sets up the Node bootstrap components
-func WithBootstrapComponents(bootstrapComponents mainFactory.BootstrapComponentsHandler) Option {
+func WithBootstrapComponents(bootstrapComponents factory.BootstrapComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(bootstrapComponents) {
 			return ErrNilBootstrapComponents
@@ -30,7 +30,7 @@ func WithBootstrapComponents(bootstrapComponents mainFactory.BootstrapComponents
 }
 
 // WithCoreComponents sets up the Node core components
-func WithCoreComponents(coreComponents mainFactory.CoreComponentsHandler) Option {
+func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(coreComponents) {
 			return ErrNilCoreComponents
@@ -46,7 +46,7 @@ func WithCoreComponents(coreComponents mainFactory.CoreComponentsHandler) Option
 }
 
 // WithCryptoComponents sets up Node crypto components
-func WithCryptoComponents(cryptoComponents mainFactory.CryptoComponentsHandler) Option {
+func WithCryptoComponents(cryptoComponents factory.CryptoComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(cryptoComponents) {
 			return ErrNilCryptoComponents
@@ -62,7 +62,7 @@ func WithCryptoComponents(cryptoComponents mainFactory.CryptoComponentsHandler) 
 }
 
 // WithDataComponents sets up the Node data components
-func WithDataComponents(dataComponents mainFactory.DataComponentsHandler) Option {
+func WithDataComponents(dataComponents factory.DataComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(dataComponents) {
 			return ErrNilDataComponents
@@ -78,7 +78,7 @@ func WithDataComponents(dataComponents mainFactory.DataComponentsHandler) Option
 }
 
 // WithNetworkComponents sets up the Node network components
-func WithNetworkComponents(networkComponents mainFactory.NetworkComponentsHandler) Option {
+func WithNetworkComponents(networkComponents factory.NetworkComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(networkComponents) {
 			return ErrNilNetworkComponents
@@ -94,7 +94,7 @@ func WithNetworkComponents(networkComponents mainFactory.NetworkComponentsHandle
 }
 
 // WithProcessComponents sets up the Node process components
-func WithProcessComponents(processComponents mainFactory.ProcessComponentsHandler) Option {
+func WithProcessComponents(processComponents factory.ProcessComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(processComponents) {
 			return ErrNilProcessComponents
@@ -110,7 +110,7 @@ func WithProcessComponents(processComponents mainFactory.ProcessComponentsHandle
 }
 
 // WithStateComponents sets up the Node state components
-func WithStateComponents(stateComponents mainFactory.StateComponentsHandler) Option {
+func WithStateComponents(stateComponents factory.StateComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(stateComponents) {
 			return ErrNilStateComponents
@@ -126,7 +126,7 @@ func WithStateComponents(stateComponents mainFactory.StateComponentsHandler) Opt
 }
 
 // WithStatusComponents sets up the Node status components
-func WithStatusComponents(statusComponents mainFactory.StatusComponentsHandler) Option {
+func WithStatusComponents(statusComponents factory.StatusComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(statusComponents) {
 			return ErrNilStatusComponents
@@ -142,7 +142,7 @@ func WithStatusComponents(statusComponents mainFactory.StatusComponentsHandler) 
 }
 
 // WithHeartbeatComponents sets up the Node heartbeat components
-func WithHeartbeatComponents(heartbeatComponents mainFactory.HeartbeatComponentsHandler) Option {
+func WithHeartbeatComponents(heartbeatComponents factory.HeartbeatComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(heartbeatComponents) {
 			return ErrNilStatusComponents
@@ -158,7 +158,7 @@ func WithHeartbeatComponents(heartbeatComponents mainFactory.HeartbeatComponents
 }
 
 // WithConsensusComponents sets up the Node consensus components
-func WithConsensusComponents(consensusComponents mainFactory.ConsensusComponentsHandler) Option {
+func WithConsensusComponents(consensusComponents factory.ConsensusComponentsHandler) Option {
 	return func(n *Node) error {
 		if check.IfNil(consensusComponents) {
 			return ErrNilStatusComponents
@@ -318,6 +318,14 @@ func WithNodeStopChannel(channel chan endProcess.ArgEndProcess) Option {
 		}
 		n.chanStopNodeProcess = channel
 
+		return nil
+	}
+}
+
+// WithEnableSignTxWithHashEpoch sets up enableSignTxWithHashEpoch for the node
+func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
+	return func(n *Node) error {
+		n.enableSignTxWithHashEpoch = enableSignTxWithHashEpoch
 		return nil
 	}
 }

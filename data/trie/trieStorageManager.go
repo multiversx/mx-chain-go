@@ -37,7 +37,7 @@ type trieStorageManager struct {
 	snapshotDbCfg      config.DBConfig
 	snapshotReq        chan *snapshotsQueueEntry
 	pruningBuffer      atomicBuffer
-	snapshotInProgress uint32
+	pruningBlockingOps uint32
 	maxSnapshots       uint32
 	cancelFunc         context.CancelFunc
 
@@ -87,7 +87,7 @@ func NewTrieStorageManager(
 		pruningBuffer:         newPruningBuffer(generalConfig.PruningBufferLen),
 		dbEvictionWaitingList: ewl,
 		snapshotReq:           make(chan *snapshotsQueueEntry, generalConfig.SnapshotsBufferLen),
-		snapshotInProgress:    0,
+		pruningBlockingOps:    0,
 		maxSnapshots:          generalConfig.MaxSnapshots,
 		cancelFunc:            cancelFunc,
 	}
@@ -185,30 +185,31 @@ func (tsm *trieStorageManager) Database() data.DBWriteCacher {
 	return tsm.db
 }
 
-// EnterSnapshotMode sets the snapshot mode on
-func (tsm *trieStorageManager) EnterSnapshotMode() {
+// EnterPruningBufferingMode increases the counter that tracks how many operations
+// that block the pruning process are in progress
+func (tsm *trieStorageManager) EnterPruningBufferingMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.snapshotInProgress++
+	tsm.pruningBlockingOps++
 
-	log.Trace("enter snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
+	log.Trace("enter pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }
 
-// ExitSnapshotMode sets the snapshot mode off
-func (tsm *trieStorageManager) ExitSnapshotMode() {
+// ExitPruningBufferingMode decreases the counter that tracks how many operations
+// that block the pruning process are in progress
+func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	if tsm.snapshotInProgress < 1 {
-		log.Error("ExitSnapshotMode called too many times")
+	if tsm.pruningBlockingOps < 1 {
+		log.Error("ExitPruningBufferingMode called too many times")
+		return
 	}
 
-	if tsm.snapshotInProgress > 0 {
-		tsm.snapshotInProgress--
-	}
+	tsm.pruningBlockingOps--
 
-	log.Trace("exit snapshot mode", "snapshots in progress", tsm.snapshotInProgress)
+	log.Trace("exit pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
 }
 
 // Prune removes the given hash from db
@@ -218,7 +219,7 @@ func (tsm *trieStorageManager) Prune(rootHash []byte, identifier data.TriePrunin
 
 	rootHash = append(rootHash, byte(identifier))
 
-	if tsm.snapshotInProgress > 0 {
+	if tsm.pruningBlockingOps > 0 {
 		if identifier == data.NewRoot {
 			tsm.cancelPrune(rootHash)
 			return
@@ -272,7 +273,7 @@ func (tsm *trieStorageManager) CancelPrune(rootHash []byte, identifier data.Trie
 
 	rootHash = append(rootHash, byte(identifier))
 
-	if tsm.snapshotInProgress > 0 || tsm.pruningBuffer.len() != 0 {
+	if tsm.pruningBlockingOps > 0 || tsm.pruningBuffer.len() != 0 {
 		rootHash = append(rootHash, byte(cancelPrune))
 		tsm.pruningBuffer.add(rootHash)
 
@@ -363,7 +364,7 @@ func (tsm *trieStorageManager) GetSnapshotThatContainsHash(rootHash []byte) data
 // TakeSnapshot creates a new snapshot, or if there is another snapshot or checkpoint in progress,
 // it adds this snapshot in the queue.
 func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
-	tsm.EnterSnapshotMode()
+	tsm.EnterPruningBufferingMode()
 
 	snapshotEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: true}
 	tsm.writeOnChan(snapshotEntry)
@@ -373,7 +374,7 @@ func (tsm *trieStorageManager) TakeSnapshot(rootHash []byte) {
 // it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
 // only if there was no snapshot done prior to this
 func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
-	tsm.EnterSnapshotMode()
+	tsm.EnterPruningBufferingMode()
 
 	checkpointEntry := &snapshotsQueueEntry{rootHash: rootHash, newDb: false}
 	tsm.writeOnChan(checkpointEntry)
@@ -387,7 +388,7 @@ func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
-	defer tsm.ExitSnapshotMode()
+	defer tsm.ExitPruningBufferingMode()
 
 	if tsm.isPresentInLastSnapshotDb(snapshot.rootHash) {
 		log.Trace("snapshot for rootHash already taken", "rootHash", snapshot.rootHash)

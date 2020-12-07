@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
@@ -30,12 +31,12 @@ const (
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
 	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*transaction.SimulationResults, error)
-	GetTransaction(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -69,6 +70,7 @@ type SendTxRequest struct {
 	Signature string `form:"signature" json:"signature"`
 	ChainID   string `form:"chainID" json:"chainID"`
 	Version   uint32 `form:"version" json:"version"`
+	Options   uint32 `json:"options,omitempty"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -172,6 +174,7 @@ func SimulateTransaction(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
@@ -254,6 +257,7 @@ func SendTransaction(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
@@ -344,6 +348,7 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Signature,
 			receivedTx.ChainID,
 			receivedTx.Version,
+			receivedTx.Options,
 		)
 		if err != nil {
 			continue
@@ -404,7 +409,20 @@ func GetTransaction(c *gin.Context) {
 		return
 	}
 
-	tx, err := facade.GetTransaction(txhash)
+	withResults, err := getQueryParamWithResults(c)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s", errors.ErrValidation.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	tx, err := facade.GetTransaction(txhash, withResults)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -459,6 +477,7 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Signature,
 		gtx.ChainID,
 		gtx.Version,
+		gtx.Options,
 	)
 	if err != nil {
 		c.JSON(
@@ -493,4 +512,13 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+func getQueryParamWithResults(c *gin.Context) (bool, error) {
+	withResultsStr := c.Request.URL.Query().Get("withResults")
+	if withResultsStr == "" {
+		return false, nil
+	}
+
+	return strconv.ParseBool(withResultsStr)
 }

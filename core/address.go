@@ -20,9 +20,14 @@ const ShardIdentiferLen = 2
 const metaChainShardIdentifier uint8 = 255
 const numInitCharactersForOnMetachainSC = 15
 
+const numInitCharactersForSystemAccountAddress = 30
+
 // IsSystemAccountAddress returns true if given address is system account address
 func IsSystemAccountAddress(address []byte) bool {
-	return bytes.Equal(address, SystemAccountAddress)
+	if len(address) < numInitCharactersForSystemAccountAddress {
+		return false
+	}
+	return bytes.Equal(address[:numInitCharactersForSystemAccountAddress], SystemAccountAddress[:numInitCharactersForSystemAccountAddress])
 }
 
 // IsSmartContractAddress verifies if a set address is of type smart contract

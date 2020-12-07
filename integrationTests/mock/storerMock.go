@@ -34,7 +34,8 @@ func (sm *StorerMock) HasInEpoch(key []byte, _ uint32) error {
 func (sm *StorerMock) Put(key, data []byte) error {
 	sm.mut.Lock()
 	defer sm.mut.Unlock()
-	sm.data[string(key)] = data
+	sm.data[string(key)] = make([]byte, len(data))
+	copy(sm.data[string(key)], data)
 
 	return nil
 }

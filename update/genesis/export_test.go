@@ -7,10 +7,12 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/keyValStorage"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -203,12 +205,18 @@ func TestExportAll(t *testing.T) {
 		_ = os.RemoveAll(testPath)
 	}()
 
-	metaBlock := &block.MetaBlock{Round: 1, ChainID: []byte("chainId")}
+	metaBlock := &block.MetaBlock{Round: 2, ChainID: []byte("chainId")}
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1, ChainID: []byte("chainId")},
+	}
 	miniBlock := &block.MiniBlock{}
 	tx := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100), SndAddr: []byte("snd"), RcvAddr: []byte("rcv")}
 	stateSyncer := &mock.SyncStateStub{
 		GetEpochStartMetaBlockCalled: func() (block *block.MetaBlock, err error) {
 			return metaBlock, nil
+		},
+		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+			return unFinishedMetaBlocks, nil
 		},
 		GetAllMiniBlocksCalled: func() (m map[string]*block.MiniBlock, err error) {
 			mbs := make(map[string]*block.MiniBlock)
@@ -228,7 +236,8 @@ func TestExportAll(t *testing.T) {
 
 	transactionsWereWrote := false
 	miniblocksWereWrote := false
-	metablockWasWrote := false
+	epochStartMetablockWasWrote := false
+	unFinishedMetablocksWereWrote := false
 	hs := &mock.HardforkStorerStub{
 		WriteCalled: func(identifier string, key []byte, value []byte) error {
 			switch identifier {
@@ -236,8 +245,11 @@ func TestExportAll(t *testing.T) {
 				transactionsWereWrote = true
 			case MiniBlocksIdentifier:
 				miniblocksWereWrote = true
-			case MetaBlockIdentifier:
-				metablockWasWrote = true
+			case EpochStartMetaBlockIdentifier:
+				epochStartMetablockWasWrote = true
+			case UnFinishedMetaBlocksIdentifier:
+				unFinishedMetablocksWereWrote = true
+
 			}
 
 			return nil
@@ -264,7 +276,8 @@ func TestExportAll(t *testing.T) {
 
 	assert.True(t, transactionsWereWrote)
 	assert.True(t, miniblocksWereWrote)
-	assert.True(t, metablockWasWrote)
+	assert.True(t, epochStartMetablockWasWrote)
+	assert.True(t, unFinishedMetablocksWereWrote)
 }
 
 func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
@@ -302,11 +315,22 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 	}
 
 	trie := &mock.TrieStub{
-		GetAllLeavesCalled: func() (map[string][]byte, error) {
+		RootCalled: func() ([]byte, error) {
+			return []byte{}, nil
+		},
+		GetAllLeavesOnChannelCalled: func(rootHash []byte) (chan core.KeyValueHolder, error) {
+			ch := make(chan core.KeyValueHolder)
+
 			mm := &mock.MarshalizerMock{}
 			valInfo := &state.ValidatorInfo{List: string(core.EligibleList)}
 			pacB, _ := mm.Marshal(valInfo)
-			return map[string][]byte{"test": pacB}, nil
+
+			go func() {
+				ch <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+				close(ch)
+			}()
+
+			return ch, nil
 		},
 	}
 
@@ -388,4 +412,47 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 	require.Equal(t, string(val01.PublicKey), initialNodes[3].PubKey) // bbbbbb
 	require.Equal(t, string(val10.PublicKey), initialNodes[4].PubKey) // ccc
 	require.Equal(t, string(val11.PublicKey), initialNodes[5].PubKey) // ddd
+}
+
+func TestStateExport_ExportUnfinishedMetaBlocksShouldWork(t *testing.T) {
+	t.Parallel()
+
+	unFinishedMetaBlocks := map[string]*block.MetaBlock{
+		"hash": {Round: 1, ChainID: []byte("chainId")},
+	}
+	stateSyncer := &mock.SyncStateStub{
+		GetUnFinishedMetaBlocksCalled: func() (map[string]*block.MetaBlock, error) {
+			return unFinishedMetaBlocks, nil
+		},
+	}
+
+	unFinishedMetablocksWereWrote := false
+	hs := &mock.HardforkStorerStub{
+		WriteCalled: func(identifier string, key []byte, value []byte) error {
+			if strings.Compare(identifier, UnFinishedMetaBlocksIdentifier) == 0 {
+				unFinishedMetablocksWereWrote = true
+			}
+			return nil
+		},
+	}
+
+	args := ArgsNewStateExporter{
+		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
+		Marshalizer:              &mock.MarshalizerMock{},
+		StateSyncer:              stateSyncer,
+		HardforkStorer:           hs,
+		Hasher:                   &mock.HasherMock{},
+		AddressPubKeyConverter:   &mock.PubkeyConverterStub{},
+		ValidatorPubKeyConverter: &mock.PubkeyConverterStub{},
+		ExportFolder:             "test",
+		GenesisNodesSetupHandler: &mock.GenesisNodesSetupHandlerStub{},
+	}
+
+	stateExporter, _ := NewStateExporter(args)
+	require.False(t, check.IfNil(stateExporter))
+
+	err := stateExporter.exportUnFinishedMetaBlocks()
+	require.Nil(t, err)
+
+	assert.True(t, unFinishedMetablocksWereWrote)
 }

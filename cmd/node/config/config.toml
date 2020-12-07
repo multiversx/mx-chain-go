@@ -39,6 +39,16 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
+    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+    # signed with the hash of transaction
+    TransactionSignedWithTxHashEnableEpoch = 2
+
+   # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
+   MetaProtectionEnableEpoch = 2
+
+   # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
+   AheadOfTimeGasUsageEnableEpoch = 2
+
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
@@ -51,6 +61,12 @@
         Name = "VersionsCache"
         Capacity = 100
         Type = "LRU"
+
+[GasSchedule]
+    GasScheduleByEpochs = [
+        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
+        { StartEpoch = 2, FileName = "gasScheduleV2.toml" },
+    ]
 
 [StoragePruning]
    # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -198,6 +214,32 @@
         MaxBatchSize = 20000
         MaxOpenFiles = 10
 
+[SmartContractsStorage]
+    [SmartContractsStorage.Cache]
+        Name = "SmartContractsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorage.DB]
+        FilePath = "SmartContractsStorage"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[SmartContractsStorageForSCQuery]
+    [SmartContractsStorageForSCQuery.Cache]
+        Name = "SmartContractsStorageForSCQuery"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [SmartContractsStorageForSCQuery.DB]
+        FilePath = "SmartContractsStorageForSCQuery"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
         Name = "StatusMetricsStorage"
@@ -332,6 +374,12 @@
     Capacity = 900000
     Type = "SizeLRU"
     SizeInBytes = 314572800 #300MB
+
+[SmartContractDataPool]
+    Name = "SmartContractDataPool"
+    Capacity = 900000
+    Type = "SizeLRU"
+    SizeInBytes = 419430400 #400MB
 
 [WhiteListPool]
     Name = "WhiteListPool"
@@ -491,6 +539,9 @@
 [MultisigHasher]
    Type = "blake2b"
 
+[TxSignHasher]
+    Type = "keccak"
+
 # The main marshalizer, used in internodes communication
 # Type identifies the marshalizer
 # SizeCheckDelta the maximum allow drift between the input data buffer and
@@ -574,7 +625,7 @@
 
 [VirtualMachine]
     [VirtualMachine.Execution]
-        OutOfProcessEnabled = true
+        OutOfProcessEnabled = false
         WarmInstanceEnabled = false
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
@@ -706,6 +757,16 @@
         Type = "LRU"
     [DbLookupExtensions.EpochByHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_EpochByHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 20000
+        MaxOpenFiles = 10
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
+        Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
+        Capacity = 20000
+        Type = "LRU"
+    [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
+        FilePath = "DbLookupExtensions_ResultsHashesByTx"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
