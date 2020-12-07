@@ -464,21 +464,27 @@ func (sc *scProcessor) isSelfShard(address []byte) bool {
 	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
 }
 
+func safeSubUint64(a, b uint64) uint64 {
+	if a < b {
+		return 0
+	}
+	return a - b
+}
+
 func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) (*big.Int, *big.Int) {
-	if tx.GetGasLimit() < vmOutput.GasRemaining {
-		log.Error("gasLimit uint64 overflow line 474")
+	if tx.GetGasLimit() == 0 {
+		return big.NewInt(0), big.NewInt(0)
 	}
-	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
 
-	if !sc.isSelfShard(tx.GetSndAddr()) {
-		if consumedGas < sc.economicsFee.ComputeGasLimit(tx) {
-			log.Error("gasLimit uint64 overflow line 480")
-		}
-		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
+	senderInAnotherShard := !sc.isSelfShard(tx.GetSndAddr())
+	consumedGas := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+	if senderInAnotherShard {
+		consumedGas = safeSubUint64(consumedGas, sc.economicsFee.ComputeGasLimit(tx))
+		consumedGas = safeSubUint64(consumedGas, builtInFuncGasUsed)
 	}
 
 	for _, outAcc := range vmOutput.OutputAccounts {
@@ -487,18 +493,15 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 			for _, outTransfer := range outAcc.OutputTransfers {
 				sentGas += outTransfer.GasLimit
 			}
-			if consumedGas < sentGas {
-				log.Error("gasLimit uint64 overflow line 492")
-			}
-			consumedGas -= sentGas
+			consumedGas = safeSubUint64(consumedGas, sentGas)
 		}
 	}
 
 	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
-	if consumedGas < builtInFuncGasUsed {
-		log.Error("gasLimit uint64 overflow line 501")
+
+	if !senderInAnotherShard {
+		consumedGas = safeSubUint64(consumedGas, builtInFuncGasUsed)
 	}
-	consumedGas -= builtInFuncGasUsed
 	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGas)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
@@ -583,6 +586,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+	builtInFuncGasUsed := vmInput.GasProvided - vmOutput.GasRemaining
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -593,7 +597,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	createdAsyncCallback := false
-	builtInFuncGasUsed := vmInput.GasProvided - vmOutput.GasRemaining
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
@@ -1263,10 +1266,6 @@ func (sc *scProcessor) createSCRsWhenError(
 			scr.GasPrice = tx.GetGasPrice()
 			if tx.GetGasLimit() >= gasLocked {
 				scr.GasLimit = gasLocked
-				if tx.GetGasLimit() < gasLocked {
-					log.Error("gasLimit out of bounds error line 1268")
-				}
-
 				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasLocked)
 			}
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))

@@ -94,7 +94,8 @@ func (e *esdtBurn) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{GasRemaining: vmInput.GasProvided - e.funcGasCost}
+	gasRemaining := computeGasRemaining(acntSnd, vmInput.GasProvided, e.funcGasCost)
+	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
 	if core.IsSmartContractAddress(vmInput.CallerAddr) {
 		addOutPutTransferToVMOutput(
 			core.BuiltInFunctionESDTBurn,
