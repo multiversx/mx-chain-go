@@ -481,3 +481,40 @@ func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bo
 
 	return false
 }
+
+func TestIsSCRForSenderWithGasUsed(t *testing.T) {
+	t.Parallel()
+
+	txHash := "txHash"
+	nonce := uint64(10)
+	sender := "sender"
+
+	tx := &Transaction{
+		Hash:   txHash,
+		Nonce:  nonce,
+		Sender: sender,
+	}
+	sc := ScResult{
+		Data:      []byte("@" + hex.EncodeToString([]byte("ok")) + "@something"),
+		Nonce:     nonce + 1,
+		Receiver:  sender,
+		PreTxHash: txHash,
+	}
+
+	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
+}
+
+func TestComputeTxGasUsedField(t *testing.T) {
+	t.Parallel()
+
+	tx := &Transaction{
+		GasLimit: 500,
+		GasPrice: 10,
+	}
+	sc := ScResult{
+		Value: "3000",
+	}
+
+	expectedGasUsed := uint64(200)
+	require.Equal(t, expectedGasUsed, computeTxGasUsedField(sc, tx))
+}
