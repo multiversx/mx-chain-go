@@ -748,7 +748,8 @@ func (netMes *networkMessenger) Broadcast(topic string, buff []byte) {
 // RegisterMessageProcessor registers a message process on a topic
 func (netMes *networkMessenger) RegisterMessageProcessor(topic string, handler p2p.MessageProcessor) error {
 	if check.IfNil(handler) {
-		return p2p.ErrNilValidator
+		return fmt.Errorf("%w when calling networkMessenger.RegisterMessageProcessor for topic %s",
+			p2p.ErrNilValidator, topic)
 	}
 
 	netMes.mutTopics.Lock()
@@ -993,7 +994,7 @@ func (netMes *networkMessenger) directMessageHandler(message *pubsub.Message, fr
 	netMes.mutTopics.RUnlock()
 
 	if processor == nil {
-		return p2p.ErrNilValidator
+		return fmt.Errorf("%w on directMessageHandler for topic %s", p2p.ErrNilValidator, topic)
 	}
 
 	go func(msg p2p.MessageP2P) {
