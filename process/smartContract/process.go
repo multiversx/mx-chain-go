@@ -586,7 +586,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
-	builtInFuncGasUsed := vmInput.GasProvided - vmOutput.GasRemaining
+	builtInFuncGasUsed := safeSubUint64(vmInput.GasProvided, vmOutput.GasRemaining)
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {

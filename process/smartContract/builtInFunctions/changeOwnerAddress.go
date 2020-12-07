@@ -75,6 +75,8 @@ func computeGasRemaining(snd state.UserAccountHandler, gasProvided uint64, gasTo
 	if gasProvided < gasToUse {
 		return 0
 	}
+	// in case of built in functions - gas is consumed in sender shard, returned already in sender shard
+	// thus we must return with 0 here
 	if check.IfNil(snd) {
 		return 0
 	}

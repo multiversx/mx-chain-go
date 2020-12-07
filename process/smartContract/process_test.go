@@ -2324,3 +2324,57 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	require.Equal(t, 0, len(finalArguments))
 	require.Equal(t, gasLocked, outTransfer.GasLocked)
 }
+
+func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+		return 0
+	}}
+	feeHandler := &mock.FeeHandlerStub{ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		return 0
+	}}
+	arguments.EconomicsFee = feeHandler
+	arguments.Coordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(0))
+	assert.Equal(t, devFees.Int64(), int64(0))
+
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 200}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(0))
+	assert.Equal(t, devFees.Int64(), int64(0))
+
+	totalFee, _ = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(50))
+
+	feeHandler.DeveloperPercentageCalled = func() float64 {
+		return 0.5
+	}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	assert.Equal(t, totalFee.Int64(), int64(50))
+	assert.Equal(t, devFees.Int64(), int64(20))
+
+	feeHandler.ComputeGasLimitCalled = func(tx process.TransactionWithFeeHandler) uint64 {
+		return 10
+	}
+	shardCoordinator.SelfIdCalled = func() uint32 {
+		return 1
+	}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	assert.Equal(t, totalFee.Int64(), int64(30))
+	assert.Equal(t, devFees.Int64(), int64(15))
+
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 50}
+	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+	vmOutput.OutputAccounts["address"] = &vmcommon.OutputAccount{OutputTransfers: []vmcommon.OutputTransfer{{GasLimit: 10}}}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(
+		&transaction.Transaction{GasLimit: 100, GasPrice: 1},
+		vmOutput,
+		10)
+	assert.Equal(t, totalFee.Int64(), int64(20))
+	assert.Equal(t, devFees.Int64(), int64(10))
+}
