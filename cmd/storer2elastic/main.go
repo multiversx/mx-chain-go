@@ -185,6 +185,7 @@ func startStorer2Elastic(ctx *cli.Context) error {
 		flagsValues.nodesSetupFilePath,
 		addressPubKeyConverter,
 		validatorPubKeyConverter,
+		nodeConfig.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return err

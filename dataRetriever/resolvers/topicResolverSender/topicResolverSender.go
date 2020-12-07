@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/random"
@@ -20,6 +21,7 @@ const topicRequestSuffix = "_REQUEST"
 const minPeersToQuery = 2
 
 var _ dataRetriever.TopicResolverSender = (*topicResolverSender)(nil)
+var log = logger.GetOrCreate("dataretriever/resolverstopicresolversender")
 
 // ArgTopicResolverSender is the argument structure used to create new TopicResolverSender instance
 type ArgTopicResolverSender struct {
@@ -106,10 +108,10 @@ func (trs *topicResolverSender) SendOnRequestTopic(rd *dataRetriever.RequestData
 	topicToSendRequest := trs.topicName + topicRequestSuffix
 
 	crossPeers := trs.peerListCreator.PeerList()
-	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers)
+	numSentCross := trs.sendOnTopic(crossPeers, topicToSendRequest, buff, trs.numCrossShardPeers, "cross peer")
 
 	intraPeers := trs.peerListCreator.IntraShardPeerList()
-	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers)
+	numSentIntra := trs.sendOnTopic(intraPeers, topicToSendRequest, buff, trs.numIntraShardPeers, "intra peer")
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
@@ -140,7 +142,7 @@ func createIndexList(listLength int) []int {
 	return indexes
 }
 
-func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendRequest string, buff []byte, maxToSend int) int {
+func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendRequest string, buff []byte, maxToSend int, peerType string) int {
 	if len(peerList) == 0 || maxToSend == 0 {
 		return 0
 	}
@@ -148,20 +150,24 @@ func (trs *topicResolverSender) sendOnTopic(peerList []core.PeerID, topicToSendR
 	indexes := createIndexList(len(peerList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 
+	logData := make([]interface{}, 0)
 	msgSentCounter := 0
-	for idx := range shuffledIndexes {
-		peer := peerList[idx]
+	for _, shuffledIndex := range shuffledIndexes {
+		peer := peerList[shuffledIndex]
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer)
 		if err != nil {
 			continue
 		}
 
+		logData = append(logData, peerType)
+		logData = append(logData, peer.Pretty())
 		msgSentCounter++
 		if msgSentCounter == maxToSend {
 			break
 		}
 	}
+	log.Trace("requests are sent to", logData...)
 
 	return msgSentCounter
 }
