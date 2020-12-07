@@ -469,7 +469,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) (*big.Int, *big.Int) {
-	if tx.GetGasLimit() > vmOutput.GasRemaining {
+	if tx.GetGasLimit() < vmOutput.GasRemaining {
 		log.Error("gasLimit uint64 overflow line 474")
 	}
 	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
