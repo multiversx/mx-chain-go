@@ -1264,6 +1264,10 @@ func (sc *scProcessor) createSCRsWhenError(
 			scr.GasPrice = tx.GetGasPrice()
 			if tx.GetGasLimit() >= gasLocked {
 				scr.GasLimit = gasLocked
+				if tx.GetGasLimit() < gasLocked {
+					log.Error("gasLimit out of bounds error line 1268")
+				}
+
 				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasLocked)
 			}
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
