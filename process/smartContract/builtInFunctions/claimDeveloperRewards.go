@@ -63,7 +63,7 @@ func (c *claimDeveloperRewards) ProcessBuiltinFunction(
 		return nil, err
 	}
 
-	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining}
+	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	outTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: 0,

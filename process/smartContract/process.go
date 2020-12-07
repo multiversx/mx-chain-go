@@ -480,9 +480,9 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		return big.NewInt(0), big.NewInt(0)
 	}
 
-	senderInAnotherShard := !sc.isSelfShard(tx.GetSndAddr())
+	senderInSelfShard := sc.isSelfShard(tx.GetSndAddr())
 	consumedGas := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
-	if senderInAnotherShard {
+	if !senderInSelfShard {
 		consumedGas = safeSubUint64(consumedGas, sc.economicsFee.ComputeGasLimit(tx))
 		consumedGas = safeSubUint64(consumedGas, builtInFuncGasUsed)
 	}
@@ -499,10 +499,11 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 
 	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
 
-	if !senderInAnotherShard {
-		consumedGas = safeSubUint64(consumedGas, builtInFuncGasUsed)
+	consumedGasWithoutBuiltin := consumedGas
+	if senderInSelfShard {
+		consumedGasWithoutBuiltin = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 	}
-	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGas)
+	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
 	return totalFee, totalDevRwd
