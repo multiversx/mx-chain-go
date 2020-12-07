@@ -468,12 +468,12 @@ func TestUpdateMiniBlock(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:    &testscommon.MarshalizerMock{},
-		Hasher:         &testscommon.HasherMock{},
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		AddressPubkeyConverter:   testscommon.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EnabledIndexes: map[string]struct{}{
 			"miniblocks": {},
 		},
