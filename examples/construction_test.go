@@ -1,4 +1,4 @@
-package transaction
+package examples
 
 import (
 	"encoding/hex"
@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto/signing"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519"
 	"github.com/ElrondNetwork/elrond-go/crypto/signing/ed25519/singlesig"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/blake2b"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ var contentHasher = &blake2b.Blake2b{}
 const alicePrivateKeyHex = "413f42575f7f26fad3317a778771212fdb80245850981e48b58a4f25e344e8f9"
 
 func TestConstructTransaction_NoDataNoValue(t *testing.T) {
-	tx := &Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    89,
 		Value:    big.NewInt(0),
 		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
@@ -46,7 +47,7 @@ func TestConstructTransaction_NoDataNoValue(t *testing.T) {
 }
 
 func TestConstructTransaction_WithDataNoValue(t *testing.T) {
-	tx := &Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    90,
 		Value:    big.NewInt(0),
 		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
@@ -69,7 +70,7 @@ func TestConstructTransaction_WithDataNoValue(t *testing.T) {
 }
 
 func TestConstructTransaction_WithDataWithValue(t *testing.T) {
-	tx := &Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    91,
 		Value:    stringToBigInt("10000000000000000000"),
 		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
@@ -92,7 +93,7 @@ func TestConstructTransaction_WithDataWithValue(t *testing.T) {
 }
 
 func TestConstructTransaction_WithDataWithLargeValue(t *testing.T) {
-	tx := &Transaction{
+	tx := &transaction.Transaction{
 		Nonce:    92,
 		Value:    stringToBigInt("123456789000000000000000000000"),
 		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
@@ -126,7 +127,7 @@ func getPubkeyOfAddress(t *testing.T, address string) []byte {
 	return pubkey
 }
 
-func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *Transaction) []byte {
+func computeTransactionSignature(t *testing.T, senderSeedHex string, tx *transaction.Transaction) []byte {
 	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
 
 	senderSeed, err := hex.DecodeString(senderSeedHex)
