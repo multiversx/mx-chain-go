@@ -498,11 +498,13 @@ func (txProc *txProcessor) processRelayedTx(
 
 	_, args, err := txProc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
+		//TODO: check if return code 0 is ok here
 		return 0, err
 	}
 
 	relayerAcnt, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
 	if err != nil {
+		//TODO: check if return code 0 is ok here
 		return 0, err
 	}
 

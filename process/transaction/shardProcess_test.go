@@ -405,6 +405,76 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
+func TestTxProcessor_CheckTxValuesMismatchedSenderUsernamesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte{65}
+	senderAcc, err := state.NewUserAccount(adr1)
+
+	assert.Nil(t, err)
+
+	execTx := *createTxProcessor()
+
+	senderAcc.Balance = big.NewInt(67)
+	senderAcc.UserName = []byte("SRC")
+
+	tx := &transaction.Transaction{
+		Value:       big.NewInt(10),
+		SndUserName: []byte("notCorrect"),
+	}
+
+	err = execTx.CheckTxValues(tx, senderAcc, nil)
+	assert.Equal(t, process.ErrUserNameDoesNotMatch, err)
+}
+
+func TestTxProcessor_CheckTxValuesMismatchedReceiverUsernamesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte{65}
+	receiverAcc, err := state.NewUserAccount(adr1)
+
+	assert.Nil(t, err)
+
+	execTx := *createTxProcessor()
+
+	receiverAcc.Balance = big.NewInt(67)
+	receiverAcc.UserName = []byte("RECV")
+
+	tx := &transaction.Transaction{
+		Value:       big.NewInt(10),
+		RcvUserName: []byte("notCorrect"),
+	}
+
+	err = execTx.CheckTxValues(tx, nil, receiverAcc)
+	assert.Equal(t, process.ErrUserNameDoesNotMatchInCrossShardTx, err)
+}
+
+func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	adr1 := []byte{65}
+	senderAcc, err := state.NewUserAccount(adr1)
+	adr2 := []byte{66}
+	recvAcc, err := state.NewUserAccount(adr2)
+
+	assert.Nil(t, err)
+
+	execTx := *createTxProcessor()
+
+	senderAcc.Balance = big.NewInt(67)
+	senderAcc.UserName = []byte("SRC")
+	recvAcc.UserName = []byte("RECV")
+
+	tx := &transaction.Transaction{
+		Value:       big.NewInt(10),
+		SndUserName: senderAcc.UserName,
+		RcvUserName: recvAcc.UserName,
+	}
+
+	err = execTx.CheckTxValues(tx, senderAcc, recvAcc)
+	assert.Nil(t, err)
+}
+
 func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -504,11 +574,8 @@ func TestTxProcessor_ProcessMoveBalancesShouldPassWhenAdrSrcIsNotInNodeShard(t *
 	testProcessCheck(t, 0, big.NewInt(0))
 }
 
-func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
+func TestTxProcessor_ProcessWithTxFeeHandlerCheckErrorShouldErr(t *testing.T) {
 	t.Parallel()
-
-	saveAccountCalled := 0
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
 	tx := transaction.Transaction{}
 	tx.Nonce = 0
@@ -516,31 +583,184 @@ func TestTxProcessor_ProcessMoveBalanceToSmartNonPayableContract(t *testing.T) {
 	tx.RcvAddr = make([]byte, 32)
 	tx.Value = big.NewInt(0)
 
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		return 0
-	}
-
 	acntSrc, err := state.NewUserAccount(tx.SndAddr)
 	assert.Nil(t, err)
 	acntDst, err := state.NewUserAccount(tx.RcvAddr)
 	assert.Nil(t, err)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
-	adb.SaveAccountCalled = func(account state.AccountHandler) error {
-		saveAccountCalled++
-		return nil
-	}
+
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
-	args.ScProcessor = &mock.SCProcessorMock{
-		IsPayableCalled: func(address []byte) (bool, error) {
-			return false, nil
+
+	expectedError := errors.New("validatity check failed")
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return expectedError
+		}}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, expectedError, err)
+}
+
+func TestTxProcessor_ProcessWithWrongAssertionShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
+			return &mock.PeerAccountHandlerMock{}, nil
 		},
 	}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err := execTx.ProcessTransaction(&tx)
+	assert.Equal(t, process.ErrWrongTypeAssertion, err)
+}
+
+func TestTxProcessor_ProcessWithTxFeeHandlerInsufficientFeeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(9)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(0).Add(acntSrc.Balance, big.NewInt(1))
+		}}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.True(t, errors.Is(err, process.ErrInsufficientFee))
+}
+
+func TestTxProcessor_ProcessWithInsufficientFundsShouldCreateReceiptErr(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(9)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return process.ErrInsufficientFunds
+		}}
+
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrFailedTransaction, err)
+	assert.Equal(t, uint64(1), acntSrc.Nonce)
+}
+
+func TestTxProcessor_ProcessWithUsernameMismatchCreateReceiptErr(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(9)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return process.ErrUserNameDoesNotMatchInCrossShardTx
+		}}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+}
+
+func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *testing.T) {
+	t.Parallel()
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, 32)
+	tx.Value = big.NewInt(0)
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(9)
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return process.ErrUserNameDoesNotMatchInCrossShardTx
+		}}
+
+	expectedError := errors.New("expected")
+	scProcessor := &mock.SCProcessorMock{
+		ProcessIfErrorCalled: func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error {
+			return expectedError
+		},
+	}
+
+	args.ScProcessor = scProcessor
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Equal(t, expectedError, err)
 }
 
 func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
@@ -1190,6 +1410,71 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	returnCode, err = execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+}
+
+func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *testing.T) {
+	t.Parallel()
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	userTx := transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(50),
+		RcvAddr:  []byte("sDST"),
+		SndAddr:  userAddr,
+		GasPrice: 1,
+		GasLimit: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxMarshalled, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	parseError := errors.New("parse error")
+
+	args := createArgsForTxProcessor()
+	args.ArgsParser = &mock.ArgumentParserMock{
+		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+			return "", nil, parseError
+		}}
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(10)
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
+	acntFinal.Balance = big.NewInt(10)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTx.RcvAddr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	args.Accounts = adb
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
+		return process.RelayedTx
+	}}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	returnCode, err := execTx.ProcessTransaction(&tx)
+	assert.Equal(t, parseError, err)
+	assert.Equal(t, vmcommon.Ok, returnCode)
 }
 
 func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {

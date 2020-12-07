@@ -262,6 +262,7 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if tx.Value.Sign() < 0 {
 		return process.ErrNegativeValue
 	}
+	//TODO: check these checks - why len(RecvUserName) != hasher.Size() ?
 	if len(inTx.tx.RcvUserName) > 0 && len(inTx.tx.RcvUserName) != inTx.hasher.Size() {
 		return process.ErrInvalidUserNameLength
 	}
