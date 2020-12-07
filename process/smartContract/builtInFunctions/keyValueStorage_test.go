@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,12 +17,13 @@ func TestSaveKeyValue_ProcessBuiltinFunction(t *testing.T) {
 	t.Parallel()
 
 	funcGasCost := uint64(1)
-	gasConfig := BaseOperationCost{
-		StorePerByte:    1,
-		ReleasePerByte:  1,
-		DataCopyPerByte: 1,
-		PersistPerByte:  1,
-		CompilePerByte:  1,
+	gasConfig := process.BaseOperationCost{
+		StorePerByte:      1,
+		ReleasePerByte:    1,
+		DataCopyPerByte:   1,
+		PersistPerByte:    1,
+		CompilePerByte:    1,
+		AoTPreparePerByte: 1,
 	}
 
 	skv, _ := NewSaveKeyValueStorageFunc(gasConfig, funcGasCost)
@@ -72,7 +73,7 @@ func TestSaveKeyValue_ProcessBuiltinFunctionMultipleKeys(t *testing.T) {
 	t.Parallel()
 
 	funcGasCost := uint64(1)
-	gasConfig := BaseOperationCost{
+	gasConfig := process.BaseOperationCost{
 		StorePerByte:    1,
 		ReleasePerByte:  1,
 		DataCopyPerByte: 1,

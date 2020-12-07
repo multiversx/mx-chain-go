@@ -35,7 +35,7 @@ func TestNewConnectionMonitor_ListSharderWithReconnecterShouldWork(t *testing.T)
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Sharder = &mock.SharderStub{}
+	arg.Sharder = &mock.KadSharderStub{}
 	cm, err := NewConnectionMonitor(arg)
 
 	assert.False(t, check.IfNil(cm))
@@ -49,7 +49,7 @@ func TestNewConnectionMonitor_InvalidSharderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArg()
-	arg.Sharder = &mock.CommonSharder{}
+	arg.Sharder = &mock.SharderStub{}
 	cm, err := NewConnectionMonitor(arg)
 
 	assert.True(t, check.IfNil(cm))

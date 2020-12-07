@@ -10,6 +10,7 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/partitioning"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -90,6 +91,8 @@ type epochStartBootstrap struct {
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
+	enableSignTxWithHashEpoch  uint32
+	epochNotifier              process.EpochNotifier
 
 	// created components
 	requestHandler            process.RequestHandler
@@ -174,6 +177,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeType:                   core.NodeTypeObserver,
 		argumentsParser:            args.ArgumentsParser,
 		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
+		enableSignTxWithHashEpoch:  args.GeneralConfig.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
+		epochNotifier:              args.CoreComponentsHolder.EpochNotifier(),
 	}
 
 	whiteListCache, err := storageUnit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -443,16 +448,18 @@ func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		Messenger:               e.messenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		CoreComponents:            e.coreComponentsHolder,
+		CryptoComponents:          e.cryptoComponentsHolder,
+		Config:                    e.generalConfig,
+		ShardCoordinator:          e.shardCoordinator,
+		Messenger:                 e.messenger,
+		DataPool:                  e.dataPool,
+		WhiteListHandler:          e.whiteListHandler,
+		WhiteListerVerifiedTxs:    e.whiteListerVerifiedTxs,
+		ArgumentsParser:           e.argumentsParser,
+		HeaderIntegrityVerifier:   e.headerIntegrityVerifier,
+		EnableSignTxWithHashEpoch: e.enableSignTxWithHashEpoch,
+		EpochNotifier:             e.epochNotifier,
 	}
 
 	e.interceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -813,6 +820,8 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 }
 
 func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) error {
+	e.tryCloseExisting(factory.UserAccountTrie)
+	e.tryCloseExisting(factory.PeerAccountTrie)
 
 	trieFactoryArgs := factory.TrieFactoryArgs{
 		EvictionWaitingListCfg:   e.generalConfig.EvictionWaitingList,
@@ -858,6 +867,18 @@ func (e *epochStartBootstrap) createTriesComponentsForShardId(shardId uint32) er
 	e.mutTrieStorageManagers.Unlock()
 
 	return nil
+}
+
+func (e *epochStartBootstrap) tryCloseExisting(trieType string) {
+	e.mutTrieStorageManagers.RLock()
+	existingStorageManager := e.trieStorageManagers[trieType]
+	e.mutTrieStorageManagers.RUnlock()
+	if !check.IfNil(existingStorageManager) {
+		err := existingStorageManager.Close()
+		if err != nil {
+			log.Warn("failed to close existing storage manager", "error", err)
+		}
+	}
 }
 
 func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {

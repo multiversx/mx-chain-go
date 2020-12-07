@@ -77,6 +77,10 @@ func elasticDefaultErrorResponseHandler(res *esapi.Response) error {
 		if errIsAlreadyExists(responseBody) {
 			return nil
 		}
+		if isErrAliasAlreadyExists(responseBody) {
+			log.Debug("alias already exists", "response", responseBody)
+			return nil
+		}
 	}
 	if res.StatusCode == http.StatusOK || res.StatusCode == http.StatusCreated {
 		return nil
@@ -107,6 +111,29 @@ func errIsAlreadyExists(response map[string]interface{}) bool {
 	}
 
 	return existsString == alreadyExistsMessage
+}
+
+func isErrAliasAlreadyExists(response map[string]interface{}) bool {
+	aliasExistsMessage := "invalid_alias_name_exception"
+	errKey := "error"
+	typeKey := "type"
+
+	errMapI, ok := response[errKey]
+	if !ok {
+		return false
+	}
+
+	errMap, ok := errMapI.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	existsString, ok := errMap[typeKey].(string)
+	if !ok {
+		return false
+	}
+
+	return existsString == aliasExistsMessage
 }
 
 func kibanaResponseErrorHandler(res *esapi.Response) error {

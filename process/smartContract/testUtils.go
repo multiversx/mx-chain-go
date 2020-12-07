@@ -51,6 +51,37 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 	return nil
 }
 
+// GetGasRemaining returns the remaining gas from the last transaction
+func GetGasRemaining(scProcessorAsInterface interface{}) uint64 {
+	scProc, ok := scProcessorAsInterface.(*scProcessor)
+	if !ok {
+		return 0
+	}
+
+	scrProvider, ok := scProc.scrForwarder.(interface {
+		GetIntermediateTransactions() []data.TransactionHandler
+	})
+	if !ok {
+		return 0
+	}
+
+	scResults := scrProvider.GetIntermediateTransactions()
+	for i := len(scResults) - 1; i >= 0; i-- {
+		tx := scResults[i]
+		txData := string(tx.GetData())
+		dataTrimmed := strings.Trim(txData, "@")
+
+		parts := strings.Split(dataTrimmed, "@")
+		if len(parts) == 0 {
+			continue
+		}
+
+		return tx.GetGasLimit()
+	}
+
+	return 0
+}
+
 // GetAllSCRs returns all generated scrs
 func GetAllSCRs(scProcessorAsInterface interface{}) []data.TransactionHandler {
 	scProc, ok := scProcessorAsInterface.(*scProcessor)

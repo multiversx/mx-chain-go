@@ -1,10 +1,7 @@
 package mock
 
 import (
-	"errors"
-
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 )
 
 // StorageManagerStub --
@@ -20,6 +17,8 @@ type StorageManagerStub struct {
 	IsPruningEnabledCalled            func() bool
 	EnterSnapshotModeCalled           func()
 	ExitSnapshotModeCalled            func()
+	EnterPruningBufferingModeCalled   func()
+	ExitPruningBufferingModeCalled    func()
 	IsInterfaceNilCalled              func() bool
 }
 
@@ -28,15 +27,7 @@ func (sms *StorageManagerStub) Database() data.DBWriteCacher {
 	if sms.DatabaseCalled != nil {
 		return sms.DatabaseCalled()
 	}
-
-	return &testscommon.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, errors.New("key not found")
-		},
-		PutCalled: func(key, data []byte) error {
-			return nil
-		},
-	}
+	return nil
 }
 
 // TakeSnapshot --
@@ -106,6 +97,20 @@ func (sms *StorageManagerStub) GetSnapshotDbBatchDelay() int {
 // Close -
 func (sms *StorageManagerStub) Close() error {
 	return nil
+}
+
+// EnterPruningBufferingMode -
+func (sms *StorageManagerStub) EnterPruningBufferingMode() {
+	if sms.EnterPruningBufferingModeCalled != nil {
+		sms.EnterPruningBufferingModeCalled()
+	}
+}
+
+// ExitPruningBufferingMode -
+func (sms *StorageManagerStub) ExitPruningBufferingMode() {
+	if sms.ExitPruningBufferingModeCalled != nil {
+		sms.ExitPruningBufferingModeCalled()
+	}
 }
 
 // IsInterfaceNil --

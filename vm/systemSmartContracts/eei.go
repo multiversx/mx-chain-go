@@ -5,20 +5,21 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 type vmContext struct {
-	blockChainHook      vmcommon.BlockchainHook
+	blockChainHook      vm.BlockchainHook
 	cryptoHook          vmcommon.CryptoHook
 	validatorAccountsDB state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      sharding.ChanceComputer
 	scAddress           []byte
+	shardCoordinator    sharding.Coordinator
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount
@@ -30,7 +31,7 @@ type vmContext struct {
 
 // NewVMContext creates a context where smart contracts can run and write
 func NewVMContext(
-	blockChainHook vmcommon.BlockchainHook,
+	blockChainHook vm.BlockchainHook,
 	cryptoHook vmcommon.CryptoHook,
 	inputParser vm.ArgumentsParser,
 	validatorAccountsDB state.AccountsAdapter,
@@ -137,8 +138,29 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 }
 
 // SendGlobalSettingToAll handles sending the information to all the shards
-func (host *vmContext) SendGlobalSettingToAll(_ []byte, _ []byte) {
-	//TODO: implement this
+func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
+	outputTransfer := vmcommon.OutputTransfer{
+		Value:    big.NewInt(0),
+		Data:     input,
+		CallType: vmcommon.DirectCall,
+	}
+
+	for i := uint8(0); i < uint8(host.blockChainHook.NumberOfShards()); i++ {
+		systemAddress := make([]byte, len(core.SystemAccountAddress))
+		copy(systemAddress, core.SystemAccountAddress)
+		systemAddress[len(core.SystemAccountAddress)-1] = i
+
+		globalOutAcc, exists := host.outputAccounts[string(systemAddress)]
+		if !exists {
+			globalOutAcc = &vmcommon.OutputAccount{
+				Address:      systemAddress,
+				Balance:      big.NewInt(0),
+				BalanceDelta: big.NewInt(0),
+			}
+		}
+		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
+		host.outputAccounts[string(systemAddress)] = globalOutAcc
+	}
 }
 
 // Transfer handles any necessary value transfer required and takes
@@ -299,7 +321,7 @@ func (host *vmContext) AddReturnMessage(message string) {
 }
 
 // BlockChainHook returns the blockchain hook
-func (host *vmContext) BlockChainHook() vmcommon.BlockchainHook {
+func (host *vmContext) BlockChainHook() vm.BlockchainHook {
 	return host.blockChainHook
 }
 
