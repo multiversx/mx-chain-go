@@ -5,6 +5,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -14,6 +15,7 @@ type CoreComponentsMock struct {
 	IntMarsh                    marshal.Marshalizer
 	TxMarsh                     marshal.Marshalizer
 	Hash                        hashing.Hasher
+	TxSignHasherField           hashing.Hasher
 	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
@@ -22,6 +24,8 @@ type CoreComponentsMock struct {
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField         process.TxVersionCheckerHandler
+	EpochNotifierField          process.EpochNotifier
 }
 
 // InternalMarshalizer -
@@ -43,6 +47,11 @@ func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
+}
+
+// TxSignHasher -
+func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
+	return ccm.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -
@@ -81,6 +90,11 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return 1
 }
 
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccm.TxVersionCheckField
+}
+
 // StatusHandler -
 func (ccm *CoreComponentsMock) StatusHandler() core.AppStatusHandler {
 	if ccm.StatusHandlerCalled != nil {
@@ -95,6 +109,11 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 		return ccm.GenesisNodesSetupCalled()
 	}
 	return nil
+}
+
+// EpochNotifier -
+func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
+	return ccm.EpochNotifierField
 }
 
 // IsInterfaceNil -

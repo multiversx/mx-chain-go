@@ -79,30 +79,16 @@ func (p *pendingMiniBlocks) SyncPendingMiniBlocksFromMeta(epochStart *block.Meta
 		return update.ErrNotEpochStartBlock
 	}
 	if unFinished == nil {
-		return update.ErrWrongUnfinishedMetaHdrsMap
+		return update.ErrWrongUnFinishedMetaHdrsMap
 	}
 
 	for hash, meta := range unFinished {
 		log.Debug("syncing miniblocks from unFinished meta", "hash", []byte(hash), "nonce", meta.Nonce)
 	}
 
-	listPendingMiniBlocks := make([]block.MiniBlockHeader, 0)
-	nonceToHashMap := p.createNonceToHashMap(unFinished)
-
-	for _, shardData := range epochStart.EpochStart.LastFinalizedHeaders {
-		computedPending, err := p.computePendingMiniBlocksFromUnFinished(shardData, unFinished, nonceToHashMap, epochStart.GetNonce())
-		if err != nil {
-			return err
-		}
-
-		listPendingMiniBlocks = append(listPendingMiniBlocks, computedPending...)
-	}
-
-	for _, val := range epochStart.MiniBlockHeaders {
-		if val.SenderShardID != core.MetachainShardId || val.Type == block.PeerBlock {
-			continue
-		}
-		listPendingMiniBlocks = append(listPendingMiniBlocks, val)
+	listPendingMiniBlocks, err := update.GetPendingMiniBlocks(epochStart, unFinished)
+	if err != nil {
+		return err
 	}
 
 	return p.syncMiniBlocks(listPendingMiniBlocks, ctx)
@@ -171,71 +157,6 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []block.MiniBlo
 			return update.ErrTimeIsOut
 		}
 	}
-}
-
-func (p *pendingMiniBlocks) createNonceToHashMap(unFinished map[string]*block.MetaBlock) map[uint64]string {
-	nonceToHash := make(map[uint64]string, len(unFinished))
-	for hash, meta := range unFinished {
-		nonceToHash[meta.GetNonce()] = hash
-	}
-
-	return nonceToHash
-}
-
-func (p *pendingMiniBlocks) computePendingMiniBlocksFromUnFinished(
-	shardData block.EpochStartShardData,
-	unFinished map[string]*block.MetaBlock,
-	nonceToHash map[uint64]string,
-	epochStartNonce uint64,
-) ([]block.MiniBlockHeader, error) {
-	pending := make([]block.MiniBlockHeader, 0)
-	pending = append(pending, shardData.PendingMiniBlockHeaders...)
-
-	firstPendingMeta, ok := unFinished[string(shardData.FirstPendingMetaBlock)]
-	if !ok {
-		return nil, update.ErrWrongUnfinishedMetaHdrsMap
-	}
-
-	firstUnFinishedNonce := firstPendingMeta.GetNonce()
-	for nonce := firstUnFinishedNonce + 1; nonce <= epochStartNonce; nonce++ {
-		metaHash, exists := nonceToHash[nonce]
-		if !exists {
-			return nil, update.ErrWrongUnfinishedMetaHdrsMap
-		}
-
-		meta, exists := unFinished[metaHash]
-		if !exists {
-			return nil, update.ErrWrongUnfinishedMetaHdrsMap
-		}
-
-		pendingFromCurrentMeta := getAllMiniBlocksWithDst(meta, shardData.ShardID)
-		pending = append(pending, pendingFromCurrentMeta...)
-	}
-
-	return pending, nil
-}
-
-func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) []block.MiniBlockHeader {
-	mbHdrs := make([]block.MiniBlockHeader, 0)
-	for i := 0; i < len(m.ShardInfo); i++ {
-		if m.ShardInfo[i].ShardID == destId {
-			continue
-		}
-
-		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
-			if val.ReceiverShardID == destId && val.SenderShardID != destId {
-				mbHdrs = append(mbHdrs, val)
-			}
-		}
-	}
-
-	for _, val := range m.MiniBlockHeaders {
-		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			mbHdrs = append(mbHdrs, val)
-		}
-	}
-
-	return mbHdrs
 }
 
 // receivedMiniBlock is a callback function when a new miniblock was received

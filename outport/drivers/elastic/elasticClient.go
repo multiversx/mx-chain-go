@@ -214,8 +214,7 @@ func (ec *elasticClient) PolicyExists(policy string) bool {
 // AliasExists checks if an index alias already exists
 func (ec *elasticClient) aliasExists(alias string) bool {
 	aliasRoute := fmt.Sprintf(
-		"%s/_alias/%s",
-		ec.elasticBaseUrl,
+		"/_alias/%s",
 		alias,
 	)
 

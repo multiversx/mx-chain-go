@@ -16,6 +16,7 @@ type PoolsHolderStub struct {
 	CurrBlockTxsCalled         func() dataRetriever.TransactionCacher
 	TrieNodesCalled            func() storage.Cacher
 	PeerChangesBlocksCalled    func() storage.Cacher
+	SmartContractsCalled       func() storage.Cacher
 }
 
 // NewPoolsHolderStub -
@@ -99,6 +100,15 @@ func (holder *PoolsHolderStub) TrieNodes() storage.Cacher {
 func (holder *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 	if holder.PeerChangesBlocksCalled != nil {
 		return holder.PeerChangesBlocksCalled()
+	}
+
+	return NewCacherStub()
+}
+
+// SmartContracts -
+func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
+	if holder.SmartContractsCalled != nil {
+		return holder.SmartContractsCalled()
 	}
 
 	return NewCacherStub()

@@ -461,20 +461,37 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
+	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("./testdata/noKibana", false)
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
-		DBClient:       dbClient,
-		Marshalizer:    &testscommon.MarshalizerMock{},
-		Hasher:         &testscommon.HasherMock{},
-		IndexTemplates: indexTemplates,
-		IndexPolicies:  indexPolicies,
+		DBClient:                 dbClient,
+		Marshalizer:              &testscommon.MarshalizerMock{},
+		Hasher:                   &testscommon.HasherMock{},
+		IndexTemplates:           indexTemplates,
+		IndexPolicies:            indexPolicies,
+		AddressPubkeyConverter:   testscommon.NewPubkeyConverterMock(32),
+		ValidatorPubkeyConverter: testscommon.NewPubkeyConverterMock(32),
+		EnabledIndexes: map[string]struct{}{
+			"miniblocks": {},
+		},
+		Options: &Options{
+			IndexerCacheSize: 100,
+			UseKibana:        false,
+		},
+		AccountsDB:       &mock.AccountsStub{},
+		ShardCoordinator: &mock.ShardCoordinatorMock{},
+		FeeConfig: &config.FeeSettings{
+			MinGasLimit:    "10",
+			GasPerDataByte: "100",
+			MinGasPrice:    "1",
+		},
 	}
 
-	esDatabase, _ := NewElasticProcessor(args)
+	esDatabase, err := NewElasticProcessor(args)
+	require.Nil(t, err)
 
 	header1 := &dataBlock.Header{
 		ShardID: 0,

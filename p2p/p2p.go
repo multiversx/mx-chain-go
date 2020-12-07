@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/hex"
 	"io"
 	"time"
@@ -42,7 +43,7 @@ type PeerDiscoverer interface {
 
 // Reconnecter defines the behaviour of a network reconnection mechanism
 type Reconnecter interface {
-	ReconnectToNetwork() <-chan struct{}
+	ReconnectToNetwork(ctx context.Context)
 	IsInterfaceNil() bool
 }
 
@@ -218,6 +219,7 @@ type PeerShardResolver interface {
 type ConnectedPeersInfo struct {
 	SelfShardID             uint32
 	UnknownPeers            []string
+	Seeders                 []string
 	IntraShardValidators    map[uint32][]string
 	IntraShardObservers     map[uint32][]string
 	CrossShardValidators    map[uint32][]string
@@ -259,8 +261,10 @@ type PeerCounts struct {
 	CrossShardPeers int
 }
 
-// CommonSharder represents the common interface implemented by all sharder implementations
-type CommonSharder interface {
+// Sharder defines the eviction computing process of unwanted peers
+type Sharder interface {
+	SetSeeders(addresses []string)
+	IsSeeder(pid core.PeerID) bool
 	SetPeerShardResolver(psp PeerShardResolver) error
 	IsInterfaceNil() bool
 }

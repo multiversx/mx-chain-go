@@ -1,6 +1,8 @@
 package transaction
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -14,6 +16,7 @@ type transactionCostEstimator struct {
 	query              external.SCQueryService
 	storePerByteCost   uint64
 	compilePerByteCost uint64
+	mutExecution       sync.RWMutex
 }
 
 // NewTransactionCostEstimator will create a new transaction cost estimator
@@ -21,7 +24,7 @@ func NewTransactionCostEstimator(
 	txTypeHandler process.TxTypeHandler,
 	feeHandler process.FeeHandler,
 	query external.SCQueryService,
-	gasSchedule map[string]map[string]uint64,
+	gasSchedule core.GasScheduleNotifier,
 ) (*transactionCostEstimator, error) {
 	if check.IfNil(txTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
@@ -33,7 +36,7 @@ func NewTransactionCostEstimator(
 		return nil, external.ErrNilSCQueryService
 	}
 
-	compileCost, storeCost := getOperationCost(gasSchedule)
+	compileCost, storeCost := getOperationCost(gasSchedule.LatestGasSchedule())
 
 	return &transactionCostEstimator{
 		txTypeHandler:      txTypeHandler,
@@ -42,6 +45,13 @@ func NewTransactionCostEstimator(
 		storePerByteCost:   compileCost,
 		compilePerByteCost: storeCost,
 	}, nil
+}
+
+// GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
+func (tce *transactionCostEstimator) GasScheduleChange(gasSchedule map[string]map[string]uint64) {
+	tce.mutExecution.Lock()
+	tce.compilePerByteCost, tce.storePerByteCost = getOperationCost(gasSchedule)
+	tce.mutExecution.Unlock()
 }
 
 func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64) {
@@ -65,6 +75,9 @@ func getOperationCost(gasSchedule map[string]map[string]uint64) (uint64, uint64)
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
 func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
+	tce.mutExecution.RLock()
+	defer tce.mutExecution.RUnlock()
+
 	txType := tce.txTypeHandler.ComputeTransactionType(tx)
 	tx.GasPrice = 1
 

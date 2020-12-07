@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
@@ -27,7 +28,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 var log = logger.GetOrCreate("genesis/process")
@@ -129,6 +129,11 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		return nil, nil, err
 	}
 
+	err = processors.vmContainersFactory.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return header, scAddresses, nil
 }
 
@@ -185,6 +190,16 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 		return nil, nil, err
 	}
 
+	err = processors.vmContainer.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = processors.vmContainersFactory.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return hdrHandler, make([][]byte, 0), nil
 }
 
@@ -228,33 +243,41 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 
 func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:               arg.GasMap,
+		GasSchedule:          arg.GasSchedule,
 		MapDNSAddresses:      make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          arg.Core.InternalMarshalizer(),
 		Accounts:             arg.Accounts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         arg.Accounts,
-		PubkeyConv:       arg.Core.AddressPubKeyConverter(),
-		StorageService:   arg.Data.StorageService(),
-		BlockChain:       arg.Data.Blockchain(),
-		ShardCoordinator: arg.ShardCoordinator,
-		Marshalizer:      arg.Core.InternalMarshalizer(),
-		Uint64Converter:  arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           arg.Accounts,
+		PubkeyConv:         arg.Core.AddressPubKeyConverter(),
+		StorageService:     arg.Data.StorageService(),
+		BlockChain:         arg.Data.Blockchain(),
+		ShardCoordinator:   arg.ShardCoordinator,
+		Marshalizer:        arg.Core.InternalMarshalizer(),
+		Uint64Converter:    arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           arg.Data.Datapool(),
+		CompiledSCPool:     arg.Data.Datapool().SmartContracts(),
+		NilCompiledSCStore: true,
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(
 		arg.VirtualMachineConfig,
 		math.MaxUint64,
-		arg.GasMap,
+		arg.GasSchedule,
 		argsHook,
 		arg.GeneralConfig.SCDeployEnableEpoch,
+		arg.GeneralConfig.AheadOfTimeGasUsageEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -336,7 +359,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		EconomicsFee:                   genesisFeeHandler,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasHandler,
-		GasSchedule:                    arg.GasMap,
+		GasSchedule:                    arg.GasSchedule,
 		BuiltInFunctions:               vmFactoryImpl.BlockChainHookImpl().GetBuiltInFunctions(),
 		TxLogsProcessor:                arg.TxLogsProcessor,
 		BadTxForwarder:                 badTxInterim,
@@ -377,6 +400,7 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 		EpochNotifier:                  epochNotifier,
 		RelayedTxEnableEpoch:           generalConfig.RelayedTransactionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		MetaProtectionEnableEpoch:      generalConfig.MetaProtectionEnableEpoch,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -445,15 +469,16 @@ func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.
 	}
 
 	return &genesisProcessors{
-		txCoordinator:  txCoordinator,
-		systemSCs:      nil,
-		txProcessor:    transactionProcessor,
-		scProcessor:    scProcessor,
-		scrProcessor:   scProcessor,
-		rwdProcessor:   rewardsTxProcessor,
-		blockchainHook: vmFactoryImpl.BlockChainHookImpl(),
-		queryService:   queryService,
-		vmContainer:    vmContainer,
+		txCoordinator:       txCoordinator,
+		systemSCs:           nil,
+		txProcessor:         transactionProcessor,
+		scProcessor:         scProcessor,
+		scrProcessor:        scProcessor,
+		rwdProcessor:        rewardsTxProcessor,
+		blockchainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		queryService:        queryService,
+		vmContainersFactory: vmFactoryImpl,
+		vmContainer:         vmContainer,
 	}, nil
 }
 

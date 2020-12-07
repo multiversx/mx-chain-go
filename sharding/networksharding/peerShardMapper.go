@@ -2,6 +2,7 @@ package networksharding
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -16,6 +17,7 @@ import (
 
 const maxNumPidsPerPk = 3
 const uint32Size = 4
+const defaultShardId = uint32(0)
 
 var log = logger.GetOrCreate("sharding/networksharding")
 
@@ -31,11 +33,10 @@ var _ p2p.PeerShardResolver = (*PeerShardMapper)(nil)
 // The mapping between shard id and public key is done by the nodes coordinator implementation but the fallbackPkShard
 // fallback map is only used whenever nodes coordinator has a wrong view about the peers in a shard.
 type PeerShardMapper struct {
-	peerIdPk         storage.Cacher
-	pkPeerId         storage.Cacher
-	fallbackPkShard  storage.Cacher
-	fallbackPidShard storage.Cacher
-
+	peerIdPkCache            storage.Cacher
+	pkPeerIdCache            storage.Cacher
+	fallbackPkShardCache     storage.Cacher
+	fallbackPidShardCache    storage.Cacher
 	mutUpdatePeerIdPublicKey sync.Mutex
 
 	mutEpoch         sync.RWMutex
@@ -43,42 +44,45 @@ type PeerShardMapper struct {
 	nodesCoordinator sharding.NodesCoordinator
 }
 
-// NewPeerShardMapper creates a new peerShardMapper instance
-func NewPeerShardMapper(
-	peerIdPk storage.Cacher,
-	fallbackPkShard storage.Cacher,
-	fallbackPidShard storage.Cacher,
-	nodesCoordinator sharding.NodesCoordinator,
-	epochStart uint32,
-) (*PeerShardMapper, error) {
+// ArgPeerShardMapper is the initialization structure for the PeerShardMapper implementation
+type ArgPeerShardMapper struct {
+	PeerIdPkCache         storage.Cacher
+	FallbackPkShardCache  storage.Cacher
+	FallbackPidShardCache storage.Cacher
+	NodesCoordinator      sharding.NodesCoordinator
+	StartEpoch            uint32
+}
 
-	if check.IfNil(nodesCoordinator) {
+// NewPeerShardMapper creates a new peerShardMapper instance
+func NewPeerShardMapper(arg ArgPeerShardMapper) (*PeerShardMapper, error) {
+
+	if check.IfNil(arg.NodesCoordinator) {
 		return nil, sharding.ErrNilNodesCoordinator
 	}
-	if check.IfNil(peerIdPk) {
-		return nil, sharding.ErrNilCacher
+	if check.IfNil(arg.PeerIdPkCache) {
+		return nil, fmt.Errorf("%w for PeerIdPkCache", sharding.ErrNilCacher)
 	}
-	if check.IfNil(fallbackPkShard) {
-		return nil, sharding.ErrNilCacher
+	if check.IfNil(arg.FallbackPkShardCache) {
+		return nil, fmt.Errorf("%w for FallbackPkShardCache", sharding.ErrNilCacher)
 	}
-	if check.IfNil(fallbackPidShard) {
-		return nil, sharding.ErrNilCacher
+	if check.IfNil(arg.FallbackPidShardCache) {
+		return nil, fmt.Errorf("%w for FallbackPidShardCache", sharding.ErrNilCacher)
 	}
 
-	pkPeerId, err := lrucache.NewCache(peerIdPk.MaxSize())
+	pkPeerId, err := lrucache.NewCache(arg.PeerIdPkCache.MaxSize())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("peerShardMapper epoch", "epoch", epochStart)
+	log.Debug("peerShardMapper epoch", "epoch", arg.StartEpoch)
 
 	return &PeerShardMapper{
-		peerIdPk:         peerIdPk,
-		pkPeerId:         pkPeerId,
-		fallbackPkShard:  fallbackPkShard,
-		fallbackPidShard: fallbackPidShard,
-		nodesCoordinator: nodesCoordinator,
-		epoch:            epochStart,
+		peerIdPkCache:         arg.PeerIdPkCache,
+		pkPeerIdCache:         pkPeerId,
+		fallbackPkShardCache:  arg.FallbackPkShardCache,
+		fallbackPidShardCache: arg.FallbackPidShardCache,
+		nodesCoordinator:      arg.NodesCoordinator,
+		epoch:                 arg.StartEpoch,
 	}, nil
 }
 
@@ -116,7 +120,7 @@ func (psm *PeerShardMapper) GetPeerInfo(pid core.PeerID) core.P2PPeerInfo {
 }
 
 func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*core.P2PPeerInfo, bool) {
-	pkObj, ok := psm.peerIdPk.Get([]byte(pid))
+	pkObj, ok := psm.peerIdPkCache.Get([]byte(pid))
 	if !ok {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -151,13 +155,11 @@ func (psm *PeerShardMapper) getPeerInfoWithNodesCoordinator(pid core.PeerID) (*c
 }
 
 func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) (shardId uint32, ok bool) {
-	defaultShardId := uint32(0)
-
 	if len(pkBuff) == 0 {
 		return defaultShardId, false
 	}
 
-	shardObj, ok := psm.fallbackPkShard.Get(pkBuff)
+	shardObj, ok := psm.fallbackPkShardCache.Get(pkBuff)
 	if !ok {
 		return defaultShardId, false
 	}
@@ -173,7 +175,7 @@ func (psm *PeerShardMapper) getShardIDSearchingPkInFallbackCache(pkBuff []byte) 
 }
 
 func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.PeerID) *core.P2PPeerInfo {
-	shardObj, ok := psm.fallbackPidShard.Get([]byte(pid))
+	shardObj, ok := psm.fallbackPidShardCache.Get([]byte(pid))
 	if !ok {
 		return &core.P2PPeerInfo{
 			PeerType: core.UnknownPeer,
@@ -207,12 +209,12 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
 
 	psm.removePidAssociation(pid)
 
-	objPidsQueue, found := psm.pkPeerId.Get(pk)
+	objPidsQueue, found := psm.pkPeerIdCache.Get(pk)
 	if !found {
-		psm.peerIdPk.Put([]byte(pid), pk, len(pk))
+		psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 		pq := newPidQueue()
 		pq.push(pid)
-		psm.pkPeerId.Put(pk, pq, len(pk))
+		psm.pkPeerIdCache.Put(pk, pq, len(pk))
 		return
 	}
 
@@ -226,7 +228,7 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
 	idxPid := pq.indexOf(pid)
 	if idxPid != indexNotFound {
 		pq.promote(idxPid)
-		psm.peerIdPk.Put([]byte(pid), pk, len(pk))
+		psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 		return
 	}
 
@@ -234,53 +236,53 @@ func (psm *PeerShardMapper) UpdatePeerIdPublicKey(pid core.PeerID, pk []byte) {
 	for len(pq.data) > maxNumPidsPerPk {
 		evictedPid := pq.pop()
 
-		psm.peerIdPk.Remove([]byte(evictedPid))
-		psm.fallbackPidShard.Remove([]byte(evictedPid))
+		psm.peerIdPkCache.Remove([]byte(evictedPid))
+		psm.fallbackPidShardCache.Remove([]byte(evictedPid))
 	}
-	psm.pkPeerId.Put(pk, pq, pq.size())
-	psm.peerIdPk.Put([]byte(pid), pk, len(pk))
+	psm.pkPeerIdCache.Put(pk, pq, pq.size())
+	psm.peerIdPkCache.Put([]byte(pid), pk, len(pk))
 }
 
 func (psm *PeerShardMapper) removePidAssociation(pid core.PeerID) {
-	oldPk, found := psm.peerIdPk.Get([]byte(pid))
+	oldPk, found := psm.peerIdPkCache.Get([]byte(pid))
 	if !found {
 		return
 	}
 
 	oldPkBuff, ok := oldPk.([]byte)
 	if !ok {
-		psm.peerIdPk.Remove([]byte(pid))
+		psm.peerIdPkCache.Remove([]byte(pid))
 		return
 	}
 
-	objPidsQueue, found := psm.pkPeerId.Get(oldPkBuff)
+	objPidsQueue, found := psm.pkPeerIdCache.Get(oldPkBuff)
 	if !found {
 		return
 	}
 
 	pq, ok := objPidsQueue.(*pidQueue)
 	if !ok {
-		psm.pkPeerId.Remove(oldPkBuff)
+		psm.pkPeerIdCache.Remove(oldPkBuff)
 		return
 	}
 
 	pq.remove(pid)
 	if len(pq.data) == 0 {
-		psm.pkPeerId.Remove(oldPkBuff)
+		psm.pkPeerIdCache.Remove(oldPkBuff)
 		return
 	}
 
-	psm.pkPeerId.Put(oldPkBuff, pq, pq.size())
+	psm.pkPeerIdCache.Put(oldPkBuff, pq, pq.size())
 }
 
 // UpdatePublicKeyShardId updates the fallback search map containing public key and shard IDs
 func (psm *PeerShardMapper) UpdatePublicKeyShardId(pk []byte, shardId uint32) {
-	psm.fallbackPkShard.HasOrAdd(pk, shardId, uint32Size)
+	psm.fallbackPkShardCache.HasOrAdd(pk, shardId, uint32Size)
 }
 
 // UpdatePeerIdShardId updates the fallback search map containing peer IDs and shard IDs
 func (psm *PeerShardMapper) UpdatePeerIdShardId(pid core.PeerID, shardId uint32) {
-	psm.fallbackPidShard.HasOrAdd([]byte(pid), shardId, uint32Size)
+	psm.fallbackPidShardCache.HasOrAdd([]byte(pid), shardId, uint32Size)
 }
 
 // EpochStartAction is the method called whenever an action needs to be undertaken in respect to the epoch change

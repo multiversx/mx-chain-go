@@ -68,6 +68,10 @@ func getProcessArgs(
 
 	epochStartConfig := getEpochStartConfig()
 
+	gasScheduleNotifier := &mock.GasScheduleNotifierMock{
+		GasSchedule: gasSchedule,
+	}
+
 	return factory.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		AccountsParser: &mock.AccountsParserStub{
@@ -122,7 +126,7 @@ func getProcessArgs(
 		},
 		SmartContractParser: &mock.SmartContractParserStub{},
 		EconomicsData:       CreateEconomicsData(),
-		GasSchedule:         gasSchedule,
+		GasSchedule:         gasScheduleNotifier,
 		Rounder: &mock.RounderMock{
 			RoundTimeDuration: time.Second,
 		},
