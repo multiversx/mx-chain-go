@@ -124,10 +124,10 @@ func createMetaGenesisAfterHardFork(
 	arg ArgsGenesisBlockCreator,
 ) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
-	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
+	tmpArg.Accounts = arg.ImportHandler.GetAccountsDBForShard(core.MetachainShardId)
 
 	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
-		ImportHandler:     arg.importHandler,
+		ImportHandler:     arg.ImportHandler,
 		Marshalizer:       arg.Core.InternalMarshalizer(),
 		Hasher:            arg.Core.Hasher(),
 		ShardCoordinator:  arg.ShardCoordinator,

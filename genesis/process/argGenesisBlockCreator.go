@@ -64,5 +64,6 @@ type ArgsGenesisBlockCreator struct {
 	GenesisNodePrice *big.Int
 	GenesisString    string
 	// created components
-	importHandler update.ImportHandler
+	ImportHandler  update.ImportHandler
+	HardforkStorer update.HardforkStorer
 }

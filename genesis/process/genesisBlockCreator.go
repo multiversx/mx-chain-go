@@ -72,6 +72,11 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	return gbc, nil
 }
 
+// HardforkStorer returns the HardforkStorer object
+func (gbc *genesisBlockCreator) HardforkStorer() update.HardforkStorer {
+	return gbc.arg.HardforkStorer
+}
+
 func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
 	return arg.HardForkConfig.AfterHardFork && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
 }
@@ -102,6 +107,10 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		Marshalizer: gbc.arg.Core.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating hardfork storer", err)
+	}
+	gbc.arg.HardforkStorer = hs
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
@@ -115,8 +124,8 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	if err != nil {
 		return err
 	}
+	gbc.arg.ImportHandler = importHandler
 
-	gbc.arg.importHandler = importHandler
 	return nil
 }
 
@@ -255,7 +264,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	}
 
 	if mustDoHardForkImportProcess(gbc.arg) {
-		err = gbc.arg.importHandler.ImportAll()
+		err = gbc.arg.ImportHandler.ImportAll()
 		if err != nil {
 			return nil, err
 		}

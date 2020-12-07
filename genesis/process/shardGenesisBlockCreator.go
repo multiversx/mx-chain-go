@@ -139,7 +139,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 
 func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, [][]byte, error) {
 	tmpArg := arg
-	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
+	tmpArg.Accounts = arg.ImportHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
 	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
 	if err != nil {
 		return nil, nil, err
@@ -162,7 +162,7 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 		ShardCoordinator:   arg.ShardCoordinator,
 		TxCoordinator:      processors.txCoordinator,
 		PendingTxProcessor: pendingTxProcessor,
-		ImportHandler:      arg.importHandler,
+		ImportHandler:      arg.ImportHandler,
 		Marshalizer:        arg.Core.InternalMarshalizer(),
 		Hasher:             arg.Core.Hasher(),
 		DataPool:           arg.Data.Datapool(),
