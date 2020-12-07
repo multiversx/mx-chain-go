@@ -50,7 +50,7 @@ type ArgsGenesisBlockCreator struct {
 	ShardCoordinator     sharding.Coordinator
 	AccountsParser       genesis.AccountsParser
 	SmartContractParser  genesis.InitialSmartContractParser
-	GasMap               map[string]map[string]uint64
+	GasSchedule          core.GasScheduleNotifier
 	TxLogsProcessor      process.TransactionLogProcessor
 	VirtualMachineConfig config.VirtualMachineConfig
 	HardForkConfig       config.HardforkConfig

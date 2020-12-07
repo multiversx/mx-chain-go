@@ -67,7 +67,7 @@ func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.UseDisabledSigVerifier = true
+	args.ImportModeNoSigCheck = true
 	ccf, err := factory.NewCryptoComponentsFactory(args)
 	require.NoError(t, err)
 	require.NotNil(t, ccf)
@@ -137,7 +137,7 @@ func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 
 	coreComponents := getCoreComponents()
 	args := getCryptoArgs(coreComponents)
-	args.UseDisabledSigVerifier = true
+	args.IsInImportMode = true
 	ccf, _ := factory.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()
@@ -155,7 +155,7 @@ func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
 
-	singleSigner, err := ccf.CreateSingleSigner()
+	singleSigner, err := ccf.CreateSingleSigner(false)
 	require.Nil(t, singleSigner)
 	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
@@ -169,7 +169,7 @@ func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 	require.NotNil(t, ccf)
 	require.Nil(t, err)
 
-	singleSigner, err := ccf.CreateSingleSigner()
+	singleSigner, err := ccf.CreateSingleSigner(false)
 	require.Nil(t, err)
 	require.NotNil(t, singleSigner)
 }
@@ -232,7 +232,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 	require.Nil(t, err)
 
 	cp := ccf.CreateDummyCryptoParams()
-	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, cp, &mock.KeyGenMock{})
+	multiSigner, err := ccf.CreateMultiSigner(mock.HasherMock{}, cp, &mock.KeyGenMock{}, false)
 	require.Nil(t, multiSigner)
 	require.Equal(t, errErd.ErrInvalidConsensusConfig, err)
 }
@@ -251,7 +251,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	cp, _ := ccf.CreateCryptoParams(blockSignKeyGen)
 	multisigHasher, _ := ccf.GetMultiSigHasherFromConfig()
 
-	multiSigner, err := ccf.CreateMultiSigner(multisigHasher, cp, blockSignKeyGen)
+	multiSigner, err := ccf.CreateMultiSigner(multisigHasher, cp, blockSignKeyGen, false)
 	require.Nil(t, err)
 	require.NotNil(t, multiSigner)
 }

@@ -24,6 +24,7 @@ type CoreComponentsMock struct {
 	TxMarsh                     marshal.Marshalizer
 	VmMarsh                     marshal.Marshalizer
 	Hash                        hashing.Hasher
+	TxSignHasherField           hashing.Hasher
 	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
@@ -44,8 +45,9 @@ type CoreComponentsMock struct {
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
 	NodesConfig                 sharding.GenesisNodesSetupHandler
 	Shuffler                    sharding.NodesShuffler
-	EpochChangeNotifier         factory.EpochNotifier
+	EpochChangeNotifier         process.EpochNotifier
 	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
+	TxVersionCheckHandler       process.TxVersionCheckerHandler
 	ChanStopProcess             chan endProcess.ArgEndProcess
 	StartTime                   time.Time
 }
@@ -80,6 +82,11 @@ func (ccm *CoreComponentsMock) VmMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
+}
+
+// TxSignHasher -
+func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
+	return ccm.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -
@@ -154,6 +161,11 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 	return 1
 }
 
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+		return ccm.TxVersionCheckHandler
+}
+
 // Rounder -
 func (ccm *CoreComponentsMock) Rounder() consensus.Rounder {
 	return ccm.RoundHandler
@@ -185,7 +197,7 @@ func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 }
 
 // EpochNotifier -
-func (ccm *CoreComponentsMock) EpochNotifier() factory.EpochNotifier {
+func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 

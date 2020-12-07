@@ -8,12 +8,13 @@ import (
 
 // ImportHandlerStub -
 type ImportHandlerStub struct {
-	ImportAllCalled              func() error
-	GetValidatorAccountsDBCalled func() state.AccountsAdapter
-	GetMiniBlocksCalled          func() map[string]*block.MiniBlock
-	GetHardForkMetaBlockCalled   func() *block.MetaBlock
-	GetTransactionsCalled        func() map[string]data.TransactionHandler
-	GetAccountsDBForShardCalled  func(shardID uint32) state.AccountsAdapter
+	ImportAllCalled               func() error
+	GetValidatorAccountsDBCalled  func() state.AccountsAdapter
+	GetMiniBlocksCalled           func() map[string]*block.MiniBlock
+	GetHardForkMetaBlockCalled    func() *block.MetaBlock
+	GetUnFinishedMetaBlocksCalled func() map[string]*block.MetaBlock
+	GetTransactionsCalled         func() map[string]data.TransactionHandler
+	GetAccountsDBForShardCalled   func(shardID uint32) state.AccountsAdapter
 }
 
 // ImportAll -
@@ -44,6 +45,14 @@ func (ihs *ImportHandlerStub) GetMiniBlocks() map[string]*block.MiniBlock {
 func (ihs *ImportHandlerStub) GetHardForkMetaBlock() *block.MetaBlock {
 	if ihs.GetHardForkMetaBlockCalled != nil {
 		return ihs.GetHardForkMetaBlockCalled()
+	}
+	return nil
+}
+
+// GetUnFinishedMetaBlocks -
+func (ihs *ImportHandlerStub) GetUnFinishedMetaBlocks() map[string]*block.MetaBlock {
+	if ihs.GetUnFinishedMetaBlocksCalled != nil {
+		return ihs.GetUnFinishedMetaBlocksCalled()
 	}
 	return nil
 }

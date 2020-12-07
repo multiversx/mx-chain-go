@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -100,7 +101,7 @@ type ProcessComponentsFactoryArgs struct {
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
-	GasSchedule               map[string]map[string]uint64
+	GasSchedule               core.GasScheduleNotifier
 	Rounder                   consensus.Rounder
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
@@ -142,7 +143,7 @@ type processComponentsFactory struct {
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
-	gasSchedule               map[string]map[string]uint64
+	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
@@ -660,7 +661,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		AccountsParser:       pcf.accountsParser,
 		SmartContractParser:  pcf.smartContractParser,
 		ValidatorAccounts:    pcf.state.PeerAccounts(),
-		GasMap:               pcf.gasSchedule,
+		GasSchedule:          pcf.gasSchedule,
 		VirtualMachineConfig: genesisVmConfig,
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		HardForkConfig:       pcf.config.Hardfork,
@@ -692,14 +693,15 @@ func (pcf *processComponentsFactory) indexGenesisAccounts() error {
 		return err
 	}
 
-	leaves, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash)
+	ctx := context.Background()
+	leavesChannel, err := pcf.state.AccountsAdapter().GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return err
 	}
 
 	genesisAccounts := make([]state.UserAccountHandler, 0)
-	for addressKey, userAccountsBytes := range leaves {
-		userAccount, errUnmarshal := pcf.unmarshalUserAccount([]byte(addressKey), userAccountsBytes)
+	for leaf := range leavesChannel {
+		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			log.Debug("cannot unmarshal genesis user account. it may be a code leaf", "error", errUnmarshal)
 			continue
@@ -813,7 +815,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(genesisBlocks map[uint32
 		}
 
 		log.Info("indexGenesisBlocks(): historyRepo.RecordBlock", "shardID", shardID, "hash", genesisBlockHash)
-		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{})
+		err = pcf.historyRepo.RecordBlock(genesisBlockHash, genesisBlockHeader, &dataBlock.Body{}, nil, nil)
 		if err != nil {
 			return err
 		}
@@ -1090,26 +1092,27 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.ShardInterceptorsContainerFactoryArgs{
-		CoreComponents:          pcf.coreData,
-		CryptoComponents:        pcf.crypto,
-		Accounts:                pcf.state.AccountsAdapter(),
-		ShardCoordinator:        pcf.shardCoordinator,
-		NodesCoordinator:        pcf.nodesCoordinator,
-		Messenger:               pcf.network.NetworkMessenger(),
-		Store:                   pcf.data.StorageService(),
-		DataPool:                pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            pcf.economicsData,
-		BlockBlackList:          headerBlackList,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:          pcf.sizeCheckDelta,
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:         smartContract.NewArgumentParser(),
+		CoreComponents:            pcf.coreData,
+		CryptoComponents:          pcf.crypto,
+		Accounts:                  pcf.state.AccountsAdapter(),
+		ShardCoordinator:          pcf.shardCoordinator,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		Messenger:                 pcf.network.NetworkMessenger(),
+		Store:                     pcf.data.StorageService(),
+		DataPool:                  pcf.data.Datapool(),
+		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:              pcf.economicsData,
+		BlockBlackList:            headerBlackList,
+		HeaderSigVerifier:         headerSigVerifier,
+		HeaderIntegrityVerifier:   headerIntegrityVerifier,
+		ValidityAttester:          validityAttester,
+		EpochStartTrigger:         epochStartTrigger,
+		WhiteListHandler:          pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:           smartContract.NewArgumentParser(),
+		SizeCheckDelta:            pcf.sizeCheckDelta,
+		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1127,26 +1130,27 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := timecache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.MetaInterceptorsContainerFactoryArgs{
-		CoreComponents:          pcf.coreData,
-		CryptoComponents:        pcf.crypto,
-		ShardCoordinator:        pcf.shardCoordinator,
-		NodesCoordinator:        pcf.nodesCoordinator,
-		Messenger:               pcf.network.NetworkMessenger(),
-		Store:                   pcf.data.StorageService(),
-		DataPool:                pcf.data.Datapool(),
-		Accounts:                pcf.state.AccountsAdapter(),
-		MaxTxNonceDeltaAllowed:  core.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:            pcf.economicsData,
-		BlackList:               headerBlackList,
-		HeaderSigVerifier:       headerSigVerifier,
-		HeaderIntegrityVerifier: headerIntegrityVerifier,
-		SizeCheckDelta:          pcf.sizeCheckDelta,
-		ValidityAttester:        validityAttester,
-		EpochStartTrigger:       epochStartTrigger,
-		WhiteListHandler:        pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:  pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:        pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:         smartContract.NewArgumentParser(),
+		CoreComponents:            pcf.coreData,
+		CryptoComponents:          pcf.crypto,
+		ShardCoordinator:          pcf.shardCoordinator,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		Messenger:                 pcf.network.NetworkMessenger(),
+		Store:                     pcf.data.StorageService(),
+		DataPool:                  pcf.data.Datapool(),
+		Accounts:                  pcf.state.AccountsAdapter(),
+		MaxTxNonceDeltaAllowed:    core.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:              pcf.economicsData,
+		BlackList:                 headerBlackList,
+		HeaderSigVerifier:         headerSigVerifier,
+		HeaderIntegrityVerifier:   headerIntegrityVerifier,
+		ValidityAttester:          validityAttester,
+		EpochStartTrigger:         epochStartTrigger,
+		WhiteListHandler:          pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:    pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:          pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:           smartContract.NewArgumentParser(),
+		SizeCheckDelta:            pcf.sizeCheckDelta,
+		EnableSignTxWithHashEpoch: pcf.config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 	}
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
 	if err != nil {
@@ -1224,13 +1228,14 @@ func createNetworkShardingCollector(
 		return nil, err
 	}
 
-	psm, err := networksharding.NewPeerShardMapper(
-		cachePkPid,
-		cachePkShardID,
-		cachePidShardID,
-		nodesCoordinator,
-		epochStart,
-	)
+	arg := networksharding.ArgPeerShardMapper{
+		PeerIdPkCache:         cachePkPid,
+		FallbackPkShardCache:  cachePkShardID,
+		FallbackPidShardCache: cachePidShardID,
+		NodesCoordinator:      nodesCoordinator,
+		StartEpoch:            epochStart,
+	}
+	psm, err := networksharding.NewPeerShardMapper(arg)
 	if err != nil {
 		return nil, err
 	}

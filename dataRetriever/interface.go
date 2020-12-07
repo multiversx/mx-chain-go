@@ -85,8 +85,10 @@ const (
 	MiniblockHashByTxHashUnit UnitType = 14
 	// ReceiptsUnit is the receipts storage unit identifier
 	ReceiptsUnit UnitType = 15
+	// ResultsHashesByTxHashUnit is the results hashes by transaction storage unit identifier
+	ResultsHashesByTxHashUnit UnitType = 16
 	// TrieEpochRootHashUnit is the trie epoch <-> root hash storage unit identifier
-	TrieEpochRootHashUnit UnitType = 16
+	TrieEpochRootHashUnit UnitType = 17
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -293,6 +295,7 @@ type PoolsHolder interface {
 	MiniBlocks() storage.Cacher
 	PeerChangesBlocks() storage.Cacher
 	TrieNodes() storage.Cacher
+	SmartContracts() storage.Cacher
 	CurrentBlockTxs() TransactionCacher
 	IsInterfaceNil() bool
 }

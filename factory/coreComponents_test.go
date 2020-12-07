@@ -291,6 +291,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			TxSignMarshalizer: config.TypeConfig{
 				Type: testMarshalizer,
 			},
+			TxSignHasher: config.TypeConfig{
+				Type: testHasher,
+			},
 			AddressPubkeyConverter: config.PubkeyConfig{
 				Length:          32,
 				Type:            "bech32",

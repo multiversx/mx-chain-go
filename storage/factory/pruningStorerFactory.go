@@ -434,6 +434,17 @@ func (psf *StorageServiceFactory) setupDbLookupExtensions(chainStorer *dataRetri
 
 	shardID := core.GetShardIDString(psf.shardCoordinator.SelfId())
 
+	// Create the eventsHashesByTxHash (PRUNING) storer
+	eventsHashesByTxHashConfig := psf.generalConfig.DbLookupExtensions.ResultsHashesByTxHashStorageConfig
+	eventsHashesByTxHashStorerArgs := psf.createPruningStorerArgs(eventsHashesByTxHashConfig)
+	eventsHashesByTxHashPruningStorer, err := pruning.NewPruningStorer(eventsHashesByTxHashStorerArgs)
+	if err != nil {
+		return err
+	}
+
+	*createdStorers = append(*createdStorers, eventsHashesByTxHashPruningStorer)
+	chainStorer.AddStorer(dataRetriever.ResultsHashesByTxHashUnit, eventsHashesByTxHashPruningStorer)
+
 	// Create the miniblocksMetadata (PRUNING) storer
 	miniblocksMetadataConfig := psf.generalConfig.DbLookupExtensions.MiniblocksMetadataStorageConfig
 	miniblocksMetadataPruningStorerArgs := psf.createPruningStorerArgs(miniblocksMetadataConfig)

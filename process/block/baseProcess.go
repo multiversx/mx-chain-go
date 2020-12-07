@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -77,11 +78,12 @@ type baseProcessor struct {
 	blockProcessor         blockProcessor
 	txCounter              *transactionCounter
 
-	indexer       indexer.Indexer
-	tpsBenchmark  statistics.TPSBenchmark
-	historyRepo   dblookupext.HistoryRepository
-	epochNotifier process.EpochNotifier
-	vmContainer   process.VirtualMachinesContainer
+	indexer            indexer.Indexer
+	tpsBenchmark       statistics.TPSBenchmark
+	historyRepo        dblookupext.HistoryRepository
+	epochNotifier      process.EpochNotifier
+	vmContainerFactory process.VirtualMachinesContainerFactory
+	vmContainer        process.VirtualMachinesContainer
 }
 
 type bootStorerDataArgs struct {
@@ -1088,7 +1090,8 @@ func (bp *baseProcessor) updateStateStorage(
 	if bp.stateCheckpointModulus != 0 {
 		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
 			log.Debug("trie checkpoint", "rootHash", rootHash)
-			accounts.SetStateCheckpoint(rootHash)
+			ctx := context.Background()
+			accounts.SetStateCheckpoint(rootHash, ctx)
 		}
 	}
 
@@ -1232,7 +1235,10 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody)
+	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+
+	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool)
 	if err != nil {
 		log.Error("historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
@@ -1316,8 +1322,15 @@ func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer 
 
 // Close - closes all underlying components
 func (bp *baseProcessor) Close() error {
+	var err1, err2 error
 	if !check.IfNil(bp.vmContainer) {
-		return bp.vmContainer.Close()
+		err1 = bp.vmContainer.Close()
+	}
+	if !check.IfNil(bp.vmContainerFactory) {
+		err2 = bp.vmContainerFactory.Close()
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("vmContainer close error: %v, vmContainerFactory close error: %v", err1, err2)
 	}
 
 	return nil
