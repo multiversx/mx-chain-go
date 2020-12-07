@@ -42,10 +42,12 @@ type validatorSC struct {
 	validatorSCAddress    []byte
 	walletAddressLen      int
 	enableStakingEpoch    uint32
+	enableDoubleKeyEpoch  uint32
 	gasCost               vm.GasCost
 	marshalizer           marshal.Marshalizer
 	flagEnableStaking     atomic.Flag
 	flagEnableTopUp       atomic.Flag
+	flagDoubleKey         atomic.Flag
 	minUnstakeTokensValue *big.Int
 	mutExecution          sync.RWMutex
 	endOfEpochAddress     []byte
@@ -133,6 +135,7 @@ func NewValidatorSmartContract(
 		marshalizer:           args.Marshalizer,
 		minUnstakeTokensValue: minUnstakeTokensValue,
 		walletAddressLen:      len(args.ValidatorSCAddress),
+		enableDoubleKeyEpoch:  args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
 		endOfEpochAddress:     args.EndOfEpochAddress,
 	}
 
@@ -187,6 +190,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.getBlsKeysStatus(args)
 	case "updateStakingV2":
 		return v.updateStakingV2(args)
+	case "cleanRegisteredData":
+		return v.cleanRegisteredData(args)
 	case "pauseUnStakeUnBond":
 		return v.pauseUnStakeUnBond(args)
 	case "unPauseUnStakeUnBond":
@@ -709,6 +714,79 @@ func (v *validatorSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]byte)
 	return blsKeys
 }
 
+func checkDoubleBLSKeys(blsKeys [][]byte) bool {
+	mapKeys := make(map[string]struct{})
+	for _, blsKey := range blsKeys {
+		_, found := mapKeys[string(blsKey)]
+		if found {
+			return true
+		}
+
+		mapKeys[string(blsKey)] = struct{}{}
+	}
+	return false
+}
+
+func (v *validatorSC) cleanRegisteredData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.flagDoubleKey.IsSet() {
+		v.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+
+	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.Stake)
+	if err != nil {
+		v.eei.AddReturnMessage(vm.InsufficientGasLimit)
+		return vmcommon.OutOfGas
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		v.eei.AddReturnMessage("must be called with 0 value")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		v.eei.AddReturnMessage("must be called with 0 arguments")
+		return vmcommon.UserError
+	}
+
+	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
+	if err != nil {
+		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
+		return vmcommon.UserError
+	}
+
+	if len(registrationData.BlsPubKeys) <= 1 {
+		return vmcommon.Ok
+	}
+
+	changesMade := false
+	newList := make([][]byte, 0)
+	mapExistingKeys := make(map[string]struct{})
+	for _, blsKey := range registrationData.BlsPubKeys {
+		_, found := mapExistingKeys[string(blsKey)]
+		if found {
+			changesMade = true
+			continue
+		}
+
+		mapExistingKeys[string(blsKey)] = struct{}{}
+		newList = append(newList, blsKey)
+	}
+
+	if !changesMade {
+		return vmcommon.Ok
+	}
+
+	registrationData.BlsPubKeys = make([][]byte, 0, len(newList))
+	registrationData.BlsPubKeys = newList
+
+	err = v.saveRegistrationData(args.CallerAddr, registrationData)
+	if err != nil {
+		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.Stake)
 	if err != nil {
@@ -775,6 +853,10 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	blsKeys, err := v.registerBLSKeys(registrationData, args.CallerAddr, args.CallerAddr, args.Arguments)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
+		return vmcommon.UserError
+	}
+	if v.flagDoubleKey.IsSet() && checkDoubleBLSKeys(blsKeys) {
+		v.eei.AddReturnMessage("invalid arguments, found same bls key twice")
 		return vmcommon.UserError
 	}
 
@@ -1536,6 +1618,10 @@ func (v *validatorSC) EpochConfirmed(epoch uint32) {
 
 	v.flagEnableTopUp.Toggle(epoch >= v.stakingV2Epoch)
 	log.Debug("validatorSC: top up mechanism", "enabled", v.flagEnableTopUp.IsSet())
+
+	v.flagDoubleKey.Toggle(epoch >= v.enableDoubleKeyEpoch)
+	log.Debug("stakingAuctionSC: doubleKeyProtection", "enabled", v.flagDoubleKey.IsSet())
+
 }
 
 // CanUseContract returns true if contract can be used

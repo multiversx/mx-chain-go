@@ -2,14 +2,17 @@ package syncer
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
+	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 )
@@ -56,6 +59,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		cacher:               args.Cacher,
 		rootHash:             nil,
 		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
+		name:                 fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 	}
 
 	u := &userAccountsSyncer{
@@ -74,7 +78,10 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), u.waitTime)
 	defer cancel()
 
-	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
+	tss := statistics.NewTrieSyncStatistics()
+	go u.printStatistics(tss, ctx)
+
+	err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, tss, ctx)
 	if err != nil {
 		return err
 	}
@@ -85,7 +92,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		return err
 	}
 
-	err = u.syncAccountDataTries(rootHashes, ctx)
+	err = u.syncAccountDataTries(rootHashes, tss, ctx)
 	if err != nil {
 		return err
 	}
@@ -93,7 +100,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	return nil
 }
 
-func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx context.Context) error {
+func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
 	var errFound error
 	errMutex := sync.Mutex{}
 
@@ -115,7 +122,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 		}
 
 		go func(trieRootHash []byte) {
-			newErr := u.syncDataTrie(trieRootHash, ctx)
+			newErr := u.syncDataTrie(trieRootHash, ssh, ctx)
 			if newErr != nil {
 				errMutex.Lock()
 				errFound = newErr
@@ -133,7 +140,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(rootHashes [][]byte, ctx conte
 	return errFound
 }
 
-func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) error {
+func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisticsHandler, ctx context.Context) error {
 	u.throttler.StartProcessing()
 
 	u.syncerMutex.Lock()
@@ -150,7 +157,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ctx context.Context) 
 	}
 
 	u.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic)
+	trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic, ssh)
 	if err != nil {
 		u.syncerMutex.Unlock()
 		return err

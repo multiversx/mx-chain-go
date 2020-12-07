@@ -7,7 +7,7 @@ import (
 
 // EpochStartTriggerStub -
 type EpochStartTriggerStub struct {
-	ForceEpochStartCalled func()
+	ForceEpochStartCalled func(round uint64)
 	IsEpochStartCalled    func() bool
 	EpochCalled           func() uint32
 	MetaEpochCalled       func() uint32
@@ -90,9 +90,9 @@ func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler, _ data.B
 }
 
 // ForceEpochStart -
-func (e *EpochStartTriggerStub) ForceEpochStart() {
+func (e *EpochStartTriggerStub) ForceEpochStart(round uint64) {
 	if e.ForceEpochStartCalled != nil {
-		e.ForceEpochStartCalled()
+		e.ForceEpochStartCalled(round)
 	}
 }
 
