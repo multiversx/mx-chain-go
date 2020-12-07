@@ -1284,14 +1284,15 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return err
 	}
 
-	allLeaves, err := userAccountsDb.GetAllLeaves(currentRootHash)
+	ctx := context.Background()
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(currentRootHash, ctx)
 	if err != nil {
 		return err
 	}
 
 	balanceSum := big.NewInt(0)
-	for addressKey, userAccountsBytes := range allLeaves {
-		userAccount, errUnmarshal := unmarshalUserAccount([]byte(addressKey), userAccountsBytes, bp.marshalizer)
+	for leaf := range allLeavesChan {
+		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
 		if errUnmarshal != nil {
 			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
 			continue

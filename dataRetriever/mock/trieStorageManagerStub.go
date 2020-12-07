@@ -12,8 +12,8 @@ type TrieStorageManagerStub struct {
 	MarkForEvictionCalled             func(bytes []byte, hashes data.ModifiedHashes) error
 	GetSnapshotThatContainsHashCalled func(rootHash []byte) data.SnapshotDbHandler
 	IsPruningEnabledCalled            func() bool
-	EnterSnapshotModeCalled           func()
-	ExitSnapshotModeCalled            func()
+	EnterPruningBufferingModeCalled   func()
+	ExitPruningBufferingModeCalled    func()
 	GetSnapshotDbBatchDelayCalled     func() int
 	CloseCalled                       func() error
 }
@@ -82,17 +82,17 @@ func (tms *TrieStorageManagerStub) IsPruningEnabled() bool {
 	return false
 }
 
-// EnterSnapshotMode -
-func (tms *TrieStorageManagerStub) EnterSnapshotMode() {
-	if tms.EnterSnapshotModeCalled != nil {
-		tms.EnterSnapshotModeCalled()
+// EnterPruningBufferingMode -
+func (tms *TrieStorageManagerStub) EnterPruningBufferingMode() {
+	if tms.EnterPruningBufferingModeCalled != nil {
+		tms.EnterPruningBufferingModeCalled()
 	}
 }
 
-// ExitSnapshotMode -
-func (tms *TrieStorageManagerStub) ExitSnapshotMode() {
-	if tms.ExitSnapshotModeCalled != nil {
-		tms.ExitSnapshotModeCalled()
+// ExitPruningBufferingMode -
+func (tms *TrieStorageManagerStub) ExitPruningBufferingMode() {
+	if tms.ExitPruningBufferingModeCalled != nil {
+		tms.ExitPruningBufferingModeCalled()
 	}
 }
 
