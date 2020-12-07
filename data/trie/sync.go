@@ -31,6 +31,7 @@ type trieSyncer struct {
 	interceptedNodes        storage.Cacher
 	mutOperation            sync.RWMutex
 	handlerID               string
+	trieSyncStatistics      data.SyncStatisticsHandler
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -42,6 +43,7 @@ func NewTrieSyncer(
 	trie data.Trie,
 	shardId uint32,
 	topic string,
+	trieSyncStatistics data.SyncStatisticsHandler,
 ) (*trieSyncer, error) {
 	if check.IfNil(requestHandler) {
 		return nil, ErrNilRequestHandler
@@ -54,6 +56,9 @@ func NewTrieSyncer(
 	}
 	if len(topic) == 0 {
 		return nil, ErrInvalidTrieTopic
+	}
+	if check.IfNil(trieSyncStatistics) {
+		return nil, ErrNilTrieSyncStatistics
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
@@ -70,6 +75,7 @@ func NewTrieSyncer(
 		shardId:                 shardId,
 		waitTimeBetweenRequests: time.Second,
 		handlerID:               core.UniqueIdentifier(),
+		trieSyncStatistics:      trieSyncStatistics,
 	}
 
 	return ts, nil
@@ -100,11 +106,6 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 
 		numUnResolved := ts.requestNodes()
 		if !shouldRetryAfterRequest && numUnResolved == 0 {
-			err = ts.trie.Commit()
-			if err != nil {
-				return err
-			}
-
 			return nil
 		}
 
@@ -148,11 +149,6 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 				}
 			}
 
-			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
-				ts.trie.root = currentNode
-				ts.rootFound = true
-			}
-
 			checkedNodes[nodeHash] = struct{}{}
 
 			currentMissingNodes, nextNodes, err = currentNode.loadChildren(ts.getNode)
@@ -186,6 +182,22 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			newElement = newElement || tmpNewElement
 
 			delete(ts.nodesForTrie, nodeHash)
+
+			err = encodeNodeAndCommitToDB(currentNode, ts.trie.Database())
+			if err != nil {
+				return false, err
+			}
+
+			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
+				var collapsedRoot node
+				collapsedRoot, err = currentNode.getCollapsed()
+				if err != nil {
+					return false, err
+				}
+
+				ts.trie.root = collapsedRoot
+				ts.rootFound = true
+			}
 		}
 	}
 
@@ -205,6 +217,7 @@ func (ts *trieSyncer) addNew(nextNodes []node) bool {
 		nodeInfo, ok := ts.nodesForTrie[nextHash]
 		if !ok || !nodeInfo.received {
 			newElement = true
+			ts.trieSyncStatistics.AddNumReceived(1)
 			ts.nodesForTrie[nextHash] = trieNodeInfo{
 				trieNode: nextNode,
 				received: true,
@@ -252,6 +265,7 @@ func (ts *trieSyncer) requestNodes() uint32 {
 			hashes = append(hashes, []byte(hash))
 		}
 	}
+	ts.trieSyncStatistics.SetNumMissing(ts.rootHash, len(hashes))
 	ts.requestHandler.RequestTrieNodes(ts.shardId, hashes, ts.topic)
 	ts.mutOperation.RUnlock()
 
@@ -269,13 +283,13 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 		return
 	}
 
-	node, err := trieNode(val)
+	interceptedNode, err := trieNode(val)
 	if err != nil {
 		return
 	}
 
 	ts.nodesForTrie[string(hash)] = trieNodeInfo{
-		trieNode: node,
+		trieNode: interceptedNode,
 		received: true,
 	}
 }

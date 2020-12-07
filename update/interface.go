@@ -101,14 +101,17 @@ type ImportHandler interface {
 
 // HardForkBlockProcessor defines the methods to process after hardfork
 type HardForkBlockProcessor interface {
-	CreateNewBlock(chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlock(body *block.Body, chainID string, round uint64, nonce uint64, epoch uint32) (data.HeaderHandler, error)
+	CreateBody() (*block.Body, []*MbInfo, error)
+	CreatePostMiniBlocks(mbsInfo []*MbInfo) (*block.Body, []*MbInfo, error)
 	IsInterfaceNil() bool
 }
 
 // PendingTransactionProcessor defines the methods to process a transaction destination me
 type PendingTransactionProcessor interface {
-	ProcessTransactionsDstMe(txsInfo []*TxInfo) (block.MiniBlockSlice, error)
+	ProcessTransactionsDstMe(mbInfo *MbInfo) (*block.MiniBlock, error)
 	RootHash() ([]byte, error)
+	Commit() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -190,7 +193,7 @@ type SigVerifier interface {
 // EpochHandler defines the functionality to get the current epoch
 type EpochHandler interface {
 	MetaEpoch() uint32
-	ForceEpochStart()
+	ForceEpochStart(round uint64)
 	IsInterfaceNil() bool
 }
 
@@ -247,5 +250,12 @@ type GenesisNodesSetupHandler interface {
 	GetAdaptivity() bool
 	NumberOfShards() uint32
 	MinNumberOfNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
+	Index() int64
+	TimeStamp() time.Time
 	IsInterfaceNil() bool
 }

@@ -620,6 +620,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		nodesSetupPath,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		generalConfig.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return err
@@ -2121,7 +2122,7 @@ func createHardForkTrigger(
 		OutputAntifloodHandler:    network.OutputAntifloodHandler,
 		ValidityAttester:          process.BlockTracker,
 		ChainID:                   coreData.ChainID,
-		Rounder:                   process.Rounder,
+		RoundHandler:              process.Rounder,
 		GenesisNodesSetupHandler:  nodesSetup,
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		MinTxVersion:              coreData.MinTransactionVersion,
@@ -2147,6 +2148,7 @@ func createHardForkTrigger(
 		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
+		RoundHandler:              process.Rounder,
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {
