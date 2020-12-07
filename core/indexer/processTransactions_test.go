@@ -495,7 +495,7 @@ func TestIsSCRForSenderWithGasUsed(t *testing.T) {
 		Sender: sender,
 	}
 	sc := ScResult{
-		Data:      []byte("@" + hex.EncodeToString([]byte("ok")) + "@something"),
+		Data:      []byte("@6f6b@something"),
 		Nonce:     nonce + 1,
 		Receiver:  sender,
 		PreTxHash: txHash,
