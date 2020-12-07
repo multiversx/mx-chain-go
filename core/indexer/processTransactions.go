@@ -208,6 +208,7 @@ func computeTxGasUsedField(dbScResult ScResult, tx *Transaction) uint64 {
 
 	refundValue, ok := big.NewInt(0).SetString(dbScResult.Value, 10)
 	if !ok {
+		log.Warn("indexer.computeTxGasUsedField() cannot cast value from string to big.Int")
 		return fee.Uint64()
 	}
 
