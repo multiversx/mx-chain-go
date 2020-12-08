@@ -42,3 +42,8 @@ func (vmch *VMCryptoHook) Ripemd160(data []byte) ([]byte, error) {
 func (vmch *VMCryptoHook) Ecrecover(_ []byte, _ []byte, _ []byte, _ []byte) ([]byte, error) {
 	return nil, ErrNotImplemented
 }
+
+// IsInterfaceNil returns true if the underlying object is nil
+func (vmch *VMCryptoHook) IsInterfaceNil() bool {
+	return vmch == nil
+}

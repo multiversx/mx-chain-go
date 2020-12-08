@@ -44,6 +44,7 @@ type SoftwareVersionChecker interface {
 	Close() error
 }
 
+// ResourceMonitorHandler defines the resource monitor supported actions
 type ResourceMonitorHandler interface {
 	GenerateStatistics() []interface{}
 	SaveStatistics()

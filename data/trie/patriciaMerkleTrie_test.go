@@ -1,6 +1,7 @@
 package trie_test
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -17,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/stretchr/testify/assert"
 )
@@ -478,19 +478,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeaves(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	leaves, err := tr.GetAllLeaves()
-
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(leaves))
-	assert.Equal(t, []byte("reindeer"), leaves["doe"])
-	assert.Equal(t, []byte("puppy"), leaves["dog"])
-	assert.Equal(t, []byte("cat"), leaves["ddog"])
-}
-
 func TestPatriciaMerkleTrie_String(t *testing.T) {
 	t.Parallel()
 
@@ -501,40 +488,6 @@ func TestPatriciaMerkleTrie_String(t *testing.T) {
 	tr = emptyTrie()
 	str = tr.String()
 	assert.Equal(t, "*** EMPTY TRIE ***\n", str)
-}
-
-func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
-	t.Parallel()
-
-	tempDir, _ := ioutil.TempDir("", strconv.Itoa(rand.Intn(100000)))
-	arg := storageUnit.ArgDB{
-		DBType:            storageUnit.LvlDBSerial,
-		Path:              tempDir,
-		BatchDelaySeconds: 1,
-		MaxBatchSize:      1,
-		MaxOpenFiles:      10,
-	}
-	db, _ := storageUnit.NewDB(arg)
-	marshalizer := &mock.ProtobufMarshalizerMock{}
-	hasher := &mock.KeccakMock{}
-
-	trieStorageManager, _ := trie.NewTrieStorageManager(
-		db,
-		marshalizer,
-		hasher,
-		config.DBConfig{},
-		&mock.EvictionWaitingList{},
-		config.TrieStorageManagerConfig{},
-	)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorageManager, marshalizer, hasher, maxTrieLevelInMemory)
-
-	err := tr.ClosePersister()
-	assert.Nil(t, err)
-
-	key, err := tr.Database().Get([]byte("key"))
-	assert.Nil(t, key)
-	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
 }
 
 func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing.T) {
@@ -635,12 +588,13 @@ func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
 	assert.Equal(t, 0, len(hashes))
 }
 
-func TestPatriciaMerkleTrie_GetAllLeavesOnChannelNilTrie(t *testing.T) {
+func TestPatriciaMerkleTrie_GetAllLeavesOnChannelEmptyTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
 
-	leavesChannel := tr.GetAllLeavesOnChannel()
+	leavesChannel, err := tr.GetAllLeavesOnChannel([]byte{}, context.Background())
+	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
 	_, ok := <-leavesChannel
@@ -656,8 +610,11 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		"dog":  []byte("puppy"),
 		"ddog": []byte("cat"),
 	}
+	_ = tr.Commit()
+	rootHash, _ := tr.Root()
 
-	leavesChannel := tr.GetAllLeavesOnChannel()
+	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
+	assert.Nil(t, err)
 	assert.NotNil(t, leavesChannel)
 
 	recovered := make(map[string][]byte)

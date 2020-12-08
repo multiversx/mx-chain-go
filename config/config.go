@@ -58,6 +58,7 @@ type MarshalizerConfig struct {
 	SizeCheckDelta uint32
 }
 
+// ConsensusConfig holds the consensus configuration parameters
 type ConsensusConfig struct {
 	Type string
 }
@@ -101,16 +102,18 @@ type SoftwareVersionConfig struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	MiniBlocksStorage          StorageConfig
-	PeerBlockBodyStorage       StorageConfig
-	BlockHeaderStorage         StorageConfig
-	TxStorage                  StorageConfig
-	UnsignedTransactionStorage StorageConfig
-	RewardTxStorage            StorageConfig
-	ShardHdrNonceHashStorage   StorageConfig
-	MetaHdrNonceHashStorage    StorageConfig
-	StatusMetricsStorage       StorageConfig
-	ReceiptsStorage            StorageConfig
+	MiniBlocksStorage               StorageConfig
+	PeerBlockBodyStorage            StorageConfig
+	BlockHeaderStorage              StorageConfig
+	TxStorage                       StorageConfig
+	UnsignedTransactionStorage      StorageConfig
+	RewardTxStorage                 StorageConfig
+	ShardHdrNonceHashStorage        StorageConfig
+	MetaHdrNonceHashStorage         StorageConfig
+	StatusMetricsStorage            StorageConfig
+	ReceiptsStorage                 StorageConfig
+	SmartContractsStorage           StorageConfig
+	SmartContractsStorageForSCQuery StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
@@ -131,6 +134,7 @@ type Config struct {
 	TrieNodesDataPool           CacheConfig
 	WhiteListPool               CacheConfig
 	WhiteListerVerifiedTxs      CacheConfig
+	SmartContractDataPool       CacheConfig
 	EpochStartConfig            EpochStartConfig
 	AddressPubkeyConverter      PubkeyConfig
 	ValidatorPubkeyConverter    PubkeyConfig
@@ -139,6 +143,7 @@ type Config struct {
 	Marshalizer                 MarshalizerConfig
 	VmMarshalizer               TypeConfig
 	TxSignMarshalizer           TypeConfig
+	TxSignHasher                TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig
@@ -167,6 +172,7 @@ type Config struct {
 	SoftwareVersionConfig SoftwareVersionConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
+	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
 }
 
@@ -218,6 +224,9 @@ type GeneralSettingsConfig struct {
 	SwitchJailWaitingEnableEpoch           uint32
 	SwitchHysteresisForMinNodesEnableEpoch uint32
 	BelowSignedThresholdEnableEpoch        uint32
+	TransactionSignedWithTxHashEnableEpoch uint32
+	MetaProtectionEnableEpoch              uint32
+	AheadOfTimeGasUsageEnableEpoch         uint32
 	GenesisString                          string
 }
 
@@ -366,6 +375,7 @@ type DbLookupExtensionsConfig struct {
 	MiniblocksMetadataStorageConfig    StorageConfig
 	MiniblockHashByTxHashStorageConfig StorageConfig
 	EpochByHashStorageConfig           StorageConfig
+	ResultsHashesByTxHashStorageConfig StorageConfig
 }
 
 // DebugConfig will hold debugging configuration
@@ -431,19 +441,35 @@ type VersionsConfig struct {
 	Cache            CacheConfig
 }
 
+// Configs is a holder for the node configuration parameters
 type Configs struct {
-	GeneralConfig                    *Config
-	ApiRoutesConfig                  *ApiRoutesConfig
-	EconomicsConfig                  *EconomicsConfig
-	SystemSCConfig                   *SystemSmartContractsConfig
-	RatingsConfig                    *RatingsConfig
-	PreferencesConfig                *Preferences
-	ExternalConfig                   *ExternalConfig
-	P2pConfig                        *P2PConfig
-	FlagsConfig                      *ContextFlagsConfig
-	ConfigurationFileName            string
-	ConfigurationEconomicsFileName   string
-	ConfigurationRatingsFileName     string
-	ConfigurationPreferencesFileName string
-	P2pConfigurationFileName         string
+	GeneralConfig                         *Config
+	ApiRoutesConfig                       *ApiRoutesConfig
+	EconomicsConfig                       *EconomicsConfig
+	SystemSCConfig                        *SystemSmartContractsConfig
+	RatingsConfig                         *RatingsConfig
+	PreferencesConfig                     *Preferences
+	ExternalConfig                        *ExternalConfig
+	P2pConfig                             *P2PConfig
+	FlagsConfig                           *ContextFlagsConfig
+	ConfigurationFileName                 string
+	ConfigurationApiRoutesFileName        string
+	ConfigurationEconomicsFileName        string
+	ConfigurationSystemSCFilename         string
+	ConfigurationRatingsFileName          string
+	ConfigurationPreferencesFileName      string
+	ConfigurationExternalFileName         string
+	P2pConfigurationFileName              string
+	ConfigurationGasScheduleDirectoryName string
+}
+
+// GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
+type GasScheduleByEpochs struct {
+	StartEpoch uint32
+	FileName   string
+}
+
+// GasScheduleConfig represents the versioning config area for the gas schedule toml
+type GasScheduleConfig struct {
+	GasScheduleByEpochs []GasScheduleByEpochs
 }

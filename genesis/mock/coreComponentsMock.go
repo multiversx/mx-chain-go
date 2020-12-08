@@ -12,6 +12,7 @@ type CoreComponentsMock struct {
 	IntMarsh            marshal.Marshalizer
 	TxMarsh             marshal.Marshalizer
 	Hash                hashing.Hasher
+	TxSignHasherField   hashing.Hasher
 	UInt64ByteSliceConv typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv      core.PubkeyConverter
 	Chain               string
@@ -32,6 +33,11 @@ func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
+}
+
+// TxSignHasher -
+func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
+	return ccm.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -

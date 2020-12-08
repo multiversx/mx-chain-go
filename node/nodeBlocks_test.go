@@ -295,7 +295,8 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		IntMarsh:            &testscommon.MarshalizerMock{},
 		TxMarsh:             &testscommon.MarshalizerMock{},
 		VmMarsh:             &testscommon.MarshalizerMock{},
-		Hash:                &testscommon.HasherMock{},
+		TxSignHasherField:   &testscommon.HasherStub{},
+		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 		ValPubKeyConv:       testscommon.NewPubkeyConverterMock(32),
@@ -306,16 +307,17 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:     &testscommon.AppStatusHandlerStub{},
-		WDTimer:          &testscommon.WatchdogMock{},
-		Alarm:            &testscommon.AlarmSchedulerStub{},
-		NtpTimer:         &testscommon.SyncTimerStub{},
-		RoundHandler:     &testscommon.RounderMock{},
-		EconomicsHandler: &economicsMocks.EconomicsHandlerMock{},
-		RatingsConfig:    &testscommon.RatingsInfoMock{},
-		RatingHandler:    &testscommon.RaterMock{},
-		NodesConfig:      &testscommon.NodesSetupStub{},
-		StartTime:        time.Time{},
+		AppStatusHdl:        &testscommon.AppStatusHandlerStub{},
+		WDTimer:             &testscommon.WatchdogMock{},
+		Alarm:               &testscommon.AlarmSchedulerStub{},
+		NtpTimer:            &testscommon.SyncTimerStub{},
+		RoundHandler:        &testscommon.RounderMock{},
+		EconomicsHandler:    &economicsMocks.EconomicsHandlerMock{},
+		RatingsConfig:       &testscommon.RatingsInfoMock{},
+		RatingHandler:       &testscommon.RaterMock{},
+		NodesConfig:         &testscommon.NodesSetupStub{},
+		StartTime:           time.Time{},
+		EpochChangeNotifier: &mock.EpochNotifierStub{},
 	}
 }
 

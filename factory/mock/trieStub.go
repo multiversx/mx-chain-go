@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -23,7 +24,7 @@ type TrieStub struct {
 	GetSerializedNodesCalled    func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllHashesCalled          func() ([][]byte, error)
 	DatabaseCalled              func() data.DBWriteCacher
-	GetAllLeavesOnChannelCalled func() chan core.KeyValueHolder
+	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
 }
 
 // EnterSnapshotMode -
@@ -32,11 +33,6 @@ func (ts *TrieStub) EnterSnapshotMode() {
 
 // ExitSnapshotMode -
 func (ts *TrieStub) ExitSnapshotMode() {
-}
-
-// ClosePersister -
-func (ts *TrieStub) ClosePersister() error {
-	return nil
 }
 
 // TakeSnapshot -
@@ -53,15 +49,15 @@ func (ts *TrieStub) GetAllLeaves() (map[string][]byte, error) {
 }
 
 // GetAllLeavesOnChannel -
-func (ts *TrieStub) GetAllLeavesOnChannel() chan core.KeyValueHolder {
+func (ts *TrieStub) GetAllLeavesOnChannel(rootHash []byte, _ context.Context) (chan core.KeyValueHolder, error) {
 	if ts.GetAllLeavesOnChannelCalled != nil {
-		return ts.GetAllLeavesOnChannelCalled()
+		return ts.GetAllLeavesOnChannelCalled(rootHash)
 	}
 
 	ch := make(chan core.KeyValueHolder)
 	close(ch)
 
-	return ch
+	return ch, nil
 }
 
 // IsPruningEnabled -
@@ -203,6 +199,14 @@ func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
 	}
 
 	return nil, nil
+}
+
+// EnterPruningBufferingMode -
+func (ts *TrieStub) EnterPruningBufferingMode() {
+}
+
+// ExitPruningBufferingMode -
+func (ts *TrieStub) ExitPruningBufferingMode() {
 }
 
 // GetSnapshotDbBatchDelay -

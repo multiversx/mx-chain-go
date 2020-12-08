@@ -182,11 +182,11 @@ var ErrNilForkDetector = errors.New("fork detector is nil")
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil gas schedule")
 
-// ErrNilGenesisNodesSetup signals that a nil genesis nodes setup
-var ErrNilGenesisNodesSetup = errors.New("nil genesis nodes setup")
-
 // ErrNilHasher is raised when a valid hasher is expected but nil used
 var ErrNilHasher = errors.New("nil hasher provided")
+
+// ErrNilTxSignHasher is raised when a nil tx sign hasher is provided
+var ErrNilTxSignHasher = errors.New("nil tx signing hasher")
 
 // ErrNilHeaderConstructionValidator signals that a nil header construction validator was provided
 var ErrNilHeaderConstructionValidator = errors.New("nil header construction validator")
@@ -347,6 +347,9 @@ var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
 // ErrNilStatusHandler signals that a nil status handler was provided
 var ErrNilStatusHandler = errors.New("nil status handler provided")
 
+// ErrNilHardforkTrigger signals that a nil hardfork trigger was provided
+var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
+
 // ErrNilStatusHandlersUtils signals that a nil status handlers utils instance was provided
 var ErrNilStatusHandlersUtils = errors.New("nil status handlers utils")
 
@@ -461,7 +464,7 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
-// ErrNewBootstrapDataProvider signals a new epochStartBootstrap creation has failed
+// ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
 // ErrBootstrap signals the bootstrapping process has failed

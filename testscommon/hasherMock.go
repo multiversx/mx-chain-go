@@ -1,13 +1,13 @@
 package testscommon
 
 // HasherMock -
-type HasherMock struct {
+type HasherStub struct {
 	ComputeCalled   func(s string) []byte
 	EmptyHashCalled func() []byte
 }
 
 // Compute -
-func (hash HasherMock) Compute(s string) []byte {
+func (hash HasherStub) Compute(s string) []byte {
 	if hash.ComputeCalled != nil {
 		return hash.ComputeCalled(s)
 	}
@@ -15,7 +15,7 @@ func (hash HasherMock) Compute(s string) []byte {
 }
 
 // EmptyHash -
-func (hash HasherMock) EmptyHash() []byte {
+func (hash HasherStub) EmptyHash() []byte {
 	if hash.EmptyHashCalled != nil {
 		hash.EmptyHashCalled()
 	}
@@ -23,11 +23,11 @@ func (hash HasherMock) EmptyHash() []byte {
 }
 
 // Size -
-func (HasherMock) Size() int {
+func (HasherStub) Size() int {
 	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (hash HasherMock) IsInterfaceNil() bool {
+func (hash HasherStub) IsInterfaceNil() bool {
 	return false
 }

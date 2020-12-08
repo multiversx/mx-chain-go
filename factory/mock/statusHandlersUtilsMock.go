@@ -10,14 +10,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
+// StatusHandlersUtilsMock -
 type StatusHandlersUtilsMock struct {
 	AppStatusHandler core.AppStatusHandler
 }
 
+// UpdateStorerAndMetricsForPersistentHandler -
 func (shum *StatusHandlersUtilsMock) UpdateStorerAndMetricsForPersistentHandler(_ storage.Storer) error {
 	return nil
 }
 
+// LoadTpsBenchmarkFromStorage -
 func (shum *StatusHandlersUtilsMock) LoadTpsBenchmarkFromStorage(_ storage.Storer, _ marshal.Marshalizer) *statistics.TpsPersistentData {
 	return &statistics.TpsPersistentData{
 		BlockNumber:           1,
@@ -29,22 +32,27 @@ func (shum *StatusHandlersUtilsMock) LoadTpsBenchmarkFromStorage(_ storage.Store
 	}
 }
 
+// StatusHandler -
 func (shum *StatusHandlersUtilsMock) StatusHandler() core.AppStatusHandler {
 	return shum.AppStatusHandler
 }
 
+// Metrics -
 func (shum *StatusHandlersUtilsMock) Metrics() external.StatusMetricsHandler {
 	return nil
 }
 
+// SignalStartViews -
 func (shum *StatusHandlersUtilsMock) SignalStartViews() {
 
 }
 
+// SignalLogRewrite -
 func (shum *StatusHandlersUtilsMock) SignalLogRewrite() {
 
 }
 
+// IsInterfaceNil -
 func (shum *StatusHandlersUtilsMock) IsInterfaceNil() bool {
 	return shum == nil
 }

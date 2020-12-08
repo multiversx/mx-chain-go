@@ -5,10 +5,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 )
 
 var _ process.BuiltinFunction = (*esdtPause)(nil)
@@ -29,12 +29,16 @@ func NewESDTPauseFunc(
 	}
 
 	e := &esdtPause{
-		keyPrefix: []byte(core.ElrondProtectedKeyPrefix + esdtKeyIdentifier),
+		keyPrefix: []byte(core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier),
 		pause:     pause,
 		accounts:  accounts,
 	}
 
 	return e, nil
+}
+
+// SetNewGasConfig is called whenever gas cost is changed
+func (e *esdtPause) SetNewGasConfig(_ *process.GasCost) {
 }
 
 // ProcessBuiltinFunction resolves ESDT pause function call
@@ -79,7 +83,12 @@ func (e *esdtPause) togglePause(token []byte) error {
 	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(token)
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 	esdtMetaData.Paused = e.pause
-	return systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
+	err = systemSCAccount.DataTrieTracker().SaveKeyValue(token, esdtMetaData.ToBytes())
+	if err != nil {
+		return err
+	}
+
+	return e.accounts.SaveAccount(systemSCAccount)
 }
 
 func (e *esdtPause) getSystemAccount() (state.UserAccountHandler, error) {
@@ -97,13 +106,16 @@ func (e *esdtPause) getSystemAccount() (state.UserAccountHandler, error) {
 }
 
 // IsPaused returns true if the token is paused
-func (e *esdtPause) IsPaused(token []byte) bool {
+func (e *esdtPause) IsPaused(pauseKey []byte) bool {
 	systemSCAccount, err := e.getSystemAccount()
 	if err != nil {
 		return false
 	}
 
-	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(token)
+	val, _ := systemSCAccount.DataTrieTracker().RetrieveValue(pauseKey)
+	if len(val) != lengthOfESDTMetadata {
+		return false
+	}
 	esdtMetaData := ESDTGlobalMetadataFromBytes(val)
 
 	return esdtMetaData.Paused

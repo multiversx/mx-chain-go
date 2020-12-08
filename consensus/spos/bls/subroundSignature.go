@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 )
 
 type subroundSignature struct {
@@ -25,6 +26,9 @@ func NewSubroundSignature(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(appStatusHandler){
+		return nil, spos.ErrNilAppStatusHandler
 	}
 
 	srSignature := subroundSignature{
@@ -206,9 +210,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
-	isTimeOut := sr.remainingTime() <= 0
 
-	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && isTimeOut))
+	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
 	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && sr.IsSelfJobDone(sr.Current())
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
@@ -269,6 +272,8 @@ func (sr *subroundSignature) waitAllSignatures() {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
+
+	sr.WaitingAllSignaturesTimeOut = true
 
 	select {
 	case sr.ConsensusChannel() <- true:

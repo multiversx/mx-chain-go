@@ -71,18 +71,17 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		var cfgs *config.Configs
-		cfgs, err = readConfigs(c, log)
-		if err != nil {
-			return err
+		cfg, errCfg := readConfigs(c, log)
+		if errCfg != nil {
+			return errCfg
 		}
 
-		applyFlags(c, cfgs, log)
-		cfgs.FlagsConfig.Version = app.Version
+		applyFlags(c, cfg, log)
+		cfg.FlagsConfig.Version = app.Version
 
-		nodeRunner, errNewNodeRunner := node.NewNodeRunner(cfgs, log)
-		if errNewNodeRunner != nil {
-			return errNewNodeRunner
+		nodeRunner, errRunner := node.NewNodeRunner(cfg)
+		if errRunner != nil {
+			return errRunner
 		}
 
 		return nodeRunner.Start()
@@ -180,18 +179,22 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 
 	return &config.Configs{
-		GeneralConfig:                    generalConfig,
-		ApiRoutesConfig:                  apiRoutesConfig,
-		EconomicsConfig:                  economicsConfig,
-		SystemSCConfig:                   systemSCConfig,
-		RatingsConfig:                    ratingsConfig,
-		PreferencesConfig:                preferencesConfig,
-		ExternalConfig:                   externalConfig,
-		P2pConfig:                        p2pConfig,
-		ConfigurationFileName:            configurationFileName,
-		ConfigurationEconomicsFileName:   configurationEconomicsFileName,
-		ConfigurationRatingsFileName:     configurationRatingsFileName,
-		ConfigurationPreferencesFileName: configurationPreferencesFileName,
-		P2pConfigurationFileName:         p2pConfigurationFileName,
+		GeneralConfig:                         generalConfig,
+		ApiRoutesConfig:                       apiRoutesConfig,
+		EconomicsConfig:                       economicsConfig,
+		SystemSCConfig:                        systemSCConfig,
+		RatingsConfig:                         ratingsConfig,
+		PreferencesConfig:                     preferencesConfig,
+		ExternalConfig:                        externalConfig,
+		P2pConfig:                             p2pConfig,
+		ConfigurationFileName:                 configurationFileName,
+		ConfigurationApiRoutesFileName:        configurationApiFileName,
+		ConfigurationEconomicsFileName:        configurationEconomicsFileName,
+		ConfigurationSystemSCFilename:         configurationSystemSCConfigFileName,
+		ConfigurationRatingsFileName:          configurationRatingsFileName,
+		ConfigurationPreferencesFileName:      configurationPreferencesFileName,
+		ConfigurationExternalFileName:         externalConfigurationFileName,
+		P2pConfigurationFileName:              p2pConfigurationFileName,
+		ConfigurationGasScheduleDirectoryName: gasScheduleConfigurationDirectory.Name,
 	}, nil
 }

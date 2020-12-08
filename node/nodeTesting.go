@@ -22,7 +22,7 @@ const maxGoRoutinesSendMessage = 30
 var minTxGasPrice = uint64(10)
 var minTxGasLimit = uint64(1000)
 
-//TODO move this funcs in a new benchmarking/stress-test binary
+//TODO remove this file and adapt integration tests using GenerateAndSendBulkTransactions
 
 // GenerateAndSendBulkTransactions is a method for generating and propagating a set
 // of transactions to be processed. It is mainly used for demo purposes

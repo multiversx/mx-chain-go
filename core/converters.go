@@ -90,6 +90,20 @@ func GetShardIDString(shardID uint32) string {
 	return fmt.Sprintf("%d", shardID)
 }
 
+// ConvertShardIDToUint32 converts shard id from string to uint32
+func ConvertShardIDToUint32(shardIDStr string) (uint32, error) {
+	if shardIDStr == "metachain" {
+		return MetachainShardId, nil
+	}
+
+	shardID, err := strconv.ParseInt(shardIDStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(shardID), nil
+}
+
 // EpochStartIdentifier returns the string for the epoch start identifier
 func EpochStartIdentifier(epoch uint32) string {
 	return fmt.Sprintf("epochStartBlock_%d", epoch)
@@ -163,6 +177,7 @@ func ConvertToEvenHexBigInt(value *big.Int) string {
 	return str
 }
 
+// ProcessDestinationShardAsObserver returns the shardID given the destination as observer string
 func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uint32, error) {
 	destShard := strings.ToLower(destinationShardIdAsObserver)
 	if len(destShard) == 0 {

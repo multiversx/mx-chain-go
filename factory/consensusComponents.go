@@ -78,6 +78,9 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 	if check.IfNil(args.StatusComponents) {
 		return nil, errors.ErrNilStatusComponentsHolder
 	}
+	if check.IfNil(args.HardforkTrigger) {
+		return nil, errors.ErrNilHardforkTrigger
+	}
 
 	return &consensusComponentsFactory{
 		config:              args.Config,

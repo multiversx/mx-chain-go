@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -141,6 +142,18 @@ func TestNewShardInterceptorsContainerFactory_NilStoreShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilStore, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilEpochNotifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.EpochNotifierField = nil
+	args := getArgumentsShard(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilEpochNotifier, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -213,6 +226,18 @@ func TestNewShardInterceptorsContainerFactory_NilHeaderIntegrityVerifierShouldEr
 
 	assert.Nil(t, icf)
 	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestNewShardInterceptorsContainerFactory_NilTxSignHasherShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	coreComp.TxSignHasherField = nil
+	args := getArgumentsShard(coreComp, cryptoComp)
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilHasher, err)
 }
 
 func TestNewShardInterceptorsContainerFactory_NilSingleSignerShouldErr(t *testing.T) {
@@ -568,6 +593,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:            &mock.MarshalizerMock{},
 		TxMarsh:             &mock.MarshalizerMock{},
+		TxSignHasherField:   &mock.HasherMock{},
 		Hash:                &mock.HasherMock{},
 		UInt64ByteSliceConv: mock.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
@@ -577,6 +603,8 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
+		EpochNotifierField: &mock.EpochNotifierStub{},
+		TxVersionCheckField: versioning.NewTxVersionChecker(1),
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig: &mock.SignerMock{},

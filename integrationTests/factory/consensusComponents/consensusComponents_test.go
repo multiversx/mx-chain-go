@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	mainFactory "github.com/ElrondNetwork/elrond-go/factory"
@@ -24,17 +24,19 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 
 	configs := factory.CreateDefaultConfig()
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
-	managedCoreComponents, err := node.CreateManagedCoreComponents(configs, chanStopNodeProcess)
+	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedCryptoComponents, err := node.CreateManagedCryptoComponents(configs, managedCoreComponents)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
-	managedNetworkComponents, err := node.CreateManagedNetworkComponents(configs, managedCoreComponents)
+	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := node.CreateManagedBootstrapComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := node.CreateManagedDataComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := node.CreateManagedStateComponents(configs, managedCoreComponents, managedBootstrapComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedCoreComponents, managedBootstrapComponents)
+	require.Nil(t, err)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedBootstrapComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := mainFactory.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -54,8 +56,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedBootstrapComponents.EpochBootstrapParams().Epoch(),
 	)
 	require.Nil(t, err)
-	managedStatusComponents, err := node.CreateManagedStatusComponents(
-		configs,
+	managedStatusComponents, err := nr.CreateManagedStatusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
 		managedBootstrapComponents,
@@ -66,9 +67,26 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		false,
 	)
 	require.Nil(t, err)
-	gasSchedule, err := core.LoadGasScheduleConfig(configs.FlagsConfig.GasScheduleConfigurationFileName)
+
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: configs.GeneralConfig.GasSchedule,
+		ConfigDir:         configs.FlagsConfig.GasScheduleConfigurationDirectory,
+		EpochNotifier:     managedCoreComponents.EpochNotifier(),
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(t, err)
-	managedProcessComponents, err := node.CreateManagedProcessComponents(configs, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedBootstrapComponents, managedStateComponents, managedDataComponents, managedStatusComponents, gasSchedule, nodesCoordinator)
+
+	managedProcessComponents, err := nr.CreateManagedProcessComponents(
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		managedBootstrapComponents,
+		managedStateComponents,
+		managedDataComponents,
+		managedStatusComponents,
+		gasScheduleNotifier,
+		nodesCoordinator,
+	)
 	require.Nil(t, err)
 	time.Sleep(2 * time.Second)
 
@@ -82,7 +100,18 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedProcessComponents.TxLogsProcessor().EnableLogToBeSavedInCache()
 	}
 
-	managedConsensusComponents, err := node.CreateManagedConsensusComponents(configs, managedCoreComponents, managedNetworkComponents, managedCryptoComponents, managedBootstrapComponents, managedDataComponents, managedStateComponents, managedStatusComponents, managedProcessComponents, nodesCoordinator, nodesShufflerOut)
+	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(
+		managedCoreComponents,
+		managedNetworkComponents,
+		managedCryptoComponents,
+		managedBootstrapComponents,
+		managedDataComponents,
+		managedStateComponents,
+		managedStatusComponents,
+		managedProcessComponents,
+		nodesCoordinator,
+		nodesShufflerOut,
+	)
 	require.Nil(t, err)
 	require.NotNil(t, managedConsensusComponents)
 

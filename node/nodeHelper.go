@@ -12,15 +12,17 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	factory4 "github.com/ElrondNetwork/elrond-go/process/factory"
+	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/update"
-	factory3 "github.com/ElrondNetwork/elrond-go/update/factory"
+	updateFactory "github.com/ElrondNetwork/elrond-go/update/factory"
 	"github.com/ElrondNetwork/elrond-go/update/trigger"
 )
 
+// CreateHardForkTrigger is the hard fork trigger factory
+// TODO: move this to process components
 func CreateHardForkTrigger(
 	config *config.Config,
 	shardCoordinator sharding.Coordinator,
@@ -32,7 +34,7 @@ func CreateHardForkTrigger(
 	crypto factory.CryptoComponentsHolder,
 	process factory.ProcessComponentsHolder,
 	network factory.NetworkComponentsHolder,
-	epochNotifier factory.EpochStartNotifierWithConfirm,
+	epochStartNotifier factory.EpochStartNotifierWithConfirm,
 	importStartHandler update.ImportStartHandler,
 	workingDir string,
 ) (HardforkTrigger, error) {
@@ -48,35 +50,36 @@ func CreateHardForkTrigger(
 	accountsDBs[state.PeerAccountsState] = stateComponents.PeerAccounts()
 	hardForkConfig := config.Hardfork
 	exportFolder := filepath.Join(workingDir, hardForkConfig.ImportFolder)
-	argsExporter := factory3.ArgsExporter{
-		CoreComponents:           coreData,
-		CryptoComponents:         crypto,
-		HeaderValidator:          process.HeaderConstructionValidator(),
-		DataPool:                 data.Datapool(),
-		StorageService:           data.StorageService(),
-		RequestHandler:           process.RequestHandler(),
-		ShardCoordinator:         shardCoordinator,
-		Messenger:                network.NetworkMessenger(),
-		ActiveAccountsDBs:        accountsDBs,
-		ExistingResolvers:        process.ResolversFinder(),
-		ExportFolder:             exportFolder,
-		ExportTriesStorageConfig: hardForkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig: hardForkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:    hardForkConfig.ExportKeysStorageConfig,
-		WhiteListHandler:         process.WhiteListHandler(),
-		WhiteListerVerifiedTxs:   process.WhiteListerVerifiedTxs(),
-		InterceptorsContainer:    process.InterceptorsContainer(),
-		NodesCoordinator:         nodesCoordinator,
-		HeaderSigVerifier:        process.HeaderSigVerifier(),
-		HeaderIntegrityVerifier:  process.HeaderIntegrityVerifier(),
-		MaxTrieLevelInMemory:     config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		InputAntifloodHandler:    network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:   network.OutputAntiFloodHandler(),
-		ValidityAttester:         process.BlockTracker(),
-		Rounder:                  process.Rounder(),
-		InterceptorDebugConfig:   config.Debug.InterceptorResolver,
+	argsExporter := updateFactory.ArgsExporter{
+		CoreComponents:            coreData,
+		CryptoComponents:          crypto,
+		HeaderValidator:           process.HeaderConstructionValidator(),
+		DataPool:                  data.Datapool(),
+		StorageService:            data.StorageService(),
+		RequestHandler:            process.RequestHandler(),
+		ShardCoordinator:          shardCoordinator,
+		Messenger:                 network.NetworkMessenger(),
+		ActiveAccountsDBs:         accountsDBs,
+		ExistingResolvers:         process.ResolversFinder(),
+		ExportFolder:              exportFolder,
+		ExportTriesStorageConfig:  hardForkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig:  hardForkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:     hardForkConfig.ExportKeysStorageConfig,
+		WhiteListHandler:          process.WhiteListHandler(),
+		WhiteListerVerifiedTxs:    process.WhiteListerVerifiedTxs(),
+		InterceptorsContainer:     process.InterceptorsContainer(),
+		NodesCoordinator:          nodesCoordinator,
+		HeaderSigVerifier:         process.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:   process.HeaderIntegrityVerifier(),
+		MaxTrieLevelInMemory:      config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		InputAntifloodHandler:     network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
+		ValidityAttester:          process.BlockTracker(),
+		Rounder:                   process.Rounder(),
+		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
+		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 	}
-	hardForkExportFactory, err := factory3.NewExportHandlerFactory(argsExporter)
+	hardForkExportFactory, err := updateFactory.NewExportHandlerFactory(argsExporter)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +94,7 @@ func CreateHardForkTrigger(
 		EpochProvider:             process.EpochStartTrigger(),
 		ExportFactoryHandler:      hardForkExportFactory,
 		ChanStopNodeProcess:       coreData.ChanStopNodeProcess(),
-		EpochConfirmedNotifier:    epochNotifier,
+		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
 	}
@@ -120,10 +123,11 @@ func prepareOpenTopics(
 		return
 	}
 
-	selfShardTxTopic := factory4.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	antiflood.SetTopicsForAll(core.HeartbeatTopic, selfShardTxTopic)
 }
 
+// CreateNode is the node factory
 func CreateNode(
 	config *config.Config,
 	bootstrapComponents factory.BootstrapComponentsHandler,

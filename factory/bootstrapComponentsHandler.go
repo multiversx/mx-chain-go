@@ -49,13 +49,15 @@ func (mbf *managedBootstrapComponents) Close() error {
 	mbf.mutBootstrapComponents.Lock()
 	defer mbf.mutBootstrapComponents.Unlock()
 
-	if mbf.bootstrapComponents != nil {
-		err := mbf.bootstrapComponents.Close()
-		if err != nil {
-			return err
-		}
-		mbf.bootstrapComponents = nil
+	if mbf.bootstrapComponents == nil {
+		return nil
 	}
+
+	err := mbf.bootstrapComponents.Close()
+	if err != nil {
+		return err
+	}
+	mbf.bootstrapComponents = nil
 
 	return nil
 }
@@ -71,7 +73,7 @@ func (mbf *managedBootstrapComponents) CheckSubcomponents() error {
 	if check.IfNil(mbf.epochStartBootstraper) {
 		return errors.ErrNilEpochStartBootstrapper
 	}
-	if check.IfNil(mbf.bootstrapParamsHandler) {
+	if check.IfNil(mbf.bootstrapParamsHolder) {
 		return errors.ErrNilBootstrapParamsHandler
 	}
 
@@ -91,7 +93,7 @@ func (mbf *managedBootstrapComponents) EpochStartBootstrapper() EpochStartBootst
 }
 
 // EpochBootstrapParams returns the epoch start bootstrap parameters handler
-func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHandler {
+func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHolder {
 	mbf.mutBootstrapComponents.RLock()
 	defer mbf.mutBootstrapComponents.RUnlock()
 
@@ -99,7 +101,7 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() BootstrapParamsHan
 		return nil
 	}
 
-	return mbf.bootstrapComponents.bootstrapParamsHandler
+	return mbf.bootstrapComponents.bootstrapParamsHolder
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

@@ -69,7 +69,7 @@ func (gev *ginErrorWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// Start will boot up the api and appropriate routes, handlers and validators
+// CreateServer will create the api and appropriate routes, handlers and validators
 func CreateServer(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, processors ...MiddlewareProcessor) (*http.Server, error) {
 	var ws *gin.Engine
 	if !elrondFacade.RestAPIServerDebugMode() {

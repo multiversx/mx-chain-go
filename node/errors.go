@@ -34,12 +34,6 @@ var ErrNilShardCoordinator = errors.New("trying to set nil shard coordinator")
 // ErrNilSingleSig signals that a nil singlesig object has been provided
 var ErrNilSingleSig = errors.New("trying to set nil singlesig")
 
-// ErrNilMultiSig signals that a nil multiSigner object has been provided
-var ErrNilMultiSig = errors.New("trying to set nil multiSigner")
-
-// ErrNilResolversFinder signals that a nil resolvers finder has been provided
-var ErrNilResolversFinder = errors.New("nil resolvers finder")
-
 // ErrNilPeerDenialEvaluator signals that a nil peer denial evaluator was provided
 var ErrNilPeerDenialEvaluator = errors.New("nil peer denial evaluator")
 
@@ -67,9 +61,6 @@ var ErrNilTxAccumulator = errors.New("nil tx accumulator")
 // ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
 var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 
-// ErrNilWhiteListHandler signals that white list handler is nil
-var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
-
 // ErrNilNodeStopChannel signals that a nil channel for node process stop has been provided
 var ErrNilNodeStopChannel = errors.New("nil node stop channel")
 
@@ -85,20 +76,8 @@ var ErrEmptyQueryHandlerName = errors.New("empty query handler name")
 // ErrUnknownPeerID signals that the provided peer is unknown by the current node
 var ErrUnknownPeerID = errors.New("unknown peer ID")
 
-// ErrNilPeerHonestyHandler signals that a nil peer honesty handler has been provided
-var ErrNilPeerHonestyHandler = errors.New("nil peer honesty handler")
-
-// ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
-var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
-
-// ErrNilWatchdog signals that a nil watchdog has been provided
-var ErrNilWatchdog = errors.New("nil watchdog")
-
 // ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
-
-// ErrNilHistoryRepository signals that history repository is nil
-var ErrNilHistoryRepository = errors.New("history repository is nil")
 
 // ErrNilBootstrapComponents signals that a nil bootstrap components instance has been provided
 var ErrNilBootstrapComponents = errors.New("nil bootstrap componennts")

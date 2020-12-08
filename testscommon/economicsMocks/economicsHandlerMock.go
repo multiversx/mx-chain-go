@@ -132,7 +132,7 @@ func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx process.TransactionWit
 	return big.NewInt(0)
 }
 
-// ComputeTxFee
+// ComputeTxFee -
 func (ehm *EconomicsHandlerMock) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
 	if ehm.ComputeTxFeeCalled != nil {
 		return ehm.ComputeTxFeeCalled(tx)

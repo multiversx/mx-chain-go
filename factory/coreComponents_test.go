@@ -302,6 +302,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 			TxSignMarshalizer: config.TypeConfig{
 				Type: testMarshalizer,
 			},
+			TxSignHasher: config.TypeConfig{
+				Type: testHasher,
+			},
 			AddressPubkeyConverter: config.PubkeyConfig{
 				Length:          32,
 				Type:            "bech32",
@@ -333,7 +336,7 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 		},
 		RatingsConfig:         createDummyRatingsConfig(),
 		EconomicsConfig:       createDummyEconomicsConfig(),
-		NodesFilename:         "mock/nodesSetupMock.json",
+		NodesFilename:         "mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:      "home",
 		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
 		StatusHandlersFactory: &mock.StatusHandlersFactoryMock{},

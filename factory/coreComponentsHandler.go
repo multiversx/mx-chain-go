@@ -63,13 +63,15 @@ func (mcc *managedCoreComponents) Close() error {
 	mcc.mutCoreComponents.Lock()
 	defer mcc.mutCoreComponents.Unlock()
 
-	if mcc.coreComponents != nil {
-		err := mcc.coreComponents.Close()
-		if err != nil {
-			return err
-		}
-		mcc.coreComponents = nil
+	if mcc.coreComponents == nil {
+		return nil
 	}
+
+	err := mcc.coreComponents.Close()
+	if err != nil {
+		return err
+	}
+	mcc.coreComponents = nil
 
 	return nil
 }
@@ -93,6 +95,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mcc.hasher) {
 		return errors.ErrNilHasher
+	}
+	if check.IfNil(mcc.txSignHasher) {
+		return errors.ErrNilTxSignHasher
 	}
 	if check.IfNil(mcc.uint64ByteSliceConverter) {
 		return errors.ErrNilUint64ByteSliceConverter
@@ -208,6 +213,18 @@ func (mcc *managedCoreComponents) Hasher() hashing.Hasher {
 	return mcc.coreComponents.hasher
 }
 
+// TxSignHasher returns the core components hasher to be used for signed transaction hashes
+func (mcc *managedCoreComponents) TxSignHasher() hashing.Hasher {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.txSignHasher
+}
+
 // Uint64ByteSliceConverter returns the core component converter between a byte slice and uint64
 func (mcc *managedCoreComponents) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	mcc.mutCoreComponents.RLock()
@@ -302,6 +319,18 @@ func (mcc *managedCoreComponents) MinTransactionVersion() uint32 {
 	}
 
 	return mcc.coreComponents.minTransactionVersion
+}
+
+// TxVersionChecker returns the transaction version checker
+func (mcc *managedCoreComponents) TxVersionChecker() process.TxVersionCheckerHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.txVersionChecker
 }
 
 // AlarmScheduler returns the alarm scheduler
@@ -425,7 +454,7 @@ func (mcc *managedCoreComponents) NodesShuffler() sharding.NodesShuffler {
 }
 
 // EpochNotifier returns the epoch notifier
-func (mcc *managedCoreComponents) EpochNotifier() EpochNotifier {
+func (mcc *managedCoreComponents) EpochNotifier() process.EpochNotifier {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -466,6 +495,6 @@ func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 }
 
 // String returns the name of the component
-func (mbf *managedCoreComponents) String() string {
+func (mcc *managedCoreComponents) String() string {
 	return "managedCoreComponents"
 }

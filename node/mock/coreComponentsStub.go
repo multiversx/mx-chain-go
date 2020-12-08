@@ -23,27 +23,29 @@ type CoreComponentsMock struct {
 	TxMarsh                     marshal.Marshalizer
 	VmMarsh                     marshal.Marshalizer
 	Hash                        hashing.Hasher
+	TxSignHasherField           hashing.Hasher
 	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
 	PathHdl                     storage.PathManagerHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
-	StatusHdlUtils              nodeFactory.StatusHandlersUtils
-	AppStatusHdl                core.AppStatusHandler
-	WDTimer                     core.WatchdogTimer
-	Alarm                       core.TimersScheduler
-	NtpTimer                    ntp.SyncTimer
-	RoundHandler                consensus.Rounder
-	EconomicsHandler            process.EconomicsHandler
-	RatingsConfig               process.RatingsInfoHandler
-	RatingHandler               sharding.PeerAccountListAndRatingHandler
-	NodesConfig                 sharding.GenesisNodesSetupHandler
-	EpochChangeNotifier         factory.EpochNotifier
-	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
-	ChanStopProcess             chan endProcess.ArgEndProcess
-	Shuffler                    sharding.NodesShuffler
-	StartTime                   time.Time
+	StatusHdlUtils           nodeFactory.StatusHandlersUtils
+	AppStatusHdl             core.AppStatusHandler
+	WDTimer                  core.WatchdogTimer
+	Alarm                    core.TimersScheduler
+	NtpTimer                 ntp.SyncTimer
+	RoundHandler             consensus.Rounder
+	EconomicsHandler         process.EconomicsHandler
+	RatingsConfig            process.RatingsInfoHandler
+	RatingHandler            sharding.PeerAccountListAndRatingHandler
+	NodesConfig              sharding.GenesisNodesSetupHandler
+	EpochChangeNotifier      process.EpochNotifier
+	EpochNotifierWithConfirm factory.EpochStartNotifierWithConfirm
+	ChanStopProcess          chan endProcess.ArgEndProcess
+	Shuffler                 sharding.NodesShuffler
+	TxVersionCheckHandler    process.TxVersionCheckerHandler
+	StartTime                time.Time
 }
 
 // Create -
@@ -123,7 +125,7 @@ func (ccm *CoreComponentsMock) NodesShuffler() sharding.NodesShuffler {
 }
 
 // EpochNotifier -
-func (ccm *CoreComponentsMock) EpochNotifier() factory.EpochNotifier {
+func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
 }
 
@@ -156,6 +158,11 @@ func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
+}
+
+// TxSignHasher -
+func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
+	return ccm.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -
@@ -192,6 +199,11 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccm.TxVersionCheckHandler
 }
 
 // ChanStopNodeProcess -

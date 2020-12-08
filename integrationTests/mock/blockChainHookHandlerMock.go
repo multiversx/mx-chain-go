@@ -7,9 +7,10 @@ import (
 
 // BlockChainHookHandlerMock -
 type BlockChainHookHandlerMock struct {
-	SetCurrentHeaderCalled func(hdr data.HeaderHandler)
-	NewAddressCalled       func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	IsPayableCalled        func(address []byte) (bool, error)
+	SetCurrentHeaderCalled   func(hdr data.HeaderHandler)
+	NewAddressCalled         func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	IsPayableCalled          func(address []byte) (bool, error)
+	DeleteCompiledCodeCalled func(codeHash []byte)
 }
 
 // IsPayable -
@@ -39,6 +40,13 @@ func (e *BlockChainHookHandlerMock) NewAddress(creatorAddress []byte, creatorNon
 	}
 
 	return make([]byte, 0), nil
+}
+
+// DeleteCompiledCode -
+func (e *BlockChainHookHandlerMock) DeleteCompiledCode(codeHash []byte) {
+	if e.DeleteCompiledCodeCalled != nil {
+		e.DeleteCompiledCodeCalled(codeHash)
+	}
 }
 
 // IsInterfaceNil -
