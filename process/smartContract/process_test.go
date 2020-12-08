@@ -2378,3 +2378,46 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	assert.Equal(t, totalFee.Int64(), int64(20))
 	assert.Equal(t, devFees.Int64(), int64(10))
 }
+
+func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	sndAddress := []byte("sender11")
+	rcvAddress := []byte("receiver")
+
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			if bytes.Equal(address, sndAddress) {
+				return 1
+			}
+			if bytes.Equal(address, rcvAddress) {
+				return 0
+			}
+			return 2
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scrWithRelayed := &smartContractResult.SmartContractResult{
+		Nonce:          0,
+		Value:          big.NewInt(0),
+		RcvAddr:        rcvAddress,
+		SndAddr:        sndAddress,
+		RelayerAddr:    []byte("relayer1"),
+		RelayedValue:   big.NewInt(0),
+		PrevTxHash:     []byte("someHash"),
+		OriginalTxHash: []byte("someHash"),
+		GasLimit:       10000,
+		GasPrice:       10,
+		CallType:       vmcommon.DirectCall,
+	}
+
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 1000}
+	_, relayerRefund := sc.createSCRForSenderAndRelayer(vmOutput, scrWithRelayed, []byte("txhash"), vmcommon.DirectCall)
+	assert.NotNil(t, relayerRefund)
+
+	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)
+	assert.Equal(t, sc.shardCoordinator.SelfId(), senderID)
+}
