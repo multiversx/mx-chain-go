@@ -1288,6 +1288,13 @@ func (g *governanceContract) CanUseContract() bool {
 	return true
 }
 
+// SetNewGasCost is called whenever a gas cost was changed
+func (g *governanceContract) SetNewGasCost(gasCost vm.GasCost) {
+	g.mutExecution.Lock()
+	g.gasCost = gasCost
+	g.mutExecution.Unlock()
+}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (g *governanceContract) IsInterfaceNil() bool {
 	return g == nil
