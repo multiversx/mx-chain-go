@@ -283,3 +283,6 @@ var ErrUnStakeExecuteError = errors.New("unstake execution error")
 
 // ErrInvalidNumOfKeysToUnStake signals that invalid number of keys were selected to unstake
 var ErrInvalidNumOfKeysToUnStake = errors.New("invalid number of keys to unstake")
+
+// ErrSystemValidatorSCCall signals that system validator sc call failed
+var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")

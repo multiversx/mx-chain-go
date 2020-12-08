@@ -802,3 +802,25 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	assert.Equal(t, 5, len(validatorInfos[0]))
 	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
 }
+
+func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0)
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	err := s.ToggleUnStakeUnBond(true)
+	assert.Nil(t, err)
+
+	validatorSC := loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
+	value, _ := validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
+	assert.True(t, value[0] == 1)
+
+	err = s.ToggleUnStakeUnBond(false)
+	assert.Nil(t, err)
+
+	validatorSC = loadSCAccount(s.userAccountsDB, vm.ValidatorSCAddress)
+	value, _ = validatorSC.DataTrie().Get([]byte("unStakeUnBondPause"))
+	assert.True(t, value[0] == 0)
+}

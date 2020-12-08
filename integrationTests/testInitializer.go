@@ -15,7 +15,7 @@ import (
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/accumulator"
@@ -716,7 +716,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nodesHandler, shardCoordinator.SelfId())
+	metaHdr, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))

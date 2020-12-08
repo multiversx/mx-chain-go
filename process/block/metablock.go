@@ -223,6 +223,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.processIfFirstBlockAfterEpochStart()
+	if err != nil {
+		return err
+	}
+
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
 		return err
@@ -665,7 +670,11 @@ func (mp *metaProcessor) CreateBlock(
 	mp.blockChainHook.SetCurrentHeader(initialHdr)
 
 	var body data.BodyHandler
-	var err error
+
+	err := mp.processIfFirstBlockAfterEpochStart()
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if mp.epochStartTrigger.IsEpochStart() {
 		err = mp.updateEpochStartHeader(metaHdr)
@@ -692,6 +701,34 @@ func (mp *metaProcessor) CreateBlock(
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
 
 	return metaHdr, body, nil
+}
+
+func (mp *metaProcessor) isPreviousBlockEpochStart() (uint32, bool) {
+	blockHeader := mp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		blockHeader = mp.blockChain.GetGenesisHeader()
+	}
+
+	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
+}
+
+func (mp *metaProcessor) processIfFirstBlockAfterEpochStart() error {
+	epoch, isPreviousEpochStart := mp.isPreviousBlockEpochStart()
+	if !isPreviousEpochStart {
+		return nil
+	}
+
+	nodesForcedToStay, err := mp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {

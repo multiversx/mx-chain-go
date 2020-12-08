@@ -590,7 +590,7 @@ func createHardForkExporter(
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			Rounder:                  &mock.RounderMock{},
+			RoundHandler:             &mock.RounderMock{},
 			GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,

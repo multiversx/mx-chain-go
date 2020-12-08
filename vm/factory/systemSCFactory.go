@@ -165,6 +165,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		SigVerifier:        scf.sigVerifier,
 		StakingSCConfig:    scf.systemSCConfig.StakingSystemSCConfig,
 		StakingSCAddress:   vm.StakingSCAddress,
+		EndOfEpochAddress:  vm.EndOfEpochAddress,
 		ValidatorSCAddress: vm.ValidatorSCAddress,
 		GasCost:            scf.gasCost,
 		Marshalizer:        scf.marshalizer,
