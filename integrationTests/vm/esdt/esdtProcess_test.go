@@ -9,7 +9,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/esdt"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -150,6 +152,54 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	assert.True(t, tokenInSystemSC.MintedValue.Cmp(big.NewInt(0).Add(initalSupply, mintValue)) == 0)
 	assert.True(t, tokenInSystemSC.BurntValue.Cmp(mintValue) == 0)
 	assert.True(t, tokenInSystemSC.IsPaused)
+}
+
+func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, integrationTests.GetConnectableAddress(advertiser))
+	defer func() {
+		_ = advertiser.Close()
+		_ = metaNode.Messenger.Close()
+	}()
+
+	ticker := "RBT"
+	issuePrice := big.NewInt(1000)
+	initalSupply := big.NewInt(10000000000)
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
+	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte(ticker)) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString(big.NewInt(0).SetUint64(1000).Bytes())
+	txData += properties
+
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:          0,
+		Value:          issuePrice,
+		RcvAddr:        vm.ESDTSCAddress,
+		SndAddr:        metaNode.OwnAccount.Address,
+		Data:           []byte(txData),
+		PrevTxHash:     []byte("hash"),
+		OriginalTxHash: []byte("hash"),
+		GasLimit:       10000000,
+		GasPrice:       1,
+		CallType:       vmcommon.AsynchronousCall,
+		OriginalSender: metaNode.OwnAccount.Address,
+	}
+
+	scResultProcessor := metaNode.ScProcessor.(process.SmartContractResultProcessor)
+
+	returnCode, err := scResultProcessor.ProcessSmartContractResult(scr)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	interimProc, _ := metaNode.InterimProcContainer.Get(block.SmartContractResultBlock)
+	mapCreatedSCRs := interimProc.GetAllCurrentFinishedTxs()
+
+	assert.Equal(t, len(mapCreatedSCRs), 1)
 }
 
 func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {

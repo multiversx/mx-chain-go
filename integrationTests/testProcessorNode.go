@@ -1202,7 +1202,17 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
+	}
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           tpn.AccntState,
 		PubkeyConv:         TestAddressPubkeyConverter,
@@ -1216,9 +1226,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	gasMap := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
 		signVerifier, _ = vmProcess.NewMessageSigVerifier(
@@ -1719,7 +1727,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 20000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
@@ -1942,7 +1950,7 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 5
+			return time.Second * 5000
 		},
 	)
 	if err != nil {
@@ -1972,7 +1980,7 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		header,
 		body,
 		func() time.Duration {
-			return time.Second * 2
+			return time.Second * 20000
 		},
 	)
 	if err != nil {
