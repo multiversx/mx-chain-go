@@ -3,15 +3,20 @@ package storageResolversContainers
 import (
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
+	trieFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/storageResolvers"
+	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
@@ -22,10 +27,15 @@ type baseResolversContainerFactory struct {
 	messenger                dataRetriever.TopicMessageHandler
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
+	hasher                   hashing.Hasher
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	dataPacker               dataRetriever.DataPacker
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	chanGracefullyClose      chan endProcess.ArgEndProcess
+	generalConfig            config.Config
+	shardIDForTries          uint32
+	chainID                  string
+	workingDir               string
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -52,6 +62,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if brcf.chanGracefullyClose == nil {
 		return dataRetriever.ErrNilGracefullyCloseChannel
+	}
+	if check.IfNil(brcf.hasher) {
+		return dataRetriever.ErrNilHasher
 	}
 
 	return nil
@@ -173,4 +186,38 @@ func (brcf *baseResolversContainerFactory) createMiniBlocksResolver(responseTopi
 	}
 
 	return mbResolver, nil
+}
+
+func (brcf *baseResolversContainerFactory) newImportDBTrieStorage(
+	trieStorageConfig config.StorageConfig,
+) (data.StorageManager, dataRetriever.TrieDataGetter, error) {
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: brcf.workingDir,
+			ChainID:    brcf.chainID,
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	trieFactoryArgs := trieFactory.TrieFactoryArgs{
+		EvictionWaitingListCfg:   brcf.generalConfig.EvictionWaitingList,
+		SnapshotDbCfg:            brcf.generalConfig.TrieSnapshotDB,
+		Marshalizer:              brcf.marshalizer,
+		Hasher:                   brcf.hasher,
+		PathManager:              pathManager,
+		TrieStorageManagerConfig: brcf.generalConfig.TrieStorageManagerConfig,
+	}
+	trieFactoryInstance, err := trieFactory.NewTrieFactory(trieFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return trieFactoryInstance.Create(
+		trieStorageConfig,
+		core.GetShardIDString(brcf.shardIDForTries),
+		brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+	)
 }

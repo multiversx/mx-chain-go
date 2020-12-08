@@ -18,19 +18,21 @@ import (
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
-	Config             config.Config
-	ShardCoordinator   sharding.Coordinator
-	Core               CoreComponentsHolder
-	EpochStartNotifier EpochStartNotifier
-	CurrentEpoch       uint32
+	Config                        config.Config
+	ShardCoordinator              sharding.Coordinator
+	Core                          CoreComponentsHolder
+	EpochStartNotifier            EpochStartNotifier
+	CurrentEpoch                  uint32
+	CreateTrieEpochRootHashStorer bool
 }
 
 type dataComponentsFactory struct {
-	config             config.Config
-	shardCoordinator   sharding.Coordinator
-	core               CoreComponentsHolder
-	epochStartNotifier EpochStartNotifier
-	currentEpoch       uint32
+	config                        config.Config
+	shardCoordinator              sharding.Coordinator
+	core                          CoreComponentsHolder
+	epochStartNotifier            EpochStartNotifier
+	currentEpoch                  uint32
+	createTrieEpochRootHashStorer bool
 }
 
 // dataComponents struct holds the data components
@@ -60,11 +62,12 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	}
 
 	return &dataComponentsFactory{
-		config:             args.Config,
-		shardCoordinator:   args.ShardCoordinator,
-		core:               args.Core,
-		epochStartNotifier: args.EpochStartNotifier,
-		currentEpoch:       args.CurrentEpoch,
+		config:                        args.Config,
+		shardCoordinator:              args.ShardCoordinator,
+		core:                          args.Core,
+		epochStartNotifier:            args.EpochStartNotifier,
+		currentEpoch:                  args.CurrentEpoch,
+		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
 	}, nil
 }
 
@@ -135,6 +138,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 		dcf.core.PathHandler(),
 		dcf.epochStartNotifier,
 		dcf.currentEpoch,
+		dcf.createTrieEpochRootHashStorer,
 	)
 	if err != nil {
 		return nil, err
