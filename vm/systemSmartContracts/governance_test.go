@@ -330,7 +330,7 @@ func TestGovernanceContract_AccountVoteNotEnoughGas(t *testing.T) {
 	require.Equal(t, vmcommon.OutOfGas, retCode)
 }
 
-func TestGovernanceContract_AccountVoteInvalidNrOfArguments(t *testing.T) {
+func TestGovernanceContract_AccountVoteInvalidNumOfArguments(t *testing.T) {
 	t.Parallel()
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), githubCommitLength)
@@ -3090,7 +3090,8 @@ func TestComputeEndResults(t *testing.T) {
 		No: big.NewInt(0),
 		Veto: big.NewInt(0),
 	}
-	gsc.computeEndResults(didNotPassQuorum)
+	err := gsc.computeEndResults(didNotPassQuorum)
+	require.Nil(t, err)
 	require.False(t, didNotPassQuorum.Voted)
 
 	didNotPassVotes := &GeneralProposal{
@@ -3098,7 +3099,8 @@ func TestComputeEndResults(t *testing.T) {
 		No: big.NewInt(50),
 		Veto: big.NewInt(0),
 	}
-	gsc.computeEndResults(didNotPassVotes)
+	err = gsc.computeEndResults(didNotPassVotes)
+	require.Nil(t, err)
 	require.False(t, didNotPassVotes.Voted)
 
 	didNotPassVotes2 := &GeneralProposal{
@@ -3106,7 +3108,8 @@ func TestComputeEndResults(t *testing.T) {
 		No: big.NewInt(51),
 		Veto: big.NewInt(0),
 	}
-	gsc.computeEndResults(didNotPassVotes2)
+	err = gsc.computeEndResults(didNotPassVotes2)
+	require.Nil(t, err)
 	require.False(t, didNotPassVotes2.Voted)
 
 	didNotPassVeto := &GeneralProposal{
@@ -3114,7 +3117,8 @@ func TestComputeEndResults(t *testing.T) {
 		No: big.NewInt(50),
 		Veto: big.NewInt(30),
 	}
-	gsc.computeEndResults(didNotPassVeto)
+	err = gsc.computeEndResults(didNotPassVeto)
+	require.Nil(t, err)
 	require.False(t, didNotPassVeto.Voted)
 
 	pass := &GeneralProposal{
@@ -3122,7 +3126,8 @@ func TestComputeEndResults(t *testing.T) {
 		No: big.NewInt(50),
 		Veto: big.NewInt(29),
 	}
-	gsc.computeEndResults(pass)
+	err = gsc.computeEndResults(pass)
+	require.Nil(t, err)
 	require.True(t, pass.Voted)
 }
 
