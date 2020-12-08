@@ -257,10 +257,13 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 	if len(scr.PrevTxHash) == 0 {
 		return process.ErrNilTxHash
 	}
-	sndId := irp.shardCoordinator.ComputeId(scr.SndAddr)
-	dstId := irp.shardCoordinator.ComputeId(scr.RcvAddr)
-	if !core.IsEmptyAddress(scr.SndAddr) && dstId != irp.shardCoordinator.SelfId() && sndId != irp.shardCoordinator.SelfId() {
-		return process.ErrShardIdMissmatch
+
+	if !core.IsEmptyAddress(scr.SndAddr) && !core.IsEmptyAddress(scr.RcvAddr) {
+		sndShardID := irp.shardCoordinator.ComputeId(scr.SndAddr)
+		dstShardID := irp.shardCoordinator.ComputeId(scr.RcvAddr)
+		if sndShardID != irp.shardCoordinator.SelfId() && dstShardID != irp.shardCoordinator.SelfId() {
+			return process.ErrShardIdMissmatch
+		}
 	}
 
 	return nil
