@@ -127,10 +127,11 @@ func getDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 	testEconomics.SetMinGasPrice(200000000000)
 
 	return factory.DataComponentsFactoryArgs{
-		Config:             testscommon.GetGeneralConfig(),
-		ShardCoordinator:   shardCoordinator,
-		Core:               coreComponents,
-		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		CurrentEpoch:       0,
+		Config:                        testscommon.GetGeneralConfig(),
+		ShardCoordinator:              shardCoordinator,
+		Core:                          coreComponents,
+		EpochStartNotifier:            &mock.EpochStartNotifierStub{},
+		CurrentEpoch:                  0,
+		CreateTrieEpochRootHashStorer: false,
 	}
 }

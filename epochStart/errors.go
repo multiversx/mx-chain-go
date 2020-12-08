@@ -232,3 +232,6 @@ var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilMetablockProcessor signals that a nil metablock processor was provided
+var ErrNilMetablockProcessor = errors.New("nil metablock processor")

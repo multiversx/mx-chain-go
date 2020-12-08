@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ------------ Test CryptoComponents --------------------
+// ------------ Test BootstrapComponents --------------------
 func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	defer factory.CleanupWorkingDir()
 	time.Sleep(time.Second)

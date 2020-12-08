@@ -278,7 +278,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 		}
 	}()
 
-	initialVal, _:= big.NewInt(0).SetString("100000000000000000000000", 10)
+	initialVal, _ := big.NewInt(0).SetString("100000000000000000000000", 10)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
