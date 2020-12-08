@@ -464,14 +464,27 @@ func (sc *scProcessor) isSelfShard(address []byte) bool {
 	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
 }
 
+func safeSubUint64(a, b uint64) uint64 {
+	if a < b {
+		return 0
+	}
+	return a - b
+}
+
 func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) (*big.Int, *big.Int) {
-	consumedGas := tx.GetGasLimit() - vmOutput.GasRemaining
-	if !sc.isSelfShard(tx.GetSndAddr()) {
-		consumedGas -= sc.economicsFee.ComputeGasLimit(tx)
+	if tx.GetGasLimit() == 0 {
+		return big.NewInt(0), big.NewInt(0)
+	}
+
+	senderInSelfShard := sc.isSelfShard(tx.GetSndAddr())
+	consumedGas := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+	if !senderInSelfShard {
+		consumedGas = safeSubUint64(consumedGas, sc.economicsFee.ComputeGasLimit(tx))
+		consumedGas = safeSubUint64(consumedGas, builtInFuncGasUsed)
 	}
 
 	for _, outAcc := range vmOutput.OutputAccounts {
@@ -480,14 +493,17 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 			for _, outTransfer := range outAcc.OutputTransfers {
 				sentGas += outTransfer.GasLimit
 			}
-			consumedGas -= sentGas
+			consumedGas = safeSubUint64(consumedGas, sentGas)
 		}
 	}
 
 	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
 
-	consumedGas -= builtInFuncGasUsed
-	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGas)
+	consumedGasWithoutBuiltin := consumedGas
+	if senderInSelfShard {
+		consumedGasWithoutBuiltin = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
+	}
+	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
 	return totalFee, totalDevRwd
@@ -571,6 +587,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
+	builtInFuncGasUsed := safeSubUint64(vmInput.GasProvided, vmOutput.GasRemaining)
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -581,7 +598,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 
 	createdAsyncCallback := false
-	builtInFuncGasUsed := vmInput.GasProvided - vmOutput.GasRemaining
 	scrResults := make([]data.TransactionHandler, 0, len(vmOutput.OutputAccounts)+1)
 	outputAccounts := process.SortVMOutputInsideData(vmOutput)
 	for _, outAcc := range outputAccounts {
