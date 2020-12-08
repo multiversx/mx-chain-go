@@ -258,7 +258,8 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 		return process.ErrNilTxHash
 	}
 	sndId := irp.shardCoordinator.ComputeId(scr.SndAddr)
-	if !core.IsEmptyAddress(scr.SndAddr) && sndId != irp.shardCoordinator.SelfId() {
+	dstId := irp.shardCoordinator.ComputeId(scr.RcvAddr)
+	if !core.IsEmptyAddress(scr.SndAddr) && dstId != irp.shardCoordinator.SelfId() && sndId != irp.shardCoordinator.SelfId() {
 		return process.ErrShardIdMissmatch
 	}
 
