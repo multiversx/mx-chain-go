@@ -689,7 +689,6 @@ func (nr *nodeRunner) logSessionInformation(
 			configurationPaths.Ratings,
 			configurationPaths.Preferences,
 			configurationPaths.P2p,
-			configurationPaths.MainConfig,
 			configurationPaths.Genesis,
 			configurationPaths.Nodes,
 			configurationPaths.ApiRoutes,
