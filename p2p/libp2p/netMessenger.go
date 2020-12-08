@@ -86,7 +86,7 @@ type networkMessenger struct {
 	connMonitor         ConnectionMonitor
 	connMonitorWrapper  p2p.ConnectionMonitorWrapper
 	peerDiscoverer      p2p.PeerDiscoverer
-	sharder             p2p.CommonSharder
+	sharder             p2p.Sharder
 	peerShardResolver   p2p.PeerShardResolver
 	mutPeerResolver     sync.RWMutex
 	mutTopics           sync.RWMutex
@@ -147,6 +147,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
+		cancelFunc()
 		return nil, err
 	}
 
@@ -322,10 +323,11 @@ func (netMes *networkMessenger) createSharder(p2pConfig config.P2PConfig) error 
 		PeerShardResolver:       &unknownPeerShardResolver{},
 		Pid:                     netMes.p2pHost.ID(),
 		MaxConnectionCount:      p2pConfig.Sharding.TargetPeerCount,
-		MaxIntraShardValidators: int(p2pConfig.Sharding.MaxIntraShardValidators),
-		MaxCrossShardValidators: int(p2pConfig.Sharding.MaxCrossShardValidators),
-		MaxIntraShardObservers:  int(p2pConfig.Sharding.MaxIntraShardObservers),
-		MaxCrossShardObservers:  int(p2pConfig.Sharding.MaxCrossShardObservers),
+		MaxIntraShardValidators: p2pConfig.Sharding.MaxIntraShardValidators,
+		MaxCrossShardValidators: p2pConfig.Sharding.MaxCrossShardValidators,
+		MaxIntraShardObservers:  p2pConfig.Sharding.MaxIntraShardObservers,
+		MaxCrossShardObservers:  p2pConfig.Sharding.MaxCrossShardObservers,
+		MaxSeeders:              p2pConfig.Sharding.MaxSeeders,
 		Type:                    p2pConfig.Sharding.Type,
 	}
 
@@ -357,7 +359,7 @@ func (netMes *networkMessenger) createConnectionMonitor(p2pConfig config.P2PConf
 		Reconnecter:                reconnecter,
 		Sharder:                    netMes.sharder,
 		ThresholdMinConnectedPeers: p2pConfig.Node.ThresholdMinConnectedPeers,
-		TargetCount:                p2pConfig.Sharding.TargetPeerCount,
+		TargetCount:                int(p2pConfig.Sharding.TargetPeerCount),
 	}
 	var err error
 	netMes.connMonitor, err = connMonitorFactory.NewConnectionMonitor(args)
@@ -425,6 +427,7 @@ func (netMes *networkMessenger) printLogsStats() {
 			"cross shard validators", peersInfo.NumCrossShardValidators,
 			"cross shard observers", peersInfo.NumCrossShardObservers,
 			"unknown", len(peersInfo.UnknownPeers),
+			"seeders", len(peersInfo.Seeders),
 			"current shard", peersInfo.SelfShardID,
 			"validators histogram", netMes.mapHistogram(peersInfo.NumValidatorsOnShard),
 			"observers histogram", netMes.mapHistogram(peersInfo.NumObserversOnShard),
@@ -1109,6 +1112,7 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 	peers := netMes.p2pHost.Network().Peers()
 	connPeerInfo := &p2p.ConnectedPeersInfo{
 		UnknownPeers:         make([]string, 0),
+		Seeders:              make([]string, 0),
 		IntraShardValidators: make(map[uint32][]string),
 		IntraShardObservers:  make(map[uint32][]string),
 		CrossShardValidators: make(map[uint32][]string),
@@ -1130,10 +1134,15 @@ func (netMes *networkMessenger) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo 
 			connString = conns[0].RemoteMultiaddr().String() + "/p2p/" + p.Pretty()
 		}
 
-		peerInfo := netMes.peerShardResolver.GetPeerInfo(core.PeerID(p))
+		pid := core.PeerID(p)
+		peerInfo := netMes.peerShardResolver.GetPeerInfo(pid)
 		switch peerInfo.PeerType {
 		case core.UnknownPeer:
-			connPeerInfo.UnknownPeers = append(connPeerInfo.UnknownPeers, connString)
+			if netMes.sharder.IsSeeder(pid) {
+				connPeerInfo.Seeders = append(connPeerInfo.Seeders, connString)
+			} else {
+				connPeerInfo.UnknownPeers = append(connPeerInfo.UnknownPeers, connString)
+			}
 		case core.ValidatorPeer:
 			connPeerInfo.NumValidatorsOnShard[peerInfo.ShardID]++
 			if selfPeerInfo.ShardID != peerInfo.ShardID {

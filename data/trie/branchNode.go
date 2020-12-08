@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -83,6 +84,10 @@ func (bn *branchNode) setHasher(hasher hashing.Hasher) {
 }
 
 func (bn *branchNode) getCollapsed() (node, error) {
+	return bn.getCollapsedBn()
+}
+
+func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getCollapsed error %w", err)
@@ -278,14 +283,13 @@ func (bn *branchNode) commit(force bool, level byte, maxTrieLevelInMemory uint, 
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
-		var collapsed node
-		collapsed, err = bn.getCollapsed()
+		var collapsedBn *branchNode
+		collapsedBn, err = bn.getCollapsedBn()
 		if err != nil {
 			return err
 		}
-		if n, ok := collapsed.(*branchNode); ok {
-			*bn = *n
-		}
+
+		*bn = *collapsedBn
 	}
 	return nil
 }
@@ -705,52 +709,39 @@ func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte
 	return missingChildren, existingChildren, nil
 }
 
-func (bn *branchNode) getAllLeaves(leaves map[string][]byte, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getAllLeaves error %w", err)
-	}
-
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
-		if err != nil {
-			return err
-		}
-
-		if bn.children[i] == nil {
-			continue
-		}
-
-		childKey := append(key, byte(i))
-		err = bn.children[i].getAllLeaves(leaves, childKey, db, marshalizer)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (bn *branchNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, db data.DBWriteCacher, marshalizer marshal.Marshalizer) error {
+func (bn *branchNode) getAllLeavesOnChannel(
+	leavesChannel chan core.KeyValueHolder,
+	key []byte, db data.DBWriteCacher,
+	marshalizer marshal.Marshalizer,
+	ctx context.Context,
+) error {
 	err := bn.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
-		if err != nil {
-			return err
-		}
+		select {
+		case <-ctx.Done():
+			log.Trace("getAllLeavesOnChannel interrupted")
+			return nil
+		default:
+			err = resolveIfCollapsed(bn, byte(i), db)
+			if err != nil {
+				return err
+			}
 
-		if bn.children[i] == nil {
-			continue
-		}
+			if bn.children[i] == nil {
+				continue
+			}
 
-		childKey := append(key, byte(i))
-		err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer)
-		if err != nil {
-			return err
+			childKey := append(key, byte(i))
+			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, childKey, db, marshalizer, ctx)
+			if err != nil {
+				return err
+			}
+
+			bn.children[i] = nil
 		}
 	}
 

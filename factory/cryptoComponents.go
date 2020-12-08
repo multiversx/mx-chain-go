@@ -41,8 +41,8 @@ type CryptoComponentsFactoryArgs struct {
 	CoreComponentsHolder                 CoreComponentsHolder
 	ActivateBLSPubKeyMessageVerification bool
 	KeyLoader                            KeyLoaderHandler
-	UseDisabledSigVerifier               bool
 	IsInImportMode                       bool
+	ImportModeNoSigCheck                 bool
 }
 
 type cryptoComponentsFactory struct {
@@ -54,6 +54,7 @@ type cryptoComponentsFactory struct {
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            KeyLoaderHandler
 	isInImportMode                       bool
+	importModeNoSigCheck                 bool
 }
 
 // cryptoParams holds the node public/private key data
@@ -98,10 +99,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
-	}
-	if args.UseDisabledSigVerifier {
-		ccf.consensusType = disabledSigChecking
-		log.Warn("using disabled key generator")
+		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
 	}
 
 	return ccf, nil
@@ -122,7 +120,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 	txSingleSigner := &singlesig.Ed25519Signer{}
-	singleSigner, err := ccf.createSingleSigner()
+	processingSingleSigner, err := ccf.createSingleSigner(false)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptSingleSigner, err := ccf.createSingleSigner(ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
@@ -132,14 +135,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	multiSigner, err := ccf.createMultiSigner(multisigHasher, cp, blockSignKeyGen)
+	multiSigner, err := ccf.createMultiSigner(multisigHasher, cp, blockSignKeyGen, ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
 
 	var messageSignVerifier vm.MessageSignVerifier
 	if ccf.activateBLSPubKeyMessageVerification {
-		messageSignVerifier, err = systemVM.NewMessageSigVerifier(blockSignKeyGen, singleSigner)
+		messageSignVerifier, err = systemVM.NewMessageSigVerifier(blockSignKeyGen, processingSingleSigner)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +159,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, singleSigner, blockSignKeyGen)
+	peerSigHandler, err := peerSignatureHandler.NewPeerSignatureHandler(cachePkPIDSignature, interceptSingleSigner, blockSignKeyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +168,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	return &cryptoComponents{
 		txSingleSigner:      txSingleSigner,
-		blockSingleSigner:   singleSigner,
+		blockSingleSigner:   interceptSingleSigner,
 		multiSigner:         multiSigner,
 		peerSignHandler:     peerSigHandler,
 		blockSignKeyGen:     blockSignKeyGen,
@@ -175,7 +178,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}, nil
 }
 
-func (ccf *cryptoComponentsFactory) createSingleSigner() (crypto.SingleSigner, error) {
+func (ccf *cryptoComponentsFactory) createSingleSigner(importModeNoSigCheck bool) (crypto.SingleSigner, error) {
+	if importModeNoSigCheck {
+		log.Warn("using disabled single signer because the node is running in import-db 'turbo mode'")
+		return &disabledSig.DisabledSingleSig{}, nil
+	}
+
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		return &mclSig.BlsSingleSigner{}, nil
@@ -209,7 +217,13 @@ func (ccf *cryptoComponentsFactory) createMultiSigner(
 	hasher hashing.Hasher,
 	cp *cryptoParams,
 	blSignKeyGen crypto.KeyGenerator,
+	importModeNoSigCheck bool,
 ) (crypto.MultiSigner, error) {
+	if importModeNoSigCheck {
+		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
+		return &disabledMultiSig.DisabledMultiSig{}, nil
+	}
+
 	switch ccf.consensusType {
 	case consensus.BlsConsensusType:
 		blsSigner := &mclMultiSig.BlsMultiSigner{Hasher: hasher}

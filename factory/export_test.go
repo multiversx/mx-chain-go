@@ -14,8 +14,8 @@ func (ccf *cryptoComponentsFactory) GetSkPk() ([]byte, []byte, error) {
 }
 
 // CreateSingleSigner -
-func (ccf *cryptoComponentsFactory) CreateSingleSigner() (crypto.SingleSigner, error) {
-	return ccf.createSingleSigner()
+func (ccf *cryptoComponentsFactory) CreateSingleSigner(importModeNoSigCheck bool) (crypto.SingleSigner, error) {
+	return ccf.createSingleSigner(importModeNoSigCheck)
 }
 
 // GetMultiSigHasherFromConfig -
@@ -35,9 +35,9 @@ func (ccf *cryptoComponentsFactory) CreateCryptoParams(blockSignKeyGen crypto.Ke
 
 // CreateMultiSigner -
 func (ccf *cryptoComponentsFactory) CreateMultiSigner(
-	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator,
+	h hashing.Hasher, cp *cryptoParams, blSignKeyGen crypto.KeyGenerator, importModeNoSigCheck bool,
 ) (crypto.MultiSigner, error) {
-	return ccf.createMultiSigner(h, cp, blSignKeyGen)
+	return ccf.createMultiSigner(h, cp, blSignKeyGen, importModeNoSigCheck)
 }
 
 // GetSuite -

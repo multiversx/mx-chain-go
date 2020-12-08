@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
@@ -16,6 +17,8 @@ type CoreComponentsMock struct {
 	IntMarsh                    marshal.Marshalizer
 	Marsh                       marshal.Marshalizer
 	Hash                        hashing.Hasher
+	EpochNotifierField          process.EpochNotifier
+	TxSignHasherField           hashing.Hasher
 	UInt64ByteSliceConv         typeConverters.Uint64ByteSliceConverter
 	AddrPubKeyConv              core.PubkeyConverter
 	ValPubKeyConv               core.PubkeyConverter
@@ -24,6 +27,7 @@ type CoreComponentsMock struct {
 	MinTransactionVersionCalled func() uint32
 	StatusHandlerCalled         func() core.AppStatusHandler
 	GenesisNodesSetupCalled     func() sharding.GenesisNodesSetupHandler
+	TxVersionCheckField         process.TxVersionCheckerHandler
 	mutCore                     sync.RWMutex
 }
 
@@ -52,6 +56,11 @@ func (ccm *CoreComponentsMock) TxMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccm *CoreComponentsMock) Hasher() hashing.Hasher {
 	return ccm.Hash
+}
+
+// TxSignHasher -
+func (ccm *CoreComponentsMock) TxSignHasher() hashing.Hasher {
+	return ccm.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -
@@ -88,6 +97,16 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 		return ccm.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccm.TxVersionCheckField
+}
+
+// EpochNotifier -
+func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
+	return ccm.EpochNotifierField
 }
 
 // StatusHandler -

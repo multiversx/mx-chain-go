@@ -89,12 +89,11 @@ var (
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/p2p.toml",
 	}
-	// gasScheduleConfigurationFile defines a flag for the path to the toml file containing the gas costs used in SmartContract execution
-	gasScheduleConfigurationFile = cli.StringFlag{
-		Name: "gas-costs-config",
-		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration file. This TOML file contains " +
-			"gas costs used in SmartContract execution",
-		Value: "./config/gasSchedule.toml",
+	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
+	gasScheduleConfigurationDirectory = cli.StringFlag{
+		Name:  "gas-costs-config",
+		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
+		Value: "./config/gasSchedules",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections
 	port = cli.StringFlag{
@@ -307,7 +306,7 @@ func getFlags() []cli.Flag {
 		configurationPreferencesFile,
 		externalConfigFile,
 		p2pConfigurationFile,
-		gasScheduleConfigurationFile,
+		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		port,
@@ -345,26 +344,27 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
 	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
-	flagsConfig.NodesFileName = ctx.GlobalString(nodesFile.Name)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
 	flagsConfig.EnableLogName = ctx.GlobalBool(logWithLoggerName.Name)
 	flagsConfig.LogLevel = ctx.GlobalString(logLevel.Name)
 	flagsConfig.DisableAnsiColor = ctx.GlobalBool(disableAnsiColor.Name)
-	flagsConfig.GenesisFileName = ctx.GlobalString(genesisFile.Name)
 	flagsConfig.CleanupStorage = ctx.GlobalBool(storageCleanup.Name)
 	flagsConfig.UseHealthService = ctx.GlobalBool(useHealthService.Name)
-	flagsConfig.GasScheduleConfigurationFileName = ctx.GlobalString(gasScheduleConfigurationFile.Name)
-	flagsConfig.SmartContractsFileName = ctx.GlobalString(smartContractsFile.Name)
 	flagsConfig.BootstrapRoundIndex = ctx.GlobalUint64(bootstrapRoundIndex.Name)
 	flagsConfig.EnableRestAPIServerDebugMode = ctx.GlobalBool(restApiDebug.Name)
 	flagsConfig.RestApiInterface = ctx.GlobalString(restApiInterface.Name)
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
-	flagsConfig.ValidatorKeyPemFileName = ctx.GlobalString(validatorKeyPemFile.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
-	flagsConfig.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
+
+	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
+	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
+	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
+	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")

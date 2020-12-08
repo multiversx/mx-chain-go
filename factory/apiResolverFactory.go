@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -20,8 +21,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -32,43 +34,60 @@ func CreateApiResolver(
 	validatorAccounts state.AccountsAdapter,
 	pubkeyConv core.PubkeyConverter,
 	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
 	blockChain data.ChainHandler,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
-	gasSchedule map[string]map[string]uint64,
+	gasScheduleNotifier core.GasScheduleNotifier,
 	economics process.EconomicsHandler,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.ChanceComputer,
 	epochNotifier process.EpochNotifier,
+	workingDir string,
 ) (facade.ApiResolver, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:          gasSchedule,
+		GasSchedule:     gasScheduleNotifier,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     marshalizer,
 		Accounts:        accnts,
 	}
-	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionContainer(argsBuiltIn)
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg := storageFactory.GetCacherFromConfig(generalConfig.SmartContractDataPool)
+	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:         accnts,
-		PubkeyConv:       pubkeyConv,
-		StorageService:   storageService,
-		BlockChain:       blockChain,
-		ShardCoordinator: shardCoordinator,
-		Marshalizer:      marshalizer,
-		Uint64Converter:  uint64Converter,
-		BuiltInFunctions: builtInFuncs,
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     storageService,
+		BlockChain:         blockChain,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    uint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           dataPool,
+		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		CompiledSCPool:     smartContractsCache,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: false,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -76,7 +95,7 @@ func CreateApiResolver(
 			argsHook,
 			economics,
 			messageSigVerifier,
-			gasSchedule,
+			gasScheduleNotifier,
 			nodesSetup,
 			hasher,
 			marshalizer,
@@ -92,9 +111,10 @@ func CreateApiResolver(
 		vmFactory, err = shard.NewVMContainerFactory(
 			generalConfig.VirtualMachine.Querying,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasSchedule,
+			gasScheduleNotifier,
 			argsHook,
 			generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
 		)
 		if err != nil {
 			return nil, err
@@ -127,10 +147,18 @@ func CreateApiResolver(
 		return nil, err
 	}
 
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasSchedule)
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	return external.NewNodeApiResolverWithContainer(scQueryService, statusMetrics, txCostHandler, vmContainer)
+	apiResolverArgs := external.ApiResolverArgs{
+		ScQueryService: scQueryService,
+		StatusMetrics:  statusMetrics,
+		TxCostHandler:  txCostHandler,
+		VmFactory:      vmFactory,
+		VmContainer:    vmContainer,
+	}
+
+	return external.NewNodeApiResolver(apiResolverArgs)
 }

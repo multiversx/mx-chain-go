@@ -185,6 +185,9 @@ var ErrNilGasSchedule = errors.New("nil gas schedule")
 // ErrNilHasher is raised when a valid hasher is expected but nil used
 var ErrNilHasher = errors.New("nil hasher provided")
 
+// ErrNilTxSignHasher is raised when a nil tx sign hasher is provided
+var ErrNilTxSignHasher = errors.New("nil tx signing hasher")
+
 // ErrNilHeaderConstructionValidator signals that a nil header construction validator was provided
 var ErrNilHeaderConstructionValidator = errors.New("nil header construction validator")
 

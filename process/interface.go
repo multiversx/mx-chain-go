@@ -6,6 +6,8 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/core/parsers"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -21,8 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -69,6 +69,13 @@ type TxValidatorHandler interface {
 	Nonce() uint64
 	SenderAddress() []byte
 	Fee() *big.Int
+}
+
+// TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version
+type TxVersionCheckerHandler interface {
+	IsSignedWithHash(tx *transaction.Transaction) bool
+	CheckTxVersion(tx *transaction.Transaction) error
+	IsInterfaceNil() bool
 }
 
 // HdrValidatorHandler defines the functionality that is needed for a HdrValidator to validate a header
@@ -152,7 +159,7 @@ type SmartContractProcessor interface {
 	ExecuteSmartContractTransaction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	ExecuteBuiltInFunction(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
 	DeploySmartContract(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int) error
+	ProcessIfError(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
 	IsPayable(address []byte) (bool, error)
 	IsInterfaceNil() bool
 }
@@ -401,6 +408,7 @@ type VirtualMachinesContainer interface {
 // VirtualMachinesContainerFactory defines the functionality to create a virtual machine container
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
+	Close() error
 	BlockChainHookImpl() BlockChainHookHandler
 	IsInterfaceNil() bool
 }
@@ -444,6 +452,7 @@ type BlockChainHookHandler interface {
 	SetCurrentHeader(hdr data.HeaderHandler)
 	GetBuiltInFunctions() BuiltInFunctionContainer
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	DeleteCompiledCode(codeHash []byte)
 	IsInterfaceNil() bool
 }
 
@@ -832,6 +841,7 @@ type MiniBlockProvider interface {
 // BuiltinFunction defines the methods for the built-in protocol smart contract functions
 type BuiltinFunction interface {
 	ProcessBuiltinFunction(acntSnd, acntDst state.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetNewGasConfig(gasCost *GasCost)
 	IsInterfaceNil() bool
 }
 
@@ -983,14 +993,17 @@ type CoreComponentsHolder interface {
 	SetInternalMarshalizer(marshalizer marshal.Marshalizer) error
 	TxMarshalizer() marshal.Marshalizer
 	Hasher() hashing.Hasher
+	TxSignHasher() hashing.Hasher
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverter() core.PubkeyConverter
 	ValidatorPubKeyConverter() core.PubkeyConverter
 	PathHandler() storage.PathManagerHandler
 	ChainID() string
 	MinTransactionVersion() uint32
+	TxVersionChecker() TxVersionCheckerHandler
 	StatusHandler() core.AppStatusHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
+	EpochNotifier() EpochNotifier
 	IsInterfaceNil() bool
 }
 
