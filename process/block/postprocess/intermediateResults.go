@@ -210,6 +210,12 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return process.ErrWrongTypeAssertion
 		}
 
+		err := checkSmartContractResultIntegrity(addScr)
+		if err != nil {
+			log.Error("AddIntermediateTransaction", "error", err, "dump", spew.Sdump(addScr))
+			return err
+		}
+
 		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
 			return err
@@ -230,6 +236,26 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
+	}
+
+	return nil
+}
+
+func checkSmartContractResultIntegrity(scr *smartContractResult.SmartContractResult) error {
+	if len(scr.RcvAddr) == 0 {
+		return process.ErrNilRcvAddr
+	}
+	if len(scr.SndAddr) == 0 {
+		return process.ErrNilSndAddr
+	}
+	if scr.Value == nil {
+		return process.ErrNilValue
+	}
+	if scr.Value.Sign() < 0 {
+		return process.ErrNegativeValue
+	}
+	if len(scr.PrevTxHash) == 0 {
+		return process.ErrNilTxHash
 	}
 
 	return nil
