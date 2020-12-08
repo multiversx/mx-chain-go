@@ -4,9 +4,9 @@
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
     UnBondPeriod = 250
     MinStepValue = "100000000000000000000"
-    StakeEnableEpoch = 2
-    StakingV2Epoch = 2
-    DoubleKeyProtectionEnableEpoch = 2
+    StakeEnableEpoch = 1
+    StakingV2Epoch = 1
+    DoubleKeyProtectionEnableEpoch = 1
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
@@ -30,10 +30,10 @@
 [DelegationManagerSystemSCConfig]
     BaseIssuingCost = "0" #0 eGLD
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
-    EnabledEpoch = 2
+    EnabledEpoch = 1
 
 [DelegationSystemSCConfig]
     MinStakeAmount = "10000000000000000000" #10 eGLD
-    EnabledEpoch   = 2
+    EnabledEpoch   = 1
     MinServiceFee  = 0
     MaxServiceFee  = 10000
