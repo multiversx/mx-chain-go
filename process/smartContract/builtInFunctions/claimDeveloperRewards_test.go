@@ -43,4 +43,12 @@ func TestClaimDeveloperRewards_ProcessBuiltinFunction(t *testing.T) {
 	vmOutput, err = cdr.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
 	require.Equal(t, value, vmOutput.OutputAccounts[string(vmInput.CallerAddr)].BalanceDelta)
+	require.Equal(t, uint64(0), vmOutput.GasRemaining)
+
+	acc.OwnerAddress = sender
+	acc.AddToDeveloperReward(value)
+	cdr.gasCost = 50
+	vmOutput, err = cdr.ProcessBuiltinFunction(acc, acc, vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmOutput.GasRemaining, vmInput.GasProvided-cdr.gasCost)
 }
