@@ -44,6 +44,7 @@ func NewShardStorageHandler(
 		pathManagerHandler,
 		epochStartNotifier,
 		currentEpoch,
+		false,
 	)
 	if err != nil {
 		return nil, err

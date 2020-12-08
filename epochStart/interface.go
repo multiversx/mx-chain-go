@@ -136,3 +136,12 @@ type ImportStartHandler interface {
 	IsAfterExportBeforeImport() bool
 	IsInterfaceNil() bool
 }
+
+// ManualEpochStartNotifier represents a notifier that can be triggered manually for an epoch change event.
+// Useful in storage resolvers (import-db process)
+type ManualEpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
+	IsInterfaceNil() bool
+}

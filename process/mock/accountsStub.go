@@ -60,7 +60,9 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte, _ context.Context) (chan c
 	if as.GetAllLeavesCalled != nil {
 		return as.GetAllLeavesCalled(rootHash)
 	}
-	return nil, nil
+	ch := make(chan core.KeyValueHolder)
+	close(ch)
+	return ch, nil
 }
 
 var errNotImplemented = errors.New("not implemented")

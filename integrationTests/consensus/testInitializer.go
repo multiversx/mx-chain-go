@@ -342,8 +342,8 @@ func createConsensusOnlyNode(
 		0,
 	)
 
-	hdrResolver := &mock.HeaderResolverMock{}
-	mbResolver := &mock.MiniBlocksResolverMock{}
+	hdrResolver := &mock.HeaderResolverStub{}
+	mbResolver := &mock.MiniBlocksResolverStub{}
 	resolverFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
