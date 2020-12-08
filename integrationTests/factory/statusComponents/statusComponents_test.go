@@ -72,7 +72,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 		GasScheduleConfig: configs.GeneralConfig.GasSchedule,
-		ConfigDir:         configs.FlagsConfig.GasScheduleConfigurationDirectory,
+		ConfigDir:         configs.ConfigurationFileName.GasScheduleDirectoryName,
 		EpochNotifier:     managedCoreComponents.EpochNotifier(),
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)

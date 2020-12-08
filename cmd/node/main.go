@@ -101,62 +101,64 @@ func main() {
 func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	log.Trace("reading Configs")
 
-	configurationFileName := ctx.GlobalString(configurationFile.Name)
-	generalConfig, err := core.LoadMainConfig(configurationFileName)
+	cfgFileName := &config.ConfigurationFileName{}
+
+	cfgFileName.MainConfig = ctx.GlobalString(configurationFile.Name)
+	generalConfig, err := core.LoadMainConfig(cfgFileName.MainConfig)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationFileName)
+	log.Debug("config", "file", cfgFileName.MainConfig)
 
-	configurationApiFileName := ctx.GlobalString(configurationApiFile.Name)
-	apiRoutesConfig, err := core.LoadApiConfig(configurationApiFileName)
+	cfgFileName.ApiRoutes = ctx.GlobalString(configurationApiFile.Name)
+	apiRoutesConfig, err := core.LoadApiConfig(cfgFileName.ApiRoutes)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationApiFileName)
+	log.Debug("config", "file", cfgFileName.ApiRoutes)
 
-	configurationEconomicsFileName := ctx.GlobalString(configurationEconomicsFile.Name)
-	economicsConfig, err := core.LoadEconomicsConfig(configurationEconomicsFileName)
+	cfgFileName.Economics = ctx.GlobalString(configurationEconomicsFile.Name)
+	economicsConfig, err := core.LoadEconomicsConfig(cfgFileName.Economics)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationEconomicsFileName)
+	log.Debug("config", "file", cfgFileName.Economics)
 
-	configurationSystemSCConfigFileName := ctx.GlobalString(configurationSystemSCFile.Name)
-	systemSCConfig, err := core.LoadSystemSmartContractsConfig(configurationSystemSCConfigFileName)
+	cfgFileName.SystemSC = ctx.GlobalString(configurationSystemSCFile.Name)
+	systemSCConfig, err := core.LoadSystemSmartContractsConfig(cfgFileName.SystemSC)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationSystemSCConfigFileName)
+	log.Debug("config", "file", cfgFileName.SystemSC)
 
-	configurationRatingsFileName := ctx.GlobalString(configurationRatingsFile.Name)
-	ratingsConfig, err := core.LoadRatingsConfig(configurationRatingsFileName)
+	cfgFileName.Ratings = ctx.GlobalString(configurationRatingsFile.Name)
+	ratingsConfig, err := core.LoadRatingsConfig(cfgFileName.Ratings)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationRatingsFileName)
+	log.Debug("config", "file", cfgFileName.Ratings)
 
-	configurationPreferencesFileName := ctx.GlobalString(configurationPreferencesFile.Name)
-	preferencesConfig, err := core.LoadPreferencesConfig(configurationPreferencesFileName)
+	cfgFileName.Preferences = ctx.GlobalString(configurationPreferencesFile.Name)
+	preferencesConfig, err := core.LoadPreferencesConfig(cfgFileName.Preferences)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPreferencesFileName)
+	log.Debug("config", "file", cfgFileName.Preferences)
 
-	externalConfigurationFileName := ctx.GlobalString(externalConfigFile.Name)
-	externalConfig, err := core.LoadExternalConfig(externalConfigurationFileName)
+	cfgFileName.External = ctx.GlobalString(externalConfigFile.Name)
+	externalConfig, err := core.LoadExternalConfig(cfgFileName.External)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", externalConfigurationFileName)
+	log.Debug("config", "file", cfgFileName.External)
 
-	p2pConfigurationFileName := ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := core.LoadP2PConfig(p2pConfigurationFileName)
+	cfgFileName.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
+	p2pConfig, err := core.LoadP2PConfig(cfgFileName.P2p)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("config", "file", p2pConfigurationFileName)
+	log.Debug("config", "file", cfgFileName.P2p)
 	if ctx.IsSet(port.Name) {
 		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
 	}
@@ -171,22 +173,14 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 
 	return &config.Configs{
-		GeneralConfig:                         generalConfig,
-		ApiRoutesConfig:                       apiRoutesConfig,
-		EconomicsConfig:                       economicsConfig,
-		SystemSCConfig:                        systemSCConfig,
-		RatingsConfig:                         ratingsConfig,
-		PreferencesConfig:                     preferencesConfig,
-		ExternalConfig:                        externalConfig,
-		P2pConfig:                             p2pConfig,
-		ConfigurationFileName:                 configurationFileName,
-		ConfigurationApiRoutesFileName:        configurationApiFileName,
-		ConfigurationEconomicsFileName:        configurationEconomicsFileName,
-		ConfigurationSystemSCFilename:         configurationSystemSCConfigFileName,
-		ConfigurationRatingsFileName:          configurationRatingsFileName,
-		ConfigurationPreferencesFileName:      configurationPreferencesFileName,
-		ConfigurationExternalFileName:         externalConfigurationFileName,
-		P2pConfigurationFileName:              p2pConfigurationFileName,
-		ConfigurationGasScheduleDirectoryName: gasScheduleConfigurationDirectory.Name,
+		GeneralConfig:         generalConfig,
+		ApiRoutesConfig:       apiRoutesConfig,
+		EconomicsConfig:       economicsConfig,
+		SystemSCConfig:        systemSCConfig,
+		RatingsConfig:         ratingsConfig,
+		PreferencesConfig:     preferencesConfig,
+		ExternalConfig:        externalConfig,
+		P2pConfig:             p2pConfig,
+		ConfigurationFileName: cfgFileName,
 	}, nil
 }
