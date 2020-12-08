@@ -1257,7 +1257,7 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	}
 }
 
-func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock) error {
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
 	trieEpochRootHashStorageUnit := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
 	if check.IfNil(trieEpochRootHashStorageUnit) {
 		return nil
@@ -1272,20 +1272,15 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
 	}
 
-	currentRootHash, err := userAccountsDb.RootHash()
-	if err != nil {
-		return err
-	}
-
 	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
 
-	err = trieEpochRootHashStorageUnit.Put(epochBytes, currentRootHash)
+	err := trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
-	allLeavesChan, err := userAccountsDb.GetAllLeaves(currentRootHash, ctx)
+	allLeavesChan, err := userAccountsDb.GetAllLeaves(rootHash, ctx)
 	if err != nil {
 		return err
 	}
