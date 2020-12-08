@@ -40,8 +40,8 @@ func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 	bp.removeHeadersBehindNonceFromPools(shouldRemoveBlockBody, shardId, nonce)
 }
 
-func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock) error {
-	return bp.commitTrieEpochRootHashIfNeeded(metaBlock)
+func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+	return bp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
 }
 
 func (sp *shardProcessor) ReceivedMetaBlock(header data.HeaderHandler, metaBlockHash []byte) {
