@@ -703,9 +703,10 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	if !createdAsyncCallback && vmInput.CallType == vmcommon.AsynchronousCall {
 		asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
 		scrResults = append(scrResults, asyncCallBackSCR)
+	} else if !createdAsyncCallback {
+		scrResults = append(scrResults, scrForSender)
 	}
 
-	scrResults = append(scrResults, scrForSender)
 	if !check.IfNil(scrForRelayer) {
 		scrResults = append(scrResults, scrForRelayer)
 	}
@@ -1201,7 +1202,6 @@ func (sc *scProcessor) processVMOutput(
 		return nil, err
 	}
 
-	scrTxs = append(scrTxs, scrForSender)
 	if !check.IfNil(scrForRelayer) {
 		scrTxs = append(scrTxs, scrForRelayer)
 		err = sc.addToBalanceIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
@@ -1213,6 +1213,8 @@ func (sc *scProcessor) processVMOutput(
 	if !createdAsyncCallback && callType == vmcommon.AsynchronousCall {
 		asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(vmOutput, tx, txHash)
 		scrTxs = append(scrTxs, asyncCallBackSCR)
+	} else if !createdAsyncCallback {
+		scrTxs = append(scrTxs, scrForSender)
 	}
 
 	err = sc.addToBalanceIfInShard(scrForSender.RcvAddr, scrForSender.Value)
