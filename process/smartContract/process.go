@@ -642,7 +642,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	builtInFuncGasUsed, err := safeSubUint64(vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "executeBuildInFunction")
+	log.LogIfError(err, "ExecuteBultInFunction", "builtInFuncGasUsed")
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
@@ -664,7 +664,9 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	for _, outAcc := range outputAccounts {
 		tmpCreatedAsyncCallback, scTxs := sc.createSmartContractResults(vmOutput, vmInput.CallType, outAcc, tx, txHash)
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
-		scrResults = append(scrResults, scTxs...)
+		if len(scTxs) > 0 {
+			scrResults = append(scrResults, scTxs...)
+		}
 	}
 
 	isSCCall, newVMOutput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, acntDst, snapshot)
@@ -692,7 +694,9 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		}
 		createdAsyncCallback = createdAsyncCallback || tmpCreatedAsyncCallback
 
-		scrResults = append(scrResults, newSCRTxs...)
+		if len(newSCRTxs) > 0 {
+			scrResults = append(scrResults, newSCRTxs...)
+		}
 	}
 
 	scrForSender, scrForRelayer, err := sc.processSCRForSender(tx, txHash, vmInput, newVMOutput)

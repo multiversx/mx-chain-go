@@ -3,6 +3,7 @@ package esdt
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -200,6 +201,9 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	mapCreatedSCRs := interimProc.GetAllCurrentFinishedTxs()
 
 	assert.Equal(t, len(mapCreatedSCRs), 1)
+	for _, addedSCR := range mapCreatedSCRs {
+		strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
+	}
 }
 
 func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
