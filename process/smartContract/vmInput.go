@@ -109,7 +109,11 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.VMInput.Arguments = finalArguments
 	vmCallInput.GasProvided = vmCallInput.GasProvided - gasLocked
 
-	if vmCallInput.GasProvided+vmCallInput.GasLocked > tx.GetGasLimit() {
+	totalGas, err := safeAddUint64(vmCallInput.GasProvided, vmCallInput.GasLocked)
+	if err != nil {
+		return nil, err
+	}
+	if totalGas > tx.GetGasLimit() {
 		return nil, process.ErrInvalidVMInputGasComputation
 	}
 

@@ -529,14 +529,14 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 
 	senderInSelfShard := sc.isSelfShard(tx.GetSndAddr())
 	consumedGas, err := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
-	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "vmOutput.GasRemaining")
 	if !senderInSelfShard {
 		if !isSmartContractResult(tx) {
 			consumedGas, err = safeSubUint64(consumedGas, sc.economicsFee.ComputeGasLimit(tx))
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
 		}
 		consumedGas, err = safeSubUint64(consumedGas, builtInFuncGasUsed)
-		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "builtInFuncGasUsed")
 	}
 
 	for _, outAcc := range vmOutput.OutputAccounts {
@@ -546,7 +546,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 				sentGas += outTransfer.GasLimit
 			}
 			consumedGas, err = safeSubUint64(consumedGas, sentGas)
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
 		}
 	}
 
@@ -555,7 +555,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	consumedGasWithoutBuiltin := consumedGas
 	if senderInSelfShard {
 		consumedGasWithoutBuiltin, err = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
-		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
 	}
 	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
@@ -642,7 +642,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	builtInFuncGasUsed, err := safeSubUint64(vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd")
+	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "executeBuildInFunction")
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
