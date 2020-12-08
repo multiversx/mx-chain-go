@@ -95,7 +95,7 @@ type processComponents struct {
 	historyRepository           dblookupext.HistoryRepository
 	importStartHandler          update.ImportStartHandler
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
-	hardforkStorer              update.HardforkStorer
+	importHandler               update.ImportHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -183,7 +183,7 @@ type processComponentsFactory struct {
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
 	storageResolverImportPath string
 	chanGracefullyClose       chan endProcess.ArgEndProcess
-	hardforkStorer            update.HardforkStorer
+	importHandler             update.ImportHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -536,7 +536,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		historyRepository:           pcf.historyRepo,
 		importStartHandler:          pcf.importStartHandler,
 		requestedItemsHandler:       pcf.requestedItemsHandler,
-		hardforkStorer:              pcf.hardforkStorer,
+		importHandler:               pcf.importHandler,
 	}, nil
 }
 
@@ -688,8 +688,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	if err != nil {
 		return nil, err
 	}
-
-	pcf.hardforkStorer = gbc.HardforkStorer()
+	pcf.importHandler = gbc.ImportHandler()
 
 	return gbc.CreateGenesisBlocks()
 }
@@ -1356,8 +1355,8 @@ func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.epochStartTrigger) {
 		log.LogIfError(pc.epochStartTrigger.Close())
 	}
-	if !check.IfNil(pc.hardforkStorer) {
-		log.LogIfError(pc.hardforkStorer.Close())
+	if !check.IfNil(pc.importHandler) {
+		log.LogIfError(pc.importHandler.Close())
 	}
 	return nil
 }
