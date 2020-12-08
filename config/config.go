@@ -444,17 +444,17 @@ type VersionsConfig struct {
 
 // Configs is a holder for the node configuration parameters
 type Configs struct {
-	GeneralConfig         *Config
-	ApiRoutesConfig       *ApiRoutesConfig
-	EconomicsConfig       *EconomicsConfig
-	SystemSCConfig        *SystemSmartContractsConfig
-	RatingsConfig         *RatingsConfig
-	PreferencesConfig     *Preferences
-	ExternalConfig        *ExternalConfig
-	P2pConfig             *P2PConfig
-	FlagsConfig           *ContextFlagsConfig
-	ImportDbConfig        *ImportDbConfig
-	ConfigurationFileName *ConfigurationFileName
+	GeneralConfig            *Config
+	ApiRoutesConfig          *ApiRoutesConfig
+	EconomicsConfig          *EconomicsConfig
+	SystemSCConfig           *SystemSmartContractsConfig
+	RatingsConfig            *RatingsConfig
+	PreferencesConfig        *Preferences
+	ExternalConfig           *ExternalConfig
+	P2pConfig                *P2PConfig
+	FlagsConfig              *ContextFlagsConfig
+	ImportDbConfig           *ImportDbConfig
+	ConfigurationPathsHolder *ConfigurationPathsHolder
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
@@ -468,8 +468,8 @@ type GasScheduleConfig struct {
 	GasScheduleByEpochs []GasScheduleByEpochs
 }
 
-// ConfigurationFileName holds all configuration filenames used to start the node
-type ConfigurationFileName struct {
+// ConfigurationPathsHolder holds all configuration filenames and configuration paths used to start the node
+type ConfigurationPathsHolder struct {
 	MainConfig                 string
 	ApiRoutes                  string
 	Economics                  string

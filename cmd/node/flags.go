@@ -359,12 +359,12 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 
-	cfgs.ConfigurationFileName.Nodes = ctx.GlobalString(nodesFile.Name)
-	cfgs.ConfigurationFileName.Genesis = ctx.GlobalString(genesisFile.Name)
-	cfgs.ConfigurationFileName.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	cfgs.ConfigurationFileName.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
-	cfgs.ConfigurationFileName.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
-	cfgs.ConfigurationFileName.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
+	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
+	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
+	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
+	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")

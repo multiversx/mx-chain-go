@@ -61,7 +61,7 @@ func CreateDefaultConfig() *config.Configs {
 		UseLogView: true,
 		Version:    Version,
 	}
-	configs.ConfigurationFileName = &config.ConfigurationFileName{
+	configs.ConfigurationPathsHolder = &config.ConfigurationPathsHolder{
 		MainConfig:               ConfigPath,
 		ApiRoutes:                "",
 		Economics:                EconomicsPath,

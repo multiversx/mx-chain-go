@@ -68,11 +68,11 @@ func NewNodeRunner(cfgs *config.Configs) (*nodeRunner, error) {
 func (nr *nodeRunner) Start() error {
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
-	fileNamesConfig := configs.ConfigurationFileName
+	configurationPaths := configs.ConfigurationPathsHolder
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 
 	log.Info("starting node", "version", flagsConfig.Version, "pid", os.Getpid())
-	log.Debug("config", "file", fileNamesConfig.Genesis)
+	log.Debug("config", "file", configurationPaths.Genesis)
 
 	enableGopsIfNeeded(flagsConfig.EnableGops)
 
@@ -81,12 +81,12 @@ func (nr *nodeRunner) Start() error {
 		return err
 	}
 
-	fileNamesConfig.Nodes, err = nr.getNodesFileName()
+	configurationPaths.Nodes, err = nr.getNodesFileName()
 	if err != nil {
 		return err
 	}
 
-	log.Debug("config", "file", fileNamesConfig.Nodes)
+	log.Debug("config", "file", configurationPaths.Nodes)
 
 	err = cleanupStorageIfNecessary(flagsConfig.WorkingDir, flagsConfig.CleanupStorage)
 	if err != nil {
@@ -114,7 +114,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 ) error {
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
-	fileNamesConfig := configs.ConfigurationFileName
+	configurationPaths := configs.ConfigurationPathsHolder
 	for {
 		goRoutinesNumberStart := runtime.NumGoroutine()
 
@@ -206,7 +206,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 			managedDataComponents,
 			managedStateComponents,
 			nodesCoordinator,
-			fileNamesConfig.ElasticSearchTemplatesPath,
+			configurationPaths.ElasticSearchTemplatesPath,
 			configs.ImportDbConfig.IsImportDBMode,
 		)
 		if err != nil {
@@ -215,7 +215,7 @@ func (nr *nodeRunner) startShufflingProcessLoop(
 
 		argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
 			GasScheduleConfig: configs.GeneralConfig.GasSchedule,
-			ConfigDir:         fileNamesConfig.GasScheduleDirectoryName,
+			ConfigDir:         configurationPaths.GasScheduleDirectoryName,
 			EpochNotifier:     managedCoreComponents.EpochNotifier(),
 		}
 		gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
@@ -604,8 +604,8 @@ func (nr *nodeRunner) logInformation(
 
 func (nr *nodeRunner) getNodesFileName() (string, error) {
 	flagsConfig := nr.configs.FlagsConfig
-	fileNamesConfig := nr.configs.ConfigurationFileName
-	nodesFileName := fileNamesConfig.Nodes
+	configurationPaths := nr.configs.ConfigurationPathsHolder
+	nodesFileName := configurationPaths.Nodes
 
 	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
 	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
@@ -680,22 +680,22 @@ func (nr *nodeRunner) logSessionInformation(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) {
 	statsFolder := filepath.Join(workingDir, core.DefaultStatsPath)
-	fileNamesConfig := nr.configs.ConfigurationFileName
+	configurationPaths := nr.configs.ConfigurationPathsHolder
 	copyConfigToStatsFolder(
 		statsFolder,
 		[]string{
-			fileNamesConfig.MainConfig,
-			fileNamesConfig.Economics,
-			fileNamesConfig.Ratings,
-			fileNamesConfig.Preferences,
-			fileNamesConfig.P2p,
-			fileNamesConfig.MainConfig,
-			fileNamesConfig.Genesis,
-			fileNamesConfig.Nodes,
-			fileNamesConfig.ApiRoutes,
-			fileNamesConfig.External,
-			fileNamesConfig.SystemSC,
-			fileNamesConfig.GasScheduleDirectoryName,
+			configurationPaths.MainConfig,
+			configurationPaths.Economics,
+			configurationPaths.Ratings,
+			configurationPaths.Preferences,
+			configurationPaths.P2p,
+			configurationPaths.MainConfig,
+			configurationPaths.Genesis,
+			configurationPaths.Nodes,
+			configurationPaths.ApiRoutes,
+			configurationPaths.External,
+			configurationPaths.SystemSC,
+			configurationPaths.GasScheduleDirectoryName,
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
@@ -719,7 +719,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator sharding.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
-	fileNamesConfig := nr.configs.ConfigurationFileName
+	configurationPaths := nr.configs.ConfigurationPathsHolder
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.WorkingDir, core.DefaultDBPath), configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -732,7 +732,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	accountsParser, err := parsing.NewAccountsParser(
-		fileNamesConfig.Genesis,
+		configurationPaths.Genesis,
 		totalSupply,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
@@ -742,7 +742,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
-		fileNamesConfig.SmartContracts,
+		configurationPaths.SmartContracts,
 		managedCoreComponents.AddressPubKeyConverter(),
 		managedCryptoComponents.TxSignKeyGen(),
 	)
@@ -1011,7 +1011,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		ImportDbConfig:        *nr.configs.ImportDbConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		EconomicsConfig:       *nr.configs.EconomicsConfig,
-		NodesFilename:         nr.configs.ConfigurationFileName.Nodes,
+		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:      nr.configs.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess:   chanStopNodeProcess,
 		StatusHandlersFactory: statusHandlersFactory,
@@ -1040,7 +1040,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	managedCoreComponents mainFactory.CoreComponentsHandler,
 ) (mainFactory.CryptoComponentsHandler, error) {
 	configs := nr.configs
-	validatorKeyPemFileName := configs.ConfigurationFileName.ValidatorKey
+	validatorKeyPemFileName := configs.ConfigurationPathsHolder.ValidatorKey
 	cryptoComponentsHandlerArgs := mainFactory.CryptoComponentsFactoryArgs{
 		ValidatorKeyPemFileName:              validatorKeyPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
