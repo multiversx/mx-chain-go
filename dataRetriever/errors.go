@@ -191,6 +191,9 @@ var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier
 // ErrNilGracefullyCloseChannel signals that a nil gracefully close channel has been provided
 var ErrNilGracefullyCloseChannel = errors.New("nil gracefully close channel")
 
+// ErrNilSmartContractsPool signals that a nil smart contracts pool has been provided
+var ErrNilSmartContractsPool = errors.New("nil smart contracts pool")
+
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 

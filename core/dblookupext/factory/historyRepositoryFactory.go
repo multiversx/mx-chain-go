@@ -62,6 +62,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		MiniblocksMetadataStorer:    hpf.store.GetStorer(dataRetriever.MiniblocksMetadataUnit),
 		EpochByHashStorer:           hpf.store.GetStorer(dataRetriever.EpochByHashUnit),
 		MiniblockHashByTxHashStorer: hpf.store.GetStorer(dataRetriever.MiniblockHashByTxHashUnit),
+		EventsHashesByTxHashStorer:  hpf.store.GetStorer(dataRetriever.ResultsHashesByTxHashUnit),
 	}
 	return dblookupext.NewHistoryRepository(historyRepArgs)
 }

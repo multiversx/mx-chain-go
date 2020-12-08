@@ -23,6 +23,7 @@ type CoreComponentsStub struct {
 	TxMarshalizerField                 marshal.Marshalizer
 	VmMarshalizerField                 marshal.Marshalizer
 	HasherField                        hashing.Hasher
+	TxSignHasherField                  hashing.Hasher
 	Uint64ByteSliceConverterField      typeConverters.Uint64ByteSliceConverter
 	AddressPubKeyConverterField        core.PubkeyConverter
 	ValidatorPubKeyConverterField      core.PubkeyConverter
@@ -40,10 +41,11 @@ type CoreComponentsStub struct {
 	RaterField                         sharding.PeerAccountListAndRatingHandler
 	GenesisNodesSetupField             sharding.GenesisNodesSetupHandler
 	NodesShufflerField                 sharding.NodesShuffler
-	EpochNotifierField                 factory.EpochNotifier
+	EpochNotifierField                 process.EpochNotifier
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
+	TxVersionCheckField                process.TxVersionCheckerHandler
 }
 
 // Create -
@@ -123,7 +125,7 @@ func (ccs *CoreComponentsStub) NodesShuffler() sharding.NodesShuffler {
 }
 
 // EpochNotifier -
-func (ccs *CoreComponentsStub) EpochNotifier() factory.EpochNotifier {
+func (ccs *CoreComponentsStub) EpochNotifier() process.EpochNotifier {
 	return ccs.EpochNotifierField
 }
 
@@ -156,6 +158,11 @@ func (ccs *CoreComponentsStub) TxMarshalizer() marshal.Marshalizer {
 // Hasher -
 func (ccs *CoreComponentsStub) Hasher() hashing.Hasher {
 	return ccs.HasherField
+}
+
+// TxSignHasher -
+func (ccs *CoreComponentsStub) TxSignHasher() hashing.Hasher {
+	return ccs.TxSignHasherField
 }
 
 // Uint64ByteSliceConverter -
@@ -192,6 +199,11 @@ func (ccs *CoreComponentsStub) MinTransactionVersion() uint32 {
 		return ccs.MinTransactionVersionCalled()
 	}
 	return 1
+}
+
+// TxVersionChecker -
+func (ccs *CoreComponentsStub) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccs.TxVersionCheckField
 }
 
 // ChanStopNodeProcess -

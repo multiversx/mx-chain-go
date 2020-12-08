@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -341,23 +342,13 @@ func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node
 	return nil, nil, nil
 }
 
-func (ln *leafNode) getAllLeaves(leaves map[string][]byte, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getAllLeaves error %w", err)
-	}
-
-	nodeKey := append(key, ln.Key...)
-	nodeKey, err = hexToKeyBytes(nodeKey)
-	if err != nil {
-		return err
-	}
-
-	leaves[string(nodeKey)] = ln.Value
-	return nil
-}
-
-func (ln *leafNode) getAllLeavesOnChannel(leavesChannel chan core.KeyValueHolder, key []byte, _ data.DBWriteCacher, _ marshal.Marshalizer) error {
+func (ln *leafNode) getAllLeavesOnChannel(
+	leavesChannel chan core.KeyValueHolder,
+	key []byte,
+	_ data.DBWriteCacher,
+	_ marshal.Marshalizer,
+	_ context.Context,
+) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("getAllLeavesOnChannel error: %w", err)

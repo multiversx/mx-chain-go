@@ -19,10 +19,10 @@ type NodeStub struct {
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error)
+		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
-	GetTransactionHandler                          func(hash string) (*transaction.ApiTransactionResult, error)
+	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
 	GetCurrentPublicKeyHandler                     func() string
@@ -38,6 +38,8 @@ type NodeStub struct {
 	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
 	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
 	GetUsernameCalled                              func(address string) (string, error)
+	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
+	GetAllESDTTokensCalled                         func(address string) ([]string, error)
 }
 
 // GetUsername -
@@ -85,9 +87,9 @@ func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 
 // CreateTransaction -
 func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
-	gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32) (*transaction.Transaction, []byte, error) {
+	gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error) {
 
-	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version)
+	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 //ValidateTransaction -
@@ -101,8 +103,8 @@ func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction
 }
 
 // GetTransaction -
-func (ns *NodeStub) GetTransaction(hash string) (*transaction.ApiTransactionResult, error) {
-	return ns.GetTransactionHandler(hash)
+func (ns *NodeStub) GetTransaction(hash string, withEvents bool) (*transaction.ApiTransactionResult, error) {
+	return ns.GetTransactionHandler(hash, withEvents)
 }
 
 // SendBulkTransactions -
@@ -151,6 +153,24 @@ func (ns *NodeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	}
 
 	return make([]core.QueryP2PPeerInfo, 0), nil
+}
+
+// GetESDTBalance -
+func (ns *NodeStub) GetESDTBalance(address string, key string) (string, string, error) {
+	if ns.GetESDTBalanceCalled != nil {
+		return ns.GetESDTBalanceCalled(address, key)
+	}
+
+	return "", "", nil
+}
+
+// GetAllESDTTokens -
+func (ns *NodeStub) GetAllESDTTokens(address string) ([]string, error) {
+	if ns.GetAllESDTTokensCalled != nil {
+		return ns.GetAllESDTTokensCalled(address)
+	}
+
+	return []string{""}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

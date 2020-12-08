@@ -1249,7 +1249,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldNotErr(t *t
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
-	err := sp.CommitTrieEpochRootHashIfNeeded(mb)
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
 }
 
@@ -1265,7 +1265,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededDisabledStorerShouldNotErr
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
-	err := sp.CommitTrieEpochRootHashIfNeeded(mb)
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
 }
 
@@ -1281,7 +1281,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededCannotFindUserAccountState
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
-	err := sp.CommitTrieEpochRootHashIfNeeded(mb)
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
 }
 
@@ -1318,6 +1318,6 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	mb := &block.MetaBlock{Epoch: epoch}
-	err := sp.CommitTrieEpochRootHashIfNeeded(mb)
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
 	require.NoError(t, err)
 }

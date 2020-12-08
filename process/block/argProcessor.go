@@ -57,6 +57,7 @@ type ArgBaseProcessor struct {
 	EpochNotifier           process.EpochNotifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	AppStatusHandler        core.AppStatusHandler
+	VMContainersFactory     process.VirtualMachinesContainerFactory
 	VmContainer             process.VirtualMachinesContainer
 }
 

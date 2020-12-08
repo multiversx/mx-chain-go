@@ -6,13 +6,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,6 +114,7 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	context.ScAddress = parentAddress
 
 	childUpgradedCode := arwen.GetSCCode("../testdata/hello-v2/output/answer.wasm")
+	context.GasLimit = 21700000000
 	err = context.ExecuteSC(owner, "upgradeChild@"+childUpgradedCode)
 	require.Nil(t, err)
 
