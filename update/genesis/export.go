@@ -98,15 +98,15 @@ func NewStateExporter(args ArgsNewStateExporter) (*stateExport, error) {
 
 // ExportAll syncs and exports all the data from every shard for a certain epoch start block
 func (se *stateExport) ExportAll(epoch uint32) error {
-	err := se.stateSyncer.SyncAllState(epoch)
-	if err != nil {
-		return err
-	}
-
 	defer func() {
 		errClose := se.hardforkStorer.Close()
 		log.LogIfError(errClose)
 	}()
+
+	err := se.stateSyncer.SyncAllState(epoch)
+	if err != nil {
+		return err
+	}
 
 	err = se.exportEpochStartMetaBlock()
 	if err != nil {
