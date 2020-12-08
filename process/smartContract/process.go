@@ -492,7 +492,7 @@ func (sc *scProcessor) gasConsumedChecks(
 	vmOutput *vmcommon.VMOutput,
 ) error {
 	if tx.GetGasLimit() == 0 && sc.shardCoordinator.ComputeId(tx.GetSndAddr()) == core.MetachainShardId {
-		// special case for issueing and minting ESDT tokens for normal users
+		// special case for issuing and minting ESDT tokens for normal users
 		return nil
 	}
 

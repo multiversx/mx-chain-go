@@ -921,4 +921,4 @@ var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 var ErrAdditionOverflow = errors.New("uint64 addition overflow")
 
 // ErrSubtractionOverflow signals that uint64 subtraction overflowed
-var ErrSubtractionOverflow = errors.New("signals the uint64 subtraction overflowed")
+var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
