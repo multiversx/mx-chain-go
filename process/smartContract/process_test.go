@@ -2398,6 +2398,9 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		return big.NewInt(100)
+	}}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scrWithRelayed := &smartContractResult.SmartContractResult{

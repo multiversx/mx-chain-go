@@ -44,12 +44,12 @@ func (sc *SCProcessorMock) ProcessIfError(
 }
 
 // ComputeTransactionType -
-func (sc *SCProcessorMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
+func (sc *SCProcessorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	if sc.ComputeTransactionTypeCalled == nil {
-		return process.MoveBalance
+		return process.MoveBalance, 0
 	}
 
-	return sc.ComputeTransactionTypeCalled(tx)
+	return sc.ComputeTransactionTypeCalled(tx), 0
 }
 
 // ExecuteSmartContractTransaction -

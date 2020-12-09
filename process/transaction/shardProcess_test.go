@@ -923,9 +923,8 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
-	acntDst := &mock.UserAccountStub{}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, acntDst, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, args.EconomicsFee.ComputeMoveBalanceFee(tx), process.MoveBalance)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }
@@ -956,7 +955,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, args.EconomicsFee.ComputeMoveBalanceFee(tx), process.MoveBalance)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 
@@ -968,7 +967,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		Data:     []byte("data"),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, args.EconomicsFee.ComputeMoveBalanceFee(tx), process.MoveBalance)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 
@@ -980,7 +979,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, err = execTx.ProcessTxFee(tx, acntSnd, args.EconomicsFee.ComputeMoveBalanceFee(tx), process.MoveBalance)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }
@@ -1013,7 +1012,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, err := execTx.ProcessTxFee(tx, acntSnd, args.EconomicsFee.ComputeMoveBalanceFee(tx), process.SCInvoking)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
 }

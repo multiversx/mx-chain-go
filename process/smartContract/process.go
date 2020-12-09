@@ -1581,10 +1581,11 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	callType vmcommon.CallType,
 ) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
 	if vmOutput.GasRefund == nil {
+		// TODO: compute gas refund with reduced gasPrice if we need to activate this
 		vmOutput.GasRefund = big.NewInt(0)
 	}
 
-	gasRefund := core.SafeMul(vmOutput.GasRemaining, tx.GetGasPrice())
+	gasRefund := sc.economicsFee.ComputeFeeForProcessing(tx, vmOutput.GasRemaining)
 	gasRemaining := uint64(0)
 	storageFreeRefund := big.NewInt(0)
 	// backward compatibility - there should be no refund as the storage pay was already distributed among validators
@@ -1882,7 +1883,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	gasLocked := sc.getGasLockedFromSCR(scr)
 
-	txType := sc.txTypeHandler.ComputeTransactionType(scr)
+	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
 		err = sc.processSimpleSCR(scr, dstAcc)

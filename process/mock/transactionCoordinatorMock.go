@@ -47,12 +47,12 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
+func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0
+		return 0, 0
 	}
 
-	return tcm.ComputeTransactionTypeCalled(tx)
+	return tcm.ComputeTransactionTypeCalled(tx), 0
 }
 
 // RequestMiniBlocks -

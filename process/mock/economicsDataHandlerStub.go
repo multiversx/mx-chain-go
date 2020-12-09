@@ -24,6 +24,15 @@ type EconomicsHandlerStub struct {
 	GasPerDataByteCalled                   func() uint64
 	MinGasLimitCalled                      func() uint64
 	GenesisTotalSupplyCalled               func() *big.Int
+	ComputeFeeForProcessingCalled          func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+}
+
+// ComputeFeeForProcessing -
+func (e *EconomicsHandlerStub) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	if e.ComputeFeeForProcessingCalled != nil {
+		return e.ComputeFeeForProcessingCalled(tx, gasToUse)
+	}
+	return big.NewInt(0)
 }
 
 // LeaderPercentage -

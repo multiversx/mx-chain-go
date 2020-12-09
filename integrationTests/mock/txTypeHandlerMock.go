@@ -11,12 +11,12 @@ type TxTypeHandlerMock struct {
 }
 
 // ComputeTransactionType -
-func (th *TxTypeHandlerMock) ComputeTransactionType(tx data.TransactionHandler) process.TransactionType {
+func (th *TxTypeHandlerMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	if th.ComputeTransactionTypeCalled == nil {
-		return process.MoveBalance
+		return process.MoveBalance, 0
 	}
 
-	return th.ComputeTransactionTypeCalled(tx)
+	return th.ComputeTransactionTypeCalled(tx), 0
 }
 
 // IsInterfaceNil -

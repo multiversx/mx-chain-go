@@ -41,6 +41,11 @@ func (fh *FeeHandler) ComputeMoveBalanceFee(_ process.TransactionWithFeeHandler)
 	return big.NewInt(0)
 }
 
+// ComputeFeeForProcessing returns 0
+func (fh *FeeHandler) ComputeFeeForProcessing(_ process.TransactionWithFeeHandler, _ uint64) *big.Int {
+	return big.NewInt(0)
+}
+
 // ComputeTxFee returns 0
 func (fh *FeeHandler) ComputeTxFee(_ process.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)

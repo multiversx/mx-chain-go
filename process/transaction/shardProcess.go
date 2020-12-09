@@ -163,7 +163,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -185,7 +185,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, tx.SndAddr, tx.RcvAddr, txProc.economicsFee.ComputeMoveBalanceFee(tx))
+		err = txProc.processMoveBalance(tx, txProc.economicsFee.ComputeMoveBalanceFee(tx), dstShardTxType)
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -214,7 +214,8 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 
 	if txError == process.ErrInvalidMetaTransaction || txError == process.ErrAccountNotPayable {
 		snapshot := txProc.accounts.JournalLen()
-		txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+		var txHash []byte
+		txHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 		if err != nil {
 			return err
 		}
@@ -291,19 +292,18 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	txHash []byte,
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
-	cost *big.Int,
+	moveBalanceCost *big.Int,
+	destShardTxType process.TransactionType,
 ) error {
 	if check.IfNil(acntSnd) {
 		return nil
 	}
-	if core.IsSmartContractAddress(tx.RcvAddr) {
+	if destShardTxType != process.MoveBalance {
 		return nil
 	}
 
-	totalProvided := big.NewInt(0)
-	totalProvided.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-
-	refundValue := big.NewInt(0).Sub(totalProvided, cost)
+	totalProvided := txProc.economicsFee.ComputeTxFee(tx)
+	refundValue := big.NewInt(0).Sub(totalProvided, moveBalanceCost)
 
 	zero := big.NewInt(0)
 	if refundValue.Cmp(zero) == 0 {
@@ -327,16 +327,16 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 
 func (txProc *txProcessor) processTxFee(
 	tx *transaction.Transaction,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	cost *big.Int,
+	dstShardTxType process.TransactionType,
 ) (*big.Int, error) {
 	if check.IfNil(acntSnd) {
 		return big.NewInt(0), nil
 	}
 
-	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
-	if isCrossShardSCCall {
-		totalCost := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	if dstShardTxType != process.MoveBalance {
+		totalCost := txProc.economicsFee.ComputeTxFee(tx)
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, err
@@ -378,18 +378,18 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 
 func (txProc *txProcessor) processMoveBalance(
 	tx *transaction.Transaction,
-	adrSrc, adrDst []byte,
-	cost *big.Int,
+	moveBalanceCost *big.Int,
+	destShardTxType process.TransactionType,
 ) error {
 
 	// getAccounts returns acntSrc not nil if the adrSrc is in the node shard, the same, acntDst will be not nil
 	// if adrDst is in the node shard. If an error occurs it will be signaled in err variable.
-	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
+	acntSrc, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return err
 	}
 
-	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst, cost)
+	txFee, err := txProc.processTxFee(tx, acntSrc, moveBalanceCost, destShardTxType)
 	if err != nil {
 		return err
 	}
@@ -397,7 +397,7 @@ func (txProc *txProcessor) processMoveBalance(
 	// is sender address in node shard
 	if !check.IfNil(acntSrc) {
 		acntSrc.IncreaseNonce(1)
-		err := acntSrc.SubFromBalance(tx.Value)
+		err = acntSrc.SubFromBalance(tx.Value)
 		if err != nil {
 			return err
 		}
@@ -408,7 +408,7 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	isPayable, err := txProc.scProcessor.IsPayable(adrDst)
+	isPayable, err := txProc.scProcessor.IsPayable(tx.RcvAddr)
 	if err != nil {
 		return err
 	}
@@ -416,14 +416,14 @@ func (txProc *txProcessor) processMoveBalance(
 		return process.ErrAccountNotPayable
 	}
 
-	err = txProc.checkIfValidTxToMetaChain(tx, adrDst)
+	err = txProc.checkIfValidTxToMetaChain(tx, tx.RcvAddr)
 	if err != nil {
 		return err
 	}
 
 	// is receiver address in node shard
 	if !check.IfNil(acntDst) {
-		err := acntDst.AddToBalance(tx.Value)
+		err = acntDst.AddToBalance(tx.Value)
 		if err != nil {
 			return err
 		}
@@ -439,7 +439,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, cost)
+	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, moveBalanceCost, destShardTxType)
 	if err != nil {
 		return err
 	}
@@ -633,7 +633,7 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(userTx)
+	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst)
 	if err != nil {
 		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
@@ -655,7 +655,7 @@ func (txProc *txProcessor) processUserTx(
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(userTx, userTx.SndAddr, userTx.RcvAddr, txProc.getUserTxCost(userTx, txHash, txType))
+		err = txProc.processMoveBalance(userTx, txProc.getUserTxCost(userTx, txHash, dstShardTxType), dstShardTxType)
 	case process.SCDeployment:
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
@@ -706,13 +706,13 @@ func (txProc *txProcessor) processUserTx(
 func (txProc *txProcessor) getUserTxCost(
 	userTx *transaction.Transaction,
 	userTxHash []byte,
-	userTxType process.TransactionType,
+	destTxType process.TransactionType,
 ) *big.Int {
 	if !txProc.flagPenalizedTooMuchGas.IsSet() {
 		return txProc.economicsFee.ComputeMoveBalanceFee(userTx)
 	}
 
-	isCrossTxWithMoveBalance := userTxType == process.MoveBalance && txProc.isCrossTxFromMe(userTx.SndAddr, userTx.RcvAddr)
+	isCrossTxWithMoveBalance := destTxType == process.MoveBalance && txProc.isCrossTxFromMe(userTx.SndAddr, userTx.RcvAddr)
 	if isCrossTxWithMoveBalance {
 		gasUsed := txProc.economicsFee.ComputeGasLimit(userTx)
 		isTooMuchGasProvided := userTx.GasLimit > gasUsed*process.MaxGasFeeHigherFactorAccepted
@@ -730,7 +730,7 @@ func (txProc *txProcessor) getUserTxCost(
 				"gas used", gasUsed,
 			)
 
-			return big.NewInt(0).Mul(big.NewInt(0).SetUint64(userTx.GasPrice), big.NewInt(0).SetUint64(userTx.GasLimit))
+			return txProc.economicsFee.ComputeTxFee(userTx)
 		}
 	}
 

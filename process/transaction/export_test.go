@@ -25,10 +25,11 @@ func (txProc *txProcessor) IncreaseNonce(acntSrc state.UserAccountHandler) {
 
 func (txProc *txProcessor) ProcessTxFee(
 	tx *transaction.Transaction,
-	acntSnd, acntDst state.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	cost *big.Int,
+	txType process.TransactionType,
 ) (*big.Int, error) {
-	return txProc.processTxFee(tx, acntSnd, acntDst, cost)
+	return txProc.processTxFee(tx, acntSnd, cost, txType)
 }
 
 func (inTx *InterceptedTransaction) SetWhitelistHandler(handler process.WhiteListHandler) {

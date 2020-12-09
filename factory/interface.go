@@ -60,5 +60,6 @@ type EconomicsHandler interface {
 	MinGasLimit() uint64
 	GasPerDataByte() uint64
 	GasPriceModifier() float64
+	ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	IsInterfaceNil() bool
 }
