@@ -221,7 +221,9 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	gasLimit := uint64(20)
 	minGasLimit := uint64(10)
 	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.Economics.FeeSettings.GasPriceModifier = 0.01
 	args.PenalizedTooMuchGasEnableEpoch = 1
+	args.GasPriceModifierEnableEpoch = 2
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
@@ -237,6 +239,10 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
+
+	economicsData.EpochConfirmed(2)
+	cost = economicsData.ComputeTxFee(tx)
+	assert.Equal(t, big.NewInt(5050), cost)
 }
 
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {

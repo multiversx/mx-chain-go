@@ -1295,6 +1295,9 @@ func TestTxProcessor_GetUserTxCostShouldWork(t *testing.T) {
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return gasLimit
 		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(100)
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -1310,9 +1313,8 @@ func TestTxProcessor_GetUserTxCostShouldWork(t *testing.T) {
 	assert.Equal(t, cost, actualCost)
 
 	tx.GasLimit++
-	penalizeCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, penalizeCost, actualCost)
+	assert.Equal(t, big.NewInt(100), actualCost)
 }
 
 func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
@@ -1342,8 +1344,6 @@ func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
 	tx.GasPrice = gasPrice
 	tx.GasLimit = gasLimit*process.MaxGasFeeHigherFactorAccepted + 1
 
-	penalizeCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
 	args := createArgsForTxProcessor()
 	args.ShardCoordinator = shardC
@@ -1353,6 +1353,9 @@ func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
 		},
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
 			return gasLimit
+		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(100)
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1365,5 +1368,5 @@ func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
 
 	execTx.EpochConfirmed(1)
 	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, penalizeCost, actualCost)
+	assert.Equal(t, big.NewInt(100), actualCost)
 }
