@@ -45,7 +45,7 @@ import (
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const timeToWait = time.Minute
-const trieSyncWaitTime = 10 * time.Minute
+const timeoutGettingTrieNode = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -848,7 +848,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:          e.marshalizer,
 			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
+			Timeout:              timeoutGettingTrieNode,
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		},
@@ -920,7 +920,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:          e.marshalizer,
 			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
+			Timeout:              timeoutGettingTrieNode,
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		},
