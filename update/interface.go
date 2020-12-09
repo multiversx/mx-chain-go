@@ -96,6 +96,7 @@ type ImportHandler interface {
 	GetUnFinishedMetaBlocks() map[string]*block.MetaBlock
 	GetTransactions() map[string]data.TransactionHandler
 	GetAccountsDBForShard(shardID uint32) state.AccountsAdapter
+	Close() error
 	IsInterfaceNil() bool
 }
 
