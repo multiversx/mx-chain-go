@@ -95,7 +95,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	dbSCResults := make([]*types.ScResult, 0)
 	countScResults := make(map[string]int)
 	for scHash, scResult := range scResults {
-		dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scResult)
+		dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scResult, header)
 		dbSCResults = append(dbSCResults, dbScResult)
 
 		tx, ok := transactions[string(scResult.OriginalTxHash)]
@@ -110,7 +110,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		// append child smart contract results
 		scrs := findAllChildScrResults(scHash, scResults)
 		for childScHash, sc := range scrs {
-			childDBScResult := tdp.commonProcessor.convertScResultInDatabaseScr(childScHash, sc)
+			childDBScResult := tdp.commonProcessor.convertScResultInDatabaseScr(childScHash, sc, header)
 
 			tx = tdp.addScResultInfoInTx(childDBScResult, tx)
 			countScResults[string(scResult.OriginalTxHash)]++

@@ -88,7 +88,11 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smartContractResult.SmartContractResult) *types.ScResult {
+func (cm *commonProcessor) convertScResultInDatabaseScr(
+	scHash string,
+	sc *smartContractResult.SmartContractResult,
+	header data.HeaderHandler,
+) *types.ScResult {
 	relayerAddr := ""
 	if len(sc.RelayerAddr) > 0 {
 		relayerAddr = cm.addressPubkeyConverter.Encode(sc.RelayerAddr)
@@ -118,6 +122,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(scHash string, sc *smart
 		ReturnMessage:       string(sc.ReturnMessage),
 		EsdtTokenIdentifier: tokenIdentifier,
 		EsdtValue:           esdtValue,
+		Timestamp:           time.Duration(header.GetTimeStamp()),
 	}
 }
 

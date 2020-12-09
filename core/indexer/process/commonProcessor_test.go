@@ -97,8 +97,9 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		RcvAddr:    rcvAddr,
 		CallType:   vmcommon.CallType(1),
 	}
+	header := &block.Header{TimeStamp: 100}
 
-	scRes := cp.convertScResultInDatabaseScr(scHash, smartContractRes)
+	scRes := cp.convertScResultInDatabaseScr(scHash, smartContractRes, header)
 	expectedTx := &types.ScResult{
 		Nonce:        nonce,
 		Hash:         hex.EncodeToString([]byte(scHash)),
@@ -110,6 +111,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 		Value:        "<nil>",
 		RelayedValue: "<nil>",
 		CallType:     "1",
+		Timestamp:    time.Duration(100),
 	}
 
 	require.Equal(t, expectedTx, scRes)
