@@ -48,7 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -490,7 +489,7 @@ func CreateGenesisBlocks(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.data,
+	economics process.EconomicsDataHandler,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -527,7 +526,7 @@ func CreateFullGenesisBlocks(
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.data,
+	economics process.EconomicsDataHandler,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
@@ -618,7 +617,7 @@ func CreateGenesisMetaBlock(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.data,
+	economics process.EconomicsDataHandler,
 ) data.HeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)

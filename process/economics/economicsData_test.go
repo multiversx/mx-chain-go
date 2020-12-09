@@ -40,6 +40,7 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			MinGasLimit:             "500",
 			GasPerDataByte:          "1",
 			DataLimitForBaseCalc:    "100000000",
+			GasPriceModifier:        1.0,
 		},
 	}
 }
