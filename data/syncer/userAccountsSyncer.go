@@ -54,7 +54,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		dataTries:            make(map[string]data.Trie),
 		trieStorageManager:   args.TrieStorageManager,
 		requestHandler:       args.RequestHandler,
-		waitTime:             args.WaitTime,
+		timeout:              args.Timeout,
 		shardId:              args.ShardId,
 		cacher:               args.Cacher,
 		rootHash:             nil,
@@ -75,8 +75,7 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), u.waitTime)
-	defer cancel()
+	ctx := context.Background() //TODO switch to context.WithCancel() when creating Close() function
 
 	tss := statistics.NewTrieSyncStatistics()
 	go u.printStatistics(tss, ctx)
@@ -157,7 +156,16 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 	}
 
 	u.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(u.requestHandler, u.cacher, dataTrie, u.shardId, factory.AccountTrieNodesTopic, ssh)
+	arg := trie.ArgTrieSyncer{
+		RequestHandler:                 u.requestHandler,
+		InterceptedNodes:               u.cacher,
+		Trie:                           dataTrie,
+		ShardId:                        u.shardId,
+		Topic:                          factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:             ssh,
+		TimeoutBetweenTrieNodesCommits: u.timeout,
+	}
+	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {
 		u.syncerMutex.Unlock()
 		return err

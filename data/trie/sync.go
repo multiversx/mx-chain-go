@@ -3,6 +3,7 @@ package trie
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -32,50 +33,62 @@ type trieSyncer struct {
 	mutOperation            sync.RWMutex
 	handlerID               string
 	trieSyncStatistics      data.SyncStatisticsHandler
+	lastSyncedTrieNode      time.Time
+	timeoutBetweenCommits   time.Duration
 }
 
 const maxNewMissingAddedPerTurn = 10
+const minTimeoutBetweenNodesCommits = time.Second
+
+// ArgTrieSyncer is the argument for the trie syncer
+type ArgTrieSyncer struct {
+	RequestHandler                 RequestHandler
+	InterceptedNodes               storage.Cacher
+	Trie                           data.Trie
+	ShardId                        uint32
+	Topic                          string
+	TrieSyncStatistics             data.SyncStatisticsHandler
+	TimeoutBetweenTrieNodesCommits time.Duration
+}
 
 // NewTrieSyncer creates a new instance of trieSyncer
-func NewTrieSyncer(
-	requestHandler RequestHandler,
-	interceptedNodes storage.Cacher,
-	trie data.Trie,
-	shardId uint32,
-	topic string,
-	trieSyncStatistics data.SyncStatisticsHandler,
-) (*trieSyncer, error) {
-	if check.IfNil(requestHandler) {
+func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
+	if check.IfNil(arg.RequestHandler) {
 		return nil, ErrNilRequestHandler
 	}
-	if check.IfNil(interceptedNodes) {
+	if check.IfNil(arg.InterceptedNodes) {
 		return nil, data.ErrNilCacher
 	}
-	if check.IfNil(trie) {
+	if check.IfNil(arg.Trie) {
 		return nil, ErrNilTrie
 	}
-	if len(topic) == 0 {
+	if len(arg.Topic) == 0 {
 		return nil, ErrInvalidTrieTopic
 	}
-	if check.IfNil(trieSyncStatistics) {
+	if check.IfNil(arg.TrieSyncStatistics) {
 		return nil, ErrNilTrieSyncStatistics
 	}
+	if arg.TimeoutBetweenTrieNodesCommits < minTimeoutBetweenNodesCommits {
+		return nil, fmt.Errorf("%w provided: %v, minimum %v",
+			ErrInvalidTimeout, arg.TimeoutBetweenTrieNodesCommits, minTimeoutBetweenNodesCommits)
+	}
 
-	pmt, ok := trie.(*patriciaMerkleTrie)
+	pmt, ok := arg.Trie.(*patriciaMerkleTrie)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
 
 	ts := &trieSyncer{
-		requestHandler:          requestHandler,
-		interceptedNodes:        interceptedNodes,
+		requestHandler:          arg.RequestHandler,
+		interceptedNodes:        arg.InterceptedNodes,
 		trie:                    pmt,
 		nodesForTrie:            make(map[string]trieNodeInfo),
-		topic:                   topic,
-		shardId:                 shardId,
+		topic:                   arg.Topic,
+		shardId:                 arg.ShardId,
 		waitTimeBetweenRequests: time.Second,
 		handlerID:               core.UniqueIdentifier(),
-		trieSyncStatistics:      trieSyncStatistics,
+		trieSyncStatistics:      arg.TrieSyncStatistics,
+		timeoutBetweenCommits:   arg.TimeoutBetweenTrieNodesCommits,
 	}
 
 	return ts, nil
@@ -93,6 +106,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 	ts.mutOperation.Lock()
 	ts.nodesForTrie = make(map[string]trieNodeInfo)
 	ts.nodesForTrie[string(rootHash)] = trieNodeInfo{received: false}
+	ts.lastSyncedTrieNode = time.Now()
 	ts.mutOperation.Unlock()
 
 	ts.rootFound = false
@@ -113,7 +127,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			return ErrTimeIsOut
+			return ErrContextClosing
 		}
 	}
 }
@@ -187,6 +201,7 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
+			ts.resetWatchdog()
 
 			if !ts.rootFound && bytes.Equal([]byte(nodeHash), ts.rootHash) {
 				var collapsedRoot node
@@ -201,11 +216,25 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 		}
 	}
 
+	if ts.isTimeoutWhileSyncing() {
+		return false, ErrTimeIsOut
+	}
+
 	for hash := range missingNodes {
 		ts.nodesForTrie[hash] = trieNodeInfo{received: false}
 	}
 
 	return shouldRetryAfterRequest, nil
+}
+
+func (ts *trieSyncer) resetWatchdog() {
+	ts.lastSyncedTrieNode = time.Now()
+}
+
+func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
+	duration := time.Now().Sub(ts.lastSyncedTrieNode)
+
+	return duration > ts.timeoutBetweenCommits
 }
 
 // adds new elements to needed hash map, lock ts.nodeHashesMutex before calling
@@ -244,7 +273,16 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 		return trieNode(n)
 	}
 
-	return nil, ErrNodeNotFound
+	existingNode, err := getNodeFromDBAndDecode(hash, ts.trie.Database(), ts.trie.marshalizer, ts.trie.hasher)
+	if err != nil {
+		return nil, ErrNodeNotFound
+	}
+	err = existingNode.setHash()
+	if err != nil {
+		return nil, ErrNodeNotFound
+	}
+
+	return existingNode, nil
 }
 
 func trieNode(data interface{}) (node, error) {
@@ -266,32 +304,12 @@ func (ts *trieSyncer) requestNodes() uint32 {
 		}
 	}
 	ts.trieSyncStatistics.SetNumMissing(ts.rootHash, len(hashes))
-	ts.requestHandler.RequestTrieNodes(ts.shardId, hashes, ts.topic)
+	if len(hashes) > 0 {
+		ts.requestHandler.RequestTrieNodes(ts.shardId, hashes, ts.topic)
+	}
 	ts.mutOperation.RUnlock()
 
 	return numUnResolvedNodes
-}
-
-func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
-	ts.mutOperation.Lock()
-	defer ts.mutOperation.Unlock()
-
-	log.Trace("trie node intercepted", "hash", hash)
-
-	n, ok := ts.nodesForTrie[string(hash)]
-	if !ok || n.received {
-		return
-	}
-
-	interceptedNode, err := trieNode(val)
-	if err != nil {
-		return
-	}
-
-	ts.nodesForTrie[string(hash)] = trieNodeInfo{
-		trieNode: interceptedNode,
-		received: true,
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
