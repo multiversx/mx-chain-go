@@ -223,6 +223,7 @@ func (ed *EconomicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHand
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *EconomicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	//TODO: if flag is set, always take all the fee?
 	if ed.flagPenalizedTooMuchGas.IsSet() {
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}

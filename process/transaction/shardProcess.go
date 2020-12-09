@@ -248,6 +248,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
+	//TODO: for a failed transaction take all the gas fee always?
 	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
@@ -348,6 +349,7 @@ func (txProc *txProcessor) processTxFee(
 		}
 	}
 
+	// TODO: check if ok, it returns always the cost, not the totalCost
 	return cost, nil
 }
 
@@ -432,6 +434,8 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
+	// TODO: check if correct that gas is refunded to sender instead of relayer
+	// TODO: check 2 - create receiptWithReturnedGas even if we are in the senderShard?
 	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, cost)
 	if err != nil {
 		return err
@@ -475,6 +479,8 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	if len(args) != 1 {
+		//TODO: check if ok if the relayerAcnt is nil, not in the current shard, the transaction will fail with UserError and nil error
+		//any executingFailedTransaction will actually return nil as error if senderAccount is nil
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
@@ -490,6 +496,7 @@ func (txProc *txProcessor) processRelayedTx(
 	if !bytes.Equal(userTx.SndAddr, tx.RcvAddr) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxBeneficiaryDoesNotMatchReceiver)
 	}
+	//TODO: check why this check? Why can't the relayer send a bigger value?
 	if userTx.Value.Cmp(tx.Value) < 0 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxValueHigherThenUserTxValue)
 	}
@@ -498,6 +505,7 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
+	//TODO: is this check really necessary?
 	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
@@ -524,6 +532,7 @@ func (txProc *txProcessor) processRelayedTx(
 			return 0, err
 		}
 
+		//TODO: check if the relayerFee has the movebalance inside, or when is the -movebalance in the relayer shard
 		txProc.txFeeHandler.ProcessTransactionFee(relayerFee, big.NewInt(0), txHash)
 	}
 
@@ -555,6 +564,8 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*b
 	totalFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
 
+	//TODO: check tx.GasLimit - relayerGasLimit to be positive
+	//TODO: check remainingFee to be positive
 	return totalFee, remainingFee, relayerFee, tx.GasLimit - relayerGasLimit
 }
 
@@ -775,6 +786,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		totalFee.Sub(totalFee, txProc.economicsFee.ComputeMoveBalanceFee(userTx))
 	}
 
+	//TODO: check if this was not processed again in the processRelayedTx
 	txProc.txFeeHandler.ProcessTransactionFee(totalFee, big.NewInt(0), originalTxHash)
 
 	if !check.IfNil(relayerAcnt) {
