@@ -7,7 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 )
 
-// UnmarshalWith sets the fields according to p2p.MessageP2P.Data() contents
+// UnmarshalWith sets the fields according to p2p.MessageP2P.data() contents
 // Errors if something went wrong
 func (rd *RequestData) UnmarshalWith(marshalizer marshal.Marshalizer, message p2p.MessageP2P) error {
 	if marshalizer == nil || marshalizer.IsInterfaceNil() {

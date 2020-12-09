@@ -46,7 +46,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	Signer                  crypto.SingleSigner
 	BlockSigner             crypto.SingleSigner
 	ChainID                 []byte
-	EconomicsData           *economics.Data
+	EconomicsData           *economics.data
 	WhitelistHandler        process.WhiteListHandler
 	AddressPubkeyConv       core.PubkeyConverter
 	NonceConverter          typeConverters.Uint64ByteSliceConverter

@@ -108,7 +108,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		Signer:            &mock.SignerStub{},
 		BlockSigner:       &mock.SignerStub{},
 		ChainID:           []byte("chain-ID"),
-		EconomicsData:     &economics.Data{},
+		EconomicsData:     &economics.data{},
 		WhitelistHandler:  &mock.WhiteListHandlerStub{},
 		AddressPubkeyConv: mock.NewPubkeyConverterMock(32),
 		NonceConverter:    &mock.Uint64ByteSliceConverterMock{},

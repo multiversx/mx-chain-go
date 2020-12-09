@@ -412,7 +412,7 @@ func hardForkImport(
 			Accounts:                 node.AccntState,
 			PubkeyConv:               integrationTests.TestAddressPubkeyConverter,
 			InitialNodesSetup:        node.NodesSetup,
-			Economics:                node.EconomicsData.Data,
+			Economics:                node.EconomicsData.data,
 			ShardCoordinator:         node.ShardCoordinator,
 			Store:                    node.Storage,
 			Blkc:                     node.BlockChain,

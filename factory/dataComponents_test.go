@@ -117,12 +117,12 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 }
 
 func getDataArgs() factory.DataComponentsFactoryArgs {
-	testEconomics := &economics.TestEconomicsData{Data: &economics.Data{}}
+	testEconomics := &economics.TestEconomicsData{data: &economics.data{}}
 	testEconomics.SetMinGasPrice(200000000000)
 
 	return factory.DataComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
-		EconomicsData:      testEconomics.Data,
+		EconomicsData:      testEconomics.data,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
 		PathManager:        &mock.PathManagerStub{},

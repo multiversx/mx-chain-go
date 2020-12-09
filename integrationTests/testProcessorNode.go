@@ -467,7 +467,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.Storage,
 		tpn.BlockChain,
 		tpn.DataPool,
-		tpn.EconomicsData.Data,
+		tpn.EconomicsData.data,
 		accountParser,
 		smartContractParser,
 	)
@@ -611,7 +611,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestHasher,
 		TestUint64Converter,
 		tpn.DataPool,
-		tpn.EconomicsData.Data,
+		tpn.EconomicsData.data,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -684,7 +684,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 	economicsData := CreateEconomicsData()
 
 	tpn.EconomicsData = &economics.TestEconomicsData{
-		Data: economicsData,
+		data: economicsData,
 	}
 }
 
@@ -694,8 +694,8 @@ func (tpn *TestProcessorNode) initRatingsData() {
 	}
 }
 
-// CreateEconomicsData creates a mock Data object
-func CreateEconomicsData() *economics.Data {
+// CreateEconomicsData creates a mock data object
+func CreateEconomicsData() *economics.data {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
@@ -1239,7 +1239,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
-		tpn.EconomicsData.Data,
+		tpn.EconomicsData.data,
 		signVerifier,
 		gasSchedule,
 		tpn.NodesSetup,
@@ -1343,7 +1343,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		scProcessor,
-		tpn.EconomicsData.Data,
+		tpn.EconomicsData.data,
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestAddressPubkeyConverter,

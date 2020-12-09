@@ -37,7 +37,7 @@ type SmartContractResult struct {
 	RelayerAddr    []byte                                                    `protobuf:"bytes,5,opt,name=RelayerAddr,proto3" json:"relayer"`
 	RelayedValue   *math_big.Int                                             `protobuf:"bytes,6,opt,name=RelayedValue,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"relayedValue"`
 	Code           []byte                                                    `protobuf:"bytes,7,opt,name=Code,proto3" json:"code,omitempty"`
-	Data           []byte                                                    `protobuf:"bytes,8,opt,name=Data,proto3" json:"data,omitempty"`
+	Data           []byte                                                    `protobuf:"bytes,8,opt,name=data,proto3" json:"data,omitempty"`
 	PrevTxHash     []byte                                                    `protobuf:"bytes,9,opt,name=PrevTxHash,proto3" json:"prevTxHash"`
 	OriginalTxHash []byte                                                    `protobuf:"bytes,10,opt,name=OriginalTxHash,proto3" json:"originalTxHash"`
 	GasLimit       uint64                                                    `protobuf:"varint,11,opt,name=GasLimit,proto3" json:"gasLimit"`
@@ -325,7 +325,7 @@ func (this *SmartContractResult) GoString() string {
 	s = append(s, "RelayerAddr: "+fmt.Sprintf("%#v", this.RelayerAddr)+",\n")
 	s = append(s, "RelayedValue: "+fmt.Sprintf("%#v", this.RelayedValue)+",\n")
 	s = append(s, "Code: "+fmt.Sprintf("%#v", this.Code)+",\n")
-	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "PrevTxHash: "+fmt.Sprintf("%#v", this.PrevTxHash)+",\n")
 	s = append(s, "OriginalTxHash: "+fmt.Sprintf("%#v", this.OriginalTxHash)+",\n")
 	s = append(s, "GasLimit: "+fmt.Sprintf("%#v", this.GasLimit)+",\n")
@@ -582,7 +582,7 @@ func (this *SmartContractResult) String() string {
 		`RelayerAddr:` + fmt.Sprintf("%v", this.RelayerAddr) + `,`,
 		`RelayedValue:` + fmt.Sprintf("%v", this.RelayedValue) + `,`,
 		`Code:` + fmt.Sprintf("%v", this.Code) + `,`,
-		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`PrevTxHash:` + fmt.Sprintf("%v", this.PrevTxHash) + `,`,
 		`OriginalTxHash:` + fmt.Sprintf("%v", this.OriginalTxHash) + `,`,
 		`GasLimit:` + fmt.Sprintf("%v", this.GasLimit) + `,`,
@@ -865,7 +865,7 @@ func (m *SmartContractResult) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {

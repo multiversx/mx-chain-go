@@ -563,6 +563,26 @@ type FeeHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EconomicsDataHandler is able to perform economics calculations and return economics data
+type EconomicsDataHandler interface {
+	DeveloperPercentage() float64
+	MaxGasLimitPerBlock(shardID uint32) uint64
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
+	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	MinGasPrice() uint64
+	GasPriceModifier() float64
+	LeaderPercentage() float64
+	ProtocolSustainabilityPercentage() float64
+	ProtocolSustainabilityAddress() string
+	MinInflationRate() float64
+	MaxInflationRate(year uint32) float64
+	GasPerDataByte() uint64
+	MinGasLimit() uint64
+	IsInterfaceNil() bool
+}
+
 // TransactionWithFeeHandler represents a transaction structure that has economics variables defined
 type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64

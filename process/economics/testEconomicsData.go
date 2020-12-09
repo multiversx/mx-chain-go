@@ -2,11 +2,11 @@ package economics
 
 import "math/big"
 
-// TestEconomicsData extends Data and is used in integration tests as it exposes some functions
+// TestEconomicsData extends data and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
 // Exported functions simplify the reproduction of edge cases
 type TestEconomicsData struct {
-	*Data
+	*data
 }
 
 // SetMaxGasLimitPerBlock sets the maximum gas limit allowed per one block

@@ -33,7 +33,7 @@ func (tdaw *TrackableDataTrie) DirtyData() map[string][]byte {
 
 // RetrieveValue fetches the value from a particular key searching the account data store
 // The search starts with dirty map, continues with original map and ends with the trie
-// Data must have been retrieved from its trie
+// data must have been retrieved from its trie
 func (tdaw *TrackableDataTrie) RetrieveValue(key []byte) ([]byte, error) {
 	tailLength := len(key) + len(tdaw.identifier)
 

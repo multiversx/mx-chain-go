@@ -134,12 +134,12 @@ func createMockArgument(
 	defaults.FillGasMapInternal(gasMap, 1)
 	arg.GasSchedule = mock.NewGasScheduleNotifierMock(gasMap)
 	ted := &economics.TestEconomicsData{
-		Data: &economics.Data{},
+		data: &economics.data{},
 	}
 
 	ted.SetTotalSupply(entireSupply)
 	ted.SetMaxGasLimitPerBlock(math.MaxUint64)
-	arg.Economics = ted.Data
+	arg.Economics = ted.data
 
 	arg.Store = &mock.ChainStorerMock{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {

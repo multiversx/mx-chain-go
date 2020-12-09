@@ -89,13 +89,13 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 }
 
 func getGoodArgs() ArgsDataPool {
-	testEconomics := &economics.TestEconomicsData{Data: &economics.Data{}}
+	testEconomics := &economics.TestEconomicsData{data: &economics.data{}}
 	testEconomics.SetMinGasPrice(200000000000)
 	config := testscommon.GetGeneralConfig()
 
 	return ArgsDataPool{
 		Config:           &config,
-		EconomicsData:    testEconomics.Data,
+		EconomicsData:    testEconomics.data,
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 	}
 }

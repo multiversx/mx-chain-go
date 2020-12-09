@@ -38,7 +38,7 @@ type Transaction struct {
 	SndUserName []byte        `protobuf:"bytes,6,opt,name=SndUserName,proto3" json:"sndUserName,omitempty"`
 	GasPrice    uint64        `protobuf:"varint,7,opt,name=GasPrice,proto3" json:"gasPrice,omitempty"`
 	GasLimit    uint64        `protobuf:"varint,8,opt,name=GasLimit,proto3" json:"gasLimit,omitempty"`
-	Data        []byte        `protobuf:"bytes,9,opt,name=Data,proto3" json:"data,omitempty"`
+	Data        []byte        `protobuf:"bytes,9,opt,name=data,proto3" json:"data,omitempty"`
 	ChainID     []byte        `protobuf:"bytes,10,opt,name=ChainID,proto3" json:"chainID"`
 	Version     uint32        `protobuf:"varint,11,opt,name=Version,proto3" json:"version"`
 	Signature   []byte        `protobuf:"bytes,12,opt,name=Signature,proto3" json:"signature,omitempty"`
@@ -284,7 +284,7 @@ func (this *Transaction) GoString() string {
 	s = append(s, "SndUserName: "+fmt.Sprintf("%#v", this.SndUserName)+",\n")
 	s = append(s, "GasPrice: "+fmt.Sprintf("%#v", this.GasPrice)+",\n")
 	s = append(s, "GasLimit: "+fmt.Sprintf("%#v", this.GasLimit)+",\n")
-	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "ChainID: "+fmt.Sprintf("%#v", this.ChainID)+",\n")
 	s = append(s, "Version: "+fmt.Sprintf("%#v", this.Version)+",\n")
 	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
@@ -495,7 +495,7 @@ func (this *Transaction) String() string {
 		`SndUserName:` + fmt.Sprintf("%v", this.SndUserName) + `,`,
 		`GasPrice:` + fmt.Sprintf("%v", this.GasPrice) + `,`,
 		`GasLimit:` + fmt.Sprintf("%v", this.GasLimit) + `,`,
-		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`ChainID:` + fmt.Sprintf("%v", this.ChainID) + `,`,
 		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
 		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
@@ -774,7 +774,7 @@ func (m *Transaction) Unmarshal(dAtA []byte) error {
 			}
 		case 9:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {

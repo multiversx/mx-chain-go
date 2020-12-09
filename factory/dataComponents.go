@@ -19,7 +19,7 @@ import (
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
 	Config             config.Config
-	EconomicsData      *economics.Data
+	EconomicsData      *economics.data
 	ShardCoordinator   sharding.Coordinator
 	Core               *CoreComponents
 	PathManager        storage.PathManagerHandler
@@ -29,7 +29,7 @@ type DataComponentsFactoryArgs struct {
 
 type dataComponentsFactory struct {
 	config             config.Config
-	economicsData      *economics.Data
+	economicsData      *economics.data
 	shardCoordinator   sharding.Coordinator
 	core               *CoreComponents
 	pathManager        storage.PathManagerHandler

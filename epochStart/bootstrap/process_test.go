@@ -116,7 +116,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				MaxSnapshots:       2,
 			},
 		},
-		EconomicsData:              &economics.Data{},
+		EconomicsData:              &economics.data{},
 		SingleSigner:               &mock.SignerStub{},
 		BlockSingleSigner:          &mock.SignerStub{},
 		KeyGen:                     &mock.KeyGenMock{},

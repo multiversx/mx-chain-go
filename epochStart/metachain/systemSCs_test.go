@@ -361,7 +361,7 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	return args
 }
 
-func createEconomicsData() *economics2.Data {
+func createEconomicsData() *economics2.data {
 	maxGasLimitPerBlock := strconv.FormatUint(1500000000, 10)
 	minGasPrice := strconv.FormatUint(10, 10)
 	minGasLimit := strconv.FormatUint(10, 10)
