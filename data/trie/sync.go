@@ -232,8 +232,7 @@ func (ts *trieSyncer) resetWatchdog() {
 }
 
 func (ts *trieSyncer) isTimeoutWhileSyncing() bool {
-	duration := time.Now().Sub(ts.lastSyncedTrieNode)
-
+	duration := time.Since(ts.lastSyncedTrieNode)
 	return duration > ts.timeoutBetweenCommits
 }
 
