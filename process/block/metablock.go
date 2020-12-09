@@ -223,7 +223,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0{
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return process.ErrAccountStateDirty
 	}
 
@@ -671,7 +671,7 @@ func (mp *metaProcessor) CreateBlock(
 
 	var body data.BodyHandler
 
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0{
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		return nil, nil, process.ErrAccountStateDirty
 	}
 
