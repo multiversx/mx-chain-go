@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -116,7 +115,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				MaxSnapshots:       2,
 			},
 		},
-		EconomicsData:              &economics.data{},
+		EconomicsData:              &mock.EconomicsHandlerStub{},
 		SingleSigner:               &mock.SignerStub{},
 		BlockSingleSigner:          &mock.SignerStub{},
 		KeyGen:                     &mock.KeyGenMock{},

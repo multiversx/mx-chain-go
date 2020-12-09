@@ -580,6 +580,7 @@ type EconomicsDataHandler interface {
 	MaxInflationRate(year uint32) float64
 	GasPerDataByte() uint64
 	MinGasLimit() uint64
+	GenesisTotalSupply() *big.Int
 	IsInterfaceNil() bool
 }
 

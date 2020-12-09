@@ -7,7 +7,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/factory"
 	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -117,12 +116,15 @@ func TestDataComponentsFactory_CreateForMetaShouldWork(t *testing.T) {
 }
 
 func getDataArgs() factory.DataComponentsFactoryArgs {
-	testEconomics := &economics.TestEconomicsData{data: &economics.data{}}
-	testEconomics.SetMinGasPrice(200000000000)
+	testEconomics := &mock.EconomicsHandlerStub{
+		MinGasPriceCalled: func() uint64 {
+			return 200000000000
+		},
+	}
 
 	return factory.DataComponentsFactoryArgs{
 		Config:             testscommon.GetGeneralConfig(),
-		EconomicsData:      testEconomics.data,
+		EconomicsData:      testEconomics,
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(2),
 		Core:               getCoreComponents(),
 		PathManager:        &mock.PathManagerStub{},

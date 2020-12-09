@@ -13,10 +13,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+var _ process.EconomicsDataHandler = (*data)(nil)
 var _ process.RewardsHandler = (*data)(nil)
 var _ process.FeeHandler = (*data)(nil)
 
-var epsilon float64 = 0.00000001
+var epsilon = 0.00000001
 var log = logger.GetOrCreate("process/economics")
 
 // data will store information about economics
@@ -52,7 +53,7 @@ type ArgsNewEconomicsData struct {
 
 // NewEconomicsData will create and object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
-	data, err := convertValues(args.Economics)
+	convertedData, err := convertValues(args.Economics)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
 		return nil, err
 	}
 
-	if data.maxGasLimitPerBlock < data.minGasLimit {
+	if convertedData.maxGasLimitPerBlock < convertedData.minGasLimit {
 		return nil, process.ErrInvalidMaxGasLimitPerBlock
 	}
 	if check.IfNil(args.EpochNotifier) {
@@ -73,15 +74,15 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
 		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
 		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
 		protocolSustainabilityAddress:    args.Economics.RewardsSettings.ProtocolSustainabilityAddress,
-		maxGasLimitPerBlock:              data.maxGasLimitPerBlock,
-		maxGasLimitPerMetaBlock:          data.maxGasLimitPerMetaBlock,
-		minGasPrice:                      data.minGasPrice,
-		minGasLimit:                      data.minGasLimit,
-		gasPerDataByte:                   data.gasPerDataByte,
-		dataLimitForBaseCalc:             data.dataLimitForBaseCalc,
+		maxGasLimitPerBlock:              convertedData.maxGasLimitPerBlock,
+		maxGasLimitPerMetaBlock:          convertedData.maxGasLimitPerMetaBlock,
+		minGasPrice:                      convertedData.minGasPrice,
+		minGasLimit:                      convertedData.minGasLimit,
+		gasPerDataByte:                   convertedData.gasPerDataByte,
+		dataLimitForBaseCalc:             convertedData.dataLimitForBaseCalc,
 		developerPercentage:              args.Economics.RewardsSettings.DeveloperPercentage,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
-		genesisTotalSupply:               data.genesisTotalSupply,
+		genesisTotalSupply:               convertedData.genesisTotalSupply,
 		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:      args.GasPriceModifierEnableEpoch,
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,

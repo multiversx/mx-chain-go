@@ -30,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -83,7 +82,7 @@ type epochStartBootstrap struct {
 	hasher                     hashing.Hasher
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              *economics.data
+	economicsData              process.EconomicsDataHandler
 	singleSigner               crypto.SingleSigner
 	blockSingleSigner          crypto.SingleSigner
 	keyGen                     crypto.KeyGenerator
@@ -159,7 +158,7 @@ type ArgsEpochStartBootstrap struct {
 	Hasher                     hashing.Hasher
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              *economics.data
+	EconomicsData              process.EconomicsDataHandler
 	SingleSigner               crypto.SingleSigner
 	BlockSingleSigner          crypto.SingleSigner
 	KeyGen                     crypto.KeyGenerator
