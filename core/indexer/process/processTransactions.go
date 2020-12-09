@@ -182,10 +182,10 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 	}
 }
 
-func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResults *types.ScResult, tx *types.Transaction) *types.Transaction {
-	tx.SmartContractResults = append(tx.SmartContractResults, dbScResults)
+func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResult *types.ScResult, tx *types.Transaction) *types.Transaction {
+	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if isSCRForSenderWithGasUsed(dbScResults, tx) {
+	if isSCRForSenderWithGasUsed(dbScResult, tx) {
 		tx.GasUsed = computeTxGasUsedField(dbScResult, tx)
 	}
 
@@ -293,36 +293,4 @@ func (tdp *txDatabaseProcessor) setTransactionSearchOrder(transactions map[strin
 	}
 
 	return transactions
-}
-
-func computeTxGasUsedField(dbScResult ScResult, tx *Transaction) uint64 {
-	fee := big.NewInt(0).SetUint64(tx.GasPrice)
-	fee.Mul(fee, big.NewInt(0).SetUint64(tx.GasLimit))
-
-	refundValue, ok := big.NewInt(0).SetString(dbScResult.Value, 10)
-	if !ok {
-		log.Warn("indexer.computeTxGasUsedField() cannot cast value from string to big.Int")
-		return fee.Uint64()
-	}
-
-	diff := fee.Sub(fee, refundValue)
-	gasUsedBig := diff.Div(diff, big.NewInt(0).SetUint64(tx.GasPrice))
-
-	return gasUsedBig.Uint64()
-}
-
-func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
-	isForSender := dbScResult.Receiver == tx.Sender
-	isRightNonce := dbScResult.Nonce == tx.Nonce+1
-	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
-	isDataOk := isDataOk(dbScResult.Data)
-
-	return isFromCurrentTx && isForSender && isRightNonce && isDataOk
-}
-
-func isDataOk(data []byte) bool {
-	okEncoded := hex.EncodeToString([]byte("ok"))
-	dataFieldStr := "@" + okEncoded
-
-	return strings.HasPrefix(string(data), dataFieldStr)
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
@@ -160,10 +161,34 @@ func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.Sm
 	return scrResults
 }
 
+func computeTxGasUsedField(dbScResult *types.ScResult, tx *types.Transaction) uint64 {
+	fee := big.NewInt(0).SetUint64(tx.GasPrice)
+	fee.Mul(fee, big.NewInt(0).SetUint64(tx.GasLimit))
+
+	refundValue, ok := big.NewInt(0).SetString(dbScResult.Value, 10)
+	if !ok {
+		log.Warn("indexer.computeTxGasUsedField() cannot cast value from string to big.Int")
+		return fee.Uint64()
+	}
+
+	diff := fee.Sub(fee, refundValue)
+	gasUsedBig := diff.Div(diff, big.NewInt(0).SetUint64(tx.GasPrice))
+
+	return gasUsedBig.Uint64()
+}
+
 func isSCRForSenderWithGasUsed(dbScResult *types.ScResult, tx *types.Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
-	isWithGasLimit := dbScResult.GasLimit != 0
+	isRightNonce := dbScResult.Nonce == tx.Nonce+1
 	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
+	isDataOk := isDataOk(dbScResult.Data)
 
-	return isFromCurrentTx && isForSender && isWithGasLimit
+	return isFromCurrentTx && isForSender && isRightNonce && isDataOk
+}
+
+func isDataOk(data []byte) bool {
+	okEncoded := hex.EncodeToString([]byte("ok"))
+	dataFieldStr := "@" + okEncoded
+
+	return strings.HasPrefix(string(data), dataFieldStr)
 }

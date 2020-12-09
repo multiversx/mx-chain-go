@@ -43,3 +43,40 @@ func TestAddToAlteredAddresses(t *testing.T) {
 		TokenIdentifier: tokenIdentifier,
 	}, alterdAccount)
 }
+
+func TestIsSCRForSenderWithGasUsed(t *testing.T) {
+	t.Parallel()
+
+	txHash := "txHash"
+	nonce := uint64(10)
+	sender := "sender"
+
+	tx := &types.Transaction{
+		Hash:   txHash,
+		Nonce:  nonce,
+		Sender: sender,
+	}
+	sc := &types.ScResult{
+		Data:      []byte("@6f6b@something"),
+		Nonce:     nonce + 1,
+		Receiver:  sender,
+		PreTxHash: txHash,
+	}
+
+	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
+}
+
+func TestComputeTxGasUsedField(t *testing.T) {
+	t.Parallel()
+
+	tx := &types.Transaction{
+		GasLimit: 500,
+		GasPrice: 10,
+	}
+	sc := &types.ScResult{
+		Value: "3000",
+	}
+
+	expectedGasUsed := uint64(200)
+	require.Equal(t, expectedGasUsed, computeTxGasUsedField(sc, tx))
+}
