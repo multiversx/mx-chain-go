@@ -23,7 +23,7 @@ func NewSha256() *sha256 {
 // Compute takes a string, and returns the sha256 hash of that string
 func (s *sha256) Compute(str string) []byte {
 	if len(str) == 0 {
-		return s.emptyHash
+		return s.getEmptyHash()
 	}
 	h := sha256Lib.New()
 	_, _ = h.Write([]byte(str))
@@ -33,6 +33,13 @@ func (s *sha256) Compute(str string) []byte {
 // Size returns the size, in number of bytes, of a sha256 hash
 func (s *sha256) Size() int {
 	return sha256Lib.Size
+}
+
+func (s *sha256) getEmptyHash() []byte {
+	hashCopy := make([]byte, len(s.emptyHash))
+	copy(hashCopy, s.emptyHash)
+
+	return hashCopy
 }
 
 func computeEmptyHash() []byte {

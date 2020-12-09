@@ -54,7 +54,7 @@ func (b2b *blake2b) getHasher() hash.Hash {
 // Compute takes a string, and returns the blake2b hash of that string
 func (b2b *blake2b) Compute(s string) []byte {
 	if len(s) == 0 {
-		return b2b.emptyHash
+		return b2b.getEmptyHash()
 	}
 
 	h := b2b.getHasher()
@@ -69,6 +69,13 @@ func (b2b *blake2b) Size() int {
 	}
 
 	return b2b.customHashSize
+}
+
+func (b2b *blake2b) getEmptyHash() []byte {
+	hashCopy := make([]byte, len(b2b.emptyHash))
+	copy(hashCopy, b2b.emptyHash)
+
+	return hashCopy
 }
 
 func (b2b *blake2b) computeEmptyHash() []byte {

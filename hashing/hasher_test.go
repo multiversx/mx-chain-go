@@ -36,6 +36,7 @@ func Suite(t *testing.T, h hashing.Hasher) {
 	testCalculateEmptyHash(t, h)
 	testNilReturn(t, h)
 	testConcurrentSafe(t, h)
+	testEmptyHashDifferentPointer(t, h)
 }
 
 func testNilInterface(t *testing.T, h hashing.Hasher) {
@@ -69,6 +70,13 @@ func testNilReturn(t *testing.T, h hashing.Hasher) {
 	h1 := h.Compute("a")
 
 	assert.NotNil(t, h1)
+}
+
+func testEmptyHashDifferentPointer(t *testing.T, h hashing.Hasher) {
+	emptyHash := h.Compute("")
+	emptyHash[0] = '1'
+
+	require.NotEqual(t, emptyHash, h.Compute(""))
 }
 
 func testConcurrentSafe(t *testing.T, h hashing.Hasher) {
