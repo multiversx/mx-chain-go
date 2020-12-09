@@ -32,7 +32,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type Receipt struct {
 	Value   *math_big.Int `protobuf:"bytes,1,opt,name=Value,proto3,casttypewith=math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster" json:"value"`
 	SndAddr []byte        `protobuf:"bytes,2,opt,name=SndAddr,proto3" json:"sender"`
-	Data    []byte        `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Data    []byte        `protobuf:"bytes,3,opt,name=Data,proto3" json:"data,omitempty"`
 	TxHash  []byte        `protobuf:"bytes,4,opt,name=TxHash,proto3" json:"txHash"`
 }
 
@@ -166,7 +166,7 @@ func (this *Receipt) GoString() string {
 	s = append(s, "&receipt.Receipt{")
 	s = append(s, "Value: "+fmt.Sprintf("%#v", this.Value)+",\n")
 	s = append(s, "SndAddr: "+fmt.Sprintf("%#v", this.SndAddr)+",\n")
-	s = append(s, "data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "TxHash: "+fmt.Sprintf("%#v", this.TxHash)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
@@ -284,7 +284,7 @@ func (this *Receipt) String() string {
 	s := strings.Join([]string{`&Receipt{`,
 		`Value:` + fmt.Sprintf("%v", this.Value) + `,`,
 		`SndAddr:` + fmt.Sprintf("%v", this.SndAddr) + `,`,
-		`data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`TxHash:` + fmt.Sprintf("%v", this.TxHash) + `,`,
 		`}`,
 	}, "")
@@ -401,7 +401,7 @@ func (m *Receipt) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field data", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {

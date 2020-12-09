@@ -28,7 +28,7 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Transaction holds all the data needed for a value transfer or SC call
 type Batch struct {
-	Data [][]byte `protobuf:"bytes,1,rep,name=data,proto3" json:"data"`
+	Data [][]byte `protobuf:"bytes,1,rep,name=Data,proto3" json:"data"`
 }
 
 func (m *Batch) Reset()      { *m = Batch{} }
@@ -122,7 +122,7 @@ func (this *Batch) GoString() string {
 	}
 	s := make([]string, 0, 5)
 	s = append(s, "&batch.Batch{")
-	s = append(s, "data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -203,7 +203,7 @@ func (this *Batch) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Batch{`,
-		`data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -247,7 +247,7 @@ func (m *Batch) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field data", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {

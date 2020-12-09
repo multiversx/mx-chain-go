@@ -111,7 +111,7 @@ func topicRegistration() error {
 		crtHost := hosts[i]
 		_ = pubsubs[i].RegisterTopicValidator(topic, func(ctx context.Context, pid peer.ID, msg *pubsub.Message) bool {
 			//do the message validation
-			//example: deserialize msg.data, do checks on the message, etc.
+			//example: deserialize msg.Data, do checks on the message, etc.
 
 			//processing part should be done on a go routine as the validator func should return immediately
 			go func(data []byte, p peer.ID, h host.Host) {

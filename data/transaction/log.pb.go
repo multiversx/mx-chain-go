@@ -31,7 +31,7 @@ type Event struct {
 	Address    []byte   `protobuf:"bytes,1,opt,name=Address,proto3" json:"address"`
 	Identifier []byte   `protobuf:"bytes,2,opt,name=Identifier,proto3" json:"identifier"`
 	Topics     [][]byte `protobuf:"bytes,3,rep,name=Topics,proto3" json:"topics"`
-	Data       []byte   `protobuf:"bytes,4,opt,name=data,proto3" json:"data"`
+	Data       []byte   `protobuf:"bytes,4,opt,name=Data,proto3" json:"data"`
 }
 
 func (m *Event) Reset()      { *m = Event{} }
@@ -247,7 +247,7 @@ func (this *Event) GoString() string {
 	s = append(s, "Address: "+fmt.Sprintf("%#v", this.Address)+",\n")
 	s = append(s, "Identifier: "+fmt.Sprintf("%#v", this.Identifier)+",\n")
 	s = append(s, "Topics: "+fmt.Sprintf("%#v", this.Topics)+",\n")
-	s = append(s, "data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -440,7 +440,7 @@ func (this *Event) String() string {
 		`Address:` + fmt.Sprintf("%v", this.Address) + `,`,
 		`Identifier:` + fmt.Sprintf("%v", this.Identifier) + `,`,
 		`Topics:` + fmt.Sprintf("%v", this.Topics) + `,`,
-		`data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -600,7 +600,7 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field data", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Data", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
