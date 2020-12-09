@@ -89,18 +89,18 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		time.Second,
 	)
 
-	waitTime := 100 * time.Second
+	timeout := 10 * time.Second
 	tss := statistics.NewTrieSyncStatistics()
-	trieSyncer, _ := trie.NewTrieSyncer(
-		requestHandler,
-		nRequester.DataPool.TrieNodes(),
-		requesterTrie,
-		shardID,
-		factory.AccountTrieNodesTopic,
-		tss,
-	)
-	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
-	defer cancel()
+	arg := trie.ArgTrieSyncer{
+		RequestHandler:                 requestHandler,
+		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
+		Trie:                           requesterTrie,
+		ShardId:                        shardID,
+		Topic:                          factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:             tss,
+		TimeoutBetweenTrieNodesCommits: timeout,
+	}
+	trieSyncer, _ := trie.NewTrieSyncer(arg)
 
 	ctxPrint, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -115,7 +115,7 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		}
 	}()
 
-	err = trieSyncer.StartSyncing(rootHash, ctx)
+	err = trieSyncer.StartSyncing(rootHash, context.Background())
 	assert.Nil(t, err)
 	cancel()
 
@@ -206,7 +206,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 			Marshalizer:          integrationTests.TestMarshalizer,
 			TrieStorageManager:   nRequester.TrieStorageManagers[factory2.UserAccountTrie],
 			RequestHandler:       requestHandler,
-			WaitTime:             time.Second * 300,
+			Timeout:              time.Second * 10,
 			Cacher:               nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory: 5,
 		},
