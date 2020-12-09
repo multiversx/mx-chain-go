@@ -220,6 +220,7 @@ type GeneralSettingsConfig struct {
 	TransactionSignedWithTxHashEnableEpoch uint32
 	MetaProtectionEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch         uint32
+	GasPriceModifierEnableEpoch            uint32
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
 }

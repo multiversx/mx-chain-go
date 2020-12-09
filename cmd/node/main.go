@@ -833,6 +833,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		GasPriceModifierEnableEpoch:    generalConfig.GeneralSettings.GasPriceModifierEnableEpoch,
 		EpochNotifier:                  epochNotifier,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
