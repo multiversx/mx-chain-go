@@ -78,7 +78,7 @@ func TestNewTrieStorageManagerWithExistingSnapshot(t *testing.T) {
 	}
 
 	db := mock.NewMemDbMock()
-	msh, hsh := getTestMarshAndHasher()
+	msh, hsh := getTestMarshalizerAndHasher()
 	size := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 	trieStorage, _ := NewTrieStorageManager(db, msh, hsh, cfg, evictionWaitList, generalCfg)
@@ -121,7 +121,7 @@ func TestNewTrieStorageManagerLoadsSnapshotsInOrder(t *testing.T) {
 	}
 
 	db := mock.NewMemDbMock()
-	msh, hsh := getTestMarshAndHasher()
+	msh, hsh := getTestMarshalizerAndHasher()
 	size := uint(100)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 	trieStorage, _ := NewTrieStorageManager(db, msh, hsh, cfg, evictionWaitList, generalCfg)
@@ -182,7 +182,7 @@ func TestTrieDatabasePruning(t *testing.T) {
 		MaxSnapshots:       2,
 	}
 	db := mock.NewMemDbMock()
-	msh, hsh := getTestMarshAndHasher()
+	msh, hsh := getTestMarshalizerAndHasher()
 	size := uint(1)
 	evictionWaitList, _ := mock.NewEvictionWaitingList(size, mock.NewMemDbMock(), msh)
 	trieStorage, _ := NewTrieStorageManager(db, msh, hsh, config.DBConfig{}, evictionWaitList, generalCfg)

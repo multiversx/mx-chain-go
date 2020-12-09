@@ -210,6 +210,12 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 			return process.ErrWrongTypeAssertion
 		}
 
+		err := irp.checkSmartContractResultIntegrity(addScr)
+		if err != nil {
+			log.Error("AddIntermediateTransaction", "error", err, "dump", spew.Sdump(addScr))
+			return err
+		}
+
 		scrHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, addScr)
 		if err != nil {
 			return err
@@ -230,6 +236,34 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
 		irp.interResultsForBlock[string(scrHash)] = scrInfo
 		irp.mapTxToResult[string(addScr.PrevTxHash)] = append(irp.mapTxToResult[string(addScr.PrevTxHash)], string(scrHash))
+	}
+
+	return nil
+}
+
+func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *smartContractResult.SmartContractResult) error {
+	if len(scr.RcvAddr) == 0 {
+		return process.ErrNilRcvAddr
+	}
+	if len(scr.SndAddr) == 0 {
+		return process.ErrNilSndAddr
+	}
+	if scr.Value == nil {
+		return process.ErrNilValue
+	}
+	if scr.Value.Sign() < 0 {
+		return process.ErrNegativeValue
+	}
+	if len(scr.PrevTxHash) == 0 {
+		return process.ErrNilTxHash
+	}
+
+	if !core.IsEmptyAddress(scr.SndAddr) && !core.IsEmptyAddress(scr.RcvAddr) {
+		sndShardID := irp.shardCoordinator.ComputeId(scr.SndAddr)
+		dstShardID := irp.shardCoordinator.ComputeId(scr.RcvAddr)
+		if sndShardID != irp.shardCoordinator.SelfId() && dstShardID != irp.shardCoordinator.SelfId() {
+			return process.ErrShardIdMissmatch
+		}
 	}
 
 	return nil
