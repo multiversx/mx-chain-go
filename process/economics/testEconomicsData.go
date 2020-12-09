@@ -45,11 +45,6 @@ func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
 	ted.gasPerDataByte = gasPerDataByte
 }
 
-// SetDataLimitForBaseCalc sets base calc limit for gasLimit calculation
-func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint64) {
-	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
-}
-
 // SetTotalSupply sets the total supply when booting the network
 func (ted *TestEconomicsData) SetTotalSupply(totalSupply *big.Int) {
 	ted.genesisTotalSupply = totalSupply

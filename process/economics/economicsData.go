@@ -28,7 +28,6 @@ type data struct {
 	maxGasLimitPerBlock              uint64
 	maxGasLimitPerMetaBlock          uint64
 	gasPerDataByte                   uint64
-	dataLimitForBaseCalc             uint64
 	minGasPrice                      uint64
 	gasPriceModifier                 float64
 	minGasLimit                      uint64
@@ -79,7 +78,6 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
 		minGasPrice:                      convertedData.minGasPrice,
 		minGasLimit:                      convertedData.minGasLimit,
 		gasPerDataByte:                   convertedData.gasPerDataByte,
-		dataLimitForBaseCalc:             convertedData.dataLimitForBaseCalc,
 		developerPercentage:              args.Economics.RewardsSettings.DeveloperPercentage,
 		minInflation:                     args.Economics.GlobalSettings.MinimumInflation,
 		genesisTotalSupply:               convertedData.genesisTotalSupply,
@@ -130,11 +128,6 @@ func convertValues(economics *config.EconomicsConfig) (*data, error) {
 		return nil, process.ErrInvalidGasPerDataByte
 	}
 
-	dataLimitForBaseCalc, err := strconv.ParseUint(economics.FeeSettings.DataLimitForBaseCalc, conversionBase, bitConversionSize)
-	if err != nil {
-		return nil, process.ErrInvalidGasPerDataByte
-	}
-
 	genesisTotalSupply, ok := big.NewInt(0).SetString(economics.GlobalSettings.GenesisTotalSupply, conversionBase)
 	if !ok {
 		return nil, process.ErrInvalidGenesisTotalSupply
@@ -146,7 +139,6 @@ func convertValues(economics *config.EconomicsConfig) (*data, error) {
 		maxGasLimitPerBlock:     maxGasLimitPerBlock,
 		maxGasLimitPerMetaBlock: maxGasLimitPerMetaBlock,
 		gasPerDataByte:          gasPerDataByte,
-		dataLimitForBaseCalc:    dataLimitForBaseCalc,
 		genesisTotalSupply:      genesisTotalSupply,
 	}, nil
 }

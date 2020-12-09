@@ -708,7 +708,6 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				MinGasPrice:             minGasPrice,
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
 				GasPriceModifier:        1.0,
 			},
 		},
