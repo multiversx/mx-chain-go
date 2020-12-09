@@ -55,7 +55,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	ctx := context.Background() //TODO switch to context.WithCancel() when creating Close() function
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	tss := statistics.NewTrieSyncStatistics()
 	go v.printStatistics(tss, ctx)

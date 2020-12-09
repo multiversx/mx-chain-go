@@ -75,7 +75,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
 
-	ctx := context.Background() //TODO switch to context.WithCancel() when creating Close() function
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	tss := statistics.NewTrieSyncStatistics()
 	go u.printStatistics(tss, ctx)
