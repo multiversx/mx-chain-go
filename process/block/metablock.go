@@ -223,6 +223,10 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0{
+		return process.ErrAccountStateDirty
+	}
+
 	err = mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
 		return err
@@ -275,10 +279,6 @@ func (mp *metaProcessor) ProcessBlock(
 		if err != nil {
 			return err
 		}
-	}
-
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		return process.ErrAccountStateDirty
 	}
 
 	defer func() {
@@ -671,6 +671,10 @@ func (mp *metaProcessor) CreateBlock(
 
 	var body data.BodyHandler
 
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0{
+		return nil, nil, process.ErrAccountStateDirty
+	}
+
 	err := mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
 		return nil, nil, err
@@ -857,11 +861,6 @@ func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
-
-	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("metaProcessor.createMiniBlocks", "error", process.ErrAccountStateDirty)
-		return &block.Body{MiniBlocks: miniBlocks}, nil
-	}
 
 	if !haveTime() {
 		log.Debug("metaProcessor.createMiniBlocks", "error", process.ErrTimeIsOut)
