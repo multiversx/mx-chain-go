@@ -922,3 +922,6 @@ var ErrAdditionOverflow = errors.New("uint64 addition overflow")
 
 // ErrSubtractionOverflow signals that uint64 subtraction overflowed
 var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+
+// ErrInvalidGasModifier signals that provided gas modifier is invalid
+var ErrInvalidGasModifier = errors.New("invalid gas modifier")

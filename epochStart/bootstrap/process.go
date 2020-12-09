@@ -83,7 +83,7 @@ type epochStartBootstrap struct {
 	hasher                     hashing.Hasher
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              *economics.EconomicsData
+	economicsData              *economics.Data
 	singleSigner               crypto.SingleSigner
 	blockSingleSigner          crypto.SingleSigner
 	keyGen                     crypto.KeyGenerator
@@ -159,7 +159,7 @@ type ArgsEpochStartBootstrap struct {
 	Hasher                     hashing.Hasher
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              *economics.EconomicsData
+	EconomicsData              *economics.Data
 	SingleSigner               crypto.SingleSigner
 	BlockSingleSigner          crypto.SingleSigner
 	KeyGen                     crypto.KeyGenerator

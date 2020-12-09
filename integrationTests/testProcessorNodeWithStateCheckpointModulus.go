@@ -106,7 +106,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 		TestHasher,
 		TestUint64Converter,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
+		tpn.EconomicsData.Data,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()

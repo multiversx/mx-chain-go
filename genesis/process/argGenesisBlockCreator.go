@@ -27,7 +27,7 @@ type ArgsGenesisBlockCreator struct {
 	ValidatorAccounts        state.AccountsAdapter
 	PubkeyConv               core.PubkeyConverter
 	InitialNodesSetup        genesis.InitialNodesHandler
-	Economics                *economics.EconomicsData //TODO refactor and use an interface
+	Economics                *economics.Data //TODO refactor and use an interface
 	ShardCoordinator         sharding.Coordinator
 	Store                    dataRetriever.StorageService
 	Blkc                     data.ChainHandler

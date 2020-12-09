@@ -20,7 +20,7 @@ var log = logger.GetOrCreate("dataRetriever/factory")
 // ArgsDataPool holds the arguments needed for NewDataPoolFromConfig function
 type ArgsDataPool struct {
 	Config           *config.Config
-	EconomicsData    *economics.EconomicsData
+	EconomicsData    *economics.Data
 	ShardCoordinator sharding.Coordinator
 }
 

@@ -490,7 +490,7 @@ func CreateGenesisBlocks(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics *economics.Data,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -527,7 +527,7 @@ func CreateFullGenesisBlocks(
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics *economics.Data,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
@@ -618,7 +618,7 @@ func CreateGenesisMetaBlock(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics *economics.Data,
 ) data.HeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)

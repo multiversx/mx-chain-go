@@ -29,7 +29,7 @@ type vmContainerFactory struct {
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
 	systemContracts     vm.SystemSCContainer
-	economics           *economics.EconomicsData
+	economics           *economics.Data
 	messageSigVerifier  vm.MessageSignVerifier
 	nodesConfigProvider vm.NodesConfigProvider
 	gasSchedule         core.GasScheduleNotifier
@@ -42,7 +42,7 @@ type vmContainerFactory struct {
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
-	economics *economics.EconomicsData,
+	economics *economics.Data,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule core.GasScheduleNotifier,
 	nodesConfigProvider vm.NodesConfigProvider,

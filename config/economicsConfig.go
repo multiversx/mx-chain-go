@@ -30,6 +30,7 @@ type FeeSettings struct {
 	DataLimitForBaseCalc    string
 	MinGasPrice             string
 	MinGasLimit             string
+	GasPriceModifier        float64
 }
 
 // EconomicsConfig will hold economics config

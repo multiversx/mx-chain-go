@@ -559,6 +559,7 @@ type FeeHandler interface {
 	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
 	MinGasPrice() uint64
+	GasPriceModifier() float64
 	IsInterfaceNil() bool
 }
 

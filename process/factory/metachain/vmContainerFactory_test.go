@@ -45,7 +45,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	gasSchedule := makeGasSchedule()
 	vmf, err := NewVMContainerFactory(
 		createMockVMAccountsArguments(),
-		&economics.EconomicsData{},
+		&economics.Data{},
 		&mock.MessageSignVerifierMock{},
 		gasSchedule,
 		&mock.NodesConfigProviderStub{},
