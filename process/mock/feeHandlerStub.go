@@ -18,6 +18,15 @@ type FeeHandlerStub struct {
 	CheckValidityTxValuesCalled  func(tx process.TransactionWithFeeHandler) error
 	DeveloperPercentageCalled    func() float64
 	MinGasPriceCalled            func() uint64
+	GasPriceModifierCalled       func() float64
+}
+
+// GasPriceModifier -
+func (fhs *FeeHandlerStub) GasPriceModifier() float64 {
+	if fhs.GasPriceModifierCalled != nil {
+		return fhs.GasPriceModifierCalled()
+	}
+	return 1.0
 }
 
 // MinGasPrice -

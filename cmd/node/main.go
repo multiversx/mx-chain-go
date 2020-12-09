@@ -2420,7 +2420,7 @@ func createApiResolver(
 	shardCoordinator sharding.Coordinator,
 	statusMetrics external.StatusMetricsHandler,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	messageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
