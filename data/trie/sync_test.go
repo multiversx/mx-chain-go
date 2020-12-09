@@ -17,7 +17,7 @@ import (
 func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t *testing.T) {
 	t.Parallel()
 
-	marsh, hasher := getTestMarshAndHasher()
+	marshalizer, hasher := getTestMarshalizerAndHasher()
 	arg := ArgTrieSyncer{
 		RequestHandler:                 &mock.RequestHandlerStub{},
 		InterceptedNodes:               testscommon.NewCacherMock(),
@@ -30,11 +30,11 @@ func TestTrieSync_InterceptedNodeShouldNotBeAddedToNodesForTrieIfNodeReceived(t 
 	ts, err := NewTrieSyncer(arg)
 	require.Nil(t, err)
 
-	bn, collapsedBn := getBnAndCollapsedBn(marsh, hasher)
+	bn, collapsedBn := getBnAndCollapsedBn(marshalizer, hasher)
 	encodedNode, err := collapsedBn.getEncodedNode()
 	assert.Nil(t, err)
 
-	interceptedNode, err := NewInterceptedTrieNode(encodedNode, marsh, hasher)
+	interceptedNode, err := NewInterceptedTrieNode(encodedNode, marshalizer, hasher)
 	assert.Nil(t, err)
 
 	hash := "nodeHash"
@@ -84,8 +84,8 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	t.Parallel()
 
 	timeout := time.Second * 200
-	marsh, hasher := getTestMarshAndHasher()
-	bn, _ := getBnAndCollapsedBn(marsh, hasher)
+	marshalizer, hasher := getTestMarshalizerAndHasher()
+	bn, _ := getBnAndCollapsedBn(marshalizer, hasher)
 	err := bn.setHash()
 	require.Nil(t, err)
 	rootHash := bn.getHash()
@@ -107,7 +107,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 					return db
 				},
 			},
-			marshalizer: marsh,
+			marshalizer: marshalizer,
 			hasher:      hasher,
 		},
 		ShardId:                        0,
