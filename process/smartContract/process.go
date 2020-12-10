@@ -1082,6 +1082,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
 	cost = cost.Add(cost, tx.GetValue())
 
+	// TODO: check why and how the cost could be zero
 	if cost.Cmp(big.NewInt(0)) == 0 {
 		return nil
 	}

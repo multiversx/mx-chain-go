@@ -629,7 +629,7 @@ func (txProc *txProcessor) processUserTx(
 			txHash,
 			err.Error())
 	}
-
+	// TODO: check if there is no problem with hashing a new SCR and not the previous transaction. Are the hashes equal?
 	scrFromTx := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
 
 	returnCode := vmcommon.Ok
