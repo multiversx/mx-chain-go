@@ -79,6 +79,8 @@ func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFi
 		_ = db.Close()
 	})
 
+	log.Debug("opened serial level db persister", "path", path)
+
 	return dbStore, nil
 }
 

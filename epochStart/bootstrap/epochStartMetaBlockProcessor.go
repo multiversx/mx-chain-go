@@ -39,7 +39,7 @@ type epochStartMetaBlockProcessor struct {
 	minNumOfPeersToConsiderBlockValid int
 }
 
-// NewEpochStartMetaBlockProcessor will return a interceptor processor for epoch start meta block
+// NewEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block
 func NewEpochStartMetaBlockProcessor(
 	messenger Messenger,
 	handler RequestHandler,
@@ -128,7 +128,13 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	metaBlock := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	if !ok {
+		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
+			"header", interceptedHdr.HeaderHandler())
+		return nil
+	}
+
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
 		return nil

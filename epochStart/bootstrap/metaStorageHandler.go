@@ -43,6 +43,7 @@ func NewMetaStorageHandler(
 		pathManagerHandler,
 		epochStartNotifier,
 		currentEpoch,
+		false,
 	)
 	if err != nil {
 		return nil, err

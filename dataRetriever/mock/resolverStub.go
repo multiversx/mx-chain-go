@@ -13,6 +13,7 @@ type ResolverStub struct {
 	SetNumPeersToQueryCalled      func(intra int, cross int)
 	NumPeersToQueryCalled         func() (int, int)
 	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
+	CloseCalled                   func() error
 }
 
 // SetNumPeersToQuery -
@@ -45,6 +46,15 @@ func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.Pe
 func (rs *ResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
 	if rs.SetResolverDebugHandlerCalled != nil {
 		return rs.SetResolverDebugHandlerCalled(handler)
+	}
+
+	return nil
+}
+
+// Close -
+func (rs *ResolverStub) Close() error {
+	if rs.CloseCalled != nil {
+		return rs.CloseCalled()
 	}
 
 	return nil
