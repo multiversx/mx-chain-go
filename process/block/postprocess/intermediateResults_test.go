@@ -144,9 +144,8 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 	sndAddr := []byte("sndAddress")
 	dstAddr := []byte("dstAddress")
 
-	sndId, dstId, err := irp.getShardIdsFromAddresses(sndAddr, dstAddr)
+	sndId, dstId := irp.getShardIdsFromAddresses(sndAddr, dstAddr)
 	assert.Equal(t, uint32(0), sndId, dstId)
-	assert.Nil(t, err)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) {
