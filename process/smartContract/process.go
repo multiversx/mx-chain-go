@@ -63,6 +63,7 @@ type scProcessor struct {
 
 	asyncCallbackGasLock uint64
 	asyncCallStepCost    uint64
+	esdtTransferCost     uint64
 	mutGasLock           sync.RWMutex
 
 	txLogsProcessor process.TransactionLogProcessor
@@ -151,7 +152,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	}
 
 	apiCosts := args.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-
+	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
 	sc := &scProcessor{
 		vmContainer:                    args.VmContainer,
 		argsParser:                     args.ArgsParser,
@@ -168,6 +169,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		gasHandler:                     args.GasHandler,
 		asyncCallStepCost:              apiCosts[core.AsyncCallStepField],
 		asyncCallbackGasLock:           apiCosts[core.AsyncCallbackGasLockField],
+		esdtTransferCost:               builtInFuncCost[core.BuiltInFunctionESDTTransfer],
 		builtInFunctions:               args.BuiltInFunctions,
 		txLogsProcessor:                args.TxLogsProcessor,
 		badTxForwarder:                 args.BadTxForwarder,
@@ -192,8 +194,14 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 		return
 	}
 
+	builtInFuncCost := gasSchedule[core.BuiltInCost]
+	if gasSchedule == nil {
+		return
+	}
+
 	sc.asyncCallStepCost = apiCosts[core.AsyncCallStepField]
 	sc.asyncCallbackGasLock = apiCosts[core.AsyncCallbackGasLockField]
+	sc.esdtTransferCost = builtInFuncCost[core.BuiltInFunctionESDTTransfer]
 }
 
 func (sc *scProcessor) checkTxValidity(tx data.TransactionHandler) error {
@@ -653,6 +661,24 @@ func (sc *scProcessor) resolveFailedTransaction(
 	return process.ErrFailedTransaction
 }
 
+func (sc *scProcessor) computeBuiltInFuncGasUsed(
+	tx data.TransactionHandler,
+	gasProvided uint64,
+	gasRemaining uint64,
+) (uint64, error) {
+	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
+	if txTypeOnDst != process.SCInvoking {
+		return safeSubUint64(gasProvided, gasRemaining)
+	}
+
+	builtInFuncGasUsed := uint64(0)
+	sc.mutGasLock.RLock()
+	builtInFuncGasUsed = sc.esdtTransferCost
+	sc.mutGasLock.RUnlock()
+
+	return builtInFuncGasUsed, nil
+}
+
 // ExecuteBuiltInFunction  processes the transaction, executes the built in function call and subsequent results
 func (sc *scProcessor) ExecuteBuiltInFunction(
 	tx data.TransactionHandler,
@@ -673,8 +699,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
-	builtInFuncGasUsed, err := safeSubUint64(vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "ExecuteBultInFunction", "builtInFuncGasUsed")
+	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(tx, vmInput.GasProvided, vmOutput.GasRemaining)
+	log.LogIfError(err, "ExecuteBultInFunction", "computeBuiltInFuncGasUSed")
 
 	vmOutput.GasRemaining += vmInput.GasLocked
 	if vmOutput.ReturnCode != vmcommon.Ok {
