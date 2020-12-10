@@ -10,7 +10,7 @@ import (
 
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
-	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) process.TransactionType
+	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
 	RequestMiniBlocksCalled                              func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
@@ -52,7 +52,7 @@ func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.Transactio
 		return 0, 0
 	}
 
-	return tcm.ComputeTransactionTypeCalled(tx), 0
+	return tcm.ComputeTransactionTypeCalled(tx)
 }
 
 // RequestMiniBlocks -
