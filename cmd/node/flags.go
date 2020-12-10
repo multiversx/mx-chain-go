@@ -473,22 +473,22 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if config.StoragePruning.FullArchive {
+	if configs.GeneralConfig.StoragePruning.FullArchive {
 		log.Debug("full archive node is enabled")
-		if config.GeneralSettings.StartInEpochEnabled {
+		if configs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
 			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			config.GeneralSettings.StartInEpochEnabled = false
+			configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
 		}
-		if config.StoragePruning.CleanOldEpochsData {
+		if configs.GeneralConfig.StoragePruning.CleanOldEpochsData {
 			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			config.StoragePruning.CleanOldEpochsData = false
+			configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
 		}
-		if !config.StoragePruning.Enabled {
+		if !configs.GeneralConfig.StoragePruning.Enabled {
 			log.Warn("StoragePruning is overridden by FullArchive and set to true")
-			config.StoragePruning.Enabled = true
+			configs.GeneralConfig.StoragePruning.Enabled = true
 		}
 		log.Warn("NumEpochsToKeep is overridden by FullArchive")
-		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
+		configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 	}
 
 	return nil

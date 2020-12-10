@@ -464,10 +464,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	return e.initEpochStartMetaBlockSyncer()
-}
-
-func (e *epochStartBootstrap) initEpochStartMetaBlockSyncer() error {
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
@@ -480,8 +476,6 @@ func (e *epochStartBootstrap) initEpochStartMetaBlockSyncer() error {
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		MetaBlockProcessor:      metablockProcessor,
 	}
-
-	var err error
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err

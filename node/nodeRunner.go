@@ -826,7 +826,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		EpochNotifier:             epochNotifier,
 		HeaderIntegrityVerifier:   managedBootstrapComponents.HeaderIntegrityVerifier(),
 		EconomicsData:             managedCoreComponents.EconomicsData(),
-		StorageResolverImportPath: configs.FlagsConfig.ImportDbDirectory,
 	}
 	processComponentsFactory, err := mainFactory.NewProcessComponentsFactory(processArgs)
 	if err != nil {
