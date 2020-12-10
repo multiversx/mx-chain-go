@@ -30,7 +30,11 @@ func (fhs *FeeHandlerStub) MinGasPrice() uint64 {
 
 // DeveloperPercentage -
 func (fhs *FeeHandlerStub) DeveloperPercentage() float64 {
-	return fhs.DeveloperPercentageCalled()
+	if fhs.DeveloperPercentageCalled != nil {
+		return fhs.DeveloperPercentageCalled()
+	}
+
+	return 0.0
 }
 
 // SetMaxGasLimitPerBlock -
