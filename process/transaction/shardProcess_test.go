@@ -159,6 +159,50 @@ func TestNewTxProcessor_NilSCProcessorShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
+func TestNewTxProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.TxTypeHandler = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilTxTypeHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilReceiptForwarderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.ReceiptForwarder = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilReceiptHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilBadTxForwarderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.BadTxForwarder = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilBadTxHandler, err)
+	assert.Nil(t, txProc)
+}
+
 func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -167,6 +211,39 @@ func TestNewTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilUnsignedTxHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilArgsParserShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.ArgsParser = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilArgumentParser, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilScrForwarderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.ScrForwarder = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilIntermediateTransactionHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilSignMarshalizerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.SignMarshalizer = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, txProc)
 }
 
@@ -870,6 +947,32 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	_, err = execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, saveAccountCalled)
+}
+
+func TestTxProcessor_ProcessSCDeploymentShouldWork(t *testing.T) {
+	t.Parallel()
+
+	deploySCCalled := 0
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Value = big.NewInt(0)
+
+	args := createArgsForTxProcessor()
+	args.ScProcessor = &mock.SCProcessorMock{
+		DeploySmartContractCalled: func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+			deploySCCalled++
+			return vmcommon.Ok, nil
+		},
+	}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err := execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, deploySCCalled)
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
