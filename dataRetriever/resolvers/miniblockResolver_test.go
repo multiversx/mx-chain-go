@@ -421,3 +421,12 @@ func TestMiniblockResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }
+
+func TestMiniblockResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMiniblockResolver()
+	mbRes, _ := resolvers.NewMiniblockResolver(arg)
+
+	assert.Nil(t, mbRes.Close())
+}

@@ -467,8 +467,14 @@ var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory creat
 // ErrNewEpochStartBootstrap signals a new epochStartBootstrap creation has failed
 var ErrNewEpochStartBootstrap = errors.New("epochStartBootstrap creation has failed")
 
+// ErrNewStorageEpochStartBootstrap signals that a new storageEpochStartBootstrap creation has failed
+var ErrNewStorageEpochStartBootstrap = errors.New("storageEpochStartBootstrap creation has failed")
+
 // ErrBootstrap signals the bootstrapping process has failed
 var ErrBootstrap = errors.New("bootstrap process has failed")
 
 // ErrNilDataPoolsHolder signals that a nil data pools holder was provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
+
+// ErrNilManualEpochStartNotifier signals that a nil manual epoch start notifier has been provided
+var ErrNilManualEpochStartNotifier = errors.New("nil manual epoch start notifier")
