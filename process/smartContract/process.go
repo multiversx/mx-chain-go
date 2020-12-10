@@ -455,7 +455,12 @@ func (sc *scProcessor) updateDeveloperRewards(
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	subMoveBalanceGasLimit := !sc.isSelfShard(tx.GetSndAddr()) && !isSmartContractResult(tx)
-	if sc.flagDeploy.IsSet() || subMoveBalanceGasLimit {
+	if !sc.flagDeploy.IsSet() && !sc.isSelfShard(tx.GetSndAddr()) {
+		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
+		if err != nil {
+			return err
+		}
+	} else if subMoveBalanceGasLimit {
 		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
@@ -576,16 +581,16 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		}
 	}
 
-	consumedGasWithoutBuiltin := consumedGas
-	if senderInSelfShard {
-		consumedGasWithoutBuiltin, err = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
-		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
-	}
-
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	if !isSmartContractResult(tx) {
 		consumedGas, err = safeSubUint64(consumedGas, moveBalanceGasLimit)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
+	}
+
+	consumedGasWithoutBuiltin := consumedGas
+	if senderInSelfShard {
+		consumedGasWithoutBuiltin, err = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
+		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
 	}
 
 	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)

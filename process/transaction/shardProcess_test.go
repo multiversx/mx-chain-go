@@ -778,8 +778,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -826,8 +826,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1049,8 +1049,8 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.MoveBalance
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1097,8 +1097,8 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 		},
 	}
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.InvalidTransaction
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.InvalidTransaction, process.InvalidTransaction
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1331,7 +1331,7 @@ func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
 	assert.True(t, execTx.IsCrossTxFromMe([]byte("ADR0"), []byte("ADR1")))
 }
 
-func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
+func TestTxProcessor_GetUserTxCostShouldWorkWithOverPay(t *testing.T) {
 	t.Parallel()
 
 	gasLimit := uint64(1)
@@ -1360,13 +1360,7 @@ func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	execTx.SetPenalizedTooMuchGasEnableEpoch(1)
-
-	execTx.EpochConfirmed(0)
-	actualCost := execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, cost, actualCost)
-
 	execTx.EpochConfirmed(1)
-	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
+	actualCost := execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
 	assert.Equal(t, big.NewInt(100), actualCost)
 }
