@@ -49,7 +49,7 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 // ComputeTransactionType -
 func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0, 0
+		return process.MoveBalance, process.MoveBalance
 	}
 
 	return tcm.ComputeTransactionTypeCalled(tx)

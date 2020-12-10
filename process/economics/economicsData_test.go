@@ -305,7 +305,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 
 	err := economicsData.CheckValidityTxValues(tx)
 
-	assert.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	assert.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 }
 
 func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
@@ -348,7 +348,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 		Value:    big.NewInt(0),
 	}
 	err := economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 
 	tx = &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
@@ -356,7 +356,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 		Value:    big.NewInt(0),
 	}
 	err = economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 
 	tx = &transaction.Transaction{
 		GasPrice: minGasPrice + 1,

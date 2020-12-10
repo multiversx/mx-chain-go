@@ -195,7 +195,7 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	}
 
 	builtInFuncCost := gasSchedule[core.BuiltInCost]
-	if gasSchedule == nil {
+	if builtInFuncCost == nil {
 		return
 	}
 
@@ -454,13 +454,12 @@ func (sc *scProcessor) updateDeveloperRewards(
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
-	subMoveBalanceGasLimit := !sc.isSelfShard(tx.GetSndAddr()) && !isSmartContractResult(tx)
 	if !sc.flagDeploy.IsSet() && !sc.isSelfShard(tx.GetSndAddr()) {
 		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
 		}
-	} else if subMoveBalanceGasLimit {
+	} else if !isSmartContractResult(tx) {
 		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
