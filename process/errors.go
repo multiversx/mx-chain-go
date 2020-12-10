@@ -927,4 +927,4 @@ var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
 var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 
 // ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
-var ErrMoreGasThanGasLimitPerBlock = errors.New("signals that more gas was provided than gas limit per block")
+var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")

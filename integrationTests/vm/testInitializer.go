@@ -161,6 +161,44 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
+func createEconomicsData() process.EconomicsDataHandler {
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	minGasPrice := strconv.FormatUint(1, 10)
+	minGasLimit := strconv.FormatUint(1, 10)
+	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
+			},
+			RewardsSettings: config.RewardsSettings{
+				LeaderPercentage:              0.1,
+				DeveloperPercentage:           0.1,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+			},
+			FeeSettings: config.FeeSettings{
+				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
+				GasPerDataByte:          "1",
+				GasPriceModifier:        1.0,
+			},
+		},
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
+	return economicsData
+}
+
 // CreateTxProcessorWithOneSCExecutorMockVM -
 func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
@@ -198,41 +236,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
-	minGasPrice := strconv.FormatUint(1, 10)
-	minGasLimit := strconv.FormatUint(1, 10)
-	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
-	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics: &config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply: "2000000000000000000000",
-				MinimumInflation:   0,
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-			},
-			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
-			},
-		},
-		PenalizedTooMuchGasEnableEpoch: 0,
-		EpochNotifier:                  &mock.EpochNotifierStub{},
-	}
-	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
-
+	economicsData := createEconomicsData()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:    vmContainer,
 		ArgsParser:     smartContract.NewArgumentParser(),
@@ -267,7 +271,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		ScProcessor:      scProcessor,
 		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
 		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     &mock.FeeHandlerStub{},
+		EconomicsFee:     economicsData,
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
@@ -383,6 +387,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
+	economicsData := createEconomicsData()
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:    vmContainer,
 		ArgsParser:     smartContract.NewArgumentParser(),
@@ -395,12 +400,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
-			DeveloperPercentageCalled: func() float64 {
-				return 0.0
-			},
-		},
-		TxTypeHandler: txTypeHandler,
+		EconomicsFee:   economicsData,
+		TxTypeHandler:  txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -423,7 +424,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		ScProcessor:      scProcessor,
 		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
 		TxTypeHandler:    txTypeHandler,
-		EconomicsFee:     &mock.FeeHandlerStub{},
+		EconomicsFee:     economicsData,
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:       smartContract.NewArgumentParser(),
@@ -655,7 +656,7 @@ func CreateTransferTokenTx(
 		Value:    big.NewInt(0),
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
-		GasPrice: 0,
+		GasPrice: 1,
 		GasLimit: 5000000,
 		Data:     []byte(functionName + "@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
 		ChainID:  integrationTests.ChainID,
