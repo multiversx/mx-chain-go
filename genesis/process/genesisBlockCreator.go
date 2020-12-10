@@ -102,6 +102,9 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		Marshalizer: gbc.arg.Core.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return fmt.Errorf("%w while creating hardfork storer", err)
+	}
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
@@ -492,4 +495,9 @@ func (gbc *genesisBlockCreator) searchDeployedContract(allScAddresses [][]byte, 
 	}
 
 	return false
+}
+
+// ImportHandler returns the ImportHandler object
+func (gbc *genesisBlockCreator) ImportHandler() update.ImportHandler {
+	return gbc.arg.importHandler
 }

@@ -92,6 +92,7 @@ type processComponents struct {
 	historyRepository           dblookupext.HistoryRepository
 	importStartHandler          update.ImportStartHandler
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
+	importHandler               update.ImportHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -177,6 +178,7 @@ type processComponentsFactory struct {
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
+	importHandler             update.ImportHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -528,6 +530,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		historyRepository:           pcf.historyRepo,
 		importStartHandler:          pcf.importStartHandler,
 		requestedItemsHandler:       pcf.requestedItemsHandler,
+		importHandler:               pcf.importHandler,
 	}, nil
 }
 
@@ -679,6 +682,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	if err != nil {
 		return nil, err
 	}
+	pcf.importHandler = gbc.ImportHandler()
 
 	return gbc.CreateGenesisBlocks()
 }
@@ -1340,6 +1344,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.epochStartTrigger) {
 		log.LogIfError(pc.epochStartTrigger.Close())
+	}
+	if !check.IfNil(pc.importHandler) {
+		log.LogIfError(pc.importHandler.Close())
 	}
 	return nil
 }
