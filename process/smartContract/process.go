@@ -384,13 +384,13 @@ func (sc *scProcessor) finishSCExecution(
 	finalResults := sc.deleteSCRsWithValueZeroGoingToMeta(results)
 	err := sc.scrForwarder.AddIntermediateTransactions(finalResults)
 	if err != nil {
-		log.Debug("AddIntermediateTransactions error", "error", err.Error())
+		log.Error("AddIntermediateTransactions error", "error", err.Error())
 		return 0, err
 	}
 
 	err = sc.updateDeveloperRewards(tx, vmOutput, builtInFuncGasUsed)
 	if err != nil {
-		log.Debug("updateDeveloper rewards error", "error", err.Error())
+		log.Error("updateDeveloper rewards error", "error", err.Error())
 		return 0, err
 	}
 
@@ -406,11 +406,14 @@ func (sc *scProcessor) updateDeveloperRewards(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) error {
-	usedGasByMainSC := tx.GetGasLimit() - vmOutput.GasRemaining
-	if !sc.isSelfShard(tx.GetSndAddr()) {
-		usedGasByMainSC -= sc.economicsFee.ComputeGasLimit(tx)
+	usedGasByMainSC, err := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+	if err != nil {
+		return err
 	}
-	usedGasByMainSC -= builtInFuncGasUsed
+	usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, builtInFuncGasUsed)
+	if err != nil {
+		return err
+	}
 
 	for _, outAcc := range vmOutput.OutputAccounts {
 		if bytes.Equal(tx.GetRcvAddr(), outAcc.Address) {
@@ -419,20 +422,39 @@ func (sc *scProcessor) updateDeveloperRewards(
 
 		sentGas := uint64(0)
 		for _, outTransfer := range outAcc.OutputTransfers {
-			sentGas += outTransfer.GasLimit
+			sentGas, err = safeAddUint64(sentGas, outTransfer.GasLimit)
+			if err != nil {
+				return err
+			}
 		}
-		usedGasByMainSC -= sentGas
-		usedGasByMainSC -= outAcc.GasUsed
+
+		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, sentGas)
+		if err != nil {
+			return err
+		}
+		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, outAcc.GasUsed)
+		if err != nil {
+			return err
+		}
 
 		if outAcc.GasUsed > 0 && sc.isSelfShard(outAcc.Address) {
-			err := sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx.GetGasPrice())
+			err = sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	err := sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx.GetGasPrice())
+	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
+	subMoveBalanceGasLimit := !sc.isSelfShard(tx.GetSndAddr()) && !isSmartContractResult(tx)
+	if sc.flagDeploy.IsSet() || subMoveBalanceGasLimit {
+		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx)
 	if err != nil {
 		return err
 	}
@@ -440,12 +462,12 @@ func (sc *scProcessor) updateDeveloperRewards(
 	return nil
 }
 
-func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, gasPrice uint64) error {
+func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
 	if core.IsEmptyAddress(address) || !core.IsSmartContractAddress(address) {
 		return nil
 	}
 
-	consumedFee := core.SafeMul(gasPrice, gasUsed)
+	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
 	devRwd := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 
 	userAcc, err := sc.getAccountFromAddress(address)
@@ -531,10 +553,6 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	consumedGas, err := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
 	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "vmOutput.GasRemaining")
 	if !senderInSelfShard {
-		if !isSmartContractResult(tx) {
-			consumedGas, err = safeSubUint64(consumedGas, sc.economicsFee.ComputeGasLimit(tx))
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
-		}
 		consumedGas, err = safeSubUint64(consumedGas, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "builtInFuncGasUsed")
 	}
@@ -550,15 +568,29 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		}
 	}
 
-	totalFee := core.SafeMul(tx.GetGasPrice(), consumedGas)
-
 	consumedGasWithoutBuiltin := consumedGas
 	if senderInSelfShard {
 		consumedGasWithoutBuiltin, err = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
 	}
-	totalFeeMinusBuiltIn := core.SafeMul(tx.GetGasPrice(), consumedGasWithoutBuiltin)
+
+	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
+	if !isSmartContractResult(tx) {
+		consumedGas, err = safeSubUint64(consumedGas, moveBalanceGasLimit)
+		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
+	}
+
+	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
+	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
+
+	if !isSmartContractResult(tx) && senderInSelfShard {
+		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
+	}
+
+	if !sc.flagDeploy.IsSet() {
+		totalDevRwd = core.GetPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+	}
 
 	return totalFee, totalDevRwd
 }
@@ -1168,8 +1200,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return err
 	}
 
-	cost := big.NewInt(0)
-	cost = cost.Mul(big.NewInt(0).SetUint64(tx.GetGasPrice()), big.NewInt(0).SetUint64(tx.GetGasLimit()))
+	cost := sc.economicsFee.ComputeTxFee(tx)
 	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
@@ -1329,7 +1360,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		accumulatedSCRData += string(tx.GetData())
 	}
 
-	consumedFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 	if !sc.flagDeploy.IsSet() {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
@@ -1342,7 +1373,7 @@ func (sc *scProcessor) createSCRsWhenError(
 			scr.GasPrice = tx.GetGasPrice()
 			if tx.GetGasLimit() >= gasLocked {
 				scr.GasLimit = gasLocked
-				consumedFee = core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit()-gasLocked)
+				consumedFee = sc.economicsFee.ComputeFeeForProcessing(tx, tx.GetGasLimit()-gasLocked)
 			}
 			accumulatedSCRData += "@" + core.ConvertToEvenHex(int(vmcommon.UserError))
 		} else {
