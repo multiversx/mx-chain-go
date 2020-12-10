@@ -535,7 +535,8 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
-	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
+	tx := &transaction.Transaction{GasPrice: gasPrice, GasLimit: gasLimit, Data: []byte(txData)}
+	txCost := consensusNodes[shardId0][0].EconomicsData.ComputeTxFee(tx)
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
 
