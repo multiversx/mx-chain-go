@@ -380,7 +380,7 @@ func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte)
 
 		sortedKeys[blsKeyStatus] = append(sortedKeys[blsKeyStatus], blsKey)
 
-		if blsKeyStatus != string(core.LeavingList) {
+		if blsKeyStatus != string(core.LeavingList) && blsKeyStatus != string(core.InactiveList) {
 			totalActive++
 		}
 	}
