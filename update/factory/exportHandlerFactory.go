@@ -285,6 +285,16 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	trieStorageManager := dataTriesContainerFactory.TrieStorageManager()
+	defer func() {
+		if err != nil {
+			if !check.IfNil(trieStorageManager) {
+				trieStorageManager.Close()
+			}
+		}
+	}()
+
 	dataTries, err := dataTriesContainerFactory.Create()
 	if err != nil {
 		return nil, err
@@ -324,7 +334,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		ShardCoordinator:     e.shardCoordinator,
 		Hasher:               e.CoreComponents.Hasher(),
 		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
+		TrieStorageManager:   trieStorageManager,
 		WaitTime:             time.Minute,
 		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 	}
@@ -394,11 +404,25 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 
-	keysStorer, err := createStorer(e.exportStateKeysConfig, e.exportFolder)
+	var keysStorer storage.Storer
+	var keysVals storage.Storer
+
+	defer func() {
+		if err != nil {
+			if !check.IfNil(keysStorer) {
+				keysStorer.Close()
+			}
+			if !check.IfNil(keysVals) {
+				keysVals.Close()
+			}
+		}
+	}()
+
+	keysStorer, err = createStorer(e.exportStateKeysConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys storer", err)
 	}
-	keysVals, err := createStorer(e.exportStateStorageConfig, e.exportFolder)
+	keysVals, err = createStorer(e.exportStateStorageConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys-values storer", err)
 	}
@@ -409,6 +433,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer: e.CoreComponents.InternalMarshalizer(),
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating hardfork storer", err)
+	}
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator:         e.shardCoordinator,

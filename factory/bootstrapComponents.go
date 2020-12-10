@@ -23,6 +23,7 @@ import (
 type BootstrapComponentsFactoryArgs struct {
 	Config            config.Config
 	PrefConfig        config.Preferences
+	ImportDbConfig    config.ImportDbConfig
 	WorkingDir        string
 	CoreComponents    CoreComponentsHolder
 	CryptoComponents  CryptoComponentsHolder
@@ -32,6 +33,7 @@ type BootstrapComponentsFactoryArgs struct {
 type bootstrapComponentsFactory struct {
 	config            config.Config
 	prefConfig        config.Preferences
+	importDbConfig    config.ImportDbConfig
 	workingDir        string
 	coreComponents    CoreComponentsHolder
 	cryptoComponents  CryptoComponentsHolder
@@ -64,6 +66,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	return &bootstrapComponentsFactory{
 		config:            args.Config,
 		prefConfig:        args.PrefConfig,
+		importDbConfig:    args.ImportDbConfig,
 		workingDir:        args.WorkingDir,
 		coreComponents:    args.CoreComponents,
 		cryptoComponents:  args.CryptoComponents,
@@ -154,9 +157,24 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		CurrentNetworkEpochSetter:  &disabled.NilCurrentNetworkEpochProviderHandler{}, //TODO inject here the real component
 	}
 
-	epochStartBootstraper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+	var epochStartBootstraper EpochStartBootstrapper
+	if bcf.importDbConfig.IsImportDBMode {
+		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
+			ArgsEpochStartBootstrap:    epochStartBootstrapArgs,
+			ImportDbConfig:             bcf.importDbConfig,
+			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
+			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
+		}
+
+		epochStartBootstraper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
+		}
+	} else {
+		epochStartBootstraper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
+		}
 	}
 
 	bootstrapParameters, err := epochStartBootstraper.Bootstrap()

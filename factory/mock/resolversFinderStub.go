@@ -17,6 +17,7 @@ type ResolversFinderStub struct {
 	ResolverKeysCalled           func() string
 	MetaCrossShardResolverCalled func(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error)
 	IterateCalled                func(handler func(key string, resolver dataRetriever.Resolver) bool)
+	CloseCalled                  func() error
 }
 
 // MetaCrossShardResolver -
@@ -83,6 +84,15 @@ func (rfs *ResolversFinderStub) MetaChainResolver(baseTopic string) (dataRetriev
 // CrossShardResolver -
 func (rfs *ResolversFinderStub) CrossShardResolver(baseTopic string, crossShard uint32) (dataRetriever.Resolver, error) {
 	return rfs.CrossShardResolverCalled(baseTopic, crossShard)
+}
+
+// Close -
+func (rfs *ResolversFinderStub) Close() error {
+	if rfs.CloseCalled != nil {
+		return rfs.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

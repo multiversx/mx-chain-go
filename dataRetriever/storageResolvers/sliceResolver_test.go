@@ -263,3 +263,20 @@ func TestSliceResolver_SendErroredShouldReturnErr(t *testing.T) {
 	assert.Equal(t, 1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
 }
+
+func TestSliceResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockSliceResolverArg()
+	closeCalled := 0
+	arg.Storage = &mock.StorerStub{
+		CloseCalled: func() error {
+			closeCalled++
+			return nil
+		},
+	}
+	sr, _ := NewSliceResolver(arg)
+
+	assert.Nil(t, sr.Close())
+	assert.Equal(t, 1, closeCalled)
+}

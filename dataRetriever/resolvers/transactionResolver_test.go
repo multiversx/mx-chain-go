@@ -564,3 +564,12 @@ func TestTxResolver_SetAndGetNumPeersToQuery(t *testing.T) {
 	assert.Equal(t, expectedIntra, actualIntra)
 	assert.Equal(t, expectedCross, actualCross)
 }
+
+func TestTxResolver_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgTxResolver()
+	txRes, _ := resolvers.NewTxResolver(arg)
+
+	assert.Nil(t, txRes.Close())
+}

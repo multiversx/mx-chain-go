@@ -7,6 +7,7 @@ import (
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/urfave/cli"
 )
@@ -279,6 +280,17 @@ var (
 		Name:  "import-db-no-sig-check",
 		Usage: "This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set",
 	}
+	// importDbSaveEpochRootHash defines a flag for optional import DB trie exporting
+	importDbSaveEpochRootHash = cli.BoolFlag{
+		Name:  "import-db-save-epoch-root-hash",
+		Usage: "This flag, if set, will export the trie snapshots at every new epoch",
+	}
+	// importDbStartInEpoch defines a flag for an optional flag that can specify the start in epoch value when executing the import-db process
+	importDbStartInEpoch = cli.Uint64Flag{
+		Name:  "import-db-start-epoch",
+		Value: 0,
+		Usage: "This flag will specify the start in epoch value in import-db process",
+	}
 	// fullArchive defines a flag that, if set, will make the node act like a full history node
 	fullArchive = cli.BoolFlag{
 		Name:  "full-archive",
@@ -327,35 +339,38 @@ func getFlags() []cli.Flag {
 		startInEpoch,
 		importDbDirectory,
 		importDbNoSigCheck,
+		importDbSaveEpochRootHash,
+		importDbStartInEpoch,
 		fullArchive,
 	}
 }
 
-func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
+func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) error {
 	flagsConfig := &config.ContextFlagsConfig{}
 
 	workingDir := ctx.GlobalString(workingDirectory.Name)
 	flagsConfig.WorkingDir = getWorkingDir(workingDir, log)
-	flagsConfig.NodesFileName = ctx.GlobalString(nodesFile.Name)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
 	flagsConfig.EnableLogName = ctx.GlobalBool(logWithLoggerName.Name)
 	flagsConfig.LogLevel = ctx.GlobalString(logLevel.Name)
 	flagsConfig.DisableAnsiColor = ctx.GlobalBool(disableAnsiColor.Name)
-	flagsConfig.GenesisFileName = ctx.GlobalString(genesisFile.Name)
 	flagsConfig.CleanupStorage = ctx.GlobalBool(storageCleanup.Name)
 	flagsConfig.UseHealthService = ctx.GlobalBool(useHealthService.Name)
-	flagsConfig.GasScheduleConfigurationDirectory = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
-	flagsConfig.SmartContractsFileName = ctx.GlobalString(smartContractsFile.Name)
 	flagsConfig.BootstrapRoundIndex = ctx.GlobalUint64(bootstrapRoundIndex.Name)
 	flagsConfig.EnableRestAPIServerDebugMode = ctx.GlobalBool(restApiDebug.Name)
 	flagsConfig.RestApiInterface = ctx.GlobalString(restApiInterface.Name)
 	flagsConfig.EnablePprof = ctx.GlobalBool(profileMode.Name)
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
-	flagsConfig.ValidatorKeyPemFileName = ctx.GlobalString(validatorKeyPemFile.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
-	flagsConfig.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
+
+	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
+	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
+	cfgs.ConfigurationPathsHolder.GasScheduleDirectoryName = ctx.GlobalString(gasScheduleConfigurationDirectory.Name)
+	cfgs.ConfigurationPathsHolder.SmartContracts = ctx.GlobalString(smartContractsFile.Name)
+	cfgs.ConfigurationPathsHolder.ValidatorKey = ctx.GlobalString(validatorKeyPemFile.Name)
+	cfgs.ConfigurationPathsHolder.ElasticSearchTemplatesPath = ctx.GlobalString(elasticSearchTemplates.Name)
 
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
@@ -376,14 +391,19 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 	}
 
 	importDbDirectoryValue := ctx.GlobalString(importDbDirectory.Name)
-	isInImportMode := len(importDbDirectoryValue) > 0
-	importDbNoSigCheckFlag := ctx.GlobalBool(importDbNoSigCheck.Name) && isInImportMode
-	applyCompatibleConfigs(isInImportMode, importDbNoSigCheckFlag, log, cfgs.GeneralConfig, cfgs.P2pConfig)
-	flagsConfig.IsInImportMode = isInImportMode
-	flagsConfig.ImportDbNoSigCheckFlag = importDbNoSigCheckFlag
-	flagsConfig.ImportDbDirectory = importDbDirectoryValue
-
+	importDBConfigs := &config.ImportDbConfig{
+		IsImportDBMode:                len(importDbDirectoryValue) > 0,
+		ImportDBWorkingDir:            importDbDirectoryValue,
+		ImportDbNoSigCheckFlag:        ctx.GlobalBool(importDbNoSigCheck.Name),
+		ImportDbSaveTrieEpochRootHash: ctx.GlobalBool(importDbSaveEpochRootHash.Name),
+		ImportDBStartInEpoch:          uint32(ctx.GlobalUint64(importDbStartInEpoch.Name)),
+	}
 	cfgs.FlagsConfig = flagsConfig
+	cfgs.ImportDbConfig = importDBConfigs
+	err := applyCompatibleConfigs(log, cfgs)
+	if err != nil {
+		return err
+	}
 
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
@@ -391,6 +411,8 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, log logger.Logger) {
 			flagsConfig.SessionInfoFileOutput += fmt.Sprintf("%s = %v\n", flag.GetName(), flagValue)
 		}
 	}
+
+	return nil
 }
 
 func getWorkingDir(workingDir string, log logger.Logger) string {
@@ -407,48 +429,69 @@ func getWorkingDir(workingDir string, log logger.Logger) string {
 	return workingDir
 }
 
-func applyCompatibleConfigs(isInImportMode bool, importDbNoSigCheckFlag bool, log logger.Logger, config *config.Config, p2pConfig *config.P2PConfig) {
-	if isInImportMode {
-		importCheckpointRoundsModulus := uint(config.EpochStartConfig.RoundsPerEpoch)
-		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
-			"GeneralSettings.StartInEpochEnabled", "false",
-			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
-			"StoragePruning.NumActivePersisters", config.StoragePruning.NumEpochsToKeep,
-			"TrieStorageManagerConfig.MaxSnapshots", math.MaxUint32,
-			"p2p.ThresholdMinConnectedPeers", 0,
-			"no sig check", importDbNoSigCheckFlag,
-			"heartbeat sender", "off",
-		)
-		config.GeneralSettings.StartInEpochEnabled = false
-		config.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
-		config.StoragePruning.NumActivePersisters = config.StoragePruning.NumEpochsToKeep
-		config.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
-		p2pConfig.Node.ThresholdMinConnectedPeers = 0
-		config.Heartbeat.DurationToConsiderUnresponsiveInSec = math.MaxInt32
-		config.Heartbeat.MinTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 2
-		config.Heartbeat.MaxTimeToWaitBetweenBroadcastsInSec = math.MaxInt32 - 1
+func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
+	importDbFlags := configs.ImportDbConfig
+	generalConfigs := configs.GeneralConfig
+	p2pConfigs := configs.P2pConfig
+	prefsConfig := configs.PreferencesConfig
 
-		alterStorageConfigsForDBImport(config)
+	importDbFlags.ImportDbNoSigCheckFlag = importDbFlags.ImportDbNoSigCheckFlag && importDbFlags.IsImportDBMode
+	importDbFlags.ImportDbSaveTrieEpochRootHash = importDbFlags.ImportDbSaveTrieEpochRootHash && importDbFlags.IsImportDBMode
+	if importDbFlags.IsImportDBMode {
+		importCheckpointRoundsModulus := uint(generalConfigs.EpochStartConfig.RoundsPerEpoch)
+		var err error
+
+		importDbFlags.ImportDBTargetShardID, err = core.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+		if err != nil {
+			return err
+		}
+
+		if importDbFlags.ImportDBStartInEpoch == 0 {
+			generalConfigs.GeneralSettings.StartInEpochEnabled = false
+		}
+
+		generalConfigs.StateTriesConfig.CheckpointRoundsModulus = importCheckpointRoundsModulus
+		generalConfigs.StoragePruning.NumActivePersisters = generalConfigs.StoragePruning.NumEpochsToKeep
+		generalConfigs.TrieStorageManagerConfig.MaxSnapshots = math.MaxUint32
+		p2pConfigs.Node.ThresholdMinConnectedPeers = 0
+		p2pConfigs.KadDhtPeerDiscovery.Enabled = false
+
+		alterStorageConfigsForDBImport(generalConfigs)
+
+		log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
+			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+			"StateTriesConfig.CheckpointRoundsModulus", importCheckpointRoundsModulus,
+			"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumEpochsToKeep,
+			"TrieStorageManagerConfig.MaxSnapshots", generalConfigs.TrieStorageManagerConfig.MaxSnapshots,
+			"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
+			"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
+			"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
+			"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
+			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
+			"kad dht discoverer", "off",
+		)
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
-	if config.StoragePruning.FullArchive {
+	if configs.GeneralConfig.StoragePruning.FullArchive {
 		log.Debug("full archive node is enabled")
-		if config.GeneralSettings.StartInEpochEnabled {
+		if configs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
 			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			config.GeneralSettings.StartInEpochEnabled = false
+			configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
 		}
-		if config.StoragePruning.CleanOldEpochsData {
+		if configs.GeneralConfig.StoragePruning.CleanOldEpochsData {
 			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			config.StoragePruning.CleanOldEpochsData = false
+			configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
 		}
-		if !config.StoragePruning.Enabled {
+		if !configs.GeneralConfig.StoragePruning.Enabled {
 			log.Warn("StoragePruning is overridden by FullArchive and set to true")
-			config.StoragePruning.Enabled = true
+			configs.GeneralConfig.StoragePruning.Enabled = true
 		}
 		log.Warn("NumEpochsToKeep is overridden by FullArchive")
-		config.StoragePruning.NumEpochsToKeep = math.MaxUint64
+		configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
 	}
+
+	return nil
 }
 
 func alterStorageConfigsForDBImport(config *config.Config) {
