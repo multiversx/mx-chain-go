@@ -1,22 +1,22 @@
 [StakingSystemSCConfig]
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
-    UnBondPeriod = 250
+    UnBondPeriod = 144000
     MinStepValue = "100000000000000000000"
-    AuctionEnableEpoch = 100000
-    StakeEnableEpoch = 2
+    AuctionEnableEpoch = 1000000
+    StakeEnableEpoch = 124
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 36
-    NodesToSelectInAuction = 36
+    MaxNumberOfNodesForStake = 2169
+    NodesToSelectInAuction = 2169
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
 
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
-    OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
-    EnabledEpoch = 2
+    OwnerAddress = "erd1ze6pgefwc7mdx0rhje3h50kkgt26ut3gx8ytezndkz8fjcf96gsqsd7ugw"
+    EnabledEpoch = 1000000
 
 [GovernanceSystemSCConfig]
     ProposalCost = "5000000000000000000" #5 eGLD
@@ -24,4 +24,4 @@
     MinQuorum    = 400
     MinPassThreshold = 300
     MinVetoThreshold = 50
-    EnabledEpoch = 2
+    EnabledEpoch = 1000000
