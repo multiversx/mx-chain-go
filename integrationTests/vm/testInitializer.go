@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -26,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
@@ -196,6 +198,41 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	minGasPrice := strconv.FormatUint(1, 10)
+	minGasLimit := strconv.FormatUint(1, 10)
+	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		Economics: &config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
+			},
+			RewardsSettings: config.RewardsSettings{
+				LeaderPercentage:              0.1,
+				DeveloperPercentage:           0.1,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+			},
+			FeeSettings: config.FeeSettings{
+				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+				MinGasPrice:             minGasPrice,
+				MinGasLimit:             minGasLimit,
+				GasPerDataByte:          "1",
+				GasPriceModifier:        1.0,
+			},
+		},
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
+
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:    vmContainer,
 		ArgsParser:     smartContract.NewArgumentParser(),
@@ -208,12 +245,8 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee: &mock.FeeHandlerStub{
-			DeveloperPercentageCalled: func() float64 {
-				return 0.0
-			},
-		},
-		TxTypeHandler: txTypeHandler,
+		EconomicsFee:   economicsData,
+		TxTypeHandler:  txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
