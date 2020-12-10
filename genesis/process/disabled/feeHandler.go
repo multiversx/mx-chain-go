@@ -11,7 +11,7 @@ import (
 type FeeHandler struct {
 }
 
-// GasPriceModifier return 1.0
+// GasPriceModifier returns 1.0
 func (fh *FeeHandler) GasPriceModifier() float64 {
 	return 1.0
 }

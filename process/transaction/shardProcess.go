@@ -708,9 +708,6 @@ func (txProc *txProcessor) getUserTxCost(
 	userTxHash []byte,
 	destTxType process.TransactionType,
 ) *big.Int {
-	if !txProc.flagPenalizedTooMuchGas.IsSet() {
-		return txProc.economicsFee.ComputeMoveBalanceFee(userTx)
-	}
 
 	isCrossTxWithMoveBalance := destTxType == process.MoveBalance && txProc.isCrossTxFromMe(userTx.SndAddr, userTx.RcvAddr)
 	if isCrossTxWithMoveBalance {
