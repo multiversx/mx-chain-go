@@ -1,0 +1,5 @@
+[WebSocketClient]
+    Enabled = true
+    Routes = [
+        { Name = "/indexer", Open = true },
+    ]

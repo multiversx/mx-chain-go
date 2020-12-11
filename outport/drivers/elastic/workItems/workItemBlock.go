@@ -2,6 +2,7 @@ package workItems
 
 import (
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/outport/drivers"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -61,7 +62,7 @@ func (wib *itemBlock) Save() error {
 			ErrBodyTypeAssertion, logger.DisplayByteSlice(wib.headerHash), wib.headerHandler.GetNonce())
 	}
 
-	txsSizeInBytes := ComputeSizeOfTxs(wib.marshalizer, wib.txPool)
+	txsSizeInBytes := drivers.ComputeSizeOfTxs(wib.marshalizer, wib.txPool)
 	err := wib.indexer.SaveHeader(wib.headerHandler, wib.signersIndexes, body, wib.notarizedHeadersHashes, txsSizeInBytes)
 	if err != nil {
 		return fmt.Errorf("%w when saving header block, hash %s, nonce %d",
@@ -91,24 +92,4 @@ func (wib *itemBlock) Save() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (wib *itemBlock) IsInterfaceNil() bool {
 	return wib == nil
-}
-
-// ComputeSizeOfTxs will compute size of transactions in bytes
-func ComputeSizeOfTxs(marshalizer marshal.Marshalizer, txs map[string]data.TransactionHandler) int {
-	if len(txs) == 0 {
-		return 0
-	}
-
-	txsSize := 0
-	for _, tx := range txs {
-		txBytes, err := marshalizer.Marshal(tx)
-		if err != nil {
-			log.Debug("indexer: marshal transaction", "error", err)
-			continue
-		}
-
-		txsSize += len(txBytes)
-	}
-
-	return txsSize
 }

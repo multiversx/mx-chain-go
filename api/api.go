@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"github.com/ElrondNetwork/elrond-go/outport/drivers/websockets"
 	"net/http"
 	"reflect"
 
@@ -211,6 +212,24 @@ func registerLoggerWsRoute(ws *gin.Engine, marshalizer marshal.Marshalizer) {
 		}
 
 		ls.StartSendingBlocking()
+	})
+}
+
+func registerDriverWsRoute(ws *gin.Engine, client websockets.ClientHandler) {
+	upgrader := websocket.Upgrader{}
+
+	ws.GET("/indexer", func(c *gin.Context) {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			return true
+		}
+
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			log.Error(err.Error())
+			return
+		}
+
+		client.StartSendingBlocking(conn)
 	})
 }
 
