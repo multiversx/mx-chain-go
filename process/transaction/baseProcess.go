@@ -110,6 +110,7 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserA
 func (txProc *baseTxProcessor) checkTxValues(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.UserAccountHandler,
+	isUserTxOfRelayed bool,
 ) error {
 	err := txProc.checkUserNames(tx, acntSnd, acntDst)
 	if err != nil {
@@ -137,7 +138,13 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	txFee := txProc.economicsFee.ComputeTxFee(tx)
+	txFee := big.NewInt(0)
+	if isUserTxOfRelayed {
+		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+	} else {
+		txFee = txProc.economicsFee.ComputeTxFee(tx)
+	}
+
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,

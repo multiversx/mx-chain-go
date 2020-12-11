@@ -106,7 +106,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		txProc.pubkeyConv,
 	)
 
-	err = txProc.checkTxValues(tx, acntSnd, acntDst)
+	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		return 0, err
 	}
