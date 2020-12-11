@@ -227,10 +227,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 				"dump", spew.Sdump(addScr))
 		}
 
-		sndShId, dstShId, err := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
-		if err != nil {
-			return err
-		}
+		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 
 		addScrShardInfo := &txShardInfo{receiverShardID: dstShId, senderShardID: sndShId}
 		scrInfo := &txInfo{tx: addScr, txShardInfo: addScrShardInfo}
@@ -248,6 +245,13 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 	if len(scr.SndAddr) == 0 {
 		return process.ErrNilSndAddr
 	}
+
+	sndShId, dstShId := irp.getShardIdsFromAddresses(scr.SndAddr, scr.RcvAddr)
+	isInShardSCR := dstShId == irp.shardCoordinator.SelfId()
+	if isInShardSCR {
+		return nil
+	}
+
 	if scr.Value == nil {
 		return process.ErrNilValue
 	}
@@ -258,18 +262,14 @@ func (irp *intermediateResultsProcessor) checkSmartContractResultIntegrity(scr *
 		return process.ErrNilTxHash
 	}
 
-	if !core.IsEmptyAddress(scr.SndAddr) && !core.IsEmptyAddress(scr.RcvAddr) {
-		sndShardID := irp.shardCoordinator.ComputeId(scr.SndAddr)
-		dstShardID := irp.shardCoordinator.ComputeId(scr.RcvAddr)
-		if sndShardID != irp.shardCoordinator.SelfId() && dstShardID != irp.shardCoordinator.SelfId() {
-			return process.ErrShardIdMissmatch
-		}
+	if sndShId != irp.shardCoordinator.SelfId() && dstShId != irp.shardCoordinator.SelfId() {
+		return process.ErrShardIdMissmatch
 	}
 
 	return nil
 }
 
-func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32, error) {
+func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte, rcvAddr []byte) (uint32, uint32) {
 	shardForSrc := irp.shardCoordinator.ComputeId(sndAddr)
 	shardForDst := irp.shardCoordinator.ComputeId(rcvAddr)
 
@@ -283,7 +283,7 @@ func (irp *intermediateResultsProcessor) getShardIdsFromAddresses(sndAddr []byte
 		shardForDst = irp.shardCoordinator.SelfId()
 	}
 
-	return shardForSrc, shardForDst, nil
+	return shardForSrc, shardForDst
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
