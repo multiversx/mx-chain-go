@@ -353,7 +353,7 @@ func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9969963930)
+	expectedValue := big.NewInt(0).SetUint64(9996639300)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -367,7 +367,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9989986920)
+	expectedValue := big.NewInt(0).SetUint64(9998878200)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
