@@ -10,6 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -246,6 +247,11 @@ func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHa
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
 	if ed.flagGasPriceModifier.IsSet() {
+		_, isSCR := tx.(*smartContractResult.SmartContractResult)
+		if isSCR {
+			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
+		}
+
 		gasLimitForMoveBalance := ed.ComputeGasLimit(tx)
 		moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
 		if tx.GetGasLimit() <= gasLimitForMoveBalance {
