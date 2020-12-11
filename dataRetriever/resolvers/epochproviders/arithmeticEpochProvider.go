@@ -110,6 +110,9 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 	diffEpochs := diffRounds / uint64(aep.roundsPerEpoch+1)
 
 	aep.currentComputedEpoch = aep.headerEpoch + uint32(diffEpochs)
+
+	log.Debug("arithmeticEpochProvider.computeCurrentEpoch",
+		"computed network epoch", aep.currentComputedEpoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
