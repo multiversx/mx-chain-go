@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -24,19 +26,20 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer      sharding.ChanceComputer
-	validatorAccountsDB state.AccountsAdapter
-	blockChainHookImpl  *hooks.BlockChainHookImpl
-	cryptoHook          vmcommon.CryptoHook
-	systemContracts     vm.SystemSCContainer
-	economics           *economics.EconomicsData
-	messageSigVerifier  vm.MessageSignVerifier
-	nodesConfigProvider vm.NodesConfigProvider
-	gasSchedule         core.GasScheduleNotifier
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	systemSCConfig      *config.SystemSmartContractsConfig
-	epochNotifier       process.EpochNotifier
+	chanceComputer             sharding.ChanceComputer
+	validatorAccountsDB        state.AccountsAdapter
+	blockChainHookImpl         *hooks.BlockChainHookImpl
+	cryptoHook                 vmcommon.CryptoHook
+	systemContracts            vm.SystemSCContainer
+	economics                  *economics.EconomicsData
+	messageSigVerifier         vm.MessageSignVerifier
+	disabledmessageSigVerifier vm.MessageSignVerifier
+	nodesConfigProvider        vm.NodesConfigProvider
+	gasSchedule                core.GasScheduleNotifier
+	hasher                     hashing.Hasher
+	marshalizer                marshal.Marshalizer
+	systemSCConfig             *config.SystemSmartContractsConfig
+	epochNotifier              process.EpochNotifier
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -44,6 +47,7 @@ func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
 	economics *economics.EconomicsData,
 	messageSignVerifier vm.MessageSignVerifier,
+	disabledMessageSignVerifier vm.MessageSignVerifier,
 	gasSchedule core.GasScheduleNotifier,
 	nodesConfigProvider vm.NodesConfigProvider,
 	hasher hashing.Hasher,
@@ -57,7 +61,10 @@ func NewVMContainerFactory(
 		return nil, process.ErrNilEconomicsData
 	}
 	if check.IfNil(messageSignVerifier) {
-		return nil, process.ErrNilKeyGen
+		return nil, fmt.Errorf("%w for messageSignVerifier parameter", process.ErrNilMessageSignVerifier)
+	}
+	if check.IfNil(disabledMessageSignVerifier) {
+		return nil, fmt.Errorf("%w for disabledMessageSignVerifier parameter", process.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(nodesConfigProvider) {
 		return nil, process.ErrNilNodesConfigProvider
@@ -88,18 +95,19 @@ func NewVMContainerFactory(
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		blockChainHookImpl:  blockChainHookImpl,
-		cryptoHook:          cryptoHook,
-		economics:           economics,
-		messageSigVerifier:  messageSignVerifier,
-		gasSchedule:         gasSchedule,
-		nodesConfigProvider: nodesConfigProvider,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		systemSCConfig:      systemSCConfig,
-		validatorAccountsDB: validatorAccountsDB,
-		chanceComputer:      chanceComputer,
-		epochNotifier:       epochNotifier,
+		blockChainHookImpl:         blockChainHookImpl,
+		cryptoHook:                 cryptoHook,
+		economics:                  economics,
+		messageSigVerifier:         messageSignVerifier,
+		disabledmessageSigVerifier: disabledMessageSignVerifier,
+		gasSchedule:                gasSchedule,
+		nodesConfigProvider:        nodesConfigProvider,
+		hasher:                     hasher,
+		marshalizer:                marshalizer,
+		systemSCConfig:             systemSCConfig,
+		validatorAccountsDB:        validatorAccountsDB,
+		chanceComputer:             chanceComputer,
+		epochNotifier:              epochNotifier,
 	}, nil
 }
 
@@ -136,6 +144,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
 		SystemEI:            systemEI,
 		SigVerifier:         vmf.messageSigVerifier,
+		DisabledSigVerifier: vmf.disabledmessageSigVerifier,
 		GasSchedule:         vmf.gasSchedule,
 		NodesConfigProvider: vmf.nodesConfigProvider,
 		Hasher:              vmf.hasher,

@@ -26,25 +26,25 @@ import (
 
 func createMockArgumentsForAuction() ArgsStakingAuctionSmartContract {
 	args := ArgsStakingAuctionSmartContract{
-		Eei:                &mock.SystemEIStub{},
-		SigVerifier:        &mock.MessageSignVerifierMock{},
-		AuctionSCAddress:   []byte("auction"),
-		StakingSCAddress:   []byte("staking"),
-		NumOfNodesToSelect: 10,
+		Eei:                 &mock.SystemEIStub{},
+		SigVerifier:         &mock.MessageSignVerifierMock{},
+		DisabledSigVerifier: &mock.MessageSignVerifierMock{},
+		AuctionSCAddress:    []byte("auction"),
+		StakingSCAddress:    []byte("staking"),
+		NumOfNodesToSelect:  10,
 		StakingSCConfig: config.StakingSystemSCConfig{
-			GenesisNodePrice:                     "1000",
-			UnJailValue:                          "10",
-			MinStepValue:                         "10",
-			MinStakeValue:                        "1",
-			UnBondPeriod:                         1,
-			AuctionEnableEpoch:                   0,
-			StakeEnableEpoch:                     0,
-			NumRoundsWithoutBleed:                1,
-			MaximumPercentageToBleed:             1,
-			BleedPercentagePerRound:              1,
-			MaxNumberOfNodesForStake:             10,
-			NodesToSelectInAuction:               100,
-			ActivateBLSPubKeyMessageVerification: false,
+			GenesisNodePrice:         "1000",
+			UnJailValue:              "10",
+			MinStepValue:             "10",
+			MinStakeValue:            "1",
+			UnBondPeriod:             1,
+			AuctionEnableEpoch:       0,
+			StakeEnableEpoch:         0,
+			NumRoundsWithoutBleed:    1,
+			MaximumPercentageToBleed: 1,
+			BleedPercentagePerRound:  1,
+			MaxNumberOfNodesForStake: 10,
+			NodesToSelectInAuction:   100,
 		},
 		Marshalizer:        &mock.MarshalizerMock{},
 		GenesisTotalSupply: big.NewInt(100000000),
@@ -199,7 +199,18 @@ func TestNewStakingAuctionSmartContract_NilSigVerifier(t *testing.T) {
 
 	asc, err := NewStakingAuctionSmartContract(arguments)
 	require.Nil(t, asc)
-	require.Equal(t, vm.ErrNilMessageSignVerifier, err)
+	require.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
+}
+
+func TestNewStakingAuctionSmartContract_NilDisabledSigVerifier(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForAuction()
+	arguments.DisabledSigVerifier = nil
+
+	asc, err := NewStakingAuctionSmartContract(arguments)
+	require.Nil(t, asc)
+	require.True(t, errors.Is(err, vm.ErrNilMessageSignVerifier))
 }
 
 func TestNewStakingAuctionSmartContract_InvalidNumNodesToSelect(t *testing.T) {

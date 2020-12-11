@@ -33,35 +33,39 @@ const (
 )
 
 type stakingAuctionSC struct {
-	eei                  vm.SystemEI
-	unBondPeriod         uint64
-	sigVerifier          vm.MessageSignVerifier
-	baseConfig           AuctionConfig
-	enableAuctionEpoch   uint32
-	stakingSCAddress     []byte
-	auctionSCAddress     []byte
-	enableStakingEpoch   uint32
-	enableDoubleKeyEpoch uint32
-	gasCost              vm.GasCost
-	marshalizer          marshal.Marshalizer
-	flagStake            atomic.Flag
-	flagAuction          atomic.Flag
-	flagDoubleKey        atomic.Flag
-	mutExecution       sync.RWMutex
+	eei                     vm.SystemEI
+	unBondPeriod            uint64
+	sigVerifier             vm.MessageSignVerifier
+	disabledSigVerifier     vm.MessageSignVerifier
+	currentSigVerifier      vm.MessageSignVerifier
+	baseConfig              AuctionConfig
+	enableAuctionEpoch      uint32
+	stakingSCAddress        []byte
+	auctionSCAddress        []byte
+	enableStakingEpoch      uint32
+	enableDoubleKeyEpoch    uint32
+	enableBLSSignCheckEpoch uint32
+	gasCost                 vm.GasCost
+	marshalizer             marshal.Marshalizer
+	flagStake               atomic.Flag
+	flagAuction             atomic.Flag
+	flagDoubleKey           atomic.Flag
+	mutExecution            sync.RWMutex
 }
 
 // ArgsStakingAuctionSmartContract is the arguments structure to create a new StakingAuctionSmartContract
 type ArgsStakingAuctionSmartContract struct {
-	StakingSCConfig    config.StakingSystemSCConfig
-	GenesisTotalSupply *big.Int
-	NumOfNodesToSelect uint64
-	Eei                vm.SystemEI
-	SigVerifier        vm.MessageSignVerifier
-	StakingSCAddress   []byte
-	AuctionSCAddress   []byte
-	GasCost            vm.GasCost
-	Marshalizer        marshal.Marshalizer
-	EpochNotifier      vm.EpochNotifier
+	StakingSCConfig     config.StakingSystemSCConfig
+	GenesisTotalSupply  *big.Int
+	NumOfNodesToSelect  uint64
+	Eei                 vm.SystemEI
+	SigVerifier         vm.MessageSignVerifier
+	DisabledSigVerifier vm.MessageSignVerifier
+	StakingSCAddress    []byte
+	AuctionSCAddress    []byte
+	GasCost             vm.GasCost
+	Marshalizer         marshal.Marshalizer
+	EpochNotifier       vm.EpochNotifier
 }
 
 // NewStakingAuctionSmartContract creates an auction smart contract
@@ -84,7 +88,10 @@ func NewStakingAuctionSmartContract(
 		return nil, vm.ErrNilMarshalizer
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w for SigVerifier", vm.ErrNilMessageSignVerifier)
+	}
+	if check.IfNil(args.DisabledSigVerifier) {
+		return nil, fmt.Errorf("%w for DisabledSigVerifier", vm.ErrNilMessageSignVerifier)
 	}
 	if args.GenesisTotalSupply == nil || args.GenesisTotalSupply.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidGenesisTotalSupply, args.GenesisTotalSupply)
@@ -117,17 +124,20 @@ func NewStakingAuctionSmartContract(
 	}
 
 	reg := &stakingAuctionSC{
-		eei:                  args.Eei,
-		unBondPeriod:         args.StakingSCConfig.UnBondPeriod,
-		sigVerifier:          args.SigVerifier,
-		baseConfig:           baseConfig,
-		enableAuctionEpoch:   args.StakingSCConfig.AuctionEnableEpoch,
-		enableStakingEpoch:   args.StakingSCConfig.StakeEnableEpoch,
-		stakingSCAddress:     args.StakingSCAddress,
-		auctionSCAddress:     args.AuctionSCAddress,
-		gasCost:              args.GasCost,
-		marshalizer:          args.Marshalizer,
-		enableDoubleKeyEpoch: args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		eei:                     args.Eei,
+		unBondPeriod:            args.StakingSCConfig.UnBondPeriod,
+		sigVerifier:             args.SigVerifier,
+		disabledSigVerifier:     args.DisabledSigVerifier,
+		baseConfig:              baseConfig,
+		enableAuctionEpoch:      args.StakingSCConfig.AuctionEnableEpoch,
+		enableStakingEpoch:      args.StakingSCConfig.StakeEnableEpoch,
+		stakingSCAddress:        args.StakingSCAddress,
+		auctionSCAddress:        args.AuctionSCAddress,
+		gasCost:                 args.GasCost,
+		marshalizer:             args.Marshalizer,
+		enableDoubleKeyEpoch:    args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
+		currentSigVerifier:      args.DisabledSigVerifier,
+		enableBLSSignCheckEpoch: args.StakingSCConfig.ActivateBLSPubKeyMessageVerificationEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -403,7 +413,7 @@ func (s *stakingAuctionSC) changeValidatorKeys(args *vmcommon.ContractCallInput)
 		newBlsKey := args.Arguments[i+1]
 		signedWithNewKey := args.Arguments[i+2]
 
-		err := s.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
+		err = s.currentSigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
 		if err != nil {
 			s.eei.AddReturnMessage("invalid signature: error " + err.Error())
 			return vmcommon.UserError
@@ -700,7 +710,7 @@ func (s *stakingAuctionSC) getVerifiedBLSKeysFromArgs(txPubKey []byte, args [][]
 	for i := uint64(1); i < maxNodesToRun*2+1; i += 2 {
 		blsKey := args[i]
 		signedMessage := args[i+1]
-		err := s.sigVerifier.Verify(txPubKey, signedMessage, blsKey)
+		err := s.currentSigVerifier.Verify(txPubKey, signedMessage, blsKey)
 		if err != nil {
 			invalidBlsKeys = append(invalidBlsKeys, hex.EncodeToString(blsKey))
 			s.eei.Finish(blsKey)
@@ -1479,6 +1489,14 @@ func (s *stakingAuctionSC) EpochConfirmed(epoch uint32) {
 
 	s.flagDoubleKey.Toggle(epoch >= s.enableDoubleKeyEpoch)
 	log.Debug("stakingAuctionSC: doubleKeyProtection", "enabled", s.flagDoubleKey.IsSet())
+
+	enabledBlsSignCheck := epoch >= s.enableBLSSignCheckEpoch
+	if enabledBlsSignCheck {
+		s.currentSigVerifier = s.sigVerifier
+	} else {
+		s.currentSigVerifier = s.disabledSigVerifier
+	}
+	log.Debug("stakingAuctionSC: bls sign verifier", "enabled", enabledBlsSignCheck)
 }
 
 func (s *stakingAuctionSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

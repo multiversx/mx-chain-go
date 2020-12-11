@@ -749,9 +749,6 @@ var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
 // ErrUserNameChangeIsDisabled signals the user name change is not allowed
 var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
 
-// ErrDestinationNotInSelfShard signals that user is not in self shard
-var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
-
 // ErrUserNameDoesNotMatch signals that user name does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
@@ -922,3 +919,6 @@ var ErrAdditionOverflow = errors.New("uint64 addition overflow")
 
 // ErrSubtractionOverflow signals that uint64 subtraction overflowed
 var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+
+// ErrNilMessageSignVerifier signals that the message sign verifier provided is nil
+var ErrNilMessageSignVerifier = errors.New("nil message sign verifier")

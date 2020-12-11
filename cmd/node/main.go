@@ -732,12 +732,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 
 	log.Trace("creating crypto components")
 	cryptoArgs := mainFactory.CryptoComponentsFactoryArgs{
-		Config:                               *generalConfig,
-		NodesConfig:                          genesisNodesConfig,
-		ShardCoordinator:                     genesisShardCoordinator,
-		KeyGen:                               cryptoParams.KeyGenerator,
-		PrivKey:                              cryptoParams.PrivateKey,
-		ActivateBLSPubKeyMessageVerification: systemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
+		Config:           *generalConfig,
+		NodesConfig:      genesisNodesConfig,
+		ShardCoordinator: genesisShardCoordinator,
+		KeyGen:           cryptoParams.KeyGenerator,
+		PrivKey:          cryptoParams.PrivateKey,
 	}
 	cryptoComponentsFactory, err := mainFactory.NewCryptoComponentsFactory(cryptoArgs, importDbNoSigCheckFlag)
 	if err != nil {
@@ -1410,6 +1409,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		gasScheduleNotifier,
 		economicsData,
 		cryptoComponents.MessageSignVerifier,
+		cryptoComponents.DisabledMessageSignVerifier,
 		genesisNodesConfig,
 		systemSCConfig,
 		rater,
@@ -2422,6 +2422,7 @@ func createApiResolver(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	economics *economics.EconomicsData,
 	messageSigVerifier vm.MessageSignVerifier,
+	disabledMessageSigVerifier vm.MessageSignVerifier,
 	nodesSetup sharding.GenesisNodesSetupHandler,
 	systemSCConfig *config.SystemSmartContractsConfig,
 	rater sharding.PeerAccountListAndRatingHandler,
@@ -2473,6 +2474,7 @@ func createApiResolver(
 			argsHook,
 			economics,
 			messageSigVerifier,
+			disabledMessageSigVerifier,
 			gasScheduleNotifier,
 			nodesSetup,
 			hasher,

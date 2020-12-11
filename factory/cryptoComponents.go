@@ -23,7 +23,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/vm"
 	systemVM "github.com/ElrondNetwork/elrond-go/vm/process"
 )
 
@@ -31,23 +30,21 @@ const disabledSigChecking = "disabled"
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
-	Config                               config.Config
-	NodesConfig                          NodesSetupHandler
-	ShardCoordinator                     sharding.Coordinator
-	KeyGen                               crypto.KeyGenerator
-	PrivKey                              crypto.PrivateKey
-	ActivateBLSPubKeyMessageVerification bool
+	Config           config.Config
+	NodesConfig      NodesSetupHandler
+	ShardCoordinator sharding.Coordinator
+	KeyGen           crypto.KeyGenerator
+	PrivKey          crypto.PrivateKey
 }
 
 type cryptoComponentsFactory struct {
-	consensusType                        string
-	config                               config.Config
-	nodesConfig                          NodesSetupHandler
-	shardCoordinator                     sharding.Coordinator
-	keyGen                               crypto.KeyGenerator
-	privKey                              crypto.PrivateKey
-	activateBLSPubKeyMessageVerification bool
-	importDbNoSigCheckFlag               bool
+	consensusType          string
+	config                 config.Config
+	nodesConfig            NodesSetupHandler
+	shardCoordinator       sharding.Coordinator
+	keyGen                 crypto.KeyGenerator
+	privKey                crypto.PrivateKey
+	importDbNoSigCheckFlag bool
 }
 
 // NewCryptoComponentsFactory returns a new crypto components factory
@@ -66,14 +63,13 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs, importDbNoSigC
 	}
 
 	ccf := &cryptoComponentsFactory{
-		consensusType:                        args.Config.Consensus.Type,
-		config:                               args.Config,
-		nodesConfig:                          args.NodesConfig,
-		shardCoordinator:                     args.ShardCoordinator,
-		keyGen:                               args.KeyGen,
-		privKey:                              args.PrivKey,
-		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
-		importDbNoSigCheckFlag:               importDbNoSigCheckFlag,
+		consensusType:          args.Config.Consensus.Type,
+		config:                 args.Config,
+		nodesConfig:            args.NodesConfig,
+		shardCoordinator:       args.ShardCoordinator,
+		keyGen:                 args.KeyGen,
+		privKey:                args.PrivKey,
+		importDbNoSigCheckFlag: importDbNoSigCheckFlag,
 	}
 
 	return ccf, nil
@@ -110,17 +106,14 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 
-	var messageSignVerifier vm.MessageSignVerifier
-	if ccf.activateBLSPubKeyMessageVerification {
-		messageSignVerifier, err = systemVM.NewMessageSigVerifier(ccf.keyGen, processingSingleSigner)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		messageSignVerifier, err = disabled.NewMessageSignVerifier(ccf.keyGen)
-		if err != nil {
-			return nil, err
-		}
+	messageSignVerifier, err := systemVM.NewMessageSigVerifier(ccf.keyGen, processingSingleSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	disabledMessageSignVerifier, err := disabled.NewMessageSignVerifier(ccf.keyGen)
+	if err != nil {
+		return nil, err
 	}
 
 	cacheConfig := ccf.config.PublicKeyPIDSignature
@@ -135,14 +128,15 @@ func (ccf *cryptoComponentsFactory) Create() (*CryptoComponents, error) {
 	}
 
 	return &CryptoComponents{
-		TxSingleSigner:       txSingleSigner,
-		SingleSigner:         interceptSingleSigner,
-		MultiSigner:          multiSigner,
-		BlockSignKeyGen:      ccf.keyGen,
-		TxSignKeyGen:         txSignKeyGen,
-		InitialPubKeys:       initialPubKeys,
-		MessageSignVerifier:  messageSignVerifier,
-		PeerSignatureHandler: peerSigHandler,
+		TxSingleSigner:              txSingleSigner,
+		SingleSigner:                interceptSingleSigner,
+		MultiSigner:                 multiSigner,
+		BlockSignKeyGen:             ccf.keyGen,
+		TxSignKeyGen:                txSignKeyGen,
+		InitialPubKeys:              initialPubKeys,
+		MessageSignVerifier:         messageSignVerifier,
+		DisabledMessageSignVerifier: disabledMessageSignVerifier,
+		PeerSignatureHandler:        peerSigHandler,
 	}, nil
 }
 

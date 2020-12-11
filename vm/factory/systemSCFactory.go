@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -16,6 +18,7 @@ type systemSCFactory struct {
 	economics           vm.EconomicsHandler
 	nodesConfigProvider vm.NodesConfigProvider
 	sigVerifier         vm.MessageSignVerifier
+	disabledSigVerifier vm.MessageSignVerifier
 	gasCost             vm.GasCost
 	marshalizer         marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -30,6 +33,7 @@ type ArgsNewSystemSCFactory struct {
 	Economics           vm.EconomicsHandler
 	NodesConfigProvider vm.NodesConfigProvider
 	SigVerifier         vm.MessageSignVerifier
+	DisabledSigVerifier vm.MessageSignVerifier
 	GasSchedule         core.GasScheduleNotifier
 	Marshalizer         marshal.Marshalizer
 	Hasher              hashing.Hasher
@@ -43,7 +47,10 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
 	if check.IfNil(args.SigVerifier) {
-		return nil, vm.ErrNilMessageSignVerifier
+		return nil, fmt.Errorf("%w for SigVerifier", vm.ErrNilMessageSignVerifier)
+	}
+	if check.IfNil(args.DisabledSigVerifier) {
+		return nil, fmt.Errorf("%w for DisabledSigVerifier", vm.ErrNilMessageSignVerifier)
 	}
 	if check.IfNil(args.NodesConfigProvider) {
 		return nil, vm.ErrNilNodesConfigProvider
@@ -67,6 +74,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	scf := &systemSCFactory{
 		systemEI:            args.SystemEI,
 		sigVerifier:         args.SigVerifier,
+		disabledSigVerifier: args.DisabledSigVerifier,
 		nodesConfigProvider: args.NodesConfigProvider,
 		marshalizer:         args.Marshalizer,
 		hasher:              args.Hasher,
@@ -160,16 +168,17 @@ func (scf *systemSCFactory) createStakingContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, error) {
 	args := systemSmartContracts.ArgsStakingAuctionSmartContract{
-		Eei:                scf.systemEI,
-		SigVerifier:        scf.sigVerifier,
-		StakingSCConfig:    scf.systemSCConfig.StakingSystemSCConfig,
-		StakingSCAddress:   vm.StakingSCAddress,
-		AuctionSCAddress:   vm.AuctionSCAddress,
-		GasCost:            scf.gasCost,
-		Marshalizer:        scf.marshalizer,
-		NumOfNodesToSelect: scf.systemSCConfig.StakingSystemSCConfig.NodesToSelectInAuction,
-		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
-		EpochNotifier:      scf.epochNotifier,
+		Eei:                 scf.systemEI,
+		SigVerifier:         scf.sigVerifier,
+		DisabledSigVerifier: scf.disabledSigVerifier,
+		StakingSCConfig:     scf.systemSCConfig.StakingSystemSCConfig,
+		StakingSCAddress:    vm.StakingSCAddress,
+		AuctionSCAddress:    vm.AuctionSCAddress,
+		GasCost:             scf.gasCost,
+		Marshalizer:         scf.marshalizer,
+		NumOfNodesToSelect:  scf.systemSCConfig.StakingSystemSCConfig.NodesToSelectInAuction,
+		GenesisTotalSupply:  scf.economics.GenesisTotalSupply(),
+		EpochNotifier:       scf.epochNotifier,
 	}
 	auction, err := systemSmartContracts.NewStakingAuctionSmartContract(args)
 	return auction, err

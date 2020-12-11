@@ -267,6 +267,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		argsHook,
 		arg.Economics,
 		pubKeyVerifier,
+		pubKeyVerifier,
 		arg.GasSchedule,
 		arg.InitialNodesSetup,
 		arg.Hasher,
