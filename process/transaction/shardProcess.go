@@ -642,6 +642,19 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	return nil
 }
 
+func (txProc *txProcessor) takeMoveBalanceCostOutOfUser(
+	userTx *transaction.Transaction,
+	userAcc state.UserAccountHandler,
+) (state.UserAccountHandler, error) {
+	moveBalanceCost := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+	err := userAcc.SubFromBalance(moveBalanceCost)
+	if err != nil {
+		return nil, err
+	}
+
+	return txProc.getAccountFromAddress(userTx.SndAddr)
+}
+
 func (txProc *txProcessor) processUserTx(
 	originalTx *transaction.Transaction,
 	userTx *transaction.Transaction,
@@ -678,12 +691,26 @@ func (txProc *txProcessor) processUserTx(
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, dstShardTxType, true)
-		scrFromTx.GasLimit -= txProc.economicsFee.ComputeGasLimit(userTx)
 	case process.SCDeployment:
+		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		if err != nil {
+			break
+		}
+
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
+		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		if err != nil {
+			break
+		}
+
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
+		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		if err != nil {
+			break
+		}
+
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
@@ -710,6 +737,11 @@ func (txProc *txProcessor) processUserTx(
 			originalTx,
 			txHash,
 			err.Error())
+	}
+
+	if err != nil {
+		log.Error("processUserTx", "error", err)
+		return vmcommon.ExecutionFailed, err
 	}
 
 	// no need to add the smart contract result From TX to the intermediate transactions in case of error
@@ -757,6 +789,7 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		GasPrice:       tx.GasPrice,
 		CallType:       vmcommon.DirectCall,
 	}
+	scr.GasLimit -= txProc.economicsFee.ComputeGasLimit(tx)
 	return scr
 }
 

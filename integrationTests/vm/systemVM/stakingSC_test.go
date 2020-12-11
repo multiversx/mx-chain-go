@@ -360,8 +360,7 @@ func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
-				break
+				assert.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 			}
 		}
 	}
@@ -376,7 +375,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				assert.Equal(t, sndAcc.GetBalance().String(), expectedValue.String())
 				break
 			}
 		}
