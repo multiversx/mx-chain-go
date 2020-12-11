@@ -92,11 +92,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// TestHasher represents a Sha256 hasher
-var TestHasher = sha256.Sha256{}
+// TestHasher represents a sha256 hasher
+var TestHasher = sha256.NewSha256()
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
-var TestTxSignHasher = keccak.Keccak{}
+var TestTxSignHasher = keccak.NewKeccak()
 
 // TestMarshalizer represents the main marshalizer
 var TestMarshalizer = &marshal.GogoProtoMarshalizer{}

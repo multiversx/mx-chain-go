@@ -383,7 +383,7 @@ func CreateAccountsDB(
 	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, maxTrieLevelInMemory)
 
 	accountFactory := getAccountFactory(accountType)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, TestMarshalizer, accountFactory)
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), TestMarshalizer, accountFactory)
 
 	return adb, tr
 }
