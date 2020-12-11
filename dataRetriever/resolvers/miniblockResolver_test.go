@@ -307,7 +307,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		wasResolved = true
 		mb, _ := marshalizer.Marshal(&block.MiniBlock{})
 		return mb, nil
@@ -353,7 +353,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	}
 
 	store := &mock.StorerStub{}
-	store.GetCalled = func(key []byte) (i []byte, e error) {
+	store.SearchFirstCalled = func(key []byte) (i []byte, e error) {
 		return nil, errors.New("key not found")
 	}
 

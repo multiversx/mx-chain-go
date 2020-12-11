@@ -329,14 +329,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:           e.dataPool.TrieNodes(),
-		RequestHandler:       e.requestHandler,
-		ShardCoordinator:     e.shardCoordinator,
-		Hasher:               e.CoreComponents.Hasher(),
-		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager:   trieStorageManager,
-		WaitTime:             time.Minute,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
+		TrieCacher:            e.dataPool.TrieNodes(),
+		RequestHandler:        e.requestHandler,
+		ShardCoordinator:      e.shardCoordinator,
+		Hasher:                e.CoreComponents.Hasher(),
+		Marshalizer:           e.CoreComponents.InternalMarshalizer(),
+		TrieStorageManager:    trieStorageManager,
+		TimoutGettingTrieNode: update.TimeoutGettingTrieNodes,
+		MaxTrieLevelInMemory:  e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {

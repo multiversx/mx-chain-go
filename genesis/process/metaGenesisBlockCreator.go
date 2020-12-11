@@ -30,14 +30,20 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
-func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, _ uint32) (data.HeaderHandler, [][]byte, error) {
+func CreateMetaGenesisBlock(
+	arg ArgsGenesisBlockCreator,
+	body *block.Body,
+	nodesListSplitter genesis.NodesListSplitter,
+	hardForkBlockProcessor update.HardForkBlockProcessor,
+) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
-		return createMetaGenesisAfterHardFork(arg)
+		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
 	genesisOverrideConfig := config.GeneralSettingsConfig{
@@ -120,25 +126,17 @@ func CreateMetaGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genes
 	return header, make([][]byte, 0), nil
 }
 
-func createMetaGenesisAfterHardFork(
+func createMetaGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
+	body *block.Body,
+	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, error) {
-	tmpArg := arg
-	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
-
-	argsNewMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardfork{
-		ImportHandler:     arg.importHandler,
-		Marshalizer:       arg.Core.InternalMarshalizer(),
-		Hasher:            arg.Core.Hasher(),
-		ShardCoordinator:  arg.ShardCoordinator,
-		ValidatorAccounts: tmpArg.ValidatorAccounts,
-	}
-	metaBlockCreator, err := hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsNewMetaBlockCreatorAfterHardFork)
-	if err != nil {
-		return nil, nil, err
+	if check.IfNil(hardForkBlockProcessor) {
+		return nil, nil, update.ErrNilHardForkBlockProcessor
 	}
 
-	hdrHandler, _, err := metaBlockCreator.CreateNewBlock(
+	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
+		body,
 		arg.Core.ChainID(),
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
@@ -165,6 +163,45 @@ func createMetaGenesisAfterHardFork(
 	}
 
 	return metaHdr, make([][]byte, 0), nil
+}
+
+func createArgsMetaBlockCreatorAfterHardFork(
+	arg ArgsGenesisBlockCreator,
+	selfShardID uint32,
+) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork, error) {
+	tmpArg := arg
+	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, *arg.GeneralConfig)
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
+
+	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
+		Accounts:         tmpArg.Accounts,
+		TxProcessor:      processors.txProcessor,
+		RwdTxProcessor:   &disabled.RewardTxProcessor{},
+		ScrTxProcessor:   processors.scrProcessor,
+		PubKeyConv:       arg.PubkeyConv,
+		ShardCoordinator: arg.ShardCoordinator,
+	}
+	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
+	if err != nil {
+		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
+	}
+
+	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{
+		Hasher:             arg.Hasher,
+		ImportHandler:      arg.importHandler,
+		Marshalizer:        arg.Marshalizer,
+		PendingTxProcessor: pendingTxProcessor,
+		ShardCoordinator:   arg.ShardCoordinator,
+		Storage:            arg.Store,
+		TxCoordinator:      processors.txCoordinator,
+		ValidatorAccounts:  tmpArg.ValidatorAccounts,
+		SelfShardID:        selfShardID,
+	}
+
+	return argsMetaBlockCreatorAfterHardFork, nil
 }
 
 func saveGenesisMetaToStorage(

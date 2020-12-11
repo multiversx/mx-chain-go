@@ -1,6 +1,8 @@
 package metachain
 
 import (
+	"errors"
+	"math"
 	"math/big"
 	"testing"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
@@ -77,7 +80,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
+	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
 }
 
 func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
@@ -88,7 +91,7 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrNilEpochStartNotifier, err)
+	assert.True(t, errors.Is(err, epochStart.ErrNilEpochStartNotifier))
 }
 
 func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
@@ -100,7 +103,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
+	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
 }
 
 func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
@@ -112,7 +115,7 @@ func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
-	assert.Equal(t, epochStart.ErrInvalidSettingsForEpochStartTrigger, err)
+	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
@@ -163,15 +166,29 @@ func TestTrigger_Update(t *testing.T) {
 	assert.True(t, notifierWasCalled)
 }
 
-func TestTrigger_ForceEpochStartNotEnoughRoundsShouldErr(t *testing.T) {
+func TestTrigger_ForceEpochStartCloseToNormalEpochStartShouldNotForce(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 2
+	arguments.Settings.MinRoundsBetweenEpochs = 20
+	arguments.Settings.RoundsPerEpoch = 200
+	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger.currentRound = 20
+
+	epochStartTrigger.ForceEpochStart(201)
+	assert.Equal(t, uint64(math.MaxUint64), epochStartTrigger.nextEpochStartRound)
+}
+
+func TestTrigger_ForceEpochStartUnderMinimumBetweenEpochs(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Settings.MinRoundsBetweenEpochs = 20
+	arguments.Settings.RoundsPerEpoch = 200
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
 	epochStartTrigger.currentRound = 1
 
-	epochStartTrigger.ForceEpochStart()
+	epochStartTrigger.ForceEpochStart(10)
 	assert.Equal(t, uint64(arguments.Settings.MinRoundsBetweenEpochs), epochStartTrigger.nextEpochStartRound)
 }
 
@@ -180,15 +197,20 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 
 	epoch := uint32(0)
 	arguments := createMockEpochStartTriggerArguments()
+	arguments.Settings.MinRoundsBetweenEpochs = 20
+	arguments.Settings.RoundsPerEpoch = 200
 	arguments.Epoch = epoch
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-	epochStartTrigger.currentRound = 1
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
 
-	epochStartTrigger.ForceEpochStart()
+	epochStartTrigger.currentRound = 50
 
-	assert.Equal(t, epochStartTrigger.currentRound, epochStartTrigger.nextEpochStartRound)
+	expectedRound := uint64(60)
+	epochStartTrigger.ForceEpochStart(60)
 
-	epochStartTrigger.Update(epochStartTrigger.currentRound, minimumNonceToStartEpoch)
+	assert.Equal(t, expectedRound, epochStartTrigger.nextEpochStartRound)
+
+	epochStartTrigger.Update(expectedRound, minimumNonceToStartEpoch)
 
 	isEpochStart := epochStartTrigger.IsEpochStart()
 	assert.True(t, isEpochStart)

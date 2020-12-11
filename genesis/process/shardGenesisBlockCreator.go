@@ -6,7 +6,7 @@ import (
 	"math"
 	"math/big"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -27,6 +27,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/update"
 	hardForkProcess "github.com/ElrondNetwork/elrond-go/update/process"
 )
 
@@ -40,9 +41,14 @@ type deployedScMetrics struct {
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
-func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter genesis.NodesListSplitter, selfShardID uint32) (data.HeaderHandler, [][]byte, error) {
+func CreateShardGenesisBlock(
+	arg ArgsGenesisBlockCreator,
+	body *block.Body,
+	nodesListSplitter genesis.NodesListSplitter,
+	hardForkBlockProcessor update.HardForkBlockProcessor,
+) (data.HeaderHandler, [][]byte, error) {
 	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisAfterHardFork(arg, selfShardID)
+		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
 	genesisOverrideConfig := config.GeneralSettingsConfig{
@@ -52,7 +58,7 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 		PenalizedTooMuchGasEnableEpoch: 0,
 	}
 
-	processors, err := createProcessorsForShard(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForShardGenesisBlock(arg, genesisOverrideConfig)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -137,41 +143,13 @@ func CreateShardGenesisBlock(arg ArgsGenesisBlockCreator, nodesListSplitter gene
 	return header, scAddresses, nil
 }
 
-func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId uint32) (data.HeaderHandler, [][]byte, error) {
-	tmpArg := arg
-	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShard(tmpArg, *arg.GeneralConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
-		Accounts:         tmpArg.Accounts,
-		TxProcessor:      processors.txProcessor,
-		RwdTxProcessor:   processors.rwdProcessor,
-		ScrTxProcessor:   processors.scrProcessor,
-		PubKeyConv:       arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-	}
-	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argsShardBlockAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
-		ShardCoordinator:   arg.ShardCoordinator,
-		TxCoordinator:      processors.txCoordinator,
-		PendingTxProcessor: pendingTxProcessor,
-		ImportHandler:      arg.importHandler,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Hasher:             arg.Core.Hasher(),
-		DataPool:           arg.Data.Datapool(),
-		Storage:            arg.Data.StorageService(),
-		SelfShardID:        selfShardId,
-	}
-	shardBlockCreator, err := hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
-	if err != nil {
-		return nil, nil, err
+func createShardGenesisBlockAfterHardFork(
+	arg ArgsGenesisBlockCreator,
+	body *block.Body,
+	hardForkBlockProcessor update.HardForkBlockProcessor,
+) (data.HeaderHandler, [][]byte, error) {
+	if check.IfNil(hardForkBlockProcessor) {
+		return nil, nil, update.ErrNilHardForkBlockProcessor
 	}
 
 	hdrHandler, _, err := shardBlockCreator.CreateNewBlock(
@@ -201,6 +179,44 @@ func createShardGenesisAfterHardFork(arg ArgsGenesisBlockCreator, selfShardId ui
 	}
 
 	return hdrHandler, make([][]byte, 0), nil
+}
+
+func createArgsShardBlockCreatorAfterHardFork(
+	arg ArgsGenesisBlockCreator,
+	selfShardID uint32,
+) (hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork, error) {
+	tmpArg := arg
+	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
+	processors, err := createProcessorsForShardGenesisBlock(tmpArg, *arg.GeneralConfig)
+	if err != nil {
+		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
+	}
+
+	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
+		Accounts:         tmpArg.Accounts,
+		TxProcessor:      processors.txProcessor,
+		RwdTxProcessor:   processors.rwdProcessor,
+		ScrTxProcessor:   processors.scrProcessor,
+		PubKeyConv:       arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator: arg.ShardCoordinator,
+	}
+	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
+	if err != nil {
+		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
+	}
+
+	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
+		Hasher:             arg.Hasher,
+		ImportHandler:      arg.importHandler,
+		Marshalizer:        arg.Core.InternalMarshalizer(),
+		Hasher:             arg.Core.Hasher(),
+		DataPool:           arg.Data.Datapool(),
+		Storage:            arg.Data.StorageService(),
+		TxCoordinator:      processors.txCoordinator,
+		SelfShardID:        selfShardID,
+	}
+
+	return argsShardBlockCreatorAfterHardFork, nil
 }
 
 // setBalancesToTrie adds balances to trie
@@ -241,7 +257,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShard(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalConfig config.GeneralSettingsConfig) (*genesisProcessors, error) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          arg.GasSchedule,
 		MapDNSAddresses:      make(map[string]struct{}),

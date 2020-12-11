@@ -1215,7 +1215,17 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
+	}
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           tpn.AccntState,
 		PubkeyConv:         TestAddressPubkeyConverter,
@@ -1229,9 +1239,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		CompiledSCPool:     tpn.DataPool.SmartContracts(),
 		NilCompiledSCStore: true,
 	}
-	gasMap := arwenConfig.MakeGasMapForTests()
-	defaults.FillGasMapInternal(gasMap, 1)
-	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
+
 	var signVerifier vm.MessageSignVerifier
 	if tpn.UseValidVmBlsSigVerifier {
 		signVerifier, _ = vmProcess.NewMessageSigVerifier(
@@ -2124,6 +2132,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
+		RoundHandler:              &mock.RounderMock{},
 	}
 	var err error
 	if len(heartbeatPk) > 0 {
