@@ -913,3 +913,15 @@ var ErrNilTransactionVersionChecker = errors.New("nil transaction version checke
 
 // ErrInvalidRewardsTopUpGradientPoint signals that the top up gradient point is invalid
 var ErrInvalidRewardsTopUpGradientPoint = errors.New("rewards top up gradient point is invalid")
+
+// ErrInvalidVMInputGasComputation signals that invalid vm input gas computation was provided
+var ErrInvalidVMInputGasComputation = errors.New("invalid vm input gas computation")
+
+// ErrMoreGasConsumedThanProvided signals that VM used more gas than provided
+var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
+
+// ErrAdditionOverflow signals that uint64 addition overflowed
+var ErrAdditionOverflow = errors.New("uint64 addition overflow")
+
+// ErrSubtractionOverflow signals that uint64 subtraction overflowed
+var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
