@@ -169,6 +169,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		if errors.Is(err, process.ErrInsufficientFunds) {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
+				// TODO: check if OK and receiptError is correct
 				return 0, receiptErr
 			}
 		}
@@ -176,8 +177,10 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
 			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
 			if errProcessIfErr != nil {
+				// TODO: check if OK and errProcessIfErr is correct
 				return 0, errProcessIfErr
 			}
+			// TODO: check if UserError and nil is correct
 			return vmcommon.UserError, nil
 		}
 		return vmcommon.UserError, err
@@ -294,6 +297,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	acntSnd state.UserAccountHandler,
 	cost *big.Int,
 ) error {
+	// TODO: check why no receiptWithReturnedGas if not in sender shard
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -335,6 +339,7 @@ func (txProc *txProcessor) processTxFee(
 		return big.NewInt(0), nil
 	}
 
+	//TODO: just for crossShardSCCall have a different cost? What about builtInFunctions and Deploys?
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if isCrossShardSCCall {
 		totalCost := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
@@ -349,7 +354,6 @@ func (txProc *txProcessor) processTxFee(
 		}
 	}
 
-	// TODO: check if ok, it returns always the cost, not the totalCost
 	return cost, nil
 }
 
@@ -434,7 +438,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	// TODO: check if correct that gas is refunded to sender instead of relayer
+	// TODO: check if correct that gas is refunded to sender instead of relayer for relayed Txs
 	// TODO: check 2 - create receiptWithReturnedGas even if we are in the senderShard?
 	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, cost)
 	if err != nil {
@@ -505,7 +509,7 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	totalFee, remainingFee, relayerFee, remainingGasLimit := txProc.computeRelayedTxFees(tx)
-	//TODO: is this check really necessary?
+	//TODO: is this check really necessary? Why?
 	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxGasLimitMissmatch)
 	}
@@ -641,6 +645,7 @@ func (txProc *txProcessor) processUserTx(
 	case process.SCInvoking:
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
+		//TODO: where does the userTxValue get back to the sender?
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
@@ -710,6 +715,7 @@ func (txProc *txProcessor) getUserTxCost(
 				"gas used", gasUsed,
 			)
 
+			// TODO: always use all the gas?
 			return big.NewInt(0).Mul(big.NewInt(0).SetUint64(userTx.GasPrice), big.NewInt(0).SetUint64(userTx.GasLimit))
 		}
 	}
@@ -783,6 +789,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	totalFee := core.SafeMul(userTx.GetGasPrice(), userTx.GetGasLimit())
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
+		// TODO: check what this does, if the sender is not here, process everything without the moveBalance here?
 		totalFee.Sub(totalFee, txProc.economicsFee.ComputeMoveBalanceFee(userTx))
 	}
 

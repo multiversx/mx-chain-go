@@ -949,32 +949,6 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 	assert.Equal(t, 2, saveAccountCalled)
 }
 
-func TestTxProcessor_ProcessSCDeploymentShouldWork(t *testing.T) {
-	t.Parallel()
-
-	deploySCCalled := 0
-
-	tx := transaction.Transaction{}
-	tx.Nonce = 0
-	tx.SndAddr = []byte("SRC")
-	tx.RcvAddr = []byte("DST")
-	tx.Value = big.NewInt(0)
-
-	args := createArgsForTxProcessor()
-	args.ScProcessor = &mock.SCProcessorMock{
-		DeploySmartContractCalled: func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
-			deploySCCalled++
-			return vmcommon.Ok, nil
-		},
-	}
-
-	execTx, _ := txproc.NewTxProcessor(args)
-
-	_, err := execTx.ProcessTransaction(&tx)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, deploySCCalled)
-}
-
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1060,6 +1034,108 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	assert.Equal(t, big.NewInt(13), acntSrc.Balance)
 	assert.Equal(t, big.NewInt(71), acntDst.Balance)
 	assert.Equal(t, 2, saveAccountCalled)
+}
+
+func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	saveAccountCalled := 0
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(46)
+	acntDst.SetCode([]byte{65})
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+		saveAccountCalled++
+		return nil
+	}
+
+	scProcessorMock := &mock.SCProcessorMock{}
+
+	wasCalled := false
+	scProcessorMock.DeploySmartContractCalled = func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+		wasCalled = true
+		return vmcommon.Ok, nil
+	}
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.SCDeployment
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, 0, saveAccountCalled)
+}
+
+func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.T) {
+	t.Parallel()
+
+	saveAccountCalled := 0
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = generateRandomByteSlice(createMockPubkeyConverter().Len())
+	tx.Value = big.NewInt(45)
+	tx.GasPrice = 1
+	tx.GasLimit = 1
+
+	acntSrc, err := state.NewUserAccount(tx.SndAddr)
+	assert.Nil(t, err)
+
+	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	assert.Nil(t, err)
+
+	acntSrc.Balance = big.NewInt(46)
+	acntDst.SetCode([]byte{65})
+
+	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
+	adb.SaveAccountCalled = func(account state.AccountHandler) error {
+		saveAccountCalled++
+		return nil
+	}
+
+	scProcessorMock := &mock.SCProcessorMock{}
+
+	wasCalled := false
+	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+		wasCalled = true
+		return vmcommon.Ok, nil
+	}
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
+			return process.BuiltInFunctionCall
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err = execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+	assert.True(t, wasCalled)
+	assert.Equal(t, 0, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
