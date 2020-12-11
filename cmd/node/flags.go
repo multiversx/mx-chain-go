@@ -470,25 +470,25 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 			"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 			"kad dht discoverer", "off",
 		)
+
+		return nil
 	}
 
 	// if FullArchive is enabled, we override the conflicting StoragePruning settings and StartInEpoch as well
 	if configs.GeneralConfig.StoragePruning.FullArchive {
-		log.Debug("full archive node is enabled")
-		if configs.GeneralConfig.GeneralSettings.StartInEpochEnabled {
-			log.Warn("StartInEpoch is overridden by FullArchive and set to false")
-			configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-		}
-		if configs.GeneralConfig.StoragePruning.CleanOldEpochsData {
-			log.Warn("CleanOldEpochsData is overridden by FullArchive and set to false")
-			configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
-		}
-		if !configs.GeneralConfig.StoragePruning.Enabled {
-			log.Warn("StoragePruning is overridden by FullArchive and set to true")
-			configs.GeneralConfig.StoragePruning.Enabled = true
-		}
-		log.Warn("NumEpochsToKeep is overridden by FullArchive")
+		configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+		configs.GeneralConfig.StoragePruning.CleanOldEpochsData = false
+		configs.GeneralConfig.StoragePruning.Enabled = true
 		configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
+
+		log.Warn("the node is in full archive mode! Will auto-set some config values",
+			"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
+			"StoragePruning.CleanOldEpochsData", generalConfigs.StoragePruning.CleanOldEpochsData,
+			"StoragePruning.Enabled", generalConfigs.StoragePruning.Enabled,
+			"StoragePruning.NumEpochsToKeep", configs.GeneralConfig.StoragePruning.NumEpochsToKeep,
+		)
+
+		return nil
 	}
 
 	return nil
