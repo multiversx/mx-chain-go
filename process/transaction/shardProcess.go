@@ -306,6 +306,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	}
 
 	totalProvided := big.NewInt(0)
+	//TODO: check if always gasPrice*gasLimit is correct. Could it be that not all was deducted like for a moveBalance?
 	totalProvided.Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
 
 	refundValue := big.NewInt(0).Sub(totalProvided, cost)
@@ -588,6 +589,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
+	//TODO: check if always the consumedFee was gasLimit*GasPrice - movebalance for example
 	consumedFee := core.SafeMul(userTx.GasLimit, userTx.GasPrice)
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
@@ -645,7 +647,7 @@ func (txProc *txProcessor) processUserTx(
 	case process.SCInvoking:
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		//TODO: where does the userTxValue get back to the sender?
+		//TODO: where does the userTxValue get back to the sender/relayer?
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
@@ -663,6 +665,8 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
+	// TODO: check why executeFailedRelay just for these 2 cases? What happens if moveBalance fails in the senderShard
+	// TODO: or in the destinationShard if the SC is notPayable
 	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
 			userTx,
@@ -786,6 +790,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
+	//TODO: check if the totalFee can be smaller, in case of a moveBalance for example
 	totalFee := core.SafeMul(userTx.GetGasPrice(), userTx.GetGasLimit())
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
