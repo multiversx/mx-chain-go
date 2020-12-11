@@ -58,7 +58,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	tx3 := createAndSendTransaction(nodes[0], players[4], vm.AuctionSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
 	// send value to staking contract with data should consume gas
-	txData := []byte("contract@qwt")
+	txData := []byte("contract@aaaa")
 	gasLimitTxWithData := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
 	txWithData := createAndSendTransaction(nodes[0], players[6], vm.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)

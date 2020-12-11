@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/stretchr/testify/assert"
@@ -40,10 +41,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonce(t *t
 		for _, player := range players {
 			player.Nonce += 1
 			relayerTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFee := nodes[0].EconomicsData.ComputeTxFee(relayerTx)
 			totalFees.Add(totalFees, totalFee)
 			relayerTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(relayerTx.GetGasPrice()), big.NewInt(0).SetUint64(relayerTx.GetGasLimit()))
+			totalFee = nodes[0].EconomicsData.ComputeTxFee(relayerTx)
 			totalFees.Add(totalFees, totalFee)
 		}
 
@@ -130,9 +131,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
 
 	players = append(players, relayer)
-	additionalCost := big.NewInt(0).Mul(
-		big.NewInt(0).SetUint64(additionalGasLimit*uint64(nrRoundsToTest)),
-		big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice),
+	additionalCost := nodes[0].EconomicsData.ComputeFeeForProcessing(&smartContractResult.SmartContractResult{GasPrice: integrationTests.MinTxGasPrice}, additionalGasLimit)
+	additionalCost.Mul(
+		additionalCost,
+		big.NewInt(0).SetUint64(uint64(nrRoundsToTest)),
 	)
 	checkPlayerBalancesWithPenalization(t, nodes, players, additionalCost)
 }

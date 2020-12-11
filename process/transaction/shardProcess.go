@@ -298,7 +298,8 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	if check.IfNil(acntSnd) {
 		return nil
 	}
-	if destShardTxType != process.MoveBalance {
+	if destShardTxType != process.MoveBalance ||
+		(!txProc.flagMetaProtection.IsSet() && core.IsSmartContractAddress(tx.RcvAddr)) {
 		return nil
 	}
 
@@ -327,7 +328,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 
 func (txProc *txProcessor) processTxFee(
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
+	acntSnd, acntDst state.UserAccountHandler,
 	cost *big.Int,
 	dstShardTxType process.TransactionType,
 ) (*big.Int, error) {
@@ -335,7 +336,8 @@ func (txProc *txProcessor) processTxFee(
 		return big.NewInt(0), nil
 	}
 
-	if dstShardTxType != process.MoveBalance {
+	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
+	if dstShardTxType != process.MoveBalance || (!txProc.flagMetaProtection.IsSet() && isCrossShardSCCall) {
 		totalCost := txProc.economicsFee.ComputeTxFee(tx)
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -389,7 +391,7 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	txFee, err := txProc.processTxFee(tx, acntSrc, moveBalanceCost, destShardTxType)
+	txFee, err := txProc.processTxFee(tx, acntSrc, acntDst, moveBalanceCost, destShardTxType)
 	if err != nil {
 		return err
 	}
@@ -583,8 +585,8 @@ func (txProc *txProcessor) processRelayedTx(
 
 func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int, *big.Int, uint64) {
 	relayerGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-	relayerFee := core.SafeMul(relayerGasLimit, tx.GetGasPrice())
-	totalFee := core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	totalFee := txProc.economicsFee.ComputeTxFee(tx)
 	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
 
 	return totalFee, remainingFee, relayerFee, tx.GasLimit - relayerGasLimit
@@ -605,7 +607,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
-	consumedFee := core.SafeMul(userTx.GasLimit, userTx.GasPrice)
+	consumedFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
 		return err
@@ -797,7 +799,7 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
-	totalFee := core.SafeMul(userTx.GetGasPrice(), userTx.GetGasLimit())
+	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
 		totalFee.Sub(totalFee, txProc.economicsFee.ComputeMoveBalanceFee(userTx))
