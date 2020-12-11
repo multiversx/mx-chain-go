@@ -341,11 +341,19 @@ func TestGenesisBlockCreator_CreateGenesisBlocksStakingAndDelegationShouldWorkAn
 }
 
 func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *testing.T) {
+	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	shardIDs := []uint32{0, 1}
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
-	arg := ArgsGenesisBlockCreator{
-		ShardCoordinator: &mock.ShardCoordinatorMock{SelfShardId: 1},
-	}
+	initialNodesSetup := createDummyNodesHandler(scAddressBytes)
+	arg := createMockArgument(
+		t,
+		"testdata/genesisTest1.json",
+		initialNodesSetup,
+		big.NewInt(22000),
+	)
+
+	arg.ShardCoordinator = &mock.ShardCoordinatorMock{SelfShardId: 1}
+	arg.TrieStorageManagers = make(map[string]data.StorageManager)
 	gbc, err := NewGenesisBlockCreator(arg)
 	require.Nil(t, err)
 
@@ -440,4 +448,29 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 	err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapHardForkBlockProcessor))
+}
+
+
+func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {
+	return &mock.InitialNodesHandlerStub{
+		InitialNodesInfoCalled: func() (map[uint32][]sharding.GenesisNodeInfoHandler, map[uint32][]sharding.GenesisNodeInfoHandler) {
+			return map[uint32][]sharding.GenesisNodeInfoHandler{
+				0: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
+					},
+				},
+				1: {
+					&mock.GenesisNodeInfoHandlerMock{
+						AddressBytesValue: scAddressBytes,
+						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
+					},
+				},
+			}, make(map[uint32][]sharding.GenesisNodeInfoHandler)
+		},
+		MinNumberOfNodesCalled: func() uint32 {
+			return 1
+		},
+	}
 }
