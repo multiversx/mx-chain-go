@@ -298,17 +298,18 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 func getArgumentsShard() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:           mock.NewOneShardCoordinatorMock(),
-		Messenger:                  createStubTopicMessageHandlerForShard("", ""),
-		Store:                      createStoreForShard(),
-		Marshalizer:                &mock.MarshalizerMock{},
-		DataPools:                  createDataPoolsForShard(),
-		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                 &mock.DataPackerStub{},
-		TriesContainer:             createTriesHolderForShard(),
-		SizeCheckDelta:             0,
-		InputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            mock.NewOneShardCoordinatorMock(),
+		Messenger:                   createStubTopicMessageHandlerForShard("", ""),
+		Store:                       createStoreForShard(),
+		Marshalizer:                 &mock.MarshalizerMock{},
+		DataPools:                   createDataPoolsForShard(),
+		Uint64ByteSliceConverter:    &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                  &mock.DataPackerStub{},
+		TriesContainer:              createTriesHolderForShard(),
+		SizeCheckDelta:              0,
+		InputAntifloodHandler:       &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:      &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 	}
 }

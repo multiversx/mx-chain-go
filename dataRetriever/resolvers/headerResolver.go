@@ -36,12 +36,11 @@ type HeaderResolver struct {
 	baseStorageResolver
 	dataRetriever.TopicResolverSender
 	messageProcessor
-	headers              dataRetriever.HeadersPool
-	hdrNoncesStorage     storage.Storer
-	nonceConverter       typeConverters.Uint64ByteSliceConverter
-	epochHandler         dataRetriever.EpochHandler
-	shardCoordinator     sharding.Coordinator
-	epochProviderByNonce dataRetriever.EpochProviderByNonce
+	headers          dataRetriever.HeadersPool
+	hdrNoncesStorage storage.Storer
+	nonceConverter   typeConverters.Uint64ByteSliceConverter
+	epochHandler     dataRetriever.EpochHandler
+	shardCoordinator sharding.Coordinator
 }
 
 // NewHeaderResolver creates a new header resolver
@@ -76,14 +75,13 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 
 	epochHandler := epochproviders.NewNilEpochHandler()
 	hdrResolver := &HeaderResolver{
-		TopicResolverSender:  arg.SenderResolver,
-		headers:              arg.Headers,
-		baseStorageResolver:  createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
-		hdrNoncesStorage:     arg.HeadersNoncesStorage,
-		nonceConverter:       arg.NonceConverter,
-		epochHandler:         epochHandler,
-		shardCoordinator:     arg.ShardCoordinator,
-		epochProviderByNonce: epochproviders.NewSimpleEpochProviderByNonce(epochHandler),
+		TopicResolverSender: arg.SenderResolver,
+		headers:             arg.Headers,
+		baseStorageResolver: createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
+		hdrNoncesStorage:    arg.HeadersNoncesStorage,
+		nonceConverter:      arg.NonceConverter,
+		epochHandler:        epochHandler,
+		shardCoordinator:    arg.ShardCoordinator,
 		messageProcessor: messageProcessor{
 			marshalizer:      arg.Marshalizer,
 			antifloodHandler: arg.AntifloodHandler,

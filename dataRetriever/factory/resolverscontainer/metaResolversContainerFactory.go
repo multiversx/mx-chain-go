@@ -8,7 +8,6 @@ import (
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -36,20 +35,21 @@ func NewMetaResolversContainerFactory(
 
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                container,
-		shardCoordinator:         args.ShardCoordinator,
-		messenger:                args.Messenger,
-		store:                    args.Store,
-		marshalizer:              args.Marshalizer,
-		dataPools:                args.DataPools,
-		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
-		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:               args.DataPacker,
-		triesContainer:           args.TriesContainer,
-		inputAntifloodHandler:    args.InputAntifloodHandler,
-		outputAntifloodHandler:   args.OutputAntifloodHandler,
-		throttler:                thr,
-		isFullHistoryNode:        args.IsFullHistoryNode,
+		container:                   container,
+		shardCoordinator:            args.ShardCoordinator,
+		messenger:                   args.Messenger,
+		store:                       args.Store,
+		marshalizer:                 args.Marshalizer,
+		dataPools:                   args.DataPools,
+		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
+		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:                  args.DataPacker,
+		triesContainer:              args.TriesContainer,
+		inputAntifloodHandler:       args.InputAntifloodHandler,
+		outputAntifloodHandler:      args.OutputAntifloodHandler,
+		throttler:                   thr,
+		isFullHistoryNode:           args.IsFullHistoryNode,
+		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
 	}
 
 	err = base.checkParams()
@@ -131,7 +131,7 @@ func (mrcf *metaResolversContainerFactory) AddShardTrieNodeResolvers(container d
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
 		identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(i)
 		resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
+			numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 		if err != nil {
 			return err
 		}
@@ -263,7 +263,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err := mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	resolver, err = mrcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.PeerAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, mrcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}

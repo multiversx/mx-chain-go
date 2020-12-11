@@ -48,9 +48,3 @@ type RequestHandler interface {
 	GetNumPeersToQuery(topic string) (int, int, error)
 	IsInterfaceNil() bool
 }
-
-// CurrentNetworkEpochSetter defines the actions needed for setting the network's current epoch
-type CurrentNetworkEpochSetter interface {
-	SetNetworkEpochAtBootstrap(epoch uint32)
-	IsInterfaceNil() bool
-}

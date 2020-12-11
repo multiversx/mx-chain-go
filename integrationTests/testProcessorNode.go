@@ -969,18 +969,19 @@ func (tpn *TestProcessorNode) initResolvers() {
 	_ = tpn.Messenger.CreateTopic(core.ConsensusTopic+tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId()), true)
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:           tpn.ShardCoordinator,
-		Messenger:                  tpn.Messenger,
-		Store:                      tpn.Storage,
-		Marshalizer:                TestMarshalizer,
-		DataPools:                  tpn.DataPool,
-		Uint64ByteSliceConverter:   TestUint64Converter,
-		DataPacker:                 dataPacker,
-		TriesContainer:             tpn.TrieContainer,
-		SizeCheckDelta:             100,
-		InputAntifloodHandler:      &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:     &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs: 10,
+		ShardCoordinator:            tpn.ShardCoordinator,
+		Messenger:                   tpn.Messenger,
+		Store:                       tpn.Storage,
+		Marshalizer:                 TestMarshalizer,
+		DataPools:                   tpn.DataPool,
+		Uint64ByteSliceConverter:    TestUint64Converter,
+		DataPacker:                  dataPacker,
+		TriesContainer:              tpn.TrieContainer,
+		SizeCheckDelta:              100,
+		InputAntifloodHandler:       &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:      &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:  10,
+		CurrentNetworkEpochProvider: &mock.CurrentNetworkEpochProviderStub{},
 	}
 
 	var err error

@@ -7,7 +7,6 @@ import (
 	triesFactory "github.com/ElrondNetwork/elrond-go/data/trie/factory"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/resolverscontainer/disabled"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -34,20 +33,21 @@ func NewShardResolversContainerFactory(
 
 	container := containers.NewResolversContainer()
 	base := &baseResolversContainerFactory{
-		container:                container,
-		shardCoordinator:         args.ShardCoordinator,
-		messenger:                args.Messenger,
-		store:                    args.Store,
-		marshalizer:              args.Marshalizer,
-		dataPools:                args.DataPools,
-		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
-		intRandomizer:            &random.ConcurrentSafeIntRandomizer{},
-		dataPacker:               args.DataPacker,
-		triesContainer:           args.TriesContainer,
-		inputAntifloodHandler:    args.InputAntifloodHandler,
-		outputAntifloodHandler:   args.OutputAntifloodHandler,
-		throttler:                thr,
-		isFullHistoryNode:        args.IsFullHistoryNode,
+		container:                   container,
+		shardCoordinator:            args.ShardCoordinator,
+		messenger:                   args.Messenger,
+		store:                       args.Store,
+		marshalizer:                 args.Marshalizer,
+		dataPools:                   args.DataPools,
+		uint64ByteSliceConverter:    args.Uint64ByteSliceConverter,
+		intRandomizer:               &random.ConcurrentSafeIntRandomizer{},
+		dataPacker:                  args.DataPacker,
+		triesContainer:              args.TriesContainer,
+		inputAntifloodHandler:       args.InputAntifloodHandler,
+		outputAntifloodHandler:      args.OutputAntifloodHandler,
+		throttler:                   thr,
+		isFullHistoryNode:           args.IsFullHistoryNode,
+		currentNetworkEpochProvider: args.CurrentNetworkEpochProvider,
 	}
 
 	err = base.checkParams()
@@ -203,7 +203,7 @@ func (srcf *shardResolversContainerFactory) generateTrieNodesResolvers() error {
 
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	resolver, err := srcf.createTrieNodesResolver(identifierTrieNodes, triesFactory.UserAccountTrie,
-		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, &disabled.NilCurrentNetworkEpochProviderHandler{})
+		0, numIntraShardPeers+numCrossShardPeers, numFullHistoryPeers, srcf.currentNetworkEpochProvider)
 	if err != nil {
 		return err
 	}

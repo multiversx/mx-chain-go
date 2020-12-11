@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/topicResolverSender"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
@@ -26,21 +25,22 @@ const numIntraShardPeers = 1
 const numFullHistoryPeers = 1
 
 type baseResolversContainerFactory struct {
-	container                dataRetriever.ResolversContainer
-	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
-	store                    dataRetriever.StorageService
-	marshalizer              marshal.Marshalizer
-	dataPools                dataRetriever.PoolsHolder
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
-	intRandomizer            dataRetriever.IntRandomizer
-	dataPacker               dataRetriever.DataPacker
-	triesContainer           state.TriesHolder
-	inputAntifloodHandler    dataRetriever.P2PAntifloodHandler
-	outputAntifloodHandler   dataRetriever.P2PAntifloodHandler
-	throttler                dataRetriever.ResolverThrottler
-	intraShardTopic          string
-	isFullHistoryNode        bool
+	container                   dataRetriever.ResolversContainer
+	shardCoordinator            sharding.Coordinator
+	messenger                   dataRetriever.TopicMessageHandler
+	store                       dataRetriever.StorageService
+	marshalizer                 marshal.Marshalizer
+	dataPools                   dataRetriever.PoolsHolder
+	uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
+	intRandomizer               dataRetriever.IntRandomizer
+	dataPacker                  dataRetriever.DataPacker
+	triesContainer              state.TriesHolder
+	inputAntifloodHandler       dataRetriever.P2PAntifloodHandler
+	outputAntifloodHandler      dataRetriever.P2PAntifloodHandler
+	throttler                   dataRetriever.ResolverThrottler
+	intraShardTopic             string
+	isFullHistoryNode           bool
+	currentNetworkEpochProvider dataRetriever.CurrentNetworkEpochProviderHandler
 }
 
 func (brcf *baseResolversContainerFactory) checkParams() error {
@@ -76,6 +76,9 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.throttler) {
 		return dataRetriever.ErrNilThrottler
+	}
+	if check.IfNil(brcf.currentNetworkEpochProvider) {
+		return dataRetriever.ErrNilCurrentNetworkEpochProvider
 	}
 
 	return nil
@@ -236,7 +239,7 @@ func (brcf *baseResolversContainerFactory) createOneResolverSender(
 	targetShardId uint32,
 ) (dataRetriever.TopicResolverSender, error) {
 	return brcf.createOneResolverSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardId,
-		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, epochproviders.NewArithmeticEpochProvider())
+		numCrossShardPeers, numIntraShardPeers, numFullHistoryPeers, brcf.currentNetworkEpochProvider)
 }
 
 func (brcf *baseResolversContainerFactory) createOneResolverSenderWithSpecifiedNumRequests(
