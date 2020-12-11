@@ -272,7 +272,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
 	mapBodies := make(map[uint32]*block.Body)
 
-	err = createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, gbc.arg)
+	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	if err != nil {
 		return nil, err
 	}
@@ -285,8 +285,8 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 		}
 
 		args := update.ArgsHardForkProcessor{
-			Hasher:                    gbc.arg.Hasher,
-			Marshalizer:               gbc.arg.Marshalizer,
+			Hasher:                    gbc.arg.Core.Hasher(),
+			Marshalizer:               gbc.arg.Core.InternalMarshalizer(),
 			ShardIDs:                  shardIDs,
 			MapBodies:                 mapBodies,
 			MapHardForkBlockProcessor: mapHardForkBlockProcessor,
@@ -325,6 +325,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 	var nodesListSplitter genesis.NodesListSplitter
 	var err error
 
+
 	nodesListSplitter, err = intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
 	if err != nil {
 		return err
@@ -333,13 +334,18 @@ func (gbc *genesisBlockCreator) createHeaders(
 	allScAddresses := make([][]byte, 0)
 	for _, shardID := range shardIDs {
 		log.Debug("genesisBlockCreator.createHeaders", "shard", shardID)
-
 		var genesisBlock data.HeaderHandler
 		var scResults [][]byte
+		var chain data.ChainHandler
 
 		if shardID == core.MetachainShardId {
 			metaArgsGenesisBlockCreator := mapArgsGenesisBlockCreator[core.MetachainShardId]
-			metaArgsGenesisBlockCreator.Blkc = blockchain.NewMetaChain()
+			chain, err = blockchain.NewMetaChain(&statusHandler.NilStatusHandler{})
+			if err != nil {
+				return fmt.Errorf("'%w' while generating genesis block for metachain", err)
+			}
+
+			metaArgsGenesisBlockCreator.Data.SetBlockchain(chain)
 			genesisBlock, scResults, err = CreateMetaGenesisBlock(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],
@@ -536,7 +542,7 @@ func (gbc *genesisBlockCreator) createArgsGenesisBlockCreator(
 ) error {
 	for _, shardID := range shardIDs {
 		log.Debug("createArgsGenesisBlockCreator", "shard", shardID)
-		newArgument, err := getNewArgForShard(shardID, gbc.arg)
+		newArgument, err := gbc.getNewArgForShard(shardID)
 		if err != nil {
 			return fmt.Errorf("'%w' while creating new argument for shard %d", err, shardID)
 		}

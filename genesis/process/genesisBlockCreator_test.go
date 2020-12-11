@@ -346,8 +346,10 @@ func TestCreateArgsGenesisBlockCreator_ShouldErrWhenGetNewArgForShardFails(t *te
 	arg := ArgsGenesisBlockCreator{
 		ShardCoordinator: &mock.ShardCoordinatorMock{SelfShardId: 1},
 	}
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
-	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	assert.True(t, errors.Is(err, trie.ErrNilTrieStorage))
 }
 
@@ -382,8 +384,10 @@ func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
 		initialNodesSetup,
 		big.NewInt(22000),
 	)
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
-	err := createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapArgsGenesisBlockCreator))
 	assert.Equal(t, uint32(0), mapArgsGenesisBlockCreator[0].ShardCoordinator.SelfId())
@@ -428,10 +432,12 @@ func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
 			return &mock.AccountsStub{}
 		},
 	}
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.Nil(t, err)
 
-	_ = createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator, arg)
+	_ = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 
-	err := createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
+	err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
 	assert.Nil(t, err)
 	require.Equal(t, 2, len(mapHardForkBlockProcessor))
 }

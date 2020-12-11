@@ -20,7 +20,7 @@ var signingMarshalizer = &marshal.JsonMarshalizer{}
 var signer = &singlesig.Ed25519Signer{}
 var signingCryptoSuite = ed25519.NewEd25519()
 var contentMarshalizer = &marshal.GogoProtoMarshalizer{}
-var contentHasher = &blake2b.Blake2b{}
+var contentHasher = blake2b.NewBlake2b()
 
 const alicePrivateKeyHex = "413f42575f7f26fad3317a778771212fdb80245850981e48b58a4f25e344e8f9"
 

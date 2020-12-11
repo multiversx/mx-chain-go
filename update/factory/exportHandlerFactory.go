@@ -189,7 +189,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
 	if check.IfNil(args.Rounder) {
-		return nil, update.ErrNilRounder
+		return nil, update.ErrNilRoundHandler
 	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
@@ -290,7 +290,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	defer func() {
 		if err != nil {
 			if !check.IfNil(trieStorageManager) {
-				trieStorageManager.Close()
+				_ = trieStorageManager.Close()
 			}
 		}
 	}()
@@ -410,10 +410,10 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	defer func() {
 		if err != nil {
 			if !check.IfNil(keysStorer) {
-				keysStorer.Close()
+				_ = keysStorer.Close()
 			}
 			if !check.IfNil(keysVals) {
-				keysVals.Close()
+				_ = keysVals.Close()
 			}
 		}
 	}()

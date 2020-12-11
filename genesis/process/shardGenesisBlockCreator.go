@@ -152,7 +152,8 @@ func createShardGenesisBlockAfterHardFork(
 		return nil, nil, update.ErrNilHardForkBlockProcessor
 	}
 
-	hdrHandler, _, err := shardBlockCreator.CreateNewBlock(
+	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
+		body,
 		arg.Core.ChainID(),
 		arg.HardForkConfig.StartRound,
 		arg.HardForkConfig.StartNonce,
@@ -164,16 +165,6 @@ func createShardGenesisBlockAfterHardFork(
 	hdrHandler.SetTimeStamp(arg.GenesisTime)
 
 	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = processors.vmContainer.Close()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = processors.vmContainersFactory.Close()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,11 +197,11 @@ func createArgsShardBlockCreatorAfterHardFork(
 	}
 
 	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
-		Hasher:             arg.Hasher,
+		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
 		Marshalizer:        arg.Core.InternalMarshalizer(),
-		Hasher:             arg.Core.Hasher(),
-		DataPool:           arg.Data.Datapool(),
+		PendingTxProcessor: pendingTxProcessor,
+		ShardCoordinator:   arg.ShardCoordinator,
 		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
 		SelfShardID:        selfShardID,

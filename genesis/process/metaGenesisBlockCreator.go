@@ -181,7 +181,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 		TxProcessor:      processors.txProcessor,
 		RwdTxProcessor:   &disabled.RewardTxProcessor{},
 		ScrTxProcessor:   processors.scrProcessor,
-		PubKeyConv:       arg.PubkeyConv,
+		PubKeyConv:       arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator: arg.ShardCoordinator,
 	}
 	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
@@ -190,12 +190,12 @@ func createArgsMetaBlockCreatorAfterHardFork(
 	}
 
 	argsMetaBlockCreatorAfterHardFork := hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{
-		Hasher:             arg.Hasher,
+		Hasher:             arg.Core.Hasher(),
 		ImportHandler:      arg.importHandler,
-		Marshalizer:        arg.Marshalizer,
+		Marshalizer:        arg.Core.InternalMarshalizer(),
 		PendingTxProcessor: pendingTxProcessor,
 		ShardCoordinator:   arg.ShardCoordinator,
-		Storage:            arg.Store,
+		Storage:            arg.Data.StorageService(),
 		TxCoordinator:      processors.txCoordinator,
 		ValidatorAccounts:  tmpArg.ValidatorAccounts,
 		SelfShardID:        selfShardID,

@@ -157,7 +157,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
-	_ = advertiser.Bootstrap()
+	_ = advertiser.Bootstrap(0)
 	metaNode := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, integrationTests.GetConnectableAddress(advertiser))
 	defer func() {
 		_ = advertiser.Close()
