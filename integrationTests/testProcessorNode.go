@@ -132,7 +132,7 @@ var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(Test
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
 // MinTxGasPrice defines minimum gas price required by a transaction
-var MinTxGasPrice = uint64(10)
+var MinTxGasPrice = uint64(100)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(1000)

@@ -60,7 +60,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	// send value to staking contract with data should consume gas
 	txData := []byte("contract@qwt")
 	gasLimitTxWithData := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
-	_ = createAndSendTransaction(nodes[0], players[6], vm.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
+	txWithData := createAndSendTransaction(nodes[0], players[6], vm.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)
 
 	nrRoundsToTest := int64(7)
@@ -108,7 +108,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
 	// check balance account that send money to AuctionSC with data field
-	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasLimitTxWithData), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	txFee = nodes[0].EconomicsData.ComputeTxFee(txWithData)
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 	assert.Equal(t, players[6].Nonce, senderAccount.GetNonce())

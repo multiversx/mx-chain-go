@@ -38,7 +38,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100000)
+	valMinting := big.NewInt(10000000)
 	valToTransferPerTx := big.NewInt(2)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
@@ -186,7 +186,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	sendValue := big.NewInt(5)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	receiverAddress := []byte("12345678901234567890123456789012")
