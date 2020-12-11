@@ -299,8 +299,6 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 
 	e.addToIssuedTokens(string(tokenIdentifier))
 
-	e.eei.Finish(tokenIdentifier)
-
 	return nil
 }
 

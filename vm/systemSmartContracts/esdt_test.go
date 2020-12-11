@@ -145,7 +145,6 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-	tokenID := eei.output[0]
 
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
@@ -155,9 +154,6 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput = getDefaultVmInputForFunc("getAllESDTTokens", [][]byte{})
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-
-	assert.Equal(t, 1, len(eei.output))
-	assert.Equal(t, tokenID, eei.output[0])
 }
 
 func TestEsdt_ExecuteNilArgsShouldErr(t *testing.T) {
