@@ -675,9 +675,8 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 		return safeSubUint64(gasProvided, gasRemaining)
 	}
 
-	builtInFuncGasUsed := uint64(0)
 	sc.mutGasLock.RLock()
-	builtInFuncGasUsed = sc.esdtTransferCost
+	builtInFuncGasUsed := sc.esdtTransferCost
 	sc.mutGasLock.RUnlock()
 
 	return builtInFuncGasUsed, nil

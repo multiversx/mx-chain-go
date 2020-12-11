@@ -300,8 +300,8 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	if check.IfNil(acntSnd) || isUserTxOfRelayed {
 		return nil
 	}
-	if destShardTxType != process.MoveBalance ||
-		(!txProc.flagMetaProtection.IsSet() && core.IsSmartContractAddress(tx.RcvAddr)) {
+	shouldCreateReceiptBackwardCompatible := !txProc.flagMetaProtection.IsSet() && core.IsSmartContractAddress(tx.RcvAddr)
+	if destShardTxType != process.MoveBalance || shouldCreateReceiptBackwardCompatible {
 		return nil
 	}
 
