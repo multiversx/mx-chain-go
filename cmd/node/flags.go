@@ -489,8 +489,6 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		}
 		log.Warn("NumEpochsToKeep is overridden by FullArchive")
 		configs.GeneralConfig.StoragePruning.NumEpochsToKeep = math.MaxUint64
-		//TODO remove the set below
-		//p2pConfig.Node.ThresholdMinConnectedPeers = 0
 	}
 
 	return nil
