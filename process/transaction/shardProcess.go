@@ -678,6 +678,7 @@ func (txProc *txProcessor) processUserTx(
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, dstShardTxType, true)
+		scrFromTx.GasLimit -= txProc.economicsFee.ComputeGasLimit(userTx)
 	case process.SCDeployment:
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:

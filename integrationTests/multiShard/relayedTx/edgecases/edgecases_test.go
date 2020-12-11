@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/relayedTx"
 	"github.com/stretchr/testify/assert"
@@ -131,31 +130,18 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
 
 	players = append(players, relayer)
-	additionalCost := nodes[0].EconomicsData.ComputeFeeForProcessing(&smartContractResult.SmartContractResult{GasPrice: integrationTests.MinTxGasPrice}, additionalGasLimit)
-	additionalCost.Mul(
-		additionalCost,
-		big.NewInt(0).SetUint64(uint64(nrRoundsToTest)),
-	)
-	checkPlayerBalancesWithPenalization(t, nodes, players, additionalCost)
+	checkPlayerBalancesWithPenalization(t, nodes, players)
 }
 
 func checkPlayerBalancesWithPenalization(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	players []*integrationTests.TestWalletAccount,
-	additionalCost *big.Int,
 ) {
 
-	for i := 0; i < len(players)-1; i++ {
+	for i := 0; i < len(players); i++ {
 		userAcc := relayedTx.GetUserAccount(nodes, players[i].Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance.Add(players[i].Balance, additionalCost)), 0)
+		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance), 0)
 		assert.Equal(t, userAcc.GetNonce(), players[i].Nonce)
-	}
-
-	if len(players) > 0 {
-		relayer := players[len(players)-1]
-		userAcc := relayedTx.GetUserAccount(nodes, relayer.Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 0)
-		assert.Equal(t, userAcc.GetNonce(), relayer.Nonce)
 	}
 }
