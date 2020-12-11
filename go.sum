@@ -12,12 +12,10 @@ github.com/AndreasBriese/bbloom v0.0.0-20190306092124-e2d15f34fcf9/go.mod h1:bOv
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/ElrondNetwork/arwen-wasm-vm v0.3.33/go.mod h1:TktLl1iYOuio2TYGRVTUFI47QX0gEuOml7l3pyGsbog=
-github.com/ElrondNetwork/arwen-wasm-vm v0.4.5 h1:bp5P/mzu1+jc3EQfgodYtvXlDGuM6a+6TdmicHWLyYs=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.5/go.mod h1:KkBYEpvpc72DED4uecEQwWyZlouMLv/Wr1c2A/cHdto=
-github.com/ElrondNetwork/arwen-wasm-vm v0.4.6-0.20201113105541-2d483b749160 h1:A43hSdiAVUf/e/lSDgt3oP934SodUe4aBzAd7kI0NEw=
 github.com/ElrondNetwork/arwen-wasm-vm v0.4.6-0.20201113105541-2d483b749160/go.mod h1:uS9EKt7jtD8IEvENBkYcs2A1EBUcR7fsg7O7DddMnKw=
-github.com/ElrondNetwork/arwen-wasm-vm v0.5.2 h1:OL5JEhVq53O2hp14wWuqtWQrl4qFoJ0gfqskIiGUXgg=
-github.com/ElrondNetwork/arwen-wasm-vm v0.5.2/go.mod h1:R9y8nhOlGkkQ9vVjX5SEC4BKlTn7dXFsPUnKfm4s5RE=
+github.com/ElrondNetwork/arwen-wasm-vm v0.5.4 h1:OjFlhE8sq0Mw8N3Hyb96ZvbTXVW4VdBIw5IeN0trJj0=
+github.com/ElrondNetwork/arwen-wasm-vm v0.5.4/go.mod h1:R9y8nhOlGkkQ9vVjX5SEC4BKlTn7dXFsPUnKfm4s5RE=
 github.com/ElrondNetwork/big-int-util v0.0.5/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
 github.com/ElrondNetwork/big-int-util v0.1.0 h1:vTMoJ5azhVmr7jhpSD3JUjQdkdyXoEPVkOvhdw1RjV4=
 github.com/ElrondNetwork/big-int-util v0.1.0/go.mod h1:96viBvoTXLjZOhEvE0D+QnAwg1IJLPAK6GVHMbC7Aw4=
@@ -44,7 +42,6 @@ github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrU
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
-github.com/beevik/ntp v0.2.0 h1:sGsd+kAXzT0bfVfzJfce04g+dSRfrs+tbQW8lweuYgw=
 github.com/beevik/ntp v0.2.0/go.mod h1:hIHWr+l3+/clUnF44zdK+CWW7fO8dR5cIylAQ76NRpg=
 github.com/beevik/ntp v0.3.0 h1:xzVrPrE4ziasFXgBVBZJDP0Wg/KpMwk2KHJ4Ba8GrDw=
 github.com/beevik/ntp v0.3.0/go.mod h1:hIHWr+l3+/clUnF44zdK+CWW7fO8dR5cIylAQ76NRpg=

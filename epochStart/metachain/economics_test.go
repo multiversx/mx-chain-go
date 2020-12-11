@@ -639,7 +639,6 @@ func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int
 		"TotalNewlyMinted %vERD, RewardsPerBlock %vERD, RewardsForProtocolSustainability %vERD, NodePrice: %vERD\n",
 		denomination(eb.TotalSupply), denomination(eb.TotalToDistribute), denomination(eb.TotalNewlyMinted),
 		denomination(eb.RewardsPerBlock), denomination(eb.RewardsForProtocolSustainability), denomination(eb.NodePrice))
-	fmt.Println()
 }
 
 func intToErd(value int) *big.Int {

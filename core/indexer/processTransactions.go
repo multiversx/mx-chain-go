@@ -196,19 +196,42 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartCon
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
 	if isSCRForSenderWithGasUsed(dbScResult, tx) {
-		gasUsed := tx.GasLimit - scr.GasLimit
-		tx.GasUsed = gasUsed
+		tx.GasUsed = computeTxGasUsedField(dbScResult, tx)
 	}
 
 	return tx
 }
 
+func computeTxGasUsedField(dbScResult ScResult, tx *Transaction) uint64 {
+	fee := big.NewInt(0).SetUint64(tx.GasPrice)
+	fee.Mul(fee, big.NewInt(0).SetUint64(tx.GasLimit))
+
+	refundValue, ok := big.NewInt(0).SetString(dbScResult.Value, 10)
+	if !ok {
+		log.Warn("indexer.computeTxGasUsedField() cannot cast value from string to big.Int")
+		return fee.Uint64()
+	}
+
+	diff := fee.Sub(fee, refundValue)
+	gasUsedBig := diff.Div(diff, big.NewInt(0).SetUint64(tx.GasPrice))
+
+	return gasUsedBig.Uint64()
+}
+
 func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
-	isWithGasLimit := dbScResult.GasLimit != 0
+	isRightNonce := dbScResult.Nonce == tx.Nonce+1
 	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
+	isDataOk := isDataOk(dbScResult.Data)
 
-	return isFromCurrentTx && isForSender && isWithGasLimit
+	return isFromCurrentTx && isForSender && isRightNonce && isDataOk
+}
+
+func isDataOk(data []byte) bool {
+	okEncoded := hex.EncodeToString([]byte("ok"))
+	dataFieldStr := "@" + okEncoded
+
+	return strings.HasPrefix(string(data), dataFieldStr)
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) TxLog {
