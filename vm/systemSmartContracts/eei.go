@@ -268,7 +268,14 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 		}
 	}
 
-	host.outputAccounts = currContext.outputAccounts
+	for _, rightAccount := range currContext.outputAccounts {
+		leftAccount, exist := host.outputAccounts[string(rightAccount.Address)]
+		if !exist {
+			leftAccount = &vmcommon.OutputAccount{}
+			host.outputAccounts[string(rightAccount.Address)] = leftAccount
+		}
+		leftAccount.MergeOutputAccounts(rightAccount)
+	}
 	host.scAddress = currContext.scAddress
 }
 

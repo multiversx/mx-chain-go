@@ -954,6 +954,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 		&mock.AccountsStub{},
 		&mock.RaterMock{})
 
+	eei.SetSCAddress(vm.FirstDelegationSCAddress)
 	delegationsMap := map[string][]byte{}
 	delegationsMap[ownerKey] = []byte("owner")
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
@@ -993,6 +994,10 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	assert.Equal(t, 2, len(dStatus.StakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	vmOutput := eei.CreateVMOutput()
+	assert.Equal(t, 5, len(vmOutput.OutputAccounts))
+	assert.Equal(t, 2, len(vmOutput.OutputAccounts[string(vm.StakingSCAddress)].OutputTransfers))
 }
 
 func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {

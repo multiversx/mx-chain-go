@@ -1457,6 +1457,14 @@ func (sc *scProcessor) createSmartContractResults(
 	txHash []byte,
 ) (bool, []data.TransactionHandler) {
 
+	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		result := createBaseSCR(outAcc, tx, txHash)
+		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+
+		return false, []data.TransactionHandler{result}
+	}
+
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
 		if callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
@@ -1477,14 +1485,6 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		return false, nil
-	}
-
-	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		result := createBaseSCR(outAcc, tx, txHash)
-		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
-
-		return false, []data.TransactionHandler{result}
 	}
 
 	createdAsyncCallBack := false
