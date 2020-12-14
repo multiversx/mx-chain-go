@@ -18,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-const minArgsLenToChangeValidatorKey = 4
 const unJailedFunds = "unJailFunds"
 const unStakeUnBondPauseKey = "unStakeUnBondPause"
 
@@ -419,96 +418,6 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 	}
 
 	return vmcommon.Ok
-}
-
-func (v *validatorSC) changeValidatorKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(zero) != 0 {
-		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
-	}
-	// list of arguments are NumNodes, (OldKey, NewKey, SignedMessage) X NumNodes
-	if len(args.Arguments) < minArgsLenToChangeValidatorKey {
-		retMessage := fmt.Sprintf("invalid number of arguments: expected min %d, got %d", minArgsLenToChangeValidatorKey, len(args.Arguments))
-		v.eei.AddReturnMessage(retMessage)
-		return vmcommon.UserError
-	}
-
-	numNodesToChange := big.NewInt(0).SetBytes(args.Arguments[0]).Uint64()
-	expectedNumArguments := numNodesToChange*3 + 1
-	if uint64(len(args.Arguments)) < expectedNumArguments {
-		retMessage := fmt.Sprintf("invalid number of arguments: expected min %d, got %d", expectedNumArguments, len(args.Arguments))
-		v.eei.AddReturnMessage(retMessage)
-		return vmcommon.UserError
-	}
-
-	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.ChangeValidatorKeys * numNodesToChange)
-	if err != nil {
-		v.eei.AddReturnMessage(vm.InsufficientGasLimit)
-		return vmcommon.OutOfGas
-	}
-
-	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
-	if err != nil {
-		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
-		return vmcommon.UserError
-	}
-	if len(registrationData.BlsPubKeys) == 0 {
-		v.eei.AddReturnMessage("no bls key in storage")
-		return vmcommon.UserError
-	}
-
-	for i := 1; i < len(args.Arguments); i += 3 {
-		oldBlsKey := args.Arguments[i]
-		newBlsKey := args.Arguments[i+1]
-		signedWithNewKey := args.Arguments[i+2]
-
-		err = v.sigVerifier.Verify(args.CallerAddr, signedWithNewKey, newBlsKey)
-		if err != nil {
-			v.eei.AddReturnMessage("invalid signature: error " + err.Error())
-			return vmcommon.UserError
-		}
-
-		err = v.replaceBLSKey(registrationData, oldBlsKey, newBlsKey)
-		if err != nil {
-			v.eei.AddReturnMessage("cannot replace bls key: error " + err.Error())
-			return vmcommon.UserError
-		}
-	}
-
-	err = v.saveRegistrationData(args.CallerAddr, registrationData)
-	if err != nil {
-		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
-		return vmcommon.UserError
-	}
-
-	return vmcommon.Ok
-}
-
-func (v *validatorSC) replaceBLSKey(registrationData *ValidatorDataV2, oldBlsKey []byte, newBlsKey []byte) error {
-	foundOldKey := false
-	for i, registeredKey := range registrationData.BlsPubKeys {
-		if bytes.Equal(registeredKey, oldBlsKey) {
-			foundOldKey = true
-			registrationData.BlsPubKeys[i] = newBlsKey
-			break
-		}
-	}
-
-	if !foundOldKey {
-		return vm.ErrBLSPublicKeyMismatch
-	}
-
-	vmOutput, err := v.executeOnStakingSC([]byte("changeValidatorKeys@" + hex.EncodeToString(oldBlsKey) + "@" + hex.EncodeToString(newBlsKey)))
-	if err != nil {
-		v.eei.AddReturnMessage("cannot change validator key: error " + err.Error())
-		return vm.ErrOnExecutionAtStakingSC
-	}
-
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return vm.ErrOnExecutionAtStakingSC
-	}
-
-	return nil
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
