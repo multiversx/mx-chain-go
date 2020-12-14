@@ -352,12 +352,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		if !sc.flagDeploy.IsSet() {
-			err = fmt.Errorf(vmOutput.ReturnCode.String())
-			return vmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
-		}
-
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnMessage, []byte(""), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)

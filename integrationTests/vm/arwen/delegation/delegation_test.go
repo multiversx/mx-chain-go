@@ -114,7 +114,7 @@ func TestDelegation_Claims(t *testing.T) {
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
-	require.Equal(t, errors.New("unknown caller"), err)
+	require.Equal(t, errors.New("user error"), err)
 }
 
 func TestDelegation_WithManyUsers_Claims(t *testing.T) {
