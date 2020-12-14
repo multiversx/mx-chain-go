@@ -268,69 +268,15 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 		}
 	}
 
-	for _, outAcc := range currContext.outputAccounts {
-		leftAccount, exist := host.outputAccounts[string(outAcc.Address)]
+	for _, rightAccount := range currContext.outputAccounts {
+		leftAccount, exist := host.outputAccounts[string(rightAccount.Address)]
 		if !exist {
 			leftAccount = &vmcommon.OutputAccount{}
-			host.outputAccounts[string(outAcc.Address)] = leftAccount
+			host.outputAccounts[string(rightAccount.Address)] = leftAccount
 		}
-		mergeOutputAccounts(leftAccount, outAcc)
+		leftAccount.MergeOutputAccounts(rightAccount)
 	}
 	host.scAddress = currContext.scAddress
-}
-
-func mergeOutputAccounts(
-	leftAccount *vmcommon.OutputAccount,
-	rightAccount *vmcommon.OutputAccount,
-) {
-	if len(rightAccount.Address) != 0 {
-		leftAccount.Address = rightAccount.Address
-	}
-
-	mergeStorageUpdates(leftAccount, rightAccount)
-
-	if rightAccount.Balance != nil {
-		leftAccount.Balance = rightAccount.Balance
-	}
-	if leftAccount.BalanceDelta == nil {
-		leftAccount.BalanceDelta = big.NewInt(0)
-	}
-	if rightAccount.BalanceDelta != nil {
-		leftAccount.BalanceDelta = rightAccount.BalanceDelta
-	}
-	if len(rightAccount.Code) > 0 {
-		leftAccount.Code = rightAccount.Code
-	}
-	if len(rightAccount.CodeMetadata) > 0 {
-		leftAccount.CodeMetadata = rightAccount.CodeMetadata
-	}
-	if rightAccount.Nonce > leftAccount.Nonce {
-		leftAccount.Nonce = rightAccount.Nonce
-	}
-
-	lenLeftOutTransfers := len(leftAccount.OutputTransfers)
-	lenRightOutTransfers := len(rightAccount.OutputTransfers)
-	if lenRightOutTransfers > lenLeftOutTransfers {
-		leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, rightAccount.OutputTransfers[lenLeftOutTransfers:]...)
-	}
-
-	leftAccount.GasUsed = rightAccount.GasUsed
-
-	if rightAccount.CodeDeployerAddress != nil {
-		leftAccount.CodeDeployerAddress = rightAccount.CodeDeployerAddress
-	}
-}
-
-func mergeStorageUpdates(
-	leftAccount *vmcommon.OutputAccount,
-	rightAccount *vmcommon.OutputAccount,
-) {
-	if leftAccount.StorageUpdates == nil {
-		leftAccount.StorageUpdates = make(map[string]*vmcommon.StorageUpdate)
-	}
-	for key, update := range rightAccount.StorageUpdates {
-		leftAccount.StorageUpdates[key] = update
-	}
 }
 
 func (host *vmContext) createContractCallInput(
