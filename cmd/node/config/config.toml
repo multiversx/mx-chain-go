@@ -21,17 +21,17 @@
    RelayedTransactionsEnableEpoch = 2
 
    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-   PenalizedTooMuchGasEnableEpoch = 2
+   PenalizedTooMuchGasEnableEpoch = 1
 
    # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-   SwitchJailWaitingEnableEpoch = 2
+   SwitchJailWaitingEnableEpoch = 1
 
    # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-   BelowSignedThresholdEnableEpoch = 2
+   BelowSignedThresholdEnableEpoch = 1
 
    # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
    # also (minimum) hysteresis nodes for the minimum number of nodes
-   SwitchHysteresisForMinNodesEnableEpoch = 2
+   SwitchHysteresisForMinNodesEnableEpoch = 1
 
     # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
     # signed with the hash of transaction
@@ -47,7 +47,7 @@
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1000000, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 2, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
