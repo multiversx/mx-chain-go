@@ -464,9 +464,6 @@ var ErrInsufficientGasPriceInTx = errors.New("insufficient gas price in tx")
 // ErrInsufficientGasLimitInTx signals that a lower gas limit than required was provided
 var ErrInsufficientGasLimitInTx = errors.New("insufficient gas limit in tx")
 
-// ErrHigherGasLimitRequiredInTx signals that a higher gas limit was required in tx
-var ErrHigherGasLimitRequiredInTx = errors.New("higher gas limit required in tx")
-
 // ErrInvalidMaxGasLimitPerBlock signals that an invalid max gas limit per block has been read from config file
 var ErrInvalidMaxGasLimitPerBlock = errors.New("invalid max gas limit per block")
 
@@ -917,14 +914,11 @@ var ErrInvalidVMInputGasComputation = errors.New("invalid vm input gas computati
 // ErrMoreGasConsumedThanProvided signals that VM used more gas than provided
 var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
 
-// ErrAdditionOverflow signals that uint64 addition overflowed
-var ErrAdditionOverflow = errors.New("uint64 addition overflow")
-
-// ErrSubtractionOverflow signals that uint64 subtraction overflowed
-var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
-
 // ErrInvalidGasModifier signals that provided gas modifier is invalid
 var ErrInvalidGasModifier = errors.New("invalid gas modifier")
 
 // ErrMoreGasThanGasLimitPerBlock signals that more gas was provided than gas limit per block
 var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas limit per block")
+
+// ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
+var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")

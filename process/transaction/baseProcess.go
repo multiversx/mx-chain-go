@@ -141,6 +141,9 @@ func (txProc *baseTxProcessor) checkTxValues(
 	txFee := big.NewInt(0)
 	if isUserTxOfRelayed {
 		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
+			return process.ErrNotEnoughGasInUserTx
+		}
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}

@@ -414,11 +414,11 @@ func (sc *scProcessor) updateDeveloperRewards(
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
 ) error {
-	usedGasByMainSC, err := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+	usedGasByMainSC, err := core.SafeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
 	if err != nil {
 		return err
 	}
-	usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, builtInFuncGasUsed)
+	usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, builtInFuncGasUsed)
 	if err != nil {
 		return err
 	}
@@ -430,17 +430,17 @@ func (sc *scProcessor) updateDeveloperRewards(
 
 		sentGas := uint64(0)
 		for _, outTransfer := range outAcc.OutputTransfers {
-			sentGas, err = safeAddUint64(sentGas, outTransfer.GasLimit)
+			sentGas, err = core.SafeAddUint64(sentGas, outTransfer.GasLimit)
 			if err != nil {
 				return err
 			}
 		}
 
-		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, sentGas)
+		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, sentGas)
 		if err != nil {
 			return err
 		}
-		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, outAcc.GasUsed)
+		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, outAcc.GasUsed)
 		if err != nil {
 			return err
 		}
@@ -455,12 +455,12 @@ func (sc *scProcessor) updateDeveloperRewards(
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	if !sc.flagDeploy.IsSet() && !sc.isSelfShard(tx.GetSndAddr()) {
-		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
+		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
 		}
 	} else if !isSmartContractResult(tx) {
-		usedGasByMainSC, err = safeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
+		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, moveBalanceGasLimit)
 		if err != nil {
 			return err
 		}
@@ -504,23 +504,6 @@ func (sc *scProcessor) isSelfShard(address []byte) bool {
 	return sc.shardCoordinator.ComputeId(address) == sc.shardCoordinator.SelfId()
 }
 
-// safeSubUint64 performs subtraction on uint64 and returns an error if it overflows
-func safeSubUint64(a, b uint64) (uint64, error) {
-	if a < b {
-		return 0, process.ErrSubtractionOverflow
-	}
-	return a - b, nil
-}
-
-// safeAddUint64 performs addition on uint64 and returns an error if the addition overflows
-func safeAddUint64(a, b uint64) (uint64, error) {
-	s := a + b
-	if s >= a && s >= b {
-		return s, nil
-	}
-	return 0, process.ErrAdditionOverflow
-}
-
 func (sc *scProcessor) gasConsumedChecks(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
@@ -533,12 +516,12 @@ func (sc *scProcessor) gasConsumedChecks(
 	totalGasInVMOutput := vmOutput.GasRemaining
 	for _, outAcc := range vmOutput.OutputAccounts {
 		for _, outTransfer := range outAcc.OutputTransfers {
-			transferGas, err := safeAddUint64(outTransfer.GasLocked, outTransfer.GasLimit)
+			transferGas, err := core.SafeAddUint64(outTransfer.GasLocked, outTransfer.GasLimit)
 			if err != nil {
 				return err
 			}
 
-			totalGasInVMOutput, err = safeAddUint64(totalGasInVMOutput, transferGas)
+			totalGasInVMOutput, err = core.SafeAddUint64(totalGasInVMOutput, transferGas)
 			if err != nil {
 				return err
 			}
@@ -562,10 +545,10 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	senderInSelfShard := sc.isSelfShard(tx.GetSndAddr())
-	consumedGas, err := safeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+	consumedGas, err := core.SafeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
 	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "vmOutput.GasRemaining")
 	if !senderInSelfShard {
-		consumedGas, err = safeSubUint64(consumedGas, builtInFuncGasUsed)
+		consumedGas, err = core.SafeSubUint64(consumedGas, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "builtInFuncGasUsed")
 	}
 
@@ -575,20 +558,20 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 			for _, outTransfer := range outAcc.OutputTransfers {
 				sentGas += outTransfer.GasLimit
 			}
-			consumedGas, err = safeSubUint64(consumedGas, sentGas)
+			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
 			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
 		}
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	if !isSmartContractResult(tx) {
-		consumedGas, err = safeSubUint64(consumedGas, moveBalanceGasLimit)
+		consumedGas, err = core.SafeSubUint64(consumedGas, moveBalanceGasLimit)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
 	}
 
 	consumedGasWithoutBuiltin := consumedGas
 	if senderInSelfShard {
-		consumedGasWithoutBuiltin, err = safeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
+		consumedGasWithoutBuiltin, err = core.SafeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
 	}
 
@@ -672,7 +655,7 @@ func (sc *scProcessor) computeBuiltInFuncGasUsed(
 ) (uint64, error) {
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnDst != process.SCInvoking {
-		return safeSubUint64(gasProvided, gasRemaining)
+		return core.SafeSubUint64(gasProvided, gasRemaining)
 	}
 
 	sc.mutGasLock.RLock()

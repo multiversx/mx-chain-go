@@ -645,14 +645,9 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 func (txProc *txProcessor) takeMoveBalanceCostOutOfUser(
 	userTx *transaction.Transaction,
 	userAcc state.UserAccountHandler,
-) (state.UserAccountHandler, error) {
+) error {
 	moveBalanceCost := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
-	err := userAcc.SubFromBalance(moveBalanceCost)
-	if err != nil {
-		return nil, err
-	}
-
-	return txProc.getAccountFromAddress(userTx.SndAddr)
+	return userAcc.SubFromBalance(moveBalanceCost)
 }
 
 func (txProc *txProcessor) processUserTx(
@@ -685,28 +680,31 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	scrFromTx := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
+	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
+	if err != nil {
+		return 0, err
+	}
 
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, dstShardTxType, true)
 	case process.SCDeployment:
-		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
-		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		acntSnd, err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
 		if err != nil {
 			break
 		}
@@ -774,7 +772,7 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
 	txHash []byte,
-) *smartContractResult.SmartContractResult {
+) (*smartContractResult.SmartContractResult, error) {
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          tx.Nonce,
 		Value:          tx.Value,
@@ -789,8 +787,14 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		GasPrice:       tx.GasPrice,
 		CallType:       vmcommon.DirectCall,
 	}
-	scr.GasLimit -= txProc.economicsFee.ComputeGasLimit(tx)
-	return scr
+
+	var err error
+	scr.GasLimit, err = core.SafeSubUint64(scr.GasLimit, txProc.economicsFee.ComputeGasLimit(tx))
+	if err != nil {
+		return nil, err
+	}
+
+	return scr, nil
 }
 
 func (txProc *txProcessor) executeFailedRelayedTransaction(
