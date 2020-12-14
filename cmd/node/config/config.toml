@@ -84,6 +84,15 @@
    # smaller or equal to the NumOfEpochsToKeep flag
    NumActivePersisters = 3
 
+   # FullArchive, if enable, will make the node able to respond to requests from past, old epochs.
+   # It is highly recommended to enable this flag on an observer (not on a validator node)
+   FullArchive = false
+
+   # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
+   # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
+   # it is a good idea to increase the maximum number of opened files allowed by the operating system
+   FullArchiveNumActivePersisters = 10
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Name = "MiniBlocksStorage"
