@@ -132,7 +132,7 @@ var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(Test
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
 // MinTxGasPrice defines minimum gas price required by a transaction
-var MinTxGasPrice = uint64(10)
+var MinTxGasPrice = uint64(100)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(1000)
@@ -708,7 +708,7 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				MinGasPrice:             minGasPrice,
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
-				GasPriceModifier:        1.0,
+				GasPriceModifier:        0.01,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -1718,7 +1718,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 20000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)

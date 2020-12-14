@@ -10,18 +10,19 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
-var _ process.EconomicsDataHandler = (*data)(nil)
-var _ process.RewardsHandler = (*data)(nil)
-var _ process.FeeHandler = (*data)(nil)
+var _ process.EconomicsDataHandler = (*economicsData)(nil)
+var _ process.RewardsHandler = (*economicsData)(nil)
+var _ process.FeeHandler = (*economicsData)(nil)
 
 var epsilon = 0.00000001
 var log = logger.GetOrCreate("process/economics")
 
-// data will store information about economics
-type data struct {
+// economicsData will store information about economics
+type economicsData struct {
 	leaderPercentage                 float64
 	protocolSustainabilityPercentage float64
 	protocolSustainabilityAddress    string
@@ -42,7 +43,7 @@ type data struct {
 	gasPriceModifierEnableEpoch      uint32
 }
 
-// ArgsNewEconomicsData defines the arguments needed for new economics data
+// ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
 	Economics                      *config.EconomicsConfig
 	PenalizedTooMuchGasEnableEpoch uint32
@@ -51,7 +52,7 @@ type ArgsNewEconomicsData struct {
 }
 
 // NewEconomicsData will create and object with information about economics parameters
-func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
+func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	convertedData, err := convertValues(args.Economics)
 	if err != nil {
 		return nil, err
@@ -69,7 +70,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	ed := &data{
+	ed := &economicsData{
 		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
 		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
 		protocolSustainabilityAddress:    args.Economics.RewardsSettings.ProtocolSustainabilityAddress,
@@ -99,7 +100,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*data, error) {
 	return ed, nil
 }
 
-func convertValues(economics *config.EconomicsConfig) (*data, error) {
+func convertValues(economics *config.EconomicsConfig) (*economicsData, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
@@ -133,7 +134,7 @@ func convertValues(economics *config.EconomicsConfig) (*data, error) {
 		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
-	return &data{
+	return &economicsData{
 		minGasPrice:             minGasPrice,
 		minGasLimit:             minGasLimit,
 		maxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -178,17 +179,17 @@ func isPercentageInvalid(percentage float64) bool {
 }
 
 // LeaderPercentage will return leader reward percentage
-func (ed *data) LeaderPercentage() float64 {
+func (ed *economicsData) LeaderPercentage() float64 {
 	return ed.leaderPercentage
 }
 
 // MinInflationRate will return the minimum inflation rate
-func (ed *data) MinInflationRate() float64 {
+func (ed *economicsData) MinInflationRate() float64 {
 	return ed.minInflation
 }
 
 // MaxInflationRate will return the maximum inflation rate
-func (ed *data) MaxInflationRate(year uint32) float64 {
+func (ed *economicsData) MaxInflationRate(year uint32) float64 {
 	ed.mutYearSettings.RLock()
 	yearSetting, ok := ed.yearSettings[year]
 	ed.mutYearSettings.RUnlock()
@@ -201,37 +202,68 @@ func (ed *data) MaxInflationRate(year uint32) float64 {
 }
 
 // GenesisTotalSupply will return the genesis total supply
-func (ed *data) GenesisTotalSupply() *big.Int {
+func (ed *economicsData) GenesisTotalSupply() *big.Int {
 	return ed.genesisTotalSupply
 }
 
 // MinGasPrice will return min gas price
-func (ed *data) MinGasPrice() uint64 {
+func (ed *economicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
 // GasPriceModifier will return the gas price modifier
-func (ed *data) GasPriceModifier() float64 {
+func (ed *economicsData) GasPriceModifier() float64 {
+	if !ed.flagGasPriceModifier.IsSet() {
+		return 1.0
+	}
 	return ed.gasPriceModifier
 }
 
 // MinGasLimit will return min gas limit
-func (ed *data) MinGasLimit() uint64 {
+func (ed *economicsData) MinGasLimit() uint64 {
 	return ed.minGasLimit
 }
 
-// GasPerDataByte will return the gas required for a data byte
-func (ed *data) GasPerDataByte() uint64 {
+// GasPerDataByte will return the gas required for a economicsData byte
+func (ed *economicsData) GasPerDataByte() uint64 {
 	return ed.gasPerDataByte
 }
 
 // ComputeMoveBalanceFee computes the provided transaction's fee
-func (ed *data) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
 	return core.SafeMul(tx.GetGasPrice(), ed.ComputeGasLimit(tx))
 }
 
+// ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
+func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	if !ed.flagGasPriceModifier.IsSet() {
+		return core.SafeMul(tx.GetGasPrice(), gasToUse)
+	}
+
+	modifiedGasPrice := uint64(float64(tx.GetGasPrice()) * ed.gasPriceModifier)
+	return core.SafeMul(modifiedGasPrice, gasToUse)
+}
+
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
-func (ed *data) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
+	if ed.flagGasPriceModifier.IsSet() {
+		_, isSCR := tx.(*smartContractResult.SmartContractResult)
+		if isSCR {
+			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
+		}
+
+		gasLimitForMoveBalance := ed.ComputeGasLimit(tx)
+		moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
+		if tx.GetGasLimit() <= gasLimitForMoveBalance {
+			return moveBalanceFee
+		}
+
+		difference := tx.GetGasLimit() - gasLimitForMoveBalance
+		extraFee := ed.ComputeFeeForProcessing(tx, difference)
+		moveBalanceFee.Add(moveBalanceFee, extraFee)
+		return moveBalanceFee
+	}
+
 	if ed.flagPenalizedTooMuchGas.IsSet() {
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
@@ -240,7 +272,7 @@ func (ed *data) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct
-func (ed *data) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
+func (ed *economicsData) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
 	if ed.minGasPrice > tx.GetGasPrice() {
 		return process.ErrInsufficientGasPriceInTx
 	}
@@ -251,7 +283,7 @@ func (ed *data) CheckValidityTxValues(tx process.TransactionWithFeeHandler) erro
 	}
 
 	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
-		return process.ErrHigherGasLimitRequiredInTx
+		return process.ErrMoreGasThanGasLimitPerBlock
 	}
 
 	// The following is required to mitigate a "big value" attack
@@ -267,7 +299,7 @@ func (ed *data) CheckValidityTxValues(tx process.TransactionWithFeeHandler) erro
 }
 
 // MaxGasLimitPerBlock will return maximum gas limit allowed per block
-func (ed *data) MaxGasLimitPerBlock(shardID uint32) uint64 {
+func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	if shardID == core.MetachainShardId {
 		return ed.maxGasLimitPerMetaBlock
 	}
@@ -275,22 +307,22 @@ func (ed *data) MaxGasLimitPerBlock(shardID uint32) uint64 {
 }
 
 // DeveloperPercentage will return the developer percentage value
-func (ed *data) DeveloperPercentage() float64 {
+func (ed *economicsData) DeveloperPercentage() float64 {
 	return ed.developerPercentage
 }
 
 // ProtocolSustainabilityPercentage will return the protocol sustainability percentage value
-func (ed *data) ProtocolSustainabilityPercentage() float64 {
+func (ed *economicsData) ProtocolSustainabilityPercentage() float64 {
 	return ed.protocolSustainabilityPercentage
 }
 
 // ProtocolSustainabilityAddress will return the protocol sustainability address
-func (ed *data) ProtocolSustainabilityAddress() string {
+func (ed *economicsData) ProtocolSustainabilityAddress() string {
 	return ed.protocolSustainabilityAddress
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed
-func (ed *data) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
+func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 	gasLimit := ed.minGasLimit
 
 	dataLen := uint64(len(tx.GetData()))
@@ -300,15 +332,15 @@ func (ed *data) ComputeGasLimit(tx process.TransactionWithFeeHandler) uint64 {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (ed *data) EpochConfirmed(epoch uint32) {
+func (ed *economicsData) EpochConfirmed(epoch uint32) {
 	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)
 	log.Debug("economics: penalized too much gas", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
 
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
-	log.Debug("economics: gas price modifier", "enabled", ed.flagPenalizedTooMuchGas.IsSet())
+	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ed *data) IsInterfaceNil() bool {
+func (ed *economicsData) IsInterfaceNil() bool {
 	return ed == nil
 }

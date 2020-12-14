@@ -91,8 +91,9 @@ func TestTxTypeHandler_ComputeTransactionTypeNil(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(nil)
-	assert.Equal(t, process.InvalidTransaction, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(nil)
+	assert.Equal(t, process.InvalidTransaction, txTypeIn)
+	assert.Equal(t, process.InvalidTransaction, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
@@ -111,8 +112,9 @@ func TestTxTypeHandler_ComputeTransactionTypeNilTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	tx = nil
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.InvalidTransaction, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txTypeIn)
+	assert.Equal(t, process.InvalidTransaction, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
@@ -130,8 +132,9 @@ func TestTxTypeHandler_ComputeTransactionTypeErrWrongTransaction(t *testing.T) {
 	tx.RcvAddr = nil
 	tx.Value = big.NewInt(45)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.InvalidTransaction, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txTypeIn)
+	assert.Equal(t, process.InvalidTransaction, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
@@ -150,8 +153,9 @@ func TestTxTypeHandler_ComputeTransactionTypeScDeployment(t *testing.T) {
 	tx.Data = []byte("data")
 	tx.Value = big.NewInt(45)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.SCDeployment, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.SCDeployment, txTypeIn)
+	assert.Equal(t, process.SCDeployment, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeRecv0AddressWrongTransaction(t *testing.T) {
@@ -170,8 +174,9 @@ func TestTxTypeHandler_ComputeTransactionTypeRecv0AddressWrongTransaction(t *tes
 	tx.Data = nil
 	tx.Value = big.NewInt(45)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.InvalidTransaction, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.InvalidTransaction, txTypeIn)
+	assert.Equal(t, process.InvalidTransaction, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
@@ -190,8 +195,9 @@ func TestTxTypeHandler_ComputeTransactionTypeScInvoking(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.SCInvoking, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.SCInvoking, txTypeIn)
+	assert.Equal(t, process.SCInvoking, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
@@ -215,8 +221,9 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.MoveBalance, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.MoveBalance, txTypeIn)
+	assert.Equal(t, process.MoveBalance, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
@@ -242,8 +249,9 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.BuiltInFunctionCall, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.BuiltInFunctionCall, txTypeIn)
+	assert.Equal(t, process.BuiltInFunctionCall, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
@@ -267,8 +275,9 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.RelayedTx, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.RelayedTx, txTypeIn)
+	assert.Equal(t, process.RelayedTx, txTypeCross)
 }
 
 func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
@@ -293,6 +302,7 @@ func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
 	assert.NotNil(t, tth)
 	assert.Nil(t, err)
 
-	txType := tth.ComputeTransactionType(tx)
-	assert.Equal(t, process.SCInvoking, txType)
+	txTypeIn, txTypeCross := tth.ComputeTransactionType(tx)
+	assert.Equal(t, process.SCInvoking, txTypeIn)
+	assert.Equal(t, process.SCInvoking, txTypeCross)
 }

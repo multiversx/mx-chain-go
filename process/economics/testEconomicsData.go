@@ -6,12 +6,12 @@ import "math/big"
 // that are not supposed to be used in production code
 // Exported functions simplify the reproduction of edge cases
 type TestEconomicsData struct {
-	*data
+	*economicsData
 }
 
 // NewTestEconomicsData -
-func NewTestEconomicsData(internalData *data) *TestEconomicsData {
-	return &TestEconomicsData{data: internalData}
+func NewTestEconomicsData(internalData *economicsData) *TestEconomicsData {
+	return &TestEconomicsData{economicsData: internalData}
 }
 
 // SetMaxGasLimitPerBlock sets the maximum gas limit allowed per one block

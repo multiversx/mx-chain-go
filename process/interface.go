@@ -47,7 +47,7 @@ type SmartContractResultProcessor interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) TransactionType
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
 	IsInterfaceNil() bool
 }
 
@@ -558,6 +558,7 @@ type FeeHandler interface {
 	ComputeMoveBalanceFee(tx TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx TransactionWithFeeHandler) error
+	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
 	IsInterfaceNil() bool
@@ -581,6 +582,7 @@ type EconomicsDataHandler interface {
 	GasPerDataByte() uint64
 	MinGasLimit() uint64
 	GenesisTotalSupply() *big.Int
+	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	IsInterfaceNil() bool
 }
 

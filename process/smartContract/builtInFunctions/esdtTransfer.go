@@ -99,6 +99,8 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
+	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2
+
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
 		mustVerifyPayable := vmInput.CallType != vmcommon.AsynchronousCallBack && !bytes.Equal(vmInput.CallerAddr, vm.ESDTSCAddress)
@@ -117,7 +119,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			return nil, err
 		}
 
-		if core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2 {
+		if isSCCallAfter {
 			var callArgs [][]byte
 			if len(vmInput.Arguments) > 3 {
 				callArgs = vmInput.Arguments[3:]
@@ -142,6 +144,10 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
 			vmOutput)
+	}
+
+	if isSCCallAfter {
+		vmOutput.GasRemaining = 0
 	}
 
 	return vmOutput, nil

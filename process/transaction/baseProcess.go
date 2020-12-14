@@ -110,6 +110,7 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserA
 func (txProc *baseTxProcessor) checkTxValues(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.UserAccountHandler,
+	isUserTxOfRelayed bool,
 ) error {
 	err := txProc.checkUserNames(tx, acntSnd, acntDst)
 	if err != nil {
@@ -137,7 +138,16 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrWrongTypeAssertion
 	}
 
-	txFee := txProc.economicsFee.ComputeTxFee(tx)
+	txFee := big.NewInt(0)
+	if isUserTxOfRelayed {
+		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
+			return process.ErrNotEnoughGasInUserTx
+		}
+		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+	} else {
+		txFee = txProc.economicsFee.ComputeTxFee(tx)
+	}
+
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -146,7 +156,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		)
 	}
 
-	cost := big.NewInt(0).Add(core.SafeMul(tx.GasLimit, tx.GasPrice), tx.Value)
+	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if stAcc.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
