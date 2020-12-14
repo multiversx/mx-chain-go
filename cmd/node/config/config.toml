@@ -12,13 +12,13 @@
    StartInEpochEnabled = true
 
    # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-   SCDeployEnableEpoch = 1
+   SCDeployEnableEpoch = 2
 
    # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-   BuiltInFunctionsEnableEpoch = 1
+   BuiltInFunctionsEnableEpoch = 2
 
    # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-   RelayedTransactionsEnableEpoch = 1
+   RelayedTransactionsEnableEpoch = 2
 
    # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
    PenalizedTooMuchGasEnableEpoch = 1
@@ -35,19 +35,19 @@
 
     # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
     # signed with the hash of transaction
-    TransactionSignedWithTxHashEnableEpoch = 1
+    TransactionSignedWithTxHashEnableEpoch = 2
 
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-   MetaProtectionEnableEpoch = 1
+   MetaProtectionEnableEpoch = 2
 
    # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-   AheadOfTimeGasUsageEnableEpoch = 1
+   AheadOfTimeGasUsageEnableEpoch = 2
 
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 2, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
