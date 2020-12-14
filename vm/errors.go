@@ -119,6 +119,9 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
+// ErrInvalidNumberOfDecimals signals that an invalid number of decimals has been provided
+var ErrInvalidNumberOfDecimals = errors.New("invalid number of decimals")
+
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 

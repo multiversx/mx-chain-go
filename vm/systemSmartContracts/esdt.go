@@ -4,6 +4,7 @@ package systemSmartContracts
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -25,6 +26,8 @@ const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
 const minLengthForTokenName = 10
 const maxLengthForTokenName = 20
+const minNumberOfDecimals = 0
+const maxNumberOfDecimals = 18
 const configKeyPrefix = "esdtConfig"
 const allIssuedTokens = "allIssuedTokens"
 const burnable = "canBurn"
@@ -168,7 +171,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) < 3 {
+	if len(args.Arguments) < 4 {
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.FunctionWrongSignature
 	}
@@ -254,6 +257,8 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 }
 
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
+	// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
+
 	tokenName := arguments[0]
 	if !isTokenNameHumanReadable(tokenName) {
 		return vm.ErrTokenNameNotHumanReadable
@@ -269,6 +274,16 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		return vm.ErrNegativeOrZeroInitialSupply
 	}
 
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(arguments[3]).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		return fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		)
+	}
+
 	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return err
@@ -278,11 +293,12 @@ func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
 		OwnerAddress: owner,
 		TokenName:    tokenName,
 		TickerName:   tickerName,
+		NumDecimals:  numOfDecimals,
 		MintedValue:  initialSupply,
 		BurntValue:   big.NewInt(0),
 		Upgradable:   true,
 	}
-	err = upgradeProperties(newESDTToken, arguments[3:])
+	err = upgradeProperties(newESDTToken, arguments[4:])
 	if err != nil {
 		return err
 	}
@@ -657,6 +673,7 @@ func (e *esdt) getTokenProperties(args *vmcommon.ContractCallInput) vmcommon.Ret
 	e.eei.Finish(esdtToken.OwnerAddress)
 	e.eei.Finish([]byte(esdtToken.MintedValue.String()))
 	e.eei.Finish([]byte(esdtToken.BurntValue.String()))
+	e.eei.Finish([]byte(fmt.Sprintf("NumDecimals-%d", esdtToken.NumDecimals)))
 	e.eei.Finish([]byte("IsPaused-" + getStringFromBool(esdtToken.IsPaused)))
 	e.eei.Finish([]byte("CanUpgrade-" + getStringFromBool(esdtToken.Upgradable)))
 	e.eei.Finish([]byte("CanMint-" + getStringFromBool(esdtToken.Mintable)))

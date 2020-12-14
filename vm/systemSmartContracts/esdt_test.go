@@ -158,6 +158,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
 	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(100).Bytes())
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(10).Bytes())
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)
@@ -171,6 +172,44 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	vmInput = getDefaultVmInputForFunc("getAllESDTTokens", [][]byte{})
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  []byte("addr"),
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issue",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(100).Bytes())
+	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(25).Bytes())
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
 }
 
 func TestEsdt_ExecuteNilArgsShouldErr(t *testing.T) {
@@ -2054,7 +2093,7 @@ func TestEsdt_ExecuteEsdtControlChangesSavesTokenWithUpgradedPropreties(t *testi
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	assert.Equal(t, 12, len(eei.output))
+	assert.Equal(t, 13, len(eei.output))
 	assert.Equal(t, []byte("esdtToken"), eei.output[0])
 	assert.Equal(t, vmInput.CallerAddr, eei.output[1])
 }
