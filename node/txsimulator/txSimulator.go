@@ -57,15 +57,15 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*transaction.SimulationResults, error) {
 	txStatus := transaction.TxStatusPending
 	failReason := ""
-	// TODO check return code also here, 0, error -> TxStatusSuccess and failReason not nil!
+
 	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		failReason = err.Error()
 		txStatus = transaction.TxStatusFail
-	}
-
-	if retCode == vmcommon.Ok {
-		txStatus = transaction.TxStatusSuccess
+	} else {
+		if retCode == vmcommon.Ok {
+			txStatus = transaction.TxStatusSuccess
+		}
 	}
 
 	results := &transaction.SimulationResults{

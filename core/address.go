@@ -40,7 +40,6 @@ func IsSmartContractAddress(rcvAddress []byte) bool {
 		return true
 	}
 
-	//TODO: check how a normal address with 8 leading zeroes influences everything
 	numOfZeros := NumInitCharactersForScAddress - VMTypeLen
 	isSCAddress := bytes.Equal(rcvAddress[:numOfZeros], make([]byte, numOfZeros))
 	return isSCAddress
