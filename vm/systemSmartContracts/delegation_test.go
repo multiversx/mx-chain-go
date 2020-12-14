@@ -993,6 +993,9 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	assert.Equal(t, 2, len(dStatus.StakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	vmOutput := eei.CreateVMOutput()
+	assert.Equal(t, len(vmOutput.OutputAccounts), 4)
 }
 
 func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
