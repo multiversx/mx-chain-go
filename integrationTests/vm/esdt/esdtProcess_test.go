@@ -167,8 +167,13 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	ticker := "RBT"
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
+	numDecimals := []byte{6}
 	hexEncodedTrue := hex.EncodeToString([]byte("true"))
-	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte(ticker)) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte("robertWhyNot")) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString(numDecimals)
 	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
