@@ -91,7 +91,7 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
+	gasLimit := uint64(0xfffffffffffffff)
 
 	scCode := arwen.GetSCCode(wasmFilename)
 
@@ -143,7 +143,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		CallerAddr:  nil,
 		CallValue:   big.NewInt(0),
 		GasPrice:    uint64(0),
-		GasProvided: uint64(0xffffffffffffffff),
+		GasProvided: uint64(0xfffffffffffffff),
 		Arguments:   arguments,
 		CallType:    vmcommon.DirectCall,
 	}

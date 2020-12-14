@@ -50,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -134,7 +133,7 @@ type processComponentsFactoryArgs struct {
 	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             *economics.EconomicsData
+	economicsData             process.EconomicsDataHandler
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
@@ -184,7 +183,7 @@ func NewProcessComponentsFactoryArgs(
 	coreComponents *mainFactory.CoreComponentsFactoryArgs,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
-	economicsData *economics.EconomicsData,
+	economicsData process.EconomicsDataHandler,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule core.GasScheduleNotifier,
 	rounder consensus.Rounder,
@@ -836,7 +835,7 @@ func newInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1100,7 +1099,7 @@ func newShardInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1162,7 +1161,7 @@ func newMetaInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	network *mainFactory.NetworkComponents,
 	state *mainFactory.StateComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1496,7 +1495,7 @@ func newShardBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
@@ -1813,7 +1812,7 @@ func newMetaBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	economicsData *economics.EconomicsData,
+	economicsData process.EconomicsDataHandler,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,

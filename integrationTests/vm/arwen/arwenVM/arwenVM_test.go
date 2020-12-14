@@ -63,8 +63,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999670)
-	fmt.Printf("%s \n", hex.EncodeToString(expectedBalance.Bytes()))
+	expectedBalance := big.NewInt(99999101)
 
 	vm.TestAccount(
 		t,
@@ -78,7 +77,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(100000000)
-	gasPrice := uint64(0)
+	gasPrice := uint64(1)
 	gasLimit := uint64(100000)
 	transferOnCalls := big.NewInt(50)
 
@@ -108,7 +107,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+1,
-		big.NewInt(0).Set(ownerBalance))
+		big.NewInt(0).Sub(ownerBalance, big.NewInt(1)))
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -131,21 +130,19 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := ownerBalance.Uint64() - transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+2,
-		big.NewInt(0).SetUint64(expectedBalance))
+		big.NewInt(99999100))
 
-	expectedBalance = transferOnCalls.Uint64()
 	vm.TestAccount(
 		t,
 		testContext.Accounts,
 		scAddressBytes,
 		0,
-		big.NewInt(0).SetUint64(expectedBalance))
+		transferOnCalls)
 }
 
 func TestWASMMetering(t *testing.T) {
@@ -154,7 +151,7 @@ func TestWASMMetering(t *testing.T) {
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
+	gasLimit := uint64(0xfffffffffffffff)
 	transferOnCalls := big.NewInt(1)
 
 	scCode := arwen.GetSCCode("../testdata/misc/cpucalculate_arwen/output/cpucalculate.wasm")
@@ -206,7 +203,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	expectedBalance := big.NewInt(2998094)
+	expectedBalance := big.NewInt(2998081)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -220,7 +217,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 1891, int(consumedGasValue))
+	require.Equal(t, 1904, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
@@ -255,7 +252,7 @@ func deployAndExecuteERC20WithBigInt(
 ) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(10000000000000)
+	ownerBalance := big.NewInt(1000000000000000)
 	gasPrice := uint64(1)
 	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
@@ -284,10 +281,10 @@ func deployAndExecuteERC20WithBigInt(
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
 	bob := []byte("12345678901234567890123456789222")
-	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(1000000))
+	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
 	initAlice := big.NewInt(100000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)

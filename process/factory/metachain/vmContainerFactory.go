@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/containers"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -29,7 +28,7 @@ type vmContainerFactory struct {
 	blockChainHookImpl  *hooks.BlockChainHookImpl
 	cryptoHook          vmcommon.CryptoHook
 	systemContracts     vm.SystemSCContainer
-	economics           *economics.EconomicsData
+	economics           process.EconomicsDataHandler
 	messageSigVerifier  vm.MessageSignVerifier
 	nodesConfigProvider vm.NodesConfigProvider
 	gasSchedule         core.GasScheduleNotifier
@@ -42,7 +41,7 @@ type vmContainerFactory struct {
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
 func NewVMContainerFactory(
 	argBlockChainHook hooks.ArgBlockChainHook,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	messageSignVerifier vm.MessageSignVerifier,
 	gasSchedule core.GasScheduleNotifier,
 	nodesConfigProvider vm.NodesConfigProvider,

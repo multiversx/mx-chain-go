@@ -132,7 +132,7 @@ var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(Test
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
 
 // MinTxGasPrice defines minimum gas price required by a transaction
-var MinTxGasPrice = uint64(10)
+var MinTxGasPrice = uint64(100)
 
 // MinTxGasLimit defines minimum gas limit required by a transaction
 var MinTxGasLimit = uint64(1000)
@@ -467,7 +467,7 @@ func NewTestProcessorNodeWithFullGenesis(
 		tpn.Storage,
 		tpn.BlockChain,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
+		tpn.EconomicsData,
 		accountParser,
 		smartContractParser,
 	)
@@ -611,7 +611,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 		TestHasher,
 		TestUint64Converter,
 		tpn.DataPool,
-		tpn.EconomicsData.EconomicsData,
+		tpn.EconomicsData,
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
@@ -681,21 +681,6 @@ func (tpn *TestProcessorNode) initChainHandler() {
 }
 
 func (tpn *TestProcessorNode) initEconomicsData() {
-	economicsData := CreateEconomicsData()
-
-	tpn.EconomicsData = &economics.TestEconomicsData{
-		EconomicsData: economicsData,
-	}
-}
-
-func (tpn *TestProcessorNode) initRatingsData() {
-	if tpn.RatingsData == nil {
-		tpn.RatingsData = CreateRatingsData()
-	}
-}
-
-// CreateEconomicsData creates a mock EconomicsData object
-func CreateEconomicsData() *economics.EconomicsData {
 	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
 	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
 	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
@@ -723,14 +708,20 @@ func CreateEconomicsData() *economics.EconomicsData {
 				MinGasPrice:             minGasPrice,
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        0.01,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
-	return economicsData
+	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
+}
+
+func (tpn *TestProcessorNode) initRatingsData() {
+	if tpn.RatingsData == nil {
+		tpn.RatingsData = CreateRatingsData()
+	}
 }
 
 // CreateRatingsData creates a mock RatingsData object
@@ -1239,7 +1230,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 
 	vmFactory, _ := metaProcess.NewVMContainerFactory(
 		argsHook,
-		tpn.EconomicsData.EconomicsData,
+		tpn.EconomicsData,
 		signVerifier,
 		gasSchedule,
 		tpn.NodesSetup,
@@ -1343,7 +1334,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		scProcessor,
-		tpn.EconomicsData.EconomicsData,
+		tpn.EconomicsData,
 		tpn.GasHandler,
 		tpn.BlockTracker,
 		TestAddressPubkeyConverter,
@@ -1727,7 +1718,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 2
+	maxTime := time.Second * 20000
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)
