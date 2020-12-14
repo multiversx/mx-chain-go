@@ -268,7 +268,6 @@ func (host *vmContext) copyFromContext(currContext *vmContext) {
 		}
 	}
 
-	host.outputAccounts = currContext.outputAccounts
 	for _, outAcc := range currContext.outputAccounts {
 		leftAccount, exist := host.outputAccounts[string(outAcc.Address)]
 		if !exist {
