@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -36,7 +38,7 @@ func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestStakingDataProvider_GPrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
+func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	numCall := 0
@@ -225,6 +227,43 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
+	nbShards := uint32(3)
+	nbEligible := make(map[uint32]uint32)
+	nbWaiting := make(map[uint32]uint32)
+	nbLeaving := make(map[uint32]uint32)
+	nbInactive := make(map[uint32]uint32)
+
+	nbEligible[core.MetachainShardId] = 7
+	nbWaiting[core.MetachainShardId] = 1
+	nbLeaving[core.MetachainShardId] = 0
+	nbInactive[core.MetachainShardId] = 0
+
+	nbEligible[0] = 6
+	nbWaiting[0] = 2
+	nbLeaving[0] = 1
+	nbInactive[0] = 0
+
+	nbEligible[1] = 7
+	nbWaiting[1] = 1
+	nbLeaving[1] = 1
+	nbInactive[1] = 1
+
+	nbEligible[2] = 7
+	nbWaiting[2] = 2
+	nbLeaving[2] = 0
+	nbInactive[2] = 0
+
+	valInfo := createValidatorsInfo(nbShards, nbEligible, nbWaiting, nbLeaving, nbInactive)
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	require.NotNil(t, sdp)
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+	require.Zero(t, len(keysToUnStake))
+	require.Zero(t, len(ownersWithNotEnoughFunds))
+}
+
 func createStakingDataProviderWithMockArgs(
 	t *testing.T,
 	owner []byte,
@@ -290,4 +329,111 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 
 	_, err := accountsDB.Commit()
 	require.Nil(t, err)
+}
+
+func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
+	args, _ := createFullArgumentsForSystemSCProcessing(1)
+	args.StakingV2EnableEpoch = 0
+	args.EpochNotifier.CheckEpoch(1)
+	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
+	args.StakingDataProvider = sdp
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
+
+	for _, valsList := range validatorsInfo {
+		for _, valInfo := range valsList {
+			stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
+			if valInfo.List != string(core.LeavingList) && valInfo.List != string(core.InactiveList) {
+				doStake(t, s.systemVM, s.userAccountsDB, valInfo.RewardAddress, stake, valInfo.PublicKey)
+			}
+			updateCache(sdp, valInfo.RewardAddress, valInfo.PublicKey, valInfo.List, stake)
+		}
+	}
+
+	return sdp
+}
+
+func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, list string, stake *big.Int) {
+	owner := sdp.cache[string(ownerAddress)]
+
+	if owner == nil {
+		owner = &ownerStats{
+			numEligible:        0,
+			numStakedNodes:     0,
+			topUpValue:         big.NewInt(0),
+			totalStaked:        big.NewInt(0),
+			eligibleBaseStake:  big.NewInt(0),
+			eligibleTopUpStake: big.NewInt(0),
+			topUpPerNode:       big.NewInt(0),
+			blsKeys:            nil,
+		}
+	}
+
+	owner.blsKeys = append(owner.blsKeys, blsKey)
+	if list != string(core.LeavingList) && list != string(core.InactiveList) {
+		if list == string(core.EligibleList) {
+			owner.numEligible++
+		}
+		owner.numStakedNodes++
+		owner.totalStaked = owner.totalStaked.Add(owner.totalStaked, stake)
+	}
+
+	sdp.cache[string(ownerAddress)] = owner
+}
+
+func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbInactive map[uint32]uint32) map[uint32][]*state.ValidatorInfo {
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	shardMap := shardsMap(nbShards)
+
+	for shardID := range shardMap {
+		valInfoList := make([]*state.ValidatorInfo, 0)
+		for eligible := uint32(0); eligible < nbEligible[shardID]; eligible++ {
+			vInfo := &state.ValidatorInfo{
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.EligibleList, shardID, eligible)),
+				ShardId:       shardID,
+				List:          string(core.EligibleList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.EligibleList, shardID, eligible)),
+			}
+			valInfoList = append(valInfoList, vInfo)
+		}
+		for waiting := uint32(0); waiting < nbWaiting[shardID]; waiting++ {
+			vInfo := &state.ValidatorInfo{
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.WaitingList, shardID, waiting)),
+				ShardId:       shardID,
+				List:          string(core.WaitingList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.WaitingList, shardID, waiting)),
+			}
+			valInfoList = append(valInfoList, vInfo)
+		}
+		for leaving := uint32(0); leaving < nbLeaving[shardID]; leaving++ {
+			vInfo := &state.ValidatorInfo{
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.LeavingList, shardID, leaving)),
+				ShardId:       shardID,
+				List:          string(core.LeavingList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.LeavingList, shardID, leaving)),
+			}
+			valInfoList = append(valInfoList, vInfo)
+		}
+
+		for inactive := uint32(0); inactive < nbInactive[shardID]; inactive++ {
+			vInfo := &state.ValidatorInfo{
+				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", core.InactiveList, shardID, inactive)),
+				ShardId:       shardID,
+				List:          string(core.InactiveList),
+				RewardAddress: []byte(fmt.Sprintf("address%s%d%d", core.InactiveList, shardID, inactive)),
+			}
+			valInfoList = append(valInfoList, vInfo)
+		}
+		validatorsInfo[shardID] = valInfoList
+	}
+	return validatorsInfo
+}
+
+func shardsMap(nbShards uint32) map[uint32]struct{} {
+	shardMap := make(map[uint32]struct{})
+	shardMap[core.MetachainShardId] = struct{}{}
+	for i := uint32(0); i < nbShards; i++ {
+		shardMap[i] = struct{}{}
+	}
+	return shardMap
 }
