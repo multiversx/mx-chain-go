@@ -894,7 +894,7 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) bool
 		return false
 	}
 
-	return function == core.BuiltInFunctionESDTTransfer
+	return function == core.BuiltInFunctionESDTTransfer || function == core.BuiltInFunctionESDTBurn
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user

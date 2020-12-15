@@ -397,9 +397,17 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 	if !token.Burnable {
+		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[1])
+		err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
 		e.eei.AddReturnMessage("token is not burnable")
-		return vmcommon.UserError
+		return vmcommon.Ok
 	}
+
 	token.BurntValue.Add(token.BurntValue, burntValue)
 
 	err = e.saveToken(args.Arguments[0], token)

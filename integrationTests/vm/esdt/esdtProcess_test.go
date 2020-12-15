@@ -159,6 +159,115 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	assert.True(t, tokenInSystemSC.IsPaused)
 }
 
+func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	///////////------- send token issue
+	ticker := "ALC"
+	issuePrice := big.NewInt(1000)
+	initalSupply := big.NewInt(10000000000)
+	tokenIssuer := nodes[0]
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
+	hexEncodedFalse := hex.EncodeToString([]byte("false"))
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte("aliceToken")) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedFalse
+	txData += properties
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
+
+	/////////------ send tx to other nodes
+	valueToSend := big.NewInt(100)
+	for _, node := range nodes[1:] {
+		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToSend.Bytes())
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
+	}
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	finalSupply := big.NewInt(0).Set(initalSupply)
+	for _, node := range nodes[1:] {
+		checkAddressHasESDTTokens(t, node.OwnAccount.Address, nodes, tokenIdenfitifer, valueToSend)
+		finalSupply.Sub(finalSupply, valueToSend)
+	}
+
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, finalSupply)
+
+	burnValue := big.NewInt(77)
+	txData = core.BuiltInFunctionESDTBurn + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(burnValue.Bytes())
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
+	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue([]byte(tokenIdenfitifer))
+	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
+	assert.True(t, tokenInSystemSC.MintedValue.Cmp(initalSupply) == 0)
+	assert.True(t, tokenInSystemSC.BurntValue.Cmp(big.NewInt(0)) == 0)
+
+	// if everything is ok, the caller should have received the amount of burnt tokens back because canBurn = false
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, finalSupply)
+}
+
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
 	_ = advertiser.Bootstrap()
@@ -266,6 +375,12 @@ func checkAddressHasESDTTokens(
 	value *big.Int,
 ) {
 	esdtData := getESDTTokenData(t, address, nodes, tokenName)
+	/* useful prints
+	fmt.Println("==================")
+	fmt.Println(fmt.Sprintf("esdt balance from sc: %s", esdtData.Value.String()))
+	fmt.Println(fmt.Sprintf("expected balance    : %s", value.String()))
+	fmt.Println("==================")
+	*/
 	assert.Equal(t, esdtData.Value.Cmp(value), 0)
 }
 
