@@ -54,3 +54,10 @@ func (txProc *txProcessor) ProcessUserTx(
 ) (vmcommon.ReturnCode, error) {
 	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, txHash)
 }
+
+func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
+	userTx *transaction.Transaction,
+	userAcc state.UserAccountHandler,
+) error {
+	return txProc.takeMoveBalanceCostOutOfUser(userTx, userAcc)
+}

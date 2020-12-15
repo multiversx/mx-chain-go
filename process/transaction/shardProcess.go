@@ -622,8 +622,9 @@ func (txProc *txProcessor) takeMoveBalanceCostOutOfUser(
 	userTx *transaction.Transaction,
 	userAcc state.UserAccountHandler,
 ) error {
-	moveBalanceCost := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
-	return userAcc.SubFromBalance(moveBalanceCost)
+	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
+	moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
+	return userAcc.SubFromBalance(moveBalanceUserFee)
 }
 
 func (txProc *txProcessor) processUserTx(

@@ -244,12 +244,16 @@ func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHa
 	return core.SafeMul(modifiedGasPrice, gasToUse)
 }
 
+func isSmartContractResult(tx process.TransactionWithFeeHandler) bool {
+	_, isSCR := tx.(*smartContractResult.SmartContractResult)
+	return isSCR
+}
+
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
 	//TODO: if flag is set, always take all the fee?
 	if ed.flagGasPriceModifier.IsSet() {
-		_, isSCR := tx.(*smartContractResult.SmartContractResult)
-		if isSCR {
+		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
 		}
 
@@ -278,9 +282,11 @@ func (ed *economicsData) CheckValidityTxValues(tx process.TransactionWithFeeHand
 		return process.ErrInsufficientGasPriceInTx
 	}
 
-	requiredGasLimit := ed.ComputeGasLimit(tx)
-	if tx.GetGasLimit() < requiredGasLimit {
-		return process.ErrInsufficientGasLimitInTx
+	if !isSmartContractResult(tx) {
+		requiredGasLimit := ed.ComputeGasLimit(tx)
+		if tx.GetGasLimit() < requiredGasLimit {
+			return process.ErrInsufficientGasLimitInTx
+		}
 	}
 
 	if tx.GetGasLimit() >= ed.maxGasLimitPerBlock {
