@@ -285,6 +285,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		return 0, err
 	}
 
+	log.Debug("unStake nodes with not enough funds", "num", len(nodesToUnStake))
 	for _, blsKey := range nodesToUnStake {
 		err = s.unStakeOneNode(blsKey, epoch)
 		if err != nil {
@@ -318,6 +319,7 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 		return err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Debug("unStakeOneNode", "returnMessage", vmOutput.ReturnMessage, "returnCode", vmOutput.ReturnCode.String())
 		return epochStart.ErrUnStakeExecuteError
 	}
 

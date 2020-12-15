@@ -547,7 +547,7 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.UserError
 	}
 	if len(args.Arguments) != 1 {
-		s.eei.AddReturnMessage("not enough arguments, needed BLS key and reward address")
+		s.eei.AddReturnMessage("not enough arguments, needed the BLS key")
 		return vmcommon.UserError
 	}
 
@@ -560,6 +560,11 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.AddReturnMessage("cannot unStake a key that is not registered")
 		return vmcommon.UserError
 	}
+	if registrationData.Jailed && !registrationData.Staked {
+		s.eei.AddReturnMessage("already unStaked at switchJailedToWaiting")
+		return vmcommon.Ok
+	}
+
 	if !registrationData.Staked {
 		s.eei.AddReturnMessage("cannot unStake node which was already unStaked")
 		return vmcommon.UserError
