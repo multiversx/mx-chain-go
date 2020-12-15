@@ -71,7 +71,11 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
 	hexEncodedTrue := hex.EncodeToString([]byte("true"))
-	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte(ticker)) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte("robertWhyNot")) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
 	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +

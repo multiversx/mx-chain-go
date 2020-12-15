@@ -256,9 +256,8 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
+// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
 func (e *esdt) issueToken(owner []byte, arguments [][]byte) error {
-	// format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
-
 	tokenName := arguments[0]
 	if !isTokenNameHumanReadable(tokenName) {
 		return vm.ErrTokenNameNotHumanReadable
