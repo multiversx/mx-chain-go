@@ -44,7 +44,16 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 	return nil
 }
 
+func isSmartContractResult(tx data.TransactionHandler) bool {
+	_, isScr := tx.(*smartContractResult.SmartContractResult)
+	return isScr
+}
+
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
+	if sc.flagDeploy.IsSet() && isSmartContractResult(tx) {
+		return tx.GetGasLimit(), nil
+	}
+
 	if sc.shardCoordinator.ComputeId(tx.GetSndAddr()) == core.MetachainShardId {
 		return tx.GetGasLimit(), nil
 	}
@@ -98,7 +107,14 @@ func (sc *scProcessor) createVMCallInput(
 	}
 
 	vmCallInput.VMInput.Arguments = finalArguments
-	vmCallInput.GasProvided = vmCallInput.GasProvided - gasLocked
+	if vmCallInput.GasProvided > tx.GetGasLimit() {
+		return nil, process.ErrInvalidVMInputGasComputation
+	}
+
+	vmCallInput.GasProvided, err = safeSubUint64(vmCallInput.GasProvided, gasLocked)
+	if err != nil {
+		return nil, err
+	}
 
 	return vmCallInput, nil
 }

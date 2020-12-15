@@ -1841,7 +1841,20 @@ func newMetaBlockProcessor(
 	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}), // no dns for meta
+		Marshalizer:     core.InternalMarshalizer,
+		Accounts:        stateComponents.AccountsAdapter,
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           stateComponents.AccountsAdapter,
 		PubkeyConv:         stateComponents.AddressPubkeyConverter,
@@ -1850,7 +1863,7 @@ func newMetaBlockProcessor(
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        core.InternalMarshalizer,
 		Uint64Converter:    core.Uint64ByteSliceConverter,
-		BuiltInFunctions:   builtInFuncs, // no built-in functions for meta.
+		BuiltInFunctions:   builtInFuncs,
 		DataPool:           data.Datapool,
 		CompiledSCPool:     data.Datapool.SmartContracts(),
 		ConfigSCStorage:    generalConfig.SmartContractsStorage,
