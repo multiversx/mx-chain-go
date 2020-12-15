@@ -502,8 +502,7 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	if len(args) != 1 {
-		//TODO: check if ok if the relayerAcnt is nil, not in the current shard, the transaction will fail with UserError and nil error
-		//any executingFailedTransaction will actually return nil as error if senderAccount is nil
+		// TODO: executingFailedTransaction can return no error if not in the sender account, is it ok nil error here?
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
