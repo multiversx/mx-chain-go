@@ -43,3 +43,10 @@ func (txProc *baseTxProcessor) IsCrossTxFromMe(adrSrc, adrDst []byte) bool {
 func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
 	txProc.penalizedTooMuchGasEnableEpoch = epoch
 }
+
+func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
+	userTx *transaction.Transaction,
+	userAcc state.UserAccountHandler,
+) error {
+	return txProc.takeMoveBalanceCostOutOfUser(userTx, userAcc)
+}
