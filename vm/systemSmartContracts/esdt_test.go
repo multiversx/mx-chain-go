@@ -368,7 +368,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
 }
 
-func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldFail(t *testing.T) {
+func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldWorkAndReturnBurntTokens(t *testing.T) {
 	t.Parallel()
 
 	tokenName := []byte("esdtToken")
@@ -388,12 +388,17 @@ func TestEsdt_ExecuteBurnOnNonBurnableTokenShouldFail(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
+	burnValue := []byte{100}
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{tokenName, {100}})
+	vmInput := getDefaultVmInputForFunc(core.BuiltInFunctionESDTBurn, [][]byte{tokenName, burnValue})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "token is not burnable"))
+
+	outputTransfer := eei.outputAccounts["owner"].OutputTransfers[0]
+	expectedReturnData := []byte(core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenName) + "@" + hex.EncodeToString(burnValue))
+	assert.Equal(t, expectedReturnData, outputTransfer.Data)
 }
 
 func TestEsdt_ExecuteBurn(t *testing.T) {

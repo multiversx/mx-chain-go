@@ -2,6 +2,7 @@ package esdt
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -375,13 +376,9 @@ func checkAddressHasESDTTokens(
 	value *big.Int,
 ) {
 	esdtData := getESDTTokenData(t, address, nodes, tokenName)
-	/* useful prints
-	fmt.Println("==================")
-	fmt.Println(fmt.Sprintf("esdt balance from sc: %s", esdtData.Value.String()))
-	fmt.Println(fmt.Sprintf("expected balance    : %s", value.String()))
-	fmt.Println("==================")
-	*/
-	assert.Equal(t, esdtData.Value.Cmp(value), 0)
+	if esdtData.Value.Cmp(value) != 0 {
+		assert.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", esdtData.Value.String(), value.String()))
+	}
 }
 
 func getUserAccountWithAddress(
