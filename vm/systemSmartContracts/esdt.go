@@ -41,29 +41,31 @@ const upgradable = "canUpgrade"
 const conversionBase = 10
 
 type esdt struct {
-	eei                 vm.SystemEI
-	gasCost             vm.GasCost
-	baseIssuingCost     *big.Int
-	ownerAddress        []byte
-	eSDTSCAddress       []byte
-	endOfEpochSCAddress []byte
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	enabledEpoch        uint32
-	flagEnabled         atomic.Flag
-	mutExecution        sync.RWMutex
+	eei                    vm.SystemEI
+	gasCost                vm.GasCost
+	baseIssuingCost        *big.Int
+	ownerAddress           []byte
+	eSDTSCAddress          []byte
+	endOfEpochSCAddress    []byte
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	enabledEpoch           uint32
+	flagEnabled            atomic.Flag
+	mutExecution           sync.RWMutex
+	addressPubKeyConverter core.PubkeyConverter
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
 type ArgsNewESDTSmartContract struct {
-	Eei                 vm.SystemEI
-	GasCost             vm.GasCost
-	ESDTSCConfig        config.ESDTSystemSCConfig
-	ESDTSCAddress       []byte
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	EpochNotifier       vm.EpochNotifier
-	EndOfEpochSCAddress []byte
+	Eei                    vm.SystemEI
+	GasCost                vm.GasCost
+	ESDTSCConfig           config.ESDTSystemSCConfig
+	ESDTSCAddress          []byte
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	EpochNotifier          vm.EpochNotifier
+	EndOfEpochSCAddress    []byte
+	AddressPubKeyConverter core.PubkeyConverter
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -80,6 +82,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, vm.ErrNilAddressPubKeyConverter
+	}
 
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
@@ -87,15 +92,16 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 
 	e := &esdt{
-		eei:                 args.Eei,
-		gasCost:             args.GasCost,
-		baseIssuingCost:     baseIssuingCost,
-		ownerAddress:        []byte(args.ESDTSCConfig.OwnerAddress),
-		eSDTSCAddress:       args.ESDTSCAddress,
-		hasher:              args.Hasher,
-		marshalizer:         args.Marshalizer,
-		enabledEpoch:        args.ESDTSCConfig.EnabledEpoch,
-		endOfEpochSCAddress: args.EndOfEpochSCAddress,
+		eei:                    args.Eei,
+		gasCost:                args.GasCost,
+		baseIssuingCost:        baseIssuingCost,
+		ownerAddress:           []byte(args.ESDTSCConfig.OwnerAddress),
+		eSDTSCAddress:          args.ESDTSCAddress,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		enabledEpoch:           args.ESDTSCConfig.EnabledEpoch,
+		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
+		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
 	args.EpochNotifier.RegisterNotifyHandler(e)
 
@@ -470,6 +476,12 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 		return vmcommon.UserError
 	}
 
+	isFreezeAddressOk := e.checkIfValidBech32Address(args.Arguments[1])
+	if !isFreezeAddressOk {
+		e.eei.AddReturnMessage("invalid address to freeze/unfreeze")
+		return vmcommon.UserError
+	}
+
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
 	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
@@ -833,6 +845,17 @@ func (e *esdt) SetNewGasCost(gasCost vm.GasCost) {
 	e.mutExecution.Lock()
 	e.gasCost = gasCost
 	e.mutExecution.Unlock()
+}
+
+func (e *esdt) checkIfValidBech32Address(addressBytes []byte) bool {
+	isLengthOk := len(addressBytes) == e.addressPubKeyConverter.Len()
+	if !isLengthOk {
+		return false
+	}
+
+	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
+
+	return encodedAddress != ""
 }
 
 // IsInterfaceNil returns true if underlying object is nil

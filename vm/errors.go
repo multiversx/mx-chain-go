@@ -188,6 +188,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 
+// ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
+var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
+
 // ErrNoTickerWithGivenName signals that ticker does not exists with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
 

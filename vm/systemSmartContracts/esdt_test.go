@@ -2,6 +2,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -25,10 +27,11 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		ESDTSCConfig: config.ESDTSystemSCConfig{
 			BaseIssuingCost: "1000",
 		},
-		ESDTSCAddress: []byte("address"),
-		Marshalizer:   &mock.MarshalizerMock{},
-		Hasher:        &mock.HasherMock{},
-		EpochNotifier: &mock.EpochNotifierStub{},
+		ESDTSCAddress:          []byte("address"),
+		Marshalizer:            &mock.MarshalizerMock{},
+		Hasher:                 &mock.HasherMock{},
+		EpochNotifier:          &mock.EpochNotifierStub{},
+		AddressPubKeyConverter: mock.NewPubkeyConverterMock(32),
 	}
 }
 
@@ -103,6 +106,17 @@ func TestNewESDTSmartContract_NilEpochNotifierShouldErr(t *testing.T) {
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
 	assert.Equal(t, vm.ErrNilEpochNotifier, err)
+}
+
+func TestNewESDTSmartContract_NilPubKeyConverterShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.AddressPubKeyConverter = nil
+
+	e, err := NewESDTSmartContract(args)
+	assert.Nil(t, e)
+	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
 }
 
 func TestNewESDTSmartContract_BaseIssuingCostLessThanZeroShouldErr(t *testing.T) {
@@ -981,10 +995,100 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	}
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), []byte("owner")})
+	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	args.AddressPubKeyConverter = bech32C
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanFreeze:    true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	addressToFreezeBech32 := "erd158tgst07d6rt93td6nh5cd2mmpfhtp7hr24l4wfgtlggqpnp6kjsnpvdqj"
+	addressToFreeze, err := bech32C.Decode(addressToFreezeBech32)
+	assert.NoError(t, err)
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{tokenName, addressToFreeze})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmOutput := eei.CreateVMOutput()
+	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
+	assert.True(t, accCreated)
+
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToFreeze)]
+	assert.True(t, accCreated)
+
+	assert.True(t, len(destAcc.OutputTransfers) == 1)
+	outputTransfer := destAcc.OutputTransfers[0]
+
+	assert.Equal(t, big.NewInt(0), outputTransfer.Value)
+	assert.Equal(t, uint64(0), outputTransfer.GasLimit)
+	expectedInput := core.BuiltInFunctionESDTFreeze + "@" + hex.EncodeToString(tokenName)
+	assert.Equal(t, []byte(expectedInput), outputTransfer.Data)
+	assert.Equal(t, vmcommon.DirectCall, outputTransfer.CallType)
+}
+
+func TestEsdt_ExecuteToggleFreezeShouldFailWithBech32Converter(t *testing.T) {
+	t.Parallel()
+
+	owner := []byte("owner")
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	bech32C, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	args.AddressPubKeyConverter = bech32C
+
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTData{
+		TokenName:    tokenName,
+		OwnerAddress: owner,
+		CanFreeze:    true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	addressToFreeze := []byte("not a bech32 address")
+
+	e, _ := NewESDTSmartContract(args)
+	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{tokenName, addressToFreeze})
+
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid address to freeze/unfreeze"))
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
@@ -1010,8 +1114,10 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
+	addressToFreeze := getAddress()
+
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{tokenName, owner})
+	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{tokenName, addressToFreeze})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -1020,7 +1126,7 @@ func TestEsdt_ExecuteToggleFreezeShouldWork(t *testing.T) {
 	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
 	assert.True(t, accCreated)
 
-	destAcc, accCreated := vmOutput.OutputAccounts[string(owner)]
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToFreeze)]
 	assert.True(t, accCreated)
 
 	assert.True(t, len(destAcc.OutputTransfers) == 1)
@@ -1056,8 +1162,10 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = tokensMap
 	args.Eei = eei
 
+	addressToUnfreeze := getAddress()
+
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("unFreeze", [][]byte{tokenName, owner})
+	vmInput := getDefaultVmInputForFunc("unFreeze", [][]byte{tokenName, addressToUnfreeze})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -1066,7 +1174,7 @@ func TestEsdt_ExecuteToggleUnFreezeShouldWork(t *testing.T) {
 	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
 	assert.True(t, accCreated)
 
-	destAcc, accCreated := vmOutput.OutputAccounts[string(owner)]
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToUnfreeze)]
 	assert.True(t, accCreated)
 
 	assert.True(t, len(destAcc.OutputTransfers) == 1)
@@ -2163,4 +2271,10 @@ func TestEsdt_ExecuteClaim(t *testing.T) {
 
 	receiver := eei.outputAccounts[string(vmInput.CallerAddr)]
 	assert.True(t, receiver.BalanceDelta.Cmp(big.NewInt(100)) == 0)
+}
+
+func getAddress() []byte {
+	key := make([]byte, 32)
+	_, _ = rand.Read(key)
+	return key
 }
