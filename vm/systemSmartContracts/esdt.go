@@ -484,8 +484,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 		return vmcommon.UserError
 	}
 
-	isFreezeAddressOk := e.checkIfValidBech32Address(args.Arguments[1])
-	if !isFreezeAddressOk {
+	if !e.isAddressValid(args.Arguments[1]) {
 		e.eei.AddReturnMessage("invalid address to freeze/unfreeze")
 		return vmcommon.UserError
 	}
@@ -513,8 +512,8 @@ func (e *esdt) wipe(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage("cannot wipe")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("invalid arguments")
+	if !e.isAddressValid(args.Arguments[1]) {
+		e.eei.AddReturnMessage("invalid address to wipe")
 		return vmcommon.UserError
 	}
 
@@ -752,8 +751,8 @@ func (e *esdt) transferOwnership(args *vmcommon.ContractCallInput) vmcommon.Retu
 		e.eei.AddReturnMessage("cannot change owner of the token")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[1]) != len(args.CallerAddr) {
-		e.eei.AddReturnMessage("destination address of invalid length")
+	if !e.isAddressValid(args.Arguments[1]) {
+		e.eei.AddReturnMessage("destination address is invalid")
 		return vmcommon.UserError
 	}
 
@@ -855,7 +854,7 @@ func (e *esdt) SetNewGasCost(gasCost vm.GasCost) {
 	e.mutExecution.Unlock()
 }
 
-func (e *esdt) checkIfValidBech32Address(addressBytes []byte) bool {
+func (e *esdt) isAddressValid(addressBytes []byte) bool {
 	isLengthOk := len(addressBytes) == e.addressPubKeyConverter.Len()
 	if !isLengthOk {
 		return false

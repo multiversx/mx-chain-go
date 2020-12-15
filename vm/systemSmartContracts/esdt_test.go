@@ -1359,7 +1359,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid arguments"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
 func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
@@ -1382,7 +1382,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	}
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), []byte("owner")})
+	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -1392,6 +1392,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	owner := []byte("owner")
+	addressToWipe := getAddress()
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
 	eei, _ := NewVMContext(
@@ -1412,7 +1413,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{tokenName, owner})
+	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{tokenName, addressToWipe})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -1421,7 +1422,7 @@ func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
 	_, accCreated := vmOutput.OutputAccounts[string(args.ESDTSCAddress)]
 	assert.True(t, accCreated)
 
-	destAcc, accCreated := vmOutput.OutputAccounts[string(owner)]
+	destAcc, accCreated := vmOutput.OutputAccounts[string(addressToWipe)]
 	assert.True(t, accCreated)
 
 	assert.True(t, len(destAcc.OutputTransfers) == 1)
@@ -1964,17 +1965,17 @@ func TestEsdt_ExecuteTransferOwnershipInvalidDestinationAddressShouldFail(t *tes
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("newOwner")})
+	vmInput := getDefaultVmInputForFunc("transferOwnership", [][]byte{[]byte("esdtToken"), []byte("invalid address")})
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "destination address of invalid length"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
 func TestEsdt_ExecuteTransferOwnershipSavesTokenWithNewOwnerAddressSet(t *testing.T) {
 	t.Parallel()
 
-	newOwner := []byte("12345")
+	newOwner := getAddress()
 	tokenName := []byte("esdtToken")
 	args := createMockArgumentsForESDT()
 	eei, _ := NewVMContext(
