@@ -264,6 +264,43 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodesInternalTestingScenario(t *testing.T) {
+	nbShards := uint32(3)
+	nbEligible := make(map[uint32]uint32)
+	nbWaiting := make(map[uint32]uint32)
+	nbLeaving := make(map[uint32]uint32)
+	nbInactive := make(map[uint32]uint32)
+
+	nbEligible[core.MetachainShardId] = 7
+	nbWaiting[core.MetachainShardId] = 1
+	nbLeaving[core.MetachainShardId] = 0
+	nbInactive[core.MetachainShardId] = 0
+
+	nbEligible[0] = 6
+	nbWaiting[0] = 2
+	nbLeaving[0] = 1
+	nbInactive[0] = 0
+
+	nbEligible[1] = 7
+	nbWaiting[1] = 1
+	nbLeaving[1] = 1
+	nbInactive[1] = 1
+
+	nbEligible[2] = 7
+	nbWaiting[2] = 2
+	nbLeaving[2] = 0
+	nbInactive[2] = 0
+
+	valInfo := createValidatorsInfo(nbShards, nbEligible, nbWaiting, nbLeaving, nbInactive)
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	require.NotNil(t, sdp)
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+	require.Zero(t, len(keysToUnStake))
+	require.Zero(t, len(ownersWithNotEnoughFunds))
+}
+
 func createStakingDataProviderWithMockArgs(
 	t *testing.T,
 	owner []byte,
