@@ -1280,6 +1280,35 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	assert.True(t, called)
 }
 
+func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(1)
+		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(150)
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	acntSrc, _ := state.NewUserAccount([]byte("address"))
+	acntSrc.Balance = big.NewInt(100)
+
+	userTx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		GasPrice: 100,
+		GasLimit: 100,
+	}
+
+	err := execTx.TakeMoveBalanceCostOutOfUser(userTx, acntSrc)
+	assert.Nil(t, err)
+	assert.Equal(t, acntSrc.Balance, big.NewInt(99))
+}
+
 func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
 	t.Parallel()
 
