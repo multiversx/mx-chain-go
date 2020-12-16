@@ -13,6 +13,7 @@ type WrappedTransaction struct {
 	SenderShardID   uint32
 	ReceiverShardID uint32
 	Size            int64
+	TxFeeNormalized uint64
 }
 
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
@@ -26,13 +27,35 @@ func estimateTxGas(tx *WrappedTransaction) uint64 {
 }
 
 // estimateTxFee returns an approximation for the cost of a transaction, in nano ERD
-// TODO: switch to integer operations (as opposed to float operations).
-// TODO: do not assume the order of magnitude of minGasPrice.
-func estimateTxFee(tx *WrappedTransaction) uint64 {
-	// In order to obtain the result as nano ERD (not as "atomic" 10^-18 ERD), we have to divide by 10^9
-	// In order to have better precision, we divide the factors by 10^6, and 10^3 respectively
-	gasLimit := float32(tx.Tx.GetGasLimit()) / 1000000
-	gasPrice := float32(tx.Tx.GetGasPrice()) / 1000
-	feeInNanoERD := gasLimit * gasPrice
-	return uint64(feeInNanoERD)
+func estimateTxFee(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
+	moveGas, processGas := txGasHandler.SplitTxGasInCategories(tx.Tx)
+
+	normalizedMoveGas := moveGas >> txFeeHelper.gasLimitShift()
+	normalizedProcessGas := processGas >> txFeeHelper.gasLimitShift()
+
+	normalizedGasPriceMove := txGasHandler.GasPriceForMove(tx.Tx) >> txFeeHelper.gasPriceShift()
+	normalizedGasPriceProcess, remainingProcessingPriceShift := normalizeGasPriceProcessing(tx, txGasHandler, txFeeHelper)
+
+	normalizedFeeMove := normalizedMoveGas * normalizedGasPriceMove
+	normalizedFeeProcess := normalizedProcessGas >> remainingProcessingPriceShift * normalizedGasPriceProcess
+
+	tx.TxFeeNormalized = normalizedFeeMove + normalizedFeeProcess
+
+	return tx.TxFeeNormalized
+}
+
+func normalizeGasPriceProcessing(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) (uint64, uint64) {
+	normalizedGasPriceProcess := txGasHandler.GasPriceForProcessing(tx.Tx) >> txFeeHelper.gasPriceShift()
+	remainingProcessingPriceShift := uint64(0)
+
+	if normalizedGasPriceProcess == 0 {
+		var p uint64
+		remainingProcessingPriceShift = txFeeHelper.gasPriceShift()
+
+		for p = txGasHandler.GasPriceForProcessing(tx.Tx); p > 0; p >>= 1 {
+			remainingProcessingPriceShift--
+		}
+	}
+
+	return normalizedGasPriceProcess, remainingProcessingPriceShift
 }

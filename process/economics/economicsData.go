@@ -211,6 +211,13 @@ func (ed *economicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
+// MinGasPriceProcessing returns the minimum allowed gas price for processing
+func (ed *economicsData) MinGasPriceProcessing() uint64 {
+	priceModifier := ed.GasPriceModifier()
+
+	return uint64(float64(ed.minGasPrice) * priceModifier)
+}
+
 // GasPriceModifier will return the gas price modifier
 func (ed *economicsData) GasPriceModifier() float64 {
 	if !ed.flagGasPriceModifier.IsSet() {
@@ -231,17 +238,27 @@ func (ed *economicsData) GasPerDataByte() uint64 {
 
 // ComputeMoveBalanceFee computes the provided transaction's fee
 func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
-	return core.SafeMul(tx.GetGasPrice(), ed.ComputeGasLimit(tx))
+	return core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimit(tx))
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
 func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	gasPrice := ed.GasPriceForProcessing(tx)
+	return core.SafeMul(gasPrice, gasToUse)
+}
+
+// GasPriceForProcessing computes the price for the gas in addition to balance movement and data
+func (ed *economicsData) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
 	if !ed.flagGasPriceModifier.IsSet() {
-		return core.SafeMul(tx.GetGasPrice(), gasToUse)
+		return tx.GetGasPrice()
 	}
 
-	modifiedGasPrice := uint64(float64(tx.GetGasPrice()) * ed.gasPriceModifier)
-	return core.SafeMul(modifiedGasPrice, gasToUse)
+	return uint64(float64(tx.GetGasPrice()) * ed.gasPriceModifier)
+}
+
+// GasPriceForMove returns the gas price for transferring funds
+func (ed *economicsData) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	return tx.GetGasPrice()
 }
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
@@ -252,13 +269,12 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
 		}
 
-		gasLimitForMoveBalance := ed.ComputeGasLimit(tx)
-		moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
+		gasLimitForMoveBalance, difference := ed.SplitTxGasInCategories(tx)
+		moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
 		if tx.GetGasLimit() <= gasLimitForMoveBalance {
 			return moveBalanceFee
 		}
 
-		difference := tx.GetGasLimit() - gasLimitForMoveBalance
 		extraFee := ed.ComputeFeeForProcessing(tx, difference)
 		moveBalanceFee.Add(moveBalanceFee, extraFee)
 		return moveBalanceFee
@@ -269,6 +285,13 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 	}
 
 	return ed.ComputeMoveBalanceFee(tx)
+}
+
+// SplitTxGasInCategories returns the gas split per categories
+func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
+	gasLimitMove = ed.ComputeGasLimit(tx)
+	gasLimitProcess = tx.GetGasLimit() - gasLimitMove
+	return
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct

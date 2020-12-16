@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	 "github.com/ElrondNetwork/elrond-go/testscommon/txcache"
 )
 
 // PoolsHolderMock -
@@ -38,7 +39,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			MinGasPrice:    200000000000,
+			TxGasHandler: &txcache.TxGasHandlerMock{
+				MinimumGasMove:       50000,
+				MinimumGasPrice:      200000000000,
+				GasProcessingDivisor: 100,
+			},
 			NumberOfShards: 1,
 		},
 	)

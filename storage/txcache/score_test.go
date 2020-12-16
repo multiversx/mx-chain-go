@@ -7,7 +7,8 @@ import (
 )
 
 func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
-	computer := newDefaultScoreComputer(100)
+	_, txFeeHelper := dummyParams()
+	computer := newDefaultScoreComputer(txFeeHelper)
 
 	score := computer.computeRawScore(senderScoreParams{count: 14000, size: kBToBytes(100000), fee: toNanoERD(300), gas: 2500000000})
 	require.InDelta(t, float64(0.1789683371), score, delta)
@@ -23,7 +24,8 @@ func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
 }
 
 func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
-	computer := newDefaultScoreComputer(100)
+	_, txFeeHelper := dummyParams()
+	computer := newDefaultScoreComputer(txFeeHelper)
 
 	for i := 0; i < b.N; i++ {
 		for j := uint64(0); j < 10000000; j++ {
@@ -33,12 +35,13 @@ func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
 }
 
 func TestDefaultScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
-	computer := newDefaultScoreComputer(100)
+	txGasHandler, txFeeHelper := dummyParams()
+	computer := newDefaultScoreComputer(txFeeHelper)
 	list := newUnconstrainedListToTest()
 
-	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneBillion))
-	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneBillion))
-	list.AddTx(createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneBillion))
+	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 200000, 100*oneBillion), txGasHandler, txFeeHelper)
+	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, 100*oneBillion), txGasHandler, txFeeHelper)
+	list.AddTx(createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneBillion), txGasHandler, txFeeHelper)
 
 	require.Equal(t, uint64(3), list.countTx())
 	require.Equal(t, int64(2000), list.totalBytes.Get())
@@ -51,7 +54,8 @@ func TestDefaultScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
 }
 
 func TestDefaultScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSenderMutates(t *testing.T) {
-	computer := newDefaultScoreComputer(100)
+	txGasHandler, txFeeHelper := dummyParams()
+	computer := newDefaultScoreComputer(txFeeHelper)
 	list := newUnconstrainedListToTest()
 
 	A := createTxWithParams([]byte("A"), ".", 1, 1000, 200000, 100*oneBillion)
@@ -59,11 +63,11 @@ func TestDefaultScoreComputer_scoreFluctuatesDeterministicallyWhileTxListForSend
 	C := createTxWithParams([]byte("c"), ".", 1, 500, 100000, 100*oneBillion)
 
 	scoreNone := int(computer.computeScore(list.getScoreParams()))
-	list.AddTx(A)
+	list.AddTx(A, txGasHandler, txFeeHelper)
 	scoreA := int(computer.computeScore(list.getScoreParams()))
-	list.AddTx(B)
+	list.AddTx(B, txGasHandler, txFeeHelper)
 	scoreAB := int(computer.computeScore(list.getScoreParams()))
-	list.AddTx(C)
+	list.AddTx(C, txGasHandler, txFeeHelper)
 	scoreABC := int(computer.computeScore(list.getScoreParams()))
 
 	require.Equal(t, 0, scoreNone)

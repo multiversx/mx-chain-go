@@ -564,6 +564,17 @@ type FeeHandler interface {
 	IsInterfaceNil() bool
 }
 
+// TxGasHandler handles a transaction gas and gas cost
+type TxGasHandler interface {
+	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx TransactionWithFeeHandler) uint64
+	MinGasPrice() uint64
+	MinGasLimit() uint64
+	MinGasPriceProcessing() uint64
+	IsInterfaceNil() bool
+}
+
 // EconomicsDataHandler is able to perform economics calculations and return economics data
 type EconomicsDataHandler interface {
 	DeveloperPercentage() float64

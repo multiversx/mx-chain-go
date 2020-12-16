@@ -5,11 +5,13 @@ import (
 	"sync"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
+	_ = logger.SetLogLevel("*:DEBUG")
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -18,10 +20,11 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 20,
 		NumBytesThreshold:             maxNumBytesUpperBound,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -55,10 +58,10 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		NumBytesThreshold:             numBytesPerTx * 100,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 20,
-		MinGasPriceNanoErd:            100,
 	}
+	txGasHandler, _ := dummyParams()
 
-	cache, err := NewTxCache(config)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -90,10 +93,9 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountThreshold:                2,
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
-		MinGasPriceNanoErd:            100,
 	}
-
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -122,10 +124,10 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumBytesThreshold:             1000,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 2,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -157,10 +159,10 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 1,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -180,10 +182,10 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		NumSendersToPreemptivelyEvict: 42,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -205,10 +207,10 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 1,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
-	cache, err := NewTxCache(config)
+	txGasHandler, _ := dummyParams()
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -239,13 +241,13 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		CountPerSenderThreshold:       math.MaxUint32,
-		MinGasPriceNanoErd:            100,
 	}
 
+	txGasHandler, _ := dummyParams()
 	numSenders := 25000
 	numTxsPerSender := 10
 
-	cache, err := NewTxCache(config)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 

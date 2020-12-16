@@ -13,19 +13,18 @@ type senderScoreParams struct {
 	count uint64
 	// Size is in bytes
 	size uint64
-	// Fee is in nano ERD
+	// Fee is normalized
 	fee uint64
 	gas uint64
 }
 
 type defaultScoreComputer struct {
-	// Price is in nano ERD
-	minGasPrice uint32
+	txFeeHelper feeHelper
 }
 
-func newDefaultScoreComputer(minGasPrice uint32) *defaultScoreComputer {
+func newDefaultScoreComputer(txFeeHelper feeHelper) *defaultScoreComputer {
 	return &defaultScoreComputer{
-		minGasPrice: minGasPrice,
+		txFeeHelper: txFeeHelper,
 	}
 }
 
@@ -43,12 +42,13 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 		return 0
 	}
 
-	PPUMin := float64(computer.minGasPrice)
-	PPUAvg := float64(params.fee) / float64(params.gas)
-	PPUScore := math.Pow(PPUAvg/PPUMin, 3)
+	PPUMin := computer.txFeeHelper.minPricePerUnit()
+	PPUAvg := params.fee / params.gas
+	PPURatio := PPUAvg << 3 / PPUMin
+	PPUScore := PPURatio * PPURatio * PPURatio >> 9
 
-	countPow2 := float64(params.count) * float64(params.count)
-	countScore := math.Log(countPow2+1) + 1
+	countPow2 := params.count * params.count
+	countScore := math.Log(float64(countPow2)+1) + 1
 
 	// We use size in ~kB
 	const bytesInKB = 1000
@@ -56,7 +56,7 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	sizePow2 := size * size
 	sizeScore := math.Log(sizePow2+1) + 1
 
-	rawScore := PPUScore / countScore / sizeScore
+	rawScore := float64(PPUScore) / countScore / sizeScore
 	// We apply the logistic function,
 	// and then subtract 0.5, since we only deal with positive scores,
 	// and then we multiply by 2, to have full [0..1] range.
