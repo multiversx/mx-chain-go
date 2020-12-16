@@ -98,7 +98,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	require.Equal(t, big.NewInt(0), accumulatedFee)
 }
 
-func TestRelayedScDeployInsufficientFundsShouldConsumeGas(t *testing.T) {
+func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
