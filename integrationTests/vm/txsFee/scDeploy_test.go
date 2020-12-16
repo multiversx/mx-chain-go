@@ -39,6 +39,10 @@ func TestScDeployShouldWork(t *testing.T) {
 	// 8490 gas units the sc deploy consumed
 	expectedBalance := big.NewInt(91510)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(8490), accumulatedFee)
 }
 
 func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
@@ -70,6 +74,10 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 
 	expectedBalance := big.NewInt(90000)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(10000), accumulatedFee)
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -99,6 +107,10 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	expectedBalance := big.NewInt(0).Set(senderBalance)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFee)
 }
 
 func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
@@ -128,4 +140,8 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	expectedBalance := big.NewInt(94300)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(5700), accumulatedFee)
 }

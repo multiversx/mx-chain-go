@@ -57,6 +57,10 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 
 	// check balance inner tx receiver
 	vm.TestAccount(t, testContext.Accounts, rcvAddr, 0, big.NewInt(100))
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(2750), accumulatedFee)
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
@@ -87,6 +91,10 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 
 	expectedBalanceRelayer := big.NewInt(2724)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(276), accumulatedFee)
 }
 
 func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
@@ -117,6 +125,10 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 
 	expectedBalanceRelayer := big.NewInt(2721)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(279), accumulatedFee)
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
@@ -147,6 +159,10 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 
 	expectedBalanceRelayer := big.NewInt(2725)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(275), accumulatedFee)
 }
 
 func prepareRelayerTxData(innerTx *transaction.Transaction) []byte {

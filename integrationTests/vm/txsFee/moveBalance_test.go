@@ -36,6 +36,10 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	// 10_000 - gasPrice(10)*gasLimit(1) + gasPerDataByte(1)*gasPrice(10) = 9950
 	expectedBalance := big.NewInt(9950)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(50), accumulatedFee)
 }
 
 func TestMoveBalanceShouldWork(t *testing.T) {
@@ -74,6 +78,10 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	//verify receiver
 	expectedBalanceReceiver := big.NewInt(100)
 	vm.TestAccount(t, testContext.Accounts, rcvAddr, 0, expectedBalanceReceiver)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(50), accumulatedFee)
 }
 
 func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
@@ -100,6 +108,10 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	// check sender balance
 	expectedBalance := big.NewInt(80)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(20), accumulatedFee)
 }
 
 func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
@@ -128,6 +140,10 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 	// check sender balance
 	expectedBalance := big.NewInt(0).Set(senderBalance)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 0, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFee)
 }
 
 func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
@@ -156,4 +172,8 @@ func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
 	// check sender balance
 	expectedBalance := big.NewInt(0).Set(senderBalance)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 0, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFee)
 }
