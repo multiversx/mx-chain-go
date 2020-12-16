@@ -22,7 +22,7 @@ const defaultTargetShardID = uint32(0)
 //TODO extract these in config
 const numCrossShardPeers = 2
 const numIntraShardPeers = 1
-const numFullHistoryPeers = 1
+const numFullHistoryPeers = 3
 
 type baseResolversContainerFactory struct {
 	container                   dataRetriever.ResolversContainer
