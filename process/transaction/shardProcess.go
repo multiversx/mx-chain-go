@@ -642,12 +642,20 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	return nil
 }
 
-func (txProc *txProcessor) takeMoveBalanceCostOutOfUser(
+func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
+	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
 ) error {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
+
+	userScrHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, userScr)
+	if err != nil {
+		return err
+	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(moveBalanceUserFee, big.NewInt(0), userScrHash)
 	return userAcc.SubFromBalance(moveBalanceUserFee)
 }
 
@@ -691,21 +699,21 @@ func (txProc *txProcessor) processUserTx(
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, dstShardTxType, true)
 	case process.SCDeployment:
-		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.DeploySmartContract(scrFromTx, acntSnd)
 	case process.SCInvoking:
-		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
 		if err != nil {
 			break
 		}
 
 		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(scrFromTx, acntSnd, acntDst)
 	case process.BuiltInFunctionCall:
-		err = txProc.takeMoveBalanceCostOutOfUser(userTx, acntSnd)
+		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd)
 		if err != nil {
 			break
 		}

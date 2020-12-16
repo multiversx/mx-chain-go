@@ -13,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1292,6 +1293,11 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 			return big.NewInt(150)
 		},
 	}
+	args.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			assert.Equal(t, cost, big.NewInt(1))
+		},
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	acntSrc, _ := state.NewUserAccount([]byte("address"))
@@ -1304,7 +1310,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 		GasLimit: 100,
 	}
 
-	err := execTx.TakeMoveBalanceCostOutOfUser(userTx, acntSrc)
+	err := execTx.TakeMoveBalanceCostOutOfUser(userTx, &smartContractResult.SmartContractResult{}, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, acntSrc.Balance, big.NewInt(99))
 }
