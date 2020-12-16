@@ -354,7 +354,6 @@ func (txProc *txProcessor) processTxFee(
 		return currentShardFee, totalCost, nil
 	}
 
-	//TODO: just for crossShardSCCall have a different cost? What about builtInFunctions and Deploys?
 	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if dstShardTxType != process.MoveBalance || (!txProc.flagMetaProtection.IsSet() && isCrossShardSCCall) {
@@ -499,7 +498,6 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 
 	if len(args) != 1 {
-		// TODO: executingFailedTransaction can return no error if not in the sender account, is it ok nil error here?
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 

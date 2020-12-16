@@ -61,3 +61,22 @@ func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
 ) error {
 	return txProc.takeMoveBalanceCostOutOfUser(userTx, userAcc)
 }
+
+func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
+	userTx *transaction.Transaction,
+	relayerAdr []byte,
+	relayedTxValue *big.Int,
+	relayedNonce uint64,
+	originalTx *transaction.Transaction,
+	originalTxHash []byte,
+	errorMsg string,
+) error {
+	return txProc.executeFailedRelayedTransaction(
+		userTx,
+		relayerAdr,
+		relayedTxValue,
+		relayedNonce,
+		originalTx,
+		originalTxHash,
+		errorMsg)
+}
