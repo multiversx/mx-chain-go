@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
+
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -388,23 +390,24 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	economicsData := createEconomicsData()
+
+	gasComp, _ := preprocess.NewGasComputation(economicsData, txTypeHandler)
+
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:    vmContainer,
-		ArgsParser:     smartContract.NewArgumentParser(),
-		Hasher:         testHasher,
-		Marshalizer:    testMarshalizer,
-		AccountsDB:     accnts,
-		BlockChainHook: blockChainHook,
-		PubkeyConv:     pubkeyConv,
-		Coordinator:    oneShardCoordinator,
-		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee:   economicsData,
-		TxTypeHandler:  txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
-		},
+		VmContainer:                    vmContainer,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		Hasher:                         testHasher,
+		Marshalizer:                    testMarshalizer,
+		AccountsDB:                     accnts,
+		BlockChainHook:                 blockChainHook,
+		PubkeyConv:                     pubkeyConv,
+		Coordinator:                    oneShardCoordinator,
+		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:                   &mock.UnsignedTxHandlerMock{},
+		EconomicsFee:                   economicsData,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasComp,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions:               blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
@@ -488,6 +491,15 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 ) VMTestContext {
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+}
+
+// CreatePreparedTxProcessorWithVMs -
+func CreatePreparedTxProcessorWithVMs(warmInstance bool) VMTestContext {
+	accounts := CreateInMemoryShardAccountsDB()
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
 	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
 
@@ -663,20 +675,23 @@ func CreateTransferTokenTx(
 	}
 }
 
-// CreateMoveBalanceTx -
-func CreateMoveBalanceTx(
+// CreateTransaction -
+func CreateTransaction(
 	nonce uint64,
 	value *big.Int,
 	sndAddress []byte,
 	rcvAddress []byte,
+	gasprice uint64,
 	gasLimit uint64,
+	data []byte,
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
 		Value:    big.NewInt(0).Set(value),
 		RcvAddr:  rcvAddress,
 		SndAddr:  sndAddress,
-		GasPrice: 1,
+		GasPrice: gasprice,
 		GasLimit: gasLimit,
+		Data:     data,
 	}
 }
