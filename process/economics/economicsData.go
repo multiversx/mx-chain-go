@@ -232,7 +232,7 @@ func (ed *economicsData) GasPerDataByte() uint64 {
 // ComputeMoveBalanceFee computes the provided transaction's fee
 func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHandler) *big.Int {
 	if isSmartContractResult(tx) {
-		return ed.ComputeFeeForProcessing(tx, ed.ComputeGasLimit(tx))
+		return big.NewInt(0)
 	}
 
 	return core.SafeMul(tx.GetGasPrice(), ed.ComputeGasLimit(tx))
