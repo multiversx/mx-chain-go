@@ -830,7 +830,9 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
-		totalFee.Sub(totalFee, txProc.economicsFee.ComputeMoveBalanceFee(userTx))
+		moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
+		moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
+		totalFee.Sub(totalFee, moveBalanceUserFee)
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(totalFee, big.NewInt(0), originalTxHash)
