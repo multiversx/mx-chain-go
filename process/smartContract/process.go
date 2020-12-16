@@ -1213,6 +1213,9 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	cost := sc.economicsFee.ComputeTxFee(tx)
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
 	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
