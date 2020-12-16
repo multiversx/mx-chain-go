@@ -1374,6 +1374,7 @@ func (sc *scProcessor) createSCRsWhenError(
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 	if !sc.flagDeploy.IsSet() {
+		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
 			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
