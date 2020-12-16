@@ -767,7 +767,7 @@ func AllShardsProposeBlock(
 		consensusNodes[i][0].CommitBlock(body[i], header[i])
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(2 * StepDelay)
 
 	return body, header, consensusNodes
 }
@@ -782,5 +782,5 @@ func SyncAllShardsWithRoundBlock(
 	for shard, nodeList := range nodesMap {
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
-	time.Sleep(2 * time.Second)
+	time.Sleep(2 * StepDelay)
 }

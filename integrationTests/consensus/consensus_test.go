@@ -140,7 +140,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 
 		mutex.Unlock()
 
-		time.Sleep(time.Second * 2)
+		time.Sleep(integrationTests.StepDelay)
 	}
 }
 
