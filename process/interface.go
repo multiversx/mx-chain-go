@@ -586,6 +586,8 @@ type EconomicsDataHandler interface {
 	MinGasLimit() uint64
 	GenesisTotalSupply() *big.Int
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	RewardsTopUpGradientPoint() *big.Int
+	RewardsTopUpFactor() float64
 	IsInterfaceNil() bool
 }
 

@@ -42,7 +42,7 @@ type vmContainerFactory struct {
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
 type ArgsNewVMContainerFactory struct {
 	ArgBlockChainHook   hooks.ArgBlockChainHook
-	Economics           *economics.EconomicsData
+	Economics           process.EconomicsDataHandler
 	MessageSignVerifier vm.MessageSignVerifier
 	GasSchedule         core.GasScheduleNotifier
 	NodesConfigProvider vm.NodesConfigProvider
@@ -83,7 +83,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.GasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
-	if check.IfNil(argBlockChainHook.PubkeyConv) {
+	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
 

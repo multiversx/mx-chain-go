@@ -1258,25 +1258,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	argsVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   argsHook,
-		Economics:           tpn.EconomicsData.EconomicsData,
+		Economics:           tpn.EconomicsData,
 		MessageSignVerifier: signVerifier,
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: tpn.NodesSetup,
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
-
-	vmFactory, _ := metaProcess.NewVMContainerFactory(
-		argsHook,
-		tpn.EconomicsData,
-		signVerifier,
-		gasSchedule,
-		tpn.NodesSetup,
-		TestHasher,
-		TestMarshalizer,
-		&config.SystemSmartContractsConfig{
-
-		//TODO - fix this
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
@@ -1535,16 +1523,24 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
-		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:              tpn.ShardCoordinator,
-			PubkeyConverter:               TestAddressPubkeyConverter,
-			RewardsStorage:                rewardsStorage,
-			MiniBlockStorage:              miniBlockStorage,
-			Hasher:                        TestHasher,
-			Marshalizer:                   TestMarshalizer,
-			DataPool:                      tpn.DataPool,
-			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-			NodesConfigProvider:           tpn.NodesCoordinator,
+		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
+			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
+				ShardCoordinator:              tpn.ShardCoordinator,
+				PubkeyConverter:               TestAddressPubkeyConverter,
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        TestHasher,
+				Marshalizer:                   TestMarshalizer,
+				DataPool:                      tpn.DataPool,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				NodesConfigProvider:           tpn.NodesCoordinator,
+				UserAccountsDB:                tpn.AccntState,
+			},
+			StakingDataProvider:   stakingDataProvider,
+			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
+			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			EconomicsDataProvider: economicsDataProvider,
+			EpochEnableV2:         StakingV2Epoch,
 		}
 		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 
