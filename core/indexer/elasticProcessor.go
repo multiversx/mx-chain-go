@@ -516,8 +516,7 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 		return nil
 	}
 
-	accountsToIndex := make([]state.UserAccountHandler, len(accounts))
-	idx := 0
+	accountsToIndex := make([]state.UserAccountHandler, 0)
 	for address := range accounts {
 		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
 		if err != nil {
@@ -537,8 +536,7 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 			continue
 		}
 
-		accountsToIndex[idx] = userAccount
-		idx++
+		accountsToIndex = append(accountsToIndex, userAccount)
 	}
 
 	if len(accountsToIndex) == 0 {
