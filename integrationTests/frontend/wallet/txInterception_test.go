@@ -110,6 +110,7 @@ func testInterceptedTxFromFrontendGeneratedParams(
 		initialNodeAddr,
 	)
 
+	node.EconomicsData.SetMinGasPrice(10)
 	txHexHash := ""
 
 	err := node.SetAccountNonce(uint64(0))

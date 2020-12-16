@@ -6,7 +6,12 @@ import "math/big"
 // that are not supposed to be used in production code
 // Exported functions simplify the reproduction of edge cases
 type TestEconomicsData struct {
-	*EconomicsData
+	*economicsData
+}
+
+// NewTestEconomicsData -
+func NewTestEconomicsData(internalData *economicsData) *TestEconomicsData {
+	return &TestEconomicsData{economicsData: internalData}
 }
 
 // SetMaxGasLimitPerBlock sets the maximum gas limit allowed per one block
@@ -38,11 +43,6 @@ func (ted *TestEconomicsData) GetMinGasPrice() uint64 {
 // SetGasPerDataByte sets gas per data byte for a transaction to be accepted
 func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
 	ted.gasPerDataByte = gasPerDataByte
-}
-
-// SetDataLimitForBaseCalc sets base calc limit for gasLimit calculation
-func (ted *TestEconomicsData) SetDataLimitForBaseCalc(dataLimitForBaseCalc uint64) {
-	ted.dataLimitForBaseCalc = dataLimitForBaseCalc
 }
 
 // SetTotalSupply sets the total supply when booting the network

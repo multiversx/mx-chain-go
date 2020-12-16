@@ -29,9 +29,9 @@ type FeeSettings struct {
 	MaxGasLimitPerBlock     string
 	MaxGasLimitPerMetaBlock string
 	GasPerDataByte          string
-	DataLimitForBaseCalc    string
 	MinGasPrice             string
 	MinGasLimit             string
+	GasPriceModifier        float64
 }
 
 // EconomicsConfig will hold economics config

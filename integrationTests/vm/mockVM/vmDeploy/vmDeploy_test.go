@@ -12,12 +12,12 @@ import (
 )
 
 func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
-	vmOpGas := uint64(0)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
-	senderBalance := big.NewInt(100000000)
+	senderBalance := big.NewInt(100000000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
+	gasLimit := vmOpGas + 100
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
@@ -60,12 +60,12 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 }
 
 func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
-	vmOpGas := uint64(0)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
+	gasLimit := vmOpGas + 1000
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)
@@ -107,13 +107,13 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 }
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
-	vmOpGas := uint64(1000)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
 	//equal with requirement
-	gasLimit := vmOpGas
+	gasLimit := vmOpGas + 100
 	transferOnCalls := big.NewInt(50)
 
 	initialValueForInternalVariable := uint64(45)

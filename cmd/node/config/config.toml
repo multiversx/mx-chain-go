@@ -43,6 +43,9 @@
    # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
    AheadOfTimeGasUsageEnableEpoch = 2
 
+   # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
+   GasPriceModifierEnableEpoch = 2
+
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [

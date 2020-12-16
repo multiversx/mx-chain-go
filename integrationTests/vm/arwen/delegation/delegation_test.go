@@ -105,12 +105,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 20000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15627613, int(context.LastConsumedFee))
+	require.Equal(t, 15627626, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15186613, int(context.LastConsumedFee))
+	require.Equal(t, 15186626, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")

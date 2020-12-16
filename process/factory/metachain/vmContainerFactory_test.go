@@ -117,7 +117,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinGasPrice:             "10",
 				MinGasLimit:             "10",
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

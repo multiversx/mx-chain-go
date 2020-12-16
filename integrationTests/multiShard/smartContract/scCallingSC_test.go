@@ -225,6 +225,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	newOwnerAddress := []byte("12345678123456781234567812345678")
 	txData := "ChangeOwnerAddress" + "@" + hex.EncodeToString(newOwnerAddress)
 	integrationTests.CreateAndSendTransaction(nodes[0], nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+	time.Sleep(sleepDuration)
 
 	for i := 0; i < numRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
