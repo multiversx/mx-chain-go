@@ -95,7 +95,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(0), accumulatedFee)
+	require.Equal(t, big.NewInt(18170), accumulatedFee)
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
@@ -137,7 +137,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(0), accumulatedFee)
+	require.Equal(t, big.NewInt(18070), accumulatedFee)
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
@@ -180,5 +180,5 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10), accumulatedFee)
+	require.Equal(t, big.NewInt(13080), accumulatedFee)
 }

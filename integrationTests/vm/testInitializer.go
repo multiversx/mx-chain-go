@@ -427,7 +427,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		SignMarshalizer:  testMarshalizer,
 		ShardCoordinator: oneShardCoordinator,
 		ScProcessor:      scProcessor,
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:     feeAccumulator,
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     economicsData,
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
