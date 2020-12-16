@@ -421,4 +421,7 @@ func TestEconomicsData_SCRWithNotEnoughMoveBalanceShouldNotError(t *testing.T) {
 	scr.GasLimit = 1
 	err = economicsData.CheckValidityTxValues(scr)
 	assert.Nil(t, err)
+
+	moveBalanceFee := economicsData.ComputeMoveBalanceFee(scr)
+	assert.Equal(t, moveBalanceFee, big.NewInt(0))
 }
