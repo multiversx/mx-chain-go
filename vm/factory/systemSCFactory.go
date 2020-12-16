@@ -12,29 +12,31 @@ import (
 )
 
 type systemSCFactory struct {
-	systemEI            vm.ContextHandler
-	economics           vm.EconomicsHandler
-	nodesConfigProvider vm.NodesConfigProvider
-	sigVerifier         vm.MessageSignVerifier
-	gasCost             vm.GasCost
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	systemSCConfig      *config.SystemSmartContractsConfig
-	epochNotifier       vm.EpochNotifier
-	systemSCsContainer  vm.SystemSCContainer
+	systemEI               vm.ContextHandler
+	economics              vm.EconomicsHandler
+	nodesConfigProvider    vm.NodesConfigProvider
+	sigVerifier            vm.MessageSignVerifier
+	gasCost                vm.GasCost
+	marshalizer            marshal.Marshalizer
+	hasher                 hashing.Hasher
+	systemSCConfig         *config.SystemSmartContractsConfig
+	epochNotifier          vm.EpochNotifier
+	systemSCsContainer     vm.SystemSCContainer
+	addressPubKeyConverter core.PubkeyConverter
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
 type ArgsNewSystemSCFactory struct {
-	SystemEI            vm.ContextHandler
-	Economics           vm.EconomicsHandler
-	NodesConfigProvider vm.NodesConfigProvider
-	SigVerifier         vm.MessageSignVerifier
-	GasSchedule         core.GasScheduleNotifier
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	SystemSCConfig      *config.SystemSmartContractsConfig
-	EpochNotifier       vm.EpochNotifier
+	SystemEI               vm.ContextHandler
+	Economics              vm.EconomicsHandler
+	NodesConfigProvider    vm.NodesConfigProvider
+	SigVerifier            vm.MessageSignVerifier
+	GasSchedule            core.GasScheduleNotifier
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	SystemSCConfig         *config.SystemSmartContractsConfig
+	EpochNotifier          vm.EpochNotifier
+	AddressPubKeyConverter core.PubkeyConverter
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -63,16 +65,20 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.EpochNotifier) {
 		return nil, vm.ErrNilEpochNotifier
 	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, vm.ErrNilAddressPubKeyConverter
+	}
 
 	scf := &systemSCFactory{
-		systemEI:            args.SystemEI,
-		sigVerifier:         args.SigVerifier,
-		nodesConfigProvider: args.NodesConfigProvider,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		systemSCConfig:      args.SystemSCConfig,
-		economics:           args.Economics,
-		epochNotifier:       args.EpochNotifier,
+		systemEI:               args.SystemEI,
+		sigVerifier:            args.SigVerifier,
+		nodesConfigProvider:    args.NodesConfigProvider,
+		marshalizer:            args.Marshalizer,
+		hasher:                 args.Hasher,
+		systemSCConfig:         args.SystemSCConfig,
+		economics:              args.Economics,
+		epochNotifier:          args.EpochNotifier,
+		addressPubKeyConverter: args.AddressPubKeyConverter,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -177,13 +183,14 @@ func (scf *systemSCFactory) createAuctionContract() (vm.SystemSmartContract, err
 
 func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error) {
 	argsESDT := systemSmartContracts.ArgsNewESDTSmartContract{
-		Eei:           scf.systemEI,
-		GasCost:       scf.gasCost,
-		ESDTSCAddress: vm.ESDTSCAddress,
-		Marshalizer:   scf.marshalizer,
-		Hasher:        scf.hasher,
-		ESDTSCConfig:  scf.systemSCConfig.ESDTSystemSCConfig,
-		EpochNotifier: scf.epochNotifier,
+		Eei:                    scf.systemEI,
+		GasCost:                scf.gasCost,
+		ESDTSCAddress:          vm.ESDTSCAddress,
+		Marshalizer:            scf.marshalizer,
+		Hasher:                 scf.hasher,
+		ESDTSCConfig:           scf.systemSCConfig.ESDTSystemSCConfig,
+		EpochNotifier:          scf.epochNotifier,
+		AddressPubKeyConverter: scf.addressPubKeyConverter,
 	}
 	esdt, err := systemSmartContracts.NewESDTSmartContract(argsESDT)
 	return esdt, err
