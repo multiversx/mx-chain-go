@@ -616,7 +616,7 @@ func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T)
 		RcvAddr:     recvAddress,
 		SndAddr:     senderAddress,
 		Signature:   sigOk,
-		RcvUserName: []byte("username"),
+		RcvUserName: []byte("username1111111111111111111111111111111111111111111111"),
 		ChainID:     chainID,
 		Version:     minTxVersion,
 	}
@@ -626,7 +626,7 @@ func TestInterceptedTransaction_CheckValidityInvalidUserNameLength(t *testing.T)
 	assert.Equal(t, process.ErrInvalidUserNameLength, err)
 
 	tx.RcvUserName = nil
-	tx.SndUserName = []byte("username")
+	tx.SndUserName = []byte("username11111111111111111111111111111111111111111111111111111111")
 	txi, _ = createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
 	err = txi.CheckValidity()
 	assert.Equal(t, process.ErrInvalidUserNameLength, err)

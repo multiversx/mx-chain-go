@@ -163,7 +163,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	checkPlayerBalances(t, nodes, players)
 
 	userAcc := GetUserAccount(nodes, relayer.Address)
-	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 1)
+	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 0)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {

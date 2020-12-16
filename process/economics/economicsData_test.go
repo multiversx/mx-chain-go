@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
@@ -39,7 +40,7 @@ func createDummyEconomicsConfig() *config.EconomicsConfig {
 			MinGasPrice:             "18446744073709551615",
 			MinGasLimit:             "500",
 			GasPerDataByte:          "1",
-			DataLimitForBaseCalc:    "100000000",
+			GasPriceModifier:        1.0,
 		},
 	}
 }
@@ -221,7 +222,9 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	gasLimit := uint64(20)
 	minGasLimit := uint64(10)
 	args.Economics.FeeSettings.MinGasLimit = strconv.FormatUint(minGasLimit, 10)
+	args.Economics.FeeSettings.GasPriceModifier = 0.01
 	args.PenalizedTooMuchGasEnableEpoch = 1
+	args.GasPriceModifierEnableEpoch = 2
 	economicsData, _ := economics.NewEconomicsData(args)
 	tx := &transaction.Transaction{
 		GasPrice: gasPrice,
@@ -237,6 +240,10 @@ func TestEconomicsData_ComputeTxFeeShouldWork(t *testing.T) {
 	cost = economicsData.ComputeTxFee(tx)
 	expectedCost = core.SafeMul(gasLimit, gasPrice)
 	assert.Equal(t, expectedCost, cost)
+
+	economicsData.EpochConfirmed(2)
+	cost = economicsData.ComputeTxFee(tx)
+	assert.Equal(t, big.NewInt(5050), cost)
 }
 
 func TestEconomicsData_TxWithLowerGasPriceShouldErr(t *testing.T) {
@@ -299,7 +306,7 @@ func TestEconomicsData_TxWithHigherGasLimitShouldErr(t *testing.T) {
 
 	err := economicsData.CheckValidityTxValues(tx)
 
-	assert.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	assert.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 }
 
 func TestEconomicsData_TxWithWithMinGasPriceAndLimitShouldWork(t *testing.T) {
@@ -342,7 +349,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 		Value:    big.NewInt(0),
 	}
 	err := economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 
 	tx = &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
@@ -350,7 +357,7 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerBlockShouldNotWork(t 
 		Value:    big.NewInt(0),
 	}
 	err = economicsData.CheckValidityTxValues(tx)
-	require.Equal(t, process.ErrHigherGasLimitRequiredInTx, err)
+	require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
 
 	tx = &transaction.Transaction{
 		GasPrice: minGasPrice + 1,
@@ -384,4 +391,37 @@ func TestEconomicsData_TxWithWithMoreValueThanGenesisSupplyShouldError(t *testin
 	tx.Value.SetBytes([]byte("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999"))
 	err = economicsData.CheckValidityTxValues(tx)
 	assert.Equal(t, err, process.ErrTxValueOutOfBounds)
+}
+
+func TestEconomicsData_SCRWithNotEnoughMoveBalanceShouldNotError(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData()
+	minGasPrice := uint64(500)
+	minGasLimit := uint64(12)
+	maxGasLimitPerBlock := minGasLimit + 42
+	args.Economics.FeeSettings.MaxGasLimitPerBlock = fmt.Sprintf("%d", maxGasLimitPerBlock)
+	args.Economics.FeeSettings.MinGasPrice = fmt.Sprintf("%d", minGasPrice)
+	args.Economics.FeeSettings.MinGasLimit = fmt.Sprintf("%d", minGasLimit)
+	economicsData, _ := economics.NewEconomicsData(args)
+	scr := &smartContractResult.SmartContractResult{
+		GasPrice: minGasPrice + 1,
+		GasLimit: minGasLimit + 1,
+		Value:    big.NewInt(0).Add(economicsData.GenesisTotalSupply(), big.NewInt(1)),
+	}
+
+	err := economicsData.CheckValidityTxValues(scr)
+	assert.Equal(t, err, process.ErrTxValueTooBig)
+
+	scr.Value.SetBytes([]byte("99999999999999999999999999999999999999999999999999999999999999999999999999999999999999"))
+	err = economicsData.CheckValidityTxValues(scr)
+	assert.Equal(t, err, process.ErrTxValueOutOfBounds)
+
+	scr.Value.Set(big.NewInt(10))
+	scr.GasLimit = 1
+	err = economicsData.CheckValidityTxValues(scr)
+	assert.Nil(t, err)
+
+	moveBalanceFee := economicsData.ComputeMoveBalanceFee(scr)
+	assert.Equal(t, moveBalanceFee, big.NewInt(0))
 }

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/data/mock"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -89,13 +88,16 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 }
 
 func getGoodArgs() ArgsDataPool {
-	testEconomics := &economics.TestEconomicsData{EconomicsData: &economics.EconomicsData{}}
-	testEconomics.SetMinGasPrice(200000000000)
+	testEconomics := &mock.EconomicsHandlerStub{
+		MinGasPriceCalled: func() uint64 {
+			return 200000000000
+		},
+	}
 	config := testscommon.GetGeneralConfig()
 
 	return ArgsDataPool{
 		Config:           &config,
-		EconomicsData:    testEconomics.EconomicsData,
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
+		EconomicsData:    testEconomics,
+		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
 	}
 }

@@ -8,16 +8,34 @@ import (
 
 // FeeHandlerStub -
 type FeeHandlerStub struct {
-	SetMaxGasLimitPerBlockCalled func(maxGasLimitPerBlock uint64)
-	SetMinGasPriceCalled         func(minGasPrice uint64)
-	SetMinGasLimitCalled         func(minGasLimit uint64)
-	MaxGasLimitPerBlockCalled    func() uint64
-	ComputeGasLimitCalled        func(tx process.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFeeCalled  func(tx process.TransactionWithFeeHandler) *big.Int
-	ComputeTxFeeCalled           func(tx process.TransactionWithFeeHandler) *big.Int
-	CheckValidityTxValuesCalled  func(tx process.TransactionWithFeeHandler) error
-	DeveloperPercentageCalled    func() float64
-	MinGasPriceCalled            func() uint64
+	SetMaxGasLimitPerBlockCalled  func(maxGasLimitPerBlock uint64)
+	SetMinGasPriceCalled          func(minGasPrice uint64)
+	SetMinGasLimitCalled          func(minGasLimit uint64)
+	MaxGasLimitPerBlockCalled     func() uint64
+	ComputeGasLimitCalled         func(tx process.TransactionWithFeeHandler) uint64
+	ComputeMoveBalanceFeeCalled   func(tx process.TransactionWithFeeHandler) *big.Int
+	ComputeTxFeeCalled            func(tx process.TransactionWithFeeHandler) *big.Int
+	CheckValidityTxValuesCalled   func(tx process.TransactionWithFeeHandler) error
+	DeveloperPercentageCalled     func() float64
+	MinGasPriceCalled             func() uint64
+	GasPriceModifierCalled        func() float64
+	ComputeFeeForProcessingCalled func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+}
+
+// ComputeFeeForProcessing -
+func (fhs *FeeHandlerStub) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	if fhs.ComputeFeeForProcessingCalled != nil {
+		return fhs.ComputeFeeForProcessingCalled(tx, gasToUse)
+	}
+	return big.NewInt(0)
+}
+
+// GasPriceModifier -
+func (fhs *FeeHandlerStub) GasPriceModifier() float64 {
+	if fhs.GasPriceModifierCalled != nil {
+		return fhs.GasPriceModifierCalled()
+	}
+	return 1.0
 }
 
 // MinGasPrice -

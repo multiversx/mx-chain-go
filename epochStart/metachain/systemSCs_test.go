@@ -19,7 +19,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	economics2 "github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process"
+	economicsHandler "github.com/ElrondNetwork/elrond-go/process/economics"
 	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	metaProcess "github.com/ElrondNetwork/elrond-go/process/factory/metachain"
 	"github.com/ElrondNetwork/elrond-go/process/peer"
@@ -361,12 +362,12 @@ func createFullArgumentsForSystemSCProcessing() ArgsNewEpochStartSystemSCProcess
 	return args
 }
 
-func createEconomicsData() *economics2.EconomicsData {
+func createEconomicsData() process.EconomicsDataHandler {
 	maxGasLimitPerBlock := strconv.FormatUint(1500000000, 10)
 	minGasPrice := strconv.FormatUint(10, 10)
 	minGasLimit := strconv.FormatUint(10, 10)
 
-	argsNewEconomicsData := economics2.ArgsNewEconomicsData{
+	argsNewEconomicsData := economicsHandler.ArgsNewEconomicsData{
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -389,12 +390,12 @@ func createEconomicsData() *economics2.EconomicsData {
 				MinGasPrice:             minGasPrice,
 				MinGasLimit:             minGasLimit,
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
-	economicsData, _ := economics2.NewEconomicsData(argsNewEconomicsData)
+	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData
 }

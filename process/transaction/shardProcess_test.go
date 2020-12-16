@@ -371,7 +371,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil, false)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -386,7 +386,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.Nonce = 6
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil)
+	err = execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil, false)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
@@ -401,7 +401,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil, false)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -416,7 +416,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	acnt1.Balance = big.NewInt(67)
 
-	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil)
+	err = execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil, false)
 	assert.Nil(t, err)
 }
 
@@ -778,8 +778,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -826,8 +826,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -923,11 +923,11 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
 		return nil
 	}}
-	acntDst := &mock.UserAccountStub{}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, acntDst, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, false)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, cost.Cmp(totalCost) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
@@ -956,9 +956,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, false)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 
 	tx = &transaction.Transaction{
 		RcvAddr:  []byte("aaa"),
@@ -968,9 +969,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		Data:     []byte("data"),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, totalCost, err = execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, false)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	tx = &transaction.Transaction{
@@ -980,9 +982,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 		GasLimit: moveBalanceFee.Uint64(),
 	}
 
-	cost, err = execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, totalCost, err = execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, false)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
@@ -993,6 +996,9 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	args.EconomicsFee = &mock.FeeHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
+		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(0).Mul(moveBalanceFee, moveBalanceFee)
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1013,9 +1019,10 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 		return nil
 	}}
 
-	cost, err := execTx.ProcessTxFee(tx, acntSnd, nil, args.EconomicsFee.ComputeMoveBalanceFee(tx))
+	cost, totalReturnedCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.SCInvoking, false)
 	assert.Nil(t, err)
 	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalReturnedCost.Cmp(totalCost) == 0)
 }
 
 func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testing.T) {
@@ -1050,8 +1057,8 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.MoveBalance
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1098,8 +1105,8 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 		},
 	}
 	args.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.InvalidTransaction
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.InvalidTransaction, process.InvalidTransaction
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1273,47 +1280,33 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	assert.True(t, called)
 }
 
-func TestTxProcessor_GetUserTxCostShouldWork(t *testing.T) {
+func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 	t.Parallel()
 
-	gasLimit := uint64(1)
-	gasPrice := uint64(10)
-	cost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasPrice), big.NewInt(0).SetUint64(gasLimit))
-
-	tx := &transaction.Transaction{}
-	tx.SndAddr = []byte("SND0")
-	tx.RcvAddr = []byte("RCV1")
-	tx.GasPrice = gasPrice
-	tx.GasLimit = gasLimit * process.MaxGasFeeHigherFactorAccepted
-
-	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
 	args := createArgsForTxProcessor()
-	args.ShardCoordinator = shardC
 	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-			return cost
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(1)
 		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimit
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(150)
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	actualCost := execTx.GetUserTxCost(tx, []byte("txHash"), process.SCInvoking)
-	assert.Equal(t, cost, actualCost)
+	acntSrc, _ := state.NewUserAccount([]byte("address"))
+	acntSrc.Balance = big.NewInt(100)
 
-	tx.RcvAddr = []byte("RCV0")
-	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, cost, actualCost)
+	userTx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		GasPrice: 100,
+		GasLimit: 100,
+	}
 
-	tx.RcvAddr = []byte("RCV1")
-	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, cost, actualCost)
-
-	tx.GasLimit++
-	penalizeCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, penalizeCost, actualCost)
+	err := execTx.TakeMoveBalanceCostOutOfUser(userTx, acntSrc)
+	assert.Nil(t, err)
+	assert.Equal(t, acntSrc.Balance, big.NewInt(99))
 }
 
 func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
@@ -1328,43 +1321,4 @@ func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {
 	assert.False(t, execTx.IsCrossTxFromMe([]byte("ADR1"), []byte("ADR1")))
 	assert.False(t, execTx.IsCrossTxFromMe([]byte("ADR1"), []byte("ADR0")))
 	assert.True(t, execTx.IsCrossTxFromMe([]byte("ADR0"), []byte("ADR1")))
-}
-
-func TestTxProcessor_GetUserTxCostShouldWorkOnFlagActivation(t *testing.T) {
-	t.Parallel()
-
-	gasLimit := uint64(1)
-	gasPrice := uint64(10)
-	cost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasPrice), big.NewInt(0).SetUint64(gasLimit))
-
-	tx := &transaction.Transaction{}
-	tx.SndAddr = []byte("SND0")
-	tx.RcvAddr = []byte("RCV1")
-	tx.GasPrice = gasPrice
-	tx.GasLimit = gasLimit*process.MaxGasFeeHigherFactorAccepted + 1
-
-	penalizeCost := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasPrice), big.NewInt(0).SetUint64(tx.GasLimit))
-
-	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	args := createArgsForTxProcessor()
-	args.ShardCoordinator = shardC
-	args.EconomicsFee = &mock.FeeHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
-			return cost
-		},
-		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-			return gasLimit
-		},
-	}
-	execTx, _ := txproc.NewTxProcessor(args)
-
-	execTx.SetPenalizedTooMuchGasEnableEpoch(1)
-
-	execTx.EpochConfirmed(0)
-	actualCost := execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, cost, actualCost)
-
-	execTx.EpochConfirmed(1)
-	actualCost = execTx.GetUserTxCost(tx, []byte("txHash"), process.MoveBalance)
-	assert.Equal(t, penalizeCost, actualCost)
 }
