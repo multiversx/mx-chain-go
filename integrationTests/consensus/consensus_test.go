@@ -218,8 +218,8 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 	assert.Nil(t, err)
 
-	waitTime := time.Second * 15
-	fmt.Println("Run for 15 seconds...")
+	waitTime := time.Second * 30
+	fmt.Println("Run for 30 seconds...")
 	time.Sleep(waitTime)
 
 	mutex.Lock()
