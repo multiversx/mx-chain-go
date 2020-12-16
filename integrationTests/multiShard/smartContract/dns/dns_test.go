@@ -288,7 +288,7 @@ func checkUserNamesAreSetCorrectly(
 }
 
 func selectDNSAddressFromUserName(sortedDNSAddresses []string, userName string) string {
-	hashedAddr := keccak.Keccak{}.Compute(userName)
+	hashedAddr := keccak.NewKeccak().Compute(userName)
 	return sortedDNSAddresses[hashedAddr[31]]
 }
 

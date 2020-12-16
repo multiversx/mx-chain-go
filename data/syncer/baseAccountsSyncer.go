@@ -2,7 +2,6 @@ package syncer
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -23,14 +22,15 @@ type baseAccountsSyncer struct {
 	mutex                sync.Mutex
 	trieStorageManager   data.StorageManager
 	requestHandler       trie.RequestHandler
-	waitTime             time.Duration
+	timeout              time.Duration
 	shardId              uint32
 	cacher               storage.Cacher
 	rootHash             []byte
 	maxTrieLevelInMemory uint
+	name                 string
 }
 
-const minWaitTime = time.Second
+const timeBetweenStatisticsPrints = time.Second * 2
 
 // ArgsNewBaseAccountsSyncer defines the arguments needed for the new account syncer
 type ArgsNewBaseAccountsSyncer struct {
@@ -38,7 +38,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	Marshalizer          marshal.Marshalizer
 	TrieStorageManager   data.StorageManager
 	RequestHandler       trie.RequestHandler
-	WaitTime             time.Duration
+	Timeout              time.Duration
 	Cacher               storage.Cacher
 	MaxTrieLevelInMemory uint
 }
@@ -56,9 +56,6 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.RequestHandler) {
 		return state.ErrNilRequestHandler
 	}
-	if args.WaitTime < minWaitTime {
-		return fmt.Errorf("%w, minWaitTime is %d", state.ErrInvalidWaitTime, minWaitTime)
-	}
 	if check.IfNil(args.Cacher) {
 		return state.ErrNilCacher
 	}
@@ -66,7 +63,7 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	return nil
 }
 
-func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ctx context.Context) error {
+func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ssh data.SyncStatisticsHandler, ctx context.Context) error {
 	b.rootHash = rootHash
 
 	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
@@ -75,7 +72,16 @@ func (b *baseAccountsSyncer) syncMainTrie(rootHash []byte, trieTopic string, ctx
 	}
 
 	b.dataTries[string(rootHash)] = dataTrie
-	trieSyncer, err := trie.NewTrieSyncer(b.requestHandler, b.cacher, dataTrie, b.shardId, trieTopic)
+	arg := trie.ArgTrieSyncer{
+		RequestHandler:                 b.requestHandler,
+		InterceptedNodes:               b.cacher,
+		Trie:                           dataTrie,
+		ShardId:                        b.shardId,
+		Topic:                          trieTopic,
+		TrieSyncStatistics:             ssh,
+		TimeoutBetweenTrieNodesCommits: b.timeout,
+	}
+	trieSyncer, err := trie.NewTrieSyncer(arg)
 	if err != nil {
 		return err
 	}
@@ -100,6 +106,18 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]data.Trie {
 	}
 
 	return clonedMap
+}
+
+func (b *baseAccountsSyncer) printStatistics(ssh data.SyncStatisticsHandler, ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Info("finished trie sync", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
+			return
+		case <-time.After(timeBetweenStatisticsPrints):
+			log.Info("trie sync in progress", "name", b.name, "num received", ssh.NumReceived(), "num missing", ssh.NumMissing())
+		}
+	}
 }
 
 // IsInterfaceNil returns true if underlying object is nil

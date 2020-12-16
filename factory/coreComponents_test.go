@@ -275,8 +275,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				Shards:   16,
 			},
 			GeneralSettings: config.GeneralSettingsConfig{
-				ChainID:               "undefined",
-				MinTransactionVersion: 1,
+				ChainID:                  "undefined",
+				MinTransactionVersion:    1,
+				GenesisMaxNumberOfShards: 3,
 			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,

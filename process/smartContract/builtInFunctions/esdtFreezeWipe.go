@@ -81,7 +81,7 @@ func (e *esdtFreezeWipe) ProcessBuiltinFunction(
 		}
 	}
 
-	vmOutput := &vmcommon.VMOutput{}
+	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 	return vmOutput, nil
 }
 

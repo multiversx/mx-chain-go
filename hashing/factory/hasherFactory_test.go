@@ -18,11 +18,11 @@ func TestNewHasher(t *testing.T) {
 	}
 	testData := make(map[string]res)
 	testData["sha256"] = res{
-		hasher: sha256.Sha256{},
+		hasher: sha256.NewSha256(),
 		err:    nil,
 	}
 	testData["blake2b"] = res{
-		hasher: &blake2b.Blake2b{},
+		hasher: blake2b.NewBlake2b(),
 		err:    nil,
 	}
 	testData[""] = res{

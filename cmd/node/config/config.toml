@@ -52,6 +52,9 @@
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
+   # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
+   GenesisMaxNumberOfShards  = 3
+
 [Versions]
    DefaultVersion = "default"
    VersionsByEpochs = [
