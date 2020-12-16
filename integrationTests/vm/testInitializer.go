@@ -5,6 +5,7 @@ package vm
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"math"
 	"math/big"
 	"strconv"
@@ -61,6 +62,7 @@ type VMTestContext struct {
 	Accounts       state.AccountsAdapter
 	BlockchainHook vmcommon.BlockchainHook
 	VMContainer    process.VirtualMachinesContainer
+	TxFeeHandler   process.TransactionFeeHandler
 }
 
 // Close -
@@ -377,8 +379,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	accnts state.AccountsAdapter,
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
+	feeAccumulator process.TransactionFeeHandler,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
@@ -404,7 +406,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Coordinator:                    oneShardCoordinator,
 		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:                   &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:                   feeAccumulator,
 		EconomicsFee:                   economicsData,
 		TxTypeHandler:                  txTypeHandler,
 		GasHandler:                     gasComp,
@@ -489,21 +491,30 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderBalance *big.Int,
 	warmInstance bool,
 ) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
-	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook, feeAccumulator)
 
-	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer, TxFeeHandler: feeAccumulator}
 }
 
 // CreatePreparedTxProcessorWithVMs -
 func CreatePreparedTxProcessorWithVMs(warmInstance bool) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
-	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook, feeAccumulator)
 
-	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+	return VMTestContext{
+		TxProcessor:    txProcessor,
+		ScProcessor:    scProcessor,
+		Accounts:       accounts,
+		BlockchainHook: blockchainHook,
+		VMContainer:    vmContainer,
+		TxFeeHandler:   feeAccumulator,
+	}
 }
 
 // CreateTxProcessorArwenVMWithGasSchedule -
@@ -515,12 +526,13 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	warmInstance bool,
 	outOfProcess bool,
 ) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, warmInstance, outOfProcess)
-	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook, feeAccumulator)
 
-	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer, TxFeeHandler: feeAccumulator}
 }
 
 // CreatePreparedTxProcessorAndAccountsWithMockedVM -
