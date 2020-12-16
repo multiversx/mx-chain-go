@@ -178,7 +178,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			if errProcessIfErr != nil {
 				return 0, errProcessIfErr
 			}
-			// TODO: check if UserError and nil is correct
 			return vmcommon.UserError, nil
 		}
 		return vmcommon.UserError, err
