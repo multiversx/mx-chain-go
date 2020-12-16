@@ -32,6 +32,7 @@ var _ process.EpochBootstrapper = (*trigger)(nil)
 var _ closing.Closer = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
+const disabledRoundForForceEpochStart = math.MaxUint64
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
@@ -78,13 +79,13 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		return nil, epochStart.ErrNilEpochStartSettings
 	}
 	if args.Settings.RoundsPerEpoch < 1 {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if args.Settings.MinRoundsBetweenEpochs < 1 {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
-		return nil, epochStart.ErrInvalidSettingsForEpochStartTrigger
+		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return nil, epochStart.ErrNilEpochStartNotifier
@@ -130,7 +131,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		hasher:                      args.Hasher,
 		epochStartMeta:              &block.MetaBlock{},
 		appStatusHandler:            args.AppStatusHandler,
-		nextEpochStartRound:         math.MaxUint64,
+		nextEpochStartRound:         disabledRoundForForceEpochStart,
 	}
 
 	err := trig.saveState(trig.triggerStateKey)
@@ -166,13 +167,21 @@ func (t *trigger) EpochFinalityAttestingRound() uint64 {
 }
 
 // ForceEpochStart sets the round at which the new epoch will start
-func (t *trigger) ForceEpochStart() {
+func (t *trigger) ForceEpochStart(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.nextEpochStartRound = t.currentRound
-	if t.currentRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
+	t.nextEpochStartRound = round
+	if t.nextEpochStartRound >= t.currEpochStartRound+t.roundsPerEpoch {
+		t.nextEpochStartRound = disabledRoundForForceEpochStart
+		log.Debug("can not force epoch start because the resulting round is in the next epoch")
+
+		return
+	}
+	if t.nextEpochStartRound-t.currEpochStartRound < t.minRoundsBetweenEpochs {
 		t.nextEpochStartRound = t.currEpochStartRound + t.minRoundsBetweenEpochs
+		log.Debug("can not force epoch start on provided round",
+			"provided round", round, "computed round", t.nextEpochStartRound)
 	}
 
 	log.Debug("set new epoch start round", "round", t.nextEpochStartRound)
@@ -204,7 +213,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		log.Debug(display.Headline(msg, "", "#"))
 		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 		logger.SetCorrelationEpoch(t.epoch)
-		t.nextEpochStartRound = math.MaxUint64
+		t.nextEpochStartRound = disabledRoundForForceEpochStart
 	}
 }
 

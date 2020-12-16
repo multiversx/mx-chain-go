@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"bytes"
+	"math/big"
 	"sort"
 	"strconv"
 	"testing"
@@ -143,9 +144,8 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 	sndAddr := []byte("sndAddress")
 	dstAddr := []byte("dstAddress")
 
-	sndId, dstId, err := irp.getShardIdsFromAddresses(sndAddr, dstAddr)
+	sndId, dstId := irp.getShardIdsFromAddresses(sndAddr, dstAddr)
 	assert.Equal(t, uint32(0), sndId, dstId)
-	assert.Nil(t, err)
 }
 
 func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) {
@@ -193,6 +193,45 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
+func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIntraAndCrossShard(t *testing.T) {
+	t.Parallel()
+
+	shardC := mock.NewMultiShardsCoordinatorMock(2)
+	irp, err := NewIntermediateResultsProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		shardC,
+		createMockPubkeyConverter(),
+		&mock.ChainStorerMock{},
+		block.SmartContractResultBlock,
+		&mock.TxForCurrentBlockStub{},
+	)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	scr := &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(-100), PrevTxHash: []byte("hash")}
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return shardC.SelfId()
+	}
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Nil(t, err)
+
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		return shardC.SelfId() + 1
+	}
+
+	err = irp.AddIntermediateTransactions(txs)
+	assert.Equal(t, err, process.ErrNegativeValue)
+}
+
 func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *testing.T) {
 	t.Parallel()
 
@@ -210,12 +249,13 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
+	scr := &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: []byte("hash")}
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -240,11 +280,11 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 
 	txHash := []byte("txHash")
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 0})
-	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 1})
-	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 2})
-	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 3})
-	txs = append(txs, &smartContractResult.SmartContractResult{PrevTxHash: txHash, Nonce: 4})
+	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 0})
+	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 1})
+	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 2})
+	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
+	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -297,12 +337,13 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
+	scr := &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: []byte("hash")}
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
-	txs = append(txs, &smartContractResult.SmartContractResult{})
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
+	txs = append(txs, scr)
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -339,11 +380,11 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	}
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -385,16 +426,16 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 	)
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 0, SndAddr: snd, RcvAddr: []byte("0")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 1, SndAddr: snd, RcvAddr: []byte("1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 2, SndAddr: snd, RcvAddr: []byte("1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 3, SndAddr: snd, RcvAddr: []byte("2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 4, SndAddr: snd, RcvAddr: []byte("2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 5, SndAddr: snd, RcvAddr: []byte("2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 6, SndAddr: snd, RcvAddr: []byte("3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 7, SndAddr: snd, RcvAddr: []byte("3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 8, SndAddr: snd, RcvAddr: []byte("3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 9, SndAddr: snd, RcvAddr: []byte("3")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 0, SndAddr: snd, RcvAddr: []byte("0"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 1, SndAddr: snd, RcvAddr: []byte("1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 2, SndAddr: snd, RcvAddr: []byte("1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 3, SndAddr: snd, RcvAddr: []byte("2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 4, SndAddr: snd, RcvAddr: []byte("2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 5, SndAddr: snd, RcvAddr: []byte("2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 6, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 7, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 8, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 9, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	_ = irp.AddIntermediateTransactions(txs)
 
@@ -512,11 +553,11 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 	}
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -553,11 +594,11 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	}
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -619,11 +660,11 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	}
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
@@ -696,23 +737,23 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	txs := make([]data.TransactionHandler, 0)
 
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	currHash, _ := core.CalculateHash(marshalizer, hasher, txs[0])
 	txHashes = append(txHashes, currHash)
 
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[1])
 	txHashes = append(txHashes, currHash)
 
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[2])
 	txHashes = append(txHashes, currHash)
 
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[3])
 	txHashes = append(txHashes, currHash)
 
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[4])
 	txHashes = append(txHashes, currHash)
 
@@ -761,10 +802,10 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 	}
 
 	txs := make([]data.TransactionHandler, 0)
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2")})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 1})
-	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 2})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 1, Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 2, Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)

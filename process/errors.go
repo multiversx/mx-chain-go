@@ -920,6 +920,18 @@ var ErrTransactionSignedWithHashIsNotEnabled = errors.New("transaction signed wi
 // ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
 var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
 
+// ErrInvalidVMInputGasComputation signals that invalid vm input gas computation was provided
+var ErrInvalidVMInputGasComputation = errors.New("invalid vm input gas computation")
+
+// ErrMoreGasConsumedThanProvided signals that VM used more gas than provided
+var ErrMoreGasConsumedThanProvided = errors.New("more gas used than provided")
+
+// ErrAdditionOverflow signals that uint64 addition overflowed
+var ErrAdditionOverflow = errors.New("uint64 addition overflow")
+
+// ErrSubtractionOverflow signals that uint64 subtraction overflowed
+var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
 

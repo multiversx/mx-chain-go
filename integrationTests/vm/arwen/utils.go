@@ -50,7 +50,7 @@ const DummyCodeMetadataHex = "0102"
 const maxGasLimit = 100000000000
 
 var marshalizer = &marshal.GogoProtoMarshalizer{}
-var hasher = sha256.Sha256{}
+var hasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 

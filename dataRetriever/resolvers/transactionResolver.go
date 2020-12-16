@@ -147,11 +147,13 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 			hash,
 			err,
 		)
+
+		return nil, err
 	}
 
 	txRes.ResolverDebugHandler().LogSucceededToResolveData(txRes.topic, hash)
 
-	return buff, err
+	return buff, nil
 }
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32) error {

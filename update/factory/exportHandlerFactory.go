@@ -189,7 +189,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
 	if check.IfNil(args.Rounder) {
-		return nil, update.ErrNilRounder
+		return nil, update.ErrNilRoundHandler
 	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
 		return nil, update.ErrNilHasher
@@ -290,7 +290,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	defer func() {
 		if err != nil {
 			if !check.IfNil(trieStorageManager) {
-				trieStorageManager.Close()
+				_ = trieStorageManager.Close()
 			}
 		}
 	}()
@@ -329,14 +329,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:           e.dataPool.TrieNodes(),
-		RequestHandler:       e.requestHandler,
-		ShardCoordinator:     e.shardCoordinator,
-		Hasher:               e.CoreComponents.Hasher(),
-		Marshalizer:          e.CoreComponents.InternalMarshalizer(),
-		TrieStorageManager:   trieStorageManager,
-		WaitTime:             time.Minute,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
+		TrieCacher:            e.dataPool.TrieNodes(),
+		RequestHandler:        e.requestHandler,
+		ShardCoordinator:      e.shardCoordinator,
+		Hasher:                e.CoreComponents.Hasher(),
+		Marshalizer:           e.CoreComponents.InternalMarshalizer(),
+		TrieStorageManager:    trieStorageManager,
+		TimoutGettingTrieNode: update.TimeoutGettingTrieNodes,
+		MaxTrieLevelInMemory:  e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -410,10 +410,10 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	defer func() {
 		if err != nil {
 			if !check.IfNil(keysStorer) {
-				keysStorer.Close()
+				_ = keysStorer.Close()
 			}
 			if !check.IfNil(keysVals) {
-				keysVals.Close()
+				_ = keysVals.Close()
 			}
 		}
 	}()

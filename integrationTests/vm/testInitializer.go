@@ -42,7 +42,7 @@ import (
 // TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
 
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
-var testHasher = sha256.Sha256{}
+var testHasher = sha256.NewSha256()
 var oneShardCoordinator = mock.NewMultiShardsCoordinatorMock(2)
 var pubkeyConv, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 

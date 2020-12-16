@@ -5,38 +5,49 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-var _ hashing.Hasher = (*Keccak)(nil)
+var _ hashing.Hasher = (*keccak)(nil)
 
-var keccakEmptyHash []byte
-
-// Keccak is a sha3-Keccak implementation of the hasher interface.
-type Keccak struct {
+// keccak is a sha3-keccak implementation of the hasher interface.
+type keccak struct {
+	emptyHash []byte
 }
 
-// Compute takes a string, and returns the sha3-Keccak hash of that string
-func (k Keccak) Compute(s string) []byte {
-	if len(s) == 0 && len(keccakEmptyHash) != 0 {
-		return k.EmptyHash()
+// NewKeccak initializes the empty hash and returns a new instance of the keccak hasher
+func NewKeccak() *keccak {
+	return &keccak{
+		emptyHash: computeEmptyHash(),
+	}
+}
+
+// Compute takes a string, and returns the sha3-keccak hash of that string
+func (k *keccak) Compute(s string) []byte {
+	if len(s) == 0 {
+		return k.getEmptyHash()
 	}
 	h := sha3.NewLegacyKeccak256()
 	_, _ = h.Write([]byte(s))
 	return h.Sum(nil)
 }
 
-// EmptyHash returns the sha3-Keccak hash of the empty string
-func (k Keccak) EmptyHash() []byte {
-	if len(keccakEmptyHash) == 0 {
-		keccakEmptyHash = k.Compute("")
-	}
-	return keccakEmptyHash
-}
-
-// Size returns the size, in number of bytes, of a sha3-Keccak hash
-func (Keccak) Size() int {
+// Size returns the size, in number of bytes, of a sha3-keccak hash
+func (k *keccak) Size() int {
 	return sha3.NewLegacyKeccak256().Size()
 }
 
+func (k *keccak) getEmptyHash() []byte {
+	hashCopy := make([]byte, len(k.emptyHash))
+	copy(hashCopy, k.emptyHash)
+
+	return hashCopy
+}
+
+func computeEmptyHash() []byte {
+	h := sha3.NewLegacyKeccak256()
+	_, _ = h.Write([]byte(""))
+	return h.Sum(nil)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (k Keccak) IsInterfaceNil() bool {
-	return false
+func (k *keccak) IsInterfaceNil() bool {
+	return k == nil
 }
