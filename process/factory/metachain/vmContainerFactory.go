@@ -23,19 +23,20 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer      sharding.ChanceComputer
-	validatorAccountsDB state.AccountsAdapter
-	blockChainHookImpl  *hooks.BlockChainHookImpl
-	cryptoHook          vmcommon.CryptoHook
-	systemContracts     vm.SystemSCContainer
-	economics           process.EconomicsDataHandler
-	messageSigVerifier  vm.MessageSignVerifier
-	nodesConfigProvider vm.NodesConfigProvider
-	gasSchedule         core.GasScheduleNotifier
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	systemSCConfig      *config.SystemSmartContractsConfig
-	epochNotifier       process.EpochNotifier
+	chanceComputer         sharding.ChanceComputer
+	validatorAccountsDB    state.AccountsAdapter
+	blockChainHookImpl     *hooks.BlockChainHookImpl
+	cryptoHook             vmcommon.CryptoHook
+	systemContracts        vm.SystemSCContainer
+	economics              process.EconomicsDataHandler
+	messageSigVerifier     vm.MessageSignVerifier
+	nodesConfigProvider    vm.NodesConfigProvider
+	gasSchedule            core.GasScheduleNotifier
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
+	systemSCConfig         *config.SystemSmartContractsConfig
+	epochNotifier          process.EpochNotifier
+	addressPubKeyConverter core.PubkeyConverter
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -79,6 +80,9 @@ func NewVMContainerFactory(
 	if check.IfNil(gasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
+	if check.IfNil(argBlockChainHook.PubkeyConv) {
+		return nil, vm.ErrNilAddressPubKeyConverter
+	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
 	if err != nil {
@@ -87,18 +91,19 @@ func NewVMContainerFactory(
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		blockChainHookImpl:  blockChainHookImpl,
-		cryptoHook:          cryptoHook,
-		economics:           economics,
-		messageSigVerifier:  messageSignVerifier,
-		gasSchedule:         gasSchedule,
-		nodesConfigProvider: nodesConfigProvider,
-		hasher:              hasher,
-		marshalizer:         marshalizer,
-		systemSCConfig:      systemSCConfig,
-		validatorAccountsDB: validatorAccountsDB,
-		chanceComputer:      chanceComputer,
-		epochNotifier:       epochNotifier,
+		blockChainHookImpl:     blockChainHookImpl,
+		cryptoHook:             cryptoHook,
+		economics:              economics,
+		messageSigVerifier:     messageSignVerifier,
+		gasSchedule:            gasSchedule,
+		nodesConfigProvider:    nodesConfigProvider,
+		hasher:                 hasher,
+		marshalizer:            marshalizer,
+		systemSCConfig:         systemSCConfig,
+		validatorAccountsDB:    validatorAccountsDB,
+		chanceComputer:         chanceComputer,
+		epochNotifier:          epochNotifier,
+		addressPubKeyConverter: argBlockChainHook.PubkeyConv,
 	}, nil
 }
 
@@ -133,15 +138,16 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	}
 
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
-		SystemEI:            systemEI,
-		SigVerifier:         vmf.messageSigVerifier,
-		GasSchedule:         vmf.gasSchedule,
-		NodesConfigProvider: vmf.nodesConfigProvider,
-		Hasher:              vmf.hasher,
-		Marshalizer:         vmf.marshalizer,
-		SystemSCConfig:      vmf.systemSCConfig,
-		Economics:           vmf.economics,
-		EpochNotifier:       vmf.epochNotifier,
+		SystemEI:               systemEI,
+		SigVerifier:            vmf.messageSigVerifier,
+		GasSchedule:            vmf.gasSchedule,
+		NodesConfigProvider:    vmf.nodesConfigProvider,
+		Hasher:                 vmf.hasher,
+		Marshalizer:            vmf.marshalizer,
+		SystemSCConfig:         vmf.systemSCConfig,
+		Economics:              vmf.economics,
+		EpochNotifier:          vmf.epochNotifier,
+		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
