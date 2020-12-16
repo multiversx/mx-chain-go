@@ -251,7 +251,6 @@ func isSmartContractResult(tx process.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big.Int {
-	//TODO: if flag is set, always take all the fee?
 	if ed.flagGasPriceModifier.IsSet() {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())

@@ -298,7 +298,6 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	destShardTxType process.TransactionType,
 	isUserTxOfRelayed bool,
 ) error {
-	// TODO: check why no receiptWithReturnedGas if not in sender shard
 	if check.IfNil(acntSnd) || isUserTxOfRelayed {
 		return nil
 	}
@@ -458,8 +457,6 @@ func (txProc *txProcessor) processMoveBalance(
 		return err
 	}
 
-	// TODO: check if correct that gas is refunded to sender instead of relayer for relayed Txs
-	// TODO: check 2 - create receiptWithReturnedGas even if we are in the senderShard?
 	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, moveBalanceCost, totalCost, destShardTxType, isUserTxOfRelayed)
 	if err != nil {
 		return err
@@ -704,8 +701,6 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	// TODO: check why executeFailedRelay just for these 2 cases? What happens if moveBalance fails in the senderShard
-	// TODO: or in the destinationShard if the SC is notPayable
 	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
 		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
 			userTx,
@@ -806,7 +801,6 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		return err
 	}
 
-	//TODO: check if the totalFee can be smaller, in case of a moveBalance for example
 	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {

@@ -1424,6 +1424,37 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 	assert.True(t, totalReturnedCost.Cmp(totalCost) == 0)
 }
 
+func TestTxProcessor_ProcessTxFeeIntraShardUserTx(t *testing.T) {
+	t.Parallel()
+
+	moveBalanceFee := big.NewInt(50)
+	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
+	args := createArgsForTxProcessor()
+	args.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeMoveBalanceFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	tx := &transaction.Transaction{
+		RcvAddr:  []byte("aaa"),
+		SndAddr:  []byte("bbb"),
+		GasPrice: moveBalanceFee.Uint64(),
+		GasLimit: moveBalanceFee.Uint64(),
+	}
+
+	acntSnd := &mock.UserAccountStub{AddToBalanceCalled: func(value *big.Int) error {
+		assert.True(t, value.Cmp(negMoveBalanceFee) == 0)
+		return nil
+	}}
+
+	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, true)
+	assert.Nil(t, err)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, cost.Cmp(totalCost) == 0)
+}
+
 func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testing.T) {
 	t.Parallel()
 
