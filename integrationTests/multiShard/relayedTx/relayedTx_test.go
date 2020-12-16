@@ -53,7 +53,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -143,7 +143,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -204,7 +204,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 	time.Sleep(time.Second)
 

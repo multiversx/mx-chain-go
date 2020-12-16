@@ -1664,7 +1664,7 @@ func CreateAndSendTransactions(
 	}
 
 	fmt.Println("Delaying for disseminating transactions...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second)
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
