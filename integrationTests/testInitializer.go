@@ -66,7 +66,7 @@ import (
 var StepDelay = time.Second / 10
 
 // SyncDelay is used so that nodes have enough time to sync
-var SyncDelay = time.Second * 2 / 10
+var SyncDelay = time.Second / 5
 
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
