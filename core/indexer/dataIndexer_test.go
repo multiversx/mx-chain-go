@@ -358,7 +358,7 @@ func testCreateIndexer(t *testing.T) {
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              &marshal.JsonMarshalizer{},
-		Hasher:                   &sha256.Sha256{},
+		Hasher:                   sha256.NewSha256(),
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
 		Options:                  &Options{},

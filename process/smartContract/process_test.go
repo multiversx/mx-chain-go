@@ -1685,7 +1685,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	tx.Value = big.NewInt(0)
 	scTxs, err = sc.processVMOutput(&vmcommon.VMOutput{GasRemaining: 1000}, txHash, tx, vmcommon.AsynchronousCall, 10000)
 	require.Nil(t, err)
-	require.Equal(t, 2, len(scTxs))
+	require.Equal(t, 1, len(scTxs))
 	lastScTx = scTxs[len(scTxs)-1].(*smartContractResult.SmartContractResult)
 	require.Equal(t, vmcommon.AsynchronousCallBack, lastScTx.CallType)
 }
@@ -2323,4 +2323,101 @@ func TestGasLockedInSmartContractProcessor(t *testing.T) {
 	finalArguments, gasLocked := sc.getAsyncCallGasLockFromTxData(scr.CallType, args)
 	require.Equal(t, 0, len(finalArguments))
 	require.Equal(t, gasLocked, outTransfer.GasLocked)
+}
+
+func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = NewArgumentParser()
+	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+		return 0
+	}}
+	feeHandler := &mock.FeeHandlerStub{ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+		return 0
+	}}
+	arguments.EconomicsFee = feeHandler
+	arguments.Coordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(0))
+	assert.Equal(t, devFees.Int64(), int64(0))
+
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 200}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(0))
+	assert.Equal(t, devFees.Int64(), int64(0))
+
+	totalFee, _ = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 0)
+	assert.Equal(t, totalFee.Int64(), int64(50))
+
+	feeHandler.DeveloperPercentageCalled = func() float64 {
+		return 0.5
+	}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	assert.Equal(t, totalFee.Int64(), int64(50))
+	assert.Equal(t, devFees.Int64(), int64(20))
+
+	feeHandler.ComputeGasLimitCalled = func(tx process.TransactionWithFeeHandler) uint64 {
+		return 10
+	}
+	shardCoordinator.SelfIdCalled = func() uint32 {
+		return 1
+	}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	assert.Equal(t, totalFee.Int64(), int64(30))
+	assert.Equal(t, devFees.Int64(), int64(15))
+
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 50}
+	vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
+	vmOutput.OutputAccounts["address"] = &vmcommon.OutputAccount{OutputTransfers: []vmcommon.OutputTransfer{{GasLimit: 10}}}
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(
+		&transaction.Transaction{GasLimit: 100, GasPrice: 1},
+		vmOutput,
+		10)
+	assert.Equal(t, totalFee.Int64(), int64(20))
+	assert.Equal(t, devFees.Int64(), int64(10))
+}
+
+func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
+	arguments := createMockSmartContractProcessorArguments()
+	sndAddress := []byte("sender11")
+	rcvAddress := []byte("receiver")
+
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			if bytes.Equal(address, sndAddress) {
+				return 1
+			}
+			if bytes.Equal(address, rcvAddress) {
+				return 0
+			}
+			return 2
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	scrWithRelayed := &smartContractResult.SmartContractResult{
+		Nonce:          0,
+		Value:          big.NewInt(0),
+		RcvAddr:        rcvAddress,
+		SndAddr:        sndAddress,
+		RelayerAddr:    []byte("relayer1"),
+		RelayedValue:   big.NewInt(0),
+		PrevTxHash:     []byte("someHash"),
+		OriginalTxHash: []byte("someHash"),
+		GasLimit:       10000,
+		GasPrice:       10,
+		CallType:       vmcommon.DirectCall,
+	}
+
+	vmOutput := &vmcommon.VMOutput{GasRemaining: 1000}
+	_, relayerRefund := sc.createSCRForSenderAndRelayer(vmOutput, scrWithRelayed, []byte("txhash"), vmcommon.DirectCall)
+	assert.NotNil(t, relayerRefund)
+
+	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)
+	assert.Equal(t, sc.shardCoordinator.SelfId(), senderID)
 }

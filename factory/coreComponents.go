@@ -157,6 +157,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ccf.nodesFilename,
 		addressPubkeyConverter,
 		validatorPubkeyConverter,
+		ccf.config.GeneralSettings.GenesisMaxNumberOfShards,
 	)
 	if err != nil {
 		return nil, err

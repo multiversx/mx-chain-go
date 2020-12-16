@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/syncer"
 	"github.com/ElrondNetwork/elrond-go/data/trie"
 	factory2 "github.com/ElrondNetwork/elrond-go/data/trie/factory"
+	"github.com/ElrondNetwork/elrond-go/data/trie/statistics"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/requestHandlers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -88,13 +89,35 @@ func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
 		time.Second,
 	)
 
-	waitTime := 100 * time.Second
-	trieSyncer, _ := trie.NewTrieSyncer(requestHandler, nRequester.DataPool.TrieNodes(), requesterTrie, shardID, factory.AccountTrieNodesTopic)
-	ctx, cancel := context.WithTimeout(context.Background(), waitTime)
-	defer cancel()
+	timeout := 10 * time.Second
+	tss := statistics.NewTrieSyncStatistics()
+	arg := trie.ArgTrieSyncer{
+		RequestHandler:                 requestHandler,
+		InterceptedNodes:               nRequester.DataPool.TrieNodes(),
+		Trie:                           requesterTrie,
+		ShardId:                        shardID,
+		Topic:                          factory.AccountTrieNodesTopic,
+		TrieSyncStatistics:             tss,
+		TimeoutBetweenTrieNodesCommits: timeout,
+	}
+	trieSyncer, _ := trie.NewTrieSyncer(arg)
 
-	err = trieSyncer.StartSyncing(rootHash, ctx)
+	ctxPrint, cancel := context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-ctxPrint.Done():
+				fmt.Printf("Sync done: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+				return
+			case <-time.After(time.Millisecond * 100):
+				fmt.Printf("Sync in progress: received: %d, missing: %d\n", tss.NumReceived(), tss.NumMissing())
+			}
+		}
+	}()
+
+	err = trieSyncer.StartSyncing(rootHash, context.Background())
 	assert.Nil(t, err)
+	cancel()
 
 	newRootHash, _ := requesterTrie.Root()
 	assert.NotEqual(t, nilRootHash, newRootHash)
@@ -183,7 +206,7 @@ func TestMultipleDataTriesSync(t *testing.T) {
 			Marshalizer:          integrationTests.TestMarshalizer,
 			TrieStorageManager:   nRequester.TrieStorageManagers[factory2.UserAccountTrie],
 			RequestHandler:       requestHandler,
-			WaitTime:             time.Second * 300,
+			Timeout:              time.Second * 10,
 			Cacher:               nRequester.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory: 5,
 		},

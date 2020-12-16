@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
 func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, p2p.Messenger) {
 	numOfShards := 2
 	nodesPerShard := 1

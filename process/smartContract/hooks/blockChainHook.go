@@ -470,7 +470,7 @@ func hashFromAddressAndNonce(creatorAddress []byte, creatorNonce uint64) []byte 
 	buffNonce := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffNonce, creatorNonce)
 	adrAndNonce := append(creatorAddress, buffNonce...)
-	scAddress := keccak.Keccak{}.Compute(string(adrAndNonce))
+	scAddress := keccak.NewKeccak().Compute(string(adrAndNonce))
 
 	return scAddress
 }
