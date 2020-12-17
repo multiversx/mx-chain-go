@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
@@ -463,4 +465,53 @@ func setupGetMiniblockMetadataByTxHash(historyRepo *testscommon.HistoryRepositor
 			Epoch:              epoch,
 		}, nil
 	}
+}
+
+func TestPrepareUnsignedTx(t *testing.T) {
+	t.Parallel()
+	addrSize := 32
+	scr1 := &smartContractResult.SmartContractResult{
+		Nonce:          1,
+		Value:          big.NewInt(2),
+		SndAddr:        bytes.Repeat([]byte{0}, addrSize),
+		RcvAddr:        bytes.Repeat([]byte{1}, addrSize),
+		OriginalSender: []byte("invalid original sender"),
+	}
+
+	n := Node{}
+	n.addressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize)
+
+	scrResult1, err := n.prepareUnsignedTx(scr1)
+	assert.Nil(t, err)
+	expectedScr1 := &transaction.ApiTransactionResult{
+		Tx:       scr1,
+		Nonce:    1,
+		Type:     string(transaction.TxTypeUnsigned),
+		Value:    "2",
+		Receiver: "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
+		Sender:   "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
+	}
+	assert.Equal(t, scrResult1, expectedScr1)
+
+	scr2 := &smartContractResult.SmartContractResult{
+		Nonce:          3,
+		Value:          big.NewInt(4),
+		SndAddr:        bytes.Repeat([]byte{5}, addrSize),
+		RcvAddr:        bytes.Repeat([]byte{6}, addrSize),
+		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
+	}
+
+	scrResult2, err := n.prepareUnsignedTx(scr2)
+	assert.Nil(t, err)
+	expectedScr2 := &transaction.ApiTransactionResult{
+		Tx:             scr2,
+		Nonce:          3,
+		Type:           string(transaction.TxTypeUnsigned),
+		Value:          "4",
+		Receiver:       "erd1qcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqvpsxqcrqwkh39e",
+		Sender:         "erd1q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zs2pg9q5zsrqsks3",
+		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
+	}
+	assert.Equal(t, scrResult2, expectedScr2)
+
 }
