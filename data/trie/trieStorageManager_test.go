@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const pruningDelay = time.Second / 5
-const snapshotDelay = time.Second / 5
+const pruningDelay = time.Second / 2
+const snapshotDelay = time.Second / 2
 
 func TestNewTrieStorageManagerNilDb(t *testing.T) {
 	t.Parallel()
