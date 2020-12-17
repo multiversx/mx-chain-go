@@ -286,3 +286,6 @@ var ErrInvalidNumOfKeysToUnStake = errors.New("invalid number of keys to unstake
 
 // ErrSystemValidatorSCCall signals that system validator sc call failed
 var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
+
+// ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
+var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
