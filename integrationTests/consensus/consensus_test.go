@@ -148,7 +148,7 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(0)
-	roundTime := uint64(1000)
+	roundTime := uint64(integrationTests.StepDelay)
 	numCommBlock := uint64(8)
 
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
@@ -198,7 +198,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
-	roundTime := uint64(1000)
+	roundTime := uint64(integrationTests.StepDelay)
 	nodes, advertiser, _ := initNodesAndTest(numNodes, consensusSize, numInvalid, roundTime, consensusType)
 
 	mutex := &sync.Mutex{}
@@ -218,8 +218,8 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	err := startNodesWithCommitBlock(nodes, mutex, nonceForRoundMap, &totalCalled)
 	assert.Nil(t, err)
 
-	waitTime := time.Second * 30
-	fmt.Println("Run for 30 seconds...")
+	waitTime := time.Second * 5
+	fmt.Println("Run for 5 seconds...")
 	time.Sleep(waitTime)
 
 	mutex.Lock()
