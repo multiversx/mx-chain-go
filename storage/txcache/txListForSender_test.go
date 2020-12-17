@@ -370,10 +370,10 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	}()
 }
 
-func dummyParams() (TxGasHandler, feeHelper) {
-	minPrice := uint64(1000000000)
+func dummyParamsWithGasPrice(minGasPrice uint64) (TxGasHandler, feeHelper) {
+	minPrice := minGasPrice
 	divisor := uint64(100)
-	minPriceProcessing := uint64(1000000000) / divisor
+	minPriceProcessing := minGasPrice / divisor
 	minGasLimit := uint64(50000)
 	txFeeHelper := newFeeComputationHelper(minPrice, minGasLimit, minPriceProcessing)
 	txGasHandler := &txcache.TxGasHandlerMock{
@@ -382,6 +382,11 @@ func dummyParams() (TxGasHandler, feeHelper) {
 		GasProcessingDivisor: divisor,
 	}
 	return txGasHandler, txFeeHelper
+}
+
+func dummyParams() (TxGasHandler, feeHelper) {
+	minPrice := uint64(1000000000)
+	return dummyParamsWithGasPrice(minPrice)
 }
 
 func newUnconstrainedListToTest() *txListForSender {

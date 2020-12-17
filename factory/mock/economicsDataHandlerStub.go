@@ -25,6 +25,10 @@ type EconomicsHandlerStub struct {
 	MinGasLimitCalled                      func() uint64
 	GenesisTotalSupplyCalled               func() *big.Int
 	ComputeFeeForProcessingCalled          func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	SplitTxGasInCategoriesCalled           func(tx process.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessingCalled            func(tx process.TransactionWithFeeHandler) uint64
+	GasPriceForMoveCalled                  func(tx process.TransactionWithFeeHandler) uint64
+	MinGasPriceProcessingCalled            func() uint64
 }
 
 // ComputeFeeForProcessing -
@@ -162,6 +166,46 @@ func (e *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithF
 		return e.CheckValidityTxValuesCalled(tx)
 	}
 	return nil
+}
+
+// SplitTxGasInCategories -
+func (e *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+	if e.SplitTxGasInCategoriesCalled != nil {
+		return e.SplitTxGasInCategoriesCalled(tx)
+	}
+
+	var processingGas uint64
+	if e.ComputeGasLimit(tx) > e.MinGasLimit() {
+		processingGas = e.ComputeGasLimit(tx) - e.MinGasLimit()
+	}
+	processingGas = 0
+
+	return e.MinGasLimit(), processingGas
+}
+
+// GasPriceForProcessing -
+func (e *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+	if e.GasPriceForProcessingCalled != nil {
+		return e.GasPriceForProcessingCalled(tx)
+	}
+	return 1
+}
+
+// GasPriceForMove -
+func (e *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	if e.GasPriceForMoveCalled != nil {
+		return e.GasPriceForMoveCalled(tx)
+	}
+	return 100
+}
+
+// MinGasPriceProcessing -
+func (e *EconomicsHandlerStub) MinGasPriceProcessing() uint64 {
+	if e.MinGasPriceProcessingCalled != nil {
+		return e.MinGasPriceProcessingCalled()
+	}
+
+	return 1
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

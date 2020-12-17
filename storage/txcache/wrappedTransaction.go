@@ -6,14 +6,16 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
+const processFeeFactor = 80
+
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
-	Tx              data.TransactionHandler
-	TxHash          []byte
-	SenderShardID   uint32
-	ReceiverShardID uint32
-	Size            int64
-	TxFeeNormalized uint64
+	Tx                   data.TransactionHandler
+	TxHash               []byte
+	SenderShardID        uint32
+	ReceiverShardID      uint32
+	Size                 int64
+	TxFeeScoreNormalized uint64
 }
 
 func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
@@ -26,8 +28,8 @@ func estimateTxGas(tx *WrappedTransaction) uint64 {
 	return gasLimit
 }
 
-// estimateTxFee returns an approximation for the cost of a transaction, in nano ERD
-func estimateTxFee(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
+// estimateTxFeeScore returns an approximation for the cost of a transaction, in nano ERD
+func estimateTxFeeScore(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
 	moveGas, processGas := txGasHandler.SplitTxGasInCategories(tx.Tx)
 
 	normalizedMoveGas := moveGas >> txFeeHelper.gasLimitShift()
@@ -39,9 +41,9 @@ func estimateTxFee(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelpe
 	normalizedFeeMove := normalizedMoveGas * normalizedGasPriceMove
 	normalizedFeeProcess := normalizedProcessGas >> remainingProcessingPriceShift * normalizedGasPriceProcess
 
-	tx.TxFeeNormalized = normalizedFeeMove + normalizedFeeProcess
+	tx.TxFeeScoreNormalized = normalizedFeeMove + normalizedFeeProcess*processFeeFactor
 
-	return tx.TxFeeNormalized
+	return tx.TxFeeScoreNormalized
 }
 
 func normalizeGasPriceProcessing(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) (uint64, uint64) {

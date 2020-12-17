@@ -594,6 +594,10 @@ type EconomicsDataHandler interface {
 	MinGasLimit() uint64
 	GenesisTotalSupply() *big.Int
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
+	GasPriceForMove(tx TransactionWithFeeHandler) uint64
+	MinGasPriceProcessing() uint64
 	IsInterfaceNil() bool
 }
 

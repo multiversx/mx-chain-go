@@ -104,7 +104,7 @@ func (listForSender *txListForSender) isCapacityExceeded() bool {
 func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction, gasHandler TxGasHandler, txFeeHelper feeHelper) {
 	listForSender.totalBytes.Add(tx.Size)
 	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
-	listForSender.totalFee.Add(int64(estimateTxFee(tx, gasHandler, txFeeHelper)))
+	listForSender.totalFee.Add(int64(estimateTxFeeScore(tx, gasHandler, txFeeHelper)))
 }
 
 func (listForSender *txListForSender) triggerScoreChange() {
@@ -116,10 +116,9 @@ func (listForSender *txListForSender) triggerScoreChange() {
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	fee := listForSender.totalFee.GetUint64()
 	gas := listForSender.totalGas.GetUint64()
-	size := listForSender.totalBytes.GetUint64()
 	count := listForSender.countTx()
 
-	return senderScoreParams{count: count, size: size, fee: fee, gas: gas}
+	return senderScoreParams{count: count, feeScore: fee, gas: gas}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -176,7 +175,7 @@ func (listForSender *txListForSender) onRemovedListElement(element *list.Element
 
 	listForSender.totalBytes.Subtract(value.Size)
 	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
-	listForSender.totalFee.Subtract(int64(value.TxFeeNormalized))
+	listForSender.totalFee.Subtract(int64(value.TxFeeScoreNormalized))
 }
 
 // This function should only be used in critical section (listForSender.mutex)

@@ -126,29 +126,47 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 2,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler, _ := dummyParamsWithGasPrice(100*oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 800, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 500, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 100000, 700*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 128, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 128, 100000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave1"), "dave", uint64(3), 128, 40000000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave2"), "dave", uint64(1), 128, 50000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave3"), "dave", uint64(2), 128, 50000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-chris"), "chris", uint64(1), 128, 50000, 100*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-richard"), "richard", uint64(1), 128, 50000, 120*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 128, 100000, 700*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-eve"), "eve", uint64(1), 128, 50000, 400*oneBillion))
 
-	require.Equal(t, uint32(19), cache.getScoreOfSender("alice"))
-	require.Equal(t, uint32(23), cache.getScoreOfSender("bob"))
-	require.Equal(t, uint32(100), cache.getScoreOfSender("carol"))
+	scoreAlice := cache.getScoreOfSender("alice")
+	scoreBob := cache.getScoreOfSender("bob")
+	scoreDave := cache.getScoreOfSender("dave")
+	scoreCarol := cache.getScoreOfSender("carol")
+	scoreEve := cache.getScoreOfSender("eve")
+	scoreChris := cache.getScoreOfSender("chris")
+	scoreRichard := cache.getScoreOfSender("richard")
+
+	require.Equal(t, uint32(19), scoreAlice)
+	require.Equal(t, uint32(23), scoreBob)
+	require.Equal(t, uint32(10), scoreDave)
+	require.Equal(t, uint32(100), scoreCarol)
+	require.Equal(t, uint32(100), scoreEve)
+	require.Equal(t, uint32(95), scoreChris)
+	require.Equal(t, uint32(100), scoreRichard)
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
-	// Alice and Bob evicted (lower score). Carol still there.
+	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, uint64(1), cache.CountSenders())
-	require.Equal(t, uint64(1), cache.CountTx())
+	require.Equal(t, uint64(2), cache.CountSenders())
+	require.Equal(t, uint64(2), cache.CountTx())
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {

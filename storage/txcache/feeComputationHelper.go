@@ -5,6 +5,7 @@ type feeHelper interface {
 	gasPriceShift() uint64
 	minPricePerUnit() uint64
 	normalizedMinFee() uint64
+	minGasPriceFactor() uint64
 	IsInterfaceNil() bool
 }
 
@@ -13,6 +14,7 @@ type feeComputationHelper struct {
 	priceShiftingFactor uint64
 	minFeeNormalized    uint64
 	minPPU              uint64
+	minPriceFactor      uint64
 }
 
 const priceBinaryResolution = 10
@@ -40,32 +42,35 @@ func (fch *feeComputationHelper) minPricePerUnit() uint64 {
 	return fch.minPPU
 }
 
+func (fch *feeComputationHelper) minGasPriceFactor() uint64 {
+	return fch.minPriceFactor
+}
+
 func (fch *feeComputationHelper) initializeHelperParameters(minPrice, minGasLimit, minPriceProcessing uint64) {
-	fch.priceShiftingFactor = binaryMagnitude(minPrice)
-	if fch.priceShiftingFactor > priceBinaryResolution {
-		fch.priceShiftingFactor = fch.priceShiftingFactor - priceBinaryResolution
-	}
-	for x := minPriceProcessing >> fch.priceShiftingFactor; x == 0; {
+	fch.priceShiftingFactor = computeShiftMagnitude(minPrice, priceBinaryResolution)
+	x := minPriceProcessing >> fch.priceShiftingFactor
+	for x == 0 && fch.priceShiftingFactor > 0 {
 		fch.priceShiftingFactor--
+		x = minPriceProcessing >> fch.priceShiftingFactor
 	}
 
-	fch.gasShiftingFactor = binaryMagnitude(minGasLimit)
-	if fch.gasShiftingFactor > gasBinaryResolution {
-		fch.gasShiftingFactor = fch.gasShiftingFactor - gasBinaryResolution
-	}
+	fch.gasShiftingFactor = computeShiftMagnitude(minGasLimit, gasBinaryResolution)
 
 	fch.minPPU = minPriceProcessing >> fch.priceShiftingFactor
 	fch.minFeeNormalized = (minGasLimit >> fch.gasLimitShift()) * (minPrice >> fch.priceShiftingFactor)
+	fch.minPriceFactor = minPrice / minPriceProcessing
 }
 
-// returns the binary order of the number
-// eg for 1024 it should return 10
-func binaryMagnitude(x uint64) uint64 {
+// returns the maximum shift magnitude of the number in order to maintain the given binary resolution
+func computeShiftMagnitude(x uint64, resolution uint8) uint64 {
 	m := uint64(1)
+	stopCondition := uint64(1) << resolution
+	shiftStep := uint64(resolution)
 
-	for i := x; i > 1; i >>= 1 {
-		m <<= 1
+	for i := x; i > stopCondition; i >>= shiftStep {
+		m += shiftStep
 	}
+
 	return m
 }
 

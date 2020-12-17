@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcache"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,7 +109,16 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 		Shards:               1,
 	}
 
-	args := txpool.ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2, SelfShardID: 0}
+	args := txpool.ArgShardedTxPool{
+		Config: config,
+		TxGasHandler: &txcache.TxGasHandlerMock{
+			MinimumGasMove:       50000,
+			MinimumGasPrice:      200000000000,
+			GasProcessingDivisor: 100,
+		},
+		NumberOfShards: 2,
+		SelfShardID:    0,
+	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
 		panic(fmt.Sprintf("newPool: %s", err))
