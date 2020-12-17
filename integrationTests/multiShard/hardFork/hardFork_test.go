@@ -211,7 +211,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			)
 		}
 
-		time.Sleep(integrationTests.StepDelay)
+		time.Sleep(time.Second)
 	}
 
 	time.Sleep(time.Second)
@@ -342,7 +342,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 			)
 		}
 
-		time.Sleep(integrationTests.StepDelay)
+		time.Sleep(time.Second)
 	}
 
 	time.Sleep(time.Second)
