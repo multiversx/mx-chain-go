@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -136,7 +137,10 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 }
 
 func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
-	return vmOutput.ReturnMessage == "allocation error"
+	hasAllocationError := strings.Contains(vmOutput.ReturnMessage, "allocation error")
+	hasUnknownError := strings.Contains(vmOutput.ReturnMessage, "unknown error")
+	shouldRetry := hasAllocationError || hasUnknownError
+	return shouldRetry
 }
 
 func (service *SCQueryService) checkVMOutput(vmOutput *vmcommon.VMOutput) error {

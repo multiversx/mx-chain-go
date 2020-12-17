@@ -393,3 +393,30 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, consumedGas, cost)
 }
+
+func TestHasRetriableExecutionError(t *testing.T) {
+	t.Parallel()
+
+	target, err := NewSCQueryService(&mock.VMContainerMock{}, &mock.FeeHandlerStub{}, &mock.BlockChainHookHandlerMock{}, &mock.BlockChainMock{})
+
+	assert.NotNil(t, target)
+	assert.Nil(t, err)
+
+	shouldRetry := target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: ""})
+	require.False(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "foobar"})
+	require.False(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "allocation error"})
+	require.True(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "some allocation error"})
+	require.True(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "unknown error"})
+	require.True(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "Call error: unknown error function foobar"})
+	require.True(t, shouldRetry)
+}
