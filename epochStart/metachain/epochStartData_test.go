@@ -162,6 +162,30 @@ func TestEpochStartData_NilShardCoordinator(t *testing.T) {
 	require.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
+func TestEpochStartData_NilRequestHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.RequestHandler = nil
+
+	esd, err := NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, process.ErrNilRequestHandler, err)
+}
+
+func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+
+	esd, _ := NewEpochStartData(arguments)
+
+	metaBlock := &block.MetaBlock{}
+
+	err := esd.VerifyEpochStartDataForMetablock(metaBlock)
+	require.NoError(t, err)
+}
+
 func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
