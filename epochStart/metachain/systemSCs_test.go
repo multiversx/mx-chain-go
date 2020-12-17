@@ -44,6 +44,67 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewSystemSCProcessor(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(100)
+	args.Marshalizer = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilMarshalizer)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.PeerAccountsDB = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilAccountsDB)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.SystemVM = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilSystemVM)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.UserAccountsDB = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilAccountsDB)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.ValidatorInfoCreator = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilValidatorInfoProcessor)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.EndOfEpochCallerAddress = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilEndOfEpochCallerAddress)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.StakingSCAddress = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilStakingSCAddress)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.ValidatorInfoCreator = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilValidatorInfoProcessor)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.ChanceComputer = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilChanceComputer)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.GenesisNodesConfig = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilGenesisNodesConfig)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.NodesConfigProvider = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilNodesConfigProvider)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.StakingDataProvider = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilStakingDataProvider)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args.EpochNotifier = nil
+	checkConstructorWithNilArg(t, args, epochStart.ErrNilEpochStartNotifier)
+}
+
+func checkConstructorWithNilArg(t *testing.T, args ArgsNewEpochStartSystemSCProcessing, expectedErr error) {
+	_, err := NewSystemSCProcessor(args)
+	require.Equal(t, expectedErr, err)
+}
+
 func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	t.Parallel()
 
