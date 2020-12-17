@@ -1208,6 +1208,9 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	cost := sc.economicsFee.ComputeTxFee(tx)
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
 	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
@@ -1368,6 +1371,10 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
+
 	if !sc.flagDeploy.IsSet() {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
