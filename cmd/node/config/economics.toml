@@ -28,7 +28,8 @@
 [FeeSettings]
     MaxGasLimitPerBlock     = "1500000000"
     MaxGasLimitPerMetaBlock = "15000000000"
-    MinGasPrice = "1000000000" #will yield min tx fee of 0.00005 eGLD
-    MinGasLimit = "50000"
-    GasPerDataByte = "1500"
-    DataLimitForBaseCalc = "10000"
+    MinGasPrice             = "1000000000" #will yield min tx fee of 0.00005 eGLD
+    GasPriceModifier        = 0.01
+    MinGasLimit             = "50000"
+    GasPerDataByte          = "1500"
+    DataLimitForBaseCalc    = "10000"

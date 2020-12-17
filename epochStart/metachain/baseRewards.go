@@ -26,7 +26,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 )
 
-// ArgsNewRewardsCreator defines the arguments structure needed to create a new rewards creator
+// BaseRewardsCreatorArgs defines the arguments structure needed to create a base rewards creator
 type BaseRewardsCreatorArgs struct {
 	ShardCoordinator              sharding.Coordinator
 	PubkeyConverter               core.PubkeyConverter
@@ -63,6 +63,7 @@ type baseRewardsCreator struct {
 	rewardsFix1EnableEpoch             uint32
 }
 
+// NewBaseRewardsCreator will create a new base rewards creator instance
 func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, error) {
 	err := checkBaseArgs(args)
 	if err != nil {

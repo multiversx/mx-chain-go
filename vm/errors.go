@@ -119,6 +119,9 @@ var ErrNilMarshalizer = errors.New("nil Marshalizer")
 // ErrNegativeOrZeroInitialSupply signals that negative initial supply has been provided
 var ErrNegativeOrZeroInitialSupply = errors.New("negative initial supply was provided")
 
+// ErrInvalidNumberOfDecimals signals that an invalid number of decimals has been provided
+var ErrInvalidNumberOfDecimals = errors.New("invalid number of decimals")
+
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
@@ -184,6 +187,9 @@ var ErrNilChanceComputer = errors.New("nil chance computer")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrNilAddressPubKeyConverter signals that the provided public key converter is nil
+var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter")
 
 // ErrNoTickerWithGivenName signals that ticker does not exists with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
