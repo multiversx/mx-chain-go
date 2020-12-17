@@ -264,7 +264,7 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
-func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughGas(t *testing.T) {
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *testing.T) {
 	nbShards := uint32(3)
 	nbEligible := make(map[uint32]uint32)
 	nbWaiting := make(map[uint32]uint32)
