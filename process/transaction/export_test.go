@@ -3,6 +3,7 @@ package transaction
 import (
 	"math/big"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -45,10 +46,39 @@ func (txProc *txProcessor) SetPenalizedTooMuchGasEnableEpoch(epoch uint32) {
 	txProc.penalizedTooMuchGasEnableEpoch = epoch
 }
 
+func (txProc *txProcessor) ProcessUserTx(
+	originalTx *transaction.Transaction,
+	userTx *transaction.Transaction,
+	relayedTxValue *big.Int,
+	relayedNonce uint64,
+	txHash []byte,
+) (vmcommon.ReturnCode, error) {
+	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, txHash)
+}
+
 func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
 ) error {
 	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc)
+}
+
+func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
+	userTx *transaction.Transaction,
+	relayerAdr []byte,
+	relayedTxValue *big.Int,
+	relayedNonce uint64,
+	originalTx *transaction.Transaction,
+	originalTxHash []byte,
+	errorMsg string,
+) error {
+	return txProc.executeFailedRelayedTransaction(
+		userTx,
+		relayerAdr,
+		relayedTxValue,
+		relayedNonce,
+		originalTx,
+		originalTxHash,
+		errorMsg)
 }
