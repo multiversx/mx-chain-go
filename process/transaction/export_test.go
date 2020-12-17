@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -55,11 +56,12 @@ func (txProc *txProcessor) ProcessUserTx(
 	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, txHash)
 }
 
-func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
+func (txProc *txProcessor) ProcessMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
+	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
 ) error {
-	return txProc.takeMoveBalanceCostOutOfUser(userTx, userAcc)
+	return txProc.processMoveBalanceCostRelayedUserTx(userTx, userScr, userAcc)
 }
 
 func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
@@ -71,7 +73,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 	originalTxHash []byte,
 	errorMsg string,
 ) error {
-	return txProc.executeFailedRelayedTransaction(
+	return txProc.executeFailedRelayedUserTx(
 		userTx,
 		relayerAdr,
 		relayedTxValue,
