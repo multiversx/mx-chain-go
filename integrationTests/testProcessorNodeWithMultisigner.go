@@ -782,5 +782,5 @@ func SyncAllShardsWithRoundBlock(
 	for shard, nodeList := range nodesMap {
 		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
 	}
-	time.Sleep(2 * StepDelay)
+	time.Sleep(4 * StepDelay)
 }
