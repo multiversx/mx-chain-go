@@ -12,8 +12,6 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -43,8 +41,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 }
 
 func TestMoveBalanceShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -85,8 +81,6 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -115,8 +109,6 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -147,8 +139,6 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 

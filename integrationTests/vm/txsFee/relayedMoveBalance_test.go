@@ -1,23 +1,15 @@
 package txsFee
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
-var protoMarshalizer = &marshal.GogoProtoMarshalizer{}
-
 func TestRelayedMoveBalanceShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -64,8 +56,6 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -98,8 +88,6 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -132,8 +120,6 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -163,9 +149,4 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(275), accumulatedFee)
-}
-
-func prepareRelayerTxData(innerTx *transaction.Transaction) []byte {
-	userTxBytes, _ := protoMarshalizer.Marshal(innerTx)
-	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
 }

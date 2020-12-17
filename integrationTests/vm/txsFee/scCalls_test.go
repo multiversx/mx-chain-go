@@ -8,19 +8,15 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/require"
 )
 
 func TestScCallShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
-	scAddress := doDeploy(t, &testContext)
+	scAddress, _ := doDeploy(t, &testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -54,8 +50,6 @@ func TestScCallShouldWork(t *testing.T) {
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -85,12 +79,10 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
-	scAddress := doDeploy(t, &testContext)
+	scAddress, _ := doDeploy(t, &testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -119,12 +111,10 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
-	scAddress := doDeploy(t, &testContext)
+	scAddress, _ := doDeploy(t, &testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -156,12 +146,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
-	scAddress := doDeploy(t, &testContext)
+	scAddress, _ := doDeploy(t, &testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -188,38 +176,4 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(11170), accumulatedFee)
-}
-
-func doDeploy(t *testing.T, testContext *vm.VMTestContext) []byte {
-	sndAddr := []byte("12345678901234567890123456789012")
-	senderNonce := uint64(0)
-	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
-	gasLimit := uint64(2000)
-
-	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
-
-	scCode := arwen.GetSCCode("../arwen/testdata/counter/output/counter.wasm")
-	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
-
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
-
-	_, err = testContext.Accounts.Commit()
-	require.Nil(t, err)
-
-	expectedBalance := big.NewInt(89030)
-	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
-
-	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFee)
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(sndAddr, 0, factory.ArwenVirtualMachine)
-
-	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
-
-	return scAddress
 }

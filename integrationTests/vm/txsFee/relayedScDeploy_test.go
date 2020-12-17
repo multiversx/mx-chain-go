@@ -13,8 +13,6 @@ import (
 )
 
 func TestRelayedScDeployShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -55,8 +53,6 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -99,8 +95,6 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -141,8 +135,6 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
