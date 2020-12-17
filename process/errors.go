@@ -656,8 +656,8 @@ var ErrNilEpochEconomics = errors.New("nil epoch economics")
 // ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
 var ErrNilEpochStartDataCreator = errors.New("nil epoch start data creator")
 
-// ErrNilEpochStartRewardsCreator signals that nil epoch start rewards creator was provided
-var ErrNilEpochStartRewardsCreator = errors.New("nil epoch start rewards creator")
+// ErrNilRewardsCreator signals that nil epoch start rewards creator was provided
+var ErrNilRewardsCreator = errors.New("nil epoch start rewards creator")
 
 // ErrNilEpochStartValidatorInfoCreator signals that nil epoch start validator info creator was provided
 var ErrNilEpochStartValidatorInfoCreator = errors.New("nil epoch start validator info creator")
@@ -910,6 +910,9 @@ var ErrTransactionSignedWithHashIsNotEnabled = errors.New("transaction signed wi
 
 // ErrNilTransactionVersionChecker signals that provided transaction version checker is nil
 var ErrNilTransactionVersionChecker = errors.New("nil transaction version checker")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the top up gradient point is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("rewards top up gradient point is invalid")
 
 // ErrInvalidVMInputGasComputation signals that invalid vm input gas computation was provided
 var ErrInvalidVMInputGasComputation = errors.New("invalid vm input gas computation")

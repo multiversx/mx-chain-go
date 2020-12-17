@@ -39,52 +39,55 @@ type vmContainerFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 }
 
+// ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
+type ArgsNewVMContainerFactory struct {
+	ArgBlockChainHook   hooks.ArgBlockChainHook
+	Economics           process.EconomicsDataHandler
+	MessageSignVerifier vm.MessageSignVerifier
+	GasSchedule         core.GasScheduleNotifier
+	NodesConfigProvider vm.NodesConfigProvider
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	SystemSCConfig      *config.SystemSmartContractsConfig
+	ValidatorAccountsDB state.AccountsAdapter
+	ChanceComputer      sharding.ChanceComputer
+	EpochNotifier       process.EpochNotifier
+}
+
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
-func NewVMContainerFactory(
-	argBlockChainHook hooks.ArgBlockChainHook,
-	economics process.EconomicsDataHandler,
-	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule core.GasScheduleNotifier,
-	nodesConfigProvider vm.NodesConfigProvider,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	systemSCConfig *config.SystemSmartContractsConfig,
-	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer sharding.ChanceComputer,
-	epochNotifier process.EpochNotifier,
-) (*vmContainerFactory, error) {
-	if economics == nil {
+func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory, error) {
+	if check.IfNil(args.Economics) {
 		return nil, process.ErrNilEconomicsData
 	}
-	if check.IfNil(messageSignVerifier) {
+	if check.IfNil(args.MessageSignVerifier) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(nodesConfigProvider) {
+	if check.IfNil(args.NodesConfigProvider) {
 		return nil, process.ErrNilNodesConfigProvider
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if systemSCConfig == nil {
+	if args.SystemSCConfig == nil {
 		return nil, process.ErrNilSystemSCConfig
 	}
-	if check.IfNil(validatorAccountsDB) {
+	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
-	if check.IfNil(chanceComputer) {
+	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
-	if check.IfNil(gasSchedule) {
+	if check.IfNil(args.GasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
-	if check.IfNil(argBlockChainHook.PubkeyConv) {
+	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
@@ -93,17 +96,17 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		blockChainHookImpl:     blockChainHookImpl,
 		cryptoHook:             cryptoHook,
-		economics:              economics,
-		messageSigVerifier:     messageSignVerifier,
-		gasSchedule:            gasSchedule,
-		nodesConfigProvider:    nodesConfigProvider,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		systemSCConfig:         systemSCConfig,
-		validatorAccountsDB:    validatorAccountsDB,
-		chanceComputer:         chanceComputer,
-		epochNotifier:          epochNotifier,
-		addressPubKeyConverter: argBlockChainHook.PubkeyConv,
+		economics:              args.Economics,
+		messageSigVerifier:     args.MessageSignVerifier,
+		gasSchedule:            args.GasSchedule,
+		nodesConfigProvider:    args.NodesConfigProvider,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		systemSCConfig:         args.SystemSCConfig,
+		validatorAccountsDB:    args.ValidatorAccountsDB,
+		chanceComputer:         args.ChanceComputer,
+		epochNotifier:          args.EpochNotifier,
+		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
 	}, nil
 }
 

@@ -235,3 +235,57 @@ var ErrInvalidMinNumberOfNodes = errors.New("minimum number of nodes invalid")
 
 // ErrNilEpochNotifier signals that the provided EpochNotifier is nil
 var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
+
+// ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
+var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
+
+// ErrNilLocalTxCache signals that nil local tx cache has been provided
+var ErrNilLocalTxCache = errors.New("nil local tx cache")
+
+// ErrSystemDelegationCall signals that delegation system sc returned with error
+var ErrSystemDelegationCall = errors.New("delegation system sc call returned with error")
+
+// ErrExecutingSystemScCode signals that an error occurred while executing system SC code
+var ErrExecutingSystemScCode = errors.New("error executing system SC code")
+
+// ErrNilValue signals that a nil value was retrieved
+var ErrNilValue = errors.New("nil value")
+
+// ErrNilSystemVmInstance signals that a nil system VM instance was provided
+var ErrNilSystemVmInstance = errors.New("nil system VM instance")
+
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
+// ErrNilDataTrie signals that a nil data trie was provided
+var ErrNilDataTrie = errors.New("nil data trie")
+
+// ErrInvalidMinNodePrice signals that the minimum node price is invalid (e.g negative, not a number, etc)
+var ErrInvalidMinNodePrice = errors.New("minimum node price is invalid")
+
+// ErrInvalidRewardsTopUpGradientPoint signals that the given point controlling the top-up gradient is invalid
+var ErrInvalidRewardsTopUpGradientPoint = errors.New("top-up gradient point invalid")
+
+// ErrInvalidRewardsTopUpFactor signals that the factor for computing the top-up rewards out of the full rewards is invalid
+var ErrInvalidRewardsTopUpFactor = errors.New("top-up factor invalid")
+
+// ErrNilEconomicsDataProvider signals that the economics data provider is nil
+var ErrNilEconomicsDataProvider = errors.New("end of epoch economics data provider is nil")
+
+// ErrInvalidMaxNumberOfNodes signals that the maximum number of nodes is invalid
+var ErrInvalidMaxNumberOfNodes = errors.New("maximum number of nodes invalid")
+
+// ErrInvalidSystemSCReturn signals that system sc returned with something unexpected
+var ErrInvalidSystemSCReturn = errors.New("invalid system sc return")
+
+// ErrUnStakeExecuteError signals that unstaked returned with error
+var ErrUnStakeExecuteError = errors.New("unstake execution error")
+
+// ErrInvalidNumOfKeysToUnStake signals that invalid number of keys were selected to unstake
+var ErrInvalidNumOfKeysToUnStake = errors.New("invalid number of keys to unstake")
+
+// ErrSystemValidatorSCCall signals that system validator sc call failed
+var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
+
+// ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
+var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")

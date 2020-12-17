@@ -187,7 +187,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
