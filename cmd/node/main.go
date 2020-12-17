@@ -861,13 +861,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		genesisNodesConfig.MinNodesPerShard,
-		genesisNodesConfig.MetaChainMinNodes,
-		genesisNodesConfig.Hysteresis,
-		genesisNodesConfig.Adaptivity,
-		true,
-	)
+	argsNodesShuffler := &sharding.NodesShufflerArgs{
+		NodesShard:           genesisNodesConfig.MinNodesPerShard,
+		NodesMeta:            genesisNodesConfig.MetaChainMinNodes,
+		Hysteresis:           genesisNodesConfig.Hysteresis,
+		Adaptivity:           genesisNodesConfig.Adaptivity,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+	}
+
+	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	if err != nil {
+		return err
+	}
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
 	if err != nil {
@@ -2470,19 +2476,20 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(
-			argsHook,
-			economics,
-			messageSigVerifier,
-			gasScheduleNotifier,
-			nodesSetup,
-			hasher,
-			marshalizer,
-			systemSCConfig,
-			validatorAccounts,
-			rater,
-			epochNotifier,
-		)
+		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           economics,
+			MessageSignVerifier: messageSigVerifier,
+			GasSchedule:         gasScheduleNotifier,
+			NodesConfigProvider: nodesSetup,
+			Hasher:              hasher,
+			Marshalizer:         marshalizer,
+			SystemSCConfig:      systemSCConfig,
+			ValidatorAccountsDB: validatorAccounts,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+		}
+		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
 			return nil, err
 		}

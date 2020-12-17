@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 )
 
@@ -61,7 +62,7 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 		return b.GetUserAccountCalled(address)
 	}
 
-	return nil, nil
+	return state.NewUserAccount(address)
 }
 
 // GetShardOfAddress -

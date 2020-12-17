@@ -126,3 +126,6 @@ var ErrNilEndOfProcessingHandler = errors.New("nil end of processing handler")
 
 // ErrNilOrEmptyDestinationForDistribute signals that a nil or empty value was provided for destination of distributedNodes
 var ErrNilOrEmptyDestinationForDistribute = errors.New("nil or empty destination list for distributeNodes")
+
+// ErrNilNodeShufflerArguments signals that a nil argument pointer was provided for creating the nodes shuffler instance
+var ErrNilNodeShufflerArguments = errors.New("nil arguments for the creation of a node shuffler")

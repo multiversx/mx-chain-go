@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"encoding/hex"
+	"fmt"
+	"math/big"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -42,14 +45,25 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   0,
+				StakingV2Epoch:                       1,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "10",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  10000,
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "10",
+				MinCreationDeposit: "10",
+				EnabledEpoch:       0,
 			},
 		},
 		EpochNotifier:          &mock.EpochNotifierStub{},
@@ -66,6 +80,9 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+
+	value, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
+	fmt.Println(hex.EncodeToString(value.Bytes()))
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
@@ -108,7 +125,7 @@ func TestSystemSCFactory_Create(t *testing.T) {
 
 	container, err := scFactory.Create()
 	assert.Nil(t, err)
-	assert.Equal(t, 4, container.Len())
+	assert.Equal(t, 6, container.Len())
 }
 
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
