@@ -388,7 +388,7 @@ func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[u
 	sw.Start("prepareStakingDataForRewards")
 	defer func() {
 		sw.Stop("prepareStakingDataForRewards")
-		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements())
+		log.Debug("systemSCProcessor.prepareStakingDataForRewards time measurements", sw.GetMeasurements()...)
 	}()
 
 	return s.stakingDataProvider.PrepareStakingDataForRewards(eligibleNodesKeys)
@@ -855,7 +855,7 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements())
+		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
 	}()
 
 	userValidatorAccount, err := s.getValidatorSystemAccount()
