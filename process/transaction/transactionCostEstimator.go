@@ -78,7 +78,7 @@ func (tce *transactionCostEstimator) ComputeTransactionGasLimit(tx *transaction.
 	tce.mutExecution.RLock()
 	defer tce.mutExecution.RUnlock()
 
-	txType := tce.txTypeHandler.ComputeTransactionType(tx)
+	txType, _ := tce.txTypeHandler.ComputeTransactionType(tx)
 	tx.GasPrice = 1
 
 	switch txType {

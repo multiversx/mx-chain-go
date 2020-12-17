@@ -343,22 +343,21 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 }
 
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9969963930)
+	expectedValue := big.NewInt(0).SetUint64(9996639300)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
-				break
+				assert.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 			}
 		}
 	}
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9989986920)
+	expectedValue := big.NewInt(0).SetUint64(9998878200)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -366,7 +365,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				assert.Equal(t, sndAcc.GetBalance().String(), expectedValue.String())
 				break
 			}
 		}

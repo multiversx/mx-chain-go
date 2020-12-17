@@ -45,7 +45,7 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := ArgsNewVMContainerFactory{
 		ArgBlockChainHook:   createMockVMAccountsArguments(),
-		Economics:           &economics.EconomicsData{},
+		Economics:           &mock.EconomicsHandlerStub{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
@@ -117,7 +117,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinGasPrice:             "10",
 				MinGasLimit:             "10",
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,

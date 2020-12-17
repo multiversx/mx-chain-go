@@ -94,3 +94,9 @@ var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrInvalidGasScheduleConfig signals that invalid gas schedule config was provided
 var ErrInvalidGasScheduleConfig = errors.New("invalid gas schedule config")
+
+// ErrAdditionOverflow signals that uint64 addition overflowed
+var ErrAdditionOverflow = errors.New("uint64 addition overflowed")
+
+// ErrSubtractionOverflow signals that uint64 subtraction overflowed
+var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")

@@ -560,3 +560,6 @@ const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
 const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+
+// MaxUserNameLength represents the maximum number of bytes a UserName can have
+const MaxUserNameLength = 32

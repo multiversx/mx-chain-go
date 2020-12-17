@@ -54,12 +54,12 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	_ = copy(invalidContractData, txData)
 	invalidContractData[123] = 50
 	invalidContractData[124] = 51
-	_ = createAndSendTransaction(nodes[0], players[2], make([]byte, 32), big.NewInt(0), invalidContractData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
+	tx2 := createAndSendTransaction(nodes[0], players[2], make([]byte, 32), big.NewInt(0), invalidContractData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
 	time.Sleep(time.Second)
 
 	// contract deploy should work
 	scAddressBytes, _ := nodes[0].BlockchainHook.NewAddress(players[4].Address, 0, factory.ArwenVirtualMachine)
-	tx2 := createAndSendTransaction(nodes[0], players[4], make([]byte, 32), big.NewInt(0), txData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
+	tx3 := createAndSendTransaction(nodes[0], players[4], make([]byte, 32), big.NewInt(0), txData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
 	time.Sleep(time.Second)
 
 	nrRoundsToTest := int64(5)
@@ -78,14 +78,14 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 
 	//check balance address that try to deploy contract should consume all the gas provided
 	gasUsed := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
-	txFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
+	txFee := nodes[0].EconomicsData.ComputeTxFee(tx2)
 	expectedBalance := big.NewInt(0).Sub(initialBalance, txFee)
 	senderAccount = getUserAccount(nodes, players[2].Address)
 	assert.Equal(t, players[2].Nonce, senderAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	//deploy should work gas used should be grated than estimation and small that all gas provided
-	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx2)
+	//deploy should work gas used should be greater than estimation and small that all gas provided
+	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx3)
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 
@@ -98,7 +98,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	sender := players[1]
 	numIncrement := 10
 	for i := 0; i < numIncrement; i++ {
-		txData := []byte("increment")
+		txData = []byte("increment")
 		_ = createAndSendTransaction(nodes[1], sender, scAddressBytes, big.NewInt(0), txData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
 		time.Sleep(time.Millisecond)
 	}

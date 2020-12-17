@@ -66,7 +66,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				EnabledEpoch:       0,
 			},
 		},
-		EpochNotifier: &mock.EpochNotifierStub{},
+		EpochNotifier:          &mock.EpochNotifierStub{},
+		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 	}
 }
 
@@ -93,6 +94,17 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilEconomicsData, err)
+}
+
+func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.AddressPubKeyConverter = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {
