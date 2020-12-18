@@ -339,8 +339,8 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+	OutOfProcessEnabled bool
 	WarmInstanceEnabled bool
 }
 

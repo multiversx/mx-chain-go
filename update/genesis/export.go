@@ -2,7 +2,6 @@ package genesis
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -358,35 +357,6 @@ func (se *stateExport) exportAccountLeaves(
 	}
 
 	return nil
-}
-
-func (se *stateExport) marshallLeafToJson(
-	accType Type,
-	address, buff []byte,
-) ([]byte, error) {
-	account, err := NewEmptyAccount(accType, address)
-	if err != nil {
-		log.Warn("error creating new account account", "address", address, "error", err)
-		return nil, err
-	}
-
-	err = se.marshalizer.Unmarshal(account, buff)
-	if err != nil {
-		log.Trace("error unmarshaling account this is maybe a code error",
-			"key", hex.EncodeToString(address),
-			"error", err,
-		)
-
-		return buff, nil
-	}
-
-	jsonData, err := json.Marshal(account)
-	if err != nil {
-		log.Warn("error marshaling account", "address", address, "error", err)
-		return nil, err
-	}
-
-	return jsonData, nil
 }
 
 func (se *stateExport) exportMBs(key string, mb *block.MiniBlock) error {

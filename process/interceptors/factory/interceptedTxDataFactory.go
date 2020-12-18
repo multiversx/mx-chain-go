@@ -36,7 +36,6 @@ type interceptedTxDataFactory struct {
 	txSignHasher                hashing.Hasher
 	txVersionChecker            process.TxVersionCheckerHandler
 	flagEnableSignedTxWithHash  atomic.Flag
-	epochNotifier               process.EpochNotifier
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory

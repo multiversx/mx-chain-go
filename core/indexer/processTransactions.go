@@ -180,7 +180,7 @@ func isScResultSuccessful(scResultData []byte) bool {
 }
 
 func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
-	scrResults := make(map[string]*smartContractResult.SmartContractResult, 0)
+	scrResults := make(map[string]*smartContractResult.SmartContractResult)
 	for scrHash, scr := range scrs {
 		if string(scr.OriginalTxHash) == hash {
 			scrResults[scrHash] = scr
@@ -363,7 +363,7 @@ func addToAlteredAddresses(
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
-	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
+	scResults := make(map[string]*smartContractResult.SmartContractResult)
 	for hash, tx := range txPool {
 		scResult, ok := tx.(*smartContractResult.SmartContractResult)
 		if !ok {

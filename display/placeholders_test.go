@@ -9,15 +9,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testMessage   = "message to display"
+	testTimestamp = "2000-01-01 00:00:00"
+)
+
 func TestHeadline_MessageTooLongItShouldBeReturnedAsItIs(t *testing.T) {
 	t.Parallel()
 
 	message := "message way too long to be displayed in a single line with the timestamp and delimiter included."
 	message += "in the moment of writing this test, the line was limited to 100 characters"
-	timestamp := "2000-01-01 00:00:00"
 	delimiter := "."
 
-	res := display.Headline(message, timestamp, delimiter)
+	res := display.Headline(message, testTimestamp, delimiter)
 
 	assert.Equal(t, message, res)
 }
@@ -25,12 +29,10 @@ func TestHeadline_MessageTooLongItShouldBeReturnedAsItIs(t *testing.T) {
 func TestHeadline_DelimiterTooLongShouldBeTrimmed(t *testing.T) {
 	t.Parallel()
 
-	message := "message to display"
-	timestamp := "2000-01-01 00:00:00"
 	firstCharOnDelimiter := "!"
 	delimiter := firstCharOnDelimiter + "~="
 
-	res := display.Headline(message, timestamp, delimiter)
+	res := display.Headline(testMessage, testTimestamp, delimiter)
 
 	assert.False(t, strings.Contains(res, delimiter))
 	assert.True(t, strings.Contains(res, firstCharOnDelimiter))
@@ -41,13 +43,12 @@ func TestHeadline_ResultedStringContainsAllData(t *testing.T) {
 	t.Parallel()
 
 	message := "message to display"
-	timestamp := "2000-01-01 00:00:00"
 	delimiter := "."
 
-	res := display.Headline(message, timestamp, delimiter)
+	res := display.Headline(message, testMessage, delimiter)
 
 	assert.True(t, strings.Contains(res, message))
-	assert.True(t, strings.Contains(res, timestamp))
+	assert.True(t, strings.Contains(res, testTimestamp))
 	assert.True(t, strings.Contains(res, delimiter))
 	fmt.Println(res)
 }

@@ -443,7 +443,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 	}
 	defer closePersister()
 
-	returnMap := make(map[string][]byte, 0)
+	returnMap := make(map[string][]byte)
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {

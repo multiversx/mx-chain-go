@@ -7,11 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const identifier = "identifier"
+
 func TestStopWatch_Start(t *testing.T) {
 	t.Parallel()
 
 	sw := NewStopWatch()
-	identifier := "identifier"
 
 	sw.Start(identifier)
 
@@ -41,7 +42,6 @@ func TestStopWatch_StopNoStartShouldNotAddDuration(t *testing.T) {
 	t.Parallel()
 
 	sw := NewStopWatch()
-	identifier := "identifier"
 
 	sw.Stop(identifier)
 
@@ -54,7 +54,6 @@ func TestStopWatch_StopWithStartShouldAddDuration(t *testing.T) {
 	t.Parallel()
 
 	sw := NewStopWatch()
-	identifier := "identifier"
 
 	sw.Start(identifier)
 	sw.Stop(identifier)
@@ -68,7 +67,6 @@ func TestStopWatch_GetMeasurementsNotFinishedShouldOmit(t *testing.T) {
 	t.Parallel()
 
 	sw := NewStopWatch()
-	identifier := "identifier"
 
 	sw.Start(identifier)
 
@@ -82,7 +80,6 @@ func TestStopWatch_GetMeasurementsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	sw := NewStopWatch()
-	identifier := "identifier"
 
 	sw.Start(identifier)
 	sw.Stop(identifier)

@@ -453,6 +453,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer: e.marshalizer,
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return nil, err
+	}
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator:         e.shardCoordinator,
