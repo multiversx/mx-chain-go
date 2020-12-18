@@ -463,7 +463,7 @@ func createStakingDataProviderWithMockArgs(
 }
 
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
-	args, _ := createFullArgumentsForSystemSCProcessing(1000)
+	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
 	args.EpochNotifier.CheckEpoch(1000000)
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
@@ -478,6 +478,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput *vmcommon.VMOutput) {
 	for _, outputAccount := range vmOutput.OutputAccounts {
 		account, errLoad := accountsDB.LoadAccount(outputAccount.Address)
+		if errLoad != nil {
+			log.Error(errLoad.Error())
+		}
 		require.Nil(t, errLoad)
 
 		userAccount, _ := account.(state.UserAccountHandler)
@@ -486,6 +489,9 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 		}
 
 		err := accountsDB.SaveAccount(account)
+		if err != nil {
+			assert.Fail(t, err.Error())
+		}
 		require.Nil(t, err)
 	}
 
@@ -494,7 +500,7 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 }
 
 func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
-	args, _ := createFullArgumentsForSystemSCProcessing(1)
+	args, _ := createFullArgumentsForSystemSCProcessing(1, createMemUnit())
 	args.StakingV2EnableEpoch = 0
 	args.EpochNotifier.CheckEpoch(1)
 	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
