@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -87,6 +88,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 )
+
+var zero = big.NewInt(0)
 
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
@@ -1364,6 +1367,10 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 
+	//TODO for the next task: call this automatically from somewhere else (systemSCs.go) for each and every new system SC that we will define
+	// at the specified enable epoch
+	tpn.initNewSystemSCs()
+
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -1397,6 +1404,114 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
 	)
+}
+
+func (tpn *TestProcessorNode) initNewSystemSCs() {
+	systemVM, _ := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+	err := tpn.initDelegationManager(systemVM)
+	log.LogIfError(err)
+
+	_, err = tpn.AccntState.Commit()
+	log.LogIfError(err)
+}
+
+//TODO remove functions initDelegationManager, processSCOutputAccounts, getUserAccount when TODO from L1368 is done
+func (tpn *TestProcessorNode) initDelegationManager(systemVM vmcommon.VMExecutionHandler) error {
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.DelegationManagerSCAddress,
+			Arguments:  [][]byte{},
+			CallValue:  zero,
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := systemVM.RunSmartContractCreate(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("error while initializing system SC, return code %v", vmOutput.ReturnCode)
+	}
+
+	err = tpn.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
+	}
+
+	err = tpn.updateSystemSCContractsCode(vmInput.ContractCodeMetadata, vm.DelegationManagerSCAddress)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tpn *TestProcessorNode) updateSystemSCContractsCode(contractMetadata []byte, scAddress []byte) error {
+	userAcc, err := tpn.getUserAccount(scAddress)
+	if err != nil {
+		return err
+	}
+
+	userAcc.SetOwnerAddress(scAddress)
+	userAcc.SetCodeMetadata(contractMetadata)
+	userAcc.SetCode(scAddress)
+
+	return tpn.AccntState.SaveAccount(userAcc)
+}
+
+// save account changes in state from vmOutput - protected by VM - every output can be treated as is.
+func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) error {
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
+		acc, err := tpn.getUserAccount(outAcc.Address)
+		if err != nil {
+			return err
+		}
+
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		for _, storeUpdate := range storageUpdates {
+			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return err
+			}
+		}
+
+		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
+			err = acc.AddToBalance(outAcc.BalanceDelta)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = tpn.AccntState.SaveAccount(acc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (tpn *TestProcessorNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	acnt, err := tpn.AccntState.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	stAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return stAcc, nil
 }
 
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {

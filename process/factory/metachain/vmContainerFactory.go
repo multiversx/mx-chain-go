@@ -110,7 +110,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	}, nil
 }
 
-// Create sets up all the needed virtual machine returning a container of all the VMs
+// Create sets up all the needed virtual machines returning a container of all the VMs
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
@@ -127,7 +127,7 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
-// CreateForGenesis sets up all the needed virtual machine returning a container of all the VMs to be used in the genesis process
+// CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process
 func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
@@ -144,7 +144,7 @@ func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContai
 	return container, nil
 }
 
-func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
+func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(
 		vmf.blockChainHookImpl,
@@ -154,7 +154,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		vmf.chanceComputer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
@@ -171,15 +171,14 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	vmf.systemContracts, err = scFactory.Create()
-	if err != nil {
-		return nil, err
-	}
+	return scFactory, systemEI, nil
+}
 
-	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
+func (vmf *vmContainerFactory) finalizeSystemVMCreation(systemEI vm.ContextHandler) (vmcommon.VMExecutionHandler, error) {
+	err := systemEI.SetSystemSCContainer(vmf.systemContracts)
 	if err != nil {
 		return nil, err
 	}
@@ -200,33 +199,22 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	return systemVM, nil
 }
 
-//TODO remove duplicated code
-func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionHandler, error) {
-	atArgumentParser := parsers.NewCallArgsParser()
-	systemEI, err := systemSmartContracts.NewVMContext(
-		vmf.blockChainHookImpl,
-		vmf.cryptoHook,
-		atArgumentParser,
-		vmf.validatorAccountsDB,
-		vmf.chanceComputer,
-	)
+func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
+	scFactory, systemEI, err := vmf.createSystemVMFactoryAndEEI()
 	if err != nil {
 		return nil, err
 	}
 
-	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
-		SystemEI:               systemEI,
-		SigVerifier:            vmf.messageSigVerifier,
-		GasSchedule:            vmf.gasSchedule,
-		NodesConfigProvider:    vmf.nodesConfigProvider,
-		Hasher:                 vmf.hasher,
-		Marshalizer:            vmf.marshalizer,
-		SystemSCConfig:         vmf.systemSCConfig,
-		Economics:              vmf.economics,
-		EpochNotifier:          vmf.epochNotifier,
-		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+	vmf.systemContracts, err = scFactory.Create()
+	if err != nil {
+		return nil, err
 	}
-	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
+
+	return vmf.finalizeSystemVMCreation(systemEI)
+}
+
+func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionHandler, error) {
+	scFactory, systemEI, err := vmf.createSystemVMFactoryAndEEI()
 	if err != nil {
 		return nil, err
 	}
@@ -236,25 +224,7 @@ func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionH
 		return nil, err
 	}
 
-	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
-	if err != nil {
-		return nil, err
-	}
-
-	argsNewSystemVM := systemVMProcess.ArgsNewSystemVM{
-		SystemEI:        systemEI,
-		SystemContracts: vmf.systemContracts,
-		VmType:          factory.SystemVirtualMachine,
-		GasSchedule:     vmf.gasSchedule,
-	}
-	systemVM, err := systemVMProcess.NewSystemVM(argsNewSystemVM)
-	if err != nil {
-		return nil, err
-	}
-
-	vmf.gasSchedule.RegisterNotifyHandler(systemVM)
-
-	return systemVM, nil
+	return vmf.finalizeSystemVMCreation(systemEI)
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl

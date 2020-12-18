@@ -2,9 +2,7 @@ package process
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
-	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -15,11 +13,9 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
-	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/genesis"
@@ -124,78 +120,6 @@ func CreateMetaGenesisBlock(
 	}
 
 	return header, make([][]byte, 0), nil
-}
-
-func printAccounts(accounts state.AccountsAdapter, marshalizer marshal.Marshalizer) {
-	pubkeyConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
-
-	rootHash, _ := accounts.RootHash()
-	log.Info("printing accounts", "rootHash", rootHash)
-
-	ch, _ := accounts.GetAllLeaves(rootHash, context.Background())
-	for leaf := range ch {
-		account, err := accounts.GetExistingAccount(leaf.Key())
-		if err != nil {
-			log.Warn("error loading account", "error", err, "address", leaf.Key())
-			continue
-		}
-
-		printAccount(account, pubkeyConv)
-	}
-}
-
-func printAccount(account state.AccountHandler, pkConv core.PubkeyConverter) {
-	a := account.(state.UserAccountHandler)
-
-	owner := ""
-	if len(a.GetOwnerAddress()) == pkConv.Len() {
-		owner = pkConv.Encode(a.GetOwnerAddress())
-	}
-	strs := make([]string, 0)
-	strs = append(strs, "")
-	strs = append(strs, fmt.Sprintf("Address: %s", pkConv.Encode(a.AddressBytes())))
-	strs = append(strs, fmt.Sprintf("Address as hex: %s", hex.EncodeToString(a.AddressBytes())))
-	strs = append(strs, fmt.Sprintf("  Nonce: %d", a.GetNonce()))
-	strs = append(strs, fmt.Sprintf("  Balance: %s", a.GetBalance().String()))
-	strs = append(strs, fmt.Sprintf("  Dev reward: %s", a.GetDeveloperReward().String()))
-	strs = append(strs, fmt.Sprintf("  Data root hash: %s", hex.EncodeToString(a.GetRootHash())))
-	strs = append(strs, fmt.Sprintf("  Code hash: %s", hex.EncodeToString(a.GetCodeHash())))
-	strs = append(strs, fmt.Sprintf("  Owner: %s", owner))
-	strs = append(strs, "")
-
-	log.Info(strings.Join(strs, "\n"))
-
-	printDataTrie(a)
-}
-
-func printDataTrie(a state.UserAccountHandler) {
-	if len(a.GetRootHash()) == 0 {
-		return
-	}
-
-	hashVal := make(map[string][]byte)
-	hashes := make([][]byte, 0)
-
-	ch, _ := a.DataTrie().GetAllLeavesOnChannel(a.GetRootHash(), context.Background())
-	for keyVal := range ch {
-		hashVal[string(keyVal.Key())] = keyVal.Value()
-		hashes = append(hashes, keyVal.Key())
-	}
-
-	sort.Slice(hashes, func(i, j int) bool {
-		return bytes.Compare(hashes[i], hashes[j]) < 0
-	})
-
-	strs := make([]string, 0, len(hashes)*2)
-	strs = append(strs, "")
-	for _, hash := range hashes {
-		value := hashVal[string(hash)]
-
-		strs = append(strs, fmt.Sprintf("hash: %s, value %s", hex.EncodeToString(hash), hex.EncodeToString(value)))
-	}
-
-	log.Info(strings.Join(strs, "\n"))
-
 }
 
 func createMetaGenesisBlockAfterHardFork(
@@ -425,6 +349,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		IsGenesisProcessing:            true,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

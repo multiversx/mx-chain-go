@@ -53,6 +53,7 @@ type scProcessor struct {
 	flagDeploy                     atomic.Flag
 	flagBuiltin                    atomic.Flag
 	flagPenalizedTooMuchGas        atomic.Flag
+	isGenesisProcessing            bool
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -92,6 +93,7 @@ type ArgsNewSmartContractProcessor struct {
 	BuiltinEnableEpoch             uint32
 	PenalizedTooMuchGasEnableEpoch uint32
 	EpochNotifier                  process.EpochNotifier
+	IsGenesisProcessing            bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -176,6 +178,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		deployEnableEpoch:              args.DeployEnableEpoch,
 		builtinEnableEpoch:             args.BuiltinEnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
+		isGenesisProcessing:            args.IsGenesisProcessing,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -1104,7 +1107,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 
-	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.blockChainHook.LastNonce() == 0
+	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
 	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot, 0)
