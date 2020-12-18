@@ -189,8 +189,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.getWaitingListRegisterNonceAndRewardAddress(args)
 	case "updateConfigMinNodes":
 		return s.updateConfigMinNodes(args)
-	case "setOwner":
-		return s.setOwner(args)
+	case "setOwnersOnAddresses":
+		return s.setOwnersOnAddresses(args)
 	case "getOwner":
 		return s.getOwner(args)
 	case "updateConfigMaxNodes":
@@ -1380,30 +1380,33 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 	return vmcommon.Ok
 }
 
-func (s *stakingSC) setOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.flagStakingV2.IsSet() {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
-		s.eei.AddReturnMessage("setOwner function not allowed to be called by address " + string(args.CallerAddr))
+		s.eei.AddReturnMessage("setOwnersOnAddresses function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
-	if len(args.Arguments) < 2 {
-		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 2, len(args.Arguments)))
+	if len(args.Arguments)%2 != 0 {
+		s.eei.AddReturnMessage("invalid number of arguments: expected an even number of arguments")
 		return vmcommon.UserError
 	}
-	stakedData, err := s.getOrCreateRegisteredData(args.Arguments[0])
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	stakedData.OwnerAddress = args.Arguments[1]
-	err = s.saveStakingData(args.Arguments[0], stakedData)
-	if err != nil {
-		s.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	for i := 0; i < len(args.Arguments); i += 2 {
+		stakedData, err := s.getOrCreateRegisteredData(args.Arguments[i])
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			s.eei.AddReturnMessage(fmt.Sprintf("process stopped at index %d, bls key %s", i, hex.EncodeToString(args.Arguments[i])))
+			return vmcommon.UserError
+		}
+		stakedData.OwnerAddress = args.Arguments[i+1]
+		err = s.saveStakingData(args.Arguments[i], stakedData)
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			s.eei.AddReturnMessage(fmt.Sprintf("process stopped at index %d, bls key %s", i, hex.EncodeToString(args.Arguments[i])))
+			return vmcommon.UserError
+		}
 	}
 
 	return vmcommon.Ok
