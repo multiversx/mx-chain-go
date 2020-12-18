@@ -468,13 +468,16 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := sharding.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
-	nodeShuffler := sharding.NewHashValidatorsShuffler(
-		uint32(nodesPerShard),
-		uint32(nbMetaNodes),
-		hysteresis,
-		adaptivity,
-		shuffleBetweenShards,
-	)
+
+	shufflerArgs := &sharding.NodesShufflerArgs{
+		NodesShard:           uint32(nodesPerShard),
+		NodesMeta:            uint32(nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 

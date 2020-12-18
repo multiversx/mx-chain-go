@@ -18,6 +18,11 @@ func (s *SystemSCStub) SetNewGasCost(gasCost vm.GasCost) {
 	}
 }
 
+// CanUseContract -
+func (s *SystemSCStub) CanUseContract() bool {
+	return true
+}
+
 // Execute -
 func (s *SystemSCStub) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if s.ExecuteCalled != nil {

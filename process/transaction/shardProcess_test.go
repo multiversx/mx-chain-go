@@ -1676,7 +1676,7 @@ func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	returnCode, err = execTx.ProcessTransaction(&tx)
-	assert.Equal(t, err, process.ErrFailedTransaction)
+	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
@@ -2233,7 +2233,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 		GasLimit: 100,
 	}
 
-	err := execTx.TakeMoveBalanceCostOutOfUser(userTx, &smartContractResult.SmartContractResult{}, acntSrc)
+	err := execTx.ProcessMoveBalanceCostRelayedUserTx(userTx, &smartContractResult.SmartContractResult{}, acntSrc)
 	assert.Nil(t, err)
 	assert.Equal(t, acntSrc.Balance, big.NewInt(99))
 }
@@ -2312,7 +2312,7 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
-	assert.Equal(t, process.ErrFailedTransaction, err)
+	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
 
@@ -2636,8 +2636,78 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
-	assert.Equal(t, process.ErrFailedTransaction, err)
+	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
+}
+
+func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
+	t.Parallel()
+
+	userAddr := []byte("user")
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(50)
+	tx.GasPrice = 2
+	tx.GasLimit = 1
+
+	userTx := transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(50),
+		RcvAddr:  []byte("sDST"),
+		SndAddr:  userAddr,
+		GasPrice: 1,
+		GasLimit: 1,
+	}
+	marshalizer := &mock.MarshalizerMock{}
+	userTxMarshalled, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
+
+	args := createArgsForTxProcessor()
+	args.ArgsParser = &mock.ArgumentParserMock{
+		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
+		}}
+
+	args.ScProcessor = &mock.SCProcessorMock{
+		ExecuteBuiltInFunctionCalled: func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+			return vmcommon.UserError, process.ErrFailedTransaction
+		},
+	}
+
+	acntSrc, _ := state.NewUserAccount(tx.SndAddr)
+	acntSrc.Balance = big.NewInt(100)
+	acntDst, _ := state.NewUserAccount(tx.RcvAddr)
+	acntDst.Balance = big.NewInt(100)
+	acntFinal, _ := state.NewUserAccount(userTx.RcvAddr)
+	acntFinal.Balance = big.NewInt(100)
+
+	adb := &mock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, userTx.RcvAddr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+	args.Accounts = adb
+	args.TxTypeHandler = &mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
+		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+	}}
+
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.ExecutionFailed, returnCode)
 }
 
 func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.T) {

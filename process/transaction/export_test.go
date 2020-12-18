@@ -56,7 +56,7 @@ func (txProc *txProcessor) ProcessUserTx(
 	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, txHash)
 }
 
-func (txProc *txProcessor) TakeMoveBalanceCostOutOfUser(
+func (txProc *txProcessor) ProcessMoveBalanceCostRelayedUserTx(
 	userTx *transaction.Transaction,
 	userScr *smartContractResult.SmartContractResult,
 	userAcc state.UserAccountHandler,
@@ -73,7 +73,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 	originalTxHash []byte,
 	errorMsg string,
 ) error {
-	return txProc.executeFailedRelayedTransaction(
+	return txProc.executeFailedRelayedUserTx(
 		userTx,
 		relayerAdr,
 		relayedTxValue,

@@ -73,6 +73,7 @@ type ArgsUpdateNodes struct {
 	AdditionalLeaving []Validator
 	Rand              []byte
 	NbShards          uint32
+	Epoch             uint32
 }
 
 // ResUpdateNodes holds the result of the UpdateNodes method

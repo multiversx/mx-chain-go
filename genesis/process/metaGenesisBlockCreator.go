@@ -263,19 +263,20 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 	if err != nil {
 		return nil, err
 	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		arg.Economics,
-		pubKeyVerifier,
-		arg.GasSchedule,
-		arg.InitialNodesSetup,
-		arg.Hasher,
-		arg.Marshalizer,
-		&arg.SystemSCConfig,
-		arg.ValidatorAccounts,
-		&disabled.Rater{},
-		epochNotifier,
-	)
+	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           arg.Economics,
+		MessageSignVerifier: pubKeyVerifier,
+		GasSchedule:         arg.GasSchedule,
+		NodesConfigProvider: arg.InitialNodesSetup,
+		Hasher:              arg.Hasher,
+		Marshalizer:         arg.Marshalizer,
+		SystemSCConfig:      &arg.SystemSCConfig,
+		ValidatorAccountsDB: arg.ValidatorAccounts,
+		ChanceComputer:      &disabled.Rater{},
+		EpochNotifier:       epochNotifier,
+	}
+	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +511,7 @@ func setStakedData(
 		tx := &transaction.Transaction{
 			Nonce:     0,
 			Value:     new(big.Int).Set(stakeValue),
-			RcvAddr:   vm.AuctionSCAddress,
+			RcvAddr:   vm.ValidatorSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
 			GasLimit:  math.MaxUint64,

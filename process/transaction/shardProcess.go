@@ -357,6 +357,10 @@ func (txProc *txProcessor) processTxFee(
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if dstShardTxType != process.MoveBalance || (!txProc.flagMetaProtection.IsSet() && isCrossShardSCCall) {
 		totalCost := txProc.economicsFee.ComputeTxFee(tx)
+		if !txProc.flagPenalizedTooMuchGas.IsSet() {
+			totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
+		}
+
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, nil, err
@@ -650,7 +654,7 @@ func (txProc *txProcessor) processUserTx(
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
-		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
+		return vmcommon.UserError, txProc.executeFailedRelayedUserTx(
 			userTx,
 			relayerAdr,
 			relayedTxValue,
@@ -696,7 +700,7 @@ func (txProc *txProcessor) processUserTx(
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
-		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
+		return vmcommon.UserError, txProc.executeFailedRelayedUserTx(
 			userTx,
 			relayerAdr,
 			relayedTxValue,
@@ -707,7 +711,7 @@ func (txProc *txProcessor) processUserTx(
 	}
 
 	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
-		return vmcommon.UserError, txProc.executeFailedRelayedTransaction(
+		return vmcommon.UserError, txProc.executeFailedRelayedUserTx(
 			userTx,
 			relayerAdr,
 			relayedTxValue,
@@ -717,13 +721,20 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
+	if errors.Is(err, process.ErrFailedTransaction) {
+		// in case of failed inner user tx transaction we should just simply return execution failed and
+		// not failed transaction - as the actual transaction (the relayed we correctly executed) and thus
+		// it should not lend in the invalid miniblock
+		return vmcommon.ExecutionFailed, nil
+	}
+
 	if err != nil {
-		log.Error("processUserTx", "error", err)
+		log.Error("processUserTx", "protocolError", err)
 		return vmcommon.ExecutionFailed, err
 	}
 
 	// no need to add the smart contract result From TX to the intermediate transactions in case of error
-	// returning value is resolved inside smart contract processor or above by executeFailedRelayedTransaction
+	// returning value is resolved inside smart contract processor or above by executeFailedRelayedUserTx
 	if returnCode != vmcommon.Ok {
 		return returnCode, nil
 	}
@@ -777,7 +788,7 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 	return scr, nil
 }
 
-func (txProc *txProcessor) executeFailedRelayedTransaction(
+func (txProc *txProcessor) executeFailedRelayedUserTx(
 	userTx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
@@ -831,8 +842,6 @@ func (txProc *txProcessor) executeFailedRelayedTransaction(
 		if err != nil {
 			return err
 		}
-
-		return process.ErrFailedTransaction
 	}
 
 	return nil

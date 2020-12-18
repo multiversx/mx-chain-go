@@ -15,6 +15,8 @@
     ChangeRewardAddress = 5000000
     ChangeValidatorKeys = 5000000
     UnJail              = 5000000
+    DelegationOps       = 1000000
+    DelegationMgrOps    = 50000000
     ESDTIssue           = 50000000
     ESDTOperations      = 50000000
     Proposal            = 5000000

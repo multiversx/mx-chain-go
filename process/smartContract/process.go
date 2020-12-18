@@ -360,12 +360,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		if !sc.flagDeploy.IsSet() {
-			err = fmt.Errorf(vmOutput.ReturnCode.String())
-			return vmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
-		}
-
-		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnMessage, []byte(""), snapshot, vmInput.GasLocked)
+		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
@@ -1213,6 +1208,9 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	cost := sc.economicsFee.ComputeTxFee(tx)
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		cost = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
 	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
@@ -1373,6 +1371,10 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
+	if !sc.flagPenalizedTooMuchGas.IsSet() {
+		consumedFee = core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	}
+
 	if !sc.flagDeploy.IsSet() {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
@@ -1505,6 +1507,14 @@ func (sc *scProcessor) createSmartContractResults(
 	txHash []byte,
 ) (bool, []data.TransactionHandler) {
 
+	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		result := createBaseSCR(outAcc, tx, txHash)
+		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
+
+		return false, []data.TransactionHandler{result}
+	}
+
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
 		if callType == vmcommon.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
@@ -1525,14 +1535,6 @@ func (sc *scProcessor) createSmartContractResults(
 		}
 
 		return false, nil
-	}
-
-	if bytes.Equal(outAcc.Address, vm.StakingSCAddress) {
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		result := createBaseSCR(outAcc, tx, txHash)
-		result.Data = append(result.Data, sc.argsParser.CreateDataFromStorageUpdate(storageUpdates)...)
-
-		return false, []data.TransactionHandler{result}
 	}
 
 	createdAsyncCallBack := false

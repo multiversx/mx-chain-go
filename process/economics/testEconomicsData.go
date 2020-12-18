@@ -49,3 +49,11 @@ func (ted *TestEconomicsData) SetGasPerDataByte(gasPerDataByte uint64) {
 func (ted *TestEconomicsData) SetTotalSupply(totalSupply *big.Int) {
 	ted.genesisTotalSupply = totalSupply
 }
+
+// SetMaxInflationRate sets the maximum inflation rate for a transaction to be accepted
+func (ted *TestEconomicsData) SetMaxInflationRate(maximumInflation float64) {
+	ted.mutYearSettings.Lock()
+	defer ted.mutYearSettings.Unlock()
+
+	ted.yearSettings[0].MaximumInflation = maximumInflation
+}
