@@ -174,11 +174,10 @@ func (e *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWith
 		return e.SplitTxGasInCategoriesCalled(tx)
 	}
 
-	var processingGas uint64
+	processingGas := uint64(0)
 	if e.ComputeGasLimit(tx) > e.MinGasLimit() {
 		processingGas = e.ComputeGasLimit(tx) - e.MinGasLimit()
 	}
-	processingGas = 0
 
 	return e.MinGasLimit(), processingGas
 }

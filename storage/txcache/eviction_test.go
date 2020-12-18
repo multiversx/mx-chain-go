@@ -5,13 +5,11 @@ import (
 	"sync"
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
-	_ = logger.SetLogLevel("*:DEBUG")
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
