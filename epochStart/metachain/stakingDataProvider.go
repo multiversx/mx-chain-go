@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -102,7 +101,7 @@ func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, err
 
 	ownerInfo, ok := sdp.cache[owner]
 	if !ok {
-		return nil, errors.New("owner has no eligible nodes in epoch")
+		return nil, epochStart.ErrOwnerDoesntHaveEligibleNodesInEpoch
 	}
 
 	return ownerInfo.topUpPerNode, nil
