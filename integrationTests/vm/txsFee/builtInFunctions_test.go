@@ -13,8 +13,6 @@ import (
 )
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -48,8 +46,6 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -86,8 +82,6 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -121,8 +115,6 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 
@@ -159,8 +151,6 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
-	t.Parallel()
-
 	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
 	defer testContext.Close()
 

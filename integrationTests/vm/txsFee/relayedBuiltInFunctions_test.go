@@ -190,3 +190,47 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 }
+
+func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testing.T) {
+	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	defer testContext.Close()
+
+	scAddress, owner := doDeploy(t, &testContext)
+	testContext.TxFeeHandler.CreateBlockStarted()
+
+	relayerAddr := []byte("12345678901234567890123456789033")
+	newOwner := []byte("12345678901234567890123456789112")
+	gasPrice := uint64(10)
+
+	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
+	gasLimit := uint64(len(txData) + 1)
+	innerTx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, gasPrice, gasLimit, txData)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
+
+	rtxData := prepareRelayerTxData(innerTx)
+	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.ExecutionFailed, retCode)
+	require.Equal(t, process.ErrFailedTransaction, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	checkOwnerAddr(t, &testContext, scAddress, owner)
+
+	expectedBalanceRelayer := big.NewInt(25790)
+	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+
+	expectedBalance := big.NewInt(89030)
+	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(4210), accumulatedFee)
+
+	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
+	require.Equal(t, big.NewInt(0), developerFees)
+}
