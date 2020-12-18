@@ -855,20 +855,26 @@ func (s *systemSCProcessor) updateOwnersForBlsKeys() error {
 	sw.Start("systemSCProcessor")
 	defer func() {
 		sw.Stop("systemSCProcessor")
-		log.Debug("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
+		log.Info("systemSCProcessor.updateOwnersForBlsKeys time measurements", sw.GetMeasurements()...)
 	}()
 
+	sw.Start("getValidatorSystemAccount")
 	userValidatorAccount, err := s.getValidatorSystemAccount()
+	sw.Stop("getValidatorSystemAccount")
 	if err != nil {
 		return err
 	}
 
-	validatorAccounts, err := s.getValidatorUserAccountsKeys(userValidatorAccount)
+	sw.Start("getArgumentsForSetOwnerFunctionality")
+	arguments, err := s.getArgumentsForSetOwnerFunctionality(userValidatorAccount)
+	sw.Stop("getArgumentsForSetOwnerFunctionality")
 	if err != nil {
 		return err
 	}
 
-	err = s.callUpdateStakingV2(validatorAccounts)
+	sw.Start("callSetOwnersOnAddresses")
+	err = s.callSetOwnersOnAddresses(arguments)
+	sw.Stop("callSetOwnersOnAddresses")
 	if err != nil {
 		return err
 	}
@@ -894,8 +900,8 @@ func (s *systemSCProcessor) getValidatorSystemAccount() (state.UserAccountHandle
 	return userValidatorAccount, nil
 }
 
-func (s *systemSCProcessor) getValidatorUserAccountsKeys(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
-	validatorAccounts := make([][]byte, 0)
+func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
+	arguments := make([][]byte, 0)
 
 	rootHash, err := userValidatorAccount.DataTrie().Root()
 	if err != nil {
@@ -915,42 +921,38 @@ func (s *systemSCProcessor) getValidatorUserAccountsKeys(userValidatorAccount st
 		}
 
 		err = s.marshalizer.Unmarshal(validatorData, value)
-		dataIsNotValid := err != nil || len(validatorData.BlsPubKeys) == 0
-		if dataIsNotValid {
+		if err != nil {
 			continue
 		}
-		validatorAccounts = append(validatorAccounts, leaf.Key())
+		for _, blsKey := range validatorData.BlsPubKeys {
+			arguments = append(arguments, blsKey)
+			arguments = append(arguments, leaf.Key())
+		}
 	}
 
-	return validatorAccounts, nil
+	return arguments, nil
 }
 
-func (s *systemSCProcessor) callUpdateStakingV2(validatorAccounts [][]byte) error {
-	for _, validatorAccountKey := range validatorAccounts {
-		vmInput := &vmcommon.ContractCallInput{
-			VMInput: vmcommon.VMInput{
-				CallerAddr: vm.ValidatorSCAddress,
-				CallValue:  big.NewInt(0),
-				Arguments:  [][]byte{validatorAccountKey},
-			},
-			RecipientAddr: vm.ValidatorSCAddress,
-			Function:      "updateStakingV2",
-		}
-		vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
-		if errRun != nil {
-			return fmt.Errorf("%w when updating to stakingV2 specs the address %s", errRun, hex.EncodeToString(validatorAccountKey))
-		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			return fmt.Errorf("got return code %s when updating to stakingV2 specs the address %s", vmOutput.ReturnCode, hex.EncodeToString(validatorAccountKey))
-		}
-
-		err := s.processSCOutputAccounts(vmOutput)
-		if err != nil {
-			return err
-		}
+func (s *systemSCProcessor) callSetOwnersOnAddresses(arguments [][]byte) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  arguments,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "setOwnersOnAddresses",
 	}
 
-	return nil
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when calling setOwnersOnAddresses function", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when calling setOwnersOnAddresses", vmOutput.ReturnCode)
+	}
+
+	return s.processSCOutputAccounts(vmOutput)
 }
 
 func (s *systemSCProcessor) initDelegationSystemSC() error {
