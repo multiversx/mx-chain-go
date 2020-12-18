@@ -169,6 +169,9 @@ const sizeCheckDelta = 100
 
 const stateCheckpointModulus = 100
 
+// StakingV2Epoch defines the epoch for integration tests when stakingV2 is enabled
+const StakingV2Epoch = 1000
+
 // TestKeyPair holds a pair of private/public Keys
 type TestKeyPair struct {
 	Sk crypto.PrivateKey
@@ -252,6 +255,8 @@ type TestProcessorNode struct {
 
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	Rater                        sharding.PeerAccountListAndRatingHandler
+
+	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
 
 	//Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -701,6 +706,8 @@ func (tpn *TestProcessorNode) initEconomicsData() {
 				LeaderPercentage:              0.1,
 				DeveloperPercentage:           0.1,
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				TopUpFactor:                   0.25,
+				TopUpGradientPoint:            "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -1015,7 +1022,18 @@ func (tpn *TestProcessorNode) initInnerProcessors() {
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
-	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(
+		TestHasher,
+		TestMarshalizer,
+		tpn.ShardCoordinator,
+		TestAddressPubkeyConverter,
+		tpn.Storage,
+		dataBlock.SmartContractResultBlock,
+		tpn.DataPool.CurrentBlockTxs(),
+	)
+
+	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
+	_ = tpn.InterimProcContainer.Add(dataBlock.SmartContractResultBlock, tpn.ScrForwarder)
 
 	tpn.RewardsProcessor, _ = rewardTransaction.NewRewardTxProcessor(
 		tpn.AccntState,
@@ -1191,7 +1209,18 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
-	tpn.ScrForwarder, _ = tpn.InterimProcContainer.Get(dataBlock.SmartContractResultBlock)
+	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(
+		TestHasher,
+		TestMarshalizer,
+		tpn.ShardCoordinator,
+		TestAddressPubkeyConverter,
+		tpn.Storage,
+		dataBlock.SmartContractResultBlock,
+		tpn.DataPool.CurrentBlockTxs(),
+	)
+
+	tpn.InterimProcContainer.Remove(dataBlock.SmartContractResultBlock)
+	_ = tpn.InterimProcContainer.Add(dataBlock.SmartContractResultBlock, tpn.ScrForwarder)
 
 	gasMap := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
@@ -1227,16 +1256,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	} else {
 		signVerifier, _ = disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 	}
-
-	vmFactory, _ := metaProcess.NewVMContainerFactory(
-		argsHook,
-		tpn.EconomicsData,
-		signVerifier,
-		gasSchedule,
-		tpn.NodesSetup,
-		TestHasher,
-		TestMarshalizer,
-		&config.SystemSmartContractsConfig{
+	argsVMContainerFactory := metaProcess.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           tpn.EconomicsData,
+		MessageSignVerifier: signVerifier,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: tpn.NodesSetup,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
 				OwnerAddress:    "aaaaaa",
@@ -1254,20 +1282,32 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   1000000,
+				StakingV2Epoch:                       0,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "100",
+				MinCreationDeposit: "100",
+				EnabledEpoch:       0,
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "100",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  100000,
 			},
 		},
-		tpn.PeerState,
-		&mock.RaterMock{},
-		&mock.EpochNotifierStub{},
-	)
+		ValidatorAccountsDB: tpn.PeerState,
+		ChanceComputer:      &mock.RaterMock{},
+		EpochNotifier:       tpn.EpochNotifier,
+	}
+	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
 	tpn.VMContainer, _ = vmFactory.Create()
 	tpn.BlockchainHook, _ = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
@@ -1459,31 +1499,50 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		}
 		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
 
+		economicsDataProvider := metachain.NewEpochEconomicsStatistics()
 		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:        TestMarshalizer,
-			Hasher:             TestHasher,
-			Store:              tpn.Storage,
-			ShardCoordinator:   tpn.ShardCoordinator,
-			RewardsHandler:     tpn.EconomicsData,
-			RoundTime:          tpn.Rounder,
-			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			Store:                 tpn.Storage,
+			ShardCoordinator:      tpn.ShardCoordinator,
+			RewardsHandler:        tpn.EconomicsData,
+			RoundTime:             tpn.Rounder,
+			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
+			EconomicsDataNotified: economicsDataProvider,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
+		systemVM, errGet := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+		if errGet != nil {
+			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
+		}
+		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(systemVM, "1000")
+		if errRsp != nil {
+			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
+		}
+
 		rewardsStorage := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
 		miniBlockStorage := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
-		argsEpochRewards := metachain.ArgsNewRewardsCreator{
-			ShardCoordinator:              tpn.ShardCoordinator,
-			PubkeyConverter:               TestAddressPubkeyConverter,
-			RewardsStorage:                rewardsStorage,
-			MiniBlockStorage:              miniBlockStorage,
-			Hasher:                        TestHasher,
-			Marshalizer:                   TestMarshalizer,
-			DataPool:                      tpn.DataPool,
-			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-			NodesConfigProvider:           tpn.NodesCoordinator,
+		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
+			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
+				ShardCoordinator:              tpn.ShardCoordinator,
+				PubkeyConverter:               TestAddressPubkeyConverter,
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        TestHasher,
+				Marshalizer:                   TestMarshalizer,
+				DataPool:                      tpn.DataPool,
+				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				NodesConfigProvider:           tpn.NodesCoordinator,
+				UserAccountsDB:                tpn.AccntState,
+			},
+			StakingDataProvider:   stakingDataProvider,
+			TopUpGradientPoint:    tpn.EconomicsData.RewardsTopUpGradientPoint(),
+			TopUpRewardFactor:     tpn.EconomicsData.RewardsTopUpFactor(),
+			EconomicsDataProvider: economicsDataProvider,
+			EpochEnableV2:         StakingV2Epoch,
 		}
-		epochStartRewards, _ := metachain.NewEpochStartRewardsCreator(argsEpochRewards)
+		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 
 		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
 			ShardCoordinator: tpn.ShardCoordinator,
@@ -1493,7 +1552,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			DataPool:         tpn.DataPool,
 		}
 
-		systemVM, _ := tpn.VMContainer.Get(procFactory.SystemVirtualMachine)
 		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
 		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
 			SystemVM:                systemVM,
@@ -1505,10 +1563,14 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			EndOfEpochCallerAddress: vm.EndOfEpochAddress,
 			StakingSCAddress:        vm.StakingSCAddress,
 			ChanceComputer:          tpn.NodesCoordinator,
-			EpochNotifier:           &mock.EpochNotifierStub{},
+			EpochNotifier:           tpn.EpochNotifier,
 			GenesisNodesConfig:      tpn.NodesSetup,
+			StakingV2EnableEpoch:    StakingV2Epoch,
+			StakingDataProvider:     stakingDataProvider,
+			NodesConfigProvider:     tpn.NodesCoordinator,
 		}
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
+		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
@@ -1718,7 +1780,7 @@ func (tpn *TestProcessorNode) LoadTxSignSkBytes(skBytes []byte) {
 // ProposeBlock proposes a new block
 func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
 	startTime := time.Now()
-	maxTime := time.Second * 20000
+	maxTime := time.Second * 2
 
 	haveTime := func() bool {
 		elapsedTime := time.Since(startTime)

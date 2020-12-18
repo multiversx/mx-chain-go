@@ -25,6 +25,8 @@ type EconomicsHandlerStub struct {
 	MinGasLimitCalled                      func() uint64
 	GenesisTotalSupplyCalled               func() *big.Int
 	ComputeFeeForProcessingCalled          func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	RewardsTopUpGradientPointCalled        func() *big.Int
+	RewardsTopUpFactorCalled               func() float64
 	SplitTxGasInCategoriesCalled           func(tx process.TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessingCalled            func(tx process.TransactionWithFeeHandler) uint64
 	GasPriceForMoveCalled                  func(tx process.TransactionWithFeeHandler) uint64
@@ -166,6 +168,24 @@ func (e *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithF
 		return e.CheckValidityTxValuesCalled(tx)
 	}
 	return nil
+}
+
+// RewardsTopUpGradientPoint -
+func (e *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	if e.RewardsTopUpGradientPointCalled != nil {
+		return e.RewardsTopUpGradientPointCalled()
+	}
+
+	return big.NewInt(0)
+}
+
+// RewardsTopUpFactor -
+func (e *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
+	if e.RewardsTopUpFactorCalled != nil {
+		return e.RewardsTopUpFactorCalled()
+	}
+
+	return 0
 }
 
 // SplitTxGasInCategories -

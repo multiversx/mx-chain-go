@@ -34,7 +34,7 @@ func createMockGovernanceArgs() ArgsNewGovernanceContract {
 		Hasher:              &mock.HasherMock{},
 		GovernanceSCAddress: []byte("governanceSC"),
 		StakingSCAddress:    []byte("stakingSC"),
-		AuctionSCAddress:    nil,
+		ValidatorSCAddress:  nil,
 		EpochNotifier:       &mock.EpochNotifierStub{},
 	}
 }
@@ -460,12 +460,14 @@ func testExecuteVote(t *testing.T, vote []byte) {
 	callerAddr := []byte("addr1")
 	args := createMockGovernanceArgs()
 
-	autionData := &AuctionData{
+	autionData := &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{[]byte("blsPubKey")},
 	}
-	auctionDataBytes, _ := json.Marshal(autionData)
-	nodeData := &StakedDataV2{Staked: true}
+	validatorDataBytes, _ := json.Marshal(autionData)
+	nodeData := &StakedDataV2_0{
+		Staked: true,
+	}
 	nodeDataBytes, _ := json.Marshal(nodeData)
 
 	args.Eei = &mock.SystemEIStub{
@@ -488,7 +490,7 @@ func testExecuteVote(t *testing.T, vote []byte) {
 		},
 		GetStorageFromAddressCalled: func(address []byte, key []byte) []byte {
 			if bytes.Equal(key, validatorAddr) {
-				return auctionDataBytes
+				return validatorDataBytes
 			}
 			return nodeDataBytes
 		},
@@ -537,20 +539,22 @@ func TestGovernanceContract_ExecuteProposalCloseProposal(t *testing.T) {
 	validatorAddress2 := []byte("vala2")
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
-	auctionData := &AuctionData{
+	validatorData := &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{blsKey1},
 	}
-	auctionDataBytes, _ := json.Marshal(auctionData)
-	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress1, auctionDataBytes)
-	auctionData = &AuctionData{
+	validatorDataBytes, _ := json.Marshal(validatorData)
+	eei.SetStorageForAddress(args.ValidatorSCAddress, validatorAddress1, validatorDataBytes)
+	validatorData = &ValidatorDataV2{
 		NumRegistered: 1,
 		BlsPubKeys:    [][]byte{blsKey2},
 	}
-	auctionDataBytes, _ = json.Marshal(auctionData)
-	eei.SetStorageForAddress(args.AuctionSCAddress, validatorAddress2, auctionDataBytes)
+	validatorDataBytes, _ = json.Marshal(validatorData)
+	eei.SetStorageForAddress(args.ValidatorSCAddress, validatorAddress2, validatorDataBytes)
 
-	nodeData := &StakedDataV2{Staked: true}
+	nodeData := &StakedDataV2_0{
+		Staked: true,
+	}
 	stakedDataBytes, _ := json.Marshal(nodeData)
 	eei.SetStorageForAddress(args.StakingSCAddress, blsKey1, stakedDataBytes)
 	eei.SetStorageForAddress(args.StakingSCAddress, blsKey2, stakedDataBytes)

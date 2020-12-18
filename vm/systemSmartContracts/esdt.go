@@ -805,13 +805,13 @@ func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 }
 
 func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenIdentifier)
-	if len(marshalledData) == 0 {
+	marshaledData := e.eei.GetStorage(tokenIdentifier)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrNoTickerWithGivenName
 	}
 
 	token := &ESDTData{}
-	err := e.marshalizer.Unmarshal(token, marshalledData)
+	err := e.marshalizer.Unmarshal(token, marshaledData)
 	return token, err
 }
 
@@ -863,6 +863,11 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
 
 	return encodedAddress != ""
+}
+
+// CanUseContract returns true if contract can be used
+func (e *esdt) CanUseContract() bool {
+	return true
 }
 
 // IsInterfaceNil returns true if underlying object is nil

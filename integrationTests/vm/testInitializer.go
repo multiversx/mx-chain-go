@@ -4,6 +4,7 @@ package vm
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -26,6 +27,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
+	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
 	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
@@ -39,6 +42,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
@@ -59,6 +63,7 @@ type VMTestContext struct {
 	Accounts       state.AccountsAdapter
 	BlockchainHook vmcommon.BlockchainHook
 	VMContainer    process.VirtualMachinesContainer
+	TxFeeHandler   process.TransactionFeeHandler
 }
 
 // Close -
@@ -161,7 +166,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
-func createEconomicsData() process.EconomicsDataHandler {
+func createEconomicsData(tb testing.TB) process.EconomicsDataHandler {
 	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
@@ -182,6 +187,7 @@ func createEconomicsData() process.EconomicsDataHandler {
 				LeaderPercentage:              0.1,
 				DeveloperPercentage:           0.1,
 				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				TopUpGradientPoint:            "100000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
@@ -195,12 +201,13 @@ func createEconomicsData() process.EconomicsDataHandler {
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
-	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
+	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
+	require.Nil(tb, err)
 	return economicsData
 }
 
 // CreateTxProcessorWithOneSCExecutorMockVM -
-func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
+func CreateTxProcessorWithOneSCExecutorMockVM(tb testing.TB, accnts state.AccountsAdapter, opGas uint64) process.TransactionProcessor {
 	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
 	datapool := testscommon.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -236,7 +243,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(accnts state.AccountsAdapter, opGa
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	economicsData := createEconomicsData()
+	economicsData := createEconomicsData(tb)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:    vmContainer,
 		ArgsParser:     smartContract.NewArgumentParser(),
@@ -372,11 +379,12 @@ func CreateVMAndBlockchainHook(
 
 // CreateTxProcessorWithOneSCExecutorWithVMs -
 func CreateTxProcessorWithOneSCExecutorWithVMs(
+	tb testing.TB,
 	accnts state.AccountsAdapter,
 	vmContainer process.VirtualMachinesContainer,
 	blockChainHook *hooks.BlockChainHookImpl,
+	feeAccumulator process.TransactionFeeHandler,
 ) (process.TransactionProcessor, process.SmartContractProcessor) {
-
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: oneShardCoordinator,
@@ -387,24 +395,25 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	economicsData := createEconomicsData()
+	economicsData := createEconomicsData(tb)
+
+	gasComp, _ := preprocess.NewGasComputation(economicsData, txTypeHandler)
+
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:    vmContainer,
-		ArgsParser:     smartContract.NewArgumentParser(),
-		Hasher:         testHasher,
-		Marshalizer:    testMarshalizer,
-		AccountsDB:     accnts,
-		BlockChainHook: blockChainHook,
-		PubkeyConv:     pubkeyConv,
-		Coordinator:    oneShardCoordinator,
-		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee:   economicsData,
-		TxTypeHandler:  txTypeHandler,
-		GasHandler: &mock.GasHandlerMock{
-			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
-		},
+		VmContainer:                    vmContainer,
+		ArgsParser:                     smartContract.NewArgumentParser(),
+		Hasher:                         testHasher,
+		Marshalizer:                    testMarshalizer,
+		AccountsDB:                     accnts,
+		BlockChainHook:                 blockChainHook,
+		PubkeyConv:                     pubkeyConv,
+		Coordinator:                    oneShardCoordinator,
+		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:                   feeAccumulator,
+		EconomicsFee:                   economicsData,
+		TxTypeHandler:                  txTypeHandler,
+		GasHandler:                     gasComp,
 		GasSchedule:                    mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions:               blockChainHook.GetBuiltInFunctions(),
 		TxLogsProcessor:                &mock.TxLogsProcessorStub{},
@@ -422,7 +431,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		SignMarshalizer:  testMarshalizer,
 		ShardCoordinator: oneShardCoordinator,
 		ScProcessor:      scProcessor,
-		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		TxFeeHandler:     feeAccumulator,
 		TxTypeHandler:    txTypeHandler,
 		EconomicsFee:     economicsData,
 		ReceiptForwarder: &mock.IntermediateTransactionHandlerMock{},
@@ -481,21 +490,41 @@ func AccountExists(accnts state.AccountsAdapter, addressBytes []byte) bool {
 
 // CreatePreparedTxProcessorAndAccountsWithVMs -
 func CreatePreparedTxProcessorAndAccountsWithVMs(
+	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	warmInstance bool,
 ) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
-	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(tb, accounts, vmContainer, blockchainHook, feeAccumulator)
 
-	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer, TxFeeHandler: feeAccumulator}
+}
+
+// CreatePreparedTxProcessorWithVMs -
+func CreatePreparedTxProcessorWithVMs(tb testing.TB, warmInstance bool) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	accounts := CreateInMemoryShardAccountsDB()
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(tb, accounts, vmContainer, blockchainHook, feeAccumulator)
+
+	return VMTestContext{
+		TxProcessor:    txProcessor,
+		ScProcessor:    scProcessor,
+		Accounts:       accounts,
+		BlockchainHook: blockchainHook,
+		VMContainer:    vmContainer,
+		TxFeeHandler:   feeAccumulator,
+	}
 }
 
 // CreateTxProcessorArwenVMWithGasSchedule -
 func CreateTxProcessorArwenVMWithGasSchedule(
+	tb testing.TB,
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
@@ -503,17 +532,18 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	warmInstance bool,
 	outOfProcess bool,
 ) VMTestContext {
+	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, warmInstance, outOfProcess)
-	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(accounts, vmContainer, blockchainHook)
+	txProcessor, scProcessor := CreateTxProcessorWithOneSCExecutorWithVMs(tb, accounts, vmContainer, blockchainHook, feeAccumulator)
 
-	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer}
+	return VMTestContext{TxProcessor: txProcessor, ScProcessor: scProcessor, Accounts: accounts, BlockchainHook: blockchainHook, VMContainer: vmContainer, TxFeeHandler: feeAccumulator}
 }
 
 // CreatePreparedTxProcessorAndAccountsWithMockedVM -
 func CreatePreparedTxProcessorAndAccountsWithMockedVM(
-	t *testing.T,
+	tb testing.TB,
 	vmOpGas uint64,
 	senderNonce uint64,
 	senderAddressBytes []byte,
@@ -523,8 +553,8 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 	accnts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accnts, senderAddressBytes, senderNonce, senderBalance)
 
-	txProcessor := CreateTxProcessorWithOneSCExecutorMockVM(accnts, vmOpGas)
-	assert.NotNil(t, txProcessor)
+	txProcessor := CreateTxProcessorWithOneSCExecutorMockVM(tb, accnts, vmOpGas)
+	assert.NotNil(tb, txProcessor)
 
 	return txProcessor, accnts
 }
@@ -663,20 +693,34 @@ func CreateTransferTokenTx(
 	}
 }
 
-// CreateMoveBalanceTx -
-func CreateMoveBalanceTx(
+// CreateTransaction -
+func CreateTransaction(
 	nonce uint64,
 	value *big.Int,
 	sndAddress []byte,
 	rcvAddress []byte,
+	gasprice uint64,
 	gasLimit uint64,
+	data []byte,
 ) *dataTransaction.Transaction {
 	return &dataTransaction.Transaction{
 		Nonce:    nonce,
 		Value:    big.NewInt(0).Set(value),
 		RcvAddr:  rcvAddress,
 		SndAddr:  sndAddress,
-		GasPrice: 1,
+		GasPrice: gasprice,
 		GasLimit: gasLimit,
+		Data:     data,
 	}
+}
+
+// GetNodeIndex -
+func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
+	for i := range nodeList {
+		if node == nodeList[i] {
+			return i, nil
+		}
+	}
+
+	return 0, errors.New("no such node in list")
 }

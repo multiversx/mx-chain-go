@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetFirstReturnData_VMOutputWithNoReturnDataShouldErr(t *testing.T) {
@@ -43,4 +44,45 @@ func TestGetFirstReturnData(t *testing.T) {
 	assert.Equal(t, "100", dataAsBigIntString)
 	assert.Equal(t, string(value.Bytes()), dataAsString)
 	assert.Equal(t, "64", dataAsHex)
+}
+
+func TestOutputContext_MergeCompleteAccounts(t *testing.T) {
+	t.Parallel()
+
+	transfer1 := OutputTransfer{
+		Value:    big.NewInt(0),
+		GasLimit: 9999,
+		Data:     []byte("data1"),
+	}
+	left := &OutputAccount{
+		Address:         []byte("addr1"),
+		Nonce:           1,
+		Balance:         big.NewInt(1000),
+		BalanceDelta:    big.NewInt(10000),
+		StorageUpdates:  nil,
+		Code:            []byte("code1"),
+		OutputTransfers: []OutputTransfer{transfer1},
+	}
+	right := &OutputAccount{
+		Address:         []byte("addr2"),
+		Nonce:           2,
+		Balance:         big.NewInt(2000),
+		BalanceDelta:    big.NewInt(20000),
+		StorageUpdates:  map[string]*StorageUpdate{"key": {Data: []byte("data"), Offset: []byte("offset")}},
+		Code:            []byte("code2"),
+		OutputTransfers: []OutputTransfer{transfer1, transfer1},
+	}
+
+	expected := &OutputAccount{
+		Address:         []byte("addr2"),
+		Nonce:           2,
+		Balance:         big.NewInt(2000),
+		BalanceDelta:    big.NewInt(20000),
+		StorageUpdates:  map[string]*StorageUpdate{"key": {Data: []byte("data"), Offset: []byte("offset")}},
+		Code:            []byte("code2"),
+		OutputTransfers: []OutputTransfer{transfer1, transfer1},
+	}
+
+	left.MergeOutputAccounts(right)
+	require.Equal(t, expected, left)
 }
