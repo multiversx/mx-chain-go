@@ -484,12 +484,13 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	scrResult1, err := n.prepareUnsignedTx(scr1)
 	assert.Nil(t, err)
 	expectedScr1 := &transaction.ApiTransactionResult{
-		Tx:       scr1,
-		Nonce:    1,
-		Type:     string(transaction.TxTypeUnsigned),
-		Value:    "2",
-		Receiver: "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
-		Sender:   "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
+		Tx:             scr1,
+		Nonce:          1,
+		Type:           string(transaction.TxTypeUnsigned),
+		Value:          "2",
+		Receiver:       "erd1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqsl6e0p7",
+		Sender:         "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu",
+		OriginalSender: "",
 	}
 	assert.Equal(t, scrResult1, expectedScr1)
 
@@ -513,5 +514,4 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: "erd1qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurswpc8qurstywtnm",
 	}
 	assert.Equal(t, scrResult2, expectedScr2)
-
 }
