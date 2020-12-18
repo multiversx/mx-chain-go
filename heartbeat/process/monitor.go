@@ -415,14 +415,19 @@ func (m *Monitor) computeInactiveHeartbeatMessages() {
 	inactiveHbChangedMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
 		isActive := v.GetIsActive()
+		v.updateMutex.RLock()
 		if isActive {
+			v.updateMutex.RUnlock()
 			continue
 		}
 
 		peerType, shardId := m.computePeerTypeAndShardID([]byte(key))
 		if v.peerType != peerType || v.computedShardID != shardId {
+			v.updateMutex.RUnlock()
 			v.UpdateShardAndPeerType(shardId, peerType)
 			inactiveHbChangedMap[key] = v
+		} else {
+			v.updateMutex.RUnlock()
 		}
 	}
 

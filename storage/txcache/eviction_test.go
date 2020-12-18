@@ -149,24 +149,24 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	scoreChris := cache.getScoreOfSender("chris")
 	scoreRichard := cache.getScoreOfSender("richard")
 
-	require.Equal(t, uint32(19), scoreAlice)
-	require.Equal(t, uint32(23), scoreBob)
-	require.Equal(t, uint32(10), scoreDave)
+	require.Equal(t, uint32(60), scoreAlice)
+	require.Equal(t, uint32(60), scoreBob)
+	require.Equal(t, uint32(7), scoreDave)
 	require.Equal(t, uint32(100), scoreCarol)
 	require.Equal(t, uint32(100), scoreEve)
 	require.Equal(t, uint32(95), scoreChris)
-	require.Equal(t, uint32(100), scoreRichard)
+	require.Equal(t, uint32(99), scoreRichard)
 
 	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(4), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
 	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, uint64(2), cache.CountSenders())
-	require.Equal(t, uint64(2), cache.CountTx())
+	require.Equal(t, uint64(5), cache.CountSenders())
+	require.Equal(t, uint64(5), cache.CountTx())
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
