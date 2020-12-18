@@ -328,7 +328,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	rewardShardID := nodes[0].ShardCoordinator.ComputeId(rewardAccount.Address)
