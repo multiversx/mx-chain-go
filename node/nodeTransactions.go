@@ -307,7 +307,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 }
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
@@ -321,7 +321,11 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		CodeMetadata:            tx.GetCodeMetadata(),
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
-		OriginalSender:          n.addressPubkeyConverter.Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}, nil
+	}
+	if len(tx.GetOriginalSender()) == n.addressPubkeyConverter.Len() {
+		txResult.OriginalSender = n.addressPubkeyConverter.Encode(tx.GetOriginalSender())
+	}
+
+	return txResult, nil
 }

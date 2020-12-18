@@ -63,10 +63,10 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Second
+var StepDelay = time.Second / 10
 
 // SyncDelay is used so that nodes have enough time to sync
-var SyncDelay = time.Second * 2
+var SyncDelay = time.Second / 5
 
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
@@ -1686,7 +1686,7 @@ func CreateAndSendTransactions(
 	}
 
 	fmt.Println("Delaying for disseminating transactions...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second)
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
