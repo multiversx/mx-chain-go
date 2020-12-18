@@ -968,6 +968,13 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
+	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
+	if isCrossShardMoveBalance {
+		// move balance was already consumed in sender shard
+		return nil
+	}
+
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	return nil

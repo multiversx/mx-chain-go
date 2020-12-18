@@ -3,9 +3,10 @@ package multiShard
 import (
 	"encoding/hex"
 	"errors"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/stretchr/testify/require"
@@ -81,7 +82,7 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(990), accumulatedFees)
+	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
