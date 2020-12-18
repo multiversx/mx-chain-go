@@ -78,7 +78,7 @@ type ArgsNewSmartContractProcessor struct {
 	AccountsDB                     state.AccountsAdapter
 	BlockChainHook                 process.BlockChainHookHandler
 	PubkeyConv                     core.PubkeyConverter
-	Coordinator                    sharding.Coordinator
+	ShardCoordinator               sharding.Coordinator
 	ScrForwarder                   process.IntermediateTransactionHandler
 	TxFeeHandler                   process.TransactionFeeHandler
 	EconomicsFee                   process.FeeHandler
@@ -117,7 +117,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(args.Coordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.ScrForwarder) {
@@ -161,7 +161,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		accounts:                       args.AccountsDB,
 		blockChainHook:                 args.BlockChainHook,
 		pubkeyConv:                     args.PubkeyConv,
-		shardCoordinator:               args.Coordinator,
+		shardCoordinator:               args.ShardCoordinator,
 		scrForwarder:                   args.ScrForwarder,
 		txFeeHandler:                   args.TxFeeHandler,
 		economicsFee:                   args.EconomicsFee,
@@ -190,12 +190,15 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	defer sc.mutGasLock.Unlock()
 
 	apiCosts := gasSchedule[core.ElrondAPICost]
-	if apiCosts == nil {
+	_, existAsyncCallStepField := apiCosts[core.AsyncCallStepField]
+	_, existAsyncCallbackGasLockField := apiCosts[core.AsyncCallbackGasLockField]
+	if apiCosts == nil || !existAsyncCallStepField || !existAsyncCallbackGasLockField {
 		return
 	}
 
 	builtInFuncCost := gasSchedule[core.BuiltInCost]
-	if builtInFuncCost == nil {
+	_, existsESDTTransfer := builtInFuncCost[core.BuiltInFunctionESDTTransfer]
+	if builtInFuncCost == nil || !existsESDTTransfer {
 		return
 	}
 

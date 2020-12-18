@@ -4,7 +4,8 @@ import "github.com/ElrondNetwork/elrond-go/core"
 
 // GasScheduleNotifierMock -
 type GasScheduleNotifierMock struct {
-	GasSchedule map[string]map[string]uint64
+	GasSchedule                 map[string]map[string]uint64
+	RegisterNotifyHandlerCalled func(handler core.GasScheduleSubscribeHandler)
 }
 
 // NewGasScheduleNotifierMock -
@@ -17,6 +18,11 @@ func NewGasScheduleNotifierMock(gasSchedule map[string]map[string]uint64) *GasSc
 
 // RegisterNotifyHandler -
 func (g *GasScheduleNotifierMock) RegisterNotifyHandler(handler core.GasScheduleSubscribeHandler) {
+	if g.RegisterNotifyHandlerCalled != nil {
+		g.RegisterNotifyHandlerCalled(handler)
+		return
+	}
+
 	handler.GasScheduleChange(g.GasSchedule)
 }
 

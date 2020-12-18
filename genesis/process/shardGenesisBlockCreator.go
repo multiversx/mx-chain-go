@@ -355,7 +355,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		AccountsDB:                     arg.Accounts,
 		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
 		PubkeyConv:                     arg.PubkeyConv,
-		Coordinator:                    arg.ShardCoordinator,
+		ShardCoordinator:               arg.ShardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   genesisFeeHandler,
 		EconomicsFee:                   genesisFeeHandler,

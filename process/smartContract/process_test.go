@@ -52,6 +52,8 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
 	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
 	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
@@ -63,13 +65,13 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 				return nil
 			},
 		},
-		BlockChainHook:  &mock.BlockChainHookHandlerMock{},
-		PubkeyConv:      createMockPubkeyConverter(),
-		Coordinator:     mock.NewMultiShardsCoordinatorMock(5),
-		ScrForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:  &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:    &mock.FeeAccumulatorStub{},
-		TxLogsProcessor: &mock.TxLogsProcessorStub{},
+		BlockChainHook:   &mock.BlockChainHookHandlerMock{},
+		PubkeyConv:       createMockPubkeyConverter(),
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:     &mock.FeeAccumulatorStub{},
+		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
@@ -91,6 +93,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	}
 }
 
+// ===================== TestNewSmartContractProcessor =====================
 func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	t.Parallel()
 
@@ -161,7 +164,7 @@ func TestNewSmartContractProcessorNilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.Coordinator = nil
+	arguments.ShardCoordinator = nil
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
@@ -223,6 +226,107 @@ func TestNewSmartContractProcessor_NilEpochNotifierShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilEpochNotifier, err)
 }
 
+func TestNewSmartContractProcessor_NilEconomicsFeeShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EconomicsFee = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilTxTypeHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.TxTypeHandler = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilTxTypeHandler, err)
+}
+
+func TestNewSmartContractProcessor_NilGasScheduleShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.GasSchedule = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilGasSchedule, err)
+}
+
+func TestNewSmartContractProcessor_NilLatestGasScheduleShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.GasSchedule = mock.NewGasScheduleNotifierMock(nil)
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilGasSchedule, err)
+}
+
+func TestNewSmartContractProcessor_NilBuiltInFunctionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.BuiltInFunctions = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilBuiltInFunction, err)
+}
+
+func TestNewSmartContractProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.TxLogsProcessor = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilTxLogsProcessor, err)
+}
+
+func TestNewSmartContractProcessor_NilBadTxForwarderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.BadTxForwarder = nil
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilBadTxHandler, err)
+}
+
+func TestNewSmartContractProcessor_ShouldRegisterNotifiers(t *testing.T) {
+	t.Parallel()
+
+	epochNotifierRegisterCalled := false
+	gasScheduleRegisterCalled := false
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EpochNotifier = &mock.EpochNotifierStub{
+		RegisterNotifyHandlerCalled: func(handler core.EpochSubscriberHandler) {
+			epochNotifierRegisterCalled = true
+		},
+	}
+	gasSchedule := mock.NewGasScheduleNotifierMock(make(map[string]map[string]uint64))
+	gasSchedule.RegisterNotifyHandlerCalled = func(handler core.GasScheduleSubscribeHandler) {
+		gasScheduleRegisterCalled = true
+	}
+	arguments.GasSchedule = gasSchedule
+
+	_, _ = NewSmartContractProcessor(arguments)
+
+	require.True(t, epochNotifierRegisterCalled)
+	require.True(t, gasScheduleRegisterCalled)
+}
+
 func TestNewSmartContractProcessor(t *testing.T) {
 	t.Parallel()
 
@@ -233,6 +337,161 @@ func TestNewSmartContractProcessor(t *testing.T) {
 	require.Nil(t, err)
 	require.False(t, sc.IsInterfaceNil())
 }
+
+func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
+	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
+	assert.Equal(t, arguments.ArgsParser, sc.argsParser)
+	assert.Equal(t, arguments.Hasher, sc.hasher)
+	assert.Equal(t, arguments.AccountsDB, sc.accounts)
+	assert.Equal(t, arguments.BlockChainHook, sc.blockChainHook)
+	assert.Equal(t, arguments.PubkeyConv, sc.pubkeyConv)
+	assert.Equal(t, arguments.ShardCoordinator, sc.shardCoordinator)
+	assert.Equal(t, arguments.ScrForwarder, sc.scrForwarder)
+	assert.Equal(t, arguments.TxFeeHandler, sc.txFeeHandler)
+	assert.Equal(t, arguments.EconomicsFee, sc.economicsFee)
+	assert.Equal(t, arguments.TxTypeHandler, sc.txTypeHandler)
+	assert.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	assert.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	assert.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+	assert.Equal(t, arguments.BuiltInFunctions, sc.builtInFunctions)
+	assert.Equal(t, arguments.TxLogsProcessor, sc.txLogsProcessor)
+	assert.Equal(t, arguments.BadTxForwarder, sc.badTxForwarder)
+	assert.Equal(t, arguments.DeployEnableEpoch, sc.deployEnableEpoch)
+	assert.Equal(t, arguments.BuiltinEnableEpoch, sc.builtinEnableEpoch)
+	assert.Equal(t, arguments.PenalizedTooMuchGasEnableEpoch, sc.penalizedTooMuchGasEnableEpoch)
+}
+
+// ===================== TestGasScheduleChange =====================
+
+func TestGasScheduleChangeNoApiCostShouldNotChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = nil
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	sc.GasScheduleChange(gasSchedule)
+
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	sc.GasScheduleChange(gasSchedule)
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+}
+
+func TestGasScheduleChangeNoApiCostNoAsyncCallStepFieldShouldNotChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	sc.GasScheduleChange(gasSchedule)
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+}
+
+func TestGasScheduleChangeNoApiCostNoAsyncCallbackGasLockFieldShouldNotChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	sc.GasScheduleChange(gasSchedule)
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+}
+
+func TestGasScheduleChangeNoBuiltInCostShouldNotChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 1000
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 3000
+
+	sc.GasScheduleChange(gasSchedule)
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+
+	sc.GasScheduleChange(gasSchedule)
+
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+}
+
+func TestGasScheduleChangeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.ElrondAPICost] = make(map[string]uint64)
+	gasSchedule[core.ElrondAPICost][core.AsyncCallStepField] = 10
+	gasSchedule[core.ElrondAPICost][core.AsyncCallbackGasLockField] = 30
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 20
+
+	sc.GasScheduleChange(gasSchedule)
+
+	apiCosts := gasSchedule[core.ElrondAPICost]
+	builtInFuncCost := gasSchedule[core.BuiltInCost]
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+}
+
+// ===================== TestDeploySmartContract =====================
 
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
@@ -945,7 +1204,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.Coordinator = &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
+	arguments.ShardCoordinator = &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 5
 	}}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -1013,7 +1272,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1044,7 +1303,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1076,7 +1335,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1109,7 +1368,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1144,7 +1403,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1179,7 +1438,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1219,7 +1478,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1557,7 +1816,7 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1597,7 +1856,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1644,7 +1903,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1707,7 +1966,7 @@ func TestScProcessor_ProcessSmartContractResultNilScr(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1728,7 +1987,7 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1745,7 +2004,7 @@ func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1769,7 +2028,7 @@ func TestScProcessor_ProcessSmartContractResultBadAccType(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1801,7 +2060,7 @@ func TestScProcessor_ProcessSmartContractResultNotPayable(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.BlockChainHook = &mock.BlockChainHookHandlerMock{
 		IsPayableCalled: func(address []byte) (bool, error) {
 			return false, nil
@@ -1847,7 +2106,7 @@ func TestScProcessor_ProcessSmartContractResultOutputBalanceNil(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1880,7 +2139,7 @@ func TestScProcessor_ProcessSmartContractResultWithCode(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1915,7 +2174,7 @@ func TestScProcessor_ProcessSmartContractResultWithData(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, err := NewSmartContractProcessor(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -1956,7 +2215,7 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCDeployment, process.SCDeployment
@@ -2007,7 +2266,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	executeCalled := false
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.VmContainer = &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return &mock.VMExecutionHandlerStub{
@@ -2078,7 +2337,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	executeCalled := false
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.AccountsDB = accountsDB
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.VmContainer = &mock.VMContainerMock{
 		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
 			return &mock.VMExecutionHandlerStub{
@@ -2355,7 +2614,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 		},
 	}
 	arguments.EconomicsFee = feeHandler
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0)
@@ -2415,7 +2674,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 		SelfIdCalled: func() uint32 {
 			return 0
 		}}
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 		return big.NewInt(100)
 	}}
