@@ -1385,7 +1385,7 @@ func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcom
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
+	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
 		s.eei.AddReturnMessage("setOwnersOnAddresses function not allowed to be called by address " + string(args.CallerAddr))
 		return vmcommon.UserError
 	}
@@ -1400,6 +1400,13 @@ func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcom
 			s.eei.AddReturnMessage(fmt.Sprintf("process stopped at index %d, bls key %s", i, hex.EncodeToString(args.Arguments[i])))
 			return vmcommon.UserError
 		}
+		if len(stakedData.RewardAddress) == 0 {
+			log.Error("staking data does not exists",
+				"bls key", hex.EncodeToString(args.Arguments[i]),
+				"owner as hex", hex.EncodeToString(args.Arguments[i+1]))
+			continue
+		}
+
 		stakedData.OwnerAddress = args.Arguments[i+1]
 		err = s.saveStakingData(args.Arguments[i], stakedData)
 		if err != nil {

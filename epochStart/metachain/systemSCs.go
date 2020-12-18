@@ -936,7 +936,7 @@ func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAc
 func (s *systemSCProcessor) callSetOwnersOnAddresses(arguments [][]byte) error {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.ValidatorSCAddress,
+			CallerAddr: vm.EndOfEpochAddress,
 			CallValue:  big.NewInt(0),
 			Arguments:  arguments,
 		},

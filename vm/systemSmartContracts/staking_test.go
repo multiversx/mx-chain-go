@@ -1563,7 +1563,7 @@ func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "setOwnersOnAddresses"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
 	arguments.Arguments = [][]byte{[]byte("bls key")}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.UserError)
@@ -1588,9 +1588,12 @@ func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 	blsKey2 := []byte("blsKey2")
 	owner2 := []byte("owner2")
 
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner1, blsKey1)
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner2, blsKey2)
+
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "setOwnersOnAddresses"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
 	arguments.Arguments = [][]byte{blsKey1, owner1, blsKey2, owner2}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
@@ -1619,7 +1622,7 @@ func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "setOwnersOnAddresses"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
 	arguments.Arguments = make([][]byte, 0)
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
@@ -1707,9 +1710,11 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	blsKey := []byte("blsKey")
 	owner := []byte("owner")
 
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner, blsKey)
+
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "setOwnersOnAddresses"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
 	arguments.Arguments = [][]byte{blsKey, owner}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
