@@ -6,7 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 )
 
-const processFeeFactor = 80
+const processFeeFactor = float64(0.8) // 80%
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
@@ -36,28 +36,37 @@ func estimateTxFeeScore(tx *WrappedTransaction, txGasHandler TxGasHandler, txFee
 	normalizedProcessGas := processGas >> txFeeHelper.gasLimitShift()
 
 	normalizedGasPriceMove := txGasHandler.GasPriceForMove(tx.Tx) >> txFeeHelper.gasPriceShift()
-	normalizedGasPriceProcess, remainingProcessingPriceShift := normalizeGasPriceProcessing(tx, txGasHandler, txFeeHelper)
+	normalizedGasPriceProcess := normalizeGasPriceProcessing(tx, txGasHandler, txFeeHelper)
 
 	normalizedFeeMove := normalizedMoveGas * normalizedGasPriceMove
-	normalizedFeeProcess := normalizedProcessGas >> remainingProcessingPriceShift * normalizedGasPriceProcess
+	normalizedFeeProcess := normalizedProcessGas * normalizedGasPriceProcess
 
-	tx.TxFeeScoreNormalized = normalizedFeeMove + normalizedFeeProcess*processFeeFactor
+	adjustmentFactor := computeProcessingGasPriceAdjustment(tx, txGasHandler, txFeeHelper)
+
+	tx.TxFeeScoreNormalized = normalizedFeeMove + normalizedFeeProcess*adjustmentFactor
 
 	return tx.TxFeeScoreNormalized
 }
 
-func normalizeGasPriceProcessing(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) (uint64, uint64) {
-	normalizedGasPriceProcess := txGasHandler.GasPriceForProcessing(tx.Tx) >> txFeeHelper.gasPriceShift()
-	remainingProcessingPriceShift := uint64(0)
+func normalizeGasPriceProcessing(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
+	return txGasHandler.GasPriceForProcessing(tx.Tx) >> txFeeHelper.gasPriceShift()
+}
 
-	if normalizedGasPriceProcess == 0 {
-		var p uint64
-		remainingProcessingPriceShift = txFeeHelper.gasPriceShift()
+func computeProcessingGasPriceAdjustment(
+	tx *WrappedTransaction,
+	txGasHandler TxGasHandler,
+	txFeeHelper feeHelper,
+) uint64 {
+	minPriceFactor := txFeeHelper.minGasPriceFactor()
 
-		for p = txGasHandler.GasPriceForProcessing(tx.Tx); p > 0; p >>= 1 {
-			remainingProcessingPriceShift--
-		}
+	if minPriceFactor <= 2 {
+		return 1
 	}
 
-	return normalizedGasPriceProcess, remainingProcessingPriceShift
+	actualPriceFactor := float64(1)
+	if txGasHandler.MinGasPriceProcessing() != 0 {
+		actualPriceFactor = float64(txGasHandler.GasPriceForProcessing(tx.Tx)) / float64(txGasHandler.MinGasPriceProcessing())
+	}
+
+	return uint64(float64(txFeeHelper.minGasPriceFactor()) * processFeeFactor / float64(actualPriceFactor))
 }

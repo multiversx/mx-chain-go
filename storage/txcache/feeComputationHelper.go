@@ -13,7 +13,7 @@ type feeComputationHelper struct {
 	gasShiftingFactor   uint64
 	priceShiftingFactor uint64
 	minFeeNormalized    uint64
-	minPPU              uint64
+	minPPUNormalized    uint64
 	minPriceFactor      uint64
 }
 
@@ -39,7 +39,7 @@ func (fch *feeComputationHelper) normalizedMinFee() uint64 {
 }
 
 func (fch *feeComputationHelper) minPricePerUnit() uint64 {
-	return fch.minPPU
+	return fch.minPPUNormalized
 }
 
 func (fch *feeComputationHelper) minGasPriceFactor() uint64 {
@@ -56,16 +56,16 @@ func (fch *feeComputationHelper) initializeHelperParameters(minPrice, minGasLimi
 
 	fch.gasShiftingFactor = computeShiftMagnitude(minGasLimit, gasBinaryResolution)
 
-	fch.minPPU = minPriceProcessing >> fch.priceShiftingFactor
+	fch.minPPUNormalized = minPriceProcessing >> fch.priceShiftingFactor
 	fch.minFeeNormalized = (minGasLimit >> fch.gasLimitShift()) * (minPrice >> fch.priceShiftingFactor)
 	fch.minPriceFactor = minPrice / minPriceProcessing
 }
 
 // returns the maximum shift magnitude of the number in order to maintain the given binary resolution
 func computeShiftMagnitude(x uint64, resolution uint8) uint64 {
-	m := uint64(1)
+	m := uint64(0)
 	stopCondition := uint64(1) << resolution
-	shiftStep := uint64(resolution)
+	shiftStep := uint64(1)
 
 	for i := x; i > stopCondition; i >>= shiftStep {
 		m += shiftStep

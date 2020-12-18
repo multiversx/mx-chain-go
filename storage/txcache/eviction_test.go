@@ -94,7 +94,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
 	}
-	txGasHandler, _ := dummyParams()
+	txGasHandler, _ := dummyParamsWithGasPrice(100*oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -149,13 +149,13 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	scoreChris := cache.getScoreOfSender("chris")
 	scoreRichard := cache.getScoreOfSender("richard")
 
-	require.Equal(t, uint32(60), scoreAlice)
-	require.Equal(t, uint32(60), scoreBob)
+	require.Equal(t, uint32(23), scoreAlice)
+	require.Equal(t, uint32(23), scoreBob)
 	require.Equal(t, uint32(7), scoreDave)
 	require.Equal(t, uint32(100), scoreCarol)
 	require.Equal(t, uint32(100), scoreEve)
-	require.Equal(t, uint32(95), scoreChris)
-	require.Equal(t, uint32(99), scoreRichard)
+	require.Equal(t, uint32(34), scoreChris)
+	require.Equal(t, uint32(54), scoreRichard)
 
 	cache.doEviction()
 	require.Equal(t, uint32(4), cache.evictionJournal.passOneNumTxs)
