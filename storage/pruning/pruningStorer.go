@@ -345,8 +345,8 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 					continue
 				}
 
-				buff, ok := v.([]byte)
-				if !ok {
+				buff, isByteSlice := v.([]byte)
+				if !isByteSlice {
 					continue
 				}
 
@@ -451,11 +451,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) (map[stri
 			continue
 		}
 
-		res, err := persisterToRead.Get(key)
-		if err != nil {
+		res, errGet := persisterToRead.Get(key)
+		if errGet != nil {
 			log.Warn("cannot get from persister",
 				"hash", hex.EncodeToString(key),
-				"error", err.Error(),
+				"error", errGet.Error(),
 			)
 			continue
 		}

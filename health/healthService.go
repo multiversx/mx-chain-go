@@ -34,13 +34,13 @@ func NewHealthService(config config.HealthServiceConfig, workingDir string) *hea
 	log.Info("NewHealthService", "config", config)
 
 	folder := path.Join(workingDir, config.FolderPath)
-	records := newRecords(config.NumMemoryUsageRecordsToKeep)
+	recordsObj := newRecords(config.NumMemoryUsageRecordsToKeep)
 
 	return &healthService{
 		config:                              config,
 		folder:                              folder,
 		cancelFunction:                      func() {},
-		records:                             records,
+		records:                             recordsObj,
 		diagnosableComponents:               make([]diagnosable, 0),
 		clock:                               &realClock{},
 		memory:                              &realMemory{},
@@ -131,8 +131,8 @@ func (h *healthService) monitorMemory() {
 	log.Trace("healthService.monitorMemory()", "heapInUse", core.ConvertBytes(stats.HeapInuse))
 
 	if int(stats.HeapInuse) > h.config.MemoryUsageToCreateProfiles {
-		record := newMemoryUsageRecord(stats, h.clock.now(), h.folder)
-		h.records.addRecord(record)
+		recordObj := newMemoryUsageRecord(stats, h.clock.now(), h.folder)
+		h.records.addRecord(recordObj)
 	}
 }
 

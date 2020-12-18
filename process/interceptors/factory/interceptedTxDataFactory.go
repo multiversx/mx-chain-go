@@ -90,7 +90,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		return nil, process.ErrNilEpochNotifier
 	}
 
-	interceptedTxDataFactory := &interceptedTxDataFactory{
+	itdf := &interceptedTxDataFactory{
 		protoMarshalizer:            argument.ProtoMarshalizer,
 		signMarshalizer:             argument.TxSignMarshalizer,
 		hasher:                      argument.Hasher,
@@ -109,9 +109,9 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		txVersionChecker:            versioning.NewTxVersionChecker(argument.MinTransactionVersion),
 	}
 
-	argument.EpochNotifier.RegisterNotifyHandler(interceptedTxDataFactory)
+	argument.EpochNotifier.RegisterNotifyHandler(itdf)
 
-	return interceptedTxDataFactory, nil
+	return itdf, nil
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer

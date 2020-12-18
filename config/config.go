@@ -205,7 +205,7 @@ type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
 }
 
-// ChangeMaxNodesConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
+// MaxNodesChangeConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
 type MaxNodesChangeConfig struct {
 	EpochEnable            uint32
 	MaxNumNodes            uint32

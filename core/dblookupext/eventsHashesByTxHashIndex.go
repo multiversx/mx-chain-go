@@ -80,7 +80,7 @@ func (eht *eventsHashesByTxHash) groupSmartContractResults(
 
 		originalTxHash := string(scrResult.OriginalTxHash)
 
-		if _, ok := resultsHashesMap[originalTxHash]; !ok {
+		if _, hashExists := resultsHashesMap[originalTxHash]; !hashExists {
 			resultsHashesMap[originalTxHash] = &ResultsHashesByTxHash{
 				ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
 					{

@@ -347,17 +347,17 @@ func getEpochStartDataForShard(epochStartMetaHdr *block.MetaBlock, shardID uint3
 		return nil, nil
 	}
 
-	for _, epochStartData := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
-		if epochStartData.ShardID != shardID {
+	for _, epochStartDataRes := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
+		if epochStartDataRes.ShardID != shardID {
 			continue
 		}
 
-		mapPendingMiniBlocks := make(map[string]block.MiniBlockHeader, len(epochStartData.PendingMiniBlockHeaders))
-		for _, mbHdr := range epochStartData.PendingMiniBlockHeaders {
+		mapPendingMiniBlocks := make(map[string]block.MiniBlockHeader, len(epochStartDataRes.PendingMiniBlockHeaders))
+		for _, mbHdr := range epochStartDataRes.PendingMiniBlockHeaders {
 			mapPendingMiniBlocks[string(mbHdr.Hash)] = mbHdr
 		}
 
-		return epochStartData.FirstPendingMetaBlock, mapPendingMiniBlocks
+		return epochStartDataRes.FirstPendingMetaBlock, mapPendingMiniBlocks
 	}
 
 	return nil, nil

@@ -215,9 +215,9 @@ func (se *stateExport) exportUnFinishedMetaBlocks() error {
 
 	log.Debug("Starting export for unFinished metaBlocks", "len", len(unFinishedMetaBlocks))
 	for _, metaBlock := range unFinishedMetaBlocks {
-		err := se.exportMetaBlock(metaBlock, UnFinishedMetaBlocksIdentifier)
-		if err != nil {
-			return err
+		errExportMetaBlock := se.exportMetaBlock(metaBlock, UnFinishedMetaBlocksIdentifier)
+		if errExportMetaBlock != nil {
+			return errExportMetaBlock
 		}
 	}
 

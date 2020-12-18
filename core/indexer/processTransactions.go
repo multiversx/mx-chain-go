@@ -222,9 +222,9 @@ func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
 	isRightNonce := dbScResult.Nonce == tx.Nonce+1
 	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
-	isDataOk := isDataOk(dbScResult.Data)
+	isScrDataOk := isDataOk(dbScResult.Data)
 
-	return isFromCurrentTx && isForSender && isRightNonce && isDataOk
+	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
 }
 
 func isDataOk(data []byte) bool {
