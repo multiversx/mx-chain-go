@@ -84,55 +84,55 @@ func createPhysicalUnit() (storage.Storer, string) {
 func TestNewSystemSCProcessor(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(100)
+	args, _ := createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.Marshalizer = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilMarshalizer)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.PeerAccountsDB = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilAccountsDB)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.SystemVM = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilSystemVM)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.UserAccountsDB = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilAccountsDB)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.ValidatorInfoCreator = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilValidatorInfoProcessor)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.EndOfEpochCallerAddress = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilEndOfEpochCallerAddress)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.StakingSCAddress = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilStakingSCAddress)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.ValidatorInfoCreator = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilValidatorInfoProcessor)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.ChanceComputer = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilChanceComputer)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.GenesisNodesConfig = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilGenesisNodesConfig)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.NodesConfigProvider = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilNodesConfigProvider)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.StakingDataProvider = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilStakingDataProvider)
 
-	args, _ = createFullArgumentsForSystemSCProcessing(100)
+	args, _ = createFullArgumentsForSystemSCProcessing(100, createMemUnit())
 	args.EpochNotifier = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilEpochStartNotifier)
 }
