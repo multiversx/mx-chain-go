@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
+var stepDelay = time.Second / 10
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {

@@ -217,7 +217,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 			)
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -339,7 +339,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)

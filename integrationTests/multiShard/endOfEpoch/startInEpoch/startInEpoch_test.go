@@ -106,7 +106,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
