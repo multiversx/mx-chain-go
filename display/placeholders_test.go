@@ -42,12 +42,11 @@ func TestHeadline_DelimiterTooLongShouldBeTrimmed(t *testing.T) {
 func TestHeadline_ResultedStringContainsAllData(t *testing.T) {
 	t.Parallel()
 
-	message := "message to display"
 	delimiter := "."
 
-	res := display.Headline(message, testMessage, delimiter)
+	res := display.Headline(testMessage, testTimestamp, delimiter)
 
-	assert.True(t, strings.Contains(res, message))
+	assert.True(t, strings.Contains(res, testMessage))
 	assert.True(t, strings.Contains(res, testTimestamp))
 	assert.True(t, strings.Contains(res, delimiter))
 	fmt.Println(res)
