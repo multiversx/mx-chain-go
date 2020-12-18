@@ -134,8 +134,8 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 0, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFeess := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(0), accumulatedFeess)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
 func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
