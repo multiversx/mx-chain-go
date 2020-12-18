@@ -112,7 +112,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		integrationTests.MinTransactionVersion,
 	)
 
-	transferTokenVMGas := uint64(6960)
+	transferTokenVMGas := uint64(7200)
 	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
 	transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
 
@@ -163,7 +163,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	checkPlayerBalances(t, nodes, players)
 
 	userAcc := GetUserAccount(nodes, relayer.Address)
-	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 0)
+	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 1)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
