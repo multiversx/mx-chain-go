@@ -98,6 +98,9 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 
 		indexesProposers := testBlock.GetBlockProposersIndexes(consensusNodes, nodesMap)
 		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+
+		time.Sleep(integrationTests.StepDelay)
+
 		round++
 		nonce++
 	}

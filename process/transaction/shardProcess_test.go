@@ -2216,6 +2216,11 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 			return big.NewInt(150)
 		},
 	}
+	args.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			assert.Equal(t, cost, big.NewInt(1))
+		},
+	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	acntSrc, _ := state.NewUserAccount([]byte("address"))
