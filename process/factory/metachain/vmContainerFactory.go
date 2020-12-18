@@ -127,6 +127,23 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
+// CreateForGenesis sets up all the needed virtual machine returning a container of all the VMs to be used in the genesis process
+func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContainer, error) {
+	container := containers.NewVirtualMachinesContainer()
+
+	currVm, err := vmf.createSystemVMForGenesis()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.SystemVirtualMachine, currVm)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
 func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(
@@ -158,6 +175,63 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	}
 
 	vmf.systemContracts, err = scFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
+	if err != nil {
+		return nil, err
+	}
+
+	argsNewSystemVM := systemVMProcess.ArgsNewSystemVM{
+		SystemEI:        systemEI,
+		SystemContracts: vmf.systemContracts,
+		VmType:          factory.SystemVirtualMachine,
+		GasSchedule:     vmf.gasSchedule,
+	}
+	systemVM, err := systemVMProcess.NewSystemVM(argsNewSystemVM)
+	if err != nil {
+		return nil, err
+	}
+
+	vmf.gasSchedule.RegisterNotifyHandler(systemVM)
+
+	return systemVM, nil
+}
+
+//TODO remove duplicated code
+func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionHandler, error) {
+	atArgumentParser := parsers.NewCallArgsParser()
+	systemEI, err := systemSmartContracts.NewVMContext(
+		vmf.blockChainHookImpl,
+		vmf.cryptoHook,
+		atArgumentParser,
+		vmf.validatorAccountsDB,
+		vmf.chanceComputer,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
+		SystemEI:               systemEI,
+		SigVerifier:            vmf.messageSigVerifier,
+		GasSchedule:            vmf.gasSchedule,
+		NodesConfigProvider:    vmf.nodesConfigProvider,
+		Hasher:                 vmf.hasher,
+		Marshalizer:            vmf.marshalizer,
+		SystemSCConfig:         vmf.systemSCConfig,
+		Economics:              vmf.economics,
+		EpochNotifier:          vmf.epochNotifier,
+		AddressPubKeyConverter: vmf.addressPubKeyConverter,
+	}
+	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	vmf.systemContracts, err = scFactory.CreateForGenesis()
 	if err != nil {
 		return nil, err
 	}

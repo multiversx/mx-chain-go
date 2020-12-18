@@ -1104,7 +1104,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 
-	if !sc.flagDeploy.IsSet() {
+	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.blockChainHook.LastNonce() == 0
+	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot, 0)
 	}
