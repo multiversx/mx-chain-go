@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +39,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 
 	//verify receiver
 	expectedBalanceReceiver := big.NewInt(100)
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 0, expectedBalanceReceiver)
+	utils.TestAccount(t, testContext.Accounts, rcvAddr, 0, expectedBalanceReceiver)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
@@ -76,9 +76,9 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	//verify receiver
-	expectedBalanceReceiver := big.NewInt(0)
-	vm.TestAccount(t, testContext.Accounts, scAddrBytes, 0, expectedBalanceReceiver)
+	account, err := testContext.Accounts.GetExistingAccount(scAddrBytes)
+	require.NotNil(t, err)
+	require.Nil(t, account)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
@@ -117,7 +117,7 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 
 	//verify receiver
 	expectedBalanceReceiver := big.NewInt(0)
-	vm.TestAccount(t, testContext.Accounts, scAddrBytes, 0, expectedBalanceReceiver)
+	utils.TestAccount(t, testContext.Accounts, scAddrBytes, 0, expectedBalanceReceiver)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()

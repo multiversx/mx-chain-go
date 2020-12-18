@@ -2,6 +2,7 @@ package txsFee
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"math/big"
 	"testing"
 
@@ -16,7 +17,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := doDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -32,7 +33,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkOwnerAddr(t, &testContext, scAddress, newOwner)
+	utils.CheckOwnerAddr(t, &testContext, scAddress, newOwner)
 
 	expectedBalance := big.NewInt(88180)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -49,7 +50,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, initialOwner := doDeploy(t, &testContext)
+	scAddress, initialOwner := utils.DoDeploy(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	sndAddr := []byte("12345678901234567890123456789113")
@@ -68,7 +69,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkOwnerAddr(t, &testContext, scAddress, initialOwner)
+	utils.CheckOwnerAddr(t, &testContext, scAddress, initialOwner)
 
 	expectedBalance := big.NewInt(90000)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
@@ -85,7 +86,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := doDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("invalidAddress")
@@ -101,7 +102,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(79030)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -118,7 +119,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := doDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -137,7 +138,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(100000)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -154,7 +155,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := doDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -171,7 +172,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(88190)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)

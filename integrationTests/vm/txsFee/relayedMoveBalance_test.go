@@ -1,6 +1,7 @@
 package txsFee
 
 import (
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"math/big"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	// gas consumed = 50
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -70,7 +71,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 2 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
@@ -102,7 +103,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
@@ -134,7 +135,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 

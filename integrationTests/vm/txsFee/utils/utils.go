@@ -1,4 +1,4 @@
-package txsFee
+package utils
 
 import (
 	"encoding/hex"
@@ -17,7 +17,8 @@ import (
 
 var protoMarshalizer = &marshal.GogoProtoMarshalizer{}
 
-func doDeploy(t *testing.T, testContext *vm.VMTestContext) (scAddr []byte, owner []byte) {
+// DoDeploy -
+func DoDeploy(t *testing.T, testContext *vm.VMTestContext) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
@@ -51,12 +52,14 @@ func doDeploy(t *testing.T, testContext *vm.VMTestContext) (scAddr []byte, owner
 	return scAddr, owner
 }
 
-func prepareRelayerTxData(innerTx *transaction.Transaction) []byte {
+// PrepareRelayerTxData -
+func PrepareRelayerTxData(innerTx *transaction.Transaction) []byte {
 	userTxBytes, _ := protoMarshalizer.Marshal(innerTx)
 	return []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxBytes))
 }
 
-func checkOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, owner []byte) {
+// CheckOwnerAddr -
+func CheckOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, owner []byte) {
 	acc, err := testContext.Accounts.GetExistingAccount(scAddr)
 	require.Nil(t, err)
 
@@ -65,4 +68,26 @@ func checkOwnerAddr(t *testing.T, testContext *vm.VMTestContext, scAddr []byte, 
 
 	currentOwner := userAcc.GetOwnerAddress()
 	require.Equal(t, owner, currentOwner)
+}
+
+// TestAccount -
+func TestAccount(
+	t *testing.T,
+	accnts state.AccountsAdapter,
+	senderAddressBytes []byte,
+	expectedNonce uint64,
+	expectedBalance *big.Int,
+) *big.Int {
+
+	senderRecovAccount, err := accnts.GetExistingAccount(senderAddressBytes)
+	if err != nil {
+		require.Nil(t, err)
+		return big.NewInt(0)
+	}
+
+	senderRecovShardAccount := senderRecovAccount.(state.UserAccountHandler)
+
+	require.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
+	require.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
+	return senderRecovShardAccount.GetBalance()
 }
