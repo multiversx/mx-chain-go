@@ -1,10 +1,11 @@
 package txsFee
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
+
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/process"
 
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestScDeployShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -39,12 +40,12 @@ func TestScDeployShouldWork(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(8490), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(8490), accumulatedFees)
 }
 
 func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -72,12 +73,12 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10000), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(10000), accumulatedFees)
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -103,12 +104,12 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(0), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
 func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -134,6 +135,6 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(5700), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(5700), accumulatedFees)
 }

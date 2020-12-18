@@ -7,12 +7,11 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRelayedScCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	scAddress, _ := doDeploy(t, &testContext)
@@ -45,15 +44,15 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(16700), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(16700), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(744), developerFees)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	scAddress := "00000000000000000500dbb53e4b23392b0d6f36cce32deb2d623e9625ab3132"
@@ -84,15 +83,15 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(11870), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(11870), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 }
 
 func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	scAddress, _ := doDeploy(t, &testContext)
@@ -122,15 +121,15 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(22920), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(22920), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
 }
 
 func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	scAddress, _ := doDeploy(t, &testContext)
@@ -151,7 +150,6 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
@@ -161,15 +159,15 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(12870), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(12870), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
 }
 
 func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
 	scAddress, _ := doDeploy(t, &testContext)
@@ -200,8 +198,8 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(13020), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(13020), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
