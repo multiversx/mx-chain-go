@@ -315,7 +315,8 @@ func (dr *dataReplayer) processMetaBlock(
 
 	shardsHeaderData := make(map[uint32][]*storer2ElasticData.HeaderData)
 	for _, shardInfo := range metaBlock.ShardInfo {
-		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfo, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
+		shardInfoCopy := shardInfo
+		shardHdrData, errProcessShardInfo := dr.processShardInfo(dbsInfo, &shardInfoCopy, metaBlock.Epoch, shardPersisters[shardInfo.ShardID])
 		if errProcessShardInfo != nil {
 			log.Warn("cannot process shard info", "error", errProcessShardInfo)
 			return nil, errProcessShardInfo

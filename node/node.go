@@ -1190,20 +1190,6 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse,
 	return n.validatorsProvider.GetLatestValidators(), nil
 }
 
-func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
-	latestHash, err := n.validatorStatistics.RootHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	validators, err := n.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return validators, nil, nil
-}
-
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return n.hardforkTrigger.Trigger(epoch, withEarlyEndOfEpoch)

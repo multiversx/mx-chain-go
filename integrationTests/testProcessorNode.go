@@ -2288,6 +2288,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
+	log.LogIfError(err)
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,

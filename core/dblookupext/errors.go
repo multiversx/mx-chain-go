@@ -3,7 +3,7 @@ package dblookupext
 import (
 	"encoding/hex"
 	"errors"
-	fmt "fmt"
+	"fmt"
 )
 
 var errCannotCastToBlockBody = errors.New("cannot cast to block body")
