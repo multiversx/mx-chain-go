@@ -40,12 +40,12 @@ func NewTxCache(config ConfigSourceMe) (*TxCache, error) {
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
-	senderConstraints := config.getSenderConstraints()
-	scoreComputer := newDefaultScoreComputer(config.MinGasPriceNanoErd)
+	senderConstraintsObj := config.getSenderConstraints()
+	scoreComputerObj := newDefaultScoreComputer(config.MinGasPriceNanoErd)
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunks, senderConstraints, scoreComputer),
+		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj),
 		txByHash:        newTxByHashMap(numChunks),
 		config:          config,
 		evictionJournal: evictionJournal{},

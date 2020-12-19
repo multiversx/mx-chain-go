@@ -137,7 +137,7 @@ func (s *SuiteBLS12) GetUnderlyingSuite() interface{} {
 	return s
 }
 
-// IsPointValid returns error if the point is not valid (zero is also not valid), otherwise nil
+// CheckPointValid returns error if the point is not valid (zero is also not valid), otherwise nil
 func (s *SuiteBLS12) CheckPointValid(pointBytes []byte) error {
 	if len(pointBytes) != s.PointLen() {
 		return crypto.ErrInvalidParam

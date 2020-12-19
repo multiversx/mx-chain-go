@@ -369,7 +369,7 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 }
 
 func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) (map[string][][]byte, int64) {
-	sortedKeys := make(map[string][][]byte, 0)
+	sortedKeys := make(map[string][][]byte)
 	totalActive := int64(0)
 	for _, blsKey := range blsKeys {
 		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]

@@ -2,6 +2,7 @@ package mock
 
 import "github.com/ElrondNetwork/elrond-go/process"
 
+// InterceptedDataVerifierMock -
 type InterceptedDataVerifierMock struct {
 }
 

@@ -569,13 +569,19 @@ func (m *Monitor) addDoubleSignerPeers(hb *data.Heartbeat) {
 	tc, ok := m.doubleSignerPeers[pubKeyStr]
 	if !ok {
 		tc = timecache.NewTimeCache(m.maxDurationPeerUnresponsive)
-		tc.Add(string(hb.Pid))
+		err := tc.Add(string(hb.Pid))
+		if err != nil {
+			log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)
+		}
 		m.doubleSignerPeers[pubKeyStr] = tc
 		return
 	}
 
 	tc.Sweep()
-	tc.Add(string(hb.Pid))
+	err := tc.Add(string(hb.Pid))
+	if err != nil {
+		log.Warn("cannot add heartbeat in cache", "peer id", hb.Pid, "error", err)
+	}
 }
 
 func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
@@ -587,6 +593,7 @@ func (m *Monitor) getNumInstancesOfPublicKey(pubKeyStr string) uint64 {
 	return uint64(tc.Len())
 }
 
+// Cleanup will delete all the entries in the heartbeatMessages map
 func (m *Monitor) Cleanup() {
 	m.mutHeartbeatMessages.Lock()
 	for k, v := range m.heartbeatMessages {
