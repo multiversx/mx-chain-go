@@ -187,8 +187,6 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.getTotalStakedTopUpBlsKeys(args)
 	case "getBlsKeysStatus":
 		return v.getBlsKeysStatus(args)
-	case "updateStakingV2":
-		return v.updateStakingV2(args)
 	case "cleanRegisteredData":
 		return v.cleanRegisteredData(args)
 	case "pauseUnStakeUnBond":
@@ -1578,46 +1576,6 @@ func (v *validatorSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommo
 
 		v.eei.Finish(blsKey)
 		v.eei.Finish(vmOutput.ReturnData[0])
-	}
-
-	return vmcommon.Ok
-}
-
-func (v *validatorSC) updateStakingV2(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.flagEnableTopUp.IsSet() {
-		v.eei.AddReturnMessage("invalid method to call")
-		return vmcommon.UserError
-	}
-	if !bytes.Equal(args.CallerAddr, v.validatorSCAddress) {
-		v.eei.AddReturnMessage("this is a function that has to be called internally")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments) != 1 {
-		v.eei.AddReturnMessage("should have provided only one argument: the owner address")
-		return vmcommon.UserError
-	}
-	if len(args.Arguments[0]) != v.walletAddressLen {
-		v.eei.AddReturnMessage("wrong owner address")
-		return vmcommon.UserError
-	}
-	if args.CallValue.Cmp(zero) != 0 {
-		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
-		return vmcommon.UserError
-	}
-	registrationData, err := v.getOrCreateRegistrationData(args.Arguments[0])
-	if err != nil {
-		v.eei.AddReturnMessage("cannot get registration data: error " + err.Error())
-		return vmcommon.UserError
-	}
-	if len(registrationData.RewardAddress) == 0 {
-		v.eei.AddReturnMessage("key is not registered, updateStakingV2 is not possible")
-		return vmcommon.UserError
-	}
-	for _, blsKey := range registrationData.BlsPubKeys {
-		okSet := v.setOwnerOfBlsKey(blsKey, args.Arguments[0])
-		if !okSet {
-			return vmcommon.UserError
-		}
 	}
 
 	return vmcommon.Ok
