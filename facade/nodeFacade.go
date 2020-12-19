@@ -94,7 +94,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, ErrNilApiResolver
 	}
 	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrErrNilTransactionSimulatorProcessor
+		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig

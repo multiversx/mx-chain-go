@@ -415,7 +415,7 @@ func GetTransaction(c *gin.Context) {
 			http.StatusBadRequest,
 			shared.GenericAPIResponse{
 				Data:  nil,
-				Error: fmt.Sprintf("%s", errors.ErrValidation.Error()),
+				Error: errors.ErrValidation.Error(),
 				Code:  shared.ReturnCodeRequestError,
 			},
 		)

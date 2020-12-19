@@ -19,7 +19,6 @@ type vmContext struct {
 	inputParser         vm.ArgumentsParser
 	chanceComputer      sharding.ChanceComputer
 	scAddress           []byte
-	shardCoordinator    sharding.Coordinator
 
 	storageUpdate  map[string]map[string][]byte
 	outputAccounts map[string]*vmcommon.OutputAccount

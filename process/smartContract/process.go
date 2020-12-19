@@ -1566,9 +1566,10 @@ func (sc *scProcessor) createSmartContractResults(
 			result.OriginalSender = tx.GetSndAddr()
 		}
 
+		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
 		if isLastOutTransfer &&
-			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransfer, vmOutput, tx, result) {
+			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
 			createdAsyncCallBack = true
 		}
 
@@ -1622,11 +1623,7 @@ func (sc *scProcessor) isTransferWithNoDataOrBuiltInCall(data []byte) bool {
 	}
 
 	_, err = sc.builtInFunctions.Get(function)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
