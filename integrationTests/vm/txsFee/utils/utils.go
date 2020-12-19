@@ -2,6 +2,11 @@ package utils
 
 import (
 	"encoding/hex"
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
 
@@ -90,4 +95,33 @@ func TestAccount(
 	require.Equal(t, expectedNonce, senderRecovShardAccount.GetNonce())
 	require.Equal(t, expectedBalance, senderRecovShardAccount.GetBalance())
 	return senderRecovShardAccount.GetBalance()
+}
+
+// ProcessSCRResult -
+func ProcessSCRResult(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	tx data.TransactionHandler,
+	expectedCode vmcommon.ReturnCode,
+	expectedErr error,
+) {
+	scProcessor := testContext.ScProcessor
+	scrProcessor, ok := scProcessor.(process.SmartContractResultProcessor)
+	require.True(t, ok)
+
+	scr, ok := tx.(*smartContractResult.SmartContractResult)
+	require.True(t, ok)
+
+	retCode, err := scrProcessor.ProcessSmartContractResult(scr)
+	require.Equal(t, expectedCode, retCode)
+	require.Equal(t, expectedErr, err)
+}
+
+// GetIntermediateTransactions -
+func GetIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) []data.TransactionHandler {
+	scForwarder := testContext.ScForwarder
+	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
+	require.True(t, ok)
+
+	return mockIntermediate.GetIntermediateTransactions()
 }
