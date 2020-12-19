@@ -39,7 +39,6 @@ type txProcessor struct {
 	scrForwarder                   process.IntermediateTransactionHandler
 	signMarshalizer                marshal.Marshalizer
 	flagRelayedTx                  atomic.Flag
-	flagPenalizedTooMuchGas        atomic.Flag
 	flagMetaProtection             atomic.Flag
 	relayedTxEnableEpoch           uint32
 	penalizedTooMuchGasEnableEpoch uint32
