@@ -374,6 +374,11 @@ func (txProc *txProcessor) processTxFee(
 		return nil, nil, err
 	}
 
+	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+		totalCost := core.SafeMul(tx.GasLimit, tx.GasPrice)
+		return moveBalanceFee, totalCost, nil
+	}
+
 	return moveBalanceFee, moveBalanceFee, nil
 }
 
