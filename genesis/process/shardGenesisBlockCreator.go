@@ -378,6 +378,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		IsGenesisProcessing:            true,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

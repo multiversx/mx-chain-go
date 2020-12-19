@@ -1382,6 +1382,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		hardForkTrigger,
 		historyRepository,
 		fallbackHeaderValidator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -2193,6 +2194,7 @@ func createNode(
 	hardForkTrigger node.HardforkTrigger,
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
+	isInImportDbMode bool,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2320,6 +2322,7 @@ func createNode(
 		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch),
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
+		node.WithImportMode(isInImportDbMode),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())

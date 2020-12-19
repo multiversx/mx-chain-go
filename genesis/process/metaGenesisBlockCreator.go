@@ -425,6 +425,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		IsGenesisProcessing:            true,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

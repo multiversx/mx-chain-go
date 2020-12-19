@@ -63,14 +63,17 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:         args.Accounts,
-		shardCoordinator: args.ShardCoordinator,
-		pubkeyConv:       args.PubkeyConv,
-		economicsFee:     args.EconomicsFee,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		scProcessor:      args.ScProcessor,
+		accounts:                args.Accounts,
+		shardCoordinator:        args.ShardCoordinator,
+		pubkeyConv:              args.PubkeyConv,
+		economicsFee:            args.EconomicsFee,
+		hasher:                  args.Hasher,
+		marshalizer:             args.Marshalizer,
+		scProcessor:             args.ScProcessor,
+		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
+	//backwards compatibility
+	baseTxProcess.flagPenalizedTooMuchGas.Unset()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,

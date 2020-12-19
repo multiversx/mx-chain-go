@@ -91,7 +91,7 @@ func (ms *MessengerStub) Bootstrap() error {
 	return ms.BootstrapCalled()
 }
 
-// PeerAddress -
+// PeerAddresses -
 func (ms *MessengerStub) PeerAddresses(pid core.PeerID) []string {
 	return ms.PeerAddressesCalled(pid)
 }
