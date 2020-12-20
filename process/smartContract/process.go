@@ -394,10 +394,18 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewards(tx, vmOutput, builtInFuncGasUsed)
-	if err != nil {
-		log.Error("updateDeveloper rewards error", "error", err.Error())
-		return 0, err
+	if !sc.flagDeploy.IsSet() {
+		err = sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
+		if err != nil {
+			log.Error("updateDeveloper rewards error", "error", err.Error())
+			return 0, err
+		}
+	} else {
+		err = sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
+		if err != nil {
+			log.Error("updateDeveloper rewards error", "error", err.Error())
+			return 0, err
+		}
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
@@ -407,7 +415,7 @@ func (sc *scProcessor) finishSCExecution(
 	return vmcommon.Ok, nil
 }
 
-func (sc *scProcessor) updateDeveloperRewards(
+func (sc *scProcessor) updateDeveloperRewardsV2(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
@@ -444,7 +452,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 
 		if outAcc.GasUsed > 0 && sc.isSelfShard(outAcc.Address) {
-			err = sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx)
+			err = sc.addToDevRewardsV2(outAcc.Address, outAcc.GasUsed, tx)
 			if err != nil {
 				return err
 			}
@@ -464,7 +472,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 	}
 
-	err = sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx)
+	err = sc.addToDevRewardsV2(tx.GetRcvAddr(), usedGasByMainSC, tx)
 	if err != nil {
 		return err
 	}
@@ -472,7 +480,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 	return nil
 }
 
-func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
+func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
 	if core.IsEmptyAddress(address) || !core.IsSmartContractAddress(address) {
 		return nil
 	}
@@ -1164,10 +1172,18 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewards(tx, vmOutput, 0)
-	if err != nil {
-		log.Debug("updateDeveloper rewards error", "error", err.Error())
-		return 0, err
+	if !sc.flagDeploy.IsSet() {
+		err = sc.updateDeveloperRewardsV1(tx, vmOutput, 0)
+		if err != nil {
+			log.Debug("updateDeveloper rewards error", "error", err.Error())
+			return 0, err
+		}
+	} else {
+		err = sc.updateDeveloperRewardsV2(tx, vmOutput, 0)
+		if err != nil {
+			log.Debug("updateDeveloper rewards error", "error", err.Error())
+			return 0, err
+		}
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, 0)
