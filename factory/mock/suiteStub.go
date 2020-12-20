@@ -92,7 +92,7 @@ func (s *SuiteStub) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	return nil, nil
 }
 
-// IsPointValid -
+// CheckPointValid -
 func (s *SuiteStub) CheckPointValid(pointBytes []byte) error {
 	if s.IsPointValidStub != nil {
 		return s.IsPointValidStub(pointBytes)

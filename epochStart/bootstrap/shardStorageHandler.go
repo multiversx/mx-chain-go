@@ -203,7 +203,7 @@ func (ssh *shardStorageHandler) getProcessedAndPendingMiniBlocks(
 	processedMbHashes := make([][]byte, 0)
 	miniBlocksDstMe := getAllMiniBlocksWithDst(neededMeta, ssh.shardCoordinator.SelfId())
 	for hash, mb := range miniBlocksDstMe {
-		if _, ok := pendingMBsMap[hash]; ok {
+		if _, hashExists := pendingMBsMap[hash]; hashExists {
 			continue
 		}
 

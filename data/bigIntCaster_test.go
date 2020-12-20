@@ -71,10 +71,10 @@ func TestBigIntCaster_MarshalToBadBuffer(t *testing.T) {
 	v0 := big.NewInt(-2020)
 	caster := &BigIntCaster{}
 	data := make([]byte, caster.Size(v0)-1)
-	data_len, err := caster.MarshalTo(v0, data)
+	dataLen, err := caster.MarshalTo(v0, data)
 
 	assert.NotNil(t, err)
-	assert.Equal(t, 0, data_len)
+	assert.Equal(t, 0, dataLen)
 	assert.Equal(t, int64(-2020), v0.Int64())
 }
 

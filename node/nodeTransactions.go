@@ -159,24 +159,6 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxTyp
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *Node) isTxInStorage(hash []byte) bool {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
-	err := txsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
-	err = rewardTxsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	err = unsignedTxsStorer.Has(hash)
-	return err == nil
-}
-
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
