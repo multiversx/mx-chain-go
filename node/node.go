@@ -238,7 +238,7 @@ func (n *Node) StartConsensus() error {
 			"it is incompatible with the indexing process.")
 		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
-	if !n.isInImportMode {
+	if n.isInImportMode {
 		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
 			"it is incompatible with the import-db process.")
 		n.watchdog = &watchdog.DisabledWatchdog{}
