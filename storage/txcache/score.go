@@ -44,7 +44,12 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	}
 
 	ppuMin := computer.txFeeHelper.minPricePerUnit()
-	ppuAvg := params.feeScore / (params.gas >> computer.txFeeHelper.gasLimitShift())
+	normalizedGas := params.gas >> computer.txFeeHelper.gasLimitShift()
+	if normalizedGas == 0 {
+		normalizedGas = 1
+	}
+	ppuAvg := params.feeScore / normalizedGas
+	// (<< 3)^3 and >> 9 cancel each other; used to preserve a bit more resolution
 	ppuRatio := ppuAvg << 3 / ppuMin
 	ppuScore := ppuRatio * ppuRatio * ppuRatio >> 9
 	ppuScoreAdjusted := float64(ppuScore) / float64(computer.ppuDivider)

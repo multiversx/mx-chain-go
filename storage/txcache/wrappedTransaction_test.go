@@ -3,7 +3,7 @@ package txcache
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,27 +25,27 @@ func Test_estimateTxFeeScore(t *testing.T) {
 }
 
 func Test_normalizeGasPriceProcessing(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndFactor(100*oneBillion, 100)
+	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndDivisor(100*oneBillion, 100)
 	A := createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100*oneBillion)
 	normalizedGasPriceProcess := normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
 	require.Equal(t, uint64(7), normalizedGasPriceProcess)
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndFactor(100*oneBillion, 50)
+	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100*oneBillion, 50)
 	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
 	require.Equal(t, uint64(14), normalizedGasPriceProcess)
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndFactor(100*oneBillion, 1)
+	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100*oneBillion, 1)
 	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
 	require.Equal(t, uint64(745), normalizedGasPriceProcess)
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndFactor(100000, 100)
+	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100000, 100)
 	A = createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100000)
 	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
 	require.Equal(t, uint64(7), normalizedGasPriceProcess)
 }
 
 func Test_computeProcessingGasPriceAdjustment(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndFactor(100*oneBillion, 100)
+	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndDivisor(100*oneBillion, 100)
 	A := createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100*oneBillion)
 	adjustment := computeProcessingGasPriceAdjustment(A, txGasHandler, txFeeHelper)
 	require.Equal(t, uint64(80), adjustment)
@@ -61,12 +61,12 @@ func Test_computeProcessingGasPriceAdjustment(t *testing.T) {
 	require.Equal(t, uint64(expectedAdjustment), adjustment)
 }
 
-func dummyParamsWithGasPriceAndFactor(minGasPrice, processingPriceDivisor uint64) (TxGasHandler, feeHelper) {
+func dummyParamsWithGasPriceAndDivisor(minGasPrice, processingPriceDivisor uint64) (TxGasHandler, feeHelper) {
 	minPrice := minGasPrice
 	minPriceProcessing := minGasPrice / processingPriceDivisor
 	minGasLimit := uint64(50000)
 	txFeeHelper := newFeeComputationHelper(minPrice, minGasLimit, minPriceProcessing)
-	txGasHandler := &txcache.TxGasHandlerMock{
+	txGasHandler := &txcachemocks.TxGasHandlerMock{
 		MinimumGasMove:       minGasLimit,
 		MinimumGasPrice:      minPrice,
 		GasProcessingDivisor: processingPriceDivisor,

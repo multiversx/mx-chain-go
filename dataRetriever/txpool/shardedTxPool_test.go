@@ -12,7 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,10 +33,10 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler: &txcache.TxGasHandlerMock{
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
 			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 1,
+			MinimumGasPrice:      1000000000,
+			GasProcessingDivisor: 100,
 		},
 		NumberOfShards: 1,
 	}
@@ -77,7 +77,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
 
 	args = goodArgs
-	args.TxGasHandler = &txcache.TxGasHandlerMock{
+	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
 		MinimumGasMove:       50000,
 		MinimumGasPrice:      0,
 		GasProcessingDivisor: 1,
@@ -99,9 +99,9 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
 		Config: config,
-		TxGasHandler: &txcache.TxGasHandlerMock{
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
 			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
+			MinimumGasPrice:      1000000000,
 			GasProcessingDivisor: 1,
 		},
 		NumberOfShards: 2,
@@ -355,7 +355,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 	}
 	args := ArgShardedTxPool{
 		Config: config,
-		TxGasHandler: &txcache.TxGasHandlerMock{
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
 			MinimumGasMove:       50000,
 			MinimumGasPrice:      200000000000,
 			GasProcessingDivisor: 100,
@@ -398,7 +398,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	}
 	args := ArgShardedTxPool{
 		Config: config,
-		TxGasHandler: &txcache.TxGasHandlerMock{
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
 			MinimumGasMove:       50000,
 			MinimumGasPrice:      200000000000,
 			GasProcessingDivisor: 100,

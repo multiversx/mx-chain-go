@@ -37,10 +37,10 @@ func (args *ArgShardedTxPool) verify() error {
 	if config.Shards == 0 {
 		return fmt.Errorf("%w: config.Shards (map chunks) is not valid", dataRetriever.ErrCacheConfigInvalidShards)
 	}
-	if check.IfNil(args.TxGasHandler){
+	if check.IfNil(args.TxGasHandler) {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)
 	}
-	if args.TxGasHandler.MinGasPrice() == 0{
+	if args.TxGasHandler.MinGasPrice() == 0 {
 		return fmt.Errorf("%w: MinGasPrice is not valid", dataRetriever.ErrCacheConfigInvalidEconomics)
 	}
 	if args.NumberOfShards == 0 {

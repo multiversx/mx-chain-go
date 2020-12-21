@@ -28,7 +28,7 @@ func estimateTxGas(tx *WrappedTransaction) uint64 {
 	return gasLimit
 }
 
-// estimateTxFeeScore returns an approximation for the cost of a transaction, in nano ERD
+// estimateTxFeeScore returns a normalized approximation for the cost of a transaction
 func estimateTxFeeScore(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
 	moveGas, processGas := txGasHandler.SplitTxGasInCategories(tx.Tx)
 
@@ -64,8 +64,8 @@ func computeProcessingGasPriceAdjustment(
 	}
 
 	actualPriceFactor := float64(1)
-	if txGasHandler.MinGasPriceProcessing() != 0 {
-		actualPriceFactor = float64(txGasHandler.GasPriceForProcessing(tx.Tx)) / float64(txGasHandler.MinGasPriceProcessing())
+	if txGasHandler.MinGasPriceForProcessing() != 0 {
+		actualPriceFactor = float64(txGasHandler.GasPriceForProcessing(tx.Tx)) / float64(txGasHandler.MinGasPriceForProcessing())
 	}
 
 	return uint64(float64(txFeeHelper.minGasPriceFactor()) * processFeeFactor / float64(actualPriceFactor))

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -376,7 +376,7 @@ func dummyParamsWithGasPrice(minGasPrice uint64) (TxGasHandler, feeHelper) {
 	minPriceProcessing := minGasPrice / divisor
 	minGasLimit := uint64(50000)
 	txFeeHelper := newFeeComputationHelper(minPrice, minGasLimit, minPriceProcessing)
-	txGasHandler := &txcache.TxGasHandlerMock{
+	txGasHandler := &txcachemocks.TxGasHandlerMock{
 		MinimumGasMove:       minGasLimit,
 		MinimumGasPrice:      minPrice,
 		GasProcessingDivisor: divisor,

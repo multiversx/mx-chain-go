@@ -1,4 +1,4 @@
-package mock
+package economicsmocks
 
 import (
 	"math/big"
@@ -219,7 +219,7 @@ func (e *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHand
 }
 
 // MinGasPriceProcessing -
-func (e *EconomicsHandlerStub) MinGasPriceProcessing() uint64 {
+func (e *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
 	if e.MinGasPriceProcessingCalled != nil {
 		return e.MinGasPriceProcessingCalled()
 	}

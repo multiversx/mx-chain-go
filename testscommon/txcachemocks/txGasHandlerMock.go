@@ -1,4 +1,4 @@
-package txcache
+package txcachemocks
 
 import "github.com/ElrondNetwork/elrond-go/process"
 
@@ -9,7 +9,7 @@ type TxGasHandler interface {
 	GasPriceForMove(tx process.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
 	MinGasLimit() uint64
-	MinGasPriceProcessing() uint64
+	MinGasPriceForProcessing() uint64
 	IsInterfaceNil() bool
 }
 
@@ -47,7 +47,7 @@ func (ghm *TxGasHandlerMock) MinGasLimit() uint64 {
 }
 
 // MinGasPriceProcessing -
-func (ghm *TxGasHandlerMock) MinGasPriceProcessing() uint64 {
+func (ghm *TxGasHandlerMock) MinGasPriceForProcessing() uint64 {
 	return ghm.MinimumGasPrice / ghm.GasProcessingDivisor
 }
 

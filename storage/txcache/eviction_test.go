@@ -124,20 +124,20 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 2,
 	}
 
-	txGasHandler, _ := dummyParamsWithGasPrice(100*oneBillion)
+	txGasHandler, _ := dummyParamsWithGasPrice(oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 128, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 128, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-dave1"), "dave", uint64(3), 128, 40000000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-dave2"), "dave", uint64(1), 128, 50000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-dave3"), "dave", uint64(2), 128, 50000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-chris"), "chris", uint64(1), 128, 50000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-richard"), "richard", uint64(1), 128, 50000, 120*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 128, 100000, 700*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-eve"), "eve", uint64(1), 128, 50000, 400*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 128, 100000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 128, 100000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave1"), "dave", uint64(3), 128, 40000000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave2"), "dave", uint64(1), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-dave3"), "dave", uint64(2), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-chris"), "chris", uint64(1), 128, 50000, oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-richard"), "richard", uint64(1), 128, 50000, uint64(1.2*oneBillion)))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 128, 100000, 7*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-eve"), "eve", uint64(1), 128, 50000, 4*oneBillion))
 
 	scoreAlice := cache.getScoreOfSender("alice")
 	scoreBob := cache.getScoreOfSender("bob")
@@ -152,7 +152,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	require.Equal(t, uint32(7), scoreDave)
 	require.Equal(t, uint32(100), scoreCarol)
 	require.Equal(t, uint32(100), scoreEve)
-	require.Equal(t, uint32(34), scoreChris)
+	require.Equal(t, uint32(33), scoreChris)
 	require.Equal(t, uint32(54), scoreRichard)
 
 	cache.doEviction()

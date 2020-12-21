@@ -15,7 +15,7 @@ type TxGasHandler interface {
 	GasPriceForMove(tx process.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
 	MinGasLimit() uint64
-	MinGasPriceProcessing() uint64
+	MinGasPriceForProcessing() uint64
 	IsInterfaceNil() bool
 }
 

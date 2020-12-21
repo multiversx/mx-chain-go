@@ -221,8 +221,8 @@ func (ed *economicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
-// MinGasPriceProcessing returns the minimum allowed gas price for processing
-func (ed *economicsData) MinGasPriceProcessing() uint64 {
+// MinGasPriceForProcessing returns the minimum allowed gas price for processing
+func (ed *economicsData) MinGasPriceForProcessing() uint64 {
 	priceModifier := ed.GasPriceModifier()
 
 	return uint64(float64(ed.minGasPrice) * priceModifier)
@@ -263,11 +263,7 @@ func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHa
 
 // GasPriceForProcessing computes the price for the gas in addition to balance movement and data
 func (ed *economicsData) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
-	if !ed.flagGasPriceModifier.IsSet() {
-		return tx.GetGasPrice()
-	}
-
-	return uint64(float64(tx.GetGasPrice()) * ed.gasPriceModifier)
+	return uint64(float64(tx.GetGasPrice()) * ed.GasPriceModifier())
 }
 
 // GasPriceForMove returns the gas price for transferring funds
@@ -309,6 +305,13 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
 	gasLimitMove = ed.ComputeGasLimit(tx)
 	gasLimitProcess = tx.GetGasLimit() - gasLimitMove
+	if gasLimitProcess < 0 {
+		log.Warn("SplitTxGasInCategories - gas limit for processing should not be negative",
+			"providedGas", tx.GetGasLimit(),
+			"computedMinimumRequired", gasLimitMove,
+			"dataLen", len(tx.GetData()),
+		)
+	}
 	return
 }
 

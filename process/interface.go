@@ -574,7 +574,7 @@ type TxGasHandler interface {
 	GasPriceForMove(tx TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
 	MinGasLimit() uint64
-	MinGasPriceProcessing() uint64
+	MinGasPriceForProcessing() uint64
 	IsInterfaceNil() bool
 }
 
@@ -602,7 +602,7 @@ type EconomicsDataHandler interface {
 	SplitTxGasInCategories(tx TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx TransactionWithFeeHandler) uint64
-	MinGasPriceProcessing() uint64
+	MinGasPriceForProcessing() uint64
 	IsInterfaceNil() bool
 }
 

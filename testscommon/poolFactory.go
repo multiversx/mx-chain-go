@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcache"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
 
 // CreateTxPool -
@@ -24,7 +24,7 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			},
 			NumberOfShards: numShards,
 			SelfShardID:    selfShard,
-			TxGasHandler: &txcache.TxGasHandlerMock{
+			TxGasHandler: &txcachemocks.TxGasHandlerMock{
 				MinimumGasMove:       50000,
 				MinimumGasPrice:      200000000000,
 				GasProcessingDivisor: 100,
