@@ -128,6 +128,9 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 }
 
 // CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process
+// The system VM will have to contain the following and only following system smartcontracts:
+// staking SC, validator SC, ESDT SC and governance SC. Including more system smartcontracts (or less) will trigger root hash mismatch
+// errors when trying to sync the first metablock after the genesis event.
 func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
