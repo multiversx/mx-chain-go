@@ -35,6 +35,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
+const unreachableEpoch = uint32(1000000)
+
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(
 	arg ArgsGenesisBlockCreator,
@@ -46,13 +48,7 @@ func CreateMetaGenesisBlock(
 		return createMetaGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	genesisOverrideConfig := config.GeneralSettingsConfig{
-		BuiltInFunctionsEnableEpoch:    0,
-		SCDeployEnableEpoch:            0,
-		RelayedTransactionsEnableEpoch: 0,
-		PenalizedTooMuchGasEnableEpoch: 0,
-	}
-	processors, err := createProcessorsForMetaGenesisBlock(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -281,7 +277,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		return nil, err
 	}
 
-	vmContainer, err := virtualMachineFactory.Create()
+	vmContainer, err := virtualMachineFactory.CreateForGenesis()
 	if err != nil {
 		return nil, err
 	}
@@ -353,6 +349,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, generalCon
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		IsGenesisProcessing:            true,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
 	if err != nil {

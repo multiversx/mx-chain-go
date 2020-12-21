@@ -128,7 +128,7 @@ func (v *validatorSC) saveRegistrationData(key []byte, validator *ValidatorDataV
 }
 
 func (v *validatorSC) saveRegistrationDataV1(key []byte, validator *ValidatorDataV2) error {
-	validatorDataV1 := &ValidatorDataV2{
+	validatorDataV1 := &ValidatorDataV1{
 		RegisterNonce:   validator.RegisterNonce,
 		Epoch:           validator.Epoch,
 		RewardAddress:   validator.RewardAddress,
