@@ -1503,7 +1503,7 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 	require.Equal(t, newMaxNodes, updatedStakeConfig.MaxNumNodes)
 }
 
-func TestStakingSC_SetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
+func TestStakingSC_SetOwnersOnAddressesNotEnabledShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
@@ -1518,14 +1518,14 @@ func TestStakingSC_SetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "setOwner"
+	arguments.Function = "setOwnersOnAddresses"
 	arguments.CallerAddr = []byte("owner")
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.UserError)
 	assert.Equal(t, "invalid method to call", eei.returnMessage)
 }
 
-func TestStakingSC_SetOwnerWrongCallerShouldErr(t *testing.T) {
+func TestStakingSC_SetOwnersOnAddressesWrongCallerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
@@ -1540,14 +1540,14 @@ func TestStakingSC_SetOwnerWrongCallerShouldErr(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "setOwner"
+	arguments.Function = "setOwnersOnAddresses"
 	arguments.CallerAddr = []byte("owner")
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.UserError)
-	assert.True(t, strings.Contains(eei.returnMessage, "setOwner function not allowed to be called by address"))
+	assert.True(t, strings.Contains(eei.returnMessage, "setOwnersOnAddresses function not allowed to be called by address"))
 }
 
-func TestStakingSC_SetOwnerWrongArgumentsShouldErr(t *testing.T) {
+func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
@@ -1562,14 +1562,15 @@ func TestStakingSC_SetOwnerWrongArgumentsShouldErr(t *testing.T) {
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "setOwner"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.Function = "setOwnersOnAddresses"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{[]byte("bls key")}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.UserError)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments: expected min"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments: expected an even number of arguments"))
 }
 
-func TestStakingSC_SetOwnerShouldWork(t *testing.T) {
+func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockStakingScArguments()
@@ -1582,20 +1583,49 @@ func TestStakingSC_SetOwnerShouldWork(t *testing.T) {
 	args.Eei = eei
 
 	stakingSmartContract, _ := NewStakingSmartContract(args)
-	blsKey := []byte("blsKey")
-	owner := []byte("owner")
+	blsKey1 := []byte("blsKey1")
+	owner1 := []byte("owner1")
+	blsKey2 := []byte("blsKey2")
+	owner2 := []byte("owner2")
+
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner1, blsKey1)
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner2, blsKey2)
 
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "setOwner"
-	arguments.CallerAddr = args.StakingAccessAddr
-	arguments.Arguments = [][]byte{blsKey, owner}
+	arguments.Function = "setOwnersOnAddresses"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = [][]byte{blsKey1, owner1, blsKey2, owner2}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	registrationData, err := stakingSmartContract.getOrCreateRegisteredData(blsKey)
+	registrationData, err := stakingSmartContract.getOrCreateRegisteredData(blsKey1)
 	require.Nil(t, err)
+	assert.Equal(t, owner1, registrationData.OwnerAddress)
 
-	assert.Equal(t, owner, registrationData.OwnerAddress)
+	registrationData, err = stakingSmartContract.getOrCreateRegisteredData(blsKey2)
+	require.Nil(t, err)
+	assert.Equal(t, owner2, registrationData.OwnerAddress)
+}
+
+func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) (i []byte, e error) {
+		return nil, nil
+	}
+	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), &mock.ArgumentParserMock{}, &mock.AccountsStub{}, &mock.RaterMock{})
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "setOwnersOnAddresses"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
+	arguments.Arguments = make([][]byte, 0)
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
 }
 
 func TestStakingSC_GetOwnerStakingV2NotEnabledShouldErr(t *testing.T) {
@@ -1680,9 +1710,11 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	blsKey := []byte("blsKey")
 	owner := []byte("owner")
 
+	doStake(t, stakingSmartContract, args.StakingAccessAddr, owner, blsKey)
+
 	arguments := CreateVmContractCallInput()
-	arguments.Function = "setOwner"
-	arguments.CallerAddr = args.StakingAccessAddr
+	arguments.Function = "setOwnersOnAddresses"
+	arguments.CallerAddr = args.EndOfEpochAccessAddr
 	arguments.Arguments = [][]byte{blsKey, owner}
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
