@@ -4,6 +4,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/crypto"
 )
 
+// SignatureSize -
 const SignatureSize = 48
 
 // BelNevMock is used to mock belare neven multisignature scheme
@@ -102,8 +103,8 @@ func (bnm *BelNevMock) Verify(msg []byte, bitmap []byte) error {
 // CreateCommitment creates a secret commitment and the corresponding public commitment point
 func (bnm *BelNevMock) CreateCommitment() (commSecret []byte, commitment []byte) {
 	if bnm.CreateCommitmentMock != nil {
-		commSecret, comm := bnm.CreateCommitmentMock()
-		bnm.commSecret = commSecret
+		cs, comm := bnm.CreateCommitmentMock()
+		bnm.commSecret = cs
 		bnm.commitments[bnm.selfId] = comm
 
 		return commSecret, comm

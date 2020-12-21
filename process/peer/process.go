@@ -542,17 +542,6 @@ func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandle
 	return peerAccount, nil
 }
 
-func (vs *validatorStatistics) convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	newLeaves := make([][]byte, len(leaves))
-	i := 0
-	for _, pa := range leaves {
-		newLeaves[i] = pa
-		i++
-	}
-
-	return newLeaves
-}
-
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
 func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 	sw := core.NewStopWatch()

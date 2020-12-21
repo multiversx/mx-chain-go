@@ -5,8 +5,10 @@ import (
 	"math/big"
 )
 
+// BigIntCaster handles big int operations
 type BigIntCaster struct{}
 
+// Equal returns true if the provided big ints are equal
 func (c *BigIntCaster) Equal(a, b *big.Int) bool {
 	if a == nil {
 		return b == nil
@@ -14,6 +16,7 @@ func (c *BigIntCaster) Equal(a, b *big.Int) bool {
 	return a.Cmp(b) == 0
 }
 
+// Size returns the size of a big int
 func (c *BigIntCaster) Size(a *big.Int) int {
 	if a == nil {
 		return 1
@@ -24,6 +27,7 @@ func (c *BigIntCaster) Size(a *big.Int) int {
 	return 2
 }
 
+// MarshalTo marshals the first parameter to the second one
 func (c *BigIntCaster) MarshalTo(a *big.Int, buf []byte) (int, error) {
 	if a == nil {
 		buf[0] = 0
@@ -46,6 +50,7 @@ func (c *BigIntCaster) MarshalTo(a *big.Int, buf []byte) (int, error) {
 	return 2, nil
 }
 
+// Unmarshal unmarshalls the parameter to a big int
 func (c *BigIntCaster) Unmarshal(buf []byte) (*big.Int, error) {
 	switch len(buf) {
 	case 0:
@@ -71,6 +76,7 @@ func (c *BigIntCaster) Unmarshal(buf []byte) (*big.Int, error) {
 	return ret, nil
 }
 
+// NewPopulated returns a new instance of a big int, pre-populated with a zero
 func (c *BigIntCaster) NewPopulated() *big.Int {
 	return big.NewInt(0)
 }

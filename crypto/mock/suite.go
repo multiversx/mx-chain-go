@@ -61,6 +61,7 @@ func (s *SuiteMock) CreatePoint() crypto.Point {
 	return nil
 }
 
+// CreatePointForScalar -
 func (s *SuiteMock) CreatePointForScalar(scalar crypto.Scalar) (crypto.Point, error) {
 	if s.CreatePointForScalarStub != nil {
 		return s.CreatePointForScalarStub(scalar)
@@ -90,7 +91,7 @@ func (s *SuiteMock) CreateKeyPair() (crypto.Scalar, crypto.Point) {
 	return nil, nil
 }
 
-// IsPointValid -
+// CheckPointValid -
 func (s *SuiteMock) CheckPointValid(pointBytes []byte) error {
 	if s.IsPointValidStub != nil {
 		return s.IsPointValidStub(pointBytes)
