@@ -213,6 +213,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	return vmf.finalizeSystemVMCreation(systemEI)
 }
 
+// createSystemVMForGenesis will create the same VMExecutionHandler structure used when the mainnet genesis was created
 func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionHandler, error) {
 	scFactory, systemEI, err := vmf.createSystemVMFactoryAndEEI()
 	if err != nil {

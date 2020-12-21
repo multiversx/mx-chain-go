@@ -1367,10 +1367,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	}
 	tpn.TxProcessor, _ = transaction.NewMetaTxProcessor(argsNewMetaTxProc)
 
-	//TODO for the next task: call this automatically from somewhere else (systemSCs.go) for each and every new system SC that we will define
-	// at the specified enable epoch
-	tpn.initNewSystemSCs()
-
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
@@ -1406,17 +1402,15 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 }
 
-func (tpn *TestProcessorNode) initNewSystemSCs() {
-	systemVM, _ := tpn.VMContainer.Get(factory.SystemVirtualMachine)
-	err := tpn.initDelegationManager(systemVM)
+// InitDelegationManager will initialize the delegation manager whenever required
+func (tpn *TestProcessorNode) InitDelegationManager() {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+
+	systemVM, err := tpn.VMContainer.Get(factory.SystemVirtualMachine)
 	log.LogIfError(err)
 
-	_, err = tpn.AccntState.Commit()
-	log.LogIfError(err)
-}
-
-//TODO remove functions initDelegationManager, processSCOutputAccounts, getUserAccount when TODO from L1368 is done
-func (tpn *TestProcessorNode) initDelegationManager(systemVM vmcommon.VMExecutionHandler) error {
 	codeMetaData := &vmcommon.CodeMetadata{
 		Upgradeable: false,
 		Payable:     false,
@@ -1434,24 +1428,19 @@ func (tpn *TestProcessorNode) initDelegationManager(systemVM vmcommon.VMExecutio
 	}
 
 	vmOutput, err := systemVM.RunSmartContractCreate(vmInput)
-	if err != nil {
-		return err
-	}
+	log.LogIfError(err)
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return fmt.Errorf("error while initializing system SC, return code %v", vmOutput.ReturnCode)
+		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
 	}
 
 	err = tpn.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
-	}
+	log.LogIfError(err)
 
 	err = tpn.updateSystemSCContractsCode(vmInput.ContractCodeMetadata, vm.DelegationManagerSCAddress)
-	if err != nil {
-		return err
-	}
+	log.LogIfError(err)
 
-	return nil
+	_, err = tpn.AccntState.Commit()
+	log.LogIfError(err)
 }
 
 func (tpn *TestProcessorNode) updateSystemSCContractsCode(contractMetadata []byte, scAddress []byte) error {

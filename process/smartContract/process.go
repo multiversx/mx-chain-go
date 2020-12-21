@@ -394,18 +394,10 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
-	if !sc.flagDeploy.IsSet() {
-		err = sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
-		if err != nil {
-			log.Error("updateDeveloper rewards error", "error", err.Error())
-			return 0, err
-		}
-	} else {
-		err = sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
-		if err != nil {
-			log.Error("updateDeveloper rewards error", "error", err.Error())
-			return 0, err
-		}
+	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
+	if err != nil {
+		log.Error("updateDeveloper rewards error", "error", err.Error())
+		return 0, err
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
@@ -1172,18 +1164,10 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return 0, err
 	}
 
-	if !sc.flagDeploy.IsSet() {
-		err = sc.updateDeveloperRewardsV1(tx, vmOutput, 0)
-		if err != nil {
-			log.Debug("updateDeveloper rewards error", "error", err.Error())
-			return 0, err
-		}
-	} else {
-		err = sc.updateDeveloperRewardsV2(tx, vmOutput, 0)
-		if err != nil {
-			log.Debug("updateDeveloper rewards error", "error", err.Error())
-			return 0, err
-		}
+	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, 0)
+	if err != nil {
+		log.Debug("updateDeveloper rewards error", "error", err.Error())
+		return 0, err
 	}
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, 0)
@@ -1192,6 +1176,18 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return 0, nil
+}
+
+func (sc *scProcessor) updateDeveloperRewardsProxy(
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+	builtInFuncGasUsed uint64,
+) error {
+	if !sc.flagDeploy.IsSet() {
+		return sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
+	} else {
+		return sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
+	}
 }
 
 func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
