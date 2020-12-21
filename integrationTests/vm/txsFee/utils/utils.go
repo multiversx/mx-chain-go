@@ -48,8 +48,8 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	vm.TestAccount(t, testContext.Accounts, owner, senderNonce+1, expectedBalance)
 
 	// check accumulated fees
-	accumulatedFee := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFee)
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(10970), accumulatedFees)
 
 	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
 
@@ -128,8 +128,8 @@ func GetIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) []
 	return mockIntermediate.GetIntermediateTransactions()
 }
 
-// CleaAccumulatedIntermediateTransactions -
-func CleaAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
+// CleanAccumulatedIntermediateTransactions -
+func CleanAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
 	scForwarder := testContext.ScForwarder
 	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
 	require.True(t, ok)

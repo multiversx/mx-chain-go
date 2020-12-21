@@ -50,7 +50,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	accumulatedFees := testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(850), accumulatedFees)
 
-	utils.CleaAccumulatedIntermediateTransactions(t, testContextDst)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	// do a sc call intra shard
 	sndAddr := []byte("12345678901234567890123456789111")

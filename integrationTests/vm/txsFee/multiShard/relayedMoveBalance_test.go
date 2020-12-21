@@ -225,3 +225,148 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
+
+func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testing.T) {
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	defer testContextSource.Close()
+
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	defer testContextDst.Close()
+
+	relayerAddr := []byte("12345678901234567890123456789030")
+	shardID := testContextSource.ShardCoordinator.ComputeId(relayerAddr)
+	require.Equal(t, uint32(0), shardID)
+
+	sndAddr := []byte("12345678901234567890123456789011")
+	shardID = testContextSource.ShardCoordinator.ComputeId(sndAddr)
+	require.Equal(t, uint32(1), shardID)
+
+	rcvAddr := []byte("12345678901234567890123456789010")
+	shardID = testContextSource.ShardCoordinator.ComputeId(rcvAddr)
+	require.Equal(t, uint32(0), shardID)
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+
+	_, _ = vm.CreateAccount(testContextSource.Accounts, relayerAddr, 0, big.NewInt(100000))
+
+	innerTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
+
+	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
+
+	// execute on relayer shard
+	retCode, err := testContextSource.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextSource.GetLatestError())
+
+	// check relayed balance
+	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97270))
+
+	// check inner Tx receiver
+	innerTxSenderAccount, err := testContextSource.Accounts.GetExistingAccount(sndAddr)
+	require.Nil(t, innerTxSenderAccount)
+	require.NotNil(t, err)
+
+	//check accumulated fees
+	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
+	expectedAccFees := big.NewInt(1630)
+	require.Equal(t, expectedAccFees, accumulatedFees)
+
+	// execute on destination shard
+	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextDst.GetLatestError())
+
+	utils.TestAccount(t, testContextDst.Accounts, sndAddr, 1, big.NewInt(0))
+
+	//check accumulated fees
+	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
+	expectedAccFees = big.NewInt(1000)
+	require.Equal(t, expectedAccFees, accumulatedFees)
+
+	txs := utils.GetIntermediateTransactions(t, testContextDst)
+	scr := txs[0]
+	// execute generated SCR from shard1 on shard 0
+	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
+
+	// check receiver balance
+	utils.TestAccount(t, testContextSource.Accounts, rcvAddr, 0, big.NewInt(100))
+}
+
+func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(t *testing.T) {
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	defer testContextRelayer.Close()
+
+	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	defer testContextInnerSource.Close()
+
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	defer testContextDst.Close()
+
+	relayerAddr := []byte("12345678901234567890123456789030")
+	shardID := testContextRelayer.ShardCoordinator.ComputeId(relayerAddr)
+	require.Equal(t, uint32(0), shardID)
+
+	sndAddr := []byte("12345678901234567890123456789011")
+	shardID = testContextRelayer.ShardCoordinator.ComputeId(sndAddr)
+	require.Equal(t, uint32(1), shardID)
+
+	rcvAddr := []byte("12345678901234567890123456789012")
+	shardID = testContextRelayer.ShardCoordinator.ComputeId(rcvAddr)
+	require.Equal(t, uint32(2), shardID)
+
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+
+	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(100000))
+
+	innerTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
+
+	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
+
+	// execute on relayer shard
+	retCode, err := testContextRelayer.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextRelayer.GetLatestError())
+
+	// check relayed balance
+	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(97270))
+
+	// check inner Tx receiver
+	innerTxSenderAccount, err := testContextRelayer.Accounts.GetExistingAccount(sndAddr)
+	require.Nil(t, innerTxSenderAccount)
+	require.NotNil(t, err)
+
+	//check accumulated fees
+	accumulatedFees := testContextRelayer.TxFeeHandler.GetAccumulatedFees()
+	expectedAccFees := big.NewInt(1630)
+	require.Equal(t, expectedAccFees, accumulatedFees)
+
+	// execute on inner tx sender shard
+	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextInnerSource.GetLatestError())
+
+	utils.TestAccount(t, testContextInnerSource.Accounts, sndAddr, 1, big.NewInt(0))
+
+	//check accumulated fees
+	accumulatedFees = testContextInnerSource.TxFeeHandler.GetAccumulatedFees()
+	expectedAccFees = big.NewInt(1000)
+	require.Equal(t, expectedAccFees, accumulatedFees)
+
+	// execute on inner tx receiver shard
+	txs := utils.GetIntermediateTransactions(t, testContextInnerSource)
+	scr := txs[0]
+	utils.ProcessSCRResult(t, testContextDst, scr, vmcommon.Ok, nil)
+
+	// check receiver balance
+	utils.TestAccount(t, testContextDst.Accounts, rcvAddr, 0, big.NewInt(100))
+}

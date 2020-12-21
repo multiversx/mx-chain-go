@@ -33,7 +33,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInnerDst, pathToContract)
 	testContextInnerDst.TxFeeHandler.CreateBlockStarted()
-	utils.CleaAccumulatedIntermediateTransactions(t, testContextInnerDst)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextInnerDst)
 
 	require.Equal(t, uint32(1), testContextInnerDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextInnerDst.ShardCoordinator.ComputeId(owner))
@@ -135,7 +135,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextInnerDst, pathToContract)
 	testContextInnerDst.TxFeeHandler.CreateBlockStarted()
-	utils.CleaAccumulatedIntermediateTransactions(t, testContextInnerDst)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextInnerDst)
 
 	require.Equal(t, uint32(1), testContextInnerDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextInnerDst.ShardCoordinator.ComputeId(owner))

@@ -130,7 +130,7 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	//execute on destination shard
-	utils.CleaAccumulatedIntermediateTransactions(t, testContextDst)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
