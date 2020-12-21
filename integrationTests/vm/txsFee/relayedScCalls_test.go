@@ -2,12 +2,12 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"math/big"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
 )
 
