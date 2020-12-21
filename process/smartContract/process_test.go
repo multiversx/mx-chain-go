@@ -2443,3 +2443,82 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)
 	assert.Equal(t, sc.shardCoordinator.SelfId(), senderID)
 }
+
+func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(100)
+		},
+	}
+
+	called := false
+	arguments.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			called = true
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{
+		SndAddr: []byte("snd"),
+		RcvAddr: []byte("rcv"),
+		Value:   big.NewInt(15),
+	}
+
+	sndAccount := &mock.UserAccountStub{}
+	err := sc.ProcessIfError(sndAccount, []byte("txHash"), tx, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
+func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldNOTBeCalled(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(100)
+		},
+	}
+
+	called := false
+	arguments.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			called = true
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sc.EpochConfirmed(100)
+
+	tx := &transaction.Transaction{
+		SndAddr: []byte("snd"),
+		RcvAddr: []byte("rcv"),
+		Value:   big.NewInt(15),
+	}
+
+	err := sc.ProcessIfError(nil, []byte("txHash"), tx, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+	require.False(t, called)
+}

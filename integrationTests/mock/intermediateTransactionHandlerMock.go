@@ -61,6 +61,11 @@ func (ith *IntermediateTransactionHandlerMock) GetIntermediateTransactions() []d
 	return ith.intermediateTransactions
 }
 
+// Clean -
+func (ith *IntermediateTransactionHandlerMock) Clean() {
+	ith.intermediateTransactions = make([]data.TransactionHandler, 0)
+}
+
 // GetNumOfCrossInterMbsAndTxs -
 func (ith *IntermediateTransactionHandlerMock) GetNumOfCrossInterMbsAndTxs() (int, int) {
 	if ith.GetNumOfCrossInterMbsAndTxsCalled == nil {

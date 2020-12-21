@@ -8,6 +8,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +17,7 @@ func TestScCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -83,7 +84,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -116,7 +117,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -151,7 +152,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +15,7 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -26,13 +27,13 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -68,7 +69,7 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddrBytes, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -94,7 +95,7 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -106,7 +107,7 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("invalidMethod"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -132,7 +133,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -144,7 +145,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -170,7 +171,7 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := doDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -182,7 +183,7 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
-	rtxData := prepareRelayerTxData(userTx)
+	rtxData := utils.PrepareRelayerTxData(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
