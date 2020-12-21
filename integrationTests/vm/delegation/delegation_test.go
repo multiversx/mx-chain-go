@@ -58,6 +58,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 
 	roundsPerEpoch := uint64(5)
 	for _, node := range nodes {
+		node.InitDelegationManager()
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
