@@ -303,15 +303,17 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 
 // SplitTxGasInCategories returns the gas split per categories
 func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
+	var err error
 	gasLimitMove = ed.ComputeGasLimit(tx)
-	gasLimitProcess = tx.GetGasLimit() - gasLimitMove
-	if gasLimitProcess < 0 {
-		log.Warn("SplitTxGasInCategories - gas limit for processing should not be negative",
+	gasLimitProcess, err = core.SafeSubUint64(tx.GetGasLimit(), gasLimitMove)
+	if err != nil {
+		log.Warn("SplitTxGasInCategories - insufficient gas for move",
 			"providedGas", tx.GetGasLimit(),
 			"computedMinimumRequired", gasLimitMove,
 			"dataLen", len(tx.GetData()),
 		)
 	}
+
 	return
 }
 
