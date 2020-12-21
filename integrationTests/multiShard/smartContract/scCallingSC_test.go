@@ -510,7 +510,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 		vmOutput := &vmcommon.VMOutput{}
 		vmOutput.ReturnCode = vmcommon.Ok
-		vmOutput.GasRemaining = vmInput.GasProvided / 2
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
 			Value:     big.NewInt(0),
@@ -523,6 +522,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 			Address:         vmInput.RecipientAddr,
 			OutputTransfers: []vmcommon.OutputTransfer{outTransfer},
 		}
+		vmOutput.GasRemaining = vmInput.GasProvided - outTransfer.GasLimit - vmInput.GasLocked
 
 		fmt.Println("OutputAccount recipient", hex.EncodeToString(vmInput.RecipientAddr))
 
