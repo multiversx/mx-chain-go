@@ -396,7 +396,7 @@ func (sc *scProcessor) finishSCExecution(
 
 	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
 	if err != nil {
-		log.Error("updateDeveloper rewards error", "error", err.Error())
+		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
@@ -1166,7 +1166,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, 0)
 	if err != nil {
-		log.Debug("updateDeveloper rewards error", "error", err.Error())
+		log.Debug("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
@@ -1185,9 +1185,9 @@ func (sc *scProcessor) updateDeveloperRewardsProxy(
 ) error {
 	if !sc.flagDeploy.IsSet() {
 		return sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
-	} else {
-		return sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
 	}
+
+	return sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
 }
 
 func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
