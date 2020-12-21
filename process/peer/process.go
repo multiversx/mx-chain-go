@@ -146,71 +146,80 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 
 // saveNodesCoordinatorUpdates is called at the first block after start in epoch to update the state trie according to
 // the shuffling and changes done by the nodesCoordinator at the end of the epoch
-func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) error {
+func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
 	log.Debug("save nodes coordinator updates ", "epoch", epoch)
 
 	nodesMap, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
+	var tmpNodeForcedToRemain, nodeForcedToRemain bool
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.EligibleList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	nodesMap, err = vs.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.WaitingList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	nodesMap, err = vs.nodesCoordinator.GetAllLeavingValidatorsPublicKeys(epoch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
+	tmpNodeForcedToRemain, err = vs.saveUpdatesForNodesMap(nodesMap, core.InactiveList)
 	if err != nil {
-		return err
+		return false, err
 	}
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
-	return nil
+	return nodeForcedToRemain, nil
 }
 
 func (vs *validatorStatistics) saveUpdatesForNodesMap(
 	nodesMap map[uint32][][]byte,
 	peerType core.PeerType,
-) error {
+) (bool, error) {
+	nodeForcedToRemain := false
 	for shardID := uint32(0); shardID < vs.shardCoordinator.NumberOfShards(); shardID++ {
-		err := vs.saveUpdatesForList(nodesMap[shardID], shardID, peerType)
+		tmpNodeForcedToRemain, err := vs.saveUpdatesForList(nodesMap[shardID], shardID, peerType)
 		if err != nil {
-			return err
+			return false, err
 		}
+
+		nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 	}
 
-	err := vs.saveUpdatesForList(nodesMap[core.MetachainShardId], core.MetachainShardId, peerType)
+	tmpNodeForcedToRemain, err := vs.saveUpdatesForList(nodesMap[core.MetachainShardId], core.MetachainShardId, peerType)
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
+	return nodeForcedToRemain, nil
 }
 
 func (vs *validatorStatistics) saveUpdatesForList(
 	pks [][]byte,
 	shardID uint32,
 	peerType core.PeerType,
-) error {
+) (bool, error) {
+	nodeForcedToStay := false
 	for index, pubKey := range pks {
 		peerAcc, err := vs.loadPeerAccount(pubKey)
 		if err != nil {
 			log.Debug("error getting peer account", "error", err, "key", pubKey)
-			return err
+			return false, err
 		}
 
 		isNodeLeaving := (peerType == core.WaitingList || peerType == core.EligibleList) && peerAcc.GetList() == string(core.LeavingList)
@@ -226,11 +235,13 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
 		if err != nil {
-			return err
+			return false, err
 		}
+
+		nodeForcedToStay = nodeForcedToStay || isNodeLeaving
 	}
 
-	return nil
+	return nodeForcedToStay, nil
 }
 
 // saveInitialState takes an initial peer list, validates it and sets up the initial state for each of the peers
@@ -286,6 +297,17 @@ func (vs *validatorStatistics) saveInitialValueForMap(
 	return nil
 }
 
+// SaveNodesCoordinatorUpdates saves the results from the nodes coordinator changes after end of epoch
+func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	nodeForcedToRemain, err := vs.saveNodesCoordinatorUpdates(epoch)
+	if err != nil {
+		log.Error("could not update info from nodesCoordinator")
+		return nodeForcedToRemain, err
+	}
+
+	return nodeForcedToRemain, nil
+}
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
@@ -307,17 +329,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 	}
 
 	epoch := computeEpoch(header)
-
-	var err error
-	if previousHeader.IsStartOfEpochBlock() {
-		err = vs.saveNodesCoordinatorUpdates(previousHeader.GetEpoch())
-		if err != nil {
-			log.Warn("could not update info from nodesCoordinator")
-			return nil, err
-		}
-	}
-
-	err = vs.checkForMissedBlocks(
+	err := vs.checkForMissedBlocks(
 		header.GetRound(),
 		previousHeader.GetRound(),
 		previousHeader.GetRandSeed(),
@@ -528,17 +540,6 @@ func (vs *validatorStatistics) unmarshalPeer(pa []byte) (state.PeerAccountHandle
 		return nil, err
 	}
 	return peerAccount, nil
-}
-
-func (vs *validatorStatistics) convertMapToSortedSlice(leaves map[string][]byte) [][]byte {
-	newLeaves := make([][]byte, len(leaves))
-	i := 0
-	for _, pa := range leaves {
-		newLeaves[i] = pa
-		i++
-	}
-
-	return newLeaves
 }
 
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash

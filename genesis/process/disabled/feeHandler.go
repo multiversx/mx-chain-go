@@ -11,6 +11,11 @@ import (
 type FeeHandler struct {
 }
 
+// GasPriceModifier returns 1.0
+func (fh *FeeHandler) GasPriceModifier() float64 {
+	return 1.0
+}
+
 // DeveloperPercentage returns 0
 func (fh *FeeHandler) DeveloperPercentage() float64 {
 	return 0
@@ -33,6 +38,11 @@ func (fh *FeeHandler) ComputeGasLimit(_ process.TransactionWithFeeHandler) uint6
 
 // ComputeMoveBalanceFee returns 0
 func (fh *FeeHandler) ComputeMoveBalanceFee(_ process.TransactionWithFeeHandler) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeFeeForProcessing returns 0
+func (fh *FeeHandler) ComputeFeeForProcessing(_ process.TransactionWithFeeHandler, _ uint64) *big.Int {
 	return big.NewInt(0)
 }
 

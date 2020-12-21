@@ -91,11 +91,11 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
+	gasLimit := uint64(0xfffffffffffffff)
 
 	scCode := arwen.GetSCCode(wasmFilename)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(ownerNonce, ownerAddressBytes, ownerBalance, false)
+	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(t, ownerNonce, ownerAddressBytes, ownerBalance, false)
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -143,7 +143,7 @@ func defaultVMInput(arguments [][]byte) vmcommon.VMInput {
 		CallerAddr:  nil,
 		CallValue:   big.NewInt(0),
 		GasPrice:    uint64(0),
-		GasProvided: uint64(0xffffffffffffffff),
+		GasProvided: uint64(0xfffffffffffffff),
 		Arguments:   arguments,
 		CallType:    vmcommon.DirectCall,
 	}

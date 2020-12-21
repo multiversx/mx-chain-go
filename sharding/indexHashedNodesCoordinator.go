@@ -557,6 +557,7 @@ func (ihgs *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		AdditionalLeaving: additionalLeavingList,
 		Rand:              randomness,
 		NbShards:          newNodesConfig.nbShards,
+		Epoch:             newEpoch,
 	}
 
 	resUpdateNodes, err := ihgs.shuffler.UpdateNodeLists(shufflerArgs)
@@ -791,11 +792,7 @@ func isValidator(config *epochNodesConfig, pk []byte) bool {
 	}
 
 	found, _ = searchInMap(config.waitingMap, pk)
-	if found {
-		return true
-	}
-
-	return false
+	return found
 }
 
 func searchInMap(validatorMap map[uint32][]Validator, pk []byte) (bool, uint32) {

@@ -37,12 +37,15 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewHashValidatorsShuffler(
-		uint32(arg.nodesPerShard),
-		uint32(arg.nbMetaNodes),
-		hysteresis,
-		adaptivity,
-		shuffleBetweenShards)
+	nodeShufflerArgs := &sharding.NodesShufflerArgs{
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(nodeShufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
@@ -80,13 +83,15 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 	keys := arg.cp.Keys[arg.shardId][arg.keyIndex]
 	pubKeyBytes, _ := keys.Pk.ToByteArray()
 
-	nodeShuffler := sharding.NewHashValidatorsShuffler(
-		uint32(arg.nodesPerShard),
-		uint32(arg.nbMetaNodes),
-		hysteresis,
-		adaptivity,
-		shuffleBetweenShards,
-	)
+	shufflerArgs := &sharding.NodesShufflerArgs{
+		NodesShard:           uint32(arg.nodesPerShard),
+		NodesMeta:            uint32(arg.nbMetaNodes),
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+	}
+	nodeShuffler, _ := sharding.NewHashValidatorsShuffler(shufflerArgs)
 	argumentsNodesCoordinator := sharding.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,

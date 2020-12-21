@@ -14,7 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-// ConsensusCoreHandler encapsulates all needed Data for the Consensus
+// ConsensusCoreHandler encapsulates all needed data for the Consensus
 type ConsensusCoreHandler interface {
 	// Blockchain gets the ChainHandler stored in the ConsensusCore
 	Blockchain() data.ChainHandler

@@ -159,24 +159,6 @@ func (n *Node) getTxObjFromDataPool(hash []byte) (interface{}, transaction.TxTyp
 	return nil, transaction.TxTypeInvalid, false
 }
 
-func (n *Node) isTxInStorage(hash []byte) bool {
-	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
-	err := txsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	rewardTxsStorer := n.store.GetStorer(dataRetriever.RewardTransactionUnit)
-	err = rewardTxsStorer.Has(hash)
-	if err == nil {
-		return true
-	}
-
-	unsignedTxsStorer := n.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
-	err = unsignedTxsStorer.Has(hash)
-	return err == nil
-}
-
 func (n *Node) getTxBytesFromStorage(hash []byte) ([]byte, transaction.TxType, bool) {
 	txsStorer := n.store.GetStorer(dataRetriever.TransactionUnit)
 	txBytes, err := txsStorer.SearchFirst(hash)
@@ -325,7 +307,7 @@ func (n *Node) prepareRewardTx(tx *rewardTxData.RewardTx) (*transaction.ApiTrans
 }
 
 func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*transaction.ApiTransactionResult, error) {
-	return &transaction.ApiTransactionResult{
+	txResult := &transaction.ApiTransactionResult{
 		Tx:                      tx,
 		Type:                    string(transaction.TxTypeUnsigned),
 		Nonce:                   tx.GetNonce(),
@@ -339,7 +321,11 @@ func (n *Node) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) (*
 		CodeMetadata:            tx.GetCodeMetadata(),
 		PreviousTransactionHash: hex.EncodeToString(tx.GetPrevTxHash()),
 		OriginalTransactionHash: hex.EncodeToString(tx.GetOriginalTxHash()),
-		OriginalSender:          n.addressPubkeyConverter.Encode(tx.GetOriginalSender()),
 		ReturnMessage:           string(tx.GetReturnMessage()),
-	}, nil
+	}
+	if len(tx.GetOriginalSender()) == n.addressPubkeyConverter.Len() {
+		txResult.OriginalSender = n.addressPubkeyConverter.Encode(tx.GetOriginalSender())
+	}
+
+	return txResult, nil
 }

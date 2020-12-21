@@ -106,7 +106,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			integrationTests.CreateAndSendTransaction(node, nodes, sendValue, receiverAddress, "", integrationTests.AdditionalGasLimit)
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -188,7 +188,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Messenger:                  nodeToJoinLate.Messenger,
 		GeneralConfig:              generalConfig,
 		GenesisShardCoordinator:    genesisShardCoordinator,
-		EconomicsData:              integrationTests.CreateEconomicsData(),
+		EconomicsData:              nodeToJoinLate.EconomicsData,
 		SingleSigner:               &mock.SignerMock{},
 		BlockSingleSigner:          &mock.SignerMock{},
 		KeyGen:                     &mock.KeyGenMock{},

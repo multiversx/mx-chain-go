@@ -186,7 +186,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			continue
 		}
 
-		var stakingData systemSmartContracts.StakedDataV2
+		var stakingData systemSmartContracts.StakedDataV2_0
 		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
@@ -202,7 +202,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 }
 
 func (stp *stakingToPeer) updatePeerStateV1(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
@@ -264,7 +264,7 @@ func (stp *stakingToPeer) updatePeerStateV1(
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
