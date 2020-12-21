@@ -764,3 +764,11 @@ func WithTxVersionChecker(txVersionChecker process.TxVersionCheckerHandler) Opti
 		return nil
 	}
 }
+
+// WithImportMode sets up the flag if the node is running in import mode
+func WithImportMode(importMode bool) Option {
+	return func(n *Node) error {
+		n.isInImportMode = importMode
+		return nil
+	}
+}
