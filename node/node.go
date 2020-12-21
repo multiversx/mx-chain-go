@@ -164,6 +164,7 @@ type Node struct {
 	enableSignTxWithHashEpoch uint32
 	txSignHasher              hashing.Hasher
 	txVersionChecker          process.TxVersionCheckerHandler
+	isInImportMode            bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -235,6 +236,11 @@ func (n *Node) StartConsensus() error {
 	if !n.indexer.IsNilIndexer() {
 		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
+		n.watchdog = &watchdog.DisabledWatchdog{}
+	}
+	if n.isInImportMode {
+		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
+			"it is incompatible with the import-db process.")
 		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
 
