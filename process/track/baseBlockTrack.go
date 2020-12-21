@@ -547,6 +547,10 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 
 	if len(sortedHeadersInfo) > 1 {
 		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
+			if sortedHeadersInfo[i].Header.GetNonce() == sortedHeadersInfo[j].Header.GetNonce() {
+				return sortedHeadersInfo[i].Header.GetRound() < sortedHeadersInfo[j].Header.GetRound()
+			}
+
 			return sortedHeadersInfo[i].Header.GetNonce() < sortedHeadersInfo[j].Header.GetNonce()
 		})
 	}

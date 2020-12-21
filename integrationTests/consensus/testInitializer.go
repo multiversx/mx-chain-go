@@ -160,7 +160,7 @@ func createTestStore() dataRetriever.StorageService {
 
 func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 	marsh := &marshal.GogoProtoMarshalizer{}
-	hasher := sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	store := createMemUnit()
 	evictionWaitListSize := uint(100)
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(evictionWaitListSize, memorydb.New(), marsh)
@@ -183,7 +183,7 @@ func createAccountsDB(marshalizer marshal.Marshalizer) state.AccountsAdapter {
 
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, marsh, hasher, maxTrieLevelInMemory)
-	adb, _ := state.NewAccountsDB(tr, sha256.Sha256{}, marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(tr, sha256.NewSha256(), marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (wrapper state.AccountHandler, e error) {
 			return state.NewUserAccount(address)
 		},
@@ -228,9 +228,10 @@ func createCryptoParams(nodesPerShard int, nbMetaNodes int, nbShards int) *crypt
 
 func createHasher(consensusType string) hashing.Hasher {
 	if consensusType == blsConsensusType {
-		return &blake2b.Blake2b{HashSize: 32}
+		hasher, _ := blake2b.NewBlake2bWithSize(32)
+		return hasher
 	}
-	return &blake2b.Blake2b{}
+	return blake2b.NewBlake2b()
 }
 
 func createConsensusOnlyNode(
@@ -341,8 +342,8 @@ func createConsensusOnlyNode(
 		0,
 	)
 
-	hdrResolver := &mock.HeaderResolverMock{}
-	mbResolver := &mock.MiniBlocksResolverMock{}
+	hdrResolver := &mock.HeaderResolverStub{}
+	mbResolver := &mock.MiniBlocksResolverStub{}
 	resolverFinder := &mock.ResolversFinderStub{
 		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
 			if baseTopic == factory.MiniBlocksTopic {

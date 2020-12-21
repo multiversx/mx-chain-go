@@ -381,7 +381,21 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
 ) (process.BlockProcessor, error) {
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     pcf.gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}), // no dns for meta
+		Marshalizer:     pcf.coreData.InternalMarshalizer(),
+		Accounts:        pcf.state.AccountsAdapter(),
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
+
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           pcf.state.AccountsAdapter(),
 		PubkeyConv:         pcf.coreData.AddressPubKeyConverter(),
@@ -390,7 +404,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:   pcf.shardCoordinator,
 		Marshalizer:        pcf.coreData.InternalMarshalizer(),
 		Uint64Converter:    pcf.coreData.Uint64ByteSliceConverter(),
-		BuiltInFunctions:   builtInFuncs, // no built-in functions for meta.
+		BuiltInFunctions:   builtInFuncs,
 		DataPool:           pcf.data.Datapool(),
 		CompiledSCPool:     pcf.data.Datapool().SmartContracts(),
 		ConfigSCStorage:    pcf.config.SmartContractsStorage,

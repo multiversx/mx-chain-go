@@ -108,7 +108,7 @@ func BenchmarkNewSelectorWRS_SelectConsensusShard(b *testing.B) {
 	}
 
 	nbPrecomputedRands := 100000
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	rands := make([][]byte, nbPrecomputedRands)
 	for i := 0; i < nbPrecomputedRands; i++ {
@@ -128,7 +128,7 @@ func BenchmarkNewSelectorWRS_SelectConsensusShard(b *testing.B) {
 func TestNewSelectorWRSNilWeightsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, err := NewSelectorWRS(nil, hasher)
 	require.Equal(t, ErrNilWeights, err)
 	require.Nil(t, selector)
@@ -147,7 +147,7 @@ func TestNewSelectorWRSOK(t *testing.T) {
 	t.Parallel()
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, err := NewSelectorWRS(weights, hasher)
 	require.Nil(t, err)
 	require.NotNil(t, selector)
@@ -159,7 +159,7 @@ func TestSelectorWRS_SelectNilRandSeedShouldErr(t *testing.T) {
 	setSize := uint32(10)
 	sampleSize := uint32(5)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, _ := NewSelectorWRS(weights, hasher)
 	selectedIndexes, err := selector.Select(nil, sampleSize)
 	require.Equal(t, ErrNilRandomness, err)
@@ -171,7 +171,7 @@ func TestSelectorWRS_SelectInvalidSampleSizeShouldErr(t *testing.T) {
 
 	setSize := uint32(10)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, _ := NewSelectorWRS(weights, hasher)
 	r := hasher.Compute("seed")
 	selectedIndexes, err := selector.Select(r, setSize+1)
@@ -186,7 +186,7 @@ func TestSelectorWRS_SelectInvalidWeightShouldErr(t *testing.T) {
 	sampleSize := uint32(5)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
 	weights[1] = 0
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, _ := NewSelectorWRS(weights, hasher)
 	r := hasher.Compute("seed")
 	selectedIndexes, err := selector.Select(r, sampleSize)
@@ -200,7 +200,7 @@ func TestSelectorWRS_SelectOK(t *testing.T) {
 	setSize := uint32(10)
 	sampleSize := uint32(5)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, _ := NewSelectorWRS(weights, hasher)
 	r := hasher.Compute("seed")
 	selectedIndexes, err := selector.Select(r, sampleSize)
@@ -219,7 +219,7 @@ func TestSelectorWRS_SelectOKSameParametersSameResult(t *testing.T) {
 	setSize := uint32(10)
 	sampleSize := uint32(5)
 	weights := createDummyWeights(setSize, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 	selector, _ := NewSelectorWRS(weights, hasher)
 	r := hasher.Compute("seed")
 
@@ -248,7 +248,7 @@ func TestSelectorWRS_IsInterfaceNil(t *testing.T) {
 	var err error
 
 	weights := createDummyWeights(10, 32, 2, nextWeightGeometricProgression)
-	hasher := &sha256.Sha256{}
+	hasher := sha256.NewSha256()
 
 	require.True(t, check.IfNil(selector))
 	selector, err = NewSelectorWRS(weights, hasher)

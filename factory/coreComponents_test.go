@@ -227,17 +227,6 @@ func TestCoreComponentsFactory_CreateCoreComponents_ShouldWork(t *testing.T) {
 	require.NotNil(t, cc)
 }
 
-func TestCoreComponentsFactory_CreateStorerTemplatePaths(t *testing.T) {
-	t.Parallel()
-
-	args := getCoreArgs()
-	ccf, _ := factory.NewCoreComponentsFactory(args)
-
-	pathPruning, pathStatic := ccf.CreateStorerTemplatePaths()
-	require.Equal(t, "home/db/undefined/Epoch_[E]/Shard_[S]/[I]", pathPruning)
-	require.Equal(t, "home/db/undefined/Static/Shard_[S]/[I]", pathStatic)
-}
-
 // ------------ Test CoreComponents --------------------
 func TestCoreComponents_Close_ShouldWork(t *testing.T) {
 	t.Parallel()
@@ -286,8 +275,9 @@ func getCoreArgs() factory.CoreComponentsFactoryArgs {
 				Shards:   16,
 			},
 			GeneralSettings: config.GeneralSettingsConfig{
-				ChainID:               "undefined",
-				MinTransactionVersion: 1,
+				ChainID:                  "undefined",
+				MinTransactionVersion:    1,
+				GenesisMaxNumberOfShards: 3,
 			},
 			Marshalizer: config.MarshalizerConfig{
 				Type:           testMarshalizer,

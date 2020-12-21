@@ -44,7 +44,8 @@ func GetGeneralConfig() config.Config {
 			CacheRefreshIntervalInSec: uint32(100),
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled: true,
+			StartInEpochEnabled:      true,
+			GenesisMaxNumberOfShards: 100,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,

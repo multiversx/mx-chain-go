@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
@@ -168,14 +167,7 @@ func findPeerMiniBlockHeaders(metaBlock *block.MetaBlock) []block.MiniBlockHeade
 			continue
 		}
 
-		shardMBHdr := block.MiniBlockHeader{
-			Hash:            mbHeader.Hash,
-			ReceiverShardID: mbHeader.ReceiverShardID,
-			SenderShardID:   core.MetachainShardId,
-			TxCount:         mbHeader.TxCount,
-			Type:            mbHeader.Type,
-		}
-		shardMBHeaders = append(shardMBHeaders, shardMBHdr)
+		shardMBHeaders = append(shardMBHeaders, mbHeader)
 	}
 	return shardMBHeaders
 }

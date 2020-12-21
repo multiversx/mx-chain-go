@@ -265,3 +265,13 @@ type MiniBlockInfo struct {
 	SenderShardID uint32
 	Round         uint64
 }
+
+// SyncStatisticsHandler defines the methods for a component able to store the sync statistics for a trie
+type SyncStatisticsHandler interface {
+	Reset()
+	AddNumReceived(value int)
+	SetNumMissing(rootHash []byte, value int)
+	NumReceived() int
+	NumMissing() int
+	IsInterfaceNil() bool
+}

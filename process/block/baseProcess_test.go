@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters/uint64ByteSlice"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -29,6 +30,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func haveTime() time.Duration {
@@ -202,6 +204,7 @@ func initStore() *dataRetriever.ChainStorer {
 	store.AddStorer(dataRetriever.ShardHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaHdrNonceHashDataUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.ReceiptsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, generateTestUnit())
 	return store
 }
 
@@ -1232,4 +1235,89 @@ func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
 	wasCalled = false
 	sp.AddHeaderIntoTrackerPool(nonce, shardID)
 	assert.True(t, wasCalled)
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededNilStorerShouldNotErr(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(37)
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	store := dataRetriever.NewChainStorer()
+	dataComponents.Storage = store
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mb := &block.MetaBlock{Epoch: epoch}
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+	require.NoError(t, err)
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededDisabledStorerShouldNotErr(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(37)
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	dataComponents.Storage.AddStorer(dataRetriever.TrieEpochRootHashUnit, &storageUnit.NilStorer{})
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mb := &block.MetaBlock{Epoch: epoch}
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+	require.NoError(t, err)
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededCannotFindUserAccountStateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(37)
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mb := &block.MetaBlock{Epoch: epoch}
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+	require.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+}
+
+func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldWork(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(37)
+	rootHash := []byte("root-hash")
+
+	coreComponents, dataComponents := createComponentHolderMocks()
+	coreComponents.UInt64ByteSliceConv = uint64ByteSlice.NewBigEndianConverter()
+	store := dataRetriever.NewChainStorer()
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit,
+		&mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				restoredEpoch, err := coreComponents.UInt64ByteSliceConv.ToUint64(key)
+				require.NoError(t, err)
+				require.Equal(t, epoch, uint32(restoredEpoch))
+				return nil
+			},
+		},
+	)
+	dataComponents.Storage = store
+
+	arguments := CreateMockArguments(coreComponents, dataComponents)
+	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+		state.UserAccountsState: &mock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	mb := &block.MetaBlock{Epoch: epoch}
+	err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
+	require.NoError(t, err)
 }

@@ -12,7 +12,7 @@ import (
 // TriggerHandler defines the functionalities for an start of epoch trigger
 type TriggerHandler interface {
 	Close() error
-	ForceEpochStart()
+	ForceEpochStart(round uint64)
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32
@@ -134,5 +134,14 @@ type NodesConfigProvider interface {
 type ImportStartHandler interface {
 	ShouldStartImport() bool
 	IsAfterExportBeforeImport() bool
+	IsInterfaceNil() bool
+}
+
+// ManualEpochStartNotifier represents a notifier that can be triggered manually for an epoch change event.
+// Useful in storage resolvers (import-db process)
+type ManualEpochStartNotifier interface {
+	RegisterHandler(handler ActionHandler)
+	NewEpoch(epoch uint32)
+	CurrentEpoch() uint32
 	IsInterfaceNil() bool
 }

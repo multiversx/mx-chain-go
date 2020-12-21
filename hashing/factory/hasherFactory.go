@@ -11,11 +11,11 @@ import (
 func NewHasher(name string) (hashing.Hasher, error) {
 	switch name {
 	case "sha256":
-		return sha256.Sha256{}, nil
+		return sha256.NewSha256(), nil
 	case "keccak":
-		return keccak.Keccak{}, nil
+		return keccak.NewKeccak(), nil
 	case "blake2b":
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	}
 
 	return nil, ErrNoHasherInConfig

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"path/filepath"
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -19,7 +18,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/endProcess"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/factory/containers"
@@ -52,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding/networksharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/update"
@@ -95,11 +92,13 @@ type processComponents struct {
 	historyRepository           dblookupext.HistoryRepository
 	importStartHandler          update.ImportStartHandler
 	requestedItemsHandler       dataRetriever.RequestedItemsHandler
+	importHandler               update.ImportHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
 type ProcessComponentsFactoryArgs struct {
 	Config                    config.Config
+	ImportDBConfig            config.ImportDbConfig
 	AccountsParser            genesis.AccountsParser
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
@@ -137,12 +136,11 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo               dblookupext.HistoryRepository
 	EpochNotifier             process.EpochNotifier
 	HeaderIntegrityVerifier   HeaderIntegrityVerifierHandler
-	StorageResolverImportPath string
-	ChanGracefullyClose       chan endProcess.ArgEndProcess
 }
 
 type processComponentsFactory struct {
 	config                    config.Config
+	importDBConfig            config.ImportDbConfig
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
@@ -180,8 +178,7 @@ type processComponentsFactory struct {
 	historyRepo               dblookupext.HistoryRepository
 	epochNotifier             process.EpochNotifier
 	headerIntegrityVerifier   HeaderIntegrityVerifierHandler
-	storageResolverImportPath string
-	chanGracefullyClose       chan endProcess.ArgEndProcess
+	importHandler             update.ImportHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -193,6 +190,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 
 	return &processComponentsFactory{
 		config:                    args.Config,
+		importDBConfig:            args.ImportDBConfig,
 		accountsParser:            args.AccountsParser,
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
@@ -229,8 +227,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		historyRepo:               args.HistoryRepo,
 		headerIntegrityVerifier:   args.HeaderIntegrityVerifier,
 		epochNotifier:             args.EpochNotifier,
-		storageResolverImportPath: args.StorageResolverImportPath,
-		chanGracefullyClose:       args.ChanGracefullyClose,
 	}, nil
 }
 
@@ -534,6 +530,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		historyRepository:           pcf.historyRepo,
 		importStartHandler:          pcf.importStartHandler,
 		requestedItemsHandler:       pcf.requestedItemsHandler,
+		importHandler:               pcf.importHandler,
 	}, nil
 }
 
@@ -685,6 +682,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	if err != nil {
 		return nil, err
 	}
+	pcf.importHandler = gbc.ImportHandler()
 
 	return gbc.CreateGenesisBlocks()
 }
@@ -876,8 +874,8 @@ func (pcf *processComponentsFactory) newBlockTracker(
 
 // -- Resolvers container Factory begin
 func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetriever.ResolversContainerFactory, error) {
-	if len(pcf.storageResolverImportPath) > 0 {
-		log.Debug("starting with storage resolvers", "path", pcf.storageResolverImportPath)
+	if pcf.importDBConfig.IsImportDBMode {
+		log.Debug("starting with storage resolvers", "path", pcf.importDBConfig.ImportDBWorkingDir)
 		return pcf.newStorageResolver()
 	}
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
@@ -973,18 +971,31 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 }
 
 func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.ResolversContainerFactory, error) {
-	pathManager, err := createPathManager(pcf.storageResolverImportPath, pcf.coreData.ChainID())
+	pathManager, err := storageFactory.CreatePathManager(
+		storageFactory.ArgCreatePathManager{
+			WorkingDir: pcf.importDBConfig.ImportDBWorkingDir,
+			ChainID:    pcf.coreData.ChainID(),
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	manualEpochStartNotifier := notifier.NewManualEpochStartNotifier()
+	defer func() {
+		//we need to call this after we wired all the notified components
+		if pcf.importDBConfig.IsImportDBMode {
+			manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
+		}
+	}()
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		&pcf.config,
 		pcf.shardCoordinator,
 		pathManager,
 		manualEpochStartNotifier,
 		pcf.startEpochNum,
+		false,
 	)
 	if err != nil {
 		return nil, err
@@ -995,8 +1006,6 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		if errStore != nil {
 			return nil, errStore
 		}
-
-		manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
 
 		return pcf.createStorageResolversForMeta(
 			store,
@@ -1009,35 +1018,10 @@ func (pcf *processComponentsFactory) newStorageResolver() (dataRetriever.Resolve
 		return nil, err
 	}
 
-	manualEpochStartNotifier.NewEpoch(pcf.startEpochNum + 1)
-
 	return pcf.createStorageResolversForShard(
 		store,
 		manualEpochStartNotifier,
 	)
-}
-
-func createPathManager(
-	storageResolverImportPath string,
-	chainID string,
-) (storage.PathManagerHandler, error) {
-	pathTemplateForPruningStorer := filepath.Join(
-		storageResolverImportPath,
-		core.DefaultDBPath,
-		chainID,
-		fmt.Sprintf("%s_%s", core.DefaultEpochString, core.PathEpochPlaceholder),
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	pathTemplateForStaticStorer := filepath.Join(
-		storageResolverImportPath,
-		core.DefaultDBPath,
-		chainID,
-		core.DefaultStaticDbString,
-		fmt.Sprintf("%s_%s", core.DefaultShardString, core.PathShardPlaceholder),
-		core.PathIdentifierPlaceholder)
-
-	return pathmanager.NewPathManager(pathTemplateForPruningStorer, pathTemplateForStaticStorer)
 }
 
 func (pcf *processComponentsFactory) createStorageResolversForMeta(
@@ -1057,7 +1041,12 @@ func (pcf *processComponentsFactory) createStorageResolversForMeta(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.chanGracefullyClose,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		Hasher:                   pcf.coreData.Hasher(),
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		ChainID:                  pcf.coreData.ChainID(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1084,7 +1073,12 @@ func (pcf *processComponentsFactory) createStorageResolversForShard(
 		Uint64ByteSliceConverter: pcf.coreData.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: manualEpochStartNotifier,
-		ChanGracefullyClose:      pcf.chanGracefullyClose,
+		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
+		Hasher:                   pcf.coreData.Hasher(),
+		GeneralConfig:            pcf.config,
+		ShardIDForTries:          pcf.importDBConfig.ImportDBTargetShardID,
+		WorkingDirectory:         pcf.importDBConfig.ImportDBWorkingDir,
+		ChainID:                  pcf.coreData.ChainID(),
 	}
 	resolversContainerFactory, err := storageResolversContainers.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1350,6 +1344,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.epochStartTrigger) {
 		log.LogIfError(pc.epochStartTrigger.Close())
+	}
+	if !check.IfNil(pc.importHandler) {
+		log.LogIfError(pc.importHandler.Close())
 	}
 	return nil
 }

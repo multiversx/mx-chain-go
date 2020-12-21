@@ -13,9 +13,6 @@ var ErrInvalidDeployArguments = errors.New("invalid deploy arguments")
 // ErrNilFunction signals that the function name from transaction data is nil
 var ErrNilFunction = errors.New("smart contract function is nil")
 
-// ErrNilArguments signals that arguments from transactions data is nil
-var ErrNilArguments = errors.New("smart contract arguments are nil")
-
 // ErrInvalidDataString signals that the transaction data string could not be split evenly
 var ErrInvalidDataString = errors.New("transaction data string is unevenly split")
 

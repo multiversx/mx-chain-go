@@ -146,11 +146,13 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte) ([]byte, error) {
 			hash,
 			err,
 		)
+
+		return nil, err
 	}
 
 	txRes.ResolverDebugHandler().LogSucceededToResolveData(txRes.topic, hash)
 
-	return buff, err
+	return buff, nil
 }
 
 func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID) error {
@@ -245,6 +247,11 @@ func (txRes *TxResolver) NumPeersToQuery() (int, int) {
 // SetResolverDebugHandler will set a resolver debug handler
 func (txRes *TxResolver) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
 	return txRes.TopicResolverSender.SetResolverDebugHandler(handler)
+}
+
+// Close returns nil
+func (txRes *TxResolver) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -41,7 +41,7 @@ type ArgsNewRewardsCreator struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	// this fixes the situation where a node has 0 proposed blocks and 0 validator failures
 	// but does not receive rewards.
-	RewardsFix1EpochEnable        uint32
+	RewardsFix1EpochEnable uint32
 }
 
 type rewardsCreator struct {
@@ -170,7 +170,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	totalWithoutDevelopers := big.NewInt(0).Sub(metaBlock.EpochStart.Economics.TotalToDistribute, metaBlock.DevFeesInEpoch)
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
-	log.Debug("arithmetic difference in end of epoch rewards economics", "value", difference)
+	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.Epoch, "value", difference)
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, difference)
 	rc.protocolSustainability.Set(protocolSustainabilityRwdTx.Value)
 

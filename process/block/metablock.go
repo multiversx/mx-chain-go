@@ -1260,6 +1260,17 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.HeaderHandler) {
 		ctx := context.Background()
 		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), ctx)
 		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), ctx)
+		go func() {
+			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
+			if !ok {
+				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				return
+			}
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, lastMetaBlock.GetRootHash())
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+			}
+		}()
 	}
 
 	mp.updateStateStorage(

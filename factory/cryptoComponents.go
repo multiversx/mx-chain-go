@@ -202,12 +202,12 @@ func (ccf *cryptoComponentsFactory) getMultiSigHasherFromConfig() (hashing.Hashe
 
 	switch ccf.config.MultisigHasher.Type {
 	case "sha256":
-		return sha256.Sha256{}, nil
+		return sha256.NewSha256(), nil
 	case "blake2b":
 		if ccf.consensusType == consensus.BlsConsensusType {
-			return &blake2b.Blake2b{HashSize: multisig.BlsHashSize}, nil
+			return blake2b.NewBlake2bWithSize(multisig.BlsHashSize)
 		}
-		return &blake2b.Blake2b{}, nil
+		return blake2b.NewBlake2b(), nil
 	}
 
 	return nil, errors.ErrMissingMultiHasherConfig

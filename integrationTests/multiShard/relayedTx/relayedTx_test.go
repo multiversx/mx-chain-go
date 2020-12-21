@@ -160,8 +160,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
 
-	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
+
+	userAcc := GetUserAccount(nodes, relayer.Address)
+	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 1)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
@@ -223,7 +225,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(sendValue.Bytes())
 	transferTokenESDTGas := uint64(1)
 	transferTokenBaseGas := tokenIssuer.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
-	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas
+	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas + uint64(100) // use more gas to simulate gas refund
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {

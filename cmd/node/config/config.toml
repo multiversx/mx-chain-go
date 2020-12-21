@@ -52,6 +52,9 @@
    # GenesisString represents the encoded string for the genesis block
    GenesisString = "67656E65736973"
 
+   # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
+   GenesisMaxNumberOfShards  = 3
+
 [Versions]
    DefaultVersion = "default"
    VersionsByEpochs = [
@@ -250,6 +253,19 @@
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[TrieEpochRootHashStorage]
+    [TrieEpochRootHashStorage.Cache]
+        Name = "TrieEpochRootHashCache"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 314572800 #300MB
+    [TrieEpochRootHashStorage.DB]
+        FilePath = "TrieEpochRootHashStorageDB"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 500
         MaxOpenFiles = 10
 
 [ShardHdrNonceHashStorage]

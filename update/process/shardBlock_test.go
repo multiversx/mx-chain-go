@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/memorydb"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/ElrondNetwork/elrond-go/update"
 	"github.com/ElrondNetwork/elrond-go/update/mock"
 	"github.com/stretchr/testify/assert"
@@ -50,14 +49,13 @@ func initStore() dataRetriever.StorageService {
 
 func createMockArgsNewShardBlockCreatorAfterHardFork() ArgsNewShardBlockCreatorAfterHardFork {
 	return ArgsNewShardBlockCreatorAfterHardFork{
-		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
-		TxCoordinator:      &mock.TransactionCoordinatorMock{},
-		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},
+		Hasher:             &mock.HasherMock{},
 		ImportHandler:      &mock.ImportHandlerStub{},
 		Marshalizer:        &mock.MarshalizerMock{},
-		Hasher:             &mock.HasherMock{},
+		PendingTxProcessor: &mock.PendingTransactionProcessorStub{},
+		ShardCoordinator:   mock.NewOneShardCoordinatorMock(),
 		Storage:            initStore(),
-		DataPool:           testscommon.CreatePoolsHolder(1, 0),
+		TxCoordinator:      &mock.TransactionCoordinatorMock{},
 	}
 }
 
@@ -74,18 +72,18 @@ func TestNewShardBlockCreatorAfterHardFork(t *testing.T) {
 func TestCreateBody(t *testing.T) {
 	t.Parallel()
 
-	mb1, mb2 := &block.MiniBlock{SenderShardID: 0}, &block.MiniBlock{SenderShardID: 1}
-	mb3, mb4 := &block.MiniBlock{SenderShardID: 2}, &block.MiniBlock{SenderShardID: 3}
+	mb1 := &block.MiniBlock{SenderShardID: 1}
+	mb2, mb3 := &block.MiniBlock{SenderShardID: 2}, &block.MiniBlock{SenderShardID: 3}
 
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
-			return block.MiniBlockSlice{mb1, mb2}, nil
+		ProcessTransactionsDstMeCalled: func(mbInfo *update.MbInfo) (*block.MiniBlock, error) {
+			return mb1, nil
 		},
 	}
 	args.TxCoordinator = &mock.TransactionCoordinatorMock{
 		CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
-			return block.MiniBlockSlice{mb3, mb4}
+			return block.MiniBlockSlice{mb2, mb3}
 		},
 	}
 
@@ -125,9 +123,9 @@ func TestCreateBody(t *testing.T) {
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
 	expectedBody := &block.Body{
-		MiniBlocks: []*block.MiniBlock{mb1, mb2, mb3, mb4},
+		MiniBlocks: []*block.MiniBlock{mb1, mb2, mb3},
 	}
-	body, err := shardBlockCreator.createBody()
+	body, _, err := shardBlockCreator.CreateBody()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedBody, body)
 }
@@ -170,7 +168,7 @@ func TestCreateMiniBlockHeader(t *testing.T) {
 	assert.Equal(t, expectedMbHeaders, mbHeaders)
 }
 
-func TestCreateNewBlock(t *testing.T) {
+func TestCreateBlock(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rotHash")
@@ -179,8 +177,8 @@ func TestCreateNewBlock(t *testing.T) {
 	mb2 := &block.MiniBlock{SenderShardID: 3, ReceiverShardID: 4, TxHashes: [][]byte{hashTx2}}
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	args.PendingTxProcessor = &mock.PendingTransactionProcessorStub{
-		ProcessTransactionsDstMeCalled: func(txsInfo []*update.TxInfo) (block.MiniBlockSlice, error) {
-			return block.MiniBlockSlice{mb1}, nil
+		ProcessTransactionsDstMeCalled: func(mbInfo *update.MbInfo) (*block.MiniBlock, error) {
+			return mb1, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
@@ -189,6 +187,11 @@ func TestCreateNewBlock(t *testing.T) {
 	args.TxCoordinator = &mock.TransactionCoordinatorMock{
 		CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
 			return block.MiniBlockSlice{mb2}
+		},
+		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
+			return map[string]data.TransactionHandler{
+				string(hashTx2): &transaction.Transaction{},
+			}
 		},
 	}
 
@@ -262,7 +265,9 @@ func TestCreateNewBlock(t *testing.T) {
 		PubKeysBitmap:   []byte{1},
 		SoftwareVersion: []byte(""),
 	}
-	header, body, err := shardBlockCreator.CreateNewBlock(chainID, round, nonce, epoch)
+	body, _, err := shardBlockCreator.CreateBody()
+	assert.NoError(t, err)
+	header, err := shardBlockCreator.CreateBlock(body, chainID, round, nonce, epoch)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedBody, body)
 	assert.Equal(t, expectedHeader, header)
@@ -274,7 +279,7 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWhenGetPendingMiniBlocksFail
 	args := createMockArgsNewShardBlockCreatorAfterHardFork()
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	_, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Equal(t, update.ErrNilEpochStartMetaBlock, err)
 }
 
@@ -312,7 +317,7 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedMiniBlocksMap(t
 
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	_, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Equal(t, update.ErrWrongImportedMiniBlocksMap, err)
 }
 
@@ -355,7 +360,7 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrMiniBlockNotFoundInImportedM
 
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	_, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Equal(t, update.ErrMiniBlockNotFoundInImportedMap, err)
 }
 
@@ -403,7 +408,7 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrTransactionNotFoundInImporte
 
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	_, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Equal(t, update.ErrTransactionNotFoundInImportedMap, err)
 }
 
@@ -458,7 +463,7 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldErrWrongImportedTransactionsMap
 
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	_, _, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	_, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Equal(t, update.ErrWrongImportedTransactionsMap, err)
 }
 
@@ -512,14 +517,58 @@ func TestGetPendingMbsAndTxsInCorrectOrder_ShouldWork(t *testing.T) {
 
 	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
 
-	pendingMiniBlocks, txsInfoPerPendingMiniBlock, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
+	mbsInfo, err := shardBlockCreator.getPendingMbsAndTxsInCorrectOrder()
 	assert.Nil(t, err)
-	require.Equal(t, 1, len(pendingMiniBlocks))
-	require.Equal(t, 1, len(txsInfoPerPendingMiniBlock))
-	require.Equal(t, 2, len(txsInfoPerPendingMiniBlock[0]))
-	assert.Equal(t, []byte("miniBlock_hash"), pendingMiniBlocks[0].Hash)
-	assert.Equal(t, []byte("tx_hash1"), txsInfoPerPendingMiniBlock[0][0].TxHash)
-	assert.Equal(t, []byte("miniBlock_hash"), txsInfoPerPendingMiniBlock[0][0].MbHash)
-	assert.Equal(t, []byte("tx_hash2"), txsInfoPerPendingMiniBlock[0][1].TxHash)
-	assert.Equal(t, []byte("miniBlock_hash"), txsInfoPerPendingMiniBlock[0][1].MbHash)
+	require.Equal(t, 1, len(mbsInfo))
+	require.Equal(t, 2, len(mbsInfo[0].TxsInfo))
+	assert.Equal(t, []byte("miniBlock_hash"), mbsInfo[0].MbHash)
+	assert.Equal(t, []byte("tx_hash1"), mbsInfo[0].TxsInfo[0].TxHash)
+	assert.Equal(t, []byte("tx_hash2"), mbsInfo[0].TxsInfo[1].TxHash)
+}
+
+func TestCreateMiniBlockInfoForPostProcessMiniBlock_ShouldErrPostProcessTransactionNotFound(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("tx_hash"),
+		},
+	}
+	mbHash := []byte("mb_hash")
+	_, err := shardBlockCreator.createMiniBlockInfoForPostProcessMiniBlock(mbHash, mb)
+	assert.Equal(t, update.ErrPostProcessTransactionNotFound, err)
+}
+
+func TestCreateMiniBlockInfoForPostProcessMiniBlock_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewShardBlockCreatorAfterHardFork()
+	txHash := []byte("tx_hash")
+	tx := &transaction.Transaction{Nonce: 1}
+	args.TxCoordinator = &mock.TransactionCoordinatorMock{
+		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
+			return map[string]data.TransactionHandler{
+				string(txHash): tx,
+			}
+		},
+	}
+	shardBlockCreator, _ := NewShardBlockCreatorAfterHardFork(args)
+
+	txHashes := [][]byte{txHash}
+	mb := &block.MiniBlock{
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        txHashes,
+	}
+	mbHash := []byte("mb_hash")
+	mbInfo, err := shardBlockCreator.createMiniBlockInfoForPostProcessMiniBlock(mbHash, mb)
+	assert.Nil(t, err)
+	assert.Equal(t, mbHash, mbInfo.MbHash)
+	require.Equal(t, 1, len(mbInfo.TxsInfo))
+	assert.Equal(t, txHash, mbInfo.TxsInfo[0].TxHash)
+	assert.Equal(t, tx, mbInfo.TxsInfo[0].Tx)
 }
