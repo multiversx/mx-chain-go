@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -56,6 +57,10 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789111")
 	shardID := testContextDst.ShardCoordinator.ComputeId(sndAddr)
 	require.Equal(t, uint32(1), shardID)
+
+	scStateAcc, _ := testContextDst.Accounts.GetExistingAccount(scAddr)
+	scUserAcc := scStateAcc.(state.UserAccountHandler)
+	currentSCDevBalance := scUserAcc.GetDeveloperReward()
 
 	gasLimit = uint64(500)
 	_, _ = vm.CreateAccount(testContextDst.Accounts, sndAddr, 0, big.NewInt(10000))
@@ -109,6 +114,6 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	scr := txs[1]
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
-	expectedBalance = big.NewInt(9770 + 376)
+	expectedBalance = big.NewInt(9770 + 376 + currentSCDevBalance.Int64())
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 }
