@@ -17,6 +17,7 @@ type SystemSmartContract interface {
 
 // SystemSCContainerFactory defines the functionality to create a system smart contract container
 type SystemSCContainerFactory interface {
+	CreateForGenesis() (SystemSCContainer, error)
 	Create() (SystemSCContainer, error)
 	IsInterfaceNil() bool
 }

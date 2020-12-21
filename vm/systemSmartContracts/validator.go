@@ -1336,14 +1336,6 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 	return registrationData, vmcommon.Ok
 }
 
-func (v *validatorSC) isInAdditionalQueue(blsKey []byte) (bool, error) {
-	stakedData, err := v.getStakedData(blsKey)
-	if err != nil {
-		return false, err
-	}
-	return stakedData.Waiting, nil
-}
-
 func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
 	if returnCode != vmcommon.Ok {

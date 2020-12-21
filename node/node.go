@@ -164,6 +164,7 @@ type Node struct {
 	enableSignTxWithHashEpoch uint32
 	txSignHasher              hashing.Hasher
 	txVersionChecker          process.TxVersionCheckerHandler
+	isInImportMode            bool
 }
 
 // ApplyOptions can set up different configurable options of a Node instance
@@ -235,6 +236,11 @@ func (n *Node) StartConsensus() error {
 	if !n.indexer.IsNilIndexer() {
 		log.Warn("node is running with a valid indexer. Chronology watchdog will be turned off as " +
 			"it is incompatible with the indexing process.")
+		n.watchdog = &watchdog.DisabledWatchdog{}
+	}
+	if n.isInImportMode {
+		log.Warn("node is running in import mode. Chronology watchdog will be turned off as " +
+			"it is incompatible with the import-db process.")
 		n.watchdog = &watchdog.DisabledWatchdog{}
 	}
 
@@ -1182,20 +1188,6 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
 	return n.validatorsProvider.GetLatestValidators(), nil
-}
-
-func (n *Node) getLatestValidators() (map[uint32][]*state.ValidatorInfo, map[string]*state.ValidatorApiResponse, error) {
-	latestHash, err := n.validatorStatistics.RootHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	validators, err := n.validatorStatistics.GetValidatorInfoForRootHash(latestHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return validators, nil, nil
 }
 
 // DirectTrigger will start the hardfork trigger

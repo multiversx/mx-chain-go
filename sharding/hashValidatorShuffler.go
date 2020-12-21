@@ -13,7 +13,7 @@ import (
 
 var _ NodesShuffler = (*randHashShuffler)(nil)
 
-// ArgsNodesShuffler defines the arguments required to create a nodes shuffler
+// NodesShufflerArgs defines the arguments required to create a nodes shuffler
 type NodesShufflerArgs struct {
 	NodesShard           uint32
 	NodesMeta            uint32

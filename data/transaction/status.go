@@ -67,10 +67,6 @@ func (params *StatusComputer) isDestinationMe() bool {
 	return params.SelfShard == params.DestinationShard
 }
 
-func (params *StatusComputer) isCrossShard() bool {
-	return params.SourceShard != params.DestinationShard
-}
-
 func (params *StatusComputer) isContractDeploy() bool {
 	return core.IsEmptyAddress(params.Receiver) && len(params.TransactionData) > 0
 }
