@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,7 +89,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 }
 
 func getGoodArgs() ArgsDataPool {
-	testEconomics := &mock.EconomicsHandlerStub{
+	testEconomics := &economicsmocks.EconomicsHandlerStub{
 		MinGasPriceCalled: func() uint64 {
 			return 200000000000
 		},

@@ -42,9 +42,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
 		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
-		MinGasPrice:    args.EconomicsData.MinGasPrice(),
 		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:    args.ShardCoordinator.SelfId(),
+		TxGasHandler:   args.EconomicsData,
 	})
 	if err != nil {
 		log.Error("error creating txpool")
