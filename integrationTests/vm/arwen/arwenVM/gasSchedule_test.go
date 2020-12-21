@@ -172,7 +172,7 @@ func runWASMVMBenchmark(
 	ownerBalance := big.NewInt(0xfffffffffffffff)
 	ownerBalance.Mul(ownerBalance, big.NewInt(0xffffffff))
 	gasPrice := uint64(1)
-	gasLimit := uint64(0xffffffffffffffff)
+	gasLimit := uint64(0xfffffffffffffff)
 
 	scCode := arwen.GetSCCode(fileSC)
 
@@ -187,7 +187,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(tb, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, false, false)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -201,7 +201,7 @@ func runWASMVMBenchmark(
 
 	alice := []byte("12345678901234567890123456789111")
 	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(10000000000))
+	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
 	txData := function
 	for _, arg := range arguments {
@@ -212,7 +212,7 @@ func runWASMVMBenchmark(
 		Value:     new(big.Int).Set(big.NewInt(0).SetUint64(testingValue)),
 		RcvAddr:   scAddress,
 		SndAddr:   alice,
-		GasPrice:  0,
+		GasPrice:  1,
 		GasLimit:  gasLimit,
 		Data:      []byte(txData),
 		Signature: nil,

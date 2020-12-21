@@ -9,14 +9,14 @@ import (
 
 var _ Counts = (*ConcurrentShardedCounts)(nil)
 
-// ShardedCounts keeps counts for a sharded data structure
+// ConcurrentShardedCounts keeps counts for a sharded data structure
 // This implementation is concurrently safe
 type ConcurrentShardedCounts struct {
 	mutex   sync.RWMutex
 	byShard map[string]int64
 }
 
-// NewShardedCounts creates a new ShardedCounts
+// NewConcurrentShardedCounts creates a new ConcurrentShardedCounts
 func NewConcurrentShardedCounts() *ConcurrentShardedCounts {
 	return &ConcurrentShardedCounts{
 		byShard: make(map[string]int64),

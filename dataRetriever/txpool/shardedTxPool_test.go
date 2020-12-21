@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +33,11 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		MinGasPrice:    200000000000,
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
+			MinimumGasMove:       50000,
+			MinimumGasPrice:      1000000000,
+			GasProcessingDivisor: 100,
+		},
 		NumberOfShards: 1,
 	}
 
@@ -72,7 +77,11 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
 
 	args = goodArgs
-	args.MinGasPrice = 0
+	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       50000,
+		MinimumGasPrice:      0,
+		GasProcessingDivisor: 1,
+	}
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -88,7 +97,15 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageUnit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 2}
+	args := ArgShardedTxPool{
+		Config: config,
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
+			MinimumGasMove:       50000,
+			MinimumGasPrice:      1000000000,
+			GasProcessingDivisor: 1,
+		},
+		NumberOfShards: 2,
+	}
 
 	pool, err := NewShardedTxPool(args)
 	require.Nil(t, err)
@@ -98,7 +115,6 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, 614400, int(pool.configPrototypeSourceMe.NumBytesPerSenderThreshold))
 	require.Equal(t, 1000, int(pool.configPrototypeSourceMe.CountPerSenderThreshold))
 	require.Equal(t, 100, int(pool.configPrototypeSourceMe.NumSendersToPreemptivelyEvict))
-	require.Equal(t, 200, int(pool.configPrototypeSourceMe.MinGasPriceNanoErd))
 	require.Equal(t, 300000, int(pool.configPrototypeSourceMe.CountThreshold))
 
 	require.Equal(t, 300000, int(pool.configPrototypeDestinationMe.MaxNumItems))
@@ -337,7 +353,16 @@ func Test_routeToCacheUnions(t *testing.T) {
 		SizeInBytesPerSender: 40960,
 		Shards:               1,
 	}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 42}
+	args := ArgShardedTxPool{
+		Config: config,
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
+			MinimumGasMove:       50000,
+			MinimumGasPrice:      200000000000,
+			GasProcessingDivisor: 100,
+		},
+		NumberOfShards: 4,
+		SelfShardID:    42,
+	}
 	pool, _ := NewShardedTxPool(args)
 
 	require.Equal(t, "42", pool.routeToCacheUnions("42"))
@@ -371,7 +396,16 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		SizeInBytesPerSender: 40960,
 		Shards:               1,
 	}
-	args := ArgShardedTxPool{Config: config, MinGasPrice: 200000000000, NumberOfShards: 4, SelfShardID: 0}
+	args := ArgShardedTxPool{
+		Config: config,
+		TxGasHandler: &txcachemocks.TxGasHandlerMock{
+			MinimumGasMove:       50000,
+			MinimumGasPrice:      200000000000,
+			GasProcessingDivisor: 100,
+		},
+		NumberOfShards: 4,
+		SelfShardID:    0,
+	}
 	return NewShardedTxPool(args)
 }
 

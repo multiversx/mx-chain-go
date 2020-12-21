@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/mock"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,6 +74,12 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		EconomicsFee: &mock.FeeHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
+			},
+			ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+				return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+			},
+			ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+				return core.SafeMul(tx.GetGasPrice(), gasToUse)
 			},
 		},
 		TxTypeHandler: &mock.TxTypeHandlerMock{},
@@ -1252,6 +1259,10 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit())
+		}}
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.NotNil(t, sc)
@@ -1948,8 +1959,8 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	arguments.AccountsDB = accountsDB
 	arguments.Coordinator = shardCoordinator
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCDeployment
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCDeployment, process.SCDeployment
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2009,8 +2020,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2080,8 +2091,8 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
@@ -2333,9 +2344,17 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
-	feeHandler := &mock.FeeHandlerStub{ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
-		return 0
-	}}
+	feeHandler := &mock.FeeHandlerStub{
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			return 0
+		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+		},
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return core.SafeMul(tx.GetGasPrice(), gasToUse)
+		},
+	}
 	arguments.EconomicsFee = feeHandler
 	arguments.Coordinator = shardCoordinator
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -2398,6 +2417,9 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+		return big.NewInt(100)
+	}}
 	sc, _ := NewSmartContractProcessor(arguments)
 
 	scrWithRelayed := &smartContractResult.SmartContractResult{
@@ -2420,4 +2442,83 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 
 	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)
 	assert.Equal(t, sc.shardCoordinator.SelfId(), senderID)
+}
+
+func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldBeCalled(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(100)
+		},
+	}
+
+	called := false
+	arguments.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			called = true
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{
+		SndAddr: []byte("snd"),
+		RcvAddr: []byte("rcv"),
+		Value:   big.NewInt(15),
+	}
+
+	sndAccount := &mock.UserAccountStub{}
+	err := sc.ProcessIfError(sndAccount, []byte("txHash"), tx, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
+func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldNOTBeCalled(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	shardCoordinator := &mock.CoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1
+		},
+		SelfIdCalled: func() uint32 {
+			return 0
+		}}
+	arguments.Coordinator = shardCoordinator
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return big.NewInt(100)
+		},
+	}
+
+	called := false
+	arguments.TxFeeHandler = &mock.FeeAccumulatorStub{
+		ProcessTransactionFeeCalled: func(cost *big.Int, devFee *big.Int, hash []byte) {
+			called = true
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sc.EpochConfirmed(100)
+
+	tx := &transaction.Transaction{
+		SndAddr: []byte("snd"),
+		RcvAddr: []byte("rcv"),
+		Value:   big.NewInt(15),
+	}
+
+	err := sc.ProcessIfError(nil, []byte("txHash"), tx, "0", []byte("message"), 1, 100)
+	require.Nil(t, err)
+	require.False(t, called)
 }

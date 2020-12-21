@@ -79,9 +79,9 @@ func (tc *trieCreator) Create(
 			return nil, nil, errNewTrie
 		}
 
-		newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
-		if err != nil {
-			return nil, nil, err
+		newTrie, errNewTrie := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, maxTrieLevelInMem)
+		if errNewTrie != nil {
+			return nil, nil, errNewTrie
 		}
 
 		return trieStorage, newTrie, nil

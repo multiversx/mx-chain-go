@@ -185,12 +185,12 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 	expectedErr := errors.New("expectedError")
 	arg := createDefaultValidatorsProviderArg()
 
-	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{
+	validatorProc := &mock.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
 	}
-	validatorStatistics.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		return nil, expectedErr
 	}
 
@@ -204,7 +204,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 
 	vsp := validatorsProvider{
 		nodesCoordinator:             nodesCoordinator,
-		validatorStatistics:          validatorStatistics,
+		validatorStatistics:          validatorProc,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
@@ -269,18 +269,18 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		},
 	}
 	arg := createDefaultValidatorsProviderArg()
-	validatorStatistics := &mock.ValidatorStatisticsProcessorStub{
+	validatorProc := &mock.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
 		},
 	}
-	validatorStatistics.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+	validatorProc.GetValidatorInfoForRootHashCalled = func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
 		return validatorsMap, nil
 	}
 
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
-		validatorStatistics:          validatorStatistics,
+		validatorStatistics:          validatorProc,
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,

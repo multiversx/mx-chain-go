@@ -62,6 +62,8 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				LeaderPercentage:                 0.1,
 				ProtocolSustainabilityPercentage: 0.1,
 				ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				TopUpFactor:                      0.25,
+				TopUpGradientPoint:               "300000000000000000000",
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     "10000000",
@@ -69,7 +71,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				MinGasPrice:             "10",
 				MinGasLimit:             "10",
 				GasPerDataByte:          "1",
-				DataLimitForBaseCalc:    "10000",
+				GasPriceModifier:        1.0,
 			},
 		},
 		PenalizedTooMuchGasEnableEpoch: 0,
@@ -2180,13 +2182,13 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochWithLargeValidatorFa
 
 func TestValidatorsProvider_PeerAccoutToValidatorInfo(t *testing.T) {
 
-	startRating := uint32(50)
+	baseRating := uint32(50)
 	rating := uint32(70)
 	chancesForStartRating := uint32(20)
 	chancesForRating := uint32(22)
 	newRater := createMockRater()
 	newRater.GetChancesCalled = func(val uint32) uint32 {
-		if val == startRating {
+		if val == baseRating {
 			return chancesForStartRating
 		}
 		if val == rating {
@@ -2408,6 +2410,40 @@ func createUpdateTestArgs(consensusGroup map[string][]sharding.Validator) peer.A
 		},
 	}
 	return arguments
+}
+
+func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdates(t *testing.T) {
+	t.Parallel()
+
+	peerAdapter := getAccountsMock()
+	arguments := createMockArguments()
+	arguments.PeerAdapter = peerAdapter
+
+	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		peerAcc := state.NewEmptyPeerAccount()
+		peerAcc.List = string(core.LeavingList)
+		return peerAcc, nil
+	}
+
+	arguments.NodesCoordinator = &mock.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			mapNodes := make(map[uint32][][]byte)
+			mapNodes[0] = [][]byte{[]byte("someAddress")}
+			return mapNodes, nil
+		},
+	}
+
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	nodeForcedToRemain, err := validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	assert.Nil(t, err)
+	assert.True(t, nodeForcedToRemain)
+
+	peerAdapter.LoadAccountCalled = func(address []byte) (state.AccountHandler, error) {
+		return state.NewEmptyPeerAccount(), nil
+	}
+	nodeForcedToRemain, err = validatorStatistics.SaveNodesCoordinatorUpdates(0)
+	assert.Nil(t, err)
+	assert.False(t, nodeForcedToRemain)
 }
 
 func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {

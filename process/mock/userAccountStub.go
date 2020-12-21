@@ -141,5 +141,5 @@ func (u *UserAccountStub) DataTrieTracker() state.DataTrieTracker {
 
 // IsInterfaceNil -
 func (u *UserAccountStub) IsInterfaceNil() bool {
-	return false
+	return u == nil
 }
