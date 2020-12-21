@@ -973,7 +973,7 @@ func (sc *scProcessor) ProcessIfError(
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
-	if isCrossShardMoveBalance {
+	if isCrossShardMoveBalance && sc.flagDeploy.IsSet() {
 		// move balance was already consumed in sender shard
 		return nil
 	}
