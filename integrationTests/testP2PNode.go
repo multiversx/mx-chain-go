@@ -135,7 +135,7 @@ func (tP2pNode *TestP2PNode) initNode() {
 		EpochConfirmedNotifier:    epochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RounderMock{},
+		RoundHandler:              &mock.RoundHandlerMock{},
 	}
 	argHardforkTrigger.SelfPubKeyBytes, _ = tP2pNode.NodeKeys.Pk.ToByteArray()
 	hardforkTrigger, err := trigger.NewTrigger(argHardforkTrigger)

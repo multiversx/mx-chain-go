@@ -97,7 +97,7 @@ func CreateHardForkTrigger(
 		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
-		RoundHandler:              process.Rounder(),
+		RoundHandler:              process.RoundHandler(),
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

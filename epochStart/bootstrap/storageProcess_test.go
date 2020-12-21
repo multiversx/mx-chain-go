@@ -113,7 +113,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 			return roundDuration
 		},
 	}
-	args.Rounder = &mock.RounderStub{
+	args.RoundHandler = &mock.RoundHandlerStub{
 		RoundIndex: 2*roundsPerEpoch + 1,
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
