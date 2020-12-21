@@ -128,6 +128,17 @@ func TestSystemSCFactory_Create(t *testing.T) {
 	assert.Equal(t, 6, container.Len())
 }
 
+func TestSystemSCFactory_CreateForGenesis(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	container, err := scFactory.CreateForGenesis()
+	assert.Nil(t, err)
+	assert.Equal(t, 4, container.Len())
+}
+
 func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 

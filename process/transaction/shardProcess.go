@@ -39,7 +39,6 @@ type txProcessor struct {
 	scrForwarder                   process.IntermediateTransactionHandler
 	signMarshalizer                marshal.Marshalizer
 	flagRelayedTx                  atomic.Flag
-	flagPenalizedTooMuchGas        atomic.Flag
 	flagMetaProtection             atomic.Flag
 	relayedTxEnableEpoch           uint32
 	penalizedTooMuchGasEnableEpoch uint32
@@ -372,6 +371,11 @@ func (txProc *txProcessor) processTxFee(
 	err := acntSnd.SubFromBalance(moveBalanceFee)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+		totalCost := core.SafeMul(tx.GasLimit, tx.GasPrice)
+		return moveBalanceFee, totalCost, nil
 	}
 
 	return moveBalanceFee, moveBalanceFee, nil

@@ -14,7 +14,7 @@ func (n *NodesConfigProviderStub) MinNumberOfNodes() uint32 {
 	return 10
 }
 
-// MinMetaHysteresisNodes -
+// MinNumberOfNodesWithHysteresis -
 func (n *NodesConfigProviderStub) MinNumberOfNodesWithHysteresis() uint32 {
 	if n.MinNumberOfNodesWithHysteresisCalled != nil {
 		return n.MinNumberOfNodesWithHysteresisCalled()

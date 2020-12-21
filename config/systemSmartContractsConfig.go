@@ -17,13 +17,13 @@ type StakingSystemSCConfig struct {
 	UnJailValue                          string
 	MinStepValue                         string
 	UnBondPeriod                         uint64
-	StakingV2Epoch                       uint32
-	StakeEnableEpoch                     uint32
-	DoubleKeyProtectionEnableEpoch       uint32
 	NumRoundsWithoutBleed                uint64
 	MaximumPercentageToBleed             float64
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
+	StakingV2Epoch                       uint32
+	StakeEnableEpoch                     uint32
+	DoubleKeyProtectionEnableEpoch       uint32
 	ActivateBLSPubKeyMessageVerification bool
 }
 

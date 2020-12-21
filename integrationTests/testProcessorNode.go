@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -87,6 +88,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 	"github.com/pkg/errors"
 )
+
+var zero = big.NewInt(0)
 
 // TestHasher represents a Sha256 hasher
 var TestHasher = sha256.Sha256{}
@@ -1399,6 +1402,107 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 	)
 }
 
+// InitDelegationManager will initialize the delegation manager whenever required
+func (tpn *TestProcessorNode) InitDelegationManager() {
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+
+	systemVM, err := tpn.VMContainer.Get(factory.SystemVirtualMachine)
+	log.LogIfError(err)
+
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+
+	vmInput := &vmcommon.ContractCreateInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.DelegationManagerSCAddress,
+			Arguments:  [][]byte{},
+			CallValue:  zero,
+		},
+		ContractCode:         vm.DelegationManagerSCAddress,
+		ContractCodeMetadata: codeMetaData.ToBytes(),
+	}
+
+	vmOutput, err := systemVM.RunSmartContractCreate(vmInput)
+	log.LogIfError(err)
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		log.Error("error while initializing system SC", "return code", vmOutput.ReturnCode)
+	}
+
+	err = tpn.processSCOutputAccounts(vmOutput)
+	log.LogIfError(err)
+
+	err = tpn.updateSystemSCContractsCode(vmInput.ContractCodeMetadata, vm.DelegationManagerSCAddress)
+	log.LogIfError(err)
+
+	_, err = tpn.AccntState.Commit()
+	log.LogIfError(err)
+}
+
+func (tpn *TestProcessorNode) updateSystemSCContractsCode(contractMetadata []byte, scAddress []byte) error {
+	userAcc, err := tpn.getUserAccount(scAddress)
+	if err != nil {
+		return err
+	}
+
+	userAcc.SetOwnerAddress(scAddress)
+	userAcc.SetCodeMetadata(contractMetadata)
+	userAcc.SetCode(scAddress)
+
+	return tpn.AccntState.SaveAccount(userAcc)
+}
+
+// save account changes in state from vmOutput - protected by VM - every output can be treated as is.
+func (tpn *TestProcessorNode) processSCOutputAccounts(vmOutput *vmcommon.VMOutput) error {
+	outputAccounts := process.SortVMOutputInsideData(vmOutput)
+	for _, outAcc := range outputAccounts {
+		acc, err := tpn.getUserAccount(outAcc.Address)
+		if err != nil {
+			return err
+		}
+
+		storageUpdates := process.GetSortedStorageUpdates(outAcc)
+		for _, storeUpdate := range storageUpdates {
+			err = acc.DataTrieTracker().SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
+			if err != nil {
+				return err
+			}
+		}
+
+		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
+			err = acc.AddToBalance(outAcc.BalanceDelta)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = tpn.AccntState.SaveAccount(acc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (tpn *TestProcessorNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	acnt, err := tpn.AccntState.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	stAcc, ok := acnt.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return stAcc, nil
+}
+
 func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) {
 	mockVM, _ := mock.NewOneSCExecutorMockVM(blockchainHook, TestHasher)
 	mockVM.GasForOperation = OpGasValueForMockVm
@@ -2173,6 +2277,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		node.WithEpochStartTrigger(tpn.EpochStartTrigger),
 		node.WithValidatorsProvider(&mock.ValidatorsProviderStub{}),
 	)
+	log.LogIfError(err)
 
 	hbConfig := config.HeartbeatConfig{
 		MinTimeToWaitBetweenBroadcastsInSec: 4,

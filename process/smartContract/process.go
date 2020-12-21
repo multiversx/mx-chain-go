@@ -53,6 +53,7 @@ type scProcessor struct {
 	flagDeploy                     atomic.Flag
 	flagBuiltin                    atomic.Flag
 	flagPenalizedTooMuchGas        atomic.Flag
+	isGenesisProcessing            bool
 
 	badTxForwarder process.IntermediateTransactionHandler
 	scrForwarder   process.IntermediateTransactionHandler
@@ -92,6 +93,7 @@ type ArgsNewSmartContractProcessor struct {
 	BuiltinEnableEpoch             uint32
 	PenalizedTooMuchGasEnableEpoch uint32
 	EpochNotifier                  process.EpochNotifier
+	IsGenesisProcessing            bool
 }
 
 // NewSmartContractProcessor creates a smart contract processor that creates and interprets VM data
@@ -176,6 +178,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		deployEnableEpoch:              args.DeployEnableEpoch,
 		builtinEnableEpoch:             args.BuiltinEnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
+		isGenesisProcessing:            args.IsGenesisProcessing,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -391,9 +394,9 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewards(tx, vmOutput, builtInFuncGasUsed)
+	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, builtInFuncGasUsed)
 	if err != nil {
-		log.Error("updateDeveloper rewards error", "error", err.Error())
+		log.Error("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
@@ -404,7 +407,7 @@ func (sc *scProcessor) finishSCExecution(
 	return vmcommon.Ok, nil
 }
 
-func (sc *scProcessor) updateDeveloperRewards(
+func (sc *scProcessor) updateDeveloperRewardsV2(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
@@ -441,7 +444,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 
 		if outAcc.GasUsed > 0 && sc.isSelfShard(outAcc.Address) {
-			err = sc.addToDevRewards(outAcc.Address, outAcc.GasUsed, tx)
+			err = sc.addToDevRewardsV2(outAcc.Address, outAcc.GasUsed, tx)
 			if err != nil {
 				return err
 			}
@@ -461,7 +464,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 		}
 	}
 
-	err = sc.addToDevRewards(tx.GetRcvAddr(), usedGasByMainSC, tx)
+	err = sc.addToDevRewardsV2(tx.GetRcvAddr(), usedGasByMainSC, tx)
 	if err != nil {
 		return err
 	}
@@ -469,7 +472,7 @@ func (sc *scProcessor) updateDeveloperRewards(
 	return nil
 }
 
-func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
+func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data.TransactionHandler) error {
 	if core.IsEmptyAddress(address) || !core.IsSmartContractAddress(address) {
 		return nil
 	}
@@ -1104,7 +1107,8 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	var vmOutput *vmcommon.VMOutput
 	snapshot := sc.accounts.JournalLen()
 
-	if !sc.flagDeploy.IsSet() {
+	shouldAllowDeploy := sc.flagDeploy.IsSet() || sc.isGenesisProcessing
+	if !shouldAllowDeploy {
 		log.Trace("deploy is disabled")
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, process.ErrSmartContractDeploymentIsDisabled.Error(), []byte(""), snapshot, 0)
 	}
@@ -1160,9 +1164,9 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return 0, err
 	}
 
-	err = sc.updateDeveloperRewards(tx, vmOutput, 0)
+	err = sc.updateDeveloperRewardsProxy(tx, vmOutput, 0)
 	if err != nil {
-		log.Debug("updateDeveloper rewards error", "error", err.Error())
+		log.Debug("updateDeveloperRewardsProxy", "error", err.Error())
 		return 0, err
 	}
 
@@ -1172,6 +1176,18 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
 	return 0, nil
+}
+
+func (sc *scProcessor) updateDeveloperRewardsProxy(
+	tx data.TransactionHandler,
+	vmOutput *vmcommon.VMOutput,
+	builtInFuncGasUsed uint64,
+) error {
+	if !sc.flagDeploy.IsSet() {
+		return sc.updateDeveloperRewardsV1(tx, vmOutput, builtInFuncGasUsed)
+	}
+
+	return sc.updateDeveloperRewardsV2(tx, vmOutput, builtInFuncGasUsed)
 }
 
 func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.TransactionHandler) {
@@ -1554,9 +1570,10 @@ func (sc *scProcessor) createSmartContractResults(
 			result.OriginalSender = tx.GetSndAddr()
 		}
 
+		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
 		if isLastOutTransfer &&
-			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransfer, vmOutput, tx, result) {
+			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
 			createdAsyncCallBack = true
 		}
 
@@ -1610,11 +1627,7 @@ func (sc *scProcessor) isTransferWithNoDataOrBuiltInCall(data []byte) bool {
 	}
 
 	_, err = sc.builtInFunctions.Get(function)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)

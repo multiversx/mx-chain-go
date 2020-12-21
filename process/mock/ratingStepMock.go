@@ -1,6 +1,6 @@
 package mock
 
-// RatingsData will store information about ratingsComputation specific for a shard or metachain
+// RatingStepMock will store information about ratingsComputation specific for a shard or metachain
 type RatingStepMock struct {
 	ProposerIncreaseRatingStepProperty     int32
 	ProposerDecreaseRatingStepProperty     int32
