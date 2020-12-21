@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -115,7 +116,7 @@ func createMockEpochStartBootstrapArgs() ArgsEpochStartBootstrap {
 				MaxSnapshots:       2,
 			},
 		},
-		EconomicsData:              &mock.EconomicsHandlerStub{},
+		EconomicsData:              &economicsmocks.EconomicsHandlerStub{},
 		SingleSigner:               &mock.SignerStub{},
 		BlockSingleSigner:          &mock.SignerStub{},
 		KeyGen:                     &mock.KeyGenMock{},
