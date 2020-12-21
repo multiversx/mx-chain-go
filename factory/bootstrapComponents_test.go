@@ -152,11 +152,11 @@ func getDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		AppStatusHdl:  &testscommon.AppStatusHandlerStub{},
-		WatchdogTimer: &testscommon.WatchdogMock{},
-		AlarmSch:      &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:  &testscommon.SyncTimerStub{},
-		RoundHandler:  &testscommon.RounderMock{},
+		AppStatusHdl:      &testscommon.AppStatusHandlerStub{},
+		WatchdogTimer:     &testscommon.WatchdogMock{},
+		AlarmSch:          &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:      &testscommon.SyncTimerStub{},
+		RoundHandlerField: &testscommon.RoundHandlerMock{},
 		//TODO: uncomment this
 		//EconomicsHandler: &testscommon.EconomicsHandlerMock{},
 		RatingsConfig: &testscommon.RatingsInfoMock{},

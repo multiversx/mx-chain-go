@@ -11,7 +11,7 @@ import (
 // ArgChronology holds all dependencies required by the chronology component
 type ArgChronology struct {
 	GenesisTime      time.Time
-	Rounder          consensus.Rounder
+	RoundHandler     consensus.RoundHandler
 	SyncTimer        ntp.SyncTimer
 	Watchdog         core.WatchdogTimer
 	AppStatusHandler core.AppStatusHandler

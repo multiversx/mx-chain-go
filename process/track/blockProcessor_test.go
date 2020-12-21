@@ -54,7 +54,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 				return 1
 			},
 		},
-		Rounder: &mock.RounderMock{},
+		RoundHandler: &mock.RoundHandlerMock{},
 	}
 
 	return arguments
@@ -170,14 +170,14 @@ func TestNewBlockProcessor_ShouldErrFinalMetachainHeadersNotifier(t *testing.T) 
 	assert.Nil(t, bp)
 }
 
-func TestNewBlockProcessor_ShouldErrNilRounder(t *testing.T) {
+func TestNewBlockProcessor_ShouldErrNilRoundHandler(t *testing.T) {
 	t.Parallel()
 
 	blockProcessorArguments := CreateBlockProcessorMockArguments()
-	blockProcessorArguments.Rounder = nil
+	blockProcessorArguments.RoundHandler = nil
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
-	assert.Equal(t, track.ErrNilRounder, err)
+	assert.Equal(t, track.ErrNilRoundHandler, err)
 	assert.Nil(t, bp)
 }
 
@@ -902,7 +902,7 @@ func testRequestHeaders(t *testing.T, roundIndex uint64, round uint64, nonce uin
 		},
 	}
 
-	blockProcessorArguments.Rounder = &mock.RounderMock{
+	blockProcessorArguments.RoundHandler = &mock.RoundHandlerMock{
 		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + int64(roundIndex),
 	}
 
@@ -948,7 +948,7 @@ func TestRequestHeadersIfNothingNewIsReceived_ShouldRequestIfHighestRoundFromRec
 		},
 	}
 
-	blockProcessorArguments.Rounder = &mock.RounderMock{
+	blockProcessorArguments.RoundHandler = &mock.RoundHandlerMock{
 		RoundIndex: process.MaxRoundsWithoutNewBlockReceived + 4,
 	}
 

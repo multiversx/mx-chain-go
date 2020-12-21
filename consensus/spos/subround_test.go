@@ -383,13 +383,13 @@ func TestSubround_NilContainerMultisignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
+func TestSubround_NilContainerRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 
 	sr, err := spos.NewSubround(
 		-1,
@@ -408,7 +408,7 @@ func TestSubround_NilContainerRounderShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, sr)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
@@ -583,12 +583,12 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(rounderMock)
+	r := sr.DoWork(roundHandlerMock)
 
 	assert.False(t, r)
 }
@@ -621,12 +621,12 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	sr.Check = nil
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(rounderMock)
+	r := sr.DoWork(roundHandlerMock)
 	assert.False(t, r)
 }
 
@@ -670,12 +670,12 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
 
-	r := sr.DoWork(rounderMock)
+	r := sr.DoWork(roundHandlerMock)
 	assert.Equal(t, shouldWork, r)
 }
 
@@ -717,8 +717,8 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	}
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
-	rounderMock := &mock.RounderMock{}
-	rounderMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
 
@@ -732,7 +732,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		ch <- true
 	}()
 
-	r := sr.DoWork(rounderMock)
+	r := sr.DoWork(roundHandlerMock)
 
 	assert.True(t, r)
 }
@@ -839,7 +839,7 @@ func TestSubround_StartTime(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetRounder(initRounderMock())
+	container.SetRoundHandler(initRoundHandlerMock())
 	sr, _ := spos.NewSubround(
 		bls.SrBlock,
 		bls.SrSignature,
@@ -871,7 +871,7 @@ func TestSubround_EndTime(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := mock.InitConsensusCore()
-	container.SetRounder(initRounderMock())
+	container.SetRoundHandler(initRoundHandlerMock())
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,

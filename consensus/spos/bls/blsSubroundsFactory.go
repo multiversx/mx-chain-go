@@ -116,7 +116,7 @@ func (fct *factory) GenerateSubrounds() error {
 }
 
 func (fct *factory) getTimeDuration() time.Duration {
-	return fct.consensusCore.Rounder().TimeDuration()
+	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
 func (fct *factory) generateStartRoundSubround() error {

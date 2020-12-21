@@ -102,7 +102,7 @@ func NewShardProcessorEmptyWith3shards(
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   hdrValidator,
-			Rounder:           &mock.RounderMock{},
+			RoundHandler:      &mock.RoundHandlerMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil

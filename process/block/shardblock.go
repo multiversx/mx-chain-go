@@ -64,7 +64,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		appStatusHandler:        arguments.AppStatusHandler,
 		blockChainHook:          arguments.BlockChainHook,
 		txCoordinator:           arguments.TxCoordinator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.RoundHandler,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
 		bootStorer:              arguments.BootStorer,
@@ -1652,7 +1652,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	roundTooOld := sp.rounder.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1

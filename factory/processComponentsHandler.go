@@ -88,8 +88,8 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.resolversFinder) {
 		return errors.ErrNilResolversFinder
 	}
-	if check.IfNil(m.processComponents.rounder) {
-		return errors.ErrNilRounder
+	if check.IfNil(m.processComponents.roundHandler) {
+		return errors.ErrNilRoundHandler
 	}
 	if check.IfNil(m.processComponents.epochStartTrigger) {
 		return errors.ErrNilEpochStartTrigger
@@ -194,8 +194,8 @@ func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFind
 	return m.processComponents.resolversFinder
 }
 
-// Rounder returns the rounderer
-func (m *managedProcessComponents) Rounder() consensus.Rounder {
+// RoundHandler returns the roundHandler
+func (m *managedProcessComponents) RoundHandler() consensus.RoundHandler {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -203,7 +203,7 @@ func (m *managedProcessComponents) Rounder() consensus.Rounder {
 		return nil
 	}
 
-	return m.processComponents.rounder
+	return m.processComponents.roundHandler
 }
 
 // EpochStartTrigger returns the epoch start trigger handler

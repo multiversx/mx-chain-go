@@ -43,7 +43,7 @@ type txsPoolsCleaner struct {
 	blockTransactionsPool    dataRetriever.ShardedDataCacherNotifier
 	rewardTransactionsPool   dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactionsPool dataRetriever.ShardedDataCacherNotifier
-	rounder                  process.Rounder
+	roundHandler             process.RoundHandler
 	shardCoordinator         sharding.Coordinator
 
 	mutMapTxsRounds sync.RWMutex
@@ -56,7 +56,7 @@ type txsPoolsCleaner struct {
 func NewTxsPoolsCleaner(
 	addressPubkeyConverter core.PubkeyConverter,
 	dataPool dataRetriever.PoolsHolder,
-	rounder process.Rounder,
+	roundHandler process.RoundHandler,
 	shardCoordinator sharding.Coordinator,
 ) (*txsPoolsCleaner, error) {
 
@@ -75,8 +75,8 @@ func NewTxsPoolsCleaner(
 	if check.IfNil(dataPool.UnsignedTransactions()) {
 		return nil, process.ErrNilUnsignedTxDataPool
 	}
-	if check.IfNil(rounder) {
-		return nil, process.ErrNilRounder
+	if check.IfNil(roundHandler) {
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -87,7 +87,7 @@ func NewTxsPoolsCleaner(
 		blockTransactionsPool:    dataPool.Transactions(),
 		rewardTransactionsPool:   dataPool.RewardTransactions(),
 		unsignedTransactionsPool: dataPool.UnsignedTransactions(),
-		rounder:                  rounder,
+		roundHandler:             roundHandler,
 		shardCoordinator:         shardCoordinator,
 	}
 
@@ -221,7 +221,7 @@ func (tpc *txsPoolsCleaner) processReceivedTx(
 		}
 
 		currTxInfo := &txInfo{
-			round:           tpc.rounder.Index(),
+			round:           tpc.roundHandler.Index(),
 			senderShardID:   senderShardID,
 			receiverShardID: receiverShardID,
 			txType:          txType,
@@ -259,7 +259,7 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			continue
 		}
 
-		roundDif := tpc.rounder.Index() - currTxInfo.round
+		roundDif := tpc.roundHandler.Index() - currTxInfo.round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedTransactions {
 			log.Trace("cleaning transaction not yet allowed",
 				"hash", []byte(hash),

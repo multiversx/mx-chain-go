@@ -30,22 +30,22 @@ type CoreComponentsMock struct {
 	PathHdl                     storage.PathManagerHandler
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
-	StatusHdlUtils           nodeFactory.StatusHandlersUtils
-	AppStatusHdl             core.AppStatusHandler
-	WDTimer                  core.WatchdogTimer
-	Alarm                    core.TimersScheduler
-	NtpTimer                 ntp.SyncTimer
-	RoundHandler             consensus.Rounder
-	EconomicsHandler         process.EconomicsHandler
-	RatingsConfig            process.RatingsInfoHandler
-	RatingHandler            sharding.PeerAccountListAndRatingHandler
-	NodesConfig              sharding.GenesisNodesSetupHandler
-	EpochChangeNotifier      process.EpochNotifier
-	EpochNotifierWithConfirm factory.EpochStartNotifierWithConfirm
-	ChanStopProcess          chan endProcess.ArgEndProcess
-	Shuffler                 sharding.NodesShuffler
-	TxVersionCheckHandler    process.TxVersionCheckerHandler
-	StartTime                time.Time
+	StatusHdlUtils              nodeFactory.StatusHandlersUtils
+	AppStatusHdl                core.AppStatusHandler
+	WDTimer                     core.WatchdogTimer
+	Alarm                       core.TimersScheduler
+	NtpTimer                    ntp.SyncTimer
+	RoundHandlerField           consensus.RoundHandler
+	EconomicsHandler            process.EconomicsHandler
+	RatingsConfig               process.RatingsInfoHandler
+	RatingHandler               sharding.PeerAccountListAndRatingHandler
+	NodesConfig                 sharding.GenesisNodesSetupHandler
+	EpochChangeNotifier         process.EpochNotifier
+	EpochNotifierWithConfirm    factory.EpochStartNotifierWithConfirm
+	ChanStopProcess             chan endProcess.ArgEndProcess
+	Shuffler                    sharding.NodesShuffler
+	TxVersionCheckHandler       process.TxVersionCheckerHandler
+	StartTime                   time.Time
 }
 
 // Create -
@@ -93,9 +93,9 @@ func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
 	return ccm.NtpTimer
 }
 
-// Rounder -
-func (ccm *CoreComponentsMock) Rounder() consensus.Rounder {
-	return ccm.RoundHandler
+// RoundHandlerField -
+func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
+	return ccm.RoundHandlerField
 }
 
 // EconomicsData -

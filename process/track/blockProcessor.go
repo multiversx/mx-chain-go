@@ -23,7 +23,7 @@ type blockProcessor struct {
 	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
-	rounder                               process.Rounder
+	roundHandler                          process.RoundHandler
 
 	blockFinality uint64
 }
@@ -46,7 +46,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedFromCrossHeadersNotifier: arguments.SelfNotarizedFromCrossHeadersNotifier,
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
-		rounder:                               arguments.Rounder,
+		roundHandler:                          arguments.RoundHandler,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -413,7 +413,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		return
 	}
 
-	shouldRequestHeaders := bp.rounder.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
+	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
@@ -422,7 +422,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	log.Debug("requestHeadersIfNothingNewIsReceived",
 		"shard", latestValidHeader.GetShardID(),
 		"latest valid header nonce", latestValidHeader.GetNonce(),
-		"chronology round", bp.rounder.Index(),
+		"chronology round", bp.roundHandler.Index(),
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
 	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
@@ -481,8 +481,8 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	if check.IfNil(arguments.FinalMetachainHeadersNotifier) {
 		return ErrNilFinalMetachainHeadersNotifier
 	}
-	if check.IfNil(arguments.Rounder) {
-		return ErrNilRounder
+	if check.IfNil(arguments.RoundHandler) {
+		return ErrNilRoundHandler
 	}
 
 	return nil

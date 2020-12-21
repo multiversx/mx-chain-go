@@ -32,7 +32,7 @@ type baseBlockTrack struct {
 	hasher           hashing.Hasher
 	headerValidator  process.HeaderConstructionValidator
 	marshalizer      marshal.Marshalizer
-	rounder          process.Rounder
+	roundHandler     process.RoundHandler
 	shardCoordinator sharding.Coordinator
 	headersPool      dataRetriever.HeadersPool
 	store            dataRetriever.StorageService
@@ -99,7 +99,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		hasher:                                arguments.Hasher,
 		headerValidator:                       arguments.HeaderValidator,
 		marshalizer:                           arguments.Marshalizer,
-		rounder:                               arguments.Rounder,
+		roundHandler:                          arguments.RoundHandler,
 		shardCoordinator:                      arguments.ShardCoordinator,
 		headersPool:                           arguments.PoolsHolder.Headers(),
 		store:                                 arguments.Store,
@@ -197,7 +197,7 @@ func (bbt *baseBlockTrack) ShouldAddHeader(headerHandler data.HeaderHandler) boo
 func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	headerHandler data.HeaderHandler,
 	blockNotarizer blockNotarizerHandler,
-	shardForFirstNotarizedHeader uint32,
+	_ uint32,
 ) bool {
 	lastNotarizedHeader, _, err := blockNotarizer.GetLastNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
@@ -401,13 +401,13 @@ func (bbt *baseBlockTrack) GetCrossNotarizedHeader(shardID uint32, offset uint64
 	return bbt.crossNotarizer.GetNotarizedHeader(shardID, offset)
 }
 
-// CheckBlockAgainstRounder verifies the provided header against the rounder's current round
-func (bbt *baseBlockTrack) CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error {
+// CheckBlockAgainstRoundHandler verifies the provided header against the roundHandler's current round
+func (bbt *baseBlockTrack) CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error {
 	if check.IfNil(headerHandler) {
 		return process.ErrNilHeaderHandler
 	}
 
-	nextRound := bbt.rounder.Index() + 1
+	nextRound := bbt.roundHandler.Index() + 1
 	if int64(headerHandler.GetRound()) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
@@ -718,8 +718,8 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.RequestHandler) {
 		return process.ErrNilRequestHandler
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.RoundHandler) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.ShardCoordinator) {
 		return process.ErrNilShardCoordinator

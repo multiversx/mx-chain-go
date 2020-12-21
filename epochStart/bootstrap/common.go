@@ -61,8 +61,8 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CoreComponentsHolder.AddressPubKeyConverter()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilPubkeyConverter)
 	}
-	if check.IfNil(args.Rounder) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRounder)
+	if check.IfNil(args.RoundHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilRoundHandler)
 	}
 	if check.IfNil(args.StorageUnitOpener) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilStorageUnitOpener)

@@ -160,7 +160,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultisignerShouldFail(t *testi
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T) {
+func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -182,7 +182,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 		currentPid,
 		&mock.AppStatusHandlerStub{},
 	)
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
@@ -191,7 +191,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRounderShouldFail(t *testing.T
 	)
 
 	assert.Nil(t, srSignature)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing.T) {

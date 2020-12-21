@@ -59,7 +59,7 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 				return true
 			},
 		},
-		rounder: &mock.RounderMock{
+		roundHandler: &mock.RoundHandlerMock{
 			BeforeGenesisCalled: func() bool {
 				return false
 			},

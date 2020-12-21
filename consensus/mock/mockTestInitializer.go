@@ -124,7 +124,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		},
 	}
 	multiSignerMock := InitMultiSignerMock()
-	rounderMock := &RounderMock{}
+	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &NodesCoordinatorMock{}
@@ -147,7 +147,7 @@ func InitConsensusCore() *ConsensusCoreMock {
 		blsPrivateKey:           blsPrivateKeyMock,
 		blsSingleSigner:         blsSingleSignerMock,
 		multiSigner:             multiSignerMock,
-		rounder:                 rounderMock,
+		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
 		validatorGroupSelector:  validatorGroupSelector,

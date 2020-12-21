@@ -27,7 +27,7 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(appStatusHandler){
+	if check.IfNil(appStatusHandler) {
 		return nil, spos.ErrNilAppStatusHandler
 	}
 
@@ -84,7 +84,7 @@ func (sr *subroundSignature) doSignatureJob() bool {
 			[]byte(sr.SelfPubKey()),
 			nil,
 			int(MtSignature),
-			sr.Rounder().Index(),
+			sr.RoundHandler().Index(),
 			sr.ChainID(),
 			nil,
 			nil,
@@ -144,7 +144,7 @@ func (sr *subroundSignature) receivedSignature(cnsDta *consensus.Message) bool {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -282,9 +282,9 @@ func (sr *subroundSignature) waitAllSignatures() {
 }
 
 func (sr *subroundSignature) remainingTime() time.Duration {
-	startTime := sr.Rounder().TimeStamp()
+	startTime := sr.RoundHandler().TimeStamp()
 	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
-	remainigTime := sr.Rounder().RemainingTime(startTime, maxTime)
+	remainigTime := sr.RoundHandler().RemainingTime(startTime, maxTime)
 
 	return remainigTime
 }

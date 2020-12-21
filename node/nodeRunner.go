@@ -788,7 +788,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		AccountsParser:            accountsParser,
 		SmartContractParser:       smartContractParser,
 		GasSchedule:               gasScheduleNotifier,
-		Rounder:                   managedCoreComponents.Rounder(),
+		RoundHandler:              managedCoreComponents.RoundHandler(),
 		ShardCoordinator:          managedBootstrapComponents.ShardCoordinator(),
 		NodesCoordinator:          nodesCoordinator,
 		Data:                      managedDataComponents,

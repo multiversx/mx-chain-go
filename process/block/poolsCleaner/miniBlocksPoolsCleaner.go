@@ -30,7 +30,7 @@ type mbInfo struct {
 // miniBlocksPoolsCleaner represents a pools cleaner that checks and cleans miniblocks which should not be in pool anymore
 type miniBlocksPoolsCleaner struct {
 	miniblocksPool   storage.Cacher
-	rounder          process.Rounder
+	roundHandler     process.RoundHandler
 	shardCoordinator sharding.Coordinator
 
 	mutMapMiniBlocksRounds sync.RWMutex
@@ -41,15 +41,15 @@ type miniBlocksPoolsCleaner struct {
 // NewMiniBlocksPoolsCleaner will return a new miniblocks pools cleaner
 func NewMiniBlocksPoolsCleaner(
 	miniblocksPool storage.Cacher,
-	rounder process.Rounder,
+	roundHandler process.RoundHandler,
 	shardCoordinator sharding.Coordinator,
 ) (*miniBlocksPoolsCleaner, error) {
 
 	if check.IfNil(miniblocksPool) {
 		return nil, process.ErrNilMiniBlockPool
 	}
-	if check.IfNil(rounder) {
-		return nil, process.ErrNilRounder
+	if check.IfNil(roundHandler) {
+		return nil, process.ErrNilRoundHandler
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
@@ -57,7 +57,7 @@ func NewMiniBlocksPoolsCleaner(
 
 	mbpc := miniBlocksPoolsCleaner{
 		miniblocksPool:   miniblocksPool,
-		rounder:          rounder,
+		roundHandler:     roundHandler,
 		shardCoordinator: shardCoordinator,
 	}
 
@@ -114,7 +114,7 @@ func (mbpc *miniBlocksPoolsCleaner) receivedMiniBlock(key []byte, value interfac
 
 	if _, found := mbpc.mapMiniBlocksRounds[string(key)]; !found {
 		receivedMbInfo := &mbInfo{
-			round:           mbpc.rounder.Index(),
+			round:           mbpc.roundHandler.Index(),
 			senderShardID:   miniBlock.SenderShardID,
 			receiverShardID: miniBlock.ReceiverShardID,
 			mbType:          miniBlock.Type,
@@ -149,7 +149,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 			continue
 		}
 
-		roundDif := mbpc.rounder.Index() - mbi.round
+		roundDif := mbpc.roundHandler.Index() - mbi.round
 		if roundDif <= process.MaxRoundsToKeepUnprocessedMiniBlocks {
 			log.Trace("cleaning miniblock not yet allowed",
 				"hash", []byte(hash),

@@ -25,7 +25,7 @@ type ConsensusCore struct {
 	blsPrivateKey                 crypto.PrivateKey
 	blsSingleSigner               crypto.SingleSigner
 	multiSigner                   crypto.MultiSigner
-	rounder                       consensus.Rounder
+	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
 	nodesCoordinator              sharding.NodesCoordinator
 	syncTimer                     ntp.SyncTimer
@@ -48,7 +48,7 @@ type ConsensusCoreArgs struct {
 	BlsPrivateKey                 crypto.PrivateKey
 	BlsSingleSigner               crypto.SingleSigner
 	MultiSigner                   crypto.MultiSigner
-	Rounder                       consensus.Rounder
+	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
 	NodesCoordinator              sharding.NodesCoordinator
 	SyncTimer                     ntp.SyncTimer
@@ -74,7 +74,7 @@ func NewConsensusCore(
 		blsPrivateKey:                 args.BlsPrivateKey,
 		blsSingleSigner:               args.BlsSingleSigner,
 		multiSigner:                   args.MultiSigner,
-		rounder:                       args.Rounder,
+		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
 		nodesCoordinator:              args.NodesCoordinator,
 		syncTimer:                     args.SyncTimer,
@@ -138,9 +138,9 @@ func (cc *ConsensusCore) MultiSigner() crypto.MultiSigner {
 	return cc.multiSigner
 }
 
-//Rounder gets the Rounder stored in the ConsensusCore
-func (cc *ConsensusCore) Rounder() consensus.Rounder {
-	return cc.rounder
+//RoundHandler gets the RoundHandler stored in the ConsensusCore
+func (cc *ConsensusCore) RoundHandler() consensus.RoundHandler {
+	return cc.roundHandler
 }
 
 // ShardCoordinator gets the Coordinator stored in the ConsensusCore

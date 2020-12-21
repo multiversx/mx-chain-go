@@ -563,7 +563,7 @@ func CreateFullGenesisBlocks(
 		Economics:            economics,
 		ShardCoordinator:     shardCoordinator,
 		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
+		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		TrieStorageManagers:  trieStorageManagers,
@@ -657,7 +657,7 @@ func CreateGenesisMetaBlock(
 		ShardCoordinator:     shardCoordinator,
 		Economics:            economics,
 		ValidatorAccounts:    validatorAccounts,
-		GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
+		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		VirtualMachineConfig: config.VirtualMachineConfig{},
 		HardForkConfig:       config.HardforkConfig{},
@@ -2168,7 +2168,7 @@ func emptyDataPool(sdp dataRetriever.PoolsHolder) {
 // UpdateRound updates the round for every node
 func UpdateRound(nodes []*TestProcessorNode, round uint64) {
 	for _, n := range nodes {
-		n.Rounder.IndexField = int64(round)
+		n.RoundHandler.IndexField = int64(round)
 	}
 }
 

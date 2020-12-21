@@ -69,7 +69,7 @@ type processComponents struct {
 	shardCoordinator            sharding.Coordinator
 	interceptorsContainer       process.InterceptorsContainer
 	resolversFinder             dataRetriever.ResolversFinder
-	rounder                     consensus.Rounder
+	roundHandler                consensus.RoundHandler
 	epochStartTrigger           epochStart.TriggerHandler
 	epochStartNotifier          EpochStartNotifier
 	forkDetector                process.ForkDetector
@@ -104,7 +104,7 @@ type ProcessComponentsFactoryArgs struct {
 	SmartContractParser       genesis.InitialSmartContractParser
 	EconomicsData             process.EconomicsHandler
 	GasSchedule               core.GasScheduleNotifier
-	Rounder                   consensus.Rounder
+	RoundHandler              consensus.RoundHandler
 	ShardCoordinator          sharding.Coordinator
 	NodesCoordinator          sharding.NodesCoordinator
 	Data                      DataComponentsHolder
@@ -147,7 +147,7 @@ type processComponentsFactory struct {
 	smartContractParser       genesis.InitialSmartContractParser
 	economicsData             process.EconomicsHandler
 	gasSchedule               core.GasScheduleNotifier
-	rounder                   consensus.Rounder
+	roundHandler              consensus.RoundHandler
 	shardCoordinator          sharding.Coordinator
 	nodesCoordinator          sharding.NodesCoordinator
 	data                      DataComponentsHolder
@@ -197,7 +197,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		smartContractParser:       args.SmartContractParser,
 		economicsData:             args.EconomicsData,
 		gasSchedule:               args.GasSchedule,
-		rounder:                   args.Rounder,
+		roundHandler:              args.RoundHandler,
 		shardCoordinator:          args.ShardCoordinator,
 		nodesCoordinator:          args.NodesCoordinator,
 		data:                      args.Data,
@@ -395,7 +395,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(
 		pcf.data.Datapool().MiniBlocks(),
-		pcf.rounder,
+		pcf.roundHandler,
 		pcf.shardCoordinator,
 	)
 	if err != nil {
@@ -407,7 +407,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.data.Datapool(),
-		pcf.rounder,
+		pcf.roundHandler,
 		pcf.shardCoordinator,
 	)
 	if err != nil {
@@ -508,7 +508,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		shardCoordinator:            pcf.shardCoordinator,
 		interceptorsContainer:       interceptorsContainer,
 		resolversFinder:             resolversFinder,
-		rounder:                     pcf.rounder,
+		roundHandler:                pcf.roundHandler,
 		forkDetector:                forkDetector,
 		blockProcessor:              blockProcessor,
 		epochStartTrigger:           epochStartTrigger,
@@ -612,7 +612,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler process
 			Validity:             process.MetaBlockValidity,
 			Finality:             process.BlockFinality,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			Rounder:              pcf.rounder,
+			RoundHandler:         pcf.roundHandler,
 			AppStatusHandler:     pcf.coreData.StatusHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argEpochStart)
@@ -847,7 +847,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		HeaderValidator:  headerValidator,
 		Marshalizer:      pcf.coreData.InternalMarshalizer(),
 		RequestHandler:   requestHandler,
-		Rounder:          pcf.rounder,
+		RoundHandler:     pcf.roundHandler,
 		ShardCoordinator: pcf.shardCoordinator,
 		Store:            pcf.data.StorageService(),
 		StartHeaders:     genesisBlocks,
@@ -1175,10 +1175,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
 	if pcf.shardCoordinator.SelfId() < pcf.shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewShardForkDetector(pcf.roundHandler, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 	if pcf.shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.rounder, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewMetaForkDetector(pcf.roundHandler, headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
 	}
 
 	return nil, errors.New("could not create fork detector")
@@ -1273,8 +1273,8 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if args.GasSchedule == nil {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilGasSchedule)
 	}
-	if check.IfNil(args.Rounder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRounder)
+	if check.IfNil(args.RoundHandler) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilRoundHandler)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errErd.ErrNilShardCoordinator)

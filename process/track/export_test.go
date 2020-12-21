@@ -95,8 +95,8 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 	bbt.displayTrackedHeadersForShard(shardID, message)
 }
 
-func (bbt *baseBlockTrack) SetRounder(rounder process.Rounder) {
-	bbt.rounder = rounder
+func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
+	bbt.roundHandler = roundHandler
 }
 
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {

@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// RounderMock -
-type RounderMock struct {
+// RoundHandlerMock -
+type RoundHandlerMock struct {
 	RoundIndex          int64
 	RoundTimeStamp      time.Time
 	RoundTimeDuration   time.Duration
@@ -14,7 +14,7 @@ type RounderMock struct {
 }
 
 // BeforeGenesis -
-func (rndm *RounderMock) BeforeGenesis() bool {
+func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 	if rndm.BeforeGenesisCalled != nil {
 		return rndm.BeforeGenesisCalled()
 	}
@@ -22,22 +22,22 @@ func (rndm *RounderMock) BeforeGenesis() bool {
 }
 
 // Index -
-func (rndm *RounderMock) Index() int64 {
+func (rndm *RoundHandlerMock) Index() int64 {
 	return rndm.RoundIndex
 }
 
 // TimeDuration -
-func (rndm *RounderMock) TimeDuration() time.Duration {
+func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	return rndm.RoundTimeDuration
 }
 
 // TimeStamp -
-func (rndm *RounderMock) TimeStamp() time.Time {
+func (rndm *RoundHandlerMock) TimeStamp() time.Time {
 	return rndm.RoundTimeStamp
 }
 
 // UpdateRound -
-func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
+func (rndm *RoundHandlerMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
 	delta := timeStamp.Sub(genesisRoundTimeStamp).Nanoseconds()
 
 	index := int64(math.Floor(float64(delta) / float64(rndm.RoundTimeDuration.Nanoseconds())))
@@ -49,11 +49,11 @@ func (rndm *RounderMock) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp 
 }
 
 // RemainingTime -
-func (rndm *RounderMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return rndm.RoundTimeDuration
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (rndm *RounderMock) IsInterfaceNil() bool {
+func (rndm *RoundHandlerMock) IsInterfaceNil() bool {
 	return rndm == nil
 }

@@ -18,5 +18,5 @@ type ArgBlockProcessor struct {
 	SelfNotarizedFromCrossHeadersNotifier blockNotifierHandler
 	SelfNotarizedHeadersNotifier          blockNotifierHandler
 	FinalMetachainHeadersNotifier         blockNotifierHandler
-	Rounder                               process.Rounder
+	RoundHandler                          process.RoundHandler
 }

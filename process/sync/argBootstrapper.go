@@ -22,7 +22,7 @@ type ArgBaseBootstrapper struct {
 	PoolsHolder         dataRetriever.PoolsHolder
 	Store               dataRetriever.StorageService
 	ChainHandler        data.ChainHandler
-	Rounder             consensus.Rounder
+	RoundHandler        consensus.RoundHandler
 	BlockProcessor      process.BlockProcessor
 	WaitTime            time.Duration
 	Hasher              hashing.Hasher

@@ -218,7 +218,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultisignerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilMultiSigner, err)
 }
 
-func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
+func TestSubroundBlock_NewSubroundBlockNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
 
@@ -227,10 +227,10 @@ func TestSubroundBlock_NewSubroundBlockNilRounderShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &mock.AppStatusHandlerStub{})
 
-	container.SetRounder(nil)
+	container.SetRoundHandler(nil)
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
-	assert.Equal(t, spos.ErrNilRounder, err)
+	assert.Equal(t, spos.ErrNilRoundHandler, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.T) {
@@ -310,7 +310,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		},
 	}
 	container.SetBroadcastMessenger(bm)
-	container.SetRounder(&mock.RounderMock{
+	container.SetRoundHandler(&mock.RoundHandlerMock{
 		RoundIndex: 1,
 	})
 	r = sr.DoBlockJob()
@@ -493,7 +493,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return errors.New("error")
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRounder(&mock.RounderMock{RoundIndex: 1})
+	container.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -529,15 +529,15 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
-	rounderMock := initRounderMock()
-	container.SetRounder(rounderMock)
+	roundHandlerMock := initRoundHandlerMock()
+	container.SetRoundHandler(roundHandlerMock)
 
 	sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
 	remainingTimeInThisRound := func() time.Duration {
-		roundStartTime := sr.Rounder().TimeStamp()
+		roundStartTime := sr.RoundHandler().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
-		remainingTime := sr.Rounder().TimeDuration()*85/100 - elapsedTime
+		remainingTime := sr.RoundHandler().TimeDuration()*85/100 - elapsedTime
 
 		return remainingTime
 	}
@@ -620,18 +620,18 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
 	haveTimeInCurrentSubound := func() bool {
-		roundStartTime := sr.Rounder().TimeStamp()
+		roundStartTime := sr.RoundHandler().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
 		remainingTime := sr.EndTime() - int64(elapsedTime)
 
 		return time.Duration(remainingTime) > 0
 	}
-	rounderMock := &mock.RounderMock{}
-	rounderMock.TimeDurationCalled = func() time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
-	rounderMock.TimeStampCalled = func() time.Time {
+	roundHandlerMock.TimeStampCalled = func() time.Time {
 		return time.Unix(0, 0)
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -639,7 +639,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
 	}
-	container.SetRounder(rounderMock)
+	container.SetRoundHandler(roundHandlerMock)
 	container.SetSyncTimer(syncTimerMock)
 
 	assert.True(t, haveTimeInCurrentSubound())
@@ -650,18 +650,18 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &mock.AppStatusHandlerStub{})
 	haveTimeInCurrentSubound := func() bool {
-		roundStartTime := sr.Rounder().TimeStamp()
+		roundStartTime := sr.RoundHandler().TimeStamp()
 		currentTime := sr.SyncTimer().CurrentTime()
 		elapsedTime := currentTime.Sub(roundStartTime)
 		remainingTime := sr.EndTime() - int64(elapsedTime)
 
 		return time.Duration(remainingTime) > 0
 	}
-	rounderMock := &mock.RounderMock{}
-	rounderMock.TimeDurationCalled = func() time.Duration {
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
-	rounderMock.TimeStampCalled = func() time.Time {
+	roundHandlerMock.TimeStampCalled = func() time.Time {
 		return time.Unix(0, 0)
 	}
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -669,7 +669,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
 	}
-	container.SetRounder(rounderMock)
+	container.SetRoundHandler(roundHandlerMock)
 	container.SetSyncTimer(syncTimerMock)
 
 	assert.False(t, haveTimeInCurrentSubound())
@@ -704,8 +704,8 @@ func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	oldRand := sr.BlockChain().GetGenesisHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 	expectedHeader := &block.Header{
-		Round:            uint64(sr.Rounder().Index()),
-		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		Round:            uint64(sr.RoundHandler().Index()),
+		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            uint64(1),
 		PrevHash:         sr.BlockChain().GetGenesisHeaderHash(),
@@ -736,8 +736,8 @@ func TestSubroundBlock_CreateHeaderNotNilCurrentHeader(t *testing.T) {
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 
 	expectedHeader := &block.Header{
-		Round:            uint64(sr.Rounder().Index()),
-		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		Round:            uint64(sr.RoundHandler().Index()),
+		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1,
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),
@@ -784,8 +784,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 	oldRand := sr.BlockChain().GetCurrentBlockHeader().GetRandSeed()
 	newRand, _ := sr.SingleSigner().Sign(sr.PrivateKey(), oldRand)
 	expectedHeader := &block.Header{
-		Round:            uint64(sr.Rounder().Index()),
-		TimeStamp:        uint64(sr.Rounder().TimeStamp().Unix()),
+		Round:            uint64(sr.RoundHandler().Index()),
+		TimeStamp:        uint64(sr.RoundHandler().TimeStamp().Unix()),
 		RootHash:         []byte{},
 		Nonce:            sr.BlockChain().GetCurrentBlockHeader().GetNonce() + 1,
 		PrevHash:         sr.BlockChain().GetCurrentBlockHeaderHash(),

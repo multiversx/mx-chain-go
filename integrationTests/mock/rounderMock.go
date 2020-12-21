@@ -2,8 +2,8 @@ package mock
 
 import "time"
 
-// RounderMock -
-type RounderMock struct {
+// RoundHandlerMock -
+type RoundHandlerMock struct {
 	IndexField          int64
 	TimeStampField      time.Time
 	TimeDurationField   time.Duration
@@ -12,7 +12,7 @@ type RounderMock struct {
 }
 
 // BeforeGenesis -
-func (rndm *RounderMock) BeforeGenesis() bool {
+func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 	if rndm.BeforeGenesisCalled != nil {
 		return rndm.BeforeGenesisCalled()
 	}
@@ -20,21 +20,21 @@ func (rndm *RounderMock) BeforeGenesis() bool {
 }
 
 // Index -
-func (rm *RounderMock) Index() int64 {
+func (rm *RoundHandlerMock) Index() int64 {
 	return rm.IndexField
 }
 
 // UpdateRound -
-func (rm *RounderMock) UpdateRound(time.Time, time.Time) {
+func (rm *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
 }
 
 // TimeStamp -
-func (rm *RounderMock) TimeStamp() time.Time {
+func (rm *RoundHandlerMock) TimeStamp() time.Time {
 	return rm.TimeStampField
 }
 
 // TimeDuration -
-func (rm *RounderMock) TimeDuration() time.Duration {
+func (rm *RoundHandlerMock) TimeDuration() time.Duration {
 	if rm.TimeDurationField.Seconds() == 0 {
 		return time.Second
 	}
@@ -43,11 +43,11 @@ func (rm *RounderMock) TimeDuration() time.Duration {
 }
 
 // RemainingTime -
-func (rm *RounderMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+func (rm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return rm.RemainingTimeField
 }
 
 // IsInterfaceNil -
-func (rm *RounderMock) IsInterfaceNil() bool {
+func (rm *RoundHandlerMock) IsInterfaceNil() bool {
 	return rm == nil
 }

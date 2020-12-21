@@ -63,9 +63,9 @@ func (fct *factory) MultiSigner() crypto.MultiSigner {
 	return fct.consensusCore.MultiSigner()
 }
 
-// Rounder gets the rounder object
-func (fct *factory) Rounder() consensus.Rounder {
-	return fct.consensusCore.Rounder()
+// RoundHandler gets the roundHandler object
+func (fct *factory) RoundHandler() consensus.RoundHandler {
+	return fct.consensusCore.RoundHandler()
 }
 
 // ShardCoordinator gets the shard coordinator object

@@ -36,7 +36,7 @@ type forkInfo struct {
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
 type baseForkDetector struct {
-	rounder consensus.Rounder
+	roundHandler consensus.RoundHandler
 
 	headers    map[uint64][]*headerInfo
 	mutHeaders sync.RWMutex
@@ -103,7 +103,7 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	//TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
-	nextRound := bfd.rounder.Index() + 1
+	nextRound := bfd.roundHandler.Index() + 1
 	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
 
 	bfd.blackListHandler.Sweep()
@@ -306,7 +306,7 @@ func (bfd *baseForkDetector) ProbableHighestNonce() uint64 {
 // ResetFork resets the forced fork
 func (bfd *baseForkDetector) ResetFork() {
 	bfd.ResetProbableHighestNonce()
-	bfd.setLastRoundWithForcedFork(bfd.rounder.Index())
+	bfd.setLastRoundWithForcedFork(bfd.roundHandler.Index())
 
 	log.Debug("forkDetector.ResetFork",
 		"last round with forced fork", bfd.lastRoundWithForcedFork())
@@ -577,13 +577,13 @@ func (bfd *baseForkDetector) isHeaderReceivedTooLate(
 	// This condition would avoid a stuck situation, when shards would set as final, block with nonce n received from
 	// meta-chain, because they also received n+1. In the same time meta-chain would be reverted to an older block with
 	// nonce n received it with latency but before n+1. Actually this condition would reject these older blocks.
-	isHeaderReceivedTooLate := int64(header.GetRound()) < bfd.rounder.Index()-finality
+	isHeaderReceivedTooLate := int64(header.GetRound()) < bfd.roundHandler.Index()-finality
 
 	return isHeaderReceivedTooLate
 }
 
 func (bfd *baseForkDetector) isConsensusStuck() bool {
-	if bfd.lastRoundWithForcedFork() == bfd.rounder.Index() {
+	if bfd.lastRoundWithForcedFork() == bfd.roundHandler.Index() {
 		return false
 	}
 
@@ -591,12 +591,12 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	roundsDifference := bfd.rounder.Index() - int64(bfd.lastCheckpoint().round)
+	roundsDifference := bfd.roundHandler.Index() - int64(bfd.lastCheckpoint().round)
 	if roundsDifference <= process.MaxRoundsWithoutCommittedBlock {
 		return false
 	}
 
-	if !process.IsInProperRound(bfd.rounder.Index()) {
+	if !process.IsInProperRound(bfd.roundHandler.Index()) {
 		return false
 	}
 
@@ -652,7 +652,7 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 }
 
 func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.rounder.TimeDuration().Seconds()))
+	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.roundHandler.TimeDuration().Seconds()))
 	return genesisTime
 }
 

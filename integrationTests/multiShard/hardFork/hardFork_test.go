@@ -435,7 +435,7 @@ func hardForkImport(
 			Economics:            node.EconomicsData.EconomicsData,
 			ShardCoordinator:     node.ShardCoordinator,
 			ValidatorAccounts:    node.PeerState,
-			GasSchedule:              mock.NewGasScheduleNotifierMock(               gasSchedule),
+			GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{},
 			HardForkConfig: config.HardforkConfig{
@@ -611,7 +611,7 @@ func createHardForkExporter(
 			ValidityAttester:         node.BlockTracker,
 			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
 			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			Rounder:                  &mock.RounderMock{},
+			RoundHandler:             &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,

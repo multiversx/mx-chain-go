@@ -45,7 +45,7 @@ type ArgBaseProcessor struct {
 	TxCoordinator           process.TransactionCoordinator
 	EpochStartTrigger       process.EpochStartTriggerHandler
 	HeaderValidator         process.HeaderConstructionValidator
-	Rounder                 consensus.Rounder
+	RoundHandler            consensus.RoundHandler
 	BootStorer              process.BootStorer
 	BlockTracker            process.BlockTracker
 	StateCheckpointModulus  uint

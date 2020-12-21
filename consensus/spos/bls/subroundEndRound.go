@@ -92,7 +92,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.Rounder().Index(), sr.Current()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
@@ -246,7 +246,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeaderFinalInfo),
-		sr.Rounder().Index(),
+		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		sr.Header.GetPubKeysBitmap(),
 		sr.Header.GetSignature(),
@@ -294,10 +294,10 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.Rounder().Index()
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index()
 	if shouldNotCommitBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
-			"round", sr.Rounder().Index(),
+			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"header round", header.GetRound(),
 			"extended called", sr.ExtendedCalled,
@@ -413,7 +413,7 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	sr.appStatusHandler.Increment(core.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(core.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.Rounder().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader() error {
@@ -513,10 +513,10 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.RoundTimeStamp
-	maxTime := sr.Rounder().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
-	if sr.Rounder().RemainingTime(startTime, maxTime) < 0 {
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
-			"round", sr.SyncTimer().FormattedCurrentTime(), sr.Rounder().Index(),
+			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
 		sr.RoundCanceled = true

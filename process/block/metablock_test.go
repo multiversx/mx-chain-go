@@ -83,7 +83,7 @@ func createMockMetaArguments(
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   headerValidator,
-			Rounder: &mock.RounderMock{
+			RoundHandler: &mock.RoundHandlerMock{
 				RoundTimeDuration: time.Second,
 			},
 			BootStorer: &mock.BoostrapStorerMock{
@@ -2639,12 +2639,12 @@ func TestMetaProcessor_RequestShardHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	coreComponents, dataComponents := createMockComponentHolders()
 	dataComponents.DataPool = poolsHolderStub
 	arguments := createMockMetaArguments(coreComponents, dataComponents)
-	rounderMock := &mock.RounderMock{}
-	arguments.Rounder = rounderMock
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	arguments.RoundHandler = roundHandlerMock
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	rounderMock.RoundIndex = 20
+	roundHandlerMock.RoundIndex = 20
 	header := &block.Header{
 		Round: 9,
 		Nonce: 5,

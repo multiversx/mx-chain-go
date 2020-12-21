@@ -39,7 +39,7 @@ type Worker struct {
 	forkDetector            process.ForkDetector
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	syncTimer               ntp.SyncTimer
@@ -82,7 +82,7 @@ type WorkerArgs struct {
 	ForkDetector             process.ForkDetector
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
-	Rounder                  consensus.Rounder
+	RoundHandler             consensus.RoundHandler
 	ShardCoordinator         sharding.Coordinator
 	PeerSignatureHandler     crypto.PeerSignatureHandler
 	SyncTimer                ntp.SyncTimer
@@ -129,7 +129,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		forkDetector:             args.ForkDetector,
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
-		rounder:                  args.Rounder,
+		roundHandler:             args.RoundHandler,
 		shardCoordinator:         args.ShardCoordinator,
 		peerSignatureHandler:     args.PeerSignatureHandler,
 		syncTimer:                args.SyncTimer,
@@ -197,8 +197,8 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.Hasher) {
 		return ErrNilHasher
 	}
-	if check.IfNil(args.Rounder) {
-		return ErrNilRounder
+	if check.IfNil(args.RoundHandler) {
+		return ErrNilRoundHandler
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return ErrNilShardCoordinator
@@ -246,7 +246,7 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
-	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.rounder.Index()
+	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
 	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound
 	if headerCanNotBeProcessed {
 		return
@@ -299,7 +299,7 @@ func (wrk *Worker) getCleanedList(cnsDataList []*consensus.Message) []*consensus
 			continue
 		}
 
-		if wrk.rounder.Index() > cnsDataList[i].RoundIndex {
+		if wrk.roundHandler.Index() > cnsDataList[i].RoundIndex {
 			continue
 		}
 
@@ -481,8 +481,8 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 		return
 	}
 
-	sinceRoundStart := time.Since(wrk.rounder.TimeStamp())
-	percent := sinceRoundStart * 100 / wrk.rounder.TimeDuration()
+	sinceRoundStart := time.Since(wrk.roundHandler.TimeStamp())
+	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(core.MetricReceivedProposedBlock, uint64(percent))
 }
 
