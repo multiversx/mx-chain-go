@@ -17,7 +17,7 @@ func TestScCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -84,7 +84,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -117,7 +117,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -152,7 +152,7 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, &testContext)
+	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)

@@ -34,9 +34,9 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

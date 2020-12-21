@@ -17,7 +17,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -34,9 +34,9 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -61,7 +61,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -107,7 +107,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -151,7 +151,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -195,7 +195,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	relayerAddr := []byte("12345678901234567890123456789033")

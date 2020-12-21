@@ -17,7 +17,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -50,7 +50,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, initialOwner := utils.DoDeploy(t, &testContext)
+	scAddress, initialOwner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	sndAddr := []byte("12345678901234567890123456789113")
@@ -86,7 +86,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("invalidAddress")
@@ -119,7 +119,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -155,7 +155,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")

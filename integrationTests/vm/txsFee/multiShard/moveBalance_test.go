@@ -123,3 +123,58 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(910), accumulatedFees)
 }
+
+func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	defer testContextSource.Close()
+
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	defer testContextDst.Close()
+
+	sndAddr := []byte("12345678901234567890123456789010")
+	shardID := testContextDst.ShardCoordinator.ComputeId(sndAddr)
+	require.Equal(t, uint32(0), shardID)
+
+	rcvAddr := []byte("12345678901234567890123456789011")
+	shardID = testContextDst.ShardCoordinator.ComputeId(rcvAddr)
+	require.Equal(t, uint32(1), shardID)
+
+	senderNonce := uint64(0)
+	gasPrice := uint64(10)
+	gasLimit := uint64(100)
+
+	_, _ = vm.CreateAccount(testContextSource.Accounts, sndAddr, 0, big.NewInt(100000))
+
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("function"))
+
+	// execute on source shard
+	retCode, err := testContextSource.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextSource.GetLatestError())
+
+	//verify sender
+	expectedBalanceSender := big.NewInt(99810)
+	utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalanceSender)
+
+	// check accumulated fees
+	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(90), accumulatedFees)
+
+	// execute on destination shard
+	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContextDst.GetLatestError())
+
+	_, err = testContextDst.Accounts.Commit()
+	require.Nil(t, err)
+
+	//verify receiver
+	expectedBalanceReceiver := big.NewInt(100)
+	utils.TestAccount(t, testContextDst.Accounts, rcvAddr, 0, expectedBalanceReceiver)
+
+	// check accumulated fees
+	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(0), accumulatedFees)
+}

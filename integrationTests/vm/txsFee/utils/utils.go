@@ -17,14 +17,15 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var protoMarshalizer = &marshal.GogoProtoMarshalizer{}
 
 // DoDeploy -
-func DoDeploy(t *testing.T, testContext *vm.VMTestContext) (scAddr []byte, owner []byte) {
-	owner = []byte("12345678901234567890123456789012")
+func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
 	gasPrice := uint64(10)
@@ -32,10 +33,11 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext) (scAddr []byte, owner
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
 
-	scCode := arwen.GetSCCode("../arwen/testdata/counter/output/counter.wasm")
+	scCode := arwen.GetSCCode(pathToContract)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -86,7 +88,7 @@ func TestAccount(
 
 	senderRecovAccount, err := accnts.GetExistingAccount(senderAddressBytes)
 	if err != nil {
-		require.Nil(t, err)
+		assert.Nil(t, err)
 		return big.NewInt(0)
 	}
 
@@ -124,4 +126,13 @@ func GetIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) []
 	require.True(t, ok)
 
 	return mockIntermediate.GetIntermediateTransactions()
+}
+
+// CleaAccumulatedIntermediateTransactions -
+func CleaAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
+	scForwarder := testContext.ScForwarder
+	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
+	require.True(t, ok)
+
+	mockIntermediate.Clean()
 }

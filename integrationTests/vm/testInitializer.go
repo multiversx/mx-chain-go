@@ -414,7 +414,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		BlockChainHook:                 blockChainHook,
 		PubkeyConv:                     pubkeyConv,
 		Coordinator:                    shardCoordinator,
-		ScrForwarder:                   &mock.IntermediateTransactionHandlerMock{},
+		ScrForwarder:                   scForwarder,
 		BadTxForwarder:                 &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:                   feeAccumulator,
 		EconomicsFee:                   economicsData,
@@ -733,7 +733,7 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
 func CreatePreparedTxProcessorWithVMsMultiShard(tb testing.TB, selfShardID uint32) *VMTestContext {
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(2, selfShardID)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
