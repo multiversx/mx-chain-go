@@ -10,6 +10,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test scenario
+// relayer address - shard 2
+// inner transaction sender - shard 0
+// inner transaction receiver (smart contract address) - shard 1
+
+// 1. Do a SC deploy on shard 1
+// 2. Execute relayed transaction on shard 2
+// 3. Execute relayed transaction on shard 0
+// 4. Execute SCR with the smart contract call on shard 1
+// 5. Execute SCR with refund on relayer shard (shard 2)
 func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
 	defer testContextRelayer.Close()
