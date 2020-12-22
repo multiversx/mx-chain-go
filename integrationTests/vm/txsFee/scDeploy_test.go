@@ -13,7 +13,7 @@ import (
 )
 
 func TestScDeployShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -44,7 +44,7 @@ func TestScDeployShouldWork(t *testing.T) {
 }
 
 func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -77,7 +77,7 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -108,7 +108,7 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")

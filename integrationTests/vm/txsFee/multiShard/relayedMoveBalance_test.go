@@ -12,7 +12,7 @@ import (
 )
 
 func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -55,7 +55,7 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -102,10 +102,10 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	t.Parallel()
 
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -168,10 +168,10 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -213,7 +213,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	require.Equal(t, big.NewInt(2630), accumulatedFees)
 
 	// get scr for destination shard
-	txs := utils.GetIntermediateTransactions(t, testContextSource)
+	txs := testContextSource.GetIntermediateTransactions(t)
 	scr := txs[0]
 
 	utils.ProcessSCRResult(t, testContextDst, scr, vmcommon.Ok, nil)
@@ -227,10 +227,10 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -288,7 +288,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	expectedAccFees = big.NewInt(1000)
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
-	txs := utils.GetIntermediateTransactions(t, testContextDst)
+	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]
 	// execute generated SCR from shard1 on shard 0
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
@@ -298,13 +298,13 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 }
 
 func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextRelayer.Close()
 
-	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextInnerSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789030")
@@ -363,7 +363,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
 	// execute on inner tx receiver shard
-	txs := utils.GetIntermediateTransactions(t, testContextInnerSource)
+	txs := testContextInnerSource.GetIntermediateTransactions(t)
 	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextDst, scr, vmcommon.Ok, nil)
 

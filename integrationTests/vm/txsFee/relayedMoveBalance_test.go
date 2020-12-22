@@ -12,7 +12,7 @@ import (
 )
 
 func TestRelayedMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -58,7 +58,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -90,7 +90,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -122,7 +122,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
