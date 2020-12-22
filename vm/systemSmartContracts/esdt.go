@@ -25,6 +25,7 @@ const tickerRandomSequenceLength = 3
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
 const minLengthForTokenName = 10
+const minTokenNameLength = 3
 const maxLengthForTokenName = 20
 const minNumberOfDecimals = 0
 const maxNumberOfDecimals = 18
@@ -191,7 +192,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < minLengthForTickerName ||
+	if len(args.Arguments[0]) < minTokenNameLength ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
