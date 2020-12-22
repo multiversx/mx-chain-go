@@ -410,17 +410,28 @@ func (m *Monitor) computeAllHeartbeatMessages() {
 	m.mutAppStatusHandler.Unlock()
 }
 
+func (m *Monitor) getValsForUpdate(hbmiKey string, hbmi *heartbeatMessageInfo) (bool, uint32, string) {
+	hbmi.updateMutex.RLock()
+	defer hbmi.updateMutex.RUnlock()
+
+	if hbmi.isActive {
+		return false, 0, ""
+	}
+
+	peerType, shardId := m.computePeerTypeAndShardID([]byte(hbmiKey))
+	if hbmi.peerType != peerType || hbmi.computedShardID != shardId {
+		return true, shardId, peerType
+	}
+
+	return false, 0, ""
+}
+
 func (m *Monitor) computeInactiveHeartbeatMessages() {
 	m.mutHeartbeatMessages.Lock()
 	inactiveHbChangedMap := make(map[string]*heartbeatMessageInfo)
 	for key, v := range m.heartbeatMessages {
-		isActive := v.GetIsActive()
-		if isActive {
-			continue
-		}
-
-		peerType, shardId := m.computePeerTypeAndShardID([]byte(key))
-		if v.peerType != peerType || v.computedShardID != shardId {
+		shouldUpdate, shardId, peerType := m.getValsForUpdate(key, v)
+		if shouldUpdate {
 			v.UpdateShardAndPeerType(shardId, peerType)
 			inactiveHbChangedMap[key] = v
 		}
