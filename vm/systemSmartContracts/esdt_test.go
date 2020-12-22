@@ -150,7 +150,7 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments = [][]byte{[]byte("ESDTTokenName"), []byte("TICKER")}
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
@@ -197,7 +197,7 @@ func TestEsdt_IssueInvalidNumberOfDecimals(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
-	vmInput.Arguments = [][]byte{[]byte("ESDTTokenName"), []byte("TICKER")}
+	vmInput.Arguments = [][]byte{[]byte("name"), []byte("TICKER")}
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 
