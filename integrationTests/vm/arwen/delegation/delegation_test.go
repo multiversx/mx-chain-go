@@ -243,7 +243,16 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(t, ownerNonce, ownerAddressBytes, ownerBalance, gasSchedule, warmInstance, outOfProcess)
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
+		t,
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		gasSchedule,
+		warmInstance,
+		outOfProcess,
+		vm.ArgEnableEpoch{},
+	)
 	defer testContext.Close()
 
 	value := big.NewInt(10)

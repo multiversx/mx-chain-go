@@ -119,15 +119,6 @@ func ProcessSCRResult(
 	require.Equal(t, expectedErr, err)
 }
 
-// GetIntermediateTransactions -
-func GetIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) []data.TransactionHandler {
-	scForwarder := testContext.ScForwarder
-	mockIntermediate, ok := scForwarder.(*mock.IntermediateTransactionHandlerMock)
-	require.True(t, ok)
-
-	return mockIntermediate.GetIntermediateTransactions()
-}
-
 // CleanAccumulatedIntermediateTransactions -
 func CleanAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTestContext) {
 	scForwarder := testContext.ScForwarder

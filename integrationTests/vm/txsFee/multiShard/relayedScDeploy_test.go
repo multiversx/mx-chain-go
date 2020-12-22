@@ -12,10 +12,10 @@ import (
 )
 
 func TestRelayedSCDeployShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
 	defer testContextRelayer.Close()
 
-	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextInner.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789032")
@@ -67,7 +67,7 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(8490), accumulatedFees)
 
-	txs := utils.GetIntermediateTransactions(t, testContextInner)
+	txs := testContextInner.GetIntermediateTransactions(t)
 	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 

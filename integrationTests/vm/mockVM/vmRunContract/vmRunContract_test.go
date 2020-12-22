@@ -26,7 +26,14 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -88,7 +95,14 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -151,7 +165,14 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -214,7 +235,14 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
