@@ -34,7 +34,14 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 
 	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
@@ -82,7 +89,14 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 
 	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
@@ -130,7 +144,14 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 
 	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
@@ -180,7 +201,14 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 
 	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)

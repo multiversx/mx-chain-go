@@ -13,10 +13,20 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		t,
+		2,
+		vm.ArgEnableEpoch{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	defer testContextRelayer.Close()
 
-	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		t,
+		1,
+		vm.ArgEnableEpoch{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	defer testContextInner.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -65,7 +75,7 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedFees, accumulatedFees)
 
-	txs := utils.GetIntermediateTransactions(t, testContextInner)
+	txs := testContextInner.GetIntermediateTransactions(t)
 	scr := txs[1]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 
