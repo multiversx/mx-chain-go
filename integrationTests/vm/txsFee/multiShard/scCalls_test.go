@@ -12,10 +12,10 @@ import (
 )
 
 func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -72,7 +72,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(376), developerFees)
 
 	// execute sc result with gas refund
-	txs := utils.GetIntermediateTransactions(t, testContextDst)
+	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[1]
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
@@ -87,10 +87,10 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 }
 
 func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -147,7 +147,7 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	// execute sc result with gas refund
-	txs := utils.GetIntermediateTransactions(t, testContextDst)
+	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)

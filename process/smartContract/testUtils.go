@@ -6,10 +6,12 @@ import (
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 )
 
 // GetLatestTestError should only be used in tests!
 // It locates the latest error in the collection of smart contracts results
+// TODO remove this file as it is a horrible hack to test some conditions
 func GetLatestTestError(scProcessorAsInterface interface{}) error {
 	scProcessor, ok := scProcessorAsInterface.(*scProcessor)
 	if !ok {
@@ -26,6 +28,11 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 	scResults := scrProvider.GetIntermediateTransactions()
 
 	for i := len(scResults) - 1; i >= 0; i-- {
+		_, isScr := scResults[i].(*smartContractResult.SmartContractResult)
+		if !isScr {
+			continue
+		}
+
 		tx := scResults[i]
 		txData := string(tx.GetData())
 		dataTrimmed := strings.Trim(txData, "@")
