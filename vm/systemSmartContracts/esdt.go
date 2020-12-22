@@ -191,7 +191,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < minLengthForTickerName ||
+	if len(args.Arguments[0]) < int(esdtConfig.MinTokenNameLength) ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
