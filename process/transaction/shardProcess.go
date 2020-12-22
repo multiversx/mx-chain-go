@@ -374,7 +374,8 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	if !txProc.flagMetaProtection.IsSet() {
-		//backwards compatibility return
+		//backwards compatibility issue found on mainnet at epoch 132. It is incorrect to depend on the penalize flag
+		//because that flag was activated prior to epoch 132. Thus, will bind on a flag that will be activated in the near future.
 		totalCost := core.SafeMul(tx.GasLimit, tx.GasPrice)
 		return moveBalanceFee, totalCost, nil
 	}
