@@ -471,7 +471,7 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	// create new delegation contract
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1350), tpn.OwnAccount.Address)
 
-	// add 3 nodes to the delegation contract
+	// add 1 nodes to the delegation contract
 	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
 	txData := addNodesTxData(blsKeys, sigs)
 	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
@@ -497,12 +497,16 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal))
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2500))
 
-	verifyValidatorSCStake(t, tpn, delegationScAddress, big.NewInt(12500))
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal*2))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2500))
+
+	verifyValidatorSCStake(t, tpn, delegationScAddress, big.NewInt(22500))
 	delegationAcc := getAsUserAccount(tpn, delegationScAddress)
 	assert.Equal(t, delegationAcc.GetBalance(), big.NewInt(0))
 
 	validatorAcc = getAsUserAccount(tpn, vm.ValidatorSCAddress)
-	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(12500)))
+	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(22500)))
 }
 
 func getAsUserAccount(node *integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
