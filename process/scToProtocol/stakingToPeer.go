@@ -179,7 +179,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		// no data under key -> peer can be deleted from trie
 		var existingAcc state.AccountHandler
 		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
-		shouldDeleteAccount := len(data) == 0 && !check.IfNil(existingAcc) && err != nil
+		shouldDeleteAccount := len(data) == 0 && !check.IfNil(existingAcc) && err == nil
 		if shouldDeleteAccount {
 			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
