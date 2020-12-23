@@ -177,11 +177,14 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		var data []byte
 		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
-		if len(data) == 0 {
+		var existingAcc state.AccountHandler
+		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
+		if len(data) == 0 && !check.IfNil(existingAcc) && err != nil {
 			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
 				log.Debug("staking to protocol RemoveAccount", "error", err, "blsPubKey", hex.EncodeToString(blsPubKey))
 			}
+			log.Debug("remove account from validator statistics", "blsPubKey", blsPubKey)
 
 			continue
 		}
