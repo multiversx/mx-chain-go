@@ -114,7 +114,7 @@ var ErrNilTotalDevFeesInEpoch = errors.New("total developer fees in epoch is nil
 var ErrEndOfEpochEconomicsDataDoesNotMatch = errors.New("end of epoch economics data does not match")
 
 // ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
-var ErrNilRoundHandler = errors.New("nil RoundHandlerField")
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilNodesConfigProvider signals that an operation has been attempted to or with a nil nodes config provider
 var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")

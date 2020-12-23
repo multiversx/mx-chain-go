@@ -166,7 +166,7 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheckHandler
 }
 
-// RoundHandlerField -
+// RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundHandlerField
 }

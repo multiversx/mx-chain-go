@@ -78,7 +78,7 @@ func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinde
 	return pcm.ResFinder
 }
 
-// RoundHandlerField -
+// RoundHandler -
 func (pcm *ProcessComponentsMock) RoundHandler() consensus.RoundHandler {
 	return pcm.RoundHandlerField
 }

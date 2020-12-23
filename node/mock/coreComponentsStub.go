@@ -93,7 +93,7 @@ func (ccm *CoreComponentsMock) SyncTimer() ntp.SyncTimer {
 	return ccm.NtpTimer
 }
 
-// RoundHandlerField -
+// RoundHandler -
 func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
 	return ccm.RoundHandlerField
 }

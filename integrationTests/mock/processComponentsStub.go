@@ -78,7 +78,7 @@ func (pcs *ProcessComponentsStub) ResolversFinder() dataRetriever.ResolversFinde
 	return pcs.ResFinder
 }
 
-// RoundHandlerField -
+// RoundHandler -
 func (pcs *ProcessComponentsStub) RoundHandler() consensus.RoundHandler {
 	return pcs.RoundHandlerField
 }
