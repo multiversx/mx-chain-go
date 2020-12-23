@@ -448,6 +448,7 @@ func NewDB(argDB ArgDB) (storage.Persister, error) {
 			return db, nil
 		}
 
+		//TODO: extract this in a parameter and inject it
 		time.Sleep(core.SleepTimeBetweenCreateDBRetries)
 	}
 	if err != nil {
