@@ -561,6 +561,16 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 	return vmcommon.Ok
 }
 
+func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
+	for _, blsKey := range blsKeys {
+		returnData := d.eei.GetStorageFromAddress(d.stakingSCAddr, blsKey)
+		if len(returnData) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
@@ -600,6 +610,12 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	foundOne := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
 	if foundOne {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
+		return vmcommon.UserError
+	}
+
+	foundOne = d.checkBLSKeysIfExistsInStakingSC(blsKeys)
+	if foundOne {
+		d.eei.AddReturnMessage("BLSKey already in use in stakingSC")
 		return vmcommon.UserError
 	}
 
