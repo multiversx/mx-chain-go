@@ -2093,7 +2093,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.storageUpdate["staking"][string(caller)]) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
 }
 
 func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
@@ -2152,7 +2152,7 @@ func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.storageUpdate["staking"][string(caller)]) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
 }
 
 func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
