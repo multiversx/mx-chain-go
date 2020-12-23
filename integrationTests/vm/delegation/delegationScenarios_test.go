@@ -17,6 +17,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
@@ -451,6 +452,81 @@ func TestDelegationUnJail(t *testing.T) {
 
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:2], "staked")
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[2:], "staked")
+}
+
+func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(0)
+	serviceFee := big.NewInt(00)
+	totalNumNodes := 1
+	numDelegators := 2
+	delegationVal := int64(5000)
+	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	validatorAcc := getAsUserAccount(tpn, vm.ValidatorSCAddress)
+	genesisBalance := validatorAcc.GetBalance()
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1350), tpn.OwnAccount.Address)
+
+	// add 3 nodes to the delegation contract
+	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
+	txData := addNodesTxData(blsKeys, sigs)
+	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// set automatic activation on
+	txData = "setAutomaticActivation@796573"
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// self delegate 1250 eGLD
+	txData = "delegate"
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(1250))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// delegators delegate
+	delegators := getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2500))
+
+	verifyValidatorSCStake(t, tpn, delegationScAddress, big.NewInt(12500))
+	delegationAcc := getAsUserAccount(tpn, delegationScAddress)
+	assert.Equal(t, delegationAcc.GetBalance(), big.NewInt(0))
+
+	validatorAcc = getAsUserAccount(tpn, vm.ValidatorSCAddress)
+	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(12500)))
+}
+
+func getAsUserAccount(node *integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
+	acc, _ := node.AccntState.GetExistingAccount(address)
+	userAcc, _ := acc.(state.UserAccountHandler)
+	return userAcc
+}
+
+func verifyValidatorSCStake(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	delegationAddr []byte,
+	expectedRes *big.Int,
+) {
+	query := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getTotalStaked",
+		CallerAddr: delegationAddr,
+		CallValue:  big.NewInt(0),
+	}
+	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	assert.Equal(t, string(vmOutput.ReturnData[0]), expectedRes.String())
 }
 
 func checkNodesStatus(
