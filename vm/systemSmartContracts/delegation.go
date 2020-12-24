@@ -1780,12 +1780,13 @@ func (d *delegation) getUserUndelegatedList(args *vmcommon.ContractCallInput) vm
 
 		d.eei.Finish(fund.Value.Bytes())
 		elapsedNonce := currentNonce - fund.Nonce
-		if elapsedNonce < dConfig.UnBondPeriod {
+		if elapsedNonce >= dConfig.UnBondPeriod {
 			d.eei.Finish(zero.Bytes())
 			continue
 		}
 
-		d.eei.Finish(big.NewInt(0).SetUint64(elapsedNonce).Bytes())
+		remainingNonce := dConfig.UnBondPeriod - elapsedNonce
+		d.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
 	}
 
 	return vmcommon.Ok
