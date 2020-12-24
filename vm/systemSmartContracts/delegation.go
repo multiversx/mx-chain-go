@@ -207,6 +207,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getUserUnStakedValue(args)
 	case "getUserUnBondable":
 		return d.getUserUnBondable(args)
+	case "getUserUnDelegatedList":
+		return d.getUserUndelegatedList(args)
 	case "getNumNodes":
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
@@ -1752,6 +1754,40 @@ func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	d.eei.Finish(totalUnBondable.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getUserUndelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	var fund *Fund
+	for _, fundKey := range delegator.UnStakedFunds {
+		fund, err = d.getFund(fundKey)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		d.eei.Finish(fund.Value.Bytes())
+		elapsedNonce := currentNonce - fund.Nonce
+		if elapsedNonce < dConfig.UnBondPeriod {
+			d.eei.Finish(zero.Bytes())
+			continue
+		}
+
+		d.eei.Finish(big.NewInt(0).SetUint64(elapsedNonce).Bytes())
+	}
+
 	return vmcommon.Ok
 }
 
