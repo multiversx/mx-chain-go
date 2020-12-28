@@ -345,7 +345,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmExec, err := findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		returnMessage := "cannot get vm from address"
-		log.Debug("get vm from address error", "error", err.Error())
+		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
@@ -1140,7 +1140,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		log.Debug("VM error", "error", err.Error())
+		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
@@ -1152,7 +1152,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	if vmOutput == nil {
 		err = process.ErrNilVMOutput
-		log.Debug("run smart contract call error", "error", err.Error())
+		log.Trace("run smart contract create", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
