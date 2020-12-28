@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
@@ -1980,4 +1982,9 @@ func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte,
 
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, expectedCode, retCode)
+}
+
+func TestBech32FromByte(t *testing.T) {
+	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	fmt.Println(pkConverter.Encode(vm.StakingSCAddress))
 }
