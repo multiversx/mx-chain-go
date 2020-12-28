@@ -418,7 +418,6 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	} else {
 		// all changes must be deleted
 		host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
-		host.output = make([][]byte, 0)
 	}
 	vmOutput.ReturnCode = returnCode
 	vmOutput.ReturnMessage = host.returnMessage

@@ -397,6 +397,11 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 510)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
 
+	txData = "unDelegate@" + hex.EncodeToString(firstDelegatorsValue.Bytes())
+	returnedCode, err = processTransaction(tpn, delegators[0], delegationScAddress, txData, big.NewInt(0))
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Nil(t, err)
+
 	// claim rewards for the same user multiple times - should return only one
 	txData = "claimRewards"
 	for _, delegator := range delegators {
