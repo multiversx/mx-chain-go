@@ -2027,7 +2027,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
-	vmInput.Arguments = [][]byte{[]byte(big.NewInt(70).Bytes())}
+	vmInput.Arguments = [][]byte{big.NewInt(70).Bytes()}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
