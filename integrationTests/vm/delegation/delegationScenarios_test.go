@@ -554,9 +554,6 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	ownerAddresses := getAddresses(numContracts)
-	for i := range ownerAddresses {
-		integrationTests.MintAddress(tpn.AccntState, ownerAddresses[i], big.NewInt(2000))
-	}
 
 	delegators := getAddresses(numDelegators)
 	delegationScAddresses := make([][]byte, numContracts)
@@ -656,6 +653,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
+		verifyValidatorSCStake(t, tpn, delegationScAddresses[i], big.NewInt(2500))
+	}
+
+	for i := range delegationScAddresses {
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
 		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
@@ -676,6 +677,18 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
 		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
+	}
+
+	for i := range delegationScAddresses {
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(100), 6)
+	}
+
+	for i := range delegationScAddresses {
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1359)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1359)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6982)
 	}
 }
 
