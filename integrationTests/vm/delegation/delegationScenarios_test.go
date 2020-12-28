@@ -396,6 +396,32 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[2], 510)
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 510)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
+
+	// claim rewards for the same user multiple times - should return only one
+	txData = "claimRewards"
+	for _, delegator := range delegators {
+		returnedCode, err = processTransaction(tpn, delegator, delegationScAddress, txData, big.NewInt(0))
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+		assert.Nil(t, err)
+	}
+
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[2], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
+
+	for _, delegator := range delegators {
+		returnedCode, err = processTransaction(tpn, delegator, delegationScAddress, txData, big.NewInt(0))
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+		assert.Nil(t, err)
+	}
+
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Nil(t, err)
+
+	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 0)
 }
 
 func TestDelegationUnJail(t *testing.T) {
@@ -555,7 +581,6 @@ func checkDelegatorReward(
 ) {
 	delegRewards := viewFuncSingleResult(t, tpn, delegScAddr, "getClaimableRewards", [][]byte{delegAddr})
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), delegRewards)
-
 }
 
 func checkRewardData(
