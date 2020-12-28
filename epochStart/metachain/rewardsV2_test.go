@@ -738,7 +738,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
 			rewardsForDev:    big.NewInt(0),
 			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
 			topupStake:       big.NewInt(0),
-			expectedROI:      36.01,
+			expectedROI:      36.007,
 		},
 		{
 			rewardsForBlocks: rewardsForBlocks,
@@ -793,12 +793,16 @@ func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
 
 			rwd, _ := NewRewardsCreatorV2(args)
 
-			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
+			var dust *big.Int
+			nodesRewardInfo, dust = rwd.computeRewardsPerNode(vInfo)
 
+			sumRewards := big.NewInt(0)
 			for _, nodeInfoList := range nodesRewardInfo {
 				for _, nodeInfo := range nodeInfoList {
-					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimes100, tt.baseStake)
+					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
+
+					yearRewardsTimesFactor := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
+					roiInt := big.NewInt(0).Div(yearRewardsTimesFactor, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
 					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
 
 					diff := math.Abs(tt.expectedROI - actualROI)
@@ -806,6 +810,13 @@ func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
 				}
 			}
 
+			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
+			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
+			maxEGLDDustPerYear := int64(1000)
+			dustPerYear := big.NewInt(0).Mul(dust, big.NewInt(epochsInYear.Int64()))
+			dustInEGLD := dustPerYear.Div(dustPerYear, smallesDivisionERD)
+			require.Equal(t, dustInEGLD.Int64(), egldRemaining.Int64())
+			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
 		})
 	}
 }
@@ -822,7 +833,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
 	}
 	args.ShardCoordinator = shardCoordinator
 
-	nbEligiblePerShard := uint32(542)
+	nbEligiblePerShard := uint32(480)
 
 	nbBlocksPerShard := uint64(14400)
 	blocksPerShard := make(map[uint32]uint64)
@@ -849,7 +860,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
 			rewardsForBlocks: rewardsForBlocks,
 			rewardsForDev:    big.NewInt(0),
 			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0),
+			topupStake:       big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(smallesDivisionERD, big.NewInt(100))),
 			expectedROI:      40.67,
 		},
 		{
@@ -907,10 +918,13 @@ func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
 
 			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
 
+			sumRewards := big.NewInt(0)
 			for _, nodeInfoList := range nodesRewardInfo {
 				for _, nodeInfo := range nodeInfoList {
+					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
+
 					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimes100, tt.baseStake)
+					roiInt := big.NewInt(0).Div(yearRewardsTimes100, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
 					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
 
 					diff := math.Abs(tt.expectedROI - actualROI)
@@ -918,6 +932,10 @@ func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
 				}
 			}
 
+			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
+			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
+			maxEGLDDustPerYear := int64(1000)
+			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
 		})
 	}
 }
@@ -934,7 +952,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 	}
 	args.ShardCoordinator = shardCoordinator
 
-	nbEligiblePerShard := uint32(542)
+	nbEligiblePerShard := uint32(800)
 
 	nbBlocksPerShard := uint64(14400)
 	blocksPerShard := make(map[uint32]uint64)
@@ -961,7 +979,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 			rewardsForBlocks: rewardsForBlocks,
 			rewardsForDev:    big.NewInt(0),
 			baseStake:        big.NewInt(0).Mul(big.NewInt(2500), smallesDivisionERD),
-			topupStake:       big.NewInt(0),
+			topupStake:       big.NewInt(0).Mul(big.NewInt(25), big.NewInt(0).Div(smallesDivisionERD, big.NewInt(100))),
 			expectedROI:      24.40,
 		},
 		{
@@ -1019,10 +1037,13 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 
 			nodesRewardInfo, _ = rwd.computeRewardsPerNode(vInfo)
 
+			sumRewards := big.NewInt(0)
 			for _, nodeInfoList := range nodesRewardInfo {
 				for _, nodeInfo := range nodeInfoList {
+					sumRewards.Add(sumRewards, big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64())))
+
 					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
-					roiInt := big.NewInt(0).Div(yearRewardsTimes100, tt.baseStake)
+					roiInt := big.NewInt(0).Div(yearRewardsTimes100, big.NewInt(0).Add(tt.baseStake, tt.topupStake))
 					actualROI := float64(roiInt.Int64()) * 100 / float64(factor) * 0.9
 
 					diff := math.Abs(tt.expectedROI - actualROI)
@@ -1030,6 +1051,10 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 				}
 			}
 
+			remaining := big.NewInt(0).Sub(totalRewardsFirstYear, sumRewards)
+			egldRemaining := remaining.Div(remaining, smallesDivisionERD)
+			maxEGLDDustPerYear := int64(1000)
+			require.True(t, egldRemaining.Int64() < maxEGLDDustPerYear)
 		})
 	}
 }
@@ -1409,7 +1434,7 @@ func createDefaultValidatorInfo(
 			_ = hex.Encode(addrHex, []byte(str))
 
 			// TODO: check what implication this hardCoded value has!
-			leaderSuccess := uint32(20)
+			leaderSuccess := uint32(36)
 			validators[shardID][i] = &state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d", i)),
 				ShardId:                    shardID,
