@@ -193,6 +193,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.pauseUnStakeUnBond(args)
 	case "unPauseUnStakeUnBond":
 		return v.unPauseStakeUnBond(args)
+	case "getUnStakedTokensList":
+		return v.getUnStakedTokensList(args)
 	}
 
 	v.eei.AddReturnMessage("invalid method to call")
@@ -1380,6 +1382,27 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 	}
 
 	return registrationData, vmcommon.Ok
+}
+
+func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	for _, unStakedValue := range registrationData.UnstakedInfo {
+		v.eei.Finish(unStakedValue.UnstakedValue.Bytes())
+		elapsedNonce := currentNonce - unStakedValue.UnstakedNonce
+		if elapsedNonce >= v.unBondPeriod {
+			v.eei.Finish(zero.Bytes())
+			continue
+		}
+
+		remainingNonce := v.unBondPeriod - elapsedNonce
+		v.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+	}
+	return vmcommon.Ok
 }
 
 func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
