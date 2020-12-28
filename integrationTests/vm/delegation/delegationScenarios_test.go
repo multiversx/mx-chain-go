@@ -176,7 +176,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	delegators := getAddresses(numDelegators)
 	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
 
-	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(0))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal))
 
 	// stake 3 nodes
 	txData = txDataForFunc("stakeNodes", blsKeys)
@@ -304,7 +304,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 
 		processMultipleTransactions(t, tpn, delegators, delegationScAddresses[i], "delegate", big.NewInt(delegationVal))
 
-		verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddresses[i], big.NewInt(delegationVal))
 
 		txData = txDataForFunc("stakeNodes", blsKeys)
 		returnedCode, err = processTransaction(tpn, ownerAddresses[i], delegationScAddresses[i], txData, big.NewInt(0))
@@ -324,10 +324,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
 	}
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
 
 	for i := range delegationScAddresses {
-		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(delegationVal))
+		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
 	}
 
 	for i := range delegationScAddresses {
