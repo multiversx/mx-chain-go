@@ -114,6 +114,19 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	for i := 0; i < len(balancesAfterClaimRewards); i++ {
 		assert.True(t, balancesAfterClaimRewards[i].Cmp(balancesBeforeClaimRewards[i]) > 0)
 	}
+
+	baseIssuingCost := big.NewInt(100)
+	delegationMgr := getUserAccount(nodes, vm.DelegationManagerSCAddress)
+	assert.Equal(t, delegationMgr.GetBalance(), baseIssuingCost)
+}
+
+func getUserAccount(nodes []*integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
+	shardIDForAddress := nodes[0].ShardCoordinator.ComputeId(address)
+	nodeInShard := getNodeWithShardID(nodes, shardIDForAddress)
+
+	acc, _ := nodeInShard.AccntState.GetExistingAccount(address)
+	userAcc, _ := acc.(state.UserAccountHandler)
+	return userAcc
 }
 
 func getNodesBalances(nodes []*integrationTests.TestProcessorNode) []*big.Int {

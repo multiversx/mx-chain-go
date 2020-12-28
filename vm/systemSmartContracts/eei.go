@@ -327,7 +327,7 @@ func (host *vmContext) DeploySystemSC(
 	}
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, core.SCDeployInitFunctionName, input)
-	err := host.Transfer(callInput.RecipientAddr, callInput.CallerAddr, callInput.CallValue, nil, 0)
+	err := host.Transfer(callInput.RecipientAddr, host.scAddress, callInput.CallValue, nil, 0)
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
 	}
