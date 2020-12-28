@@ -25,6 +25,8 @@ const (
 	fRewards  = "fullRewards"
 )
 
+const defaultBlocksPerShard = uint32(14400)
+
 func TestNewRewardsCreator_InvalidBaseRewardsCreatorArgs(t *testing.T) {
 	t.Parallel()
 
@@ -108,7 +110,7 @@ func TestNewRewardsCreatorV2_initNodesRewardsInfo(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	valInfoEligible := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfoEligible := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	valInfoEligibleWithExtra := addNonEligibleValidatorInfo(100, valInfoEligible, string(core.WaitingList))
 
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfoEligibleWithExtra)
@@ -143,7 +145,7 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleNodes(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 
 	rwd.getTopUpForAllEligibleNodes(nodesRewardInfo)
@@ -175,7 +177,7 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(10)
-	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	for _, valList := range valInfo {
 		valList[0].PublicKey = notFoundKey
 		valList[1].PublicKey = notFoundKey
@@ -204,7 +206,7 @@ func TestNewRewardsCreatorV2_aggregateBaseAndTopUpRewardsPerNode(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(10)
-	validatorsInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	validatorsInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(validatorsInfo)
 
 	value := 1000 + nodesPerShard
@@ -289,7 +291,7 @@ func TestNewRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
@@ -386,7 +388,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShard(t *testi
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
@@ -409,7 +411,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nodesPerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 	topUpPerShard, _ := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
 
@@ -513,7 +515,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
-	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
@@ -563,7 +565,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNodeNotFoundBLSKeys(t *testin
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
-	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			return nil, fmt.Errorf("not found")
@@ -607,7 +609,7 @@ func TestNewRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nbEligiblePerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 
 	baseRewards, _ := big.NewInt(0).SetString("3000000000000000000000", 10)
@@ -643,7 +645,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
-	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
@@ -695,6 +697,77 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	require.Equal(t, rewardsForBlocks, big.NewInt(0).Add(sumRwds, accumulatedDust))
 }
 
+func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	shardCoordinator.CurrentShard = core.MetachainShardId
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
+	args.ShardCoordinator = shardCoordinator
+
+	nbEligiblePerShard := uint32(542)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 0, defaultBlocksPerShard)
+
+	nbBlocksPerShard := uint64(14400 * 365)
+	blocksPerShard := make(map[uint32]uint64)
+	shardMap := createShardsMap(args.ShardCoordinator)
+	for shardID := range shardMap {
+		blocksPerShard[shardID] = nbBlocksPerShard
+	}
+
+	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
+	smallesDivisionERD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	totalRewardsFirstYear := big.NewInt(0).Mul(big.NewInt(2169000), smallesDivisionERD)
+	epochsInYear := big.NewInt(365)
+
+	//rewardsForBlocks := big.NewInt(0).Div(totalRewardsFirstYear, epochsInYear)
+
+	bigZero := big.NewInt(0)
+
+	tests := []struct {
+		rewardsForBlocks *big.Int
+		rewardsForDev    *big.Int
+		baseStake        *big.Int
+		topupStake       *big.Int
+		expectedROI      float64
+	}{
+		{
+			rewardsForBlocks: totalRewardsFirstYear,
+			rewardsForDev:    bigZero,
+			baseStake:        bigZero.Mul(big.NewInt(2500), smallesDivisionERD),
+			topupStake:       bigZero,
+			expectedROI:      0.4001,
+		},
+	}
+
+	factor := int64(100 * 100)
+
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+
+			args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(tt.rewardsForBlocks)
+
+			rwd, _ := NewRewardsCreatorV2(args)
+
+			nodesRewardInfo, _ := rwd.computeRewardsPerNode(vInfo)
+
+			for _, nodeInfoList := range nodesRewardInfo {
+				for _, nodeInfo := range nodeInfoList {
+					yearRewardsTimes100 := big.NewInt(0).Mul(nodeInfo.fullRewards, big.NewInt(epochsInYear.Int64()*factor))
+					roiInt := big.NewInt(0).Div(yearRewardsTimes100, tt.baseStake)
+					actualROI := float64(roiInt.Int64()) / float64(factor)
+					require.Equal(t, tt.expectedROI, actualROI)
+				}
+			}
+
+		})
+	}
+}
+
 func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) {
 	t.Parallel()
 
@@ -705,7 +778,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) 
 
 	nbEligiblePerShard := uint32(400)
 	proposerFee := uint32(100)
-	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(valInfo)
 	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
@@ -740,7 +813,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	proposerFee := uint32(100)
 	nbOfflinePerShard := 20
 
-	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	for _, valList := range valInfo {
 		for i := 0; i < nbOfflinePerShard; i++ {
 			valList[i].LeaderSuccess = 0
@@ -787,7 +860,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	nbEligiblePerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
@@ -832,7 +905,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 	require.NotNil(t, rwd)
 
 	nbEligiblePerShard := uint32(400)
-	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
 	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
@@ -878,7 +951,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
-	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
@@ -1017,8 +1090,8 @@ func createDefaultValidatorInfo(
 	shardCoordinator sharding.Coordinator,
 	nodesConfigProvider epochStart.NodesConfigProvider,
 	proposerFeesPerNode uint32,
+	nbBlocksPerShard uint32,
 ) map[uint32][]*state.ValidatorInfo {
-	nbBlocksPerShard := uint32(14400)
 	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(0))
 	cGrMeta := uint32(nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId))
 	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
@@ -1040,6 +1113,7 @@ func createDefaultValidatorInfo(
 			addrHex := make([]byte, len(str)*2)
 			_ = hex.Encode(addrHex, []byte(str))
 
+			// TODO: check what implication this hardCoded value has!
 			leaderSuccess := uint32(20)
 			validators[shardID][i] = &state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d", i)),
