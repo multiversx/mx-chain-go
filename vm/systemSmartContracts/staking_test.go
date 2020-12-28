@@ -1986,5 +1986,8 @@ func checkIsStaked(t *testing.T, sc *stakingSC, callerAddr, stakerPubKey []byte,
 
 func TestBech32FromByte(t *testing.T) {
 	pkConverter, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
-	fmt.Println(pkConverter.Encode(vm.StakingSCAddress))
+	resultERD := pkConverter.Encode(vm.StakingSCAddress)
+	fmt.Println(resultERD)
+
+	fmt.Println(pkConverter.Decode(resultERD))
 }
