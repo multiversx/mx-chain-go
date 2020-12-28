@@ -1134,7 +1134,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
-		log.Debug("Transaction error", "error", err.Error())
+		log.Trace("Transaction data invalid", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
