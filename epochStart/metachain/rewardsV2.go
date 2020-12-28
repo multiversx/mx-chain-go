@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"fmt"
 	"math"
 	"math/big"
 
@@ -236,11 +237,24 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 
 	nodesRewardInfo := rc.initNodesRewardsInfo(validatorsInfo)
 
+	smallesDivisionERD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	// totalTopUpEligible is the cumulative top-up stake value for eligible nodes
 	totalTopUpEligible := rc.stakingDataProvider.GetTotalTopUpStakeEligibleNodes()
 	remainingToBeDistributed := rc.economicsDataProvider.RewardsToBeDistributedForBlocks()
+
+	topupEligibleInt := big.NewInt(0).Div(totalTopUpEligible, smallesDivisionERD)
+	reminaingToBeDistributedInt := big.NewInt(0).Div(remainingToBeDistributed, smallesDivisionERD)
+
+	log.Info(fmt.Sprintf("TopupEligible: %d, remaining: %d", topupEligibleInt.Int64(), reminaingToBeDistributedInt.Int64()))
+
 	topUpRewards := rc.computeTopUpRewards(remainingToBeDistributed, totalTopUpEligible)
 	baseRewards := big.NewInt(0).Sub(remainingToBeDistributed, topUpRewards)
+
+	topupRewardsInt := big.NewInt(0).Div(topUpRewards, smallesDivisionERD)
+	baseRewardsInt := big.NewInt(0).Div(baseRewards, smallesDivisionERD)
+
+	log.Info(fmt.Sprintf("Base: %d, topup: %d", baseRewardsInt.Int64(), topupRewardsInt.Int64()))
+
 	nbBlocks := big.NewInt(int64(rc.economicsDataProvider.NumberOfBlocks()))
 	if nbBlocks.Cmp(zero) <= 0 {
 		baseRewardsPerBlock = big.NewInt(0)
