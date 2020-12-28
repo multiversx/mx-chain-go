@@ -376,7 +376,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(1000), 1)
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(2000), 2)
 
-	txData = "changeServiceFee@" + hex.EncodeToString([]byte("20000")) // 20%
+	txData = "changeServiceFee@" + hex.EncodeToString(big.NewInt(20000).Bytes()) // 20%
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 	assert.Nil(t, err)
@@ -401,6 +401,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	returnedCode, err = processTransaction(tpn, delegators[0], delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 	assert.Nil(t, err)
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:1], delegationScAddress, big.NewInt(0))
 
 	// claim rewards for the same user multiple times - should return only one
 	txData = "claimRewards"

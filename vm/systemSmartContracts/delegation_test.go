@@ -1931,12 +1931,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFeeUserErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments"))
 
-	vmInput.Arguments = [][]byte{[]byte("service fee")}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid new service fee"))
-
-	vmInput.Arguments = [][]byte{[]byte("5")}
+	vmInput.Arguments = [][]byte{big.NewInt(5).Bytes()}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "new service fee out of bounds"))
@@ -1964,7 +1959,7 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
 	args.Eei = eei
 
-	vmInput := getDefaultVmInputForFunc("changeServiceFee", [][]byte{[]byte("70")})
+	vmInput := getDefaultVmInputForFunc("changeServiceFee", [][]byte{big.NewInt(70).Bytes()})
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
@@ -2032,12 +2027,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
 
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
-	vmInput.Arguments = [][]byte{[]byte("new delegation cap")}
-	output = d.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "invalid new total delegation cap"))
-
-	vmInput.Arguments = [][]byte{[]byte("70")}
+	vmInput.Arguments = [][]byte{[]byte(big.NewInt(70).Bytes())}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	expectedErr = fmt.Errorf("%w getGlobalFundData", vm.ErrDataNotFoundUnderKey)
@@ -2061,7 +2051,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
 	args.Eei = eei
 
-	vmInput := getDefaultVmInputForFunc("modifyTotalDelegationCap", [][]byte{[]byte("500")})
+	vmInput := getDefaultVmInputForFunc("modifyTotalDelegationCap", [][]byte{big.NewInt(500).Bytes()})
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 	_ = d.saveGlobalFundData(&GlobalFundData{
@@ -2072,7 +2062,7 @@ func TestDelegationSystemSC_ExecuteModifyTotalDelegationCap(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot make total delegation cap smaller than active"))
 
-	vmInput.Arguments = [][]byte{[]byte("1500")}
+	vmInput.Arguments = [][]byte{big.NewInt(1500).Bytes()}
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
