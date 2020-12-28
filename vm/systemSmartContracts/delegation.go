@@ -1238,6 +1238,11 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 }
 
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	if len(delegator.ActiveFund) == 0 {
+		// nothing to calculate as no active funds - all were computed before
+		return nil
+	}
+
 	activeFund, err := d.getFund(delegator.ActiveFund)
 	if err != nil {
 		return err
