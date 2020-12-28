@@ -322,7 +322,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("process vm output returned with problem ", "err", err.Error())
-		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	return sc.finishSCExecution(results, txHash, tx, vmOutput, 0)
