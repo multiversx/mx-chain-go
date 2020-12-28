@@ -217,7 +217,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	}
 
-	d.eei.AddReturnMessage(args.Function + "is an unknown function")
+	d.eei.AddReturnMessage(args.Function + " is an unknown function")
 	return vmcommon.UserError
 }
 

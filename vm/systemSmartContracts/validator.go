@@ -193,6 +193,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.pauseUnStakeUnBond(args)
 	case "unPauseUnStakeUnBond":
 		return v.unPauseStakeUnBond(args)
+	case "getUnStakedTokensList":
+		return v.getUnStakedTokensList(args)
 	}
 
 	v.eei.AddReturnMessage("invalid method to call")
@@ -817,6 +819,11 @@ func (v *validatorSC) activateStakingFor(
 	ownerAddress []byte,
 ) {
 	numRegistered := uint64(registrationData.NumRegistered)
+
+	if v.flagEnableTopUp.IsSet() {
+		v.reActivateStakingForNodes(blsKeys, numQualified, registrationData, rewardAddress, ownerAddress)
+	}
+
 	for i := uint64(0); numRegistered < numQualified && i < uint64(len(blsKeys)); i++ {
 		currentBLSKey := blsKeys[i]
 		stakedData, err := v.getStakedData(currentBLSKey)
@@ -828,28 +835,9 @@ func (v *validatorSC) activateStakingFor(
 			continue
 		}
 
-		vmOutput, err := v.executeOnStakingSC([]byte("stake@" +
-			hex.EncodeToString(currentBLSKey) + "@" +
-			hex.EncodeToString(rewardAddress) + "@" +
-			hex.EncodeToString(ownerAddress),
-		))
-		if err != nil {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), err.Error()))
-			v.eei.Finish(currentBLSKey)
-			v.eei.Finish([]byte{failed})
+		skipAdd := v.stakeOneNode(currentBLSKey, rewardAddress, ownerAddress)
+		if skipAdd {
 			continue
-
-		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(currentBLSKey), vmOutput.ReturnCode.String()))
-			v.eei.Finish(currentBLSKey)
-			v.eei.Finish([]byte{failed})
-			continue
-		}
-
-		if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
-			v.eei.Finish(currentBLSKey)
-			v.eei.Finish([]byte{waiting})
 		}
 
 		if stakedData.UnStakedNonce == 0 {
@@ -859,6 +847,62 @@ func (v *validatorSC) activateStakingFor(
 
 	registrationData.NumRegistered = uint32(numRegistered)
 	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numRegistered))
+}
+
+func (v *validatorSC) reActivateStakingForNodes(
+	blsKeys [][]byte,
+	numQualified uint64,
+	registrationData *ValidatorDataV2,
+	rewardAddress []byte,
+	ownerAddress []byte,
+) {
+	numRegistered := uint64(registrationData.NumRegistered)
+	if numRegistered < numQualified {
+		return
+	}
+
+	for _, blsKey := range blsKeys {
+		stakedData, err := v.getStakedData(blsKey)
+		if err != nil {
+			continue
+		}
+		if stakedData.Jailed || stakedData.UnStakedNonce == 0 {
+			continue
+		}
+
+		_ = v.stakeOneNode(blsKey, rewardAddress, ownerAddress)
+	}
+}
+
+func (v *validatorSC) stakeOneNode(
+	blsKey []byte,
+	rewardAddress []byte,
+	ownerAddress []byte,
+) bool {
+	vmOutput, err := v.executeOnStakingSC([]byte("stake@" +
+		hex.EncodeToString(blsKey) + "@" +
+		hex.EncodeToString(rewardAddress) + "@" +
+		hex.EncodeToString(ownerAddress),
+	))
+	if err != nil {
+		v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
+		v.eei.Finish(blsKey)
+		v.eei.Finish([]byte{failed})
+		return true
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		v.eei.AddReturnMessage(fmt.Sprintf("cannot do stake for key %s, error %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
+		v.eei.Finish(blsKey)
+		v.eei.Finish([]byte{failed})
+		return true
+	}
+
+	if len(vmOutput.ReturnData) > 0 && bytes.Equal(vmOutput.ReturnData[0], []byte{waiting}) {
+		v.eei.Finish(blsKey)
+		v.eei.Finish([]byte{waiting})
+	}
+
+	return false
 }
 
 func (v *validatorSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error) {
@@ -1338,6 +1382,27 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 	}
 
 	return registrationData, vmcommon.Ok
+}
+
+func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	currentNonce := v.eei.BlockChainHook().CurrentNonce()
+	for _, unStakedValue := range registrationData.UnstakedInfo {
+		v.eei.Finish(unStakedValue.UnstakedValue.Bytes())
+		elapsedNonce := currentNonce - unStakedValue.UnstakedNonce
+		if elapsedNonce >= v.unBondPeriod {
+			v.eei.Finish(zero.Bytes())
+			continue
+		}
+
+		remainingNonce := v.unBondPeriod - elapsedNonce
+		v.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+	}
+	return vmcommon.Ok
 }
 
 func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
