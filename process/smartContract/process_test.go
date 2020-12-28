@@ -1581,6 +1581,10 @@ func TestScProcessor_processSCOutputAccountsNotInShard(t *testing.T) {
 
 	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
 	require.Nil(t, err)
+
+	outacc1.BalanceDelta = big.NewInt(-50)
+	_, _, err = sc.processSCOutputAccounts(&vmcommon.VMOutput{}, vmcommon.DirectCall, outputAccounts, tx, []byte("hash"))
+	require.Equal(t, err, process.ErrNegativeBalanceDeltaOnCrossShardAccount)
 }
 
 func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
