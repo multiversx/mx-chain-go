@@ -3312,7 +3312,7 @@ func TestDelegation_ExecuteUnknownFunc(t *testing.T) {
 
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := invalidFunc + "is an unknown function"
+	expectedErr := invalidFunc + " is an unknown function"
 	assert.True(t, strings.Contains(eei.returnMessage, expectedErr))
 }
 
