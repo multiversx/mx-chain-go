@@ -1331,6 +1331,103 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	nbEligiblePerShard := uint32(400)
+	dummyRwd, _ := NewRewardsCreatorV2(args)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
+	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
+	multiplier, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	topupValue := big.NewInt(2500)
+	topupValue.Mul(topupValue, multiplier)
+	_, totalTopupStake := setValuesInNodesRewardInfo(nodesRewardInfo, topupValue, tuStake)
+
+	args.StakingDataProvider = &mock.StakingDataProviderStub{
+		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
+			return totalTopupStake
+		},
+		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+			for shardID, vList := range vInfo {
+				for i, v := range vList {
+					if bytes.Compare(v.PublicKey, blsKey) == 0 {
+						return nodesRewardInfo[shardID][i].topUpStake, nil
+					}
+				}
+			}
+			return nil, fmt.Errorf("not found")
+		},
+	}
+	nbBlocksPerShard := uint64(14400)
+	blocksPerShard := make(map[uint32]uint64)
+	shardMap := createShardsMap(args.ShardCoordinator)
+	for shardID := range shardMap {
+		blocksPerShard[shardID] = nbBlocksPerShard
+	}
+
+	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
+	rewardsForBlocks := big.NewInt(0).Mul(big.NewInt(5000), multiplier)
+	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(rewardsForBlocks)
+
+	rwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	metaBlock := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
+
+	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
+	require.Nil(t, err)
+	require.NotNil(t, miniBlocks)
+
+	sumRewards := big.NewInt(0)
+	var tx data.TransactionHandler
+	for _, mb := range miniBlocks {
+		for _, txHash := range mb.TxHashes {
+			tx, err = rwd.currTxs.GetTx(txHash)
+			require.Nil(t, err)
+			sumRewards.Add(sumRewards, tx.GetValue())
+		}
+	}
+
+	sumFees := big.NewInt(0)
+	for _, vInfoList := range vInfo {
+		for _, v := range vInfoList {
+			sumFees.Add(sumFees, v.AccumulatedFees)
+		}
+	}
+
+	totalRws := rwd.economicsDataProvider.RewardsToBeDistributedForBlocks()
+	rewardsForProtocolSustainability := big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+	expectedRewards := big.NewInt(0).Add(sumFees, totalRws)
+	expectedRewards.Add(expectedRewards, rewardsForProtocolSustainability)
+	require.Equal(t, expectedRewards, sumRewards)
+
+	// now verification
+	metaBlock.MiniBlockHeaders = make([]block.MiniBlockHeader, len(miniBlocks))
+
+	var mbHash []byte
+	for i, mb := range miniBlocks {
+		mbHash, err = core.CalculateHash(args.Marshalizer, args.Hasher, mb)
+		require.Nil(t, err)
+		metaBlock.MiniBlockHeaders[i] = block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			TxCount:         uint32(len(mb.TxHashes)),
+			Type:            mb.Type,
+			Reserved:        nil,
+		}
+	}
+
+	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
+	require.Nil(t, err)
+}
+
 func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
 	return RewardsCreatorArgsV2{
