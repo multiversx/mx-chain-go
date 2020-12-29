@@ -96,6 +96,66 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 }
 
+func TestDelegationSystemReStakeNodes(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(1000)
+	totalNumNodes := 7
+	numDelegators := 4
+	delegationVal := int64(1000)
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	// create new delegation contract
+	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(1100), tpn.OwnAccount.Address)
+
+	// add 7 nodes to the delegation contract
+	blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddress, totalNumNodes)
+	txData := addNodesTxData(blsKeys, sigs)
+	returnedCode, err := processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// remove 2 nodes from the delegation contract
+	numNodesToStake := totalNumNodes - 2
+	txData = txDataForFunc("removeNodes", blsKeys[numNodesToStake:])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	// 4 delegators fill the delegation cap
+	delegators := getAddresses(numDelegators)
+	processMultipleTransactions(t, tpn, delegators, delegationScAddress, "delegate", big.NewInt(delegationVal))
+
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators, delegationScAddress, big.NewInt(delegationVal))
+
+	// stake 5 nodes
+	txData = txDataForFunc("stakeNodes", blsKeys[:numNodesToStake])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
+
+	//unStake 3 nodes
+	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake-3])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-3], "unStaked")
+
+	processMultipleTransactions(t, tpn, delegators[:1], delegationScAddress, "unDelegate@"+hex.EncodeToString(big.NewInt(delegationVal).Bytes()), big.NewInt(0))
+	//remove nodes should fail because they are not unBonded
+	txData = txDataForFunc("reStakeUnStakedNodes", blsKeys[:numNodesToStake-4])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-4], "staked")
+}
+
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
 	tpn.InitDelegationManager()
@@ -631,7 +691,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	}
 
 	for i := range delegationScAddresses {
-		txData := "unDelegate" + "@" + intToString(uint32(delegationVal))
+		txData = "unDelegate" + "@" + intToString(uint32(delegationVal))
 		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], txData, big.NewInt(0))
 	}
 
@@ -651,7 +711,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	for i := range delegationScAddresses {
 		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
 
-		txData := "unDelegate" + "@" + intToString(uint32(quarterDelegationVal))
+		txData = "unDelegate" + "@" + intToString(uint32(quarterDelegationVal))
 		processMultipleTransactions(t, tpn, lastTwoDelegators, delegationScAddresses[i], txData, big.NewInt(0))
 	}
 
