@@ -131,21 +131,21 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 
 	//unDelegate all from 2 delegators
 	txData = "unDelegate" + "@" + intToString(uint32(delegationVal))
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, txData, big.NewInt(delegationVal))
+	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, txData, big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 
 	//withdraw unDelegated delegators should not withdraw because of unBond period
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(1000))
+	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(1000))
+	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
@@ -192,7 +192,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
 	//withdraw unDelegated delegators should not withdraw because of unBond period
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(1000))
+	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
@@ -200,7 +200,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
 
 	//withdraw unDelegated delegators should withdraw after unBond period has passed
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(1000))
+	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
@@ -324,10 +324,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
 	}
 
-	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 5})
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Nonce: 50})
 
 	for i := range delegationScAddresses {
-		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(delegationVal))
+		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
 	}
 
 	for i := range delegationScAddresses {
@@ -376,7 +376,7 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(1000), 1)
 	addRewardsToDelegation(tpn, delegationScAddress, big.NewInt(2000), 2)
 
-	txData = "changeServiceFee@" + hex.EncodeToString([]byte("20000")) // 20%
+	txData = "changeServiceFee@" + hex.EncodeToString(big.NewInt(20000).Bytes()) // 20%
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 	assert.Nil(t, err)
@@ -396,6 +396,38 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[2], 510)
 	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 510)
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
+
+	txData = "unDelegate@" + hex.EncodeToString(firstDelegatorsValue.Bytes())
+	returnedCode, err = processTransaction(tpn, delegators[0], delegationScAddress, txData, big.NewInt(0))
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Nil(t, err)
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:1], delegationScAddress, big.NewInt(0))
+
+	// claim rewards for the same user multiple times - should return only one
+	txData = "claimRewards"
+	for _, delegator := range delegators {
+		returnedCode, err = processTransaction(tpn, delegator, delegationScAddress, txData, big.NewInt(0))
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+		assert.Nil(t, err)
+	}
+
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[0], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[1], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[2], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, delegators[3], 0)
+	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 1920)
+
+	for _, delegator := range delegators {
+		returnedCode, err = processTransaction(tpn, delegator, delegationScAddress, txData, big.NewInt(0))
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+		assert.Nil(t, err)
+	}
+
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+	assert.Nil(t, err)
+
+	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 0)
 }
 
 func TestDelegationUnJail(t *testing.T) {
@@ -509,6 +541,157 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 	assert.Equal(t, validatorAcc.GetBalance(), big.NewInt(0).Add(genesisBalance, big.NewInt(22500)))
 }
 
+func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimRewardsMultipleTimeUndelegateClaimRewardsMultipleTime(t *testing.T) {
+	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
+	tpn.InitDelegationManager()
+	maxDelegationCap := big.NewInt(5000)
+	serviceFee := big.NewInt(10000) //10%
+	numContracts := 2
+	totalNumNodes := 5
+	numDelegators := 4
+	delegationVal := int64(1000)
+	tpn.EpochNotifier.CheckEpoch(100000001)
+	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+
+	ownerAddresses := getAddresses(numContracts)
+
+	delegators := getAddresses(numDelegators)
+	delegationScAddresses := make([][]byte, numContracts)
+
+	firstTwoDelegators := delegators[:2]
+	lastTwoDelegators := delegators[2:]
+	halfDelegationVal := delegationVal / 2
+	quarterDelegationVal := halfDelegationVal / 2
+
+	for i := range delegationScAddresses {
+		delegationScAddresses[i] = deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(2100), ownerAddresses[i])
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{ownerAddresses[i]}, delegationScAddresses[i], big.NewInt(2000))
+
+		blsKeys, sigs := getBlsKeysAndSignatures(delegationScAddresses[i], totalNumNodes)
+		txData := addNodesTxData(blsKeys, sigs)
+		returnedCode, err := processTransaction(tpn, ownerAddresses[i], delegationScAddresses[i], txData, big.NewInt(0))
+		assert.Nil(t, err)
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+
+		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "delegate", big.NewInt(delegationVal))
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
+
+		processMultipleTransactions(t, tpn, lastTwoDelegators, delegationScAddresses[i], "delegate", big.NewInt(halfDelegationVal))
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(halfDelegationVal))
+
+		txData = txDataForFunc("stakeNodes", blsKeys)
+		returnedCode, err = processTransaction(tpn, ownerAddresses[i], delegationScAddresses[i], txData, big.NewInt(0))
+		assert.Nil(t, err)
+		assert.Equal(t, vmcommon.Ok, returnedCode)
+	}
+
+	for i := range delegationScAddresses {
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(1000), 1)
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(2000), 2)
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(3000), 3)
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(4000), 4)
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(5000), 5)
+	}
+
+	for i := range delegationScAddresses {
+		checkRewardData(t, tpn, delegationScAddresses[i], 1, 1000, 5000, serviceFee)
+		checkRewardData(t, tpn, delegationScAddresses[i], 2, 2000, 5000, serviceFee)
+		checkRewardData(t, tpn, delegationScAddresses[i], 3, 3000, 5000, serviceFee)
+		checkRewardData(t, tpn, delegationScAddresses[i], 4, 4000, 5000, serviceFee)
+		checkRewardData(t, tpn, delegationScAddresses[i], 5, 5000, 5000, serviceFee)
+	}
+
+	for i := range delegationScAddresses {
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 2700)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 2700)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
+	}
+
+	txData := "claimRewards"
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 2; j++ {
+			returnedCode, err := processTransaction(tpn, delegators[j], delegationScAddresses[0], txData, big.NewInt(0))
+			assert.Equal(t, vmcommon.Ok, returnedCode)
+			assert.Nil(t, err)
+		}
+	}
+
+	checkDelegatorReward(t, tpn, delegationScAddresses[0], delegators[0], 0)
+	checkDelegatorReward(t, tpn, delegationScAddresses[0], delegators[1], 0)
+	checkDelegatorReward(t, tpn, delegationScAddresses[1], delegators[0], 2700)
+	checkDelegatorReward(t, tpn, delegationScAddresses[1], delegators[1], 2700)
+
+	for i := range delegationScAddresses {
+		verifyValidatorSCStake(t, tpn, delegationScAddresses[i], big.NewInt(5000))
+	}
+
+	for i := range delegationScAddresses {
+		txData := "unDelegate" + "@" + intToString(uint32(delegationVal))
+		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], txData, big.NewInt(0))
+	}
+
+	for i := range delegationScAddresses {
+		verifyValidatorSCStake(t, tpn, delegationScAddresses[i], big.NewInt(3000))
+	}
+
+	for i := range delegationScAddresses {
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(halfDelegationVal))
+		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+	}
+
+	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 5, Nonce: 50})
+
+	for i := range delegationScAddresses {
+		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
+
+		txData := "unDelegate" + "@" + intToString(uint32(quarterDelegationVal))
+		processMultipleTransactions(t, tpn, lastTwoDelegators, delegationScAddresses[i], txData, big.NewInt(0))
+	}
+
+	for i := range delegationScAddresses {
+		verifyValidatorSCStake(t, tpn, delegationScAddresses[i], big.NewInt(2500))
+	}
+
+	for i := range delegationScAddresses {
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(0))
+		verifyDelegatorsStake(t, tpn, "getUserActiveStake", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
+		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
+	}
+
+	for i := 0; i < 10; i++ {
+		for j := 0; j < 2; j++ {
+			returnedCode, err := processTransaction(tpn, delegators[j], delegationScAddresses[1], txData, big.NewInt(0))
+			assert.Equal(t, vmcommon.Ok, returnedCode)
+			assert.Nil(t, err)
+		}
+	}
+
+	for i := range delegationScAddresses {
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1350)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1350)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6900)
+	}
+
+	for i := range delegationScAddresses {
+		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(100), 6)
+	}
+
+	for i := range delegationScAddresses {
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[0], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[1], 0)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[2], 1359)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], delegators[3], 1359)
+		checkDelegatorReward(t, tpn, delegationScAddresses[i], ownerAddresses[i], 6982)
+	}
+}
+
 func getAsUserAccount(node *integrationTests.TestProcessorNode, address []byte) state.UserAccountHandler {
 	acc, _ := node.AccntState.GetExistingAccount(address)
 	userAcc, _ := acc.(state.UserAccountHandler)
@@ -555,7 +738,6 @@ func checkDelegatorReward(
 ) {
 	delegRewards := viewFuncSingleResult(t, tpn, delegScAddr, "getClaimableRewards", [][]byte{delegAddr})
 	assert.Equal(t, big.NewInt(expectedRewards).Bytes(), delegRewards)
-
 }
 
 func checkRewardData(

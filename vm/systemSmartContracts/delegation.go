@@ -217,7 +217,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	}
 
-	d.eei.AddReturnMessage(args.Function + "is an unknown function")
+	d.eei.AddReturnMessage(args.Function + " is an unknown function")
 	return vmcommon.UserError
 }
 
@@ -512,12 +512,7 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 		return vmcommon.FunctionWrongSignature
 	}
 
-	newServiceFeeBigInt, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !okConvert {
-		d.eei.AddReturnMessage("invalid new service fee")
-		return vmcommon.UserError
-	}
-
+	newServiceFeeBigInt := big.NewInt(0).SetBytes(args.Arguments[0])
 	newServiceFee := newServiceFeeBigInt.Uint64()
 	if newServiceFee < d.minServiceFee || newServiceFee > d.maxServiceFee {
 		d.eei.AddReturnMessage("new service fee out of bounds")
@@ -535,12 +530,7 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 		return returnCode
 	}
 
-	newTotalDelegationCap, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
-	if !okConvert {
-		d.eei.AddReturnMessage("invalid new total delegation cap")
-		return vmcommon.UserError
-	}
-
+	newTotalDelegationCap := big.NewInt(0).SetBytes(args.Arguments[0])
 	globalFund, err := d.getGlobalFundData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1035,6 +1025,10 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		d.eei.AddReturnMessage("wrong number of arguments")
 		return vmcommon.FunctionWrongSignature
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
 	valueToUnDelegate := big.NewInt(0).SetBytes(args.Arguments[0])
 	if valueToUnDelegate.Cmp(d.minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
@@ -1234,6 +1228,11 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 }
 
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
+	if len(delegator.ActiveFund) == 0 {
+		// nothing to calculate as no active funds - all were computed before
+		return nil
+	}
+
 	activeFund, err := d.getFund(delegator.ActiveFund)
 	if err != nil {
 		return err
@@ -1306,13 +1305,14 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		return vmcommon.UserError
 	}
 
-	err = d.saveDelegatorData(args.CallerAddr, delegator)
+	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	err = d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
+	delegator.UnClaimedRewards.SetUint64(0)
+	err = d.saveDelegatorData(args.CallerAddr, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1371,6 +1371,10 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage("wrong number of arguments")
 		return vmcommon.FunctionWrongSignature
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
 	}
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
