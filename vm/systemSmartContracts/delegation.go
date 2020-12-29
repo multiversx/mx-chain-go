@@ -219,6 +219,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unStakeAtEndOfEpoch(args)
 	case "reDelegateRewards":
 		return d.reDelegateRewards(args)
+	case "reStakeUnStakedNodes":
+		return d.reStakeUnStakedNodes(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -749,6 +751,48 @@ func (d *delegation) unStakeNodes(args *vmcommon.ContractCallInput) vmcommon.Ret
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
 		status.StakedKeys, status.UnStakedKeys = moveNodeFromList(status.StakedKeys, status.UnStakedKeys, successKey)
+	}
+
+	err = d.saveDelegationStatus(status)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	if len(args.Arguments) == 0 {
+		d.eei.AddReturnMessage("not enough arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+	status, err := d.getDelegationStatus()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	foundAll := verifyIfAllBLSPubKeysExist(status.UnStakedKeys, args.Arguments)
+	if !foundAll {
+		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
+		return vmcommon.UserError
+	}
+
+	vmOutput, err := d.executeOnValidatorSC(args.RecipientAddr, "reStakeUnStakedNodes", args.Arguments, big.NewInt(0))
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	for _, successKey := range args.Arguments {
+		status.UnStakedKeys, status.StakedKeys = moveNodeFromList(status.UnStakedKeys, status.StakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(status)
