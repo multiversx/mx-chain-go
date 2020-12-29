@@ -1363,6 +1363,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
+	if sc.flagDeploy.IsSet() {
+		vmOutput.ReturnMessage += "@"
+	}
+
 	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
 		gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
