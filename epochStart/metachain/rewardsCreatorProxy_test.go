@@ -325,7 +325,7 @@ func createTestData(rewardCreator *mock.RewardsCreatorStub, rcType configuredRew
 		args:          &args,
 	}
 
-	vInfo := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100)
+	vInfo := createDefaultValidatorInfo(400, args.ShardCoordinator, args.NodesConfigProvider, 100, uint32(14400))
 	mb := createDummyMetaBlock()
 	return rewardsCreatorProxy, vInfo, mb
 }
