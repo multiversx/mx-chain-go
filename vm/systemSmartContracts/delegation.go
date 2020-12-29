@@ -932,6 +932,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
+	delegator.UnClaimedRewards.SetUint64(0)
 	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr, args.RecipientAddr, delegateValue, false)
 }
 

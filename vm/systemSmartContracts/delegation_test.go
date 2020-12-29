@@ -2280,6 +2280,79 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 
 	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards)
+}
+
+func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{
+			CurrentEpochCalled: func() uint32 {
+				return 2
+			},
+		},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{},
+	)
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+			return vmcommon.Ok
+		}}, nil
+	}})
+
+	args.Eei = eei
+
+	args.DelegationSCConfig.MinServiceFee = 0
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
+	vmInput.CallValue = big.NewInt(1000)
+	vmInput.RecipientAddr = createNewAddress(vm.FirstDelegationSCAddress)
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	fundKey := []byte{1}
+	_ = d.saveDelegatorData(vmInput.CallerAddr, &DelegatorData{
+		ActiveFund:        fundKey,
+		RewardsCheckpoint: 0,
+		UnClaimedRewards:  big.NewInt(0),
+	})
+
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(1000),
+	})
+
+	_ = d.saveRewardData(0, &RewardComputationData{
+		RewardsToDistribute: big.NewInt(100),
+		TotalActive:         big.NewInt(1000),
+		ServiceFee:          10000,
+	})
+
+	_ = d.saveRewardData(1, &RewardComputationData{
+		RewardsToDistribute: big.NewInt(100),
+		TotalActive:         big.NewInt(2000),
+		ServiceFee:          10000,
+	})
+	vmInput = getDefaultVmInputForFunc("reDelegateRewards", [][]byte{})
+	vmInput.CallerAddr = []byte("stakingProvider")
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	_, exists := eei.outputAccounts[string(vmInput.CallerAddr)]
+	assert.False(t, exists)
+	_, exists = eei.outputAccounts[string(vmInput.RecipientAddr)]
+	assert.True(t, exists)
+
+	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
+
+	activeFund, _ := d.getFund(delegatorData.ActiveFund)
+	assert.Equal(t, big.NewInt(155+1000), activeFund.Value)
 }
 
 func TestDelegation_ExecuteGetRewardDataUserErrors(t *testing.T) {

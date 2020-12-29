@@ -339,7 +339,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(1, core.MetachainShardId, 0, "node addr")
 	tpn.InitDelegationManager()
-	maxDelegationCap := big.NewInt(5000)
+	maxDelegationCap := big.NewInt(500000)
 	serviceFee := big.NewInt(10000) // 10%
 	totalNumNodes := 5
 	numDelegators := 4
@@ -423,11 +423,14 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(1000))
+
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, "reDelegateRewards", big.NewInt(0))
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 	assert.Nil(t, err)
 
 	checkDelegatorReward(t, tpn, delegationScAddress, tpn.OwnAccount.Address, 0)
+	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{tpn.OwnAccount.Address}, delegationScAddress, big.NewInt(2920))
 }
 
 func TestDelegationUnJail(t *testing.T) {
