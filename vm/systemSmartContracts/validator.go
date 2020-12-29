@@ -1144,9 +1144,11 @@ func (v *validatorSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	totalUnBond := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(int64(len(unBondedKeys))))
-	totalUnBond, returnCode = v.unBondTokensFromRegistrationData(registrationData, totalUnBond)
-	if returnCode != vmcommon.Ok {
-		return returnCode
+	if len(unBondedKeys) > 0 {
+		totalUnBond, returnCode = v.unBondTokensFromRegistrationData(registrationData, totalUnBond)
+		if returnCode != vmcommon.Ok {
+			return returnCode
+		}
 	}
 
 	returnCode = v.updateRegistrationDataAfterUnBond(registrationData, unBondedKeys, args.CallerAddr)
@@ -1176,11 +1178,13 @@ func (v *validatorSC) updateRegistrationDataAfterUnBond(
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	registrationData.NumRegistered -= uint32(len(unBondedKeys))
 	registrationData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+	v.deleteUnBondedKeys(registrationData, unBondedKeys)
 
-	if registrationData.TotalStakeValue.Cmp(zero) == 0 {
+	shouldDeleteRegistrationData := registrationData.TotalStakeValue.Cmp(zero) == 0 && registrationData.LockedStake.Cmp(zero) == 0 &&
+		len(registrationData.BlsPubKeys) == 0 && len(registrationData.UnstakedInfo) == 0
+	if shouldDeleteRegistrationData {
 		v.eei.SetStorage(callerAddr, nil)
 	} else {
-		v.deleteUnBondedKeys(registrationData, unBondedKeys)
 		errSave := v.saveRegistrationData(callerAddr, registrationData)
 		if errSave != nil {
 			v.eei.AddReturnMessage("cannot save registration data: error " + errSave.Error())

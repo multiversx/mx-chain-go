@@ -328,38 +328,38 @@ func TestStakingAuctionSC_ExecuteStakeDoubleKeyAndCleanup(t *testing.T) {
 	argsStaking.StakingSCConfig.GenesisNodePrice = "10000000"
 	argsStaking.Eei = eei
 	argsStaking.StakingSCConfig.UnBondPeriod = 100000
-	stakingSC, _ := NewStakingSmartContract(argsStaking)
+	stakingSc, _ := NewStakingSmartContract(argsStaking)
 
 	eei.SetSCAddress([]byte("auction"))
 	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
-		return stakingSC, nil
+		return stakingSc, nil
 	}})
 
 	args.Eei = eei
 	args.StakingSCConfig = argsStaking.StakingSCConfig
 	args.StakingSCConfig.DoubleKeyProtectionEnableEpoch = 1000
-	validatorSC, _ := NewValidatorSmartContract(args)
+	validatorSc, _ := NewValidatorSmartContract(args)
 
 	arguments.Function = "stake"
 	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(2), big.NewInt(10000000))
 	arguments.Arguments = [][]byte{big.NewInt(2).Bytes(), key1, []byte("msg1"), key1, []byte("msg1")}
 
-	errCode := validatorSC.Execute(arguments)
+	errCode := validatorSc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
 
 	registeredData := &ValidatorDataV2{}
-	_ = validatorSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	_ = validatorSc.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 2, len(registeredData.BlsPubKeys))
 
-	validatorSC.flagDoubleKey.Set()
+	validatorSc.flagDoubleKey.Set()
 	arguments.Function = "cleanRegisteredData"
 	arguments.CallValue = big.NewInt(0)
 	arguments.Arguments = [][]byte{}
 
-	errCode = validatorSC.Execute(arguments)
+	errCode = validatorSc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
 
-	_ = validatorSC.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
+	_ = validatorSc.marshalizer.Unmarshal(registeredData, eei.GetStorage(arguments.CallerAddr))
 	assert.Equal(t, 1, len(registeredData.BlsPubKeys))
 }
 
@@ -2040,41 +2040,119 @@ func TestValidatorStakingSC_ExecuteStakeUnStakeReturnsErrAsNotEnabled(t *testing
 func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	t.Parallel()
 
-	unstakedNonce := uint64(10)
-	registrationData := StakedDataV2_0{
-		RegisterNonce: 0,
-		Staked:        true,
-		UnStakedNonce: unstakedNonce,
-		RewardAddress: nil,
-		StakeValue:    big.NewInt(100),
-	}
-	blsPubKey := big.NewInt(100)
-	marshalizedRegData, _ := json.Marshal(&registrationData)
-	eei, _ := NewVMContext(&mock.BlockChainHookStub{
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(100)
+	blockChainHook := &mock.BlockChainHookStub{
 		CurrentNonceCalled: func() uint64 {
-			return unstakedNonce + 1
+			return 10
 		},
-	},
-		hooks.NewVMCryptoHook(),
-		parsers.NewCallArgsParser(),
-		&mock.AccountsStub{},
-		&mock.RaterMock{},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig.StakingV2Epoch = 10000
+	args.StakingSCConfig.UnBondPeriod = 1000
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	validatorSc, _ := NewValidatorSmartContract(args)
+	eei.SetSCAddress([]byte("staking"))
+
+	blsPubKey := []byte("pubkey")
+	_ = validatorSc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RewardAddress: caller,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: 1,
+					UnstakedValue: big.NewInt(1000),
+				},
+			},
+			BlsPubKeys:      [][]byte{blsPubKey},
+			TotalStakeValue: big.NewInt(1000), //in v1 this was still set to the unstaked value
+			LockedStake:     big.NewInt(0),
+			TotalUnstaked:   big.NewInt(1000),
+		},
 	)
 
-	eei.SetSCAddress([]byte("addr"))
-	eei.SetStorage([]byte(ownerKey), []byte("data"))
-	eei.SetStorage(blsPubKey.Bytes(), marshalizedRegData)
-	args := createMockArgumentsForValidatorSC()
-	args.Eei = eei
+	systemSc, _ := eei.GetContract(nil)
+	stakingSc := systemSc.(*stakingSC)
+	registrationData := &StakedDataV2_0{
+		RegisterNonce: 0,
+		UnStakedNonce: uint64(1),
+		RewardAddress: caller,
+		StakeValue:    big.NewInt(100),
+	}
+	_ = stakingSc.saveAsStakingDataV1P1(blsPubKey, registrationData)
 
-	stakingSmartContract, _ := NewValidatorSmartContract(args)
 	arguments := CreateVmContractCallInput()
-	arguments.CallerAddr = []byte("data")
+	arguments.CallerAddr = caller
 	arguments.Function = "unBond"
-	arguments.Arguments = [][]byte{blsPubKey.Bytes()}
+	arguments.Arguments = [][]byte{blsPubKey}
 
-	retCode := stakingSmartContract.Execute(arguments)
-	assert.Equal(t, vmcommon.UserError, retCode)
+	retCode := validatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
+	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
+	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
+}
+
+func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(100)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 10
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.StakingSCConfig.UnBondPeriod = 1000
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	validatorSc, _ := NewValidatorSmartContract(args)
+	eei.SetSCAddress([]byte("staking"))
+
+	blsPubKey := []byte("pubkey")
+	_ = validatorSc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RewardAddress: caller,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: 1,
+					UnstakedValue: big.NewInt(1000),
+				},
+			},
+			BlsPubKeys:      [][]byte{blsPubKey},
+			TotalStakeValue: big.NewInt(0),
+			LockedStake:     big.NewInt(0),
+			TotalUnstaked:   big.NewInt(1000),
+		},
+	)
+
+	systemSc, _ := eei.GetContract(nil)
+	stakingSc := systemSc.(*stakingSC)
+	registrationData := &StakedDataV2_0{
+		RegisterNonce: 0,
+		UnStakedNonce: uint64(1),
+		RewardAddress: caller,
+		StakeValue:    big.NewInt(100),
+	}
+	_ = stakingSc.saveAsStakingDataV1P1(blsPubKey, registrationData)
+
+	arguments := CreateVmContractCallInput()
+	arguments.CallerAddr = caller
+	arguments.Function = "unBond"
+	arguments.Arguments = [][]byte{blsPubKey}
+
+	retCode := validatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, retCode)
+	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
+	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
+	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
 }
 
 func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
