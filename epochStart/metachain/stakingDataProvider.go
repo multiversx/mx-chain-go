@@ -301,7 +301,7 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
-	mapOwnersKeys := make(map[string][][]byte, 0)
+	mapOwnersKeys := make(map[string][][]byte)
 	keysToUnStake := make([][]byte, 0)
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for ownerAddress, stakingInfo := range sdp.cache {

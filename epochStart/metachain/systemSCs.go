@@ -383,7 +383,7 @@ func (s *systemSCProcessor) updateDelegationContracts(mapOwnerKeys map[string][]
 			return err
 		}
 		if vmOutput.ReturnCode != vmcommon.Ok {
-			log.Debug("unStakeOneNode", "returnMessage", vmOutput.ReturnMessage, "returnCode", vmOutput.ReturnCode.String())
+			log.Debug("unStakeAtEndOfEpoch", "returnMessage", vmOutput.ReturnMessage, "returnCode", vmOutput.ReturnCode.String())
 			return epochStart.ErrUnStakeExecuteError
 		}
 
