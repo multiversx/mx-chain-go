@@ -77,7 +77,7 @@ func TestOutputContext_MergeCompleteAccounts(t *testing.T) {
 		Address:         []byte("addr2"),
 		Nonce:           2,
 		Balance:         big.NewInt(2000),
-		BalanceDelta:    big.NewInt(20000),
+		BalanceDelta:    big.NewInt(30000),
 		StorageUpdates:  map[string]*StorageUpdate{"key": {Data: []byte("data"), Offset: []byte("offset")}},
 		Code:            []byte("code2"),
 		OutputTransfers: []OutputTransfer{transfer1, transfer1},
