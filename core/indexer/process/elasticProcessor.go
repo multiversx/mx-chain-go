@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
@@ -43,13 +44,10 @@ type ArgElasticProcessor struct {
 
 type elasticProcessor struct {
 	*txDatabaseProcessor
-
 	elasticClient  DatabaseClientHandler
 	parser         *dataParser
 	enabledIndexes map[string]struct{}
-	feeConfig      config.FeeSettings
-
-	accountsProc *accounts.AccountsProcessor
+	accountsProc   *accounts.AccountsProcessor
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
