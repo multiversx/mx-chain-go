@@ -726,6 +726,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", lastTwoDelegators, delegationScAddresses[i], big.NewInt(quarterDelegationVal))
 	}
 
+	txData = "claimRewards"
 	for i := 0; i < 10; i++ {
 		for j := 0; j < 2; j++ {
 			returnedCode, err := processTransaction(tpn, delegators[j], delegationScAddresses[1], txData, big.NewInt(0))
