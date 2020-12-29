@@ -2338,7 +2338,7 @@ func TestDelegation_ExecuteClaimRewards(t *testing.T) {
 
 	_, delegatorData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, uint32(3), delegatorData.RewardsCheckpoint)
-	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards)
+	assert.Equal(t, uint64(0), delegatorData.UnClaimedRewards.Uint64())
 }
 
 func TestDelegation_ExecuteReDelegateRewards(t *testing.T) {
