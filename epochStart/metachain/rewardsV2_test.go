@@ -1530,8 +1530,7 @@ func createDefaultValidatorInfo(
 			addrHex := make([]byte, len(str)*2)
 			_ = hex.Encode(addrHex, []byte(str))
 
-			// TODO: check what implication this hardCoded value has!
-			leaderSuccess := uint32(36)
+			leaderSuccess := uint32(20)
 			validators[shardID][i] = &state.ValidatorInfo{
 				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d", i)),
 				ShardId:                    shardID,
