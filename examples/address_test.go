@@ -2,10 +2,14 @@ package examples
 
 import (
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/display"
 	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,4 +58,39 @@ func computeShardID(t *testing.T, addressBech32 string, shardCoordinator shardin
 	require.NoError(t, err)
 
 	return shardCoordinator.ComputeId(addressBytes)
+}
+
+func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
+	stakingScAddress := addressEncoder.Encode(vm.StakingSCAddress)
+	validatorScAddress := addressEncoder.Encode(vm.ValidatorSCAddress)
+	esdtScAddress := addressEncoder.Encode(vm.ESDTSCAddress)
+	governanceScAddress := addressEncoder.Encode(vm.GovernanceSCAddress)
+	jailingAddress := addressEncoder.Encode(vm.JailingAddress)
+	endOfEpochAddress := addressEncoder.Encode(vm.EndOfEpochAddress)
+	delegationManagerScAddress := addressEncoder.Encode(vm.DelegationManagerSCAddress)
+	firstDelegationScAddress := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+
+	header := []string{"Smart contract/Special address", "Address"}
+	lines := []*display.LineData{
+		display.NewLineData(false, []string{"Staking", stakingScAddress}),
+		display.NewLineData(false, []string{"Validator", validatorScAddress}),
+		display.NewLineData(false, []string{"ESDT", esdtScAddress}),
+		display.NewLineData(false, []string{"Governance", governanceScAddress}),
+		display.NewLineData(false, []string{"Jailing address", jailingAddress}),
+		display.NewLineData(false, []string{"End of epoch address", endOfEpochAddress}),
+		display.NewLineData(false, []string{"Delegation manager", delegationManagerScAddress}),
+		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
+	}
+
+	table, _ := display.CreateTableString(header, lines)
+	fmt.Println(table)
+
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqllls0lczs7", stakingScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l", validatorScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u", esdtScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqrlllsrujgla", governanceScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqrlllllllllllllllllllllllllsn60f0k", jailingAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqlllllllllllllllllllllllllllsr9gav8", endOfEpochAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6", delegationManagerScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0llllsqkarq6", firstDelegationScAddress)
 }
