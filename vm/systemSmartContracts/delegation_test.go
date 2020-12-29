@@ -1149,6 +1149,64 @@ func TestDelegationSystemSC_ExecuteUnStakeNodes(t *testing.T) {
 	assert.Equal(t, 0, len(dStatus.StakedKeys))
 }
 
+func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
+	t.Parallel()
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	args := createMockArgumentsForDelegation()
+	eei, _ := NewVMContext(
+		&mock.BlockChainHookStub{},
+		hooks.NewVMCryptoHook(),
+		&mock.ArgumentParserMock{},
+		&mock.AccountsStub{},
+		&mock.RaterMock{})
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	key1 := &NodesData{BLSKey: blsKey1}
+	key2 := &NodesData{BLSKey: blsKey2}
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		StakedKeys: []*NodesData{key1, key2},
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
+	addValidatorAndStakingScToVmContext(eei)
+
+	validatorMap := map[string][]byte{}
+	registrationDataValidator := &ValidatorDataV2{BlsPubKeys: [][]byte{blsKey1, blsKey2}, RewardAddress: []byte("rewardAddr")}
+	regData, _ := d.marshalizer.Marshal(registrationDataValidator)
+	validatorMap["addr"] = regData
+
+	stakingMap := map[string][]byte{}
+	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: true}
+	regData, _ = d.marshalizer.Marshal(registrationDataStaking)
+	stakingMap["blsKey1"] = regData
+
+	registrationDataStaking2 := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: true}
+	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
+	stakingMap["blsKey2"] = regData
+
+	stakingNodesConfig := &StakingNodesConfig{StakedNodes: 5}
+	stkNodes, _ := d.marshalizer.Marshal(stakingNodesConfig)
+	stakingMap[nodesConfigKey] = stkNodes
+
+	eei.storageUpdate[string(args.ValidatorSCAddress)] = validatorMap
+	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
+
+	vmInput := getDefaultVmInputForFunc("unStakeAtEndOfEpoch", [][]byte{blsKey1, blsKey2})
+	vmInput.CallerAddr = args.EndOfEpochAddress
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	dStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, 2, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 0, len(dStatus.StakedKeys))
+}
+
 func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
 	t.Parallel()
 
