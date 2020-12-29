@@ -1762,6 +1762,9 @@ func (sc *scProcessor) processSCOutputAccounts(
 		}
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
+				if outAcc.BalanceDelta.Cmp(zero) < 0 {
+					return false, nil, process.ErrNegativeBalanceDeltaOnCrossShardAccount
+				}
 				sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
 			continue
