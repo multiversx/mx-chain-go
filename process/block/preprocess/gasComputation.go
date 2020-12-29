@@ -172,15 +172,15 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 
 	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	txType := gc.txTypeHandler.ComputeTransactionType(txHandler)
-	isSCCall := txType == process.SCDeployment ||
-		txType == process.SCInvoking ||
-		txType == process.BuiltInFunctionCall ||
+	txTypeInShard, _ := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	isSCCall := txTypeInShard == process.SCDeployment ||
+		txTypeInShard == process.SCInvoking ||
+		txTypeInShard == process.BuiltInFunctionCall ||
 		(core.IsSmartContractAddress(txHandler.GetRcvAddr()) && len(txHandler.GetData()) > 0)
 	if isSCCall {
 		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
 			moveBalanceConsumption < txHandler.GetGasLimit() &&
-			txType != process.BuiltInFunctionCall
+			txTypeInShard != process.BuiltInFunctionCall
 		if isCrossShardSCCall {
 			gasConsumedByTxInSenderShard := moveBalanceConsumption
 			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption

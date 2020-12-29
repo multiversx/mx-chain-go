@@ -114,7 +114,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ChainID:              args.ChainID,
 	}
 
-	consensusMessageValidator, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
+	consensusMessageValidatorObj, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		poolAdder:                args.PoolAdder,
 	}
 
-	wrk.consensusMessageValidator = consensusMessageValidator
+	wrk.consensusMessageValidator = consensusMessageValidatorObj
 	wrk.executeMessageChannel = make(chan *consensus.Message)
 	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(*consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)

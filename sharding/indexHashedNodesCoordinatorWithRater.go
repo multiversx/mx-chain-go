@@ -56,7 +56,7 @@ func NewIndexHashedNodesCoordinatorWithRater(
 
 // ComputeAdditionalLeaving - computes the extra leaving validators that have a threshold below the minimum rating
 func (ihgs *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error) {
-	extraLeavingNodesMap := make(map[uint32][]Validator, 0)
+	extraLeavingNodesMap := make(map[uint32][]Validator)
 	minChances := ihgs.GetChance(0)
 	for _, vInfo := range allValidators {
 		if vInfo.List == string(core.InactiveList) || vInfo.List == string(core.JailedList) {

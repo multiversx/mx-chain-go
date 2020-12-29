@@ -67,7 +67,6 @@ type trigger struct {
 	epochProvider                update.EpochHandler
 	exportFactoryHandler         update.ExportFactoryHandler
 	chanStopNodeProcess          chan endProcess.ArgEndProcess
-	epochConfirmedNotifier       update.EpochChangeConfirmedNotifier
 	mutClosers                   sync.RWMutex
 	closers                      []update.Closer
 	chanTriggerReceived          chan struct{}

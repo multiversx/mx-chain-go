@@ -63,14 +63,17 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	}
 
 	baseTxProcess := &baseTxProcessor{
-		accounts:         args.Accounts,
-		shardCoordinator: args.ShardCoordinator,
-		pubkeyConv:       args.PubkeyConv,
-		economicsFee:     args.EconomicsFee,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		scProcessor:      args.ScProcessor,
+		accounts:                args.Accounts,
+		shardCoordinator:        args.ShardCoordinator,
+		pubkeyConv:              args.PubkeyConv,
+		economicsFee:            args.EconomicsFee,
+		hasher:                  args.Hasher,
+		marshalizer:             args.Marshalizer,
+		scProcessor:             args.ScProcessor,
+		flagPenalizedTooMuchGas: atomic.Flag{},
 	}
+	//backwards compatibility
+	baseTxProcess.flagPenalizedTooMuchGas.Unset()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor: baseTxProcess,
@@ -106,12 +109,12 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		txProc.pubkeyConv,
 	)
 
-	err = txProc.checkTxValues(tx, acntSnd, acntDst)
+	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		return 0, err
 	}
 
-	txType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 
 	switch txType {
 	case process.SCDeployment:

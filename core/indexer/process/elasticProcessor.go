@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
@@ -129,7 +128,7 @@ func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
 	return nil
 }
 
-func (ei *elasticProcessor) initWithKibana(indexTemplates, indexPolicies map[string]*bytes.Buffer) error {
+func (ei *elasticProcessor) initWithKibana(indexTemplates, _ map[string]*bytes.Buffer) error {
 	err := ei.createOpenDistroTemplates(indexTemplates)
 	if err != nil {
 		return err

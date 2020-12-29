@@ -180,3 +180,53 @@ func (vmOutput *VMOutput) GetFirstReturnData(asType ReturnDataKind) (interface{}
 
 	return nil, fmt.Errorf("can't interpret return data")
 }
+
+// MergeOutputAccounts merges the given account into the current one
+func (o *OutputAccount) MergeOutputAccounts(outAcc *OutputAccount) {
+	if len(outAcc.Address) != 0 {
+		o.Address = outAcc.Address
+	}
+
+	o.MergeStorageUpdates(outAcc)
+
+	if outAcc.Balance != nil {
+		o.Balance = outAcc.Balance
+	}
+	if o.BalanceDelta == nil {
+		o.BalanceDelta = big.NewInt(0)
+	}
+	if outAcc.BalanceDelta != nil {
+		o.BalanceDelta.Add(o.BalanceDelta, outAcc.BalanceDelta)
+	}
+	if len(outAcc.Code) > 0 {
+		o.Code = outAcc.Code
+	}
+	if len(outAcc.CodeMetadata) > 0 {
+		o.CodeMetadata = outAcc.CodeMetadata
+	}
+	if outAcc.Nonce > o.Nonce {
+		o.Nonce = outAcc.Nonce
+	}
+
+	lenLeftOutTransfers := len(o.OutputTransfers)
+	lenRightOutTransfers := len(outAcc.OutputTransfers)
+	if lenRightOutTransfers > lenLeftOutTransfers {
+		o.OutputTransfers = append(o.OutputTransfers, outAcc.OutputTransfers[lenLeftOutTransfers:]...)
+	}
+
+	o.GasUsed = outAcc.GasUsed
+
+	if outAcc.CodeDeployerAddress != nil {
+		o.CodeDeployerAddress = outAcc.CodeDeployerAddress
+	}
+}
+
+// MergeStorageUpdates will copy all the storage updates from the given output account
+func (o *OutputAccount) MergeStorageUpdates(outAcc *OutputAccount) {
+	if o.StorageUpdates == nil {
+		o.StorageUpdates = make(map[string]*StorageUpdate)
+	}
+	for key, update := range outAcc.StorageUpdates {
+		o.StorageUpdates[key] = update
+	}
+}

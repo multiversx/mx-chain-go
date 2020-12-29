@@ -172,12 +172,27 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 			// the smart contract results that dont't alter the balance of the receiver address should be ignored
 			continue
 		}
-
 		encodedReceiverAddress := scr.Receiver
 		alteredAddress[encodedReceiverAddress] = &accounts.AlteredAccount{
 			IsESDTSender:    false,
 			IsESDTOperation: scr.EsdtTokenIdentifier != "" && scr.EsdtValue != "",
 			TokenIdentifier: scr.EsdtTokenIdentifier,
+		}
+	}
+}
+
+func isScResultSuccessful(scResultData []byte) bool {
+	okReturnDataNewVersion := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
+	okReturnDataOldVersion := []byte("@" + vmcommon.Ok.String()) // backwards compatible
+	return bytes.Contains(scResultData, okReturnDataNewVersion) || bytes.Contains(scResultData, okReturnDataOldVersion)
+}
+
+func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
+	scrResults := make(map[string]*smartContractResult.SmartContractResult)
+	for scrHash, scr := range scrs {
+		if string(scr.OriginalTxHash) == hash {
+			scrResults[scrHash] = scr
+			delete(scrs, scrHash)
 		}
 	}
 }

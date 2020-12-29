@@ -1,6 +1,7 @@
 package core_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -169,4 +170,31 @@ func TestMaxFloat64(t *testing.T) {
 		res := core.MaxFloat64(tt.a, tt.b)
 		assert.Equal(t, tt.result, res)
 	}
+}
+
+func TestSafeAddUint64(t *testing.T) {
+	a := uint64(10)
+	b := uint64(10)
+
+	c, err := core.SafeAddUint64(a, b)
+	assert.Nil(t, err)
+	assert.Equal(t, a+b, c)
+
+	a = math.MaxUint64
+	c, err = core.SafeAddUint64(a, b)
+	assert.Equal(t, err, core.ErrAdditionOverflow)
+	assert.Equal(t, uint64(0), c)
+}
+
+func TestSafeSubUint64(t *testing.T) {
+	a := uint64(20)
+	b := uint64(10)
+
+	c, err := core.SafeSubUint64(a, b)
+	assert.Nil(t, err)
+	assert.Equal(t, a-b, c)
+
+	c, err = core.SafeSubUint64(b, a)
+	assert.Equal(t, err, core.ErrSubtractionOverflow)
+	assert.Equal(t, uint64(0), c)
 }
