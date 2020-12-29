@@ -187,6 +187,13 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
+	if s.flagSetOwnerEnabled.IsSet() {
+		err := s.updateOwnersForBlsKeys()
+		if err != nil {
+			return err
+		}
+	}
+
 	if s.flagChangeMaxNodesEnabled.IsSet() {
 		err := s.updateMaxNodes(validatorInfos, nonce)
 		if err != nil {
@@ -208,13 +215,6 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 
 		err = s.swapJailedWithWaiting(validatorInfos)
-		if err != nil {
-			return err
-		}
-	}
-
-	if s.flagSetOwnerEnabled.IsSet() {
-		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
 		}
@@ -543,8 +543,17 @@ func (s *systemSCProcessor) updateSystemSCConfigMinNodes() error {
 
 // updates the configuration of the system SC if the flags permit
 func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64) error {
+	sw := core.NewStopWatch()
+	sw.Start("total")
+	defer func() {
+		sw.Stop("total")
+		log.Info("systemSCProcessor.updateMaxNodes", sw.GetMeasurements()...)
+	}()
+
 	maxNumberOfNodes := s.maxNodes
+	sw.Start("setMaxNumberOfNodes")
 	prevMaxNumberOfNodes, err := s.setMaxNumberOfNodes(maxNumberOfNodes)
+	sw.Stop("setMaxNumberOfNodes")
 	if err != nil {
 		return err
 	}
@@ -553,7 +562,9 @@ func (s *systemSCProcessor) updateMaxNodes(validatorInfos map[uint32][]*state.Va
 		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
 
+	sw.Start("stakeNodesFromQueue")
 	err = s.stakeNodesFromQueue(validatorInfos, maxNumberOfNodes-prevMaxNumberOfNodes, nonce)
+	sw.Stop("stakeNodesFromQueue")
 	if err != nil {
 		return err
 	}
