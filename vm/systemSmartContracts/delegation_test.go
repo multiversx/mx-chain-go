@@ -338,8 +338,6 @@ func TestDelegationSystemSC_ExecuteInitWrongNumOfArgs(t *testing.T) {
 func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShouldErr(t *testing.T) {
 	t.Parallel()
 
-	maxDelegationCap := []byte{250}
-	serviceFee := []byte{10}
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
 		&mock.BlockChainHookStub{},
@@ -350,7 +348,8 @@ func TestDelegationSystemSC_ExecuteInitCallValueHigherThanMaxDelegationCapShould
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
-	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{maxDelegationCap, serviceFee})
+	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(250).Bytes(), big.NewInt(10).Bytes()})
+	vmInput.CallerAddr = []byte("ownerAddress")
 	vmInput.CallValue = big.NewInt(300)
 
 	output := d.Execute(vmInput)
