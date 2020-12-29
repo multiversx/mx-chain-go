@@ -1363,6 +1363,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return message", vmOutput.ReturnMessage,
 	)
 
+	if sc.flagDeploy.IsSet() {
+		vmOutput.ReturnMessage += "@"
+	}
+
 	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
 		gasUsed, vmOutput.GasRemaining)
 	vmOutput.GasRemaining = 0
@@ -1978,6 +1982,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && sc.flagDeploy.IsSet() {
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
+			return returnCode, err
+		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}

@@ -40,6 +40,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -712,6 +713,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 
 	stakingSCprovider, _ := NewStakingDataProvider(systemVM, "1000")
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
 	args := ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -735,6 +737,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				return 63
 			},
 		},
+		ShardCoordinator: shardCoordinator,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
