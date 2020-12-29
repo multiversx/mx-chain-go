@@ -998,6 +998,17 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	vmOutput := eei.CreateVMOutput()
 	assert.Equal(t, 5, len(vmOutput.OutputAccounts))
 	assert.Equal(t, 2, len(vmOutput.OutputAccounts[string(vm.StakingSCAddress)].OutputTransfers))
+
+	output = d.Execute(vmInput)
+	eei.gasRemaining = vmInput.GasProvided
+	assert.Equal(t, vmcommon.Ok, output)
+
+	globalFund, _ = d.getGlobalFundData()
+	assert.Equal(t, big.NewInt(1000), globalFund.TotalActive)
+
+	_, delegator, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
+	fund, _ := d.getFund(delegator.ActiveFund)
+	assert.Equal(t, fund.Value, big.NewInt(1000))
 }
 
 func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {

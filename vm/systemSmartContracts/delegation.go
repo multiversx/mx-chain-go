@@ -207,6 +207,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getUserUnStakedValue(args)
 	case "getUserUnBondable":
 		return d.getUserUnBondable(args)
+	case "getUserUnDelegatedList":
+		return d.getUserUndelegatedList(args)
 	case "getNumNodes":
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
@@ -561,6 +563,16 @@ func (d *delegation) modifyTotalDelegationCap(args *vmcommon.ContractCallInput) 
 	return vmcommon.Ok
 }
 
+func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
+	for _, blsKey := range blsKeys {
+		returnData := d.eei.GetStorageFromAddress(d.stakingSCAddr, blsKey)
+		if len(returnData) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkOwnerCallValueGasAndDuplicates(args)
 	if returnCode != vmcommon.Ok {
@@ -600,6 +612,12 @@ func (d *delegation) addNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	foundOne := verifyIfBLSPubKeysExist(listToVerify, blsKeys)
 	if foundOne {
 		d.eei.AddReturnMessage(vm.ErrBLSPublicKeyMismatch.Error())
+		return vmcommon.UserError
+	}
+
+	foundOne = d.checkBLSKeysIfExistsInStakingSC(blsKeys)
+	if foundOne {
+		d.eei.AddReturnMessage("BLSKey already in use in stakingSC")
 		return vmcommon.UserError
 	}
 
@@ -1736,6 +1754,41 @@ func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommo
 	}
 
 	d.eei.Finish(totalUnBondable.Bytes())
+	return vmcommon.Ok
+}
+
+func (d *delegation) getUserUndelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	currentNonce := d.eei.BlockChainHook().CurrentNonce()
+	var fund *Fund
+	for _, fundKey := range delegator.UnStakedFunds {
+		fund, err = d.getFund(fundKey)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		d.eei.Finish(fund.Value.Bytes())
+		elapsedNonce := currentNonce - fund.Nonce
+		if elapsedNonce >= dConfig.UnBondPeriod {
+			d.eei.Finish(zero.Bytes())
+			continue
+		}
+
+		remainingNonce := dConfig.UnBondPeriod - elapsedNonce
+		d.eei.Finish(big.NewInt(0).SetUint64(remainingNonce).Bytes())
+	}
+
 	return vmcommon.Ok
 }
 

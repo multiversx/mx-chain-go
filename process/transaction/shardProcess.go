@@ -3,6 +3,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -211,7 +212,7 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 		return err
 	}
 
-	if txError == process.ErrInvalidMetaTransaction || txError == process.ErrAccountNotPayable {
+	if errors.Is(txError, process.ErrInvalidMetaTransaction) || errors.Is(txError, process.ErrAccountNotPayable) {
 		snapshot := txProc.accounts.JournalLen()
 		var txHash []byte
 		txHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -394,7 +395,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	if txProc.flagMetaProtection.IsSet() {
 		// additional check
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
-			return process.ErrInvalidMetaTransaction
+			return fmt.Errorf("%w: not enough gas", process.ErrInvalidMetaTransaction)
 		}
 	}
 
