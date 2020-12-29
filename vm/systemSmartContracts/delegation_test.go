@@ -1154,9 +1154,10 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 
 	blsKey1 := []byte("blsKey1")
 	blsKey2 := []byte("blsKey2")
+	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
+		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
@@ -1174,19 +1175,46 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 		StakedKeys: []*NodesData{key1, key2},
 	})
 	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(100)})
-	addValidatorAndStakingScToVmContext(eei)
+	validatorArgs := createMockArgumentsForValidatorSC()
+	validatorArgs.Eei = eei
+	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
+	validatorArgs.StakingSCConfig.StakingV2Epoch = 0
+	validatorArgs.StakingSCAddress = vm.StakingSCAddress
+	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
+
+	stakingArgs := createMockStakingScArguments()
+	stakingArgs.Eei = eei
+	stakingSc, _ := NewStakingSmartContract(stakingArgs)
+
+	eei.inputParser = parsers.NewCallArgsParser()
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+		if bytes.Equal(key, vm.StakingSCAddress) {
+			return stakingSc, nil
+		}
+
+		if bytes.Equal(key, vm.ValidatorSCAddress) {
+			return validatorSc, nil
+		}
+
+		return nil, vm.ErrUnknownSystemSmartContract
+	}})
 
 	validatorMap := map[string][]byte{}
-	registrationDataValidator := &ValidatorDataV2{BlsPubKeys: [][]byte{blsKey1, blsKey2}, RewardAddress: []byte("rewardAddr")}
+	registrationDataValidator := &ValidatorDataV2{
+		BlsPubKeys:      [][]byte{blsKey1, blsKey2},
+		RewardAddress:   []byte("rewardAddr"),
+		TotalStakeValue: big.NewInt(1000000),
+		NumRegistered:   2,
+	}
 	regData, _ := d.marshalizer.Marshal(registrationDataValidator)
 	validatorMap["addr"] = regData
 
 	stakingMap := map[string][]byte{}
-	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: true}
+	registrationDataStaking := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: false, UnStakedNonce: 5, StakeValue: big.NewInt(0)}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking)
 	stakingMap["blsKey1"] = regData
 
-	registrationDataStaking2 := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: true}
+	registrationDataStaking2 := &StakedDataV2_0{RewardAddress: []byte("rewardAddr"), Staked: false, UnStakedNonce: 5, StakeValue: big.NewInt(0)}
 	regData, _ = d.marshalizer.Marshal(registrationDataStaking2)
 	stakingMap["blsKey2"] = regData
 
@@ -1197,6 +1225,10 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	eei.storageUpdate[string(args.ValidatorSCAddress)] = validatorMap
 	eei.storageUpdate[string(args.StakingSCAddress)] = stakingMap
 
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 10
+	}
+
 	vmInput := getDefaultVmInputForFunc("unStakeAtEndOfEpoch", [][]byte{blsKey1, blsKey2})
 	vmInput.CallerAddr = args.EndOfEpochAddress
 	output := d.Execute(vmInput)
@@ -1205,6 +1237,14 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	dStatus, _ := d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.StakedKeys))
+
+	vmInput = getDefaultVmInputForFunc("reStakeUnStakedNodes", [][]byte{blsKey1, blsKey2})
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	dStatus, _ = d.getDelegationStatus()
+	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
 }
 
 func TestDelegationSystemSC_ExecuteUnBondNodesUserErrors(t *testing.T) {
