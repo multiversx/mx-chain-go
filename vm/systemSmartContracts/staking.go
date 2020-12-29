@@ -1499,6 +1499,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 			return vmcommon.UserError
 		}
 
+		stakedNodes++
 		// return the change key
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)

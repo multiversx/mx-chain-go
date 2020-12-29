@@ -156,7 +156,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	}
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("jailedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("jailedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
 	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
@@ -530,13 +537,15 @@ func prepareStakingContractWithData(
 	stakedKey []byte,
 	waitingKey []byte,
 	marshalizer marshal.Marshalizer,
+	rewardAddress []byte,
+	ownerAddress []byte,
 ) {
 	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
 
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Staked:        true,
-		RewardAddress: []byte("rewardAddress"),
-		OwnerAddress:  []byte("rewardAddress"),
+		RewardAddress: rewardAddress,
+		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
@@ -544,8 +553,8 @@ func prepareStakingContractWithData(
 
 	stakedData = &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
-		RewardAddress: []byte("rewardAddress"),
-		OwnerAddress:  []byte("rewardAddress"),
+		RewardAddress: rewardAddress,
+		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ = marshalizer.Marshal(stakedData)
@@ -574,7 +583,7 @@ func prepareStakingContractWithData(
 	validatorData := &systemSmartContracts.ValidatorDataV2{
 		RegisterNonce:   0,
 		Epoch:           0,
-		RewardAddress:   []byte("rewardAddress"),
+		RewardAddress:   rewardAddress,
 		TotalStakeValue: big.NewInt(10000000000),
 		LockedStake:     big.NewInt(10000000000),
 		TotalUnstaked:   big.NewInt(0),
@@ -583,9 +592,11 @@ func prepareStakingContractWithData(
 	}
 
 	marshaledData, _ = marshalizer.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue([]byte("rewardAddress"), marshaledData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue(rewardAddress, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorSC)
+	_, err := accountsDB.Commit()
+	log.LogIfError(err)
 }
 
 func createAccountsDB(
@@ -909,10 +920,45 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}}
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwnerNotSet(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
+	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
+	args.StakingV2EnableEpoch = 10
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		make([]byte, 0),
+	)
+
+	args.EpochNotifier.CheckEpoch(10)
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 10)
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
@@ -928,7 +974,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	args.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey1"), []byte("ownerKey"), args.Marshalizer)
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey2"), []byte("ownerKey"), args.Marshalizer)
