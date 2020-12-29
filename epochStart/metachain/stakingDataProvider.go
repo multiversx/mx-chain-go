@@ -297,11 +297,11 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
-func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error) {
+func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error) {
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
-	ownersWithNotEnoughFunds := make([][]byte, 0)
+	mapOwnersKeys := make(map[string][][]byte, 0)
 	keysToUnStake := make([][]byte, 0)
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for ownerAddress, stakingInfo := range sdp.cache {
@@ -323,10 +323,12 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 		}
 
 		keysToUnStake = append(keysToUnStake, selectedKeys...)
-		ownersWithNotEnoughFunds = append(ownersWithNotEnoughFunds, []byte(ownerAddress))
+
+		mapOwnersKeys[ownerAddress] = make([][]byte, len(selectedKeys))
+		copy(mapOwnersKeys[ownerAddress], selectedKeys)
 	}
 
-	return keysToUnStake, ownersWithNotEnoughFunds, nil
+	return keysToUnStake, mapOwnersKeys, nil
 }
 
 func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]string {
