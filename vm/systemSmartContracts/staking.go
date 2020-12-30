@@ -1447,7 +1447,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	s.eei.Finish([]byte(hex.EncodeToString(stakedData.OwnerAddress)))
+	s.eei.Finish(stakedData.OwnerAddress)
 	return vmcommon.Ok
 }
 
