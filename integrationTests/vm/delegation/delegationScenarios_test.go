@@ -978,7 +978,7 @@ func verifyUserUndelegatedList(
 ) {
 	query := &process.SCQuery{
 		ScAddress:  scAddress,
-		FuncName:   "getUserUndelegatedList",
+		FuncName:   "getUserUnDelegatedList",
 		CallerAddr: delegator,
 		Arguments:  [][]byte{delegator},
 		CallValue:  big.NewInt(0),

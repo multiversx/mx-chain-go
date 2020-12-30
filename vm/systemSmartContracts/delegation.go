@@ -207,8 +207,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getUserUnStakedValue(args)
 	case "getUserUnBondable":
 		return d.getUserUnBondable(args)
-	case "getUserUndelegatedList":
-		return d.getUserUndelegatedList(args)
+	case "getUserUnDelegatedList":
+		return d.getUserUnDelegatedList(args)
 	case "getNumNodes":
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
@@ -1915,7 +1915,7 @@ func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommo
 	return vmcommon.Ok
 }
 
-func (d *delegation) getUserUndelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) getUserUnDelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
