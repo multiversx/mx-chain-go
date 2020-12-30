@@ -1415,7 +1415,7 @@ func (v *validatorSC) claim(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 }
 
 func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
+	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args, args.CallerAddr)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1473,7 +1473,7 @@ func (v *validatorSC) processUnStakeValue(registrationData *ValidatorDataV2, unS
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInput) (*ValidatorDataV2, vmcommon.ReturnCode) {
+func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInput, address []byte) (*ValidatorDataV2, vmcommon.ReturnCode) {
 	if !v.flagEnableTopUp.IsSet() {
 		v.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.UserError
@@ -1482,7 +1482,7 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return nil, vmcommon.UserError
 	}
-	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
+	registrationData, err := v.getOrCreateRegistrationData(address)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot get registration data: error " + err.Error())
 		return nil, vmcommon.UserError
@@ -1499,7 +1499,12 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 }
 
 func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
+	if len(args.Arguments) != 1 {
+		v.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return vmcommon.UserError
+	}
+
+	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args, args.Arguments[0])
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -1520,7 +1525,7 @@ func (v *validatorSC) getUnStakedTokensList(args *vmcommon.ContractCallInput) vm
 }
 
 func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args)
+	registrationData, returnCode := v.basicCheckForUnStakeUnBond(args, args.CallerAddr)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}

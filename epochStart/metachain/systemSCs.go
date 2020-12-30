@@ -357,7 +357,8 @@ func (s *systemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) error {
 func (s *systemSCProcessor) updateDelegationContracts(mapOwnerKeys map[string][][]byte) error {
 	sortedDelegationsSCs := make([]string, 0, len(mapOwnerKeys))
 	for address := range mapOwnerKeys {
-		if s.shardCoordinator.ComputeId([]byte(address)) != core.MetachainShardId {
+		shardId := s.shardCoordinator.ComputeId([]byte(address))
+		if shardId != core.MetachainShardId {
 			continue
 		}
 		sortedDelegationsSCs = append(sortedDelegationsSCs, address)

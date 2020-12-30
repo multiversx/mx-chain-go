@@ -93,7 +93,7 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 
 // GetNodeStakedTopUp returns the owner of provided bls key staking stats for the current epoch
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -165,7 +165,7 @@ func (sdp *stakingDataProvider) FillValidatorInfo(blsKey []byte) error {
 }
 
 func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*ownerStats, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -197,7 +197,7 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 	return nil
 }
 
-func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
+func (sdp *stakingDataProvider) getBlsKeyOwner(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.ValidatorSCAddress,
@@ -256,10 +256,7 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 }
 
 func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, [][]byte, error) {
-	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	validatorAddressBytes := []byte(validatorAddress)
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

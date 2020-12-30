@@ -208,7 +208,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	case "getUserUnBondable":
 		return d.getUserUnBondable(args)
 	case "getUserUnDelegatedList":
-		return d.getUserUndelegatedList(args)
+		return d.getUserUnDelegatedList(args)
 	case "getNumNodes":
 		return d.getNumNodes(args)
 	case "getAllNodeStates":
@@ -839,6 +839,7 @@ func (d *delegation) unBondNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 	successKeys, _ := getSuccessAndUnSuccessKeys(vmOutput.ReturnData, args.Arguments)
 	for _, successKey := range successKeys {
 		status.UnStakedKeys, status.NotStakedKeys = moveNodeFromList(status.UnStakedKeys, status.NotStakedKeys, successKey)
+		status.StakedKeys, status.NotStakedKeys = moveNodeFromList(status.StakedKeys, status.NotStakedKeys, successKey)
 	}
 
 	err = d.saveDelegationStatus(status)
@@ -958,8 +959,8 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	if delegator.UnClaimedRewards.Cmp(d.minDelegationAmount) < 0 {
-		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + d.minDelegationAmount.String())
+	if delegator.UnClaimedRewards.Cmp(zero) <= 0 {
+		d.eei.AddReturnMessage("delegate value must be higher than 0")
 		return vmcommon.UserError
 	}
 
@@ -1914,7 +1915,7 @@ func (d *delegation) getUserUnBondable(args *vmcommon.ContractCallInput) vmcommo
 	return vmcommon.Ok
 }
 
-func (d *delegation) getUserUndelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) getUserUnDelegatedList(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	delegator, returnCode := d.checkArgumentsForUserViewFunc(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode

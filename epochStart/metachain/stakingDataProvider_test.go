@@ -147,26 +147,6 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	assert.True(t, strings.Contains(err.Error(), "totalStaked string returned is not a number"))
 }
 
-func TestStakingDataProvider_PrepareDataForBlsKeyReturnedOwnerIsNotHexShouldErr(t *testing.T) {
-	t.Parallel()
-
-	owner := []byte("owner")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
-		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-			if input.Function == "getOwner" {
-				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{owner},
-				}, nil
-			}
-
-			return nil, nil
-		},
-	}, "100000")
-
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
-}
-
 func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -181,7 +161,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 	err := sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
@@ -205,7 +185,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 2, ownerData.numEligible)
@@ -221,7 +201,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
 	err := sdp.loadDataForBlsKey(blsKey)
 	assert.Nil(t, err)
-	ownerData := sdp.GetFromCache([]byte(hex.EncodeToString(owner)))
+	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
 	assert.Equal(t, topUpVal, ownerData.topUpValue)
 	assert.Equal(t, 1, ownerData.numEligible)
@@ -387,7 +367,7 @@ func TestStakingDataProvider_GetNodeStakedTopUpShouldWork(t *testing.T) {
 	expectedOwnerStats := &ownerStats{
 		topUpPerNode: big.NewInt(37),
 	}
-	sdp.SetInCache([]byte(hex.EncodeToString(owner)), expectedOwnerStats)
+	sdp.SetInCache(owner, expectedOwnerStats)
 
 	res, err := sdp.GetNodeStakedTopUp(owner)
 	require.NoError(t, err)
@@ -442,7 +422,7 @@ func createStakingDataProviderWithMockArgs(
 				assert.Equal(t, vm.StakingSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(hex.EncodeToString(owner))},
+					ReturnData: [][]byte{owner},
 				}, nil
 			case "getTotalStakedTopUpBlsKeys":
 				assert.Equal(t, owner, input.VMInput.CallerAddr)
