@@ -106,19 +106,6 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 					ReturnCode: vmcommon.Ok,
 				}, nil
 			}
-			if numCall == 4 {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-					ReturnData: [][]byte{[]byte("not a number"), []byte("1")},
-				}, nil
-			}
-			if numCall == 5 {
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-					ReturnData: [][]byte{[]byte("1"), []byte("not a number")},
-				}, nil
-			}
-
 			return nil, nil
 		},
 	}, "100000")
@@ -135,16 +122,6 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpBlsKeys function should have at least two values"))
-
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "topUp string returned is not a number"))
-
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
-	assert.NotNil(t, err)
-	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "totalStaked string returned is not a number"))
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) {
@@ -429,7 +406,7 @@ func createStakingDataProviderWithMockArgs(
 				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{[]byte(topUpVal.String()), []byte(stakingVal.String())},
+					ReturnData: [][]byte{topUpVal.Bytes(), stakingVal.Bytes()},
 				}, nil
 
 			}
