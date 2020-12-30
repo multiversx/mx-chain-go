@@ -1676,6 +1676,9 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
 	topUp.Sub(topUp, stakeForNodes)
+	if topUp.Cmp(zero) < 0 {
+		topUp.Set(zero)
+	}
 
 	if registrationData.TotalStakeValue.Cmp(zero) < 0 {
 		v.eei.AddReturnMessage("contract error on getTopUp function, total stake < locked stake value")

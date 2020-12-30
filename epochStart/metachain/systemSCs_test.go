@@ -236,24 +236,39 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
-	numEligible := 9
-	numWaiting := 5
-	numJailed := 8
-	stakingScAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
-	createEligibleNodes(numEligible, stakingScAcc, args.Marshalizer)
-	_ = createWaitingNodes(numWaiting, stakingScAcc, args.UserAccountsDB, args.Marshalizer)
-	jailed := createJailedNodes(numJailed, stakingScAcc, args.UserAccountsDB, args.PeerAccountsDB, args.Marshalizer)
+	owner1 := append([]byte("owner1"), bytes.Repeat([]byte{1}, 26)...)
+
+	blsKeys := [][]byte{
+		[]byte("bls key 1"),
+		[]byte("bls key 2"),
+		[]byte("bls key 3"),
+		[]byte("bls key 4"),
+	}
+
+	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
+	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys...)
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
-	validatorsInfo[0] = append(validatorsInfo[0], jailed...)
+	jailed := &state.ValidatorInfo{
+		PublicKey:       blsKeys[0],
+		ShardId:         0,
+		List:            string(core.JailedList),
+		TempRating:      1,
+		RewardAddress:   []byte("owner1"),
+		AccumulatedFees: big.NewInt(0),
+	}
+	validatorsInfo[0] = append(validatorsInfo[0], jailed)
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
 	assert.Nil(t, err)
-	for i := 0; i < numWaiting; i++ {
-		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
+
+	for _, vInfo := range validatorsInfo[0] {
+		assert.Equal(t, string(core.JailedList), vInfo.List)
 	}
-	for i := numWaiting; i < numJailed; i++ {
-		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
-	}
+
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(nodesToUnStake))
+	assert.Equal(t, 0, len(mapOwnersKeys))
 }
 
 func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
@@ -419,6 +434,25 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
+	}
+
+	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	saveOutputAccounts(t, accountsDB, vmOutput)
+}
+
+func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, blsKeys ...[]byte) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unStake",
 	}
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
