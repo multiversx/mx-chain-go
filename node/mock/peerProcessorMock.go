@@ -19,6 +19,15 @@ type ValidatorStatisticsProcessorMock struct {
 	CommitCalled                             func() ([]byte, error)
 	ProcessRatingsEndOfEpochCalled           func(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
+}
+
+// SaveNodesCoordinatorUpdates -
+func (vsp *ValidatorStatisticsProcessorMock) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
+		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
+	}
+	return false, nil
 }
 
 // PeerAccountToValidatorInfo -
@@ -47,9 +56,9 @@ func (vsp *ValidatorStatisticsProcessorMock) Process(validatorInfo data.ShardVal
 }
 
 // Commit -
-func (pm *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
-	if pm.CommitCalled != nil {
-		return pm.CommitCalled()
+func (vsp *ValidatorStatisticsProcessorMock) Commit() ([]byte, error) {
+	if vsp.CommitCalled != nil {
+		return vsp.CommitCalled()
 	}
 
 	return nil, nil
@@ -96,7 +105,7 @@ func (vsp *ValidatorStatisticsProcessorMock) RootHash() ([]byte, error) {
 	return nil, nil
 }
 
-// GetPeerAccount -
+// GetExistingPeerAccount -
 func (vsp *ValidatorStatisticsProcessorMock) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)

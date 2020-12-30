@@ -14,6 +14,8 @@ type feeData struct {
 	devFee *big.Int
 }
 
+var zero = big.NewInt(0)
+
 type feeHandler struct {
 	mut             sync.RWMutex
 	mapHashFee      map[string]*feeData
@@ -60,7 +62,11 @@ func (f *feeHandler) GetDeveloperFees() *big.Int {
 // ProcessTransactionFee adds the tx cost to the accumulated amount
 func (f *feeHandler) ProcessTransactionFee(cost *big.Int, devFee *big.Int, txHash []byte) {
 	if cost == nil {
-		log.Debug("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
+		log.Error("nil cost in ProcessTransactionFee", "error", process.ErrNilValue.Error())
+		return
+	}
+	if cost.Cmp(zero) < 0 {
+		log.Error("negative cost in ProcessTransactionFee", "error", process.ErrNegativeValue.Error())
 		return
 	}
 

@@ -1,11 +1,12 @@
 //go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. metrics.proto
 package metrics
 
-func ListFromMap(m map[string]interface{}) *MetricsList {
+// ListFromMap returns a list of values from the provided map
+func ListFromMap(metricsMap map[string]interface{}) *MetricsList {
 	r := &MetricsList{
-		Metrics: make([]Metric, 0, len(m)),
+		Metrics: make([]Metric, 0, len(metricsMap)),
 	}
-	for key, value := range m {
+	for key, value := range metricsMap {
 		m := Metric{
 			Key: key,
 		}
@@ -22,6 +23,7 @@ func ListFromMap(m map[string]interface{}) *MetricsList {
 	return r
 }
 
+// MapFromList returns a map with the values from the list
 func MapFromList(l *MetricsList) map[string]interface{} {
 	ret := make(map[string]interface{}, len(l.Metrics))
 	for _, m := range l.Metrics {

@@ -69,9 +69,9 @@ func (records *records) evictLeastImportantNoLock() {
 
 func (records *records) findInsertionPlaceNoLock(incomingRecord record) *list.Element {
 	for element := records.items.Front(); element != nil; element = element.Next() {
-		record := element.Value.(record)
+		recordObj := element.Value.(record)
 
-		if incomingRecord.isMoreImportantThan(record) {
+		if incomingRecord.isMoreImportantThan(recordObj) {
 			return element
 		}
 	}

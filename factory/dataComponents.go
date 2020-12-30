@@ -10,7 +10,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	dataRetrieverFactory "github.com/ElrondNetwork/elrond-go/dataRetriever/factory"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
@@ -19,7 +19,7 @@ import (
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
 	Config             config.Config
-	EconomicsData      *economics.EconomicsData
+	EconomicsData      process.EconomicsDataHandler
 	ShardCoordinator   sharding.Coordinator
 	Core               *CoreComponents
 	PathManager        storage.PathManagerHandler
@@ -29,7 +29,7 @@ type DataComponentsFactoryArgs struct {
 
 type dataComponentsFactory struct {
 	config             config.Config
-	economicsData      *economics.EconomicsData
+	economicsData      process.EconomicsDataHandler
 	shardCoordinator   sharding.Coordinator
 	core               *CoreComponents
 	pathManager        storage.PathManagerHandler

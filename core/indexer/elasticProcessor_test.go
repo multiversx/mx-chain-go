@@ -571,7 +571,6 @@ func TestUpdateTransaction(t *testing.T) {
 			MaxGasLimitPerBlock:     "10000000",
 			MaxGasLimitPerMetaBlock: "10000000",
 			GasPerDataByte:          "1",
-			DataLimitForBaseCalc:    "1",
 			MinGasPrice:             "1",
 			MinGasLimit:             "1",
 		},

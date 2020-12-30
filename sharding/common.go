@@ -34,6 +34,10 @@ func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, id
 }
 
 func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
 	strValidators := ""
 
 	for _, v := range validators {
@@ -74,6 +78,7 @@ func displayNodesConfiguration(
 	}
 }
 
+// SerializableValidatorsToValidators creates the validator map from serializable validator map
 func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]Validator, error) {
 	validators := make(map[uint32][]Validator)
 	for shardId, shardValidators := range nodeRegistryValidators {
@@ -91,10 +96,11 @@ func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*Ser
 	return validators, nil
 }
 
+// SerializableShardValidatorListToValidatorList creates the validator list from serializable validator list
 func SerializableShardValidatorListToValidatorList(shardValidators []*SerializableValidator) ([]Validator, error) {
 	newValidators := make([]Validator, len(shardValidators))
-	for i, validator := range shardValidators {
-		v, err := NewValidator(validator.PubKey, validator.Chances, validator.Index)
+	for i, shardValidator := range shardValidators {
+		v, err := NewValidator(shardValidator.PubKey, shardValidator.Chances, shardValidator.Index)
 		if err != nil {
 			return nil, err
 		}

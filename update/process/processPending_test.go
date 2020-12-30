@@ -100,7 +100,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	assert.True(t, called)
 	assert.NotNil(t, mb)
 	assert.NoError(t, err)
-	assert.Equal(t, []byte(hash2), mb.TxHashes[1])
+	assert.Equal(t, hash2, mb.TxHashes[1])
 }
 
 func TestRootHash(t *testing.T) {
