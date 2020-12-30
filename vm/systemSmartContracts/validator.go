@@ -734,7 +734,7 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	numStakedAndWaiting, err := v.getNumStakedAndWaitingNodes(registrationData, mapNodesToReStake)
+	numStakedAndWaiting, err := v.getNumStakedAndWaitingNodes(registrationData, mapNodesToReStake, true)
 	if err != nil {
 		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -752,7 +752,11 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) getNumStakedAndWaitingNodes(registrationData *ValidatorDataV2, mapCheckedKeys map[string]struct{}) (uint64, error) {
+func (v *validatorSC) getNumStakedAndWaitingNodes(
+	registrationData *ValidatorDataV2,
+	mapCheckedKeys map[string]struct{},
+	checkJailed bool,
+) (uint64, error) {
 	numActiveNodes := uint64(0)
 	for _, blsKey := range registrationData.BlsPubKeys {
 		_, exists := mapCheckedKeys[string(blsKey)]
@@ -765,11 +769,11 @@ func (v *validatorSC) getNumStakedAndWaitingNodes(registrationData *ValidatorDat
 			return 0, err
 		}
 
-		if stakedData.Jailed {
+		if checkJailed && stakedData.Jailed {
 			return 0, vm.ErrBLSPublicKeyAlreadyJailed
 		}
 
-		if stakedData.Staked || stakedData.Waiting {
+		if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
 			numActiveNodes++
 		}
 	}
@@ -1672,7 +1676,14 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 	}
 
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
-	stakeForNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(uint64(registrationData.NumRegistered)))
+
+	numActive, err := v.getNumStakedAndWaitingNodes(registrationData, make(map[string]struct{}), false)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	stakeForNodes := big.NewInt(0).Mul(validatorConfig.NodePrice, big.NewInt(0).SetUint64(numActive))
 
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
 	topUp.Sub(topUp, stakeForNodes)
@@ -1687,7 +1698,7 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 
 	v.eei.Finish(topUp.Bytes())
 	v.eei.Finish(registrationData.TotalStakeValue.Bytes())
-	v.eei.Finish(big.NewInt(int64(registrationData.NumRegistered)).Bytes())
+	v.eei.Finish(big.NewInt(0).SetUint64(numActive).Bytes())
 
 	for _, blsKey := range registrationData.BlsPubKeys {
 		v.eei.Finish(blsKey)

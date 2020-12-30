@@ -231,14 +231,14 @@ func (sdp *stakingDataProvider) getValidatorData(validatorAddress string) (*owne
 }
 
 func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress string) (*ownerStats, error) {
-	topUpValue, totalStakedValue, numRegistered, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
+	topUpValue, totalStakedValue, numStakedWaiting, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
 
 	ownerData := &ownerStats{
 		numEligible:    0,
-		numStakedNodes: int(numRegistered.Int64()),
+		numStakedNodes: int(numStakedWaiting.Int64()),
 		topUpValue:     topUpValue,
 		totalStaked:    totalStakedValue,
 	}
@@ -278,9 +278,9 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 
 	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 	totalStakedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
-	numRegisteredNodes := big.NewInt(0).SetBytes(vmOutput.ReturnData[2])
+	numStakedWaiting := big.NewInt(0).SetBytes(vmOutput.ReturnData[2])
 
-	return topUpValue, totalStakedValue, numRegisteredNodes, vmOutput.ReturnData[3:], nil
+	return topUpValue, totalStakedValue, numStakedWaiting, vmOutput.ReturnData[3:], nil
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
