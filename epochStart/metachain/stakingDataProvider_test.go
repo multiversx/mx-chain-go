@@ -406,7 +406,7 @@ func createStakingDataProviderWithMockArgs(
 				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{
-					ReturnData: [][]byte{topUpVal.Bytes(), stakingVal.Bytes()},
+					ReturnData: [][]byte{topUpVal.Bytes(), stakingVal.Bytes(), big.NewInt(3).Bytes()},
 				}, nil
 
 			}

@@ -1687,6 +1687,7 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 
 	v.eei.Finish(topUp.Bytes())
 	v.eei.Finish(registrationData.TotalStakeValue.Bytes())
+	v.eei.Finish(big.NewInt(int64(registrationData.NumRegistered)).Bytes())
 
 	for _, blsKey := range registrationData.BlsPubKeys {
 		v.eei.Finish(blsKey)

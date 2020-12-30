@@ -231,16 +231,14 @@ func (sdp *stakingDataProvider) getValidatorData(validatorAddress string) (*owne
 }
 
 func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress string) (*ownerStats, error) {
-	topUpValue, totalStakedValue, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
+	topUpValue, totalStakedValue, numRegistered, blsKeys, err := sdp.getValidatorInfoFromSC(validatorAddress)
 	if err != nil {
 		return nil, err
 	}
 
-	ownerBaseNodesStake := big.NewInt(0).Sub(totalStakedValue, topUpValue)
-	numStakedNodes := big.NewInt(0).Div(ownerBaseNodesStake, sdp.minNodePrice).Int64()
 	ownerData := &ownerStats{
 		numEligible:    0,
-		numStakedNodes: int(numStakedNodes),
+		numStakedNodes: int(numRegistered.Int64()),
 		topUpValue:     topUpValue,
 		totalStaked:    totalStakedValue,
 	}
@@ -253,7 +251,7 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 	return ownerData, nil
 }
 
-func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, [][]byte, error) {
+func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, *big.Int, [][]byte, error) {
 	validatorAddressBytes := []byte(validatorAddress)
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -268,20 +266,21 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 
 	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+		return nil, nil, nil, nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
 	}
 
-	if len(vmOutput.ReturnData) < 2 {
-		return nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least two values", epochStart.ErrExecutingSystemScCode)
+	if len(vmOutput.ReturnData) < 3 {
+		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least two values", epochStart.ErrExecutingSystemScCode)
 	}
 
 	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
 	totalStakedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
+	numRegisteredNodes := big.NewInt(0).SetBytes(vmOutput.ReturnData[2])
 
-	return topUpValue, totalStakedValue, vmOutput.ReturnData[2:], nil
+	return topUpValue, totalStakedValue, numRegisteredNodes, vmOutput.ReturnData[3:], nil
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
