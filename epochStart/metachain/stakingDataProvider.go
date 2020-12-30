@@ -273,7 +273,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 	}
 
 	if len(vmOutput.ReturnData) < 3 {
-		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least two values", epochStart.ErrExecutingSystemScCode)
+		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least tree values", epochStart.ErrExecutingSystemScCode)
 	}
 
 	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
