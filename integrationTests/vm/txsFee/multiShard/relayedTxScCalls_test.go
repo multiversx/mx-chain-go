@@ -21,13 +21,13 @@ import (
 // 4. Execute SCR with the smart contract call on shard 1
 // 5. Execute SCR with refund on relayer shard (shard 2)
 func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
 	defer testContextRelayer.Close()
 
-	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextInnerDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextInnerDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -91,7 +91,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	developerFees = testContextInnerSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
-	txs := utils.GetIntermediateTransactions(t, testContextInnerSource)
+	txs := testContextInnerSource.GetIntermediateTransactions(t)
 	scr := txs[0]
 
 	// execute on inner tx receiver ( shard with contract )
@@ -107,7 +107,7 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(376), developerFees)
 
-	txs = utils.GetIntermediateTransactions(t, testContextInnerDst)
+	txs = testContextInnerDst.GetIntermediateTransactions(t)
 	scr = txs[0]
 
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
@@ -123,13 +123,13 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 }
 
 func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2)
+	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
 	defer testContextRelayer.Close()
 
-	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextInnerSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextInnerDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextInnerDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -193,7 +193,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	developerFees = testContextInnerSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
-	txs := utils.GetIntermediateTransactions(t, testContextInnerSource)
+	txs := testContextInnerSource.GetIntermediateTransactions(t)
 	scr := txs[0]
 
 	// execute on inner tx receiver ( shard with contract )
@@ -209,7 +209,7 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
-	txs = utils.GetIntermediateTransactions(t, testContextInnerDst)
+	txs = testContextInnerDst.GetIntermediateTransactions(t)
 	scr = txs[0]
 
 	utils.ProcessSCRResult(t, testContextInnerSource, scr, vmcommon.Ok, nil)

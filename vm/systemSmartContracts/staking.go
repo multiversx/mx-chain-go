@@ -1343,10 +1343,18 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	passedNonce := currentNonce - stakedData.UnStakedNonce
 	if passedNonce >= s.unBondPeriod {
-		s.eei.Finish([]byte("0"))
+		if s.flagStakingV2.IsSet() {
+			s.eei.Finish(zero.Bytes())
+		} else {
+			s.eei.Finish([]byte("0"))
+		}
 	} else {
 		remaining := s.unBondPeriod - passedNonce
-		s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+		if s.flagStakingV2.IsSet() {
+			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
+		} else {
+			s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+		}
 	}
 
 	return vmcommon.Ok
@@ -1439,7 +1447,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	s.eei.Finish([]byte(hex.EncodeToString(stakedData.OwnerAddress)))
+	s.eei.Finish(stakedData.OwnerAddress)
 	return vmcommon.Ok
 }
 
@@ -1499,6 +1507,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 			return vmcommon.UserError
 		}
 
+		stakedNodes++
 		// return the change key
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)

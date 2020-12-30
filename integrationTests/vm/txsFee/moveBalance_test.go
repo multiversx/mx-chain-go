@@ -1,18 +1,21 @@
 package txsFee
 
 import (
+	"errors"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -35,13 +38,36 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	expectedBalance := big.NewInt(9950)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
+	//check receipts
+	require.Equal(t, 1, len(testContext.GetIntermediateTransactions(t)))
+	rcpt := testContext.GetIntermediateTransactions(t)[0].(*receipt.Receipt)
+	assert.Equal(t, "950", rcpt.Value.String())
+
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
 }
 
+// minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
+func TestMoveBalanceAllFlagsEnabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	defer testContext.Close()
+
+	sndAddr := []byte("12345678901234567890123456789012")
+	senderNonce := uint64(0)
+	senderBalance := big.NewInt(10000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(10000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
+
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.True(t, errors.Is(err, process.ErrInsufficientFee))
+}
+
 func TestMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -81,7 +107,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -109,7 +135,7 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -139,7 +165,7 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")

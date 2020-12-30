@@ -928,3 +928,6 @@ var ErrMoreGasThanGasLimitPerBlock = errors.New("more gas was provided than gas 
 
 // ErrNotEnoughGasInUserTx signals that not enough gas was provided in user tx
 var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
+
+// ErrNegativeBalanceDeltaOnCrossShardAccount signals that negative balance delta was given on cross shard account
+var ErrNegativeBalanceDeltaOnCrossShardAccount = errors.New("negative balance delta on cross shard account")

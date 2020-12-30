@@ -93,7 +93,7 @@ func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 
 // GetNodeStakedTopUp returns the owner of provided bls key staking stats for the current epoch
 func (sdp *stakingDataProvider) GetNodeStakedTopUp(blsKey []byte) (*big.Int, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("GetOwnerStakingStats", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -165,7 +165,7 @@ func (sdp *stakingDataProvider) FillValidatorInfo(blsKey []byte) error {
 }
 
 func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*ownerStats, error) {
-	owner, err := sdp.getBlsKeyOwnerAsHex(blsKey)
+	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
 		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
@@ -197,7 +197,7 @@ func (sdp *stakingDataProvider) loadDataForBlsKey(blsKey []byte) error {
 	return nil
 }
 
-func (sdp *stakingDataProvider) getBlsKeyOwnerAsHex(blsKey []byte) (string, error) {
+func (sdp *stakingDataProvider) getBlsKeyOwner(blsKey []byte) (string, error) {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr: vm.ValidatorSCAddress,
@@ -256,10 +256,7 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 }
 
 func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) (*big.Int, *big.Int, [][]byte, error) {
-	validatorAddressBytes, err := hex.DecodeString(validatorAddress)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	validatorAddressBytes := []byte(validatorAddress)
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
@@ -297,11 +294,11 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 }
 
 // ComputeUnQualifiedNodes will compute which nodes are not qualified - do not have enough tokens to be validators
-func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error) {
+func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error) {
 	sdp.mutStakingData.Lock()
 	defer sdp.mutStakingData.Unlock()
 
-	ownersWithNotEnoughFunds := make([][]byte, 0)
+	mapOwnersKeys := make(map[string][][]byte)
 	keysToUnStake := make([][]byte, 0)
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for ownerAddress, stakingInfo := range sdp.cache {
@@ -323,10 +320,12 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 		}
 
 		keysToUnStake = append(keysToUnStake, selectedKeys...)
-		ownersWithNotEnoughFunds = append(ownersWithNotEnoughFunds, []byte(ownerAddress))
+
+		mapOwnersKeys[ownerAddress] = make([][]byte, len(selectedKeys))
+		copy(mapOwnersKeys[ownerAddress], selectedKeys)
 	}
 
-	return keysToUnStake, ownersWithNotEnoughFunds, nil
+	return keysToUnStake, mapOwnersKeys, nil
 }
 
 func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map[string]string {

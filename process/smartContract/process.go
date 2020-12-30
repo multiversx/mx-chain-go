@@ -322,7 +322,7 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 	results, err = sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("process vm output returned with problem ", "err", err.Error())
-		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	return sc.finishSCExecution(results, txHash, tx, vmOutput, 0)
@@ -345,7 +345,7 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmExec, err := findVMByTransaction(sc.vmContainer, tx)
 	if err != nil {
 		returnMessage := "cannot get vm from address"
-		log.Debug("get vm from address error", "error", err.Error())
+		log.Trace("get vm from address error", "error", err.Error())
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(returnMessage), snapshot, vmInput.GasLocked)
 	}
 
@@ -1134,13 +1134,13 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	vmInput, vmType, err := sc.createVMDeployInput(tx)
 	if err != nil {
-		log.Debug("Transaction error", "error", err.Error())
+		log.Trace("Transaction data invalid", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, 0)
 	}
 
 	vmExec, err := sc.vmContainer.Get(vmType)
 	if err != nil {
-		log.Debug("VM error", "error", err.Error())
+		log.Trace("VM not found", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
@@ -1152,7 +1152,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	if vmOutput == nil {
 		err = process.ErrNilVMOutput
-		log.Debug("run smart contract call error", "error", err.Error())
+		log.Trace("run smart contract create", "error", err.Error())
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 	vmOutput.GasRemaining += vmInput.GasLocked
@@ -1362,6 +1362,10 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 		"return code", vmOutput.ReturnCode.String(),
 		"return message", vmOutput.ReturnMessage,
 	)
+
+	if sc.flagDeploy.IsSet() {
+		vmOutput.ReturnMessage += "@"
+	}
 
 	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
 		gasUsed, vmOutput.GasRemaining)
@@ -1762,6 +1766,9 @@ func (sc *scProcessor) processSCOutputAccounts(
 		}
 		if check.IfNil(acc) {
 			if outAcc.BalanceDelta != nil {
+				if outAcc.BalanceDelta.Cmp(zero) < 0 {
+					return false, nil, process.ErrNegativeBalanceDeltaOnCrossShardAccount
+				}
 				sumOfAllDiff.Add(sumOfAllDiff, outAcc.BalanceDelta)
 			}
 			continue
@@ -1975,6 +1982,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId && sc.flagDeploy.IsSet() {
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
+			return returnCode, err
+		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}

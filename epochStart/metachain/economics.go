@@ -34,6 +34,7 @@ type economics struct {
 	genesisNonce          uint64
 	genesisTotalSupply    *big.Int
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
+	stakingV2EnableEpoch  uint32
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -48,6 +49,7 @@ type ArgsNewEpochEconomics struct {
 	GenesisNonce          uint64
 	GenesisTotalSupply    *big.Int
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
+	StakingV2EnableEpoch  uint32
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -88,6 +90,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisNonce:          args.GenesisNonce,
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
+		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 	}
 
 	return e, nil
@@ -138,7 +141,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.DevFeesInEpoch)
 	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
-	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, totalNumBlocksInEpoch)
+	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch, metaBlock.Epoch)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
 	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForProtocolSustainability)
@@ -278,9 +281,15 @@ func (e *economics) adjustRewardsPerBlockWithDeveloperFees(
 func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	rwdPerBlock *big.Int,
 	accumulatedFees *big.Int,
+	developerFees *big.Int,
 	blocksInEpoch uint64,
+	epoch uint32,
 ) *big.Int {
-	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFees, e.rewardsHandler.LeaderPercentage())
+	accumulatedFeesForValidators := big.NewInt(0).Set(accumulatedFees)
+	if epoch > e.stakingV2EnableEpoch {
+		accumulatedFeesForValidators.Sub(accumulatedFeesForValidators, developerFees)
+	}
+	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFeesForValidators, e.rewardsHandler.LeaderPercentage())
 	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
 	return rewardsForLeaders

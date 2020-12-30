@@ -13,7 +13,7 @@ import (
 )
 
 func TestMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -49,7 +49,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -88,7 +88,7 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -125,10 +125,10 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 }
 
 func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0)
+	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1)
+	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
 	defer testContextDst.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
