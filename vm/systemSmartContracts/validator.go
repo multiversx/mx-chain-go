@@ -757,6 +757,11 @@ func (v *validatorSC) getNumStakedAndWaitingNodes(
 	mapCheckedKeys map[string]struct{},
 	checkJailed bool,
 ) (uint64, error) {
+	errUseGas := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.GetAllNodeStates)
+	if errUseGas != nil {
+		return 0, errUseGas
+	}
+
 	numActiveNodes := uint64(0)
 	for _, blsKey := range registrationData.BlsPubKeys {
 		_, exists := mapCheckedKeys[string(blsKey)]
@@ -1688,6 +1693,7 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 	topUp := big.NewInt(0).Set(registrationData.TotalStakeValue)
 	topUp.Sub(topUp, stakeForNodes)
 	if topUp.Cmp(zero) < 0 {
+		log.Warn("topup value is less than 0")
 		topUp.Set(zero)
 	}
 

@@ -31,6 +31,7 @@ type MetaChainSystemSCsCost struct {
 	UnStakeTokens       uint64
 	UnBondTokens        uint64
 	DelegationMgrOps    uint64
+	GetAllNodeStates    uint64
 }
 
 // BuiltInCost defines cost for built-in methods
