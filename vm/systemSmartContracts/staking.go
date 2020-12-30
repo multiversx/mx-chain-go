@@ -566,8 +566,8 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	if !registrationData.Staked {
-		s.eei.AddReturnMessage("cannot unStake node which was already unStaked")
-		return vmcommon.UserError
+		log.Debug("stakingSC.unStakeAtEndOfEpoch: cannot unStake node which was already unStaked")
+		return vmcommon.Ok
 	}
 
 	s.removeFromStakedNodes()
