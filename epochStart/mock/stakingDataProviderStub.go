@@ -14,7 +14,7 @@ type StakingDataProviderStub struct {
 	GetTotalTopUpStakeEligibleNodesCalled func() *big.Int
 	GetNodeStakedTopUpCalled              func(blsKey []byte) (*big.Int, error)
 	FillValidatorInfoCalled               func(blsKey []byte) error
-	ComputeUnQualifiedNodesCalled         func(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error)
+	ComputeUnQualifiedNodesCalled         func(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error)
 }
 
 // FillValidatorInfo -
@@ -26,7 +26,7 @@ func (sdps *StakingDataProviderStub) FillValidatorInfo(blsKey []byte) error {
 }
 
 // ComputeUnQualifiedNodes -
-func (sdps *StakingDataProviderStub) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error) {
+func (sdps *StakingDataProviderStub) ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error) {
 	if sdps.ComputeUnQualifiedNodesCalled != nil {
 		return sdps.ComputeUnQualifiedNodesCalled(validatorInfos)
 	}

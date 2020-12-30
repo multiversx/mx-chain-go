@@ -3,6 +3,7 @@ package transaction
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go-logger"
@@ -211,7 +212,7 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 		return err
 	}
 
-	if txError == process.ErrInvalidMetaTransaction || txError == process.ErrAccountNotPayable {
+	if errors.Is(txError, process.ErrInvalidMetaTransaction) || errors.Is(txError, process.ErrAccountNotPayable) {
 		snapshot := txProc.accounts.JournalLen()
 		var txHash []byte
 		txHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
@@ -353,32 +354,27 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	totalCost := txProc.economicsFee.ComputeTxFee(tx)
+	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
+	}
+
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
-	if dstShardTxType != process.MoveBalance || (!txProc.flagMetaProtection.IsSet() && isCrossShardSCCall) {
-		totalCost := txProc.economicsFee.ComputeTxFee(tx)
-		if !txProc.flagPenalizedTooMuchGas.IsSet() {
-			totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
-		}
+	if dstShardTxType != process.MoveBalance ||
+		(!txProc.flagMetaProtection.IsSet() && isCrossShardSCCall) {
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, nil, err
 		}
-
-		return moveBalanceFee, totalCost, nil
+	} else {
+		err := acntSnd.SubFromBalance(moveBalanceFee)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	err := acntSnd.SubFromBalance(moveBalanceFee)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if !txProc.flagPenalizedTooMuchGas.IsSet() {
-		totalCost := core.SafeMul(tx.GasLimit, tx.GasPrice)
-		return moveBalanceFee, totalCost, nil
-	}
-
-	return moveBalanceFee, moveBalanceFee, nil
+	return moveBalanceFee, totalCost, nil
 }
 
 func (txProc *txProcessor) checkIfValidTxToMetaChain(
@@ -399,7 +395,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 	if txProc.flagMetaProtection.IsSet() {
 		// additional check
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
-			return process.ErrInvalidMetaTransaction
+			return fmt.Errorf("%w: not enough gas", process.ErrInvalidMetaTransaction)
 		}
 	}
 

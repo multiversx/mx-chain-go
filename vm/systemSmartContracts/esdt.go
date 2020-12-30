@@ -24,7 +24,8 @@ const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
-const minLengthForTokenName = 10
+const minLengthForInitTokenName = 10
+const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
 const minNumberOfDecimals = 0
 const maxNumberOfDecimals = 18
@@ -165,7 +166,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	err := e.saveESDTConfig(scConfig)
@@ -191,7 +192,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < minLengthForTickerName ||
+	if len(args.Arguments[0]) < minLengthForTokenName ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
@@ -819,7 +820,7 @@ func (e *esdt) getESDTConfig() (*ESDTConfig, error) {
 	esdtConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	marshalledData := e.eei.GetStorage([]byte(configKeyPrefix))

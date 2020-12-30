@@ -2107,6 +2107,7 @@ func newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -2218,6 +2219,7 @@ func newMetaBlockProcessor(
 		MaxNodesEnableConfig:                   generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
+		ShardCoordinator:                       shardCoordinator,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {

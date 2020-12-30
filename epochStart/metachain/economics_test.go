@@ -242,7 +242,21 @@ func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentage(t *testing.T) {
 	accumulatedFeesInEpoch := big.NewInt(0).SetUint64(10000)
 
 	expectedRwdPerBlock := big.NewInt(900)
-	ec.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, accumulatedFeesInEpoch, blocksInEpoch)
+	ec.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, accumulatedFeesInEpoch, big.NewInt(0), blocksInEpoch, 1)
+	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
+}
+
+func TestEconomics_AdjustRewardsPerBlockWithLeaderPercentageAndDevFees(t *testing.T) {
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	rwdPerBlock := big.NewInt(0).SetUint64(1000)
+	blocksInEpoch := uint64(100)
+	accumulatedFeesInEpoch := big.NewInt(0).SetUint64(10000)
+	devFeesInEpoch := big.NewInt(1000)
+
+	expectedRwdPerBlock := big.NewInt(910)
+	ec.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, accumulatedFeesInEpoch, devFeesInEpoch, blocksInEpoch, 1)
 	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
 }
 
@@ -480,6 +494,220 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	}
 }
 
+func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
+	t.Parallel()
+
+	commAddress := "protocolSustainabilityAddress"
+	// based on 0.1 inflation, 14400 rounds, 3 shards, 365 epochs per year
+	totalSupply := big.NewInt(100 * 4 * 14400 * 365 * 10) // 21.02B
+	roundDur := 6
+	args := getArguments()
+	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func(_ uint32) float64 {
+			return 0.1
+		},
+		ProtocolSustainabilityAddressCalled: func() string {
+			return commAddress
+		},
+		ProtocolSustainabilityPercentageCalled: func() float64 {
+			return 0.1
+		},
+		LeaderPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDur) * time.Second
+		},
+	}
+	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
+	hdrPrevEpochStart := block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:                      newTotalSupply,
+				TotalToDistribute:                big.NewInt(0),
+				TotalNewlyMinted:                 big.NewInt(0),
+				RewardsPerBlock:                  big.NewInt(0),
+				NodePrice:                        big.NewInt(10),
+				RewardsForProtocolSustainability: big.NewInt(0),
+			},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Nonce: 0},
+				{ShardID: 1, Nonce: 0},
+				{ShardID: 2, Nonce: 0},
+			},
+		},
+	}
+	args.Store = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+				return hdrBytes, nil
+			}}
+		},
+	}
+	args.GenesisTotalSupply = totalSupply
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	numberOfShards := 4
+	maxRewardPerBlock := int64(100)
+	blocksPerDay := numberOfSecondsInDay / roundDur
+	protocolSustainabilityRewardsForMaxBlocks := int64(numberOfSecondsInDay/roundDur) * 4 * maxRewardPerBlock / 10
+
+	tests := []struct {
+		name                                  string
+		numBlocksInEpoch                      int
+		accFeesInEpoch                        *big.Int
+		devFeesInEpoch                        *big.Int
+		expectedProtocolSustainabilityRewards *big.Int
+		expectedRewardPerBlock                *big.Int
+	}{
+		{
+			name:                                  "test1",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(0),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10),
+		},
+		{
+			name:                                  "test2",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 1),
+		},
+		{
+			name:                                  "test3",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 10 - 0), // 0 = 10% of (accFees - devFees),
+		},
+		{ // half the blocks, same reward per block but half the protocol sustainability
+			name:                                  "test3",
+			numBlocksInEpoch:                      blocksPerDay / 2,
+			accFeesInEpoch:                        big.NewInt(0),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks / 2),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10),
+		},
+		{ // half the blocks, same reward per block but half the protocol sustainability and -2x10 from accFeesInEpoch
+			name:                                  "test4",
+			numBlocksInEpoch:                      blocksPerDay / 2,
+			accFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks / 2),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 2),
+		},
+		{ // half the blocks, same reward per block but half the protocol sustainability and -2x10 from accFeesInEpoch. Half of accFeesInEpoch are devFees
+			name:                                  "test5",
+			numBlocksInEpoch:                      blocksPerDay / 2,
+			accFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt((10 * 4 * int64(blocksPerDay)) / 2),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks / 2),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 10 - 1),
+		},
+		{ // half the blocks, same reward per block but half the protocol sustainability and -4x10 from fees
+			name:                                  "test6",
+			numBlocksInEpoch:                      blocksPerDay / 2,
+			accFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(10 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks / 2),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 20 - 0),
+		},
+		{
+			name:                                  "test7",
+			numBlocksInEpoch:                      1,
+			accFeesInEpoch:                        big.NewInt(0),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(100 * 4 / 10),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10),
+		},
+		{
+			name:                                  "test8",
+			numBlocksInEpoch:                      1,
+			accFeesInEpoch:                        big.NewInt(10 * 4),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(100 * 4 / 10),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 1),
+		},
+		{
+			name:                                  "test9",
+			numBlocksInEpoch:                      1,
+			accFeesInEpoch:                        big.NewInt(10 * 4),
+			devFeesInEpoch:                        big.NewInt(10 * 4),
+			expectedProtocolSustainabilityRewards: big.NewInt(100 * 4 / 10),
+			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 10 - 0),
+		},
+	}
+
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
+			expectedTotalToDistribute := big.NewInt(maxRewardPerBlock * totalBlocksInEpoch)
+			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, tt.accFeesInEpoch)
+			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
+			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(maxRewardPerBlock), commRewardPerBlock)
+			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+			feesForProposers := core.GetPercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
+			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, devFeeRewardPerBlock)
+
+			mb := block.MetaBlock{
+				Round: uint64(tt.numBlocksInEpoch),
+				Nonce: uint64(tt.numBlocksInEpoch),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 1, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 2, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+					},
+					Economics: block.Economics{
+						TotalSupply:                      expectedTotalSupply,
+						TotalToDistribute:                expectedTotalToDistribute,
+						TotalNewlyMinted:                 expectedTotalNewlyMinted,
+						RewardsPerBlock:                  adjustedRwdPerBlock,
+						NodePrice:                        big.NewInt(10),
+						PrevEpochStartHash:               hdrPrevEpochStartHash,
+						RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					},
+				},
+				Epoch:                  1,
+				AccumulatedFeesInEpoch: tt.accFeesInEpoch,
+				DevFeesInEpoch:         tt.devFeesInEpoch,
+			}
+
+			computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.NotNil(t, computedEconomics)
+
+			err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
+			assert.Nil(t, err)
+
+			ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
+
+			require.Equal(t, tt.expectedProtocolSustainabilityRewards, ecos.RewardsForProtocolSustainability)
+			require.Equal(t, tt.expectedRewardPerBlock, ecos.RewardsPerBlock)
+		})
+	}
+}
+
 type testInput struct {
 	blockPerEpochOneShard  uint64
 	accumulatedFeesInEpoch *big.Int
@@ -626,7 +854,8 @@ func verifyEconomicsBlock(
 	developerFeesPerBlock := big.NewInt(0).Div(input.devFeesInEpoch, big.NewInt(totalBlocksPerEpoch))
 	adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, developerFeesPerBlock)
 	// subtract leader percentage per block
-	rewardsForLeader := core.GetPercentageOfValue(input.accumulatedFeesInEpoch, rewardsHandler.LeaderPercentage())
+	rewardsForLeader := big.NewInt(0).Sub(input.accumulatedFeesInEpoch, input.devFeesInEpoch)
+	rewardsForLeader = core.GetPercentageOfValue(rewardsForLeader, rewardsHandler.LeaderPercentage())
 	rewardsForLeaderPerBlock := big.NewInt(0).Div(rewardsForLeader, big.NewInt(totalBlocksPerEpoch))
 	adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, rewardsForLeaderPerBlock)
 	// protocolSustainabilityPercentage

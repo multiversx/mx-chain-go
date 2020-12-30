@@ -14,7 +14,12 @@ import (
 )
 
 func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(
+		t,
+		true,
+		vm.ArgEnableEpoch{
+			PenalizedTooMuchGasEnableEpoch: 100,
+		})
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -58,7 +63,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -104,7 +109,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -148,7 +153,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -192,7 +197,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true)
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
