@@ -1137,13 +1137,17 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
 	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
 	assert.Nil(t, err)
-	delegationStatus := &systemSmartContracts.DelegationContractStatus{}
-	err = args.Marshalizer.Unmarshal(delegationStatus, marshalledData)
-	assert.Nil(t, err)
+	dStatus := &systemSmartContracts.DelegationContractStatus{
+		Delegators:    make([][]byte, 0),
+		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
+		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
+		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+	}
+	_ = args.Marshalizer.Unmarshal(dStatus, marshalledData)
 
-	assert.Equal(t, 1, len(delegationStatus.UnStakedKeys))
-	assert.Equal(t, 2, len(delegationStatus.StakedKeys))
-	assert.Equal(t, []byte("stakedPubKey1"), delegationStatus.UnStakedKeys[0])
+	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
+	assert.Equal(t, []byte("stakedPubKey1"), dStatus.UnStakedKeys[0].BLSKey)
 }
 
 func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
