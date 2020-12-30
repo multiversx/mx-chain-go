@@ -2107,7 +2107,7 @@ func newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
-		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
+		StakingV2EnableEpoch:  systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

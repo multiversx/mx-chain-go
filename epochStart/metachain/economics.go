@@ -34,7 +34,7 @@ type economics struct {
 	genesisNonce          uint64
 	genesisTotalSupply    *big.Int
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
-	epochEnableV2         uint32
+	stakingV2EnableEpoch  uint32
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -49,7 +49,7 @@ type ArgsNewEpochEconomics struct {
 	GenesisNonce          uint64
 	GenesisTotalSupply    *big.Int
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
-	EpochEnableV2         uint32
+	StakingV2EnableEpoch  uint32
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -90,7 +90,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisNonce:          args.GenesisNonce,
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
-		epochEnableV2:         args.EpochEnableV2,
+		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
 	}
 
 	return e, nil
@@ -286,7 +286,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	epoch uint32,
 ) *big.Int {
 	accumulatedFeesForValidators := big.NewInt(0).Set(accumulatedFees)
-	if epoch > e.epochEnableV2 {
+	if epoch > e.stakingV2EnableEpoch {
 		accumulatedFeesForValidators.Sub(accumulatedFeesForValidators, developerFees)
 	}
 	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFeesForValidators, e.rewardsHandler.LeaderPercentage())
