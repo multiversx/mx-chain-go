@@ -3689,8 +3689,8 @@ func TestStakingValidatorSC_GetTopUpTotalStakedShouldWork(t *testing.T) {
 	vmOutput := eei.CreateVMOutput()
 
 	// nodePrice is 1000 and there is 1 registered node - the rest is topup
-	assert.Equal(t, big.NewInt(32827).String(), string(vmOutput.ReturnData[0]))
-	assert.Equal(t, totalStake.String(), string(vmOutput.ReturnData[1]))
+	assert.Equal(t, big.NewInt(32827).Bytes(), vmOutput.ReturnData[0])
+	assert.Equal(t, totalStake.Bytes(), vmOutput.ReturnData[1])
 }
 
 func TestMarshalingBetweenValidatorV1AndValidatorV2(t *testing.T) {

@@ -15,8 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/vm"
 )
 
-const conversionBase = 10
-
 type ownerStats struct {
 	numEligible        int
 	numStakedNodes     int
@@ -280,15 +278,8 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 		return nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least two values", epochStart.ErrExecutingSystemScCode)
 	}
 
-	topUpValue, ok := big.NewInt(0).SetString(string(vmOutput.ReturnData[0]), conversionBase)
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: topUp string returned is not a number", epochStart.ErrExecutingSystemScCode)
-	}
-
-	totalStakedValue, ok := big.NewInt(0).SetString(string(vmOutput.ReturnData[1]), conversionBase)
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("%w, error: totalStaked string returned is not a number", epochStart.ErrExecutingSystemScCode)
-	}
+	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	totalStakedValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[1])
 
 	return topUpValue, totalStakedValue, vmOutput.ReturnData[2:], nil
 }
