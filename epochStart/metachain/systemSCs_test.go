@@ -188,7 +188,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -197,6 +197,42 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 			return rating
 		},
 	}
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
+
+	numEligible := 9
+	numWaiting := 5
+	numJailed := 8
+	stakingScAcc := loadSCAccount(args.UserAccountsDB, vm.StakingSCAddress)
+	createEligibleNodes(numEligible, stakingScAcc, args.Marshalizer)
+	_ = createWaitingNodes(numWaiting, stakingScAcc, args.UserAccountsDB, args.Marshalizer)
+	jailed := createJailedNodes(numJailed, stakingScAcc, args.UserAccountsDB, args.PeerAccountsDB, args.Marshalizer)
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo[0] = append(validatorsInfo[0], jailed...)
+
+	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
+	assert.Nil(t, err)
+	for i := 0; i < numWaiting; i++ {
+		assert.Equal(t, string(core.NewList), validatorsInfo[0][i].List)
+	}
+	for i := numWaiting; i < numJailed; i++ {
+		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
+	}
+}
+
+func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
+	args.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 

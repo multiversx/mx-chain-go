@@ -315,8 +315,8 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 
 		numKeysToUnStake := totalActive - maxQualified.Int64()
 		selectedKeys := selectKeysToUnStake(sortedKeys, numKeysToUnStake)
-		if int64(len(selectedKeys)) != numKeysToUnStake {
-			return nil, nil, epochStart.ErrInvalidNumOfKeysToUnStake
+		if len(selectedKeys) == 0 {
+			continue
 		}
 
 		keysToUnStake = append(keysToUnStake, selectedKeys...)
@@ -340,7 +340,7 @@ func createMapBLSKeyStatus(validatorInfos map[uint32][]*state.ValidatorInfo) map
 }
 
 func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]byte {
-	selectedKeys := make([][]byte, 0, numToSelect)
+	selectedKeys := make([][]byte, 0)
 	newKeys := sortedKeys[string(core.NewList)]
 	if len(newKeys) > 0 {
 		selectedKeys = append(selectedKeys, newKeys...)
@@ -364,7 +364,11 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 		selectedKeys = append(selectedKeys, eligibleKeys...)
 	}
 
-	return selectedKeys[:numToSelect]
+	if int64(len(selectedKeys)) >= numToSelect {
+		return selectedKeys[:numToSelect]
+	}
+
+	return selectedKeys
 }
 
 func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) (map[string][][]byte, int64) {
