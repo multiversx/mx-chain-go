@@ -70,27 +70,32 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "staked")
 
 	//unStake 3 nodes
-	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake-3])
+	txData = txDataForFunc("unStakeNodes", blsKeys[:numNodesToStake])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake-3], "unStaked")
+	checkNodesStatus(t, tpn, vm.StakingSCAddress, blsKeys[:numNodesToStake], "unStaked")
 
 	//remove nodes should fail because they are not unBonded
-	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake-3])
+	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake])
 	returnedCode, _ = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Equal(t, vmcommon.UserError, returnedCode)
 
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 10000000})
 	//unBond nodes
-	txData = txDataForFunc("unBondNodes", blsKeys[:numNodesToStake-3])
+	txData = txDataForFunc("unBondNodes", blsKeys[:numNodesToStake])
+	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
+
+	txData = "unDelegate@" + hex.EncodeToString(big.NewInt(1000).Bytes())
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
 	//remove unBonded nodes should work
-	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake-3])
+	txData = txDataForFunc("removeNodes", blsKeys[:numNodesToStake])
 	returnedCode, err = processTransaction(tpn, tpn.OwnAccount.Address, delegationScAddress, txData, big.NewInt(0))
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
