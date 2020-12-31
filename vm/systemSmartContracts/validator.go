@@ -183,8 +183,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.unJail(args)
 	case "getTotalStaked":
 		return v.getTotalStaked(args)
-	case "getTotalStakedTopUpBlsKeys":
-		return v.getTotalStakedTopUpBlsKeys(args)
+	case "getTotalStakedTopUpStakedBlsKeys":
+		return v.getTotalStakedTopUpStakedBlsKeys(args)
 	case "getBlsKeysStatus":
 		return v.getBlsKeysStatus(args)
 	case "cleanRegisteredData":
@@ -734,7 +734,7 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	numStakedAndWaiting, err := v.getNumStakedAndWaitingNodes(registrationData, mapNodesToReStake, true)
+	numStakedAndWaiting, _, err := v.getNumStakedAndWaitingNodes(registrationData, mapNodesToReStake, true)
 	if err != nil {
 		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -756,12 +756,13 @@ func (v *validatorSC) getNumStakedAndWaitingNodes(
 	registrationData *ValidatorDataV2,
 	mapCheckedKeys map[string]struct{},
 	checkJailed bool,
-) (uint64, error) {
+) (uint64, [][]byte, error) {
 	errUseGas := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.GetAllNodeStates)
 	if errUseGas != nil {
-		return 0, errUseGas
+		return 0, nil, errUseGas
 	}
 
+	listActiveNodes := make([][]byte, 0)
 	numActiveNodes := uint64(0)
 	for _, blsKey := range registrationData.BlsPubKeys {
 		_, exists := mapCheckedKeys[string(blsKey)]
@@ -771,19 +772,23 @@ func (v *validatorSC) getNumStakedAndWaitingNodes(
 
 		stakedData, err := v.getStakedData(blsKey)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 
 		if checkJailed && stakedData.Jailed {
-			return 0, vm.ErrBLSPublicKeyAlreadyJailed
+			return 0, nil, vm.ErrBLSPublicKeyAlreadyJailed
 		}
 
 		if stakedData.Staked || stakedData.Waiting || stakedData.Jailed {
 			numActiveNodes++
 		}
+
+		if stakedData.Staked || stakedData.Waiting {
+			listActiveNodes = append(listActiveNodes, blsKey)
+		}
 	}
 
-	return numActiveNodes, nil
+	return numActiveNodes, listActiveNodes, nil
 }
 
 func (v *validatorSC) checkAllGivenKeysAreUnStaked(registrationData *ValidatorDataV2, blsKeys [][]byte) (map[string]struct{}, error) {
@@ -1654,7 +1659,7 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 	return vmcommon.Ok
 }
 
-func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !v.flagEnableTopUp.IsSet() {
 		v.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
@@ -1682,7 +1687,7 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 
-	numActive, err := v.getNumStakedAndWaitingNodes(registrationData, make(map[string]struct{}), false)
+	numActive, listActiveNodes, err := v.getNumStakedAndWaitingNodes(registrationData, make(map[string]struct{}), false)
 	if err != nil {
 		v.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1706,7 +1711,7 @@ func (v *validatorSC) getTotalStakedTopUpBlsKeys(args *vmcommon.ContractCallInpu
 	v.eei.Finish(registrationData.TotalStakeValue.Bytes())
 	v.eei.Finish(big.NewInt(0).SetUint64(numActive).Bytes())
 
-	for _, blsKey := range registrationData.BlsPubKeys {
+	for _, blsKey := range listActiveNodes {
 		v.eei.Finish(blsKey)
 	}
 

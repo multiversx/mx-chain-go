@@ -261,7 +261,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 			GasProvided: math.MaxUint64,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
-		Function:      "getTotalStakedTopUpBlsKeys",
+		Function:      "getTotalStakedTopUpStakedBlsKeys",
 	}
 
 	vmOutput, err := sdp.systemVM.RunSmartContractCall(vmInput)
@@ -273,7 +273,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 	}
 
 	if len(vmOutput.ReturnData) < 3 {
-		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpBlsKeys function should have at least three values", epochStart.ErrExecutingSystemScCode)
+		return nil, nil, nil, nil, fmt.Errorf("%w, getTotalStakedTopUpStakedBlsKeys function should have at least three values", epochStart.ErrExecutingSystemScCode)
 	}
 
 	topUpValue := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
@@ -297,12 +297,9 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 			continue
 		}
 
-		sortedKeys, totalActive := arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
-		if maxQualified.Int64() >= totalActive {
-			continue
-		}
+		sortedKeys := arrangeBlsKeysByStatus(mapBLSKeyStatus, stakingInfo.blsKeys)
 
-		numKeysToUnStake := totalActive - maxQualified.Int64()
+		numKeysToUnStake := stakingInfo.numStakedNodes - maxQualified.Int64()
 		selectedKeys := selectKeysToUnStake(sortedKeys, numKeysToUnStake)
 		if len(selectedKeys) == 0 {
 			continue
@@ -360,23 +357,19 @@ func selectKeysToUnStake(sortedKeys map[string][][]byte, numToSelect int64) [][]
 	return selectedKeys
 }
 
-func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) (map[string][][]byte, int64) {
+func arrangeBlsKeysByStatus(mapBlsKeyStatus map[string]string, blsKeys [][]byte) map[string][][]byte {
 	sortedKeys := make(map[string][][]byte)
-	totalActive := int64(0)
 	for _, blsKey := range blsKeys {
 		blsKeyStatus, ok := mapBlsKeyStatus[string(blsKey)]
 		if !ok {
+			sortedKeys[string(core.NewList)] = append(sortedKeys[string(core.NewList)], blsKey)
 			continue
 		}
 
 		sortedKeys[blsKeyStatus] = append(sortedKeys[blsKeyStatus], blsKey)
-
-		if blsKeyStatus != string(core.LeavingList) && blsKeyStatus != string(core.InactiveList) {
-			totalActive++
-		}
 	}
 
-	return sortedKeys, totalActive
+	return sortedKeys
 }
 
 // IsInterfaceNil return true if underlying object is nil

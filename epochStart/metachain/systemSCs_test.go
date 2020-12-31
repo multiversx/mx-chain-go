@@ -246,7 +246,7 @@ func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
 	}
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
-	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys...)
+	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys[:3]...)
 	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
 	jailed := &state.ValidatorInfo{
 		PublicKey:       blsKeys[0],

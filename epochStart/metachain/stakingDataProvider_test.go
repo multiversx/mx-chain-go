@@ -121,7 +121,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	err = sdp.loadDataForBlsKey([]byte("bls key"))
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
-	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpBlsKeys function should have at least three values"))
+	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpStakedBlsKeys function should have at least three values"))
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) {
@@ -401,7 +401,7 @@ func createStakingDataProviderWithMockArgs(
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{owner},
 				}, nil
-			case "getTotalStakedTopUpBlsKeys":
+			case "getTotalStakedTopUpStakedBlsKeys":
 				assert.Equal(t, owner, input.VMInput.CallerAddr)
 				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
