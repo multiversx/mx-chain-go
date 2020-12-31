@@ -565,12 +565,15 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.Ok
 	}
 
-	if !registrationData.Staked {
-		log.Debug("stakingSC.unStakeAtEndOfEpoch: cannot unStake node which was already unStaked")
+	if !registrationData.Staked && !registrationData.Waiting {
+		log.Debug("stakingSC.unStakeAtEndOfEpoch: cannot unStake node which was already unStaked", "blsKey", hex.EncodeToString(args.Arguments[0]))
 		return vmcommon.Ok
 	}
 
-	s.removeFromStakedNodes()
+	if registrationData.Staked {
+		s.removeFromStakedNodes()
+	}
+
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
