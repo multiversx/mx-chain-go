@@ -17,7 +17,7 @@ import (
 
 type ownerStats struct {
 	numEligible        int
-	numStakedNodes     int
+	numStakedNodes     int64
 	topUpValue         *big.Int
 	totalStaked        *big.Int
 	eligibleBaseStake  *big.Int
@@ -136,7 +136,7 @@ func (sdp *stakingDataProvider) processStakingData() {
 		if owner.numStakedNodes == 0 {
 			ownerStakePerNode.Set(sdp.minNodePrice)
 		} else {
-			ownerStakePerNode.Div(owner.totalStaked, big.NewInt(int64(owner.numStakedNodes)))
+			ownerStakePerNode.Div(owner.totalStaked, big.NewInt(owner.numStakedNodes))
 		}
 
 		ownerEligibleStake := big.NewInt(0).Mul(ownerStakePerNode, ownerEligibleNodes)
@@ -238,7 +238,7 @@ func (sdp *stakingDataProvider) getValidatorDataFromStakingSC(validatorAddress s
 
 	ownerData := &ownerStats{
 		numEligible:    0,
-		numStakedNodes: int(numStakedWaiting.Int64()),
+		numStakedNodes: numStakedWaiting.Int64(),
 		topUpValue:     topUpValue,
 		totalStaked:    totalStakedValue,
 	}
@@ -292,9 +292,8 @@ func (sdp *stakingDataProvider) ComputeUnQualifiedNodes(validatorInfos map[uint3
 	keysToUnStake := make([][]byte, 0)
 	mapBLSKeyStatus := createMapBLSKeyStatus(validatorInfos)
 	for ownerAddress, stakingInfo := range sdp.cache {
-		numRegisteredKeys := int64(len(stakingInfo.blsKeys))
 		maxQualified := big.NewInt(0).Div(stakingInfo.totalStaked, sdp.minNodePrice)
-		if maxQualified.Int64() >= numRegisteredKeys {
+		if maxQualified.Int64() >= stakingInfo.numStakedNodes {
 			continue
 		}
 
