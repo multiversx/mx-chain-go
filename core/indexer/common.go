@@ -433,7 +433,7 @@ func prepareSerializedDataForATransaction(
 	}
 
 	var serializedData []byte
-	if tx.GasUsed == tx.GasLimit {
+	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) {
 		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
 		serializedData =
 			[]byte(fmt.Sprintf(`{"script":{"source":"`+
@@ -462,6 +462,16 @@ func prepareSerializedDataForATransaction(
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
 	return metaData, serializedData, nil
+}
+
+func hasScrWithRefund(tx *Transaction) bool {
+	for _, sc := range tx.SmartContractResults {
+		if isSCRForSenderWithGasUsed(sc, tx) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte, []byte, error) {
