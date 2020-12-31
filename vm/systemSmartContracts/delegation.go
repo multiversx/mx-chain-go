@@ -349,7 +349,7 @@ func (d *delegation) makeStakeArgsIfAutomaticActivation(
 	}
 
 	maxNodesToStake := big.NewInt(0).Div(globalFund.TotalActive, d.nodePrice).Uint64()
-	numStakedNodes := uint64(len(status.StakedKeys))
+	numStakedNodes := uint64(len(status.StakedKeys) + len(status.UnStakedKeys))
 	if maxNodesToStake <= numStakedNodes {
 		return nil
 	}

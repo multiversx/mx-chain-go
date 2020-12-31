@@ -188,7 +188,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -218,6 +218,57 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	for i := numWaiting; i < numJailed; i++ {
 		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
 	}
+}
+
+func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
+
+	owner1 := append([]byte("owner1"), bytes.Repeat([]byte{1}, 26)...)
+
+	blsKeys := [][]byte{
+		[]byte("bls key 1"),
+		[]byte("bls key 2"),
+		[]byte("bls key 3"),
+		[]byte("bls key 4"),
+	}
+
+	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
+	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys[:3]...)
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	jailed := &state.ValidatorInfo{
+		PublicKey:       blsKeys[0],
+		ShardId:         0,
+		List:            string(core.JailedList),
+		TempRating:      1,
+		RewardAddress:   []byte("owner1"),
+		AccumulatedFees: big.NewInt(0),
+	}
+	validatorsInfo[0] = append(validatorsInfo[0], jailed)
+
+	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
+	assert.Nil(t, err)
+
+	for _, vInfo := range validatorsInfo[0] {
+		assert.Equal(t, string(core.JailedList), vInfo.List)
+	}
+
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(nodesToUnStake))
+	assert.Equal(t, 0, len(mapOwnersKeys))
 }
 
 func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
@@ -383,6 +434,25 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
+	}
+
+	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	saveOutputAccounts(t, accountsDB, vmOutput)
+}
+
+func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, blsKeys ...[]byte) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unStake",
 	}
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
