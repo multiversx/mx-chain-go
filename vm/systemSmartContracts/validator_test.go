@@ -3100,6 +3100,47 @@ func TestStakingValidatorSC_UnstakeTokensUnderMinimumAllowedShouldErr(t *testing
 	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "can not unstake the provided value either because is under the minimum threshold"))
 }
 
+func TestStakingValidatorSC_UnstakeAllTokensWithActiveNodesShouldError(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	nonce := startNonce
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			nonce++
+			return nonce
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.MinDeposit = "1000"
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(1010),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo:    nil,
+			TotalUnstaked:   nil,
+		},
+	)
+
+	callFunctionAndCheckResult(t, "unStakeTokens", sc, caller, [][]byte{big.NewInt(11).Bytes()}, zero, vmcommon.UserError)
+	vmOutput := eei.CreateVMOutput()
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "cannot unStake tokens, the validator would remain without min deposit, nodes are still active"))
+}
+
 func TestStakingValidatorSC_UnstakeTokensShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -3491,6 +3532,51 @@ func TestStakingValidatorSC_UnBondTokensShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.Equal(t, expected, recovered)
+}
+
+func TestStakingValidatorSC_UnBondAllTokensWithMinDepositShouldError(t *testing.T) {
+	t.Parallel()
+
+	minStakeValue := big.NewInt(1000)
+	unbondPeriod := uint64(10)
+	startNonce := uint64(56)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return startNonce + unbondPeriod + 1
+		},
+	}
+	args := createMockArgumentsForValidatorSC()
+	args.StakingSCConfig.StakingV2Epoch = 0
+	args.MinDeposit = "1000"
+	args.StakingSCConfig.UnBondPeriod = unbondPeriod
+	eei := createVmContextWithStakingSc(minStakeValue, unbondPeriod, blockChainHook)
+	args.Eei = eei
+	caller := []byte("caller")
+	sc, _ := NewValidatorSmartContract(args)
+	_ = sc.saveRegistrationData(
+		caller,
+		&ValidatorDataV2{
+			RegisterNonce:   0,
+			Epoch:           0,
+			RewardAddress:   caller,
+			TotalStakeValue: big.NewInt(999),
+			LockedStake:     big.NewInt(1000),
+			MaxStakePerNode: big.NewInt(0),
+			BlsPubKeys:      [][]byte{[]byte("key")},
+			NumRegistered:   1,
+			UnstakedInfo: []*UnstakedValue{
+				{
+					UnstakedNonce: startNonce - 2,
+					UnstakedValue: big.NewInt(1),
+				},
+			},
+			TotalUnstaked: big.NewInt(10),
+		},
+	)
+
+	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, nil, zero, vmcommon.UserError)
+	vmOutput := eei.CreateVMOutput()
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "cannot unStake tokens, the validator would remain without min deposit, nodes are still active"))
 }
 
 func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
