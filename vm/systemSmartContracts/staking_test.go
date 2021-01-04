@@ -1727,7 +1727,7 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 	assert.Equal(t, retCode, vmcommon.Ok)
 
 	vmOutput := eei.CreateVMOutput()
-	assert.Equal(t, []byte(hex.EncodeToString(owner)), vmOutput.ReturnData[0])
+	assert.Equal(t, owner, vmOutput.ReturnData[0])
 }
 
 func TestStakingSc_StakeFromQueue(t *testing.T) {

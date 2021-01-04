@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -40,6 +39,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/peer"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -156,7 +156,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	}
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("jailedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("jailedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
 	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
@@ -181,7 +188,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(1000, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(10000, createMemUnit())
 	args.ChanceComputer = &mock.ChanceComputerStub{
 		GetChanceCalled: func(rating uint32) uint32 {
 			if rating == 0 {
@@ -211,6 +218,57 @@ func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) 
 	for i := numWaiting; i < numJailed; i++ {
 		assert.Equal(t, string(core.JailedList), validatorsInfo[0][i].List)
 	}
+}
+
+func TestSystemSCProcessor_NobodyToSwapWithStakingV2(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.ChanceComputer = &mock.ChanceComputerStub{
+		GetChanceCalled: func(rating uint32) uint32 {
+			if rating == 0 {
+				return 10
+			}
+			return rating
+		},
+	}
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+	require.NotNil(t, s)
+
+	owner1 := append([]byte("owner1"), bytes.Repeat([]byte{1}, 26)...)
+
+	blsKeys := [][]byte{
+		[]byte("bls key 1"),
+		[]byte("bls key 2"),
+		[]byte("bls key 3"),
+		[]byte("bls key 4"),
+	}
+
+	doStake(t, s.systemVM, s.userAccountsDB, owner1, big.NewInt(1000), blsKeys...)
+	doUnStake(t, s.systemVM, s.userAccountsDB, owner1, blsKeys[:3]...)
+	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	jailed := &state.ValidatorInfo{
+		PublicKey:       blsKeys[0],
+		ShardId:         0,
+		List:            string(core.JailedList),
+		TempRating:      1,
+		RewardAddress:   []byte("owner1"),
+		AccumulatedFees: big.NewInt(0),
+	}
+	validatorsInfo[0] = append(validatorsInfo[0], jailed)
+
+	err := s.ProcessSystemSmartContract(validatorsInfo, 0, 0)
+	assert.Nil(t, err)
+
+	for _, vInfo := range validatorsInfo[0] {
+		assert.Equal(t, string(core.JailedList), vInfo.List)
+	}
+
+	nodesToUnStake, mapOwnersKeys, err := s.stakingDataProvider.ComputeUnQualifiedNodes(validatorsInfo)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(nodesToUnStake))
+	assert.Equal(t, 0, len(mapOwnersKeys))
 }
 
 func TestSystemSCProcessor_UpdateStakingV2ShouldWork(t *testing.T) {
@@ -353,7 +411,10 @@ func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsK
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 
-	assert.Equal(t, hex.EncodeToString(expectedOwner), string(vmOutput.ReturnData[0]))
+	assert.Equal(t, len(expectedOwner), len(vmOutput.ReturnData[0]))
+	if len(expectedOwner) > 0 {
+		assert.Equal(t, expectedOwner, vmOutput.ReturnData[0])
+	}
 }
 
 func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, nodePrice *big.Int, blsKeys ...[]byte) {
@@ -373,6 +434,25 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
+	}
+
+	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	saveOutputAccounts(t, accountsDB, vmOutput)
+}
+
+func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB state.AccountsAdapter, owner []byte, blsKeys ...[]byte) {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   blsKeys,
+			CallValue:   big.NewInt(0),
+			GasProvided: math.MaxUint64,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "unStake",
 	}
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
@@ -433,6 +513,61 @@ func createJailedNodes(numNodes int, stakingSCAcc state.UserAccountHandler, user
 	}
 
 	return validatorInfos
+}
+
+func addValidatorDataWithUnStakedKey(
+	accountsDB state.AccountsAdapter,
+	ownerKey []byte,
+	registeredKeys [][]byte,
+	nodePrice *big.Int,
+	marshalizer marshal.Marshalizer,
+) {
+	stakingAccount := loadSCAccount(accountsDB, vm.StakingSCAddress)
+	validatorAccount := loadSCAccount(accountsDB, vm.ValidatorSCAddress)
+
+	validatorData := &systemSmartContracts.ValidatorDataV2{
+		RegisterNonce:   0,
+		Epoch:           0,
+		RewardAddress:   ownerKey,
+		TotalStakeValue: big.NewInt(0),
+		LockedStake:     big.NewInt(0).Mul(nodePrice, big.NewInt(int64(len(registeredKeys)))),
+		TotalUnstaked:   big.NewInt(0).Mul(nodePrice, big.NewInt(int64(len(registeredKeys)))),
+		BlsPubKeys:      registeredKeys,
+		NumRegistered:   uint32(len(registeredKeys)),
+	}
+
+	for _, bls := range registeredKeys {
+		validatorData.UnstakedInfo = append(validatorData.UnstakedInfo, &systemSmartContracts.UnstakedValue{
+			UnstakedNonce: 1,
+			UnstakedValue: nodePrice,
+		})
+
+		stakingData := &systemSmartContracts.StakedDataV2_0{
+			RegisterNonce: 0,
+			StakedNonce:   0,
+			Staked:        false,
+			UnStakedNonce: 1,
+			UnStakedEpoch: 0,
+			RewardAddress: ownerKey,
+			StakeValue:    nodePrice,
+			JailedRound:   0,
+			JailedNonce:   0,
+			UnJailedNonce: 0,
+			Jailed:        false,
+			Waiting:       false,
+			NumJailed:     0,
+			SlashValue:    big.NewInt(0),
+			OwnerAddress:  ownerKey,
+		}
+		marshaledData, _ := marshalizer.Marshal(stakingData)
+		_ = stakingAccount.DataTrieTracker().SaveKeyValue(bls, marshaledData)
+	}
+
+	marshaledData, _ := marshalizer.Marshal(validatorData)
+	_ = validatorAccount.DataTrieTracker().SaveKeyValue(ownerKey, marshaledData)
+
+	_ = accountsDB.SaveAccount(validatorAccount)
+	_ = accountsDB.SaveAccount(stakingAccount)
 }
 
 func createWaitingNodes(numNodes int, stakingSCAcc state.UserAccountHandler, userAccounts state.AccountsAdapter, marshalizer marshal.Marshalizer) []*state.ValidatorInfo {
@@ -530,13 +665,15 @@ func prepareStakingContractWithData(
 	stakedKey []byte,
 	waitingKey []byte,
 	marshalizer marshal.Marshalizer,
+	rewardAddress []byte,
+	ownerAddress []byte,
 ) {
 	stakingSCAcc := loadSCAccount(accountsDB, vm.StakingSCAddress)
 
 	stakedData := &systemSmartContracts.StakedDataV2_0{
 		Staked:        true,
-		RewardAddress: []byte("rewardAddress"),
-		OwnerAddress:  []byte("rewardAddress"),
+		RewardAddress: rewardAddress,
+		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ := marshalizer.Marshal(stakedData)
@@ -544,8 +681,8 @@ func prepareStakingContractWithData(
 
 	stakedData = &systemSmartContracts.StakedDataV2_0{
 		Waiting:       true,
-		RewardAddress: []byte("rewardAddress"),
-		OwnerAddress:  []byte("rewardAddress"),
+		RewardAddress: rewardAddress,
+		OwnerAddress:  ownerAddress,
 		StakeValue:    big.NewInt(100),
 	}
 	marshaledData, _ = marshalizer.Marshal(stakedData)
@@ -574,7 +711,7 @@ func prepareStakingContractWithData(
 	validatorData := &systemSmartContracts.ValidatorDataV2{
 		RegisterNonce:   0,
 		Epoch:           0,
-		RewardAddress:   []byte("rewardAddress"),
+		RewardAddress:   rewardAddress,
 		TotalStakeValue: big.NewInt(10000000000),
 		LockedStake:     big.NewInt(10000000000),
 		TotalUnstaked:   big.NewInt(0),
@@ -583,9 +720,11 @@ func prepareStakingContractWithData(
 	}
 
 	marshaledData, _ = marshalizer.Marshal(validatorData)
-	_ = validatorSC.DataTrieTracker().SaveKeyValue([]byte("rewardAddress"), marshaledData)
+	_ = validatorSC.DataTrieTracker().SaveKeyValue(rewardAddress, marshaledData)
 
 	_ = accountsDB.SaveAccount(validatorSC)
+	_, err := accountsDB.Commit()
+	log.LogIfError(err)
 }
 
 func createAccountsDB(
@@ -701,6 +840,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	systemVM, _ := vmContainer.Get(vmFactory.SystemVirtualMachine)
 
 	stakingSCprovider, _ := NewStakingDataProvider(systemVM, "1000")
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
 	args := ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                systemVM,
@@ -724,6 +864,7 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 				return 63
 			},
 		},
+		ShardCoordinator: shardCoordinator,
 	}
 	return args, metaVmFactory.SystemSmartContractContainer()
 }
@@ -909,10 +1050,45 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 0, MaxNumNodes: 10}}
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 
 	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwnerNotSet(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(10, createMemUnit())
+	args.MaxNodesEnableConfig = []config.MaxNodesChangeConfig{{EpochEnable: 10, MaxNumNodes: 10}}
+	args.StakingV2EnableEpoch = 10
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		make([]byte, 0),
+	)
+
+	args.EpochNotifier.CheckEpoch(10)
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 10)
 	assert.Nil(t, err)
 
 	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
@@ -928,7 +1104,14 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 	args.StakingV2EnableEpoch = 0
 	s, _ := NewSystemSCProcessor(args)
 
-	prepareStakingContractWithData(args.UserAccountsDB, []byte("stakedPubKey0"), []byte("waitingPubKey"), args.Marshalizer)
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
 
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey1"), []byte("ownerKey"), args.Marshalizer)
 	addStakedData(args.UserAccountsDB, []byte("stakedPubKey2"), []byte("ownerKey"), args.Marshalizer)
@@ -978,6 +1161,158 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeOneNodeStakeOthers(t
 
 	assert.Equal(t, 5, len(validatorInfos[0]))
 	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeTheOnlyNodeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		[]byte("rewardAddress"),
+		[]byte("rewardAddress"),
+	)
+
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey1"), []byte("ownerKey"), args.Marshalizer)
+	addValidatorDataWithUnStakedKey(args.UserAccountsDB, []byte("ownerKey"), [][]byte{[]byte("stakedPubKey1")}, big.NewInt(1000), args.Marshalizer)
+	_, _ = args.UserAccountsDB.Commit()
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            string(core.EligibleList),
+		RewardAddress:   []byte("rewardAddress"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            string(core.EligibleList),
+		RewardAddress:   []byte("rewardAddress"),
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	s.flagSetOwnerEnabled.Unset()
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+}
+
+func addDelegationData(
+	accountsDB state.AccountsAdapter,
+	delegation []byte,
+	stakedKeys [][]byte,
+	marshalizer marshal.Marshalizer,
+) {
+	delegatorSC := loadSCAccount(accountsDB, delegation)
+	dStatus := &systemSmartContracts.DelegationContractStatus{
+		Delegators:    make([][]byte, 0),
+		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
+		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
+		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+	}
+
+	for _, stakedKey := range stakedKeys {
+		dStatus.StakedKeys = append(dStatus.StakedKeys, &systemSmartContracts.NodesData{BLSKey: stakedKey, SignedMsg: stakedKey})
+	}
+
+	marshaledData, _ := marshalizer.Marshal(dStatus)
+	_ = delegatorSC.DataTrieTracker().SaveKeyValue([]byte("delegationStatus"), marshaledData)
+	_ = accountsDB.SaveAccount(delegatorSC)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContract(t *testing.T) {
+	t.Parallel()
+
+	args, scContainer := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	delegationAddr := make([]byte, len(vm.FirstDelegationSCAddress))
+	copy(delegationAddr, vm.FirstDelegationSCAddress)
+	delegationAddr[28] = 2
+
+	contract, _ := scContainer.Get(vm.FirstDelegationSCAddress)
+	_ = scContainer.Add(delegationAddr, contract)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("stakedPubKey0"),
+		[]byte("waitingPubKey"),
+		args.Marshalizer,
+		delegationAddr,
+		delegationAddr,
+	)
+
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey1"), delegationAddr, args.Marshalizer)
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey2"), delegationAddr, args.Marshalizer)
+	addStakedData(args.UserAccountsDB, []byte("stakedPubKey3"), delegationAddr, args.Marshalizer)
+	addValidatorData(args.UserAccountsDB, delegationAddr, [][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}, big.NewInt(2000), args.Marshalizer)
+	addDelegationData(args.UserAccountsDB, delegationAddr, [][]byte{[]byte("stakedPubKey1"), []byte("stakedPubKey2"), []byte("stakedPubKey3")}, args.Marshalizer)
+	_, _ = args.UserAccountsDB.Commit()
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            string(core.EligibleList),
+		RewardAddress:   delegationAddr,
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            string(core.EligibleList),
+		RewardAddress:   delegationAddr,
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey2"),
+		List:            string(core.EligibleList),
+		RewardAddress:   delegationAddr,
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey3"),
+		List:            string(core.EligibleList),
+		RewardAddress:   delegationAddr,
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	s.flagSetOwnerEnabled.Unset()
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	peerAcc, err := s.getPeerAccount([]byte("waitingPubKey"))
+	assert.Nil(t, err)
+	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
+	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+
+	peerAcc, _ = s.getPeerAccount([]byte("stakedPubKey1"))
+	assert.Equal(t, peerAcc.GetList(), string(core.LeavingList))
+
+	assert.Equal(t, string(core.LeavingList), validatorInfos[0][1].List)
+
+	assert.Equal(t, 5, len(validatorInfos[0]))
+	assert.Equal(t, string(core.NewList), validatorInfos[0][4].List)
+
+	delegationSC := loadSCAccount(args.UserAccountsDB, delegationAddr)
+	marshalledData, err := delegationSC.DataTrie().Get([]byte("delegationStatus"))
+	assert.Nil(t, err)
+	dStatus := &systemSmartContracts.DelegationContractStatus{
+		Delegators:    make([][]byte, 0),
+		StakedKeys:    make([]*systemSmartContracts.NodesData, 0),
+		NotStakedKeys: make([]*systemSmartContracts.NodesData, 0),
+		UnStakedKeys:  make([]*systemSmartContracts.NodesData, 0),
+	}
+	_ = args.Marshalizer.Unmarshal(dStatus, marshalledData)
+
+	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 2, len(dStatus.StakedKeys))
+	assert.Equal(t, []byte("stakedPubKey1"), dStatus.UnStakedKeys[0].BLSKey)
 }
 
 func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {

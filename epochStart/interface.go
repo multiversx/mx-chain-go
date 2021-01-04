@@ -153,7 +153,7 @@ type StakingDataProvider interface {
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
 	PrepareStakingDataForRewards(keys map[uint32][][]byte) error
 	FillValidatorInfo(blsKey []byte) error
-	ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, [][]byte, error)
+	ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error)
 	Clean()
 	IsInterfaceNil() bool
 }

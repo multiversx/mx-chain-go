@@ -34,6 +34,10 @@ func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, id
 }
 
 func displayValidatorsForRandomness(validators []Validator, randomness []byte) {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
 	strValidators := ""
 
 	for _, v := range validators {

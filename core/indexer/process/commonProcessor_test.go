@@ -145,3 +145,32 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 
 	require.Equal(t, expectedTx, resultTx)
 }
+
+func TestHasScrWithRefund(t *testing.T) {
+	t.Parallel()
+
+	sc := &types.ScResult{
+		PreTxHash:      "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
+		Nonce:          12,
+		Value:          "0",
+		Receiver:       "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
+		Data:           []byte("@6f6b@"),
+		OriginalTxHash: "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
+		ReturnMessage:  "too much gas provided: gas needed = 109013, gas remained = 18609087",
+	}
+
+	tx := &types.Transaction{
+		Hash:     "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
+		Nonce:    11,
+		GasLimit: 40000000,
+		GasPrice: 1000000000,
+		Status:   "success",
+		Sender:   "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
+		SmartContractResults: []*types.ScResult{
+			sc,
+		},
+	}
+
+	require.True(t, hasScrWithRefund(tx))
+	require.False(t, hasScrWithRefund(&types.Transaction{}))
+}
