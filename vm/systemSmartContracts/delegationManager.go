@@ -313,6 +313,10 @@ func (d *delegationManager) getAllContractAddresses(args *vmcommon.ContractCallI
 		return vmcommon.UserError
 	}
 
+	if len(contractList.Addresses) == 0 {
+		return vmcommon.Ok
+	}
+
 	for _, address := range contractList.Addresses[1:] {
 		d.eei.Finish(address)
 	}

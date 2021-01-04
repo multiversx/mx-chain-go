@@ -1745,9 +1745,10 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 
 	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
 	nextFundKey := append([]byte(fundKeyPrefix), []byte{2}...)
+	blockChainHook := &mock.BlockChainHookStub{}
 	args := createMockArgumentsForDelegation()
 	eei, _ := NewVMContext(
-		&mock.BlockChainHookStub{},
+		blockChainHook,
 		hooks.NewVMCryptoHook(),
 		&mock.ArgumentParserMock{},
 		&mock.AccountsStub{},
@@ -1795,6 +1796,30 @@ func TestDelegationSystemSC_ExecuteUnDelegatePartOfFunds(t *testing.T) {
 	_, dData, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	assert.Equal(t, 1, len(dData.UnStakedFunds))
 	assert.Equal(t, nextFundKey, dData.UnStakedFunds[0])
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{
+		UnBondPeriod: 50,
+	})
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 100
+	}
+
+	vmInput.Arguments = [][]byte{{20}}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	eei.output = make([][]byte, 0)
+	vmInput = getDefaultVmInputForFunc("getUserUnDelegatedList", [][]byte{})
+	vmInput.Arguments = [][]byte{vmInput.CallerAddr}
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 4, len(eei.output))
+	assert.Equal(t, eei.output[0], []byte{80})
+	assert.Equal(t, eei.output[1], []byte{})
+	assert.Equal(t, eei.output[2], []byte{20})
+	assert.Equal(t, eei.output[3], []byte{50})
 }
 
 func TestDelegationSystemSC_ExecuteUnDelegateAllFunds(t *testing.T) {
