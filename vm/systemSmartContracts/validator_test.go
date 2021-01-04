@@ -3881,6 +3881,134 @@ func TestValidatorStakingSC_UnStakeUnBondPaused(t *testing.T) {
 	togglePauseUnStakeUnBond(t, sc, false)
 }
 
+func TestValidatorSC_getUnStakedTokensList_InvalidArgumentsCountShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+	args := createMockArgumentsForValidatorSC()
+
+	retMessage := ""
+
+	eei := &mock.SystemEIStub{
+		AddReturnMessageCalled: func(msg string) {
+			retMessage = msg
+		},
+	}
+	args.Eei = eei
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	stakingValidatorSc.flagEnableTopUp.Set()
+
+	arguments.Function = "getUnStakedTokensList"
+	arguments.CallValue = big.NewInt(10)
+	arguments.Arguments = make([][]byte, 0)
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+
+	assert.Contains(t, retMessage, "number of arguments")
+}
+
+func TestValidatorSC_getUnStakedTokensList_CallValueNotZeroShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+	args := createMockArgumentsForValidatorSC()
+
+	retMessage := ""
+
+	eei := &mock.SystemEIStub{
+		AddReturnMessageCalled: func(msg string) {
+			retMessage = msg
+		},
+	}
+	args.Eei = eei
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	stakingValidatorSc.flagEnableTopUp.Set()
+
+	arguments.Function = "getUnStakedTokensList"
+	arguments.CallValue = big.NewInt(10)
+	arguments.Arguments = append(arguments.Arguments, []byte("pubKey"))
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, errCode)
+
+	assert.Equal(t, vm.TransactionValueMustBeZero, retMessage)
+}
+
+func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
+	t.Parallel()
+
+	currentNonce := uint64(12)
+	unBondPeriod := uint64(5)
+
+	eeiFinishedValues := make([][]byte, 0)
+	arguments := CreateVmContractCallInput()
+	validatorData := createABid(25000000, 2, 12500000)
+	validatorData.UnstakedInfo = append(validatorData.UnstakedInfo,
+		&UnstakedValue{
+			UnstakedNonce: 6,
+			UnstakedValue: big.NewInt(10),
+		},
+		&UnstakedValue{
+			UnstakedNonce: 10,
+			UnstakedValue: big.NewInt(11),
+		},
+	)
+	validatorDataBytes, _ := json.Marshal(&validatorData)
+
+	eei := &mock.SystemEIStub{}
+	eei.GetStorageCalled = func(key []byte) []byte {
+		return validatorDataBytes
+	}
+	eei.SetStorageCalled = func(key []byte, value []byte) {
+		if bytes.Equal(key, arguments.CallerAddr) {
+			var validatorDataRecovered ValidatorDataV2
+			_ = json.Unmarshal(value, &validatorDataRecovered)
+			assert.Equal(t, big.NewInt(26000000), validatorDataRecovered.TotalStakeValue)
+		}
+	}
+	eei.BlockChainHookCalled = func() vm.BlockchainHook {
+		return &mock.BlockChainHookStub{
+			CurrentNonceCalled: func() uint64 {
+				return uint64(currentNonce)
+			},
+		}
+	}
+	eei.FinishCalled = func(value []byte) {
+		eeiFinishedValues = append(eeiFinishedValues, value)
+	}
+
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	stakingValidatorSc.unBondPeriod = unBondPeriod
+	stakingValidatorSc.flagEnableTopUp.Set()
+
+	arguments.Function = "getUnStakedTokensList"
+	arguments.CallValue = big.NewInt(0)
+	arguments.Arguments = append(arguments.Arguments, []byte("pubKey"))
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, errCode)
+
+	assert.Equal(t, 4, len(eeiFinishedValues))
+
+	expectedValues := [][]byte{
+		{10}, // value 10
+		{},   // elapsed nonces > unbond period
+		{11}, // value 11
+		{3},  // number of nonces remaining
+	}
+
+	assert.Equal(t, expectedValues, eeiFinishedValues)
+}
+
 func createVmContextWithStakingSc(stakeValue *big.Int, unboundPeriod uint64, blockChainHook vm.BlockchainHook) *vmContext {
 	atArgParser := parsers.NewCallArgsParser()
 	eei, _ := NewVMContext(blockChainHook, hooks.NewVMCryptoHook(), atArgParser, &mock.AccountsStub{}, &mock.RaterMock{})
