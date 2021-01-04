@@ -484,43 +484,6 @@ func txPoolHasSearchOrder(txPool map[string]*types.Transaction, searchOrder uint
 	return false
 }
 
-func TestIsSCRForSenderWithGasUsed(t *testing.T) {
-	t.Parallel()
-
-	txHash := "txHash"
-	nonce := uint64(10)
-	sender := "sender"
-
-	tx := &types.Transaction{
-		Hash:   txHash,
-		Nonce:  nonce,
-		Sender: sender,
-	}
-	sc := types.ScResult{
-		Data:      []byte("@6f6b@something"),
-		Nonce:     nonce + 1,
-		Receiver:  sender,
-		PreTxHash: txHash,
-	}
-
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
-}
-
-func TestComputeTxGasUsedField(t *testing.T) {
-	t.Parallel()
-
-	tx := &types.Transaction{
-		GasLimit: 500,
-		GasPrice: 10,
-	}
-	sc := types.ScResult{
-		Value: "3000",
-	}
-
-	expectedGasUsed := uint64(200)
-	require.Equal(t, expectedGasUsed, computeTxGasUsedField(sc, tx))
-}
-
 func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
 	t.Parallel()
 
@@ -532,7 +495,7 @@ func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
 		Status:   "success",
 		Sender:   "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
 	}
-	sc := types.ScResult{
+	sc := &types.ScResult{
 		PreTxHash:      "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
 		Nonce:          12,
 		Value:          "0",
