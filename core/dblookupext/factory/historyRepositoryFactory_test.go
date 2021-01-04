@@ -39,7 +39,7 @@ func TestNewHistoryRepositoryFactory(t *testing.T) {
 	require.False(t, check.IfNil(hrf))
 }
 
-func TestHistoryRepositoryFactory_Create_ShouldCreateDisabledRepository(t *testing.T) {
+func TestHistoryRepositoryFactory_CreateShouldCreateDisabledRepository(t *testing.T) {
 	hrf, _ := factory.NewHistoryRepositoryFactory(getArgs())
 
 	repository, err := hrf.Create()
@@ -48,7 +48,7 @@ func TestHistoryRepositoryFactory_Create_ShouldCreateDisabledRepository(t *testi
 	require.False(t, repository.IsEnabled())
 }
 
-func TestHistoryRepositoryFactory_Create_ShouldCreateRegularRepository(t *testing.T) {
+func TestHistoryRepositoryFactory_CreateShouldCreateRegularRepository(t *testing.T) {
 	args := getArgs()
 	args.Config.Enabled = true
 	args.Store = &mock.ChainStorerMock{
