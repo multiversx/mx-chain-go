@@ -50,6 +50,7 @@ func createMockArgumentsForValidatorSC() ArgsValidatorSmartContract {
 		Marshalizer:        &mock.MarshalizerMock{},
 		GenesisTotalSupply: big.NewInt(100000000),
 		EpochNotifier:      &mock.EpochNotifierStub{},
+		MinDeposit:         "0",
 	}
 
 	return args

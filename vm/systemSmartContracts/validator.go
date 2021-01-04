@@ -48,6 +48,7 @@ type validatorSC struct {
 	flagEnableTopUp       atomic.Flag
 	flagDoubleKey         atomic.Flag
 	minUnstakeTokensValue *big.Int
+	minDeposit            *big.Int
 	mutExecution          sync.RWMutex
 	endOfEpochAddress     []byte
 }
@@ -64,6 +65,7 @@ type ArgsValidatorSmartContract struct {
 	Marshalizer        marshal.Marshalizer
 	EpochNotifier      vm.EpochNotifier
 	EndOfEpochAddress  []byte
+	MinDeposit         string
 }
 
 // NewValidatorSmartContract creates an validator smart contract
@@ -120,6 +122,10 @@ func NewValidatorSmartContract(
 	if !okValue || minUnstakeTokensValue.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidMinUnstakeTokensValue, args.StakingSCConfig.MinUnstakeTokensValue)
 	}
+	minDeposit, okConvert := big.NewInt(0).SetString(args.MinDeposit, conversionBase)
+	if !okConvert || minDeposit.Cmp(zero) < 0 {
+		return nil, vm.ErrInvalidMinCreationDeposit
+	}
 
 	reg := &validatorSC{
 		eei:                   args.Eei,
@@ -136,6 +142,7 @@ func NewValidatorSmartContract(
 		walletAddressLen:      len(args.ValidatorSCAddress),
 		enableDoubleKeyEpoch:  args.StakingSCConfig.DoubleKeyProtectionEnableEpoch,
 		endOfEpochAddress:     args.EndOfEpochAddress,
+		minDeposit:            minDeposit,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(reg)
@@ -1454,6 +1461,11 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 		return returnCode
 	}
 
+	if registrationData.NumRegistered > 0 && registrationData.TotalStakeValue.Cmp(v.minDeposit) < 0 {
+		v.eei.AddReturnMessage("cannot unStake tokens, the validator would remain without min deposit, nodes are still active")
+		return vmcommon.UserError
+	}
+
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
@@ -1573,6 +1585,11 @@ func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.Re
 	if totalUnBond.Cmp(zero) == 0 {
 		v.eei.AddReturnMessage("no tokens that can be unbond at this time")
 		return vmcommon.Ok
+	}
+
+	if registrationData.NumRegistered > 0 && registrationData.TotalStakeValue.Cmp(v.minDeposit) < 0 {
+		v.eei.AddReturnMessage("cannot unStake tokens, the validator would remain without min deposit, nodes are still active")
+		return vmcommon.UserError
 	}
 
 	err = v.eei.Transfer(args.CallerAddr, args.RecipientAddr, totalUnBond, nil, 0)
