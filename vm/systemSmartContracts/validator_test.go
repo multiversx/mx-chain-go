@@ -3576,7 +3576,7 @@ func TestStakingValidatorSC_UnBondAllTokensWithMinDepositShouldError(t *testing.
 
 	callFunctionAndCheckResult(t, "unBondTokens", sc, caller, nil, zero, vmcommon.UserError)
 	vmOutput := eei.CreateVMOutput()
-	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "cannot unStake tokens, the validator would remain without min deposit, nodes are still active"))
+	assert.True(t, strings.Contains(vmOutput.ReturnMessage, "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"))
 }
 
 func TestStakingValidatorSC_UnBondAllTokensShouldWork(t *testing.T) {
@@ -3974,7 +3974,7 @@ func TestValidatorSC_getUnStakedTokensList(t *testing.T) {
 	eei.BlockChainHookCalled = func() vm.BlockchainHook {
 		return &mock.BlockChainHookStub{
 			CurrentNonceCalled: func() uint64 {
-				return uint64(currentNonce)
+				return currentNonce
 			},
 		}
 	}
