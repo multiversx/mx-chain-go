@@ -1685,13 +1685,17 @@ func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCa
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
 	}
+	if len(args.Arguments) != 1 {
+		v.eei.AddReturnMessage("number of arguments must be equal to 1")
+		return vmcommon.UserError
+	}
 	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.Get)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.InsufficientGasLimit)
 		return vmcommon.OutOfGas
 	}
 
-	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
+	registrationData, err := v.getOrCreateRegistrationData(args.Arguments[0])
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
