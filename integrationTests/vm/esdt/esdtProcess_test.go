@@ -377,13 +377,13 @@ func TestESDTcallsSC(t *testing.T) {
 	ticker := "TKN"
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
-	initalSupply := big.NewInt(10000000000)
+	initalSupply := int64(10000000000)
 	tokenIssuer := nodes[0]
 	hexEncodedTrue := hex.EncodeToString([]byte("true"))
 	txData := "issue" +
 		"@" + hex.EncodeToString([]byte(tokenName)) +
 		"@" + hex.EncodeToString([]byte(ticker)) +
-		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString(big.NewInt(initalSupply).Bytes()) +
 		"@" + hex.EncodeToString([]byte{6})
 	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
 		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
@@ -399,13 +399,12 @@ func TestESDTcallsSC(t *testing.T) {
 	time.Sleep(time.Second)
 
 	tokenIdenfitifer := string(getTokenIdentifier(nodes))
-
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply))
 
 	/////////------ send tx to other nodes
-	valueToSend := big.NewInt(100)
+	valueToSend := int64(100)
 	for _, node := range nodes[1:] {
-		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToSend.Bytes())
+		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(big.NewInt(valueToSend).Bytes())
 		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
 	}
 
@@ -413,8 +412,11 @@ func TestESDTcallsSC(t *testing.T) {
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
+	numNodesWithoutIssuer := int64(len(nodes) - 1)
+	issuerBalance := initalSupply - valueToSend*numNodesWithoutIssuer
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(issuerBalance))
 	for i := 1; i < len(nodes); i++ {
-		checkAddressHasESDTTokens(t, nodes[i].OwnAccount.Address, nodes, tokenIdenfitifer, valueToSend)
+		checkAddressHasESDTTokens(t, nodes[i].OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(valueToSend))
 	}
 
 	// deploy the smart contract
@@ -429,7 +431,7 @@ func TestESDTcallsSC(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+
 			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
 			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
-			hex.EncodeToString([]byte(tokenName)),
+			hex.EncodeToString([]byte(tokenIdenfitifer)),
 		integrationTests.AdditionalGasLimit,
 	)
 
@@ -437,13 +439,12 @@ func TestESDTcallsSC(t *testing.T) {
 	_, err := nodes[0].AccntState.GetExistingAccount(scAddress)
 	assert.Nil(t, err)
 
-	// call sc
-
-	valueToSendToSc := big.NewInt(10)
+	// call sc with esdt
+	valueToSendToSc := int64(10)
 	for _, node := range nodes {
 		txData = core.BuiltInFunctionESDTTransfer + "@" +
 			hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
-			hex.EncodeToString(valueToSendToSc.Bytes()) + "@" +
+			hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
 			hex.EncodeToString([]byte("fund"))
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), scAddress, txData, integrationTests.AdditionalGasLimit)
 	}
@@ -458,7 +459,14 @@ func TestESDTcallsSC(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 	vmOutput1, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)
-	assert.NotEqual(t, 0, len(vmOutput1.ReturnData))
+	assert.Equal(t, big.NewInt(60).Bytes(), vmOutput1.ReturnData[0])
+
+	nodesBalance := valueToSend - valueToSendToSc
+	issuerBalance = issuerBalance - valueToSendToSc
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(issuerBalance))
+	for i := 1; i < len(nodes); i++ {
+		checkAddressHasESDTTokens(t, nodes[i].OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(nodesBalance))
+	}
 }
 
 func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {

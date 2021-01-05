@@ -893,8 +893,9 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return false, nil, nil
 	}
 
+	scExecuteOutTransfer := outAcc.OutputTransfers[0]
 	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCallBack(outAcc.OutputTransfers[0].Data, callType)
+	txData := prependCallbackToTxDataIfAsyncCallBack(scExecuteOutTransfer.Data, callType)
 
 	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
 	if err != nil {
@@ -908,7 +909,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			CallValue:      big.NewInt(0),
 			CallType:       callType,
 			GasPrice:       vmInput.GasPrice,
-			GasProvided:    vmOutput.GasRemaining - vmInput.GasLocked,
+			GasProvided:    scExecuteOutTransfer.GasLimit,
 			GasLocked:      vmInput.GasLocked,
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
