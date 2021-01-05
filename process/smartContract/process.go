@@ -760,11 +760,13 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 			return 0, errCreateSCR
 		}
 
-		if !createdAsyncCallback && vmInput.CallType == vmcommon.AsynchronousCall {
-			asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
-			scrResults = append(scrResults, asyncCallBackSCR)
-		} else if !createdAsyncCallback {
-			scrResults = append(scrResults, scrForSender)
+		if !createdAsyncCallback {
+			if vmInput.CallType == vmcommon.AsynchronousCall {
+				asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
+				scrResults = append(scrResults, asyncCallBackSCR)
+			} else {
+				scrResults = append(scrResults, scrForSender)
+			}
 		}
 
 		if !check.IfNil(scrForRelayer) {
