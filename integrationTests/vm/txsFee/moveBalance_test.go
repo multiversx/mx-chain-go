@@ -15,7 +15,7 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -50,7 +50,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsEnabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -67,7 +67,7 @@ func TestMoveBalanceAllFlagsEnabledLessBalanceThanGasLimitMulGasPrice(t *testing
 }
 
 func TestMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -107,7 +107,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -135,7 +135,7 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -165,7 +165,7 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
