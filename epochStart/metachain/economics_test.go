@@ -774,6 +774,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 	maxBaseRewardPerBlock := int64(100)
 	blocksPerDay := numberOfSecondsInDay / roundDur
 	protocolSustainabilityRewardsForMaxBlocks := int64(numberOfSecondsInDay/roundDur) * 4 * maxBaseRewardPerBlock / 10
+	protocolSustainabilityPerBlock := int64(10)
 
 	tests := []struct {
 		name                                  string
@@ -789,15 +790,15 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			accFeesInEpoch:                        big.NewInt(0),
 			devFeesInEpoch:                        big.NewInt(0),
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - protocolSustainabilityPerBlock),
 		},
 		{
-			name:                                  "accfees equal inflation",
+			name:                                  "accFees equal inflation",
 			numBlocksInEpoch:                      blocksPerDay,
 			accFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay)),
 			devFeesInEpoch:                        big.NewInt(0),
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 10),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - protocolSustainabilityPerBlock - 10),
 		},
 		{
 			name:                                  "accFees and devFees so that rewardPerBlock is 1",
@@ -805,7 +806,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			accFeesInEpoch:                        big.NewInt(89 * 4 * int64(blocksPerDay)),
 			devFeesInEpoch:                        big.NewInt(89 * 4 * int64(blocksPerDay)),
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 89), // 0 = 10% of (accFees - devFees),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - protocolSustainabilityPerBlock - 89),
 		},
 		{
 			name:                                  "accFees and devFees so that rewardPerBlock is exactly 0",
@@ -813,31 +814,31 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			accFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
 			devFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 90), // 0 = 10% of (accFees - devFees),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - protocolSustainabilityPerBlock - 90),
 		},
 		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			name:                                  "accFees equal to inflation so baseReward should be still 0",
 			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			accFeesInEpoch:                        big.NewInt(100 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(30 * 4 * int64(blocksPerDay)),
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock*7/10 - protocolSustainabilityPerBlock - 7),
 		},
 		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			name:                                  "accFees and devFees much larger than inflation",
 			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			accFeesInEpoch:                        big.NewInt(1000 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(300 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks * 10),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock*10*7/10 - protocolSustainabilityPerBlock*10 - 70),
 		},
 		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
-			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay) / 2),
-			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			name:                                  "200 accFees and devFees (30%) and 1 block",
+			numBlocksInEpoch:                      1,
+			accFeesInEpoch:                        big.NewInt(200 * 4),
+			devFeesInEpoch:                        big.NewInt(60 * 4),
+			expectedProtocolSustainabilityRewards: big.NewInt(80),
+			expectedBaseRewardPerBlock:            big.NewInt(200*7/10 - 20 - 14),
 		},
 	}
 
@@ -846,6 +847,10 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
 			expectedTotalToDistribute := big.NewInt(maxBaseRewardPerBlock * totalBlocksInEpoch)
+			if expectedTotalToDistribute.Cmp(tt.accFeesInEpoch) < 0 {
+				expectedTotalToDistribute = tt.accFeesInEpoch
+				maxBaseRewardPerBlock = big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(totalBlocksInEpoch)).Int64()
+			}
 			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, tt.accFeesInEpoch)
 			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
 			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
@@ -984,7 +989,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 			newlyMinted:                           big.NewInt(0),
 		},
 		{
-			name:                                  "accfees equal 100 per block",
+			name:                                  "accFees (100/block) no devFees",
 			numBlocksInEpoch:                      blocksPerDay,
 			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
 			devFeesInEpoch:                        big.NewInt(0),
@@ -993,48 +998,30 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 			newlyMinted:                           big.NewInt(0),
 		},
 		{
-			name:                                  "accFees and devFees (30%) so that rewardPerBlock is 00",
+			name:                                  "accFees (100/block) and devFees (30%)",
 			numBlocksInEpoch:                      blocksPerDay,
 			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
 			devFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay) * 3 / 10), // 30% fees
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100 - 10 - 89), // 0 = 10% of (accFees - devFees),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100*7/10 - 10 - 7), // 100 - 30 (devfees) - protocol - leaders ,
 			newlyMinted:                           big.NewInt(0),
 		},
 		{
-			name:                                  "accFees and devFees so that rewardPerBlock is exactly 0",
-			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
-			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100 - 10 - 90), // 0 = 10% of (accFees - devFees),
-			newlyMinted:                           big.NewInt(0),
-		},
-		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
-			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
-			newlyMinted:                           big.NewInt(0),
-		},
-		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
-			numBlocksInEpoch:                      blocksPerDay,
-			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
-			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
-			newlyMinted:                           big.NewInt(0),
-		},
-		{
-			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			name:                                  "accFees (100/block) and devFees (10%)",
 			numBlocksInEpoch:                      blocksPerDay,
 			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
-			devFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay) / 2),
+			devFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay) * 1 / 10), // 10% fees
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
-			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100*9/10 - 10 - 9),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees (100/block) devFees (20%)",
+			numBlocksInEpoch:                      1,
+			accFeesInEpoch:                        big.NewInt(100 * 4),
+			devFeesInEpoch:                        big.NewInt(100 * 4 / 5),
+			expectedProtocolSustainabilityRewards: big.NewInt(40),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100*8/10 - 10 - 8),
 			newlyMinted:                           big.NewInt(0),
 		},
 	}
@@ -1043,7 +1030,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
-			expectedTotalToDistribute := big.NewInt(tt.accFeesInEpoch.Int64() - tt.devFeesInEpoch.Int64())
+			expectedTotalToDistribute := big.NewInt(tt.accFeesInEpoch.Int64())
 			totalRewardsToBeDistributedPerBlock := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(totalBlocksInEpoch))
 			expectedTotalNewlyMinted := big.NewInt(0)
 			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)

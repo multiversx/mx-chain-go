@@ -135,7 +135,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
 	if newTokens.Cmp(big.NewInt(0)) < 0 {
 		newTokens = big.NewInt(0)
-		totalRewardsToBeDistributed = big.NewInt(0).Sub(metaBlock.AccumulatedFeesInEpoch, metaBlock.DevFeesInEpoch)
+		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.AccumulatedFeesInEpoch)
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
