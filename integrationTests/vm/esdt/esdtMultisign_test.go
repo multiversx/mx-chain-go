@@ -289,7 +289,7 @@ func proposeTransferToken(
 	ownerIdx int,
 	destinationAddress []byte,
 ) {
-	tokenName := []byte("token")
+	tokenID := getTokenIdentifier(nodes)
 	multisigParams := []string{
 		"proposeSCCall",
 		hex.EncodeToString(destinationAddress),
@@ -298,7 +298,7 @@ func proposeTransferToken(
 
 	esdtParams := []string{
 		hex.EncodeToString([]byte("ESDTTransfer")),
-		hex.EncodeToString(tokenName),
+		hex.EncodeToString(tokenID),
 		hex.EncodeToString(transferValue.Bytes()),
 	}
 
