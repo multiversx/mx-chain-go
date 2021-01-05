@@ -63,9 +63,8 @@ func Routes(routes *wrapper.RouterWrapper) {
 }
 
 func getBlockByNonce(c *gin.Context) {
-	ef, ok := c.MustGet("facade").(BlockService)
+	ef, ok := getFacade(c)
 	if !ok {
-		shared.RespondWithInvalidAppContext(c)
 		return
 	}
 
@@ -104,9 +103,8 @@ func getBlockByNonce(c *gin.Context) {
 }
 
 func getBlockByHash(c *gin.Context) {
-	ef, ok := c.MustGet("facade").(BlockService)
+	ef, ok := getFacade(c)
 	if !ok {
-		shared.RespondWithInvalidAppContext(c)
 		return
 	}
 
@@ -159,4 +157,34 @@ func getQueryParamNonce(c *gin.Context) (uint64, error) {
 	}
 
 	return strconv.ParseUint(nonceStr, 10, 64)
+}
+
+func getFacade(c *gin.Context) (BlockService, bool) {
+	facadeObj, ok := c.Get("facade")
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrNilAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	facade, ok := facadeObj.(BlockService)
+	if !ok {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: errors.ErrInvalidAppContext.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return nil, false
+	}
+
+	return facade, true
 }
