@@ -16,7 +16,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	testVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/process"
+	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract/builtInFunctions"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
@@ -325,6 +328,144 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	assert.Equal(t, len(mapCreatedSCRs), 1)
 	for _, addedSCR := range mapCreatedSCRs {
 		strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
+	}
+}
+
+func TestESDTcallsSC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	///////////------- send token issue
+	ticker := "TKN"
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+	initalSupply := int64(10000000000)
+	tokenIssuer := nodes[0]
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(big.NewInt(initalSupply).Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedTrue
+	txData += properties
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply))
+
+	/////////------ send tx to other nodes
+	valueToSend := int64(100)
+	for _, node := range nodes[1:] {
+		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(big.NewInt(valueToSend).Bytes())
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData, integrationTests.AdditionalGasLimit)
+	}
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	numNodesWithoutIssuer := int64(len(nodes) - 1)
+	issuerBalance := initalSupply - valueToSend*numNodesWithoutIssuer
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(issuerBalance))
+	for i := 1; i < len(nodes); i++ {
+		checkAddressHasESDTTokens(t, nodes[i].OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(valueToSend))
+	}
+
+	// deploy the smart contract
+	scCode := arwen.GetSCCode("./testdata/crowdfunding-esdt.wasm")
+	scAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(scCode)+"@"+
+			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
+			hex.EncodeToString(big.NewInt(1000).Bytes())+"@"+
+			hex.EncodeToString([]byte(tokenIdenfitifer)),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(scAddress)
+	assert.Nil(t, err)
+
+	// call sc with esdt
+	valueToSendToSc := int64(10)
+	for _, node := range nodes {
+		txData = core.BuiltInFunctionESDTTransfer + "@" +
+			hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
+			hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
+			hex.EncodeToString([]byte("fund"))
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), scAddress, txData, integrationTests.AdditionalGasLimit)
+	}
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	scQuery1 := &process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  "currentFunds",
+		Arguments: [][]byte{},
+	}
+	vmOutput1, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)
+	assert.Equal(t, big.NewInt(60).Bytes(), vmOutput1.ReturnData[0])
+
+	nodesBalance := valueToSend - valueToSendToSc
+	issuerBalance = issuerBalance - valueToSendToSc
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(issuerBalance))
+	for i := 1; i < len(nodes); i++ {
+		checkAddressHasESDTTokens(t, nodes[i].OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(nodesBalance))
 	}
 }
 

@@ -120,6 +120,7 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 
 		if isSCCallAfter {
+			vmOutput.GasRemaining = vmInput.GasProvided - e.funcGasCost
 			var callArgs [][]byte
 			if len(vmInput.Arguments) > 3 {
 				callArgs = vmInput.Arguments[3:]
@@ -144,10 +145,6 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 			vmInput.RecipientAddr,
 			vmInput.GasLocked,
 			vmOutput)
-	}
-
-	if isSCCallAfter {
-		vmOutput.GasRemaining = 0
 	}
 
 	return vmOutput, nil
