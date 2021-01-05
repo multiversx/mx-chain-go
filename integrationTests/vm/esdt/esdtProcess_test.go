@@ -469,6 +469,253 @@ func TestESDTcallsSC(t *testing.T) {
 	}
 }
 
+func TestScCallsScWithEsdtIntraShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	//----------------- send token issue
+	ticker := "TKN"
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+	initalSupply := int64(10000000000)
+	tokenIssuer := nodes[0]
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(big.NewInt(initalSupply).Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedTrue
+	txData += properties
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply))
+
+	//------------- deploy the smart contracts
+
+	secondScCode := arwen.GetSCCode("./testdata/second-contract.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(secondScCode)+"@"+
+			hex.EncodeToString([]byte(tokenIdenfitifer)),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
+	assert.Nil(t, err)
+
+	firstScCode := arwen.GetSCCode("./testdata/first-contract.wasm")
+	firstScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(firstScCode)+"@"+
+			hex.EncodeToString([]byte(tokenIdenfitifer))+"@"+
+			hex.EncodeToString(secondScAddress),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err = nodes[0].AccntState.GetExistingAccount(firstScAddress)
+	assert.Nil(t, err)
+
+	//// call first sc with esdt, and first sc automatically calls second sc
+	valueToSendToSc := int64(1000)
+	txData = core.BuiltInFunctionESDTTransfer + "@" +
+		hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
+		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
+		hex.EncodeToString([]byte("transferToSecondContractHalf"))
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply-valueToSendToSc))
+	checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdenfitifer, big.NewInt(valueToSendToSc/2))
+	checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdenfitifer, big.NewInt(valueToSendToSc/2))
+}
+
+func TestScCallsScWithEsdtCrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numOfShards := 2
+	nodesPerShard := 2
+	numMetachainNodes := 2
+
+	advertiser := integrationTests.CreateMessengerWithKadDht("")
+	_ = advertiser.Bootstrap()
+
+	nodes := integrationTests.CreateNodes(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		integrationTests.GetConnectableAddress(advertiser),
+	)
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	defer func() {
+		_ = advertiser.Close()
+		for _, n := range nodes {
+			_ = n.Messenger.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	//----------------- send token issue
+	ticker := "TKN"
+	tokenName := "token"
+	issuePrice := big.NewInt(1000)
+	initalSupply := int64(10000000000)
+	tokenIssuer := nodes[0]
+	hexEncodedTrue := hex.EncodeToString([]byte("true"))
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(ticker)) +
+		"@" + hex.EncodeToString(big.NewInt(initalSupply).Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
+	properties := "@" + hex.EncodeToString([]byte("canFreeze")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canWipe")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canPause")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canMint")) + "@" + hexEncodedTrue +
+		"@" + hex.EncodeToString([]byte("canBurn")) + "@" + hexEncodedTrue
+	txData += properties
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagateMultiShard := 10
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdenfitifer := string(getTokenIdentifier(nodes))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply))
+
+	//------------- deploy the smart contracts
+
+	secondScCode := arwen.GetSCCode("./testdata/second-contract.wasm")
+	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+
+	integrationTests.CreateAndSendTransaction(
+		nodes[0],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(secondScCode)+"@"+
+			hex.EncodeToString([]byte(tokenIdenfitifer)),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
+	assert.Nil(t, err)
+
+	firstScCode := arwen.GetSCCode("./testdata/first-contract.wasm")
+	firstScAddress, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	integrationTests.CreateAndSendTransaction(
+		nodes[2],
+		nodes,
+		big.NewInt(0),
+		testVm.CreateEmptyAddress(),
+		arwen.CreateDeployTxData(firstScCode)+"@"+
+			hex.EncodeToString([]byte(tokenIdenfitifer))+"@"+
+			hex.EncodeToString(secondScAddress),
+		integrationTests.AdditionalGasLimit,
+	)
+
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
+	_, err = nodes[2].AccntState.GetExistingAccount(firstScAddress)
+	assert.Nil(t, err)
+
+	//// call first sc with esdt, and first sc automatically calls second sc
+	valueToSendToSc := int64(1000)
+	txData = core.BuiltInFunctionESDTTransfer + "@" +
+		hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
+		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
+		hex.EncodeToString([]byte("transferToSecondContractHalf"))
+	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply-valueToSendToSc))
+	checkAddressHasESDTTokens(t, firstScAddress, nodes, tokenIdenfitifer, big.NewInt(valueToSendToSc/2))
+	checkAddressHasESDTTokens(t, secondScAddress, nodes, tokenIdenfitifer, big.NewInt(valueToSendToSc/2))
+}
+
 func getTokenIdentifier(nodes []*integrationTests.TestProcessorNode) []byte {
 	for _, node := range nodes {
 		if node.ShardCoordinator.SelfId() != core.MetachainShardId {
