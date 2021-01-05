@@ -768,7 +768,7 @@ func checkAddressHasESDTTokens(
 ) {
 	esdtData := getESDTTokenData(t, address, nodes, tokenName)
 	if esdtData.Value.Cmp(value) != 0 {
-		assert.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", esdtData.Value.String(), value.String()))
+		assert.Fail(t, fmt.Sprintf("esdt balance difference. expected %s, but got %s", value.String(), esdtData.Value.String()))
 	}
 }
 
