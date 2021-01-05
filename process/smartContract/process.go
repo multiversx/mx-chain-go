@@ -755,9 +755,9 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
 	if !isSCCallCrossShard {
-		scrForSender, scrForRelayer, err := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
-		if err != nil {
-			return 0, err
+		scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
+		if errCreateSCR != nil {
+			return 0, errCreateSCR
 		}
 
 		if !createdAsyncCallback && vmInput.CallType == vmcommon.AsynchronousCall {
