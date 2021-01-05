@@ -1125,6 +1125,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricGasPerDataByte, economicsData.GasPerDataByte())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasPrice, economicsData.MinGasPrice())
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasLimit, economicsData.MinGasLimit())
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricRewardsTopUpGradientPoint, economicsData.RewardsTopUpGradientPoint().String())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoParams.PublicKeyString,

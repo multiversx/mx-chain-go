@@ -168,6 +168,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[core.MetricMetaConsensusGroupSize] = sm.loadUint64Metric(core.MetricMetaConsensusGroupSize)
 	configMetrics[core.MetricMinGasPrice] = sm.loadUint64Metric(core.MetricMinGasPrice)
 	configMetrics[core.MetricMinGasLimit] = sm.loadUint64Metric(core.MetricMinGasLimit)
+	configMetrics[core.MetricRewardsTopUpGradientPoint] = sm.loadStringMetric(core.MetricRewardsTopUpGradientPoint)
 	configMetrics[core.MetricGasPerDataByte] = sm.loadUint64Metric(core.MetricGasPerDataByte)
 	configMetrics[core.MetricChainId] = sm.loadStringMetric(core.MetricChainId)
 	configMetrics[core.MetricRoundDuration] = sm.loadUint64Metric(core.MetricRoundDuration)
