@@ -21,7 +21,7 @@ func NewMessageSigVerifier(
 		return nil, vm.ErrNilKeyGenerator
 	}
 	if check.IfNil(singleSigner) {
-		return nil, vm.ErrSingleSigner
+		return nil, vm.ErrNilSingleSigner
 	}
 
 	return &messageSigVerifier{

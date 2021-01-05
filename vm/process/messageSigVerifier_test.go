@@ -5,9 +5,24 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/crypto"
+	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/ElrondNetwork/elrond-go/vm/mock"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewMessageSigVerifier_NilKeyGenShouldErr(t *testing.T) {
+	mv, err := NewMessageSigVerifier(nil, &mock.SignerMock{})
+
+	assert.Nil(t, mv)
+	assert.Equal(t, vm.ErrNilKeyGenerator, err)
+}
+
+func TestNewMessageSigVerifier_NilSignerShouldErr(t *testing.T) {
+	mv, err := NewMessageSigVerifier(&mock.KeyGenMock{}, nil)
+
+	assert.Nil(t, mv)
+	assert.Equal(t, vm.ErrNilSingleSigner, err)
+}
 
 func TestNewMessageSigVerifier(t *testing.T) {
 	mv, err := NewMessageSigVerifier(&mock.KeyGenMock{}, &mock.SignerMock{})
@@ -24,6 +39,13 @@ func TestMessageSigVerifier_IsInterfaceNil(t *testing.T) {
 
 	mv = nil
 	assert.True(t, mv.IsInterfaceNil())
+}
+
+func TestMessageSigVerifier_VerifyNilPubKey(t *testing.T) {
+	mv, _ := NewMessageSigVerifier(&mock.KeyGenMock{}, &mock.SignerMock{})
+
+	err := mv.Verify([]byte("a"), []byte("a"), nil)
+	assert.Equal(t, vm.ErrNilPublicKey, err)
 }
 
 func TestMessageSigVerifier_VerifyInvalidPubKey(t *testing.T) {
