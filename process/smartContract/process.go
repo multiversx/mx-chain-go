@@ -698,7 +698,10 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "ExecuteBultInFunction", "computeBuiltInFuncGasUSed")
 
-	vmOutput.GasRemaining += vmInput.GasLocked
+	if txTypeOnDst != process.SCInvoking {
+		vmOutput.GasRemaining += vmInput.GasLocked
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
