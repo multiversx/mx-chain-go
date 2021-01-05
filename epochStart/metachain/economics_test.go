@@ -624,6 +624,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks / 2),
 			expectedRewardPerBlock:                big.NewInt(maxRewardPerBlock - 10 - 20 - 0),
 		},
+		// just 1 block per epoch
 		{
 			name:                                  "test7",
 			numBlocksInEpoch:                      1,
@@ -704,6 +705,400 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 
 			require.Equal(t, tt.expectedProtocolSustainabilityRewards, ecos.RewardsForProtocolSustainability)
 			require.Equal(t, tt.expectedRewardPerBlock, ecos.RewardsPerBlock)
+		})
+	}
+}
+
+func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
+	t.Parallel()
+
+	commAddress := "protocolSustainabilityAddress"
+	// based on 0.1 inflation, 14400 rounds, 3 shards, 365 epochs per year
+	totalSupply := big.NewInt(100 * 4 * 14400 * 365 * 10) // 21.02B
+	roundDur := 6
+	args := getArguments()
+	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func(_ uint32) float64 {
+			return 0.1
+		},
+		ProtocolSustainabilityAddressCalled: func() string {
+			return commAddress
+		},
+		ProtocolSustainabilityPercentageCalled: func() float64 {
+			return 0.1
+		},
+		LeaderPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDur) * time.Second
+		},
+	}
+	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
+	hdrPrevEpochStart := block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:                      newTotalSupply,
+				TotalToDistribute:                big.NewInt(0),
+				TotalNewlyMinted:                 big.NewInt(0),
+				RewardsPerBlock:                  big.NewInt(0),
+				NodePrice:                        big.NewInt(10),
+				RewardsForProtocolSustainability: big.NewInt(0),
+			},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Nonce: 0},
+				{ShardID: 1, Nonce: 0},
+				{ShardID: 2, Nonce: 0},
+			},
+		},
+	}
+	args.Store = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+				return hdrBytes, nil
+			}}
+		},
+	}
+	args.GenesisTotalSupply = totalSupply
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	numberOfShards := 4
+	maxBaseRewardPerBlock := int64(100)
+	blocksPerDay := numberOfSecondsInDay / roundDur
+	protocolSustainabilityRewardsForMaxBlocks := int64(numberOfSecondsInDay/roundDur) * 4 * maxBaseRewardPerBlock / 10
+
+	tests := []struct {
+		name                                  string
+		numBlocksInEpoch                      int
+		accFeesInEpoch                        *big.Int
+		devFeesInEpoch                        *big.Int
+		expectedProtocolSustainabilityRewards *big.Int
+		expectedBaseRewardPerBlock            *big.Int
+	}{
+		{
+			name:                                  "no fees",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(0),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10),
+		},
+		{
+			name:                                  "accfees equal inflation",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 10),
+		},
+		{
+			name:                                  "accFees and devFees so that rewardPerBlock is 1",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(89 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(89 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 89), // 0 = 10% of (accFees - devFees),
+		},
+		{
+			name:                                  "accFees and devFees so that rewardPerBlock is exactly 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(maxBaseRewardPerBlock - 10 - 90), // 0 = 10% of (accFees - devFees),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(maxBaseRewardPerBlock * 4 * int64(blocksPerDay) / 2),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+		},
+	}
+
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
+			expectedTotalToDistribute := big.NewInt(maxBaseRewardPerBlock * totalBlocksInEpoch)
+			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, tt.accFeesInEpoch)
+			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
+			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(maxBaseRewardPerBlock), commRewardPerBlock)
+			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+			feesForProposers := core.GetPercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
+			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, devFeeRewardPerBlock)
+
+			mb := block.MetaBlock{
+				Round: uint64(tt.numBlocksInEpoch),
+				Nonce: uint64(tt.numBlocksInEpoch),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 1, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 2, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+					},
+					Economics: block.Economics{
+						TotalSupply:                      expectedTotalSupply,
+						TotalToDistribute:                expectedTotalToDistribute,
+						TotalNewlyMinted:                 expectedTotalNewlyMinted,
+						RewardsPerBlock:                  adjustedRwdPerBlock,
+						NodePrice:                        big.NewInt(10),
+						PrevEpochStartHash:               hdrPrevEpochStartHash,
+						RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					},
+				},
+				Epoch:                  1,
+				AccumulatedFeesInEpoch: tt.accFeesInEpoch,
+				DevFeesInEpoch:         tt.devFeesInEpoch,
+			}
+
+			computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.NotNil(t, computedEconomics)
+
+			err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
+			assert.Nil(t, err)
+
+			ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
+
+			require.Equal(t, tt.expectedProtocolSustainabilityRewards, ecos.RewardsForProtocolSustainability)
+			require.Equal(t, tt.expectedBaseRewardPerBlock.Int64(), ecos.RewardsPerBlock.Int64())
+		})
+	}
+}
+
+func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
+	t.Parallel()
+
+	commAddress := "protocolSustainabilityAddress"
+	// based on 0.1 inflation, 14400 rounds, 3 shards, 365 epochs per year
+	totalSupply := big.NewInt(100 * 4 * 14400 * 365 * 10) // 21.02B
+	roundDur := 6
+	args := getArguments()
+	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		MaxInflationRateCalled: func(_ uint32) float64 {
+			return 0.0
+		},
+		ProtocolSustainabilityAddressCalled: func() string {
+			return commAddress
+		},
+		ProtocolSustainabilityPercentageCalled: func() float64 {
+			return 0.1
+		},
+		LeaderPercentageCalled: func() float64 {
+			return 0.1
+		},
+	}
+	args.RoundTime = &mock.RoundTimeDurationHandler{
+		TimeDurationCalled: func() time.Duration {
+			return time.Duration(roundDur) * time.Second
+		},
+	}
+	newTotalSupply := big.NewInt(0).Add(totalSupply, big.NewInt(0))
+	hdrPrevEpochStart := block.MetaBlock{
+		Round: 0,
+		Nonce: 0,
+		Epoch: 0,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:                      newTotalSupply,
+				TotalToDistribute:                big.NewInt(0),
+				TotalNewlyMinted:                 big.NewInt(0),
+				RewardsPerBlock:                  big.NewInt(0),
+				NodePrice:                        big.NewInt(10),
+				RewardsForProtocolSustainability: big.NewInt(0),
+			},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Nonce: 0},
+				{ShardID: 1, Nonce: 0},
+				{ShardID: 2, Nonce: 0},
+			},
+		},
+	}
+	args.Store = &mock.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
+			// this will be the previous epoch meta block. It has initial 0 values so it can be considered at genesis
+			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdrBytes, _ := json.Marshal(hdrPrevEpochStart)
+				return hdrBytes, nil
+			}}
+		},
+	}
+	args.GenesisTotalSupply = totalSupply
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	numberOfShards := 4
+	rewardPerBlock100 := int64(100)
+	blocksPerDay := numberOfSecondsInDay / roundDur
+	protocolSustainabilityRewardsForMaxBlocks := int64(numberOfSecondsInDay/roundDur) * 4 * rewardPerBlock100 / 10
+
+	tests := []struct {
+		name                                  string
+		numBlocksInEpoch                      int
+		accFeesInEpoch                        *big.Int
+		devFeesInEpoch                        *big.Int
+		expectedProtocolSustainabilityRewards *big.Int
+		expectedBaseRewardPerBlock            *big.Int
+		newlyMinted                           *big.Int
+	}{
+		{
+			name:                                  "no fees",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(0),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(0),
+			expectedBaseRewardPerBlock:            big.NewInt(0),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accfees equal 100 per block",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(0),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100 - 10 - 10), // 10% protocol and 10% leaders
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees and devFees (30%) so that rewardPerBlock is 00",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay) * 3 / 10), // 30% fees
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100 - 10 - 89), // 0 = 10% of (accFees - devFees),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees and devFees so that rewardPerBlock is exactly 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(90 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(rewardPerBlock100 - 10 - 90), // 0 = 10% of (accFees - devFees),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(91 * 4 * int64(blocksPerDay)),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			newlyMinted:                           big.NewInt(0),
+		},
+		{
+			name:                                  "accFees and devFees more than maxRewardsPerBlock so baseReward should be still 0",
+			numBlocksInEpoch:                      blocksPerDay,
+			accFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay)),
+			devFeesInEpoch:                        big.NewInt(rewardPerBlock100 * 4 * int64(blocksPerDay) / 2),
+			expectedProtocolSustainabilityRewards: big.NewInt(protocolSustainabilityRewardsForMaxBlocks),
+			expectedBaseRewardPerBlock:            big.NewInt(0), // 0 = 10% of (accFees - devFees),
+			newlyMinted:                           big.NewInt(0),
+		},
+	}
+
+	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
+			expectedTotalToDistribute := big.NewInt(tt.accFeesInEpoch.Int64() - tt.devFeesInEpoch.Int64())
+			totalRewardsToBeDistributedPerBlock := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(totalBlocksInEpoch))
+			expectedTotalNewlyMinted := big.NewInt(0)
+			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
+			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
+			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock := big.NewInt(0).Sub(totalRewardsToBeDistributedPerBlock, commRewardPerBlock)
+			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+			feesForProposers := core.GetPercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
+			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
+			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, devFeeRewardPerBlock)
+
+			if adjustedRwdPerBlock.Cmp(big.NewInt(0)) < 0 {
+				adjustedRwdPerBlock = big.NewInt(0)
+			}
+
+			mb := block.MetaBlock{
+				Round: uint64(tt.numBlocksInEpoch),
+				Nonce: uint64(tt.numBlocksInEpoch),
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: []block.EpochStartShardData{
+						{ShardID: 0, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 1, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+						{ShardID: 2, Round: uint64(tt.numBlocksInEpoch), Nonce: uint64(tt.numBlocksInEpoch)},
+					},
+					Economics: block.Economics{
+						TotalSupply:                      expectedTotalSupply,
+						TotalToDistribute:                expectedTotalToDistribute,
+						TotalNewlyMinted:                 expectedTotalNewlyMinted,
+						RewardsPerBlock:                  adjustedRwdPerBlock,
+						NodePrice:                        big.NewInt(10),
+						PrevEpochStartHash:               hdrPrevEpochStartHash,
+						RewardsForProtocolSustainability: expectedProtocolSustainabilityRewards,
+					},
+				},
+				Epoch:                  1,
+				AccumulatedFeesInEpoch: tt.accFeesInEpoch,
+				DevFeesInEpoch:         tt.devFeesInEpoch,
+			}
+
+			computedEconomics, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.NotNil(t, computedEconomics)
+
+			err = ec.VerifyRewardsPerBlock(&mb, expectedProtocolSustainabilityRewards, computedEconomics)
+			assert.Nil(t, err)
+
+			ecos, err := ec.ComputeEndOfEpochEconomics(&mb)
+			assert.Nil(t, err)
+			assert.True(t, expectedProtocolSustainabilityRewards.Cmp(ecos.RewardsForProtocolSustainability) == 0)
+
+			require.Equal(t, tt.expectedProtocolSustainabilityRewards, ecos.RewardsForProtocolSustainability)
+			require.Equal(t, tt.expectedBaseRewardPerBlock.Int64(), ecos.RewardsPerBlock.Int64())
+			require.Equal(t, tt.newlyMinted, ecos.TotalNewlyMinted)
 		})
 	}
 }
