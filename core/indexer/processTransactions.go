@@ -87,6 +87,11 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
+		if tx.Status == transaction.TxStatusInvalid.String() {
+			// the invalid transactions have the gasUsed field equals with gasLimit and is already set
+			continue
+		}
+
 		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
 	}
 
@@ -120,6 +125,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			}
 
 			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
+				transactions[hash].GasUsed = transactions[hash].GasLimit
 				continue
 			}
 
@@ -308,6 +314,7 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
+				dbTx.GasUsed = tx.GasLimit
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
