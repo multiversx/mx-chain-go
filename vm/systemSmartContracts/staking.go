@@ -199,6 +199,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.stakeNodesFromQueue(args)
 	case "unStakeAtEndOfEpoch":
 		return s.unStakeAtEndOfEpoch(args)
+	case "getTotalNumberOfRegisteredNodes":
+		return s.getTotalNumberOfRegisteredNodes(args)
 	}
 
 	return vmcommon.UserError
@@ -1458,6 +1460,27 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	s.eei.Finish(stakedData.OwnerAddress)
+	return vmcommon.Ok
+}
+
+func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		return vmcommon.UserError
+	}
+
+	stakeConfig := s.getConfig()
+	waitingListHead, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
+	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }
 
