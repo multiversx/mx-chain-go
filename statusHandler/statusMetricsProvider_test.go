@@ -164,6 +164,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetStringValue(core.MetricLatestTagSoftwareVersion, "version1.0")
 	sm.SetUInt64Value(core.MetricDenomination, 18)
 	sm.SetUInt64Value(core.MetricMinTransactionVersion, 2)
+	sm.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -181,6 +182,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_round_duration":                uint64(5000),
 		"erd_shard_consensus_group_size":    uint64(20),
 		"erd_start_time":                    uint64(9999),
+		"erd_top_up_factor":                 "12.134",
 	}
 
 	configMetrics := sm.ConfigMetrics()
