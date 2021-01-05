@@ -312,6 +312,9 @@ const MetricMinGasLimit = "erd_min_gas_limit"
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 
+// MetricTopUpFactor is the metric that specifies the top up factor
+const MetricTopUpFactor = "erd_top_up_factor"
+
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
 

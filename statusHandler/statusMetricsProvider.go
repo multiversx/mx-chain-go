@@ -176,6 +176,7 @@ func (sm *statusMetrics) ConfigMetrics() map[string]interface{} {
 	configMetrics[core.MetricLatestTagSoftwareVersion] = sm.loadStringMetric(core.MetricLatestTagSoftwareVersion)
 	configMetrics[core.MetricDenomination] = sm.loadUint64Metric(core.MetricDenomination)
 	configMetrics[core.MetricMinTransactionVersion] = sm.loadUint64Metric(core.MetricMinTransactionVersion)
+	configMetrics[core.MetricTopUpFactor] = sm.loadStringMetric(core.MetricTopUpFactor)
 
 	return configMetrics
 }
