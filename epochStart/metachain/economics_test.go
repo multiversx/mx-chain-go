@@ -845,17 +845,18 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 	hdrPrevEpochStartHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, hdrPrevEpochStart)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			currentMaxBaseRewardPerBlock := maxBaseRewardPerBlock
 			totalBlocksInEpoch := int64(tt.numBlocksInEpoch * numberOfShards)
-			expectedTotalToDistribute := big.NewInt(maxBaseRewardPerBlock * totalBlocksInEpoch)
+			expectedTotalToDistribute := big.NewInt(currentMaxBaseRewardPerBlock * totalBlocksInEpoch)
 			if expectedTotalToDistribute.Cmp(tt.accFeesInEpoch) < 0 {
 				expectedTotalToDistribute = tt.accFeesInEpoch
-				maxBaseRewardPerBlock = big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(totalBlocksInEpoch)).Int64()
+				currentMaxBaseRewardPerBlock = big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(totalBlocksInEpoch)).Int64()
 			}
 			expectedTotalNewlyMinted := big.NewInt(0).Sub(expectedTotalToDistribute, tt.accFeesInEpoch)
 			expectedTotalSupply := big.NewInt(0).Add(newTotalSupply, expectedTotalNewlyMinted)
 			expectedProtocolSustainabilityRewards := big.NewInt(0).Div(expectedTotalToDistribute, big.NewInt(10))
 			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
-			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(maxBaseRewardPerBlock), commRewardPerBlock)
+			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(currentMaxBaseRewardPerBlock), commRewardPerBlock)
 			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
 			feesForProposers := core.GetPercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
 			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
