@@ -2686,7 +2686,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
 
 	arguments.EconomicsFee = feeHandler
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.AccountsDB = &mock.AccountsStub{
 		RevertToSnapshotCalled: func(snapshot int) error {
 			return nil
@@ -2772,7 +2772,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
 			require.Nil(t, err)
 
-			arguments.Coordinator = shardCoordinator
+			arguments.ShardCoordinator = shardCoordinator
 			arguments.AccountsDB = &mock.AccountsStub{
 				RevertToSnapshotCalled: func(snapshot int) error {
 					return nil
@@ -2856,7 +2856,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		SelfIdCalled: func() uint32 {
 			return 0
 		}}
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
@@ -2895,7 +2895,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 		SelfIdCalled: func() uint32 {
 			return 0
 		}}
-	arguments.Coordinator = shardCoordinator
+	arguments.ShardCoordinator = shardCoordinator
 	arguments.EconomicsFee = &mock.FeeHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
