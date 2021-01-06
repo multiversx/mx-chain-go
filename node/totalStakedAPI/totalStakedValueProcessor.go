@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/vm"
@@ -28,9 +29,15 @@ func NewTotalStakedValueProcessor(
 	marshalizer marshal.Marshalizer,
 	cacheDuration time.Duration,
 	accounts state.AccountsAdapter,
-) (TotalStakedValueHandler, error) {
+) (*totalStakedValueProcessor, error) {
 	if cacheDuration <= 0 {
 		return nil, ErrInvalidTotalStakedValueCacheDuration
+	}
+	if check.IfNil(marshalizer) {
+		return nil, ErrNilMarshalizer
+	}
+	if check.IfNil(accounts) {
+		return nil, ErrNilAccountsAdapter
 	}
 
 	return &totalStakedValueProcessor{

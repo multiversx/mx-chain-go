@@ -10,3 +10,9 @@ var ErrCannotCastAccountHandlerToUserAccount = errors.New("cannot cast AccountHa
 
 // ErrCannotReturnTotalStakedFromShardNode signals that total staked cannot be returned by a shard node
 var ErrCannotReturnTotalStakedFromShardNode = errors.New("total staked value cannot be returned by a shard node")
+
+// ErrNilMarshalizer signals that a nil marshalizer has been provided
+var ErrNilMarshalizer = errors.New("trying to set nil marshalizer")
+
+// ErrNilAccountsAdapter signals that a nil accounts adapter has been provided
+var ErrNilAccountsAdapter = errors.New("trying to set nil accounts adapter")
