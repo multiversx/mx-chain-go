@@ -419,4 +419,10 @@ func TestHasRetriableExecutionError(t *testing.T) {
 
 	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnMessage: "Call error: unknown error function foobar"})
 	require.True(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnCode: vmcommon.ExecutionFailed})
+	require.True(t, shouldRetry)
+
+	shouldRetry = target.hasRetriableExecutionError(&vmcommon.VMOutput{ReturnCode: vmcommon.Ok})
+	require.False(t, shouldRetry)
 }

@@ -137,9 +137,10 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 }
 
 func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
+	isExecutionFailed := vmOutput.ReturnCode == vmcommon.ExecutionFailed
 	hasAllocationError := strings.Contains(vmOutput.ReturnMessage, "allocation error")
 	hasUnknownError := strings.Contains(vmOutput.ReturnMessage, "unknown error")
-	shouldRetry := hasAllocationError || hasUnknownError
+	shouldRetry := isExecutionFailed || hasAllocationError || hasUnknownError
 	return shouldRetry
 }
 
