@@ -1375,6 +1375,9 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 
 	if sc.flagDeploy.IsSet() {
 		vmOutput.ReturnMessage += "@"
+		if !isSmartContractResult(tx) {
+			gasUsed += sc.economicsFee.ComputeGasLimit(tx)
+		}
 	}
 
 	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
