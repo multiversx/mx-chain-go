@@ -256,9 +256,10 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
-			CallerAddr:  validatorAddressBytes,
+			CallerAddr:  vm.EndOfEpochAddress,
 			CallValue:   big.NewInt(0),
 			GasProvided: math.MaxUint64,
+			Arguments:   [][]byte{validatorAddressBytes},
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "getTotalStakedTopUpStakedBlsKeys",

@@ -61,6 +61,7 @@ func computeShardID(t *testing.T, addressBech32 string, shardCoordinator shardin
 }
 
 func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
+	contractDeployScAdress := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
 	stakingScAddress := addressEncoder.Encode(vm.StakingSCAddress)
 	validatorScAddress := addressEncoder.Encode(vm.ValidatorSCAddress)
 	esdtScAddress := addressEncoder.Encode(vm.ESDTSCAddress)
@@ -72,6 +73,7 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
+		display.NewLineData(false, []string{"Contract deploy", contractDeployScAdress}),
 		display.NewLineData(false, []string{"Staking", stakingScAddress}),
 		display.NewLineData(false, []string{"Validator", validatorScAddress}),
 		display.NewLineData(false, []string{"ESDT", esdtScAddress}),
@@ -93,4 +95,5 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqlllllllllllllllllllllllllllsr9gav8", endOfEpochAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6", delegationManagerScAddress)
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq0llllsqkarq6", firstDelegationScAddress)
+	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
 }
