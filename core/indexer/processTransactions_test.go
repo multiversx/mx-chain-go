@@ -543,3 +543,101 @@ func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
 	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
 	require.Equal(t, uint64(40000000), computeTxGasUsedField(sc, tx))
 }
+
+func TestCheckGasUsedInvalidTransaction(t *testing.T) {
+	t.Parallel()
+
+	txProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
+		false,
+		&mock.ShardCoordinatorMock{},
+	)
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 100,
+	}
+	recHash1 := []byte("recHash1")
+	rec1 := &receipt.Receipt{
+		Value:  big.NewInt(100),
+		TxHash: txHash1,
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1},
+				Type:     block.InvalidBlock,
+			},
+			{
+				TxHashes: [][]byte{recHash1},
+				Type:     block.ReceiptBlock,
+			},
+		},
+	}
+
+	header := &block.Header{}
+
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1):  tx1,
+		string(recHash1): rec1,
+	}
+
+	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	require.Len(t, txs, 1)
+	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
+}
+
+func TestCheckGasUsedRelayedTransaction(t *testing.T) {
+	t.Parallel()
+
+	txProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+		&config.FeeSettings{},
+		false,
+		&mock.ShardCoordinatorMock{},
+	)
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 123456,
+		Data:     []byte("relayedTx@1231231231239129312"),
+	}
+	scResHash1 := []byte("scResHash1")
+	scRes1 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash1,
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1},
+				Type:     block.TxBlock,
+			},
+			{
+				TxHashes: [][]byte{scResHash1},
+				Type:     block.SmartContractResultBlock,
+			},
+		},
+	}
+
+	header := &block.Header{}
+
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1):    tx1,
+		string(scResHash1): scRes1,
+	}
+
+	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	require.Len(t, txs, 1)
+	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
+}

@@ -54,7 +54,7 @@ message StakedDataV2_0 {
 	bool     Waiting       = 12 [(gogoproto.jsontag) = "Waiting"];
 	uint32   NumJailed     = 13 [(gogoproto.jsontag) = "NumJailed"];
 	bytes    SlashValue    = 14 [(gogoproto.jsontag) = "SlashValue", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go/data.BigIntCaster"];
-    bytes    OwnerAddress  = 15 [(gogoproto.jsontag) = "OwnerAddress"];
+	bytes    OwnerAddress  = 15 [(gogoproto.jsontag) = "OwnerAddress"];
 }
 
 message StakingNodesConfig {

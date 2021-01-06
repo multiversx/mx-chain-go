@@ -341,7 +341,6 @@ type VirtualMachineServicesConfig struct {
 type VirtualMachineConfig struct {
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
 	OutOfProcessEnabled bool
-	WarmInstanceEnabled bool
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
