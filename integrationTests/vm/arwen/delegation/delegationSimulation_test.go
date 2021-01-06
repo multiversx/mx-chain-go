@@ -101,8 +101,10 @@ func TestSimulateExecutionOfStakeTransaction(t *testing.T) {
 			sw.Stop("do stake")
 
 			logInfo := sw.GetMeasurements()
-			logInfo = append(logInfo, "num addresses in batch")
+			logInfo = append(logInfo, "num addresses")
 			logInfo = append(logInfo, len(batch))
+			logInfo = append(logInfo, "batch")
+			logInfo = append(logInfo, i)
 
 			log.Info("process took", logInfo...)
 
