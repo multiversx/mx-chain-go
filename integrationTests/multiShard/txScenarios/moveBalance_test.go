@@ -54,13 +54,13 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	// move balance wrong gas price
 	_ = createAndSendTransaction(nodes[1], players[3], players[3].Address, sendValue, []byte(""), integrationTests.MinTxGasPrice-1, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
-	// send value to staking contract without data should consume gas
-	tx3 := createAndSendTransaction(nodes[0], players[4], vm.AuctionSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
+	// send value to validator contract without data should consume gas
+	tx3 := createAndSendTransaction(nodes[0], players[4], vm.ValidatorSCAddress, sendValue, []byte(""), integrationTests.MinTxGasPrice, integrationTests.MinTxGasLimit)
 	time.Sleep(100 * time.Millisecond)
-	// send value to staking contract with data should consume gas
+	// send value to validator contract with data should consume gas
 	txData := []byte("contract@aaaa")
 	gasLimitTxWithData := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
-	txWithData := createAndSendTransaction(nodes[0], players[6], vm.AuctionSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
+	txWithData := createAndSendTransaction(nodes[0], players[6], vm.ValidatorSCAddress, sendValue, txData, integrationTests.MinTxGasPrice, gasLimitTxWithData)
 	time.Sleep(100 * time.Millisecond)
 
 	nrRoundsToTest := int64(7)
@@ -68,7 +68,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	// check sender balance intra shard transaction (receiver is self)
@@ -99,7 +99,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	assert.Equal(t, players[0].Nonce, senderAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	// check balance account that send money to AuctionSC
+	// check balance account that send money to ValidatorSC
 	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx3)
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	senderAccount = getUserAccount(nodes, players[4].Address)
@@ -107,7 +107,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	// check balance account that send money to AuctionSC with data field
+	// check balance account that send money to ValidatorSC with data field
 	txFee = nodes[0].EconomicsData.ComputeTxFee(txWithData)
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
@@ -118,12 +118,12 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
 
-	// check balance account that send money to AuctionSC with data field should refund money back
+	// check balance account that send money to ValidatorSC with data field should refund money back
 	senderAccount = getUserAccount(nodes, players[6].Address)
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 	assert.Equal(t, players[6].Nonce, senderAccount.GetNonce())

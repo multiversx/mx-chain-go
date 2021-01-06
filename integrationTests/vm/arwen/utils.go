@@ -167,9 +167,12 @@ func (context *TestContext) initFeeHandlers() {
 				},
 			},
 			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.0,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+				LeaderPercentage:                 0.1,
+				DeveloperPercentage:              0.0,
+				ProtocolSustainabilityPercentage: 0,
+				ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+				TopUpGradientPoint:               "1000000",
+				TopUpFactor:                      0,
 			},
 			FeeSettings: config.FeeSettings{
 				MaxGasLimitPerBlock:     maxGasLimitPerBlock,

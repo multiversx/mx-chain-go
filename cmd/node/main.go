@@ -861,13 +861,19 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
-	nodesShuffler := sharding.NewHashValidatorsShuffler(
-		genesisNodesConfig.MinNodesPerShard,
-		genesisNodesConfig.MetaChainMinNodes,
-		genesisNodesConfig.Hysteresis,
-		genesisNodesConfig.Adaptivity,
-		true,
-	)
+	argsNodesShuffler := &sharding.NodesShufflerArgs{
+		NodesShard:           genesisNodesConfig.MinNodesPerShard,
+		NodesMeta:            genesisNodesConfig.MetaChainMinNodes,
+		Hysteresis:           genesisNodesConfig.Hysteresis,
+		Adaptivity:           genesisNodesConfig.Adaptivity,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+	}
+
+	nodesShuffler, err := sharding.NewHashValidatorsShuffler(argsNodesShuffler)
+	if err != nil {
+		return err
+	}
 
 	destShardIdAsObserver, err := processDestinationShardAsObserver(preferencesConfig.Preferences)
 	if err != nil {
@@ -1376,6 +1382,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		hardForkTrigger,
 		historyRepository,
 		fallbackHeaderValidator,
+		isInImportMode,
 	)
 	if err != nil {
 		return err
@@ -2187,6 +2194,7 @@ func createNode(
 	hardForkTrigger node.HardforkTrigger,
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
+	isInImportDbMode bool,
 ) (*node.Node, error) {
 	var err error
 	var consensusGroupSize uint32
@@ -2314,6 +2322,7 @@ func createNode(
 		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch),
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
+		node.WithImportMode(isInImportDbMode),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -2470,19 +2479,20 @@ func createApiResolver(
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		vmFactory, err = metachain.NewVMContainerFactory(
-			argsHook,
-			economics,
-			messageSigVerifier,
-			gasScheduleNotifier,
-			nodesSetup,
-			hasher,
-			marshalizer,
-			systemSCConfig,
-			validatorAccounts,
-			rater,
-			epochNotifier,
-		)
+		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           economics,
+			MessageSignVerifier: messageSigVerifier,
+			GasSchedule:         gasScheduleNotifier,
+			NodesConfigProvider: nodesSetup,
+			Hasher:              hasher,
+			Marshalizer:         marshalizer,
+			SystemSCConfig:      systemSCConfig,
+			ValidatorAccountsDB: validatorAccounts,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+		}
+		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
 		if err != nil {
 			return nil, err
 		}

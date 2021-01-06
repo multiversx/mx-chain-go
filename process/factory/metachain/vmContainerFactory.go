@@ -39,52 +39,55 @@ type vmContainerFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 }
 
+// ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
+type ArgsNewVMContainerFactory struct {
+	ArgBlockChainHook   hooks.ArgBlockChainHook
+	Economics           process.EconomicsDataHandler
+	MessageSignVerifier vm.MessageSignVerifier
+	GasSchedule         core.GasScheduleNotifier
+	NodesConfigProvider vm.NodesConfigProvider
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	SystemSCConfig      *config.SystemSmartContractsConfig
+	ValidatorAccountsDB state.AccountsAdapter
+	ChanceComputer      sharding.ChanceComputer
+	EpochNotifier       process.EpochNotifier
+}
+
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
-func NewVMContainerFactory(
-	argBlockChainHook hooks.ArgBlockChainHook,
-	economics process.EconomicsDataHandler,
-	messageSignVerifier vm.MessageSignVerifier,
-	gasSchedule core.GasScheduleNotifier,
-	nodesConfigProvider vm.NodesConfigProvider,
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	systemSCConfig *config.SystemSmartContractsConfig,
-	validatorAccountsDB state.AccountsAdapter,
-	chanceComputer sharding.ChanceComputer,
-	epochNotifier process.EpochNotifier,
-) (*vmContainerFactory, error) {
-	if economics == nil {
+func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory, error) {
+	if check.IfNil(args.Economics) {
 		return nil, process.ErrNilEconomicsData
 	}
-	if check.IfNil(messageSignVerifier) {
+	if check.IfNil(args.MessageSignVerifier) {
 		return nil, process.ErrNilKeyGen
 	}
-	if check.IfNil(nodesConfigProvider) {
+	if check.IfNil(args.NodesConfigProvider) {
 		return nil, process.ErrNilNodesConfigProvider
 	}
-	if check.IfNil(hasher) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
-	if check.IfNil(marshalizer) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if systemSCConfig == nil {
+	if args.SystemSCConfig == nil {
 		return nil, process.ErrNilSystemSCConfig
 	}
-	if check.IfNil(validatorAccountsDB) {
+	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
-	if check.IfNil(chanceComputer) {
+	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
-	if check.IfNil(gasSchedule) {
+	if check.IfNil(args.GasSchedule) {
 		return nil, vm.ErrNilGasSchedule
 	}
-	if check.IfNil(argBlockChainHook.PubkeyConv) {
+	if check.IfNil(args.ArgBlockChainHook.PubkeyConv) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argBlockChainHook)
+	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(args.ArgBlockChainHook)
 	if err != nil {
 		return nil, err
 	}
@@ -93,21 +96,21 @@ func NewVMContainerFactory(
 	return &vmContainerFactory{
 		blockChainHookImpl:     blockChainHookImpl,
 		cryptoHook:             cryptoHook,
-		economics:              economics,
-		messageSigVerifier:     messageSignVerifier,
-		gasSchedule:            gasSchedule,
-		nodesConfigProvider:    nodesConfigProvider,
-		hasher:                 hasher,
-		marshalizer:            marshalizer,
-		systemSCConfig:         systemSCConfig,
-		validatorAccountsDB:    validatorAccountsDB,
-		chanceComputer:         chanceComputer,
-		epochNotifier:          epochNotifier,
-		addressPubKeyConverter: argBlockChainHook.PubkeyConv,
+		economics:              args.Economics,
+		messageSigVerifier:     args.MessageSignVerifier,
+		gasSchedule:            args.GasSchedule,
+		nodesConfigProvider:    args.NodesConfigProvider,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		systemSCConfig:         args.SystemSCConfig,
+		validatorAccountsDB:    args.ValidatorAccountsDB,
+		chanceComputer:         args.ChanceComputer,
+		epochNotifier:          args.EpochNotifier,
+		addressPubKeyConverter: args.ArgBlockChainHook.PubkeyConv,
 	}, nil
 }
 
-// Create sets up all the needed virtual machine returning a container of all the VMs
+// Create sets up all the needed virtual machines returning a container of all the VMs
 func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error) {
 	container := containers.NewVirtualMachinesContainer()
 
@@ -124,7 +127,27 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	return container, nil
 }
 
-func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
+// CreateForGenesis sets up all the needed virtual machines returning a container of all the VMs to be used in the genesis process
+// The system VM will have to contain the following and only following system smartcontracts:
+// staking SC, validator SC, ESDT SC and governance SC. Including more system smartcontracts (or less) will trigger root hash mismatch
+// errors when trying to sync the first metablock after the genesis event.
+func (vmf *vmContainerFactory) CreateForGenesis() (process.VirtualMachinesContainer, error) {
+	container := containers.NewVirtualMachinesContainer()
+
+	currVm, err := vmf.createSystemVMForGenesis()
+	if err != nil {
+		return nil, err
+	}
+
+	err = container.Add(factory.SystemVirtualMachine, currVm)
+	if err != nil {
+		return nil, err
+	}
+
+	return container, nil
+}
+
+func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContainerFactory, vm.ContextHandler, error) {
 	atArgumentParser := parsers.NewCallArgsParser()
 	systemEI, err := systemSmartContracts.NewVMContext(
 		vmf.blockChainHookImpl,
@@ -134,7 +157,7 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 		vmf.chanceComputer,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	argsNewSystemScFactory := systemVMFactory.ArgsNewSystemSCFactory{
@@ -151,15 +174,14 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	vmf.systemContracts, err = scFactory.Create()
-	if err != nil {
-		return nil, err
-	}
+	return scFactory, systemEI, nil
+}
 
-	err = systemEI.SetSystemSCContainer(vmf.systemContracts)
+func (vmf *vmContainerFactory) finalizeSystemVMCreation(systemEI vm.ContextHandler) (vmcommon.VMExecutionHandler, error) {
+	err := systemEI.SetSystemSCContainer(vmf.systemContracts)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +200,35 @@ func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, er
 	vmf.gasSchedule.RegisterNotifyHandler(systemVM)
 
 	return systemVM, nil
+}
+
+func (vmf *vmContainerFactory) createSystemVM() (vmcommon.VMExecutionHandler, error) {
+	scFactory, systemEI, err := vmf.createSystemVMFactoryAndEEI()
+	if err != nil {
+		return nil, err
+	}
+
+	vmf.systemContracts, err = scFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return vmf.finalizeSystemVMCreation(systemEI)
+}
+
+// createSystemVMForGenesis will create the same VMExecutionHandler structure used when the mainnet genesis was created
+func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionHandler, error) {
+	scFactory, systemEI, err := vmf.createSystemVMFactoryAndEEI()
+	if err != nil {
+		return nil, err
+	}
+
+	vmf.systemContracts, err = scFactory.CreateForGenesis()
+	if err != nil {
+		return nil, err
+	}
+
+	return vmf.finalizeSystemVMCreation(systemEI)
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl

@@ -178,9 +178,9 @@ func CreatePostMiniBlocks(args ArgsHardForkProcessor) error {
 				return ErrNilHardForkBlockProcessor
 			}
 
-			postBody, postMbs, err := hardForkBlockProcessor.CreatePostMiniBlocks(args.PostMbs)
-			if err != nil {
-				return err
+			postBody, postMbs, errCreatePostMiniBlocks := hardForkBlockProcessor.CreatePostMiniBlocks(args.PostMbs)
+			if errCreatePostMiniBlocks != nil {
+				return errCreatePostMiniBlocks
 			}
 
 			currentBody, ok := args.MapBodies[shardID]

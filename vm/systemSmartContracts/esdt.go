@@ -24,7 +24,8 @@ const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
 const minLengthForTickerName = 3
 const maxLengthForTickerName = 10
-const minLengthForTokenName = 10
+const minLengthForInitTokenName = 10
+const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
 const minNumberOfDecimals = 0
 const maxNumberOfDecimals = 18
@@ -165,7 +166,7 @@ func (e *esdt) init(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	scConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	err := e.saveESDTConfig(scConfig)
@@ -191,7 +192,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) < minLengthForTickerName ||
+	if len(args.Arguments[0]) < minLengthForTokenName ||
 		len(args.Arguments[0]) > int(esdtConfig.MaxTokenNameLength) {
 		e.eei.AddReturnMessage("token name length not in parameters")
 		return vmcommon.FunctionWrongSignature
@@ -805,13 +806,13 @@ func (e *esdt) saveToken(identifier []byte, token *ESDTData) error {
 }
 
 func (e *esdt) getExistingToken(tokenIdentifier []byte) (*ESDTData, error) {
-	marshalledData := e.eei.GetStorage(tokenIdentifier)
-	if len(marshalledData) == 0 {
+	marshaledData := e.eei.GetStorage(tokenIdentifier)
+	if len(marshaledData) == 0 {
 		return nil, vm.ErrNoTickerWithGivenName
 	}
 
 	token := &ESDTData{}
-	err := e.marshalizer.Unmarshal(token, marshalledData)
+	err := e.marshalizer.Unmarshal(token, marshaledData)
 	return token, err
 }
 
@@ -819,7 +820,7 @@ func (e *esdt) getESDTConfig() (*ESDTConfig, error) {
 	esdtConfig := &ESDTConfig{
 		OwnerAddress:       e.ownerAddress,
 		BaseIssuingCost:    e.baseIssuingCost,
-		MinTokenNameLength: minLengthForTokenName,
+		MinTokenNameLength: minLengthForInitTokenName,
 		MaxTokenNameLength: maxLengthForTokenName,
 	}
 	marshalledData := e.eei.GetStorage([]byte(configKeyPrefix))
@@ -863,6 +864,11 @@ func (e *esdt) isAddressValid(addressBytes []byte) bool {
 	encodedAddress := e.addressPubKeyConverter.Encode(addressBytes)
 
 	return encodedAddress != ""
+}
+
+// CanUseContract returns true if contract can be used
+func (e *esdt) CanUseContract() bool {
+	return true
 }
 
 // IsInterfaceNil returns true if underlying object is nil

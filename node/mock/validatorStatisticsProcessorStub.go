@@ -17,6 +17,15 @@ type ValidatorStatisticsProcessorStub struct {
 	ProcessCalled                            func(validatorInfo data.ShardValidatorInfoHandler) error
 	CommitCalled                             func() ([]byte, error)
 	PeerAccountToValidatorInfoCalled         func(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
+	SaveNodesCoordinatorUpdatesCalled        func(epoch uint32) (bool, error)
+}
+
+// SaveNodesCoordinatorUpdates -
+func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch uint32) (bool, error) {
+	if vsp.SaveNodesCoordinatorUpdatesCalled != nil {
+		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
+	}
+	return false, nil
 }
 
 // PeerAccountToValidatorInfo -
@@ -37,9 +46,9 @@ func (vsp *ValidatorStatisticsProcessorStub) Process(validatorInfo data.ShardVal
 }
 
 // Commit -
-func (pm *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
-	if pm.CommitCalled != nil {
-		return pm.CommitCalled()
+func (vsp *ValidatorStatisticsProcessorStub) Commit() ([]byte, error) {
+	if vsp.CommitCalled != nil {
+		return vsp.CommitCalled()
 	}
 
 	return nil, nil
@@ -102,7 +111,7 @@ func (vsp *ValidatorStatisticsProcessorStub) LastFinalizedRootHash() []byte {
 	return nil
 }
 
-// GetPeerAccount -
+// GetExistingPeerAccount -
 func (vsp *ValidatorStatisticsProcessorStub) GetExistingPeerAccount(address []byte) (state.PeerAccountHandler, error) {
 	if vsp.GetPeerAccountCalled != nil {
 		return vsp.GetPeerAccountCalled(address)

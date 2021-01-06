@@ -205,6 +205,13 @@ type ValidatorStatisticsConfig struct {
 	CacheRefreshIntervalInSec uint32
 }
 
+// MaxNodesChangeConfig defines a config change tuple, with a maximum number enabled in a certain epoch number
+type MaxNodesChangeConfig struct {
+	EpochEnable            uint32
+	MaxNumNodes            uint32
+	NodesToShufflePerShard uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec               int
@@ -221,6 +228,7 @@ type GeneralSettingsConfig struct {
 	MetaProtectionEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch         uint32
 	GasPriceModifierEnableEpoch            uint32
+	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32
 }
@@ -331,8 +339,8 @@ type VirtualMachineServicesConfig struct {
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
-	OutOfProcessEnabled bool
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
+	OutOfProcessEnabled bool
 	WarmInstanceEnabled bool
 }
 

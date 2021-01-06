@@ -41,13 +41,15 @@ type economicsData struct {
 	flagGasPriceModifier             atomic.Flag
 	penalizedTooMuchGasEnableEpoch   uint32
 	gasPriceModifierEnableEpoch      uint32
+	topUpGradientPoint               *big.Int
+	topUpFactor                      float64
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
 	Economics                      *config.EconomicsConfig
-	PenalizedTooMuchGasEnableEpoch uint32
 	EpochNotifier                  process.EpochNotifier
+	PenalizedTooMuchGasEnableEpoch uint32
 	GasPriceModifierEnableEpoch    uint32
 }
 
@@ -70,6 +72,11 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, process.ErrNilEpochNotifier
 	}
 
+	topUpGradientPoint, ok := big.NewInt(0).SetString(args.Economics.RewardsSettings.TopUpGradientPoint, 10)
+	if !ok {
+		return nil, process.ErrInvalidRewardsTopUpGradientPoint
+	}
+
 	ed := &economicsData{
 		leaderPercentage:                 args.Economics.RewardsSettings.LeaderPercentage,
 		protocolSustainabilityPercentage: args.Economics.RewardsSettings.ProtocolSustainabilityPercentage,
@@ -85,6 +92,8 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		penalizedTooMuchGasEnableEpoch:   args.PenalizedTooMuchGasEnableEpoch,
 		gasPriceModifierEnableEpoch:      args.GasPriceModifierEnableEpoch,
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,
+		topUpGradientPoint:               topUpGradientPoint,
+		topUpFactor:                      args.Economics.RewardsSettings.TopUpFactor,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -148,7 +157,8 @@ func checkValues(economics *config.EconomicsConfig) error {
 	if isPercentageInvalid(economics.RewardsSettings.LeaderPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.DeveloperPercentage) ||
 		isPercentageInvalid(economics.RewardsSettings.ProtocolSustainabilityPercentage) ||
-		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) {
+		isPercentageInvalid(economics.GlobalSettings.MinimumInflation) ||
+		isPercentageInvalid(economics.RewardsSettings.TopUpFactor) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
@@ -211,6 +221,13 @@ func (ed *economicsData) MinGasPrice() uint64 {
 	return ed.minGasPrice
 }
 
+// MinGasPriceForProcessing returns the minimum allowed gas price for processing
+func (ed *economicsData) MinGasPriceForProcessing() uint64 {
+	priceModifier := ed.GasPriceModifier()
+
+	return uint64(float64(ed.minGasPrice) * priceModifier)
+}
+
 // GasPriceModifier will return the gas price modifier
 func (ed *economicsData) GasPriceModifier() float64 {
 	if !ed.flagGasPriceModifier.IsSet() {
@@ -235,17 +252,23 @@ func (ed *economicsData) ComputeMoveBalanceFee(tx process.TransactionWithFeeHand
 		return big.NewInt(0)
 	}
 
-	return core.SafeMul(tx.GetGasPrice(), ed.ComputeGasLimit(tx))
+	return core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimit(tx))
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
 func (ed *economicsData) ComputeFeeForProcessing(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
-	if !ed.flagGasPriceModifier.IsSet() {
-		return core.SafeMul(tx.GetGasPrice(), gasToUse)
-	}
+	gasPrice := ed.GasPriceForProcessing(tx)
+	return core.SafeMul(gasPrice, gasToUse)
+}
 
-	modifiedGasPrice := uint64(float64(tx.GetGasPrice()) * ed.gasPriceModifier)
-	return core.SafeMul(modifiedGasPrice, gasToUse)
+// GasPriceForProcessing computes the price for the gas in addition to balance movement and data
+func (ed *economicsData) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+	return uint64(float64(tx.GetGasPrice()) * ed.GasPriceModifier())
+}
+
+// GasPriceForMove returns the gas price for transferring funds
+func (ed *economicsData) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	return tx.GetGasPrice()
 }
 
 func isSmartContractResult(tx process.TransactionWithFeeHandler) bool {
@@ -260,13 +283,12 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 			return ed.ComputeFeeForProcessing(tx, tx.GetGasLimit())
 		}
 
-		gasLimitForMoveBalance := ed.ComputeGasLimit(tx)
-		moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
+		gasLimitForMoveBalance, difference := ed.SplitTxGasInCategories(tx)
+		moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
 		if tx.GetGasLimit() <= gasLimitForMoveBalance {
 			return moveBalanceFee
 		}
 
-		difference := tx.GetGasLimit() - gasLimitForMoveBalance
 		extraFee := ed.ComputeFeeForProcessing(tx, difference)
 		moveBalanceFee.Add(moveBalanceFee, extraFee)
 		return moveBalanceFee
@@ -277,6 +299,22 @@ func (ed *economicsData) ComputeTxFee(tx process.TransactionWithFeeHandler) *big
 	}
 
 	return ed.ComputeMoveBalanceFee(tx)
+}
+
+// SplitTxGasInCategories returns the gas split per categories
+func (ed *economicsData) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (gasLimitMove, gasLimitProcess uint64) {
+	var err error
+	gasLimitMove = ed.ComputeGasLimit(tx)
+	gasLimitProcess, err = core.SafeSubUint64(tx.GetGasLimit(), gasLimitMove)
+	if err != nil {
+		log.Warn("SplitTxGasInCategories - insufficient gas for move",
+			"providedGas", tx.GetGasLimit(),
+			"computedMinimumRequired", gasLimitMove,
+			"dataLen", len(tx.GetData()),
+		)
+	}
+
+	return
 }
 
 // CheckValidityTxValues checks if the provided transaction is economically correct
@@ -329,6 +367,16 @@ func (ed *economicsData) ProtocolSustainabilityPercentage() float64 {
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (ed *economicsData) ProtocolSustainabilityAddress() string {
 	return ed.protocolSustainabilityAddress
+}
+
+// RewardsTopUpGradientPoint returns the rewards top-up gradient point
+func (ed *economicsData) RewardsTopUpGradientPoint() *big.Int {
+	return big.NewInt(0).Set(ed.topUpGradientPoint)
+}
+
+// RewardsTopUpFactor returns the rewards top-up factor
+func (ed *economicsData) RewardsTopUpFactor() float64 {
+	return ed.topUpFactor
 }
 
 // ComputeGasLimit returns the gas limit need by the provided transaction in order to be executed

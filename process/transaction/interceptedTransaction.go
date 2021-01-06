@@ -37,7 +37,6 @@ type InterceptedTransaction struct {
 	argsParser             process.ArgumentsParser
 	txVersionChecker       process.TxVersionCheckerHandler
 	chainID                []byte
-	minTransactionVersion  uint32
 	rcvShard               uint32
 	sndShard               uint32
 	isForCurrentShard      bool

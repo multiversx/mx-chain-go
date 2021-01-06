@@ -70,7 +70,7 @@ func (eht *eventsHashesByTxHash) groupSmartContractResults(
 	epoch uint32,
 	scrResults map[string]data.TransactionHandler,
 ) map[string]*ResultsHashesByTxHash {
-	resultsHashesMap := make(map[string]*ResultsHashesByTxHash, 0)
+	resultsHashesMap := make(map[string]*ResultsHashesByTxHash)
 	for scrHash, scrHandler := range scrResults {
 		scrResult, ok := scrHandler.(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -80,7 +80,7 @@ func (eht *eventsHashesByTxHash) groupSmartContractResults(
 
 		originalTxHash := string(scrResult.OriginalTxHash)
 
-		if _, ok := resultsHashesMap[originalTxHash]; !ok {
+		if _, hashExists := resultsHashesMap[originalTxHash]; !hashExists {
 			resultsHashesMap[originalTxHash] = &ResultsHashesByTxHash{
 				ScResultsHashesAndEpoch: []*ScResultsHashesAndEpoch{
 					{

@@ -40,6 +40,22 @@ type deployedScMetrics struct {
 	numOtherTypes int
 }
 
+func createGenesisConfig() config.GeneralSettingsConfig {
+	return config.GeneralSettingsConfig{
+		BuiltInFunctionsEnableEpoch:            0,
+		SCDeployEnableEpoch:                    unreachableEpoch,
+		RelayedTransactionsEnableEpoch:         0,
+		PenalizedTooMuchGasEnableEpoch:         0,
+		AheadOfTimeGasUsageEnableEpoch:         unreachableEpoch,
+		BelowSignedThresholdEnableEpoch:        unreachableEpoch,
+		GasPriceModifierEnableEpoch:            unreachableEpoch,
+		MetaProtectionEnableEpoch:              unreachableEpoch,
+		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
+		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
+		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
+	}
+}
+
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
@@ -51,14 +67,7 @@ func CreateShardGenesisBlock(
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	genesisOverrideConfig := config.GeneralSettingsConfig{
-		BuiltInFunctionsEnableEpoch:    0,
-		SCDeployEnableEpoch:            0,
-		RelayedTransactionsEnableEpoch: 0,
-		PenalizedTooMuchGasEnableEpoch: 0,
-	}
-
-	processors, err := createProcessorsForShardGenesisBlock(arg, genesisOverrideConfig)
+	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -369,6 +378,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		BuiltinEnableEpoch:             generalConfig.BuiltInFunctionsEnableEpoch,
 		DeployEnableEpoch:              generalConfig.SCDeployEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
+		IsGenesisProcessing:            true,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 
 const numChunksLowerBound = 1
 const numChunksUpperBound = 128
-const minGasPriceNanoErdLowerBound = 1
 const maxNumItemsLowerBound = 4
 const maxNumBytesLowerBound = maxNumItemsLowerBound * 1
 const maxNumBytesUpperBound = 1_073_741_824 // one GB
@@ -29,7 +28,6 @@ type ConfigSourceMe struct {
 	CountThreshold                uint32
 	CountPerSenderThreshold       uint32
 	NumSendersToPreemptivelyEvict uint32
-	MinGasPriceNanoErd            uint32
 }
 
 type senderConstraints struct {
@@ -50,9 +48,6 @@ func (config *ConfigSourceMe) verify() error {
 	}
 	if config.CountPerSenderThreshold < maxNumItemsPerSenderLowerBound {
 		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", storage.ErrInvalidConfig)
-	}
-	if config.MinGasPriceNanoErd < minGasPriceNanoErdLowerBound {
-		return fmt.Errorf("%w: config.MinGasPriceNanoErd is invalid", storage.ErrInvalidConfig)
 	}
 	if config.EvictionEnabled {
 		if config.NumBytesThreshold < maxNumBytesLowerBound || config.NumBytesThreshold > maxNumBytesUpperBound {

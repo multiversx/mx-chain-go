@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
@@ -16,13 +17,14 @@ import (
 )
 
 type baseTxProcessor struct {
-	accounts         state.AccountsAdapter
-	shardCoordinator sharding.Coordinator
-	pubkeyConv       core.PubkeyConverter
-	economicsFee     process.FeeHandler
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	scProcessor      process.SmartContractProcessor
+	accounts                state.AccountsAdapter
+	shardCoordinator        sharding.Coordinator
+	pubkeyConv              core.PubkeyConverter
+	economicsFee            process.FeeHandler
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	scProcessor             process.SmartContractProcessor
+	flagPenalizedTooMuchGas atomic.Flag
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -154,6 +156,12 @@ func (txProc *baseTxProcessor) checkTxValues(
 			stAcc.GetBalance().String(),
 			txFee.String(),
 		)
+	}
+
+	if !txProc.flagPenalizedTooMuchGas.IsSet() {
+		//backwards compatibility issue when provided gas limit and gas price exceeds the available balance before the
+		//activation of the penalize too much gas flag
+		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
 	cost := big.NewInt(0).Add(txFee, tx.Value)

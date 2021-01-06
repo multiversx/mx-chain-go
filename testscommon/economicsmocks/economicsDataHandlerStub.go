@@ -1,4 +1,4 @@
-package mock
+package economicsmocks
 
 import (
 	"math/big"
@@ -25,6 +25,12 @@ type EconomicsHandlerStub struct {
 	MinGasLimitCalled                      func() uint64
 	GenesisTotalSupplyCalled               func() *big.Int
 	ComputeFeeForProcessingCalled          func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	RewardsTopUpGradientPointCalled        func() *big.Int
+	RewardsTopUpFactorCalled               func() float64
+	SplitTxGasInCategoriesCalled           func(tx process.TransactionWithFeeHandler) (uint64, uint64)
+	GasPriceForProcessingCalled            func(tx process.TransactionWithFeeHandler) uint64
+	GasPriceForMoveCalled                  func(tx process.TransactionWithFeeHandler) uint64
+	MinGasPriceProcessingCalled            func() uint64
 }
 
 // ComputeFeeForProcessing -
@@ -162,6 +168,63 @@ func (e *EconomicsHandlerStub) CheckValidityTxValues(tx process.TransactionWithF
 		return e.CheckValidityTxValuesCalled(tx)
 	}
 	return nil
+}
+
+// RewardsTopUpGradientPoint -
+func (e *EconomicsHandlerStub) RewardsTopUpGradientPoint() *big.Int {
+	if e.RewardsTopUpGradientPointCalled != nil {
+		return e.RewardsTopUpGradientPointCalled()
+	}
+
+	return big.NewInt(0)
+}
+
+// RewardsTopUpFactor -
+func (e *EconomicsHandlerStub) RewardsTopUpFactor() float64 {
+	if e.RewardsTopUpFactorCalled != nil {
+		return e.RewardsTopUpFactorCalled()
+	}
+
+	return 0
+}
+
+// SplitTxGasInCategories -
+func (e *EconomicsHandlerStub) SplitTxGasInCategories(tx process.TransactionWithFeeHandler) (uint64, uint64) {
+	if e.SplitTxGasInCategoriesCalled != nil {
+		return e.SplitTxGasInCategoriesCalled(tx)
+	}
+
+	processingGas := uint64(0)
+	if e.ComputeGasLimit(tx) > e.MinGasLimit() {
+		processingGas = e.ComputeGasLimit(tx) - e.MinGasLimit()
+	}
+
+	return e.MinGasLimit(), processingGas
+}
+
+// GasPriceForProcessing -
+func (e *EconomicsHandlerStub) GasPriceForProcessing(tx process.TransactionWithFeeHandler) uint64 {
+	if e.GasPriceForProcessingCalled != nil {
+		return e.GasPriceForProcessingCalled(tx)
+	}
+	return 1
+}
+
+// GasPriceForMove -
+func (e *EconomicsHandlerStub) GasPriceForMove(tx process.TransactionWithFeeHandler) uint64 {
+	if e.GasPriceForMoveCalled != nil {
+		return e.GasPriceForMoveCalled(tx)
+	}
+	return 100
+}
+
+// MinGasPriceProcessing -
+func (e *EconomicsHandlerStub) MinGasPriceForProcessing() uint64 {
+	if e.MinGasPriceProcessingCalled != nil {
+		return e.MinGasPriceProcessingCalled()
+	}
+
+	return 1
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

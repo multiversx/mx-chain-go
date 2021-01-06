@@ -148,11 +148,10 @@ func (m *ConcurrentMap) Keys() []string {
 
 	for _, chunk := range chunks {
 		chunk.mutex.RLock()
-		defer chunk.mutex.RUnlock()
-
 		for key := range chunk.items {
 			keys = append(keys, key)
 		}
+		chunk.mutex.RUnlock()
 	}
 
 	return keys

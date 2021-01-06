@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
 	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,7 +108,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		Signer:            &mock.SignerStub{},
 		BlockSigner:       &mock.SignerStub{},
 		ChainID:           []byte("chain-ID"),
-		EconomicsData:     &mock.EconomicsHandlerStub{},
+		EconomicsData:     &economicsmocks.EconomicsHandlerStub{},
 		WhitelistHandler:  &mock.WhiteListHandlerStub{},
 		AddressPubkeyConv: mock.NewPubkeyConverterMock(32),
 		NonceConverter:    &mock.Uint64ByteSliceConverterMock{},

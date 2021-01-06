@@ -181,9 +181,9 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	hr.markMiniblockMetadataAsRecentlyInserted(miniblockHash, epoch)
 
 	for _, txHash := range miniblock.TxHashes {
-		err := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
-		if err != nil {
-			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", err)
+		errPut := hr.miniblockHashByTxHashIndex.Put(txHash, miniblockHash)
+		if errPut != nil {
+			log.Warn("miniblockHashByTxHashIndex.Put()", "txHash", txHash, "err", errPut)
 			continue
 		}
 	}
@@ -278,7 +278,8 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 			}
 
 			for _, shardData := range metaBlock.ShardInfo {
-				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardData)
+				shardDataCopy := shardData
+				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardDataCopy)
 			}
 		} else {
 			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
