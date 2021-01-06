@@ -471,6 +471,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess, 1)
 	workingDir := getWorkingDir(ctx, log)
 
+	log.Info("Hello onboarding")
+
 	var fileLogging factory.FileLoggingHandler
 	var err error
 	withLogFile := ctx.GlobalBool(logSaveFile.Name)
