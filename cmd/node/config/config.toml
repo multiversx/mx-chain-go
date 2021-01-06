@@ -768,3 +768,6 @@
 
 [Logs]
     LogFileLifeSpanInSec = 86400
+
+[TotalStakedValueAPI]
+    TotalStakedValueAPICacheDurationInMinutes = 100

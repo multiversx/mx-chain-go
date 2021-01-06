@@ -169,11 +169,17 @@ type Config struct {
 	Versions              VersionsConfig
 	GasSchedule           GasScheduleConfig
 	Logs                  LogsConfig
+	TotalStakedValueAPI   TotalStakedValueAPIConfig
 }
 
 // LogsConfig will hold settings related to the logging sub-system
 type LogsConfig struct {
 	LogFileLifeSpanInSec int
+}
+
+// TotalStakedValueAPIConfig will hold settings related to the total staked api
+type TotalStakedValueAPIConfig struct {
+	TotalStakedValueAPICacheDurationInMinutes int
 }
 
 // StoragePruningConfig will hold settings related to storage pruning

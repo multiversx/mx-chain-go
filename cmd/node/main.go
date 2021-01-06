@@ -16,6 +16,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/node/metrics"
@@ -2541,7 +2543,18 @@ func createApiResolver(
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
+		ShardID:                                shardCoordinator.SelfId(),
+		TotalStakedValueCacheDurationInMinutes: generalConfig.TotalStakedValueAPI.TotalStakedValueAPICacheDurationInMinutes,
+		InternalMarshalizer:                    marshalizer,
+		Accounts:                               accnts,
+	}
+	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler, totalStakedValueHandler)
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
