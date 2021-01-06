@@ -620,14 +620,12 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         OutOfProcessEnabled = false
-        WarmInstanceEnabled = false
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
         OutOfProcessEnabled = false
-        WarmInstanceEnabled = true
 
 [Hardfork]
     EnableTrigger = true

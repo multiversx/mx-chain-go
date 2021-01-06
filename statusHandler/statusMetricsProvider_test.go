@@ -143,3 +143,48 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	expectedMetricOutput := fmt.Sprintf("%s{%s=\"%d\"} %v", key1, core.MetricShardId, shardID, value1)
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
+
+func TestStatusMetrics_NetworkConfig(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(core.MetricNumShardsWithoutMetacahin, 1)
+	sm.SetUInt64Value(core.MetricNumNodesPerShard, 100)
+	sm.SetUInt64Value(core.MetricNumMetachainNodes, 50)
+	sm.SetUInt64Value(core.MetricShardConsensusGroupSize, 20)
+	sm.SetUInt64Value(core.MetricMetaConsensusGroupSize, 25)
+	sm.SetUInt64Value(core.MetricMinGasPrice, 1000)
+	sm.SetUInt64Value(core.MetricMinGasLimit, 50000)
+	sm.SetStringValue(core.MetricRewardsTopUpGradientPoint, "12345")
+	sm.SetUInt64Value(core.MetricGasPerDataByte, 1500)
+	sm.SetStringValue(core.MetricChainId, "local-id")
+	sm.SetUInt64Value(core.MetricRoundDuration, 5000)
+	sm.SetUInt64Value(core.MetricStartTime, 9999)
+	sm.SetStringValue(core.MetricLatestTagSoftwareVersion, "version1.0")
+	sm.SetUInt64Value(core.MetricDenomination, 18)
+	sm.SetUInt64Value(core.MetricMinTransactionVersion, 2)
+	sm.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
+
+	expectedConfig := map[string]interface{}{
+		"erd_chain_id":                      "local-id",
+		"erd_denomination":                  uint64(18),
+		"erd_gas_per_data_byte":             uint64(1500),
+		"erd_latest_tag_software_version":   "version1.0",
+		"erd_meta_consensus_group_size":     uint64(25),
+		"erd_min_gas_limit":                 uint64(50000),
+		"erd_min_gas_price":                 uint64(1000),
+		"erd_min_transaction_version":       uint64(2),
+		"erd_num_metachain_nodes":           uint64(50),
+		"erd_num_nodes_in_shard":            uint64(100),
+		"erd_num_shards_without_meta":       uint64(1),
+		"erd_rewards_top_up_gradient_point": "12345",
+		"erd_round_duration":                uint64(5000),
+		"erd_shard_consensus_group_size":    uint64(20),
+		"erd_start_time":                    uint64(9999),
+		"erd_top_up_factor":                 "12.134",
+	}
+
+	configMetrics := sm.ConfigMetrics()
+	assert.Equal(t, expectedConfig, configMetrics)
+}
