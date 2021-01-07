@@ -793,6 +793,7 @@ type PeerValidatorMapper interface {
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
 	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	IsInterfaceNil() bool
 }
 
