@@ -629,7 +629,7 @@
         [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
-            MaxLoopTime = 5000
+            MaxLoopTime = 10000
 
 [Hardfork]
     EnableTrigger = true
