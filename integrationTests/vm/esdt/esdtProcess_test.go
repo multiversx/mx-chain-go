@@ -752,7 +752,7 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	_, err = nodes[0].AccntState.GetExistingAccount(firstScAddress)
 	assert.Nil(t, err)
 
-	//// call first sc with esdt, and first sc automatically calls second sc hich returns error
+	//// call first sc with esdt, and first sc automatically calls second sc which returns error
 	valueToSendToSc := int64(1000)
 	txData := core.BuiltInFunctionESDTTransfer + "@" +
 		hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
