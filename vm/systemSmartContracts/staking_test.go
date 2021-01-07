@@ -1824,6 +1824,8 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
 	}
 	assert.Equal(t, 6, len(eei.output)-currentOutPutIndex)
+	stakingConfig := stakingSmartContract.getConfig()
+	assert.Equal(t, stakingConfig.StakedNodes, int64(4))
 }
 
 func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
