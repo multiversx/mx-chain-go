@@ -39,7 +39,7 @@ func NewScQueryServiceDispatcher(list []process.SCQueryService) (*scQueryService
 
 // ExecuteQuery will call this method on one of the element from provided list
 func (sqsd *scQueryServiceDispatcher) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-	index := sqsd.getUpdatedIndex()
+	index := sqsd.getNewIndex()
 
 	sqsd.mutList.RLock()
 	defer sqsd.mutList.RUnlock()
@@ -49,7 +49,7 @@ func (sqsd *scQueryServiceDispatcher) ExecuteQuery(query *process.SCQuery) (*vmc
 
 // ComputeScCallGasLimit will call this method on one of the element from provided list
 func (sqsd *scQueryServiceDispatcher) ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error) {
-	index := sqsd.getUpdatedIndex()
+	index := sqsd.getNewIndex()
 
 	sqsd.mutList.RLock()
 	defer sqsd.mutList.RUnlock()
@@ -57,12 +57,12 @@ func (sqsd *scQueryServiceDispatcher) ComputeScCallGasLimit(tx *transaction.Tran
 	return sqsd.list[index].ComputeScCallGasLimit(tx)
 }
 
-func (sqsd *scQueryServiceDispatcher) getUpdatedIndex() int {
+func (sqsd *scQueryServiceDispatcher) getNewIndex() int {
 	sqsd.mutIndex.Lock()
+	updatedValue := sqsd.index
+
 	sqsd.index++
 	sqsd.index = sqsd.index % sqsd.maxListSize
-
-	updatedValue := sqsd.index
 	sqsd.mutIndex.Unlock()
 
 	return updatedValue

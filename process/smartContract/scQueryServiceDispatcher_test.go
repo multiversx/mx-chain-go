@@ -76,8 +76,8 @@ func TestScQueryServiceDispatcher_ExecuteQueryShouldCallInRoundRobinFashion(t *t
 	_, _ = sqsd.ExecuteQuery(nil)
 	_, _ = sqsd.ExecuteQuery(nil)
 
-	assert.Equal(t, 1, calledElement1)
-	assert.Equal(t, 2, calledElement2)
+	assert.Equal(t, 2, calledElement1)
+	assert.Equal(t, 1, calledElement2)
 }
 
 func TestScQueryServiceDispatcher_ComputeScCallGasLimitShouldCallInRoundRobinFashion(t *testing.T) {
@@ -106,8 +106,8 @@ func TestScQueryServiceDispatcher_ComputeScCallGasLimitShouldCallInRoundRobinFas
 	_, _ = sqsd.ComputeScCallGasLimit(nil)
 	_, _ = sqsd.ComputeScCallGasLimit(nil)
 
-	assert.Equal(t, 1, calledElement1)
-	assert.Equal(t, 2, calledElement2)
+	assert.Equal(t, 2, calledElement1)
+	assert.Equal(t, 1, calledElement2)
 }
 
 func TestScQueryServiceDispatcher_ShouldWorkInAConcurrentManner(t *testing.T) {
