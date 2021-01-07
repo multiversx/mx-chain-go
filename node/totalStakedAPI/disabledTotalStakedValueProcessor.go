@@ -5,7 +5,7 @@ import "math/big"
 type disabledTotalStakedValueProcessor struct{}
 
 // NewDisabledTotalStakedValueProcessor -
-func NewDisabledTotalStakedValueProcessor() (TotalStakedValueHandler, error) {
+func NewDisabledTotalStakedValueProcessor() (*disabledTotalStakedValueProcessor, error) {
 	return new(disabledTotalStakedValueProcessor), nil
 }
 

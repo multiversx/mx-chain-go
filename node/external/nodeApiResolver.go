@@ -6,7 +6,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -15,7 +14,7 @@ type NodeApiResolver struct {
 	scQueryService          SCQueryService
 	statusMetricsHandler    StatusMetricsHandler
 	txCostHandler           TransactionCostHandler
-	totalStakedValueHandler totalStakedAPI.TotalStakedValueHandler
+	totalStakedValueHandler TotalStakedValueHandler
 }
 
 // NewNodeApiResolver creates a new NodeApiResolver instance
@@ -23,7 +22,7 @@ func NewNodeApiResolver(
 	scQueryService SCQueryService,
 	statusMetricsHandler StatusMetricsHandler,
 	txCostHandler TransactionCostHandler,
-	totalStakedValueHandler totalStakedAPI.TotalStakedValueHandler,
+	totalStakedValueHandler TotalStakedValueHandler,
 ) (*NodeApiResolver, error) {
 	if check.IfNil(scQueryService) {
 		return nil, ErrNilSCQueryService
