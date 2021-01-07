@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
+	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
@@ -15,9 +16,11 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	systemVm "github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +31,18 @@ func TestSimulateExecutionOfStakeTransaction(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	runDelegationExecutionSimulate(t, 2, 10, 100, 0)
+}
+
+func TestSimulateExecutionOfStakeTransactionAndQueries(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runDelegationExecutionSimulate(t, 2, 10, 100, 100)
+}
+
+func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uint32, numTxPerBatch uint32, numQueriesPerBatch uint32) {
 	cacheConfig := storageUnit.CacheConfig{
 		Name:        "trie",
 		Type:        "SizeLRU",
@@ -89,16 +104,50 @@ func TestSimulateExecutionOfStakeTransaction(t *testing.T) {
 	_, err = node.AccntState.Commit()
 	require.Nil(t, err)
 
-	scQuery := node.SCQueryService
-	go func() {
+	if numQueriesPerBatch > 0 {
+		copiedAddresses := make([][]byte, 0)
+		for _, address := range addresses {
+			copiedAddresses = append(copiedAddresses, address)
+		}
 
-	}()
+		scQuery := node.SCQueryService
+		go func() {
+			getClaimableRewards := &process.SCQuery{
+				ScAddress:  delegationAddr,
+				FuncName:   "getClaimableRewards",
+				CallerAddr: delegationAddr,
+				CallValue:  big.NewInt(0),
+				Arguments:  [][]byte{},
+			}
 
-	for j := 0; j < 2; j++ {
-		numBatches := 10
+			getUserStakeByType := &process.SCQuery{
+				ScAddress:  delegationAddr,
+				FuncName:   "getUserStakeByType",
+				CallerAddr: delegationAddr,
+				CallValue:  big.NewInt(0),
+				Arguments:  [][]byte{},
+			}
+
+			for j := uint32(0); j < numBatches; j++ {
+				for i := uint32(0); i < numQueriesPerBatch; i++ {
+					getClaimableRewards.Arguments = [][]byte{copiedAddresses[j]}
+					getUserStakeByType.Arguments = [][]byte{copiedAddresses[j]}
+
+					_, errQuery := scQuery.ExecuteQuery(getClaimableRewards)
+					assert.Nil(t, errQuery)
+					_, errQuery = scQuery.ExecuteQuery(getUserStakeByType)
+					assert.Nil(t, errQuery)
+				}
+
+				time.Sleep(time.Second)
+			}
+		}()
+	}
+
+	for j := uint32(0); j < numRuns; j++ {
 		log.Info("starting staking round", "round", j)
-		for i := 0; i < numBatches; i++ {
-			batch := addresses[i*100 : (i+1)*100]
+		for i := uint32(0); i < numBatches; i++ {
+			batch := addresses[i*numTxPerBatch : (i+1)*numTxPerBatch]
 
 			sw := core.NewStopWatch()
 			sw.Start("do stake")

@@ -79,7 +79,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -711,8 +710,11 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 
 func (tpn *TestProcessorNode) createFullSCQueryService() {
 	var vmFactory process.VirtualMachinesContainerFactory
+	gasMap := arwenConfig.MakeGasMapForTests()
+	defaults.FillGasMapInternal(gasMap, 1)
+	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
+		GasSchedule:     gasSchedule,
 		MapDNSAddresses: make(map[string]struct{}),
 		Marshalizer:     TestMarshalizer,
 		Accounts:        tpn.AccntState,
@@ -742,7 +744,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 			ArgBlockChainHook:   argsHook,
 			Economics:           tpn.EconomicsData,
 			MessageSignVerifier: sigVerifier,
-			GasSchedule:         gasScheduleNotifier,
+			GasSchedule:         gasSchedule,
 			NodesConfigProvider: tpn.NodesSetup,
 			Hasher:              TestHasher,
 			Marshalizer:         TestMarshalizer,
@@ -786,8 +788,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
-			ChanceComputer:      rater,
-			EpochNotifier:       epochNotifier,
+			ChanceComputer:      tpn.NodesCoordinator,
+			EpochNotifier:       tpn.EpochNotifier,
 		}
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
@@ -797,7 +799,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			},
 			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
-			gasScheduleNotifier,
+			gasSchedule,
 			argsHook,
 			0,
 			0,
