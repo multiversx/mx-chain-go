@@ -2440,20 +2440,151 @@ func createApiResolver(
 	epochNotifier process.EpochNotifier,
 	workingDir string,
 ) (facade.ApiResolver, error) {
-	var vmFactory process.VirtualMachinesContainerFactory
-	var err error
+	scQueryService, err := createScQueryService(
+		generalConfig,
+		accnts,
+		validatorAccounts,
+		pubkeyConv,
+		storageService,
+		dataPool,
+		blockChain,
+		marshalizer,
+		hasher,
+		uint64Converter,
+		shardCoordinator,
+		gasScheduleNotifier,
+		economics,
+		messageSigVerifier,
+		nodesSetup,
+		systemSCConfig,
+		rater,
+		epochNotifier,
+		workingDir,
+	)
 
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
-	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubkeyConv,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+//TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists
+func createScQueryService(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+) (process.SCQueryService, error) {
+	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVms
+	if numConcurrentVms < 1 {
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number higher than 1")
+	}
+
+	list := make([]process.SCQueryService, 0, numConcurrentVms)
+	for i := 0; i < numConcurrentVms; i++ {
+		scQueryService, err := createScQueryElement(
+			generalConfig,
+			accnts,
+			validatorAccounts,
+			pubkeyConv,
+			storageService,
+			dataPool,
+			blockChain,
+			marshalizer,
+			hasher,
+			uint64Converter,
+			shardCoordinator,
+			gasScheduleNotifier,
+			economics,
+			messageSigVerifier,
+			nodesSetup,
+			systemSCConfig,
+			rater,
+			epochNotifier,
+			workingDir,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, scQueryService)
+	}
+
+	sqQueryDispatcher, err := smartContract.NewScQueryServiceDispatcher(list)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqQueryDispatcher, nil
+}
+
+func createScQueryElement(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+) (process.SCQueryService, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
+
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2500,7 +2631,7 @@ func createApiResolver(
 		}
 	} else {
 		vmFactory, err = shard.NewVMContainerFactory(
-			generalConfig.VirtualMachine.Querying,
+			generalConfig.VirtualMachine.Querying.VirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasScheduleNotifier,
 			argsHook,
@@ -2522,28 +2653,26 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+}
+
+func createBuiltinFuncs(
+	gasScheduleNotifier core.GasScheduleNotifier,
+	marshalizer marshal.Marshalizer,
+	accnts state.AccountsAdapter,
+) (process.BuiltInFunctionContainer, error) {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasScheduleNotifier,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
+		Accounts:        accnts,
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
-	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-	}
-	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+	return builtInFuncFactory.CreateBuiltInFunctionContainer()
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

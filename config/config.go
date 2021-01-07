@@ -334,13 +334,19 @@ type IncreaseFactorConfig struct {
 // VirtualMachineServicesConfig holds configuration for the Virtual Machine(s): both querying and execution services.
 type VirtualMachineServicesConfig struct {
 	Execution VirtualMachineConfig
-	Querying  VirtualMachineConfig
+	Querying  QueryVirtualMachineConfig
 }
 
 // VirtualMachineConfig holds configuration for a Virtual Machine service
 type VirtualMachineConfig struct {
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
 	OutOfProcessEnabled bool
+}
+
+// QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
+type QueryVirtualMachineConfig struct {
+	VirtualMachineConfig
+	NumConcurrentVms int
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)
