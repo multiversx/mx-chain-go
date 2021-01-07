@@ -795,7 +795,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService() {
 	} else {
 		vmFactory, _ = shard.NewVMContainerFactory(
 			config.VirtualMachineConfig{
-				OutOfProcessEnabled: false,
+				OutOfProcessEnabled: true,
 				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
 			},
 			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
