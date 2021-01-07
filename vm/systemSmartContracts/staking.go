@@ -1547,6 +1547,8 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.Finish(stakedData.RewardAddress)
 	}
 
+	s.addToStakedNodes(int64(stakedNodes))
+
 	return vmcommon.Ok
 }
 

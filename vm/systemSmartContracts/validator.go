@@ -548,17 +548,17 @@ func (v *validatorSC) registerBLSKeys(
 	pubKey []byte,
 	ownerAddress []byte,
 	args [][]byte,
-) ([][]byte, error) {
+) ([][]byte, [][]byte, error) {
 	maxNodesToRun := big.NewInt(0).SetBytes(args[0]).Uint64()
 	if uint64(len(args)) < maxNodesToRun+1 {
 		v.eei.AddReturnMessage(fmt.Sprintf("not enough arguments to process stake function: expected min %d, got %d", maxNodesToRun+1, len(args)))
-		return nil, vm.ErrNotEnoughArgumentsToStake
+		return nil, nil, vm.ErrNotEnoughArgumentsToStake
 	}
 
 	blsKeys := v.getVerifiedBLSKeysFromArgs(pubKey, args)
 	newKeys, err := v.getNewValidKeys(registrationData.BlsPubKeys, blsKeys)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, blsKey := range newKeys {
@@ -571,20 +571,20 @@ func (v *validatorSC) registerBLSKeys(
 			v.eei.AddReturnMessage("cannot do register: " + errExec.Error())
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
-			return nil, err
+			return nil, nil, err
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
 			v.eei.AddReturnMessage("cannot do register: " + vmOutput.ReturnCode.String())
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
-			return nil, vm.ErrKeyAlreadyRegistered
+			return nil, nil, vm.ErrKeyAlreadyRegistered
 		}
 
 		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
 	}
 
-	return blsKeys, nil
+	return blsKeys, newKeys, nil
 }
 
 func (v *validatorSC) updateStakeValue(registrationData *ValidatorDataV2, caller []byte) vmcommon.ReturnCode {
@@ -894,7 +894,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	registrationData.MaxStakePerNode = big.NewInt(0).Set(registrationData.TotalStakeValue)
 	registrationData.Epoch = v.eei.BlockChainHook().CurrentEpoch()
 
-	blsKeys, err := v.registerBLSKeys(registrationData, args.CallerAddr, args.CallerAddr, args.Arguments)
+	blsKeys, newKeys, err := v.registerBLSKeys(registrationData, args.CallerAddr, args.CallerAddr, args.Arguments)
 	if err != nil {
 		v.eei.AddReturnMessage("cannot register bls key: error " + err.Error())
 		return vmcommon.UserError
@@ -906,8 +906,32 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	numQualified := big.NewInt(0).Div(registrationData.TotalStakeValue, validatorConfig.NodePrice)
 	if uint64(len(registrationData.BlsPubKeys)) > numQualified.Uint64() {
-		v.eei.AddReturnMessage("insufficient funds")
-		return vmcommon.OutOfFunds
+		if !v.flagEnableTopUp.IsSet() {
+			// backward compatibility
+			v.eei.AddReturnMessage("insufficient funds")
+			return vmcommon.OutOfFunds
+		}
+
+		if uint64(len(newKeys)) > numQualified.Uint64() {
+			totalNeeded := big.NewInt(0).Mul(big.NewInt(int64(len(newKeys))), validatorConfig.NodePrice)
+			v.eei.AddReturnMessage("not enough total stake to activate nodes," +
+				" totalStake: " + registrationData.TotalStakeValue.String() + ", needed: " + totalNeeded.String())
+			return vmcommon.UserError
+		}
+
+		numStakedJailedWaiting, _, errGet := v.getNumStakedAndWaitingNodes(registrationData, make(map[string]struct{}), false)
+		if errGet != nil {
+			v.eei.AddReturnMessage(errGet.Error())
+			return vmcommon.UserError
+		}
+
+		numNodesToStake := uint64(len(newKeys)) + numStakedJailedWaiting
+		if uint64(len(newKeys))+numStakedJailedWaiting > numQualified.Uint64() {
+			totalNeeded := big.NewInt(0).Mul(big.NewInt(0).SetUint64(numNodesToStake), validatorConfig.NodePrice)
+			v.eei.AddReturnMessage("not enough total stake to activate nodes," +
+				" totalStake: " + registrationData.TotalStakeValue.String() + ", needed: " + totalNeeded.String())
+			return vmcommon.UserError
+		}
 	}
 
 	// do the optionals - rewardAddress and maxStakePerNode
@@ -929,7 +953,6 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 	v.activateStakingFor(
 		blsKeys,
-		numQualified.Uint64(),
 		registrationData,
 		validatorConfig.NodePrice,
 		registrationData.RewardAddress,
@@ -947,7 +970,6 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 func (v *validatorSC) activateStakingFor(
 	blsKeys [][]byte,
-	numQualified uint64,
 	registrationData *ValidatorDataV2,
 	fixedStakeValue *big.Int,
 	rewardAddress []byte,
@@ -955,11 +977,7 @@ func (v *validatorSC) activateStakingFor(
 ) {
 	numRegistered := uint64(registrationData.NumRegistered)
 
-	if v.flagEnableTopUp.IsSet() {
-		v.reActivateStakingForNodes(blsKeys, numQualified, registrationData, rewardAddress, ownerAddress)
-	}
-
-	for i := uint64(0); numRegistered < numQualified && i < uint64(len(blsKeys)); i++ {
+	for i := uint64(0); i < uint64(len(blsKeys)); i++ {
 		currentBLSKey := blsKeys[i]
 		stakedData, err := v.getStakedData(currentBLSKey)
 		if err != nil {
@@ -982,31 +1000,6 @@ func (v *validatorSC) activateStakingFor(
 
 	registrationData.NumRegistered = uint32(numRegistered)
 	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numRegistered))
-}
-
-func (v *validatorSC) reActivateStakingForNodes(
-	blsKeys [][]byte,
-	numQualified uint64,
-	registrationData *ValidatorDataV2,
-	rewardAddress []byte,
-	ownerAddress []byte,
-) {
-	numRegistered := uint64(registrationData.NumRegistered)
-	if numRegistered < numQualified {
-		return
-	}
-
-	for _, blsKey := range blsKeys {
-		stakedData, err := v.getStakedData(blsKey)
-		if err != nil {
-			continue
-		}
-		if stakedData.Jailed || stakedData.UnStakedNonce == 0 {
-			continue
-		}
-
-		_ = v.stakeOneNode(blsKey, rewardAddress, ownerAddress)
-	}
 }
 
 func (v *validatorSC) stakeOneNode(
