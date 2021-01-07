@@ -266,6 +266,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
+	log.Trace("executingFailedTransaction", "fail reason(error)", txError, "tx hash", txHash)
+
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(txFee),
 		SndAddr: tx.SndAddr,

@@ -746,9 +746,6 @@ var ErrCallerIsNotTheDNSAddress = errors.New("not a dns address")
 // ErrUserNameChangeIsDisabled signals the user name change is not allowed
 var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
 
-// ErrDestinationNotInSelfShard signals that user is not in self shard
-var ErrDestinationNotInSelfShard = errors.New("destination is not in self shard")
-
 // ErrUserNameDoesNotMatch signals that user name does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
@@ -931,3 +928,9 @@ var ErrNotEnoughGasInUserTx = errors.New("not enough gas provided in user tx")
 
 // ErrNegativeBalanceDeltaOnCrossShardAccount signals that negative balance delta was given on cross shard account
 var ErrNegativeBalanceDeltaOnCrossShardAccount = errors.New("negative balance delta on cross shard account")
+
+// ErrNilOrEmptyList signals that a nil or empty list was provided
+var ErrNilOrEmptyList = errors.New("nil or empty provided list")
+
+// ErrNilScQueryElement signals that a nil sc query service element was provided
+var ErrNilScQueryElement = errors.New("nil SC query service element")
