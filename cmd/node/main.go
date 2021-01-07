@@ -2514,7 +2514,7 @@ func createScQueryService(
 ) (process.SCQueryService, error) {
 	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVms
 	if numConcurrentVms < 1 {
-		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number higher than 1")
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
 	}
 
 	list := make([]process.SCQueryService, 0, numConcurrentVms)
@@ -2630,8 +2630,10 @@ func createScQueryElement(
 			return nil, err
 		}
 	} else {
+		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
+		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		vmFactory, err = shard.NewVMContainerFactory(
-			generalConfig.VirtualMachine.Querying.VirtualMachineConfig,
+			queryVirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasScheduleNotifier,
 			argsHook,
