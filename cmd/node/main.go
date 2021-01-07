@@ -1404,6 +1404,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating api resolver structure")
+	apiWorkingDir := filepath.Join(workingDir, factory.TemporaryPath)
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
@@ -1424,7 +1425,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
-		workingDir,
+		apiWorkingDir,
 	)
 	if err != nil {
 		return err
@@ -2440,89 +2441,36 @@ func createApiResolver(
 	epochNotifier process.EpochNotifier,
 	workingDir string,
 ) (facade.ApiResolver, error) {
-	var vmFactory process.VirtualMachinesContainerFactory
-	var err error
-
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
-	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
-	if err != nil {
-		return nil, err
-	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
-	if err != nil {
-		return nil, err
-	}
-
-	cacherCfg := storageFactory.GetCacherFromConfig(generalConfig.SmartContractDataPool)
-	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	argsHook := hooks.ArgBlockChainHook{
-		Accounts:           accnts,
-		PubkeyConv:         pubkeyConv,
-		StorageService:     storageService,
-		BlockChain:         blockChain,
-		ShardCoordinator:   shardCoordinator,
-		Marshalizer:        marshalizer,
-		Uint64Converter:    uint64Converter,
-		BuiltInFunctions:   builtInFuncs,
-		DataPool:           dataPool,
-		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
-		CompiledSCPool:     smartContractsCache,
-		WorkingDir:         workingDir,
-		NilCompiledSCStore: false,
-	}
-
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
-			ArgBlockChainHook:   argsHook,
-			Economics:           economics,
-			MessageSignVerifier: messageSigVerifier,
-			GasSchedule:         gasScheduleNotifier,
-			NodesConfigProvider: nodesSetup,
-			Hasher:              hasher,
-			Marshalizer:         marshalizer,
-			SystemSCConfig:      systemSCConfig,
-			ValidatorAccountsDB: validatorAccounts,
-			ChanceComputer:      rater,
-			EpochNotifier:       epochNotifier,
-		}
-		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		vmFactory, err = shard.NewVMContainerFactory(
-			generalConfig.VirtualMachine.Querying,
-			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
-			gasScheduleNotifier,
-			argsHook,
-			generalConfig.GeneralSettings.SCDeployEnableEpoch,
-			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	vmContainer, err := vmFactory.Create()
+	scQueryService, err := createScQueryService(
+		generalConfig,
+		accnts,
+		validatorAccounts,
+		pubkeyConv,
+		storageService,
+		dataPool,
+		blockChain,
+		marshalizer,
+		hasher,
+		uint64Converter,
+		shardCoordinator,
+		gasScheduleNotifier,
+		economics,
+		messageSigVerifier,
+		nodesSetup,
+		systemSCConfig,
+		rater,
+		epochNotifier,
+		workingDir,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
-	if err != nil {
-		return nil, err
-	}
-
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2544,6 +2492,197 @@ func createApiResolver(
 	}
 
 	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+}
+
+//TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists
+func createScQueryService(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+) (process.SCQueryService, error) {
+	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
+	if numConcurrentVms < 1 {
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
+	}
+
+	list := make([]process.SCQueryService, 0, numConcurrentVms)
+	for i := 0; i < numConcurrentVms; i++ {
+		scQueryService, err := createScQueryElement(
+			generalConfig,
+			accnts,
+			validatorAccounts,
+			pubkeyConv,
+			storageService,
+			dataPool,
+			blockChain,
+			marshalizer,
+			hasher,
+			uint64Converter,
+			shardCoordinator,
+			gasScheduleNotifier,
+			economics,
+			messageSigVerifier,
+			nodesSetup,
+			systemSCConfig,
+			rater,
+			epochNotifier,
+			workingDir,
+			i,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, scQueryService)
+	}
+
+	sqQueryDispatcher, err := smartContract.NewScQueryServiceDispatcher(list)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqQueryDispatcher, nil
+}
+
+func createScQueryElement(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+	index int,
+) (process.SCQueryService, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
+
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cacherCfg := storageFactory.GetCacherFromConfig(generalConfig.SmartContractDataPool)
+	smartContractsCache, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	scStorage := generalConfig.SmartContractsStorageForSCQuery
+	scStorage.DB.FilePath += fmt.Sprintf("%d", index)
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:           accnts,
+		PubkeyConv:         pubkeyConv,
+		StorageService:     storageService,
+		BlockChain:         blockChain,
+		ShardCoordinator:   shardCoordinator,
+		Marshalizer:        marshalizer,
+		Uint64Converter:    uint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           dataPool,
+		ConfigSCStorage:    scStorage,
+		CompiledSCPool:     smartContractsCache,
+		WorkingDir:         workingDir,
+		NilCompiledSCStore: true,
+	}
+
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           economics,
+			MessageSignVerifier: messageSigVerifier,
+			GasSchedule:         gasScheduleNotifier,
+			NodesConfigProvider: nodesSetup,
+			Hasher:              hasher,
+			Marshalizer:         marshalizer,
+			SystemSCConfig:      systemSCConfig,
+			ValidatorAccountsDB: validatorAccounts,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+		}
+		vmFactory, err = metachain.NewVMContainerFactory(argsNewVmFactory)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
+		queryVirtualMachineConfig.OutOfProcessEnabled = true
+		vmFactory, err = shard.NewVMContainerFactory(
+			queryVirtualMachineConfig,
+			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+			gasScheduleNotifier,
+			argsHook,
+			generalConfig.GeneralSettings.SCDeployEnableEpoch,
+			generalConfig.GeneralSettings.AheadOfTimeGasUsageEnableEpoch,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
+	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+}
+
+func createBuiltinFuncs(
+	gasScheduleNotifier core.GasScheduleNotifier,
+	marshalizer marshal.Marshalizer,
+	accnts state.AccountsAdapter,
+) (process.BuiltInFunctionContainer, error) {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasScheduleNotifier,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
+		Accounts:        accnts,
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return builtInFuncFactory.CreateBuiltInFunctionContainer()
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

@@ -937,9 +937,9 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 			return vmcommon.UserError
 		}
 
-		numNodesToStake := uint64(len(newKeys)) + numStakedJailedWaiting
-		if uint64(len(newKeys))+numStakedJailedWaiting > numQualified.Uint64() {
-			totalNeeded := big.NewInt(0).Mul(big.NewInt(0).SetUint64(numNodesToStake), validatorConfig.NodePrice)
+		numTotalNodes := uint64(len(newKeys)) + numStakedJailedWaiting
+		if numTotalNodes > numQualified.Uint64() {
+			totalNeeded := big.NewInt(0).Mul(big.NewInt(0).SetUint64(numTotalNodes), validatorConfig.NodePrice)
 			v.eei.AddReturnMessage("not enough total stake to activate nodes," +
 				" totalStake: " + registrationData.TotalStakeValue.String() + ", needed: " + totalNeeded.String())
 			return vmcommon.UserError
