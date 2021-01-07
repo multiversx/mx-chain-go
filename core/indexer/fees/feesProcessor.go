@@ -25,15 +25,13 @@ func (fp *feesProcessor) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.Trans
 	}
 
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
-		txFee := fp.ComputeTxFeeBasedOnGasUsed(tx, tx.GetGasLimit())
+		txFee := fp.economicsHandler.ComputeTxFee(tx)
 		return tx.GetGasLimit(), txFee
 	}
 
 	gasRefund := fp.computeGasRefund(refundValue, tx.GetGasPrice())
-
 	gasUsed := tx.GetGasLimit() - gasRefund
-
-	txFee := fp.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	txFee := big.NewInt(0).Sub(fp.economicsHandler.ComputeTxFee(tx), refundValue)
 
 	return gasUsed, txFee
 }
@@ -41,11 +39,12 @@ func (fp *feesProcessor) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.Trans
 // ComputeTxFeeBasedOnGasUsed will compute transaction fee
 func (fp *feesProcessor) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
 	moveBalanceGasLimit := fp.economicsHandler.ComputeGasLimit(tx)
-
 	moveBalanceFee := fp.economicsHandler.ComputeMoveBalanceFee(tx)
+	if gasUsed <= moveBalanceGasLimit {
+		return moveBalanceFee
+	}
 
 	computeFeeForProcessing := fp.economicsHandler.ComputeFeeForProcessing(tx, gasUsed-moveBalanceGasLimit)
-
 	txFee := big.NewInt(0).Add(moveBalanceFee, computeFeeForProcessing)
 
 	return txFee
