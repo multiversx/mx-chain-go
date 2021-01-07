@@ -430,6 +430,10 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if v.flagEnableTopUp.IsSet() {
+		v.eei.AddReturnMessage("function deprecated")
+		return vmcommon.UserError
+	}
 	if args.CallValue.Cmp(zero) != 0 {
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
@@ -1654,7 +1658,17 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.OutOfGas
 	}
 
-	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
+	addressToCheck := args.CallerAddr
+	if v.flagEnableTopUp.IsSet() {
+		if len(args.Arguments) != 1 {
+			v.eei.AddReturnMessage("invalid number of arguments")
+			return vmcommon.UserError
+		}
+
+		addressToCheck = args.Arguments[0]
+	}
+
+	registrationData, err := v.getOrCreateRegistrationData(addressToCheck)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError
