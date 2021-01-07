@@ -1195,7 +1195,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AccountsAdapter,
 		economicsConfig.GlobalSettings.Denomination,
 		shardCoordinator,
-		&economicsConfig.FeeSettings,
+		economicsData,
 		isInImportMode,
 		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
@@ -2018,7 +2018,7 @@ func createElasticIndexer(
 	accountsDB state.AccountsAdapter,
 	denomination int,
 	shardCoordinator sharding.Coordinator,
-	feeConfig *config.FeeSettings,
+	economicsHandler process.EconomicsDataHandler,
 	isInImportDBMode bool,
 	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
@@ -2040,7 +2040,7 @@ func createElasticIndexer(
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
-		FeeConfig:                feeConfig,
+		EconomicsHandler:         economicsHandler,
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
