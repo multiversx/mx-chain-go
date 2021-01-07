@@ -96,27 +96,32 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	}
 
 	for hash, nrScResult := range countScResults {
+		tx, ok := transactions[hash]
+		if !ok {
+			continue
+		}
+
 		if nrScResult < minimumNumberOfSmartContractResults {
-			if len(transactions[hash].SmartContractResults) > 0 {
-				scResultData := transactions[hash].SmartContractResults[0].Data
+			if len(tx.SmartContractResults) > 0 {
+				scResultData := tx.SmartContractResults[0].Data
 				if isScResultSuccessful(scResultData) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
 			}
 
-			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
-				transactions[hash].GasUsed = transactions[hash].GasLimit
-				fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
+			if isRelayedTx(tx) {
+				tx.GasUsed = tx.GasLimit
+				fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
 				transactions[hash].Fee = fee.String()
 				continue
 			}
 
-			transactions[hash].Status = transaction.TxStatusFail.String()
+			tx.Status = transaction.TxStatusFail.String()
 
-			transactions[hash].GasUsed = transactions[hash].GasLimit
-			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
-			transactions[hash].Fee = fee.String()
+			tx.GasUsed = tx.GasLimit
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
+			tx.Fee = fee.String()
 		}
 	}
 
@@ -289,7 +294,11 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
-				dbTx.GasUsed = tx.GasLimit
+
+				dbTx.GasUsed = dbTx.GasLimit
+				fee := tdp.commonProcessor.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, dbTx.GasUsed)
+				dbTx.Fee = fee.String()
+
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}

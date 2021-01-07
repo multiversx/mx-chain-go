@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -436,7 +437,7 @@ func prepareSerializedDataForATransaction(
 	}
 
 	var serializedData []byte
-	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) {
+	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) && !isRelayedTx(tx) {
 		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
 		serializedData =
 			[]byte(fmt.Sprintf(`{"script":{"source":"`+
@@ -458,9 +459,10 @@ func prepareSerializedDataForATransaction(
 				`ctx._source.scResults = params.scResults;`+
 				`ctx._source.timestamp = params.timestamp;`+
 				`ctx._source.gasUsed = params.gasUsed;`+
+				`ctx._source.fee = params.fee;`+
 				`","lang": "painless","params":`+
-				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
-				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
+				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
+				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
 	}
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
@@ -472,6 +474,14 @@ func hasScrWithRefund(tx *Transaction) bool {
 		if isSCRForSenderWithRefund(sc, tx) {
 			return true
 		}
+	}
+
+	return false
+}
+
+func isRelayedTx(tx *Transaction) bool {
+	if strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0 {
+		return true
 	}
 
 	return false
