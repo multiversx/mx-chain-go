@@ -100,3 +100,6 @@ var ErrAdditionOverflow = errors.New("uint64 addition overflowed")
 
 // ErrSubtractionOverflow signals that uint64 subtraction overflowed
 var ErrSubtractionOverflow = errors.New("uint64 subtraction overflowed")
+
+// ErrNilTransactionFeeCalculator signals that a nil transaction fee calculator has been provided
+var ErrNilTransactionFeeCalculator = errors.New("nil transaction fee calculator")

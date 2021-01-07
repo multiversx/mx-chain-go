@@ -40,7 +40,7 @@ type ArgsIndexerFactory struct {
 	EnabledIndexes           []string
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
-	EconomicsHandler         process.EconomicsDataHandler
+	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
 }
 
@@ -126,7 +126,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
-		EconomicsHandler:         args.EconomicsHandler,
+		TransactionFeeCalculator: args.TransactionFeeCalculator,
 		IsInImportDBMode:         args.IsInImportDBMode,
 		ShardCoordinator:         args.ShardCoordinator,
 	}
@@ -159,8 +159,8 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
-	if arguments.EconomicsHandler == nil {
-		return process.ErrNilEconomicsData
+	if arguments.TransactionFeeCalculator == nil {
+		return core.ErrNilTransactionFeeCalculator
 	}
 
 	return nil

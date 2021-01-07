@@ -35,7 +35,7 @@ type ArgElasticProcessor struct {
 	EnabledIndexes           map[string]struct{}
 	AccountsDB               state.AccountsAdapter
 	Denomination             int
-	EconomicsHandler         process.EconomicsDataHandler
+	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
 	ShardCoordinator         sharding.Coordinator
 }

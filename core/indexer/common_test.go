@@ -9,25 +9,29 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/fees"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createCommonProcessor() commonProcessor {
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
-	feeProcessor := fees.NewFeesProcessor(economicData)
-
 	return commonProcessor{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		feesProcessor:            feeProcessor,
+		txFeeCalculator: &economicsmocks.EconomicsHandlerStub{
+			ComputeTxFeeBasedOnGasUsedCalled: func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+				return big.NewInt(100)
+			},
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 500
+			},
+		},
 	}
 }
 
@@ -68,12 +72,13 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      gasPrice,
 		GasLimit:      gasLimit,
-		GasUsed:       uint64(56000),
+		GasUsed:       uint64(500),
 		Data:          tx.Data,
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        status,
 		rcvAddrBytes:  []byte("receiver"),
+		Fee:           "100",
 	}
 
 	dbTx := cp.buildTransaction(tx, txHash, mbHash, mb, header, status)

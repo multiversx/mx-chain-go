@@ -57,7 +57,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
-		arguments.EconomicsHandler,
+		arguments.TransactionFeeCalculator,
 		arguments.IsInImportDBMode,
 		arguments.ShardCoordinator,
 	)

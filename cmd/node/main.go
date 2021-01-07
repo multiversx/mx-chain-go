@@ -2018,7 +2018,7 @@ func createElasticIndexer(
 	accountsDB state.AccountsAdapter,
 	denomination int,
 	shardCoordinator sharding.Coordinator,
-	economicsHandler process.EconomicsDataHandler,
+	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
 	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
@@ -2040,7 +2040,7 @@ func createElasticIndexer(
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
-		EconomicsHandler:         economicsHandler,
+		TransactionFeeCalculator: economicsHandler,
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},

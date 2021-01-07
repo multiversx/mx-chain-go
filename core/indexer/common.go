@@ -18,6 +18,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type objectsMap = map[string]interface{}
@@ -25,7 +26,7 @@ type objectsMap = map[string]interface{}
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-	feesProcessor            FeesProcessorHandler
+	txFeeCalculator          process.TransactionFeeCalculator
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -100,8 +101,8 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
-	gasUsed := cm.feesProcessor.ComputeMoveBalanceGasUsed(tx)
-	fee := cm.feesProcessor.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	gasUsed := cm.txFeeCalculator.ComputeGasLimit(tx)
+	fee := cm.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -592,4 +593,13 @@ func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
 	}
 
 	return indexPolicy, nil
+}
+
+func stringValueToBigInt(strValue string) *big.Int {
+	value, ok := big.NewInt(0).SetString(strValue, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return value
 }

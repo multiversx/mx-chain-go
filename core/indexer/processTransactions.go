@@ -8,7 +8,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/fees"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -36,7 +35,7 @@ type txDatabaseProcessor struct {
 	marshalizer      marshal.Marshalizer
 	isInImportMode   bool
 	shardCoordinator sharding.Coordinator
-	feesProcessor    FeesProcessorHandler
+	txFeeCalculator  process.TransactionFeeCalculator
 }
 
 func newTxDatabaseProcessor(
@@ -44,24 +43,22 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	economicsHandler process.EconomicsDataHandler,
+	txFeeCalculator process.TransactionFeeCalculator,
 	isInImportMode bool,
 	shardCoordinator sharding.Coordinator,
 ) *txDatabaseProcessor {
-	feesProcessor := fees.NewFeesProcessor(economicsHandler)
-
 	return &txDatabaseProcessor{
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
-			feesProcessor:            feesProcessor,
+			txFeeCalculator:          txFeeCalculator,
 		},
 		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
 		isInImportMode:   isInImportMode,
 		shardCoordinator: shardCoordinator,
-		feesProcessor:    feesProcessor,
+		txFeeCalculator:  txFeeCalculator,
 	}
 }
 
@@ -74,24 +71,10 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	//we can not iterate smart contract results directly on the miniblocks contained in the block body
 	// as some miniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
-	////receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
 
 	transactions = tdp.setTransactionSearchOrder(transactions)
-	//for _, rec := range receipts {
-	//	tx, ok := transactions[string(rec.TxHash)]
-	//	if !ok {
-	//		continue
-	//	}
-	//
-	//	if tx.Status == transaction.TxStatusInvalid.String() {
-	//		// the invalid transactions have the gasUsed field equals with gasLimit and is already set
-	//		continue
-	//	}
-	//
-	//	//tx.GasUsed = getGasUsedFromReceipt(rec, tx)
-	//}
 
 	countScResults := make(map[string]int)
 	for scHash, scResult := range scResults {
@@ -124,7 +107,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 
 			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
 				transactions[hash].GasUsed = transactions[hash].GasLimit
-				fee := tdp.feesProcessor.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
+				fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
 				transactions[hash].Fee = fee.String()
 				continue
 			}
@@ -132,7 +115,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			transactions[hash].Status = transaction.TxStatusFail.String()
 
 			transactions[hash].GasUsed = transactions[hash].GasLimit
-			fee := tdp.feesProcessor.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(transactions[hash], transactions[hash].GasUsed)
 			transactions[hash].Fee = fee.String()
 		}
 	}
@@ -206,7 +189,8 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartCon
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
 	if isSCRForSenderWithRefund(dbScResult, tx) {
-		gasUsed, fee := tdp.feesProcessor.ComputeGasUsedAndFeeBasedOnRefundValue(tx, dbScResult.Value)
+		refundValue := stringValueToBigInt(dbScResult.Value)
+		gasUsed, fee := tdp.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
 		tx.GasUsed = gasUsed
 		tx.Fee = fee.String()
 	}
