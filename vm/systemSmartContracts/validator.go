@@ -537,9 +537,17 @@ func (v *validatorSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument 
 	}
 
 	for _, newKey := range newKeys {
-		vmOutput, err := v.getBLSRegisteredData(newKey)
-		if err != nil ||
-			(len(vmOutput.ReturnData) > 0 && len(vmOutput.ReturnData[0]) > 0) {
+		if !v.flagEnableTopUp.IsSet() {
+			vmOutput, err := v.getBLSRegisteredData(newKey)
+			if err != nil ||
+				(len(vmOutput.ReturnData) > 0 && len(vmOutput.ReturnData[0]) > 0) {
+				return nil, vm.ErrKeyAlreadyRegistered
+			}
+			continue
+		}
+
+		data := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
+		if len(data) > 0 {
 			return nil, vm.ErrKeyAlreadyRegistered
 		}
 	}
@@ -1659,12 +1667,7 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 	}
 
 	addressToCheck := args.CallerAddr
-	if v.flagEnableTopUp.IsSet() {
-		if len(args.Arguments) != 1 {
-			v.eei.AddReturnMessage("invalid number of arguments")
-			return vmcommon.UserError
-		}
-
+	if v.flagEnableTopUp.IsSet() && len(args.Arguments) == 1 {
 		addressToCheck = args.Arguments[0]
 	}
 
