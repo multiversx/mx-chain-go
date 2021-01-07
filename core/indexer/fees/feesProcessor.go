@@ -56,25 +56,9 @@ func (fp *feesProcessor) ComputeMoveBalanceGasUsed(tx process.TransactionWithFee
 }
 
 func (fp *feesProcessor) computeGasRefund(refundValue *big.Int, gasPrice uint64) uint64 {
-	//gasPriceWithModifier := uint64(float64(gasPrice) * fp.economicsHandler.GasPriceModifier())
-	//
-	//gasPriceBig := big.NewInt(0).SetUint64(gasPriceWithModifier)
-	//
-	//gasRefund := big.NewInt(0).Div(refundValue, gasPriceBig)
-	//
-	//return gasRefund.Uint64()
-
 	gasPriceBig := big.NewInt(0).SetUint64(gasPrice)
+	gasRefund := big.NewInt(0).Div(refundValue, gasPriceBig).Uint64()
+	gasRefund = uint64(fp.economicsHandler.GasPriceModifier() * float64(gasRefund))
 
-	gasRefund := big.NewInt(0).Div(refundValue, gasPriceBig)
-
-	gasRefundFloat := big.NewFloat(0).SetInt(gasRefund)
-
-	gasPriceModifierFloat := big.NewFloat(fp.economicsHandler.GasPriceModifier())
-
-	gasRefundFloat.Mul(gasRefundFloat, gasPriceModifierFloat)
-
-	gasRefundUint, _ := gasRefundFloat.Uint64()
-
-	return gasRefundUint
+	return gasRefund
 }
