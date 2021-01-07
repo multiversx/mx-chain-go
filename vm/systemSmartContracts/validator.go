@@ -430,6 +430,10 @@ func (v *validatorSC) changeRewardAddress(args *vmcommon.ContractCallInput) vmco
 }
 
 func (v *validatorSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if v.flagEnableTopUp.IsSet() {
+		v.eei.AddReturnMessage("function deprecated")
+		return vmcommon.UserError
+	}
 	if args.CallValue.Cmp(zero) != 0 {
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
@@ -533,9 +537,17 @@ func (v *validatorSC) getNewValidKeys(registeredKeys [][]byte, keysFromArgument 
 	}
 
 	for _, newKey := range newKeys {
-		vmOutput, err := v.getBLSRegisteredData(newKey)
-		if err != nil ||
-			(len(vmOutput.ReturnData) > 0 && len(vmOutput.ReturnData[0]) > 0) {
+		if !v.flagEnableTopUp.IsSet() {
+			vmOutput, err := v.getBLSRegisteredData(newKey)
+			if err != nil ||
+				(len(vmOutput.ReturnData) > 0 && len(vmOutput.ReturnData[0]) > 0) {
+				return nil, vm.ErrKeyAlreadyRegistered
+			}
+			continue
+		}
+
+		data := v.eei.GetStorageFromAddress(v.stakingSCAddress, newKey)
+		if len(data) > 0 {
 			return nil, vm.ErrKeyAlreadyRegistered
 		}
 	}
@@ -1654,7 +1666,12 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 		return vmcommon.OutOfGas
 	}
 
-	registrationData, err := v.getOrCreateRegistrationData(args.CallerAddr)
+	addressToCheck := args.CallerAddr
+	if v.flagEnableTopUp.IsSet() && len(args.Arguments) == 1 {
+		addressToCheck = args.Arguments[0]
+	}
+
+	registrationData, err := v.getOrCreateRegistrationData(addressToCheck)
 	if err != nil {
 		v.eei.AddReturnMessage(vm.CannotGetOrCreateRegistrationData + err.Error())
 		return vmcommon.UserError

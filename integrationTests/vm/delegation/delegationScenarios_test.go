@@ -1012,8 +1012,9 @@ func verifyValidatorSCStake(
 	query := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
 		FuncName:   "getTotalStaked",
-		CallerAddr: delegationAddr,
+		CallerAddr: vm.ValidatorSCAddress,
 		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{delegationAddr},
 	}
 	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
