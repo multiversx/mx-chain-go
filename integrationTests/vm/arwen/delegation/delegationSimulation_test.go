@@ -105,7 +105,7 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 	_, err = node.AccntState.Commit()
 	require.Nil(t, err)
 
-	stopRequest := make(chan struct{})
+	stopRequest := make(chan struct{}, 1)
 	wg := sync.WaitGroup{}
 	if numQueriesPerBatch > 0 {
 		wg.Add(1)
