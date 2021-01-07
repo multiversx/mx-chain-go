@@ -25,8 +25,7 @@ type objectsMap = map[string]interface{}
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-	minGasLimit              uint64
-	gasPerDataByte           uint64
+	feesProcessor            FeesProcessorHandler
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -101,7 +100,8 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
-	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
+	gasUsed := cm.feesProcessor.ComputeMoveBalanceGasUsed(tx)
+	fee := cm.feesProcessor.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -120,6 +120,8 @@ func (cm *commonProcessor) buildTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
 		GasUsed:       gasUsed,
+		Fee:           fee.String(),
+		rcvAddrBytes:  tx.RcvAddr,
 	}
 }
 
@@ -466,7 +468,7 @@ func prepareSerializedDataForATransaction(
 
 func hasScrWithRefund(tx *Transaction) bool {
 	for _, sc := range tx.SmartContractResults {
-		if isSCRForSenderWithGasUsed(sc, tx) {
+		if isSCRForSenderWithRefund(sc, tx) {
 			return true
 		}
 	}

@@ -9,21 +9,25 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/fees"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/stretchr/testify/require"
 )
 
-func createCommonProcessor(minGasLimit uint64, gasPerDataByte uint64) commonProcessor {
+func createCommonProcessor() commonProcessor {
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
+	feeProcessor := fees.NewFeesProcessor(economicData)
+
 	return commonProcessor{
 		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		gasPerDataByte:           gasPerDataByte,
-		minGasLimit:              minGasLimit,
+		feesProcessor:            feeProcessor,
 	}
 }
 
@@ -37,9 +41,7 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 	status := "Success"
 	gasPrice := uint64(1000)
 	gasLimit := uint64(1000)
-	minGasLimit := uint64(100)
-	gasPerDataByte := uint64(10)
-	cp := createCommonProcessor(minGasLimit, gasPerDataByte)
+	cp := createCommonProcessor()
 
 	tx := &transaction.Transaction{
 		Nonce:     1,
@@ -66,11 +68,12 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      gasPrice,
 		GasLimit:      gasLimit,
-		GasUsed:       minGasLimit + uint64(len(tx.Data))*gasPerDataByte,
+		GasUsed:       uint64(56000),
 		Data:          tx.Data,
 		Signature:     hex.EncodeToString(tx.Signature),
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        status,
+		rcvAddrBytes:  []byte("receiver"),
 	}
 
 	dbTx := cp.buildTransaction(tx, txHash, mbHash, mb, header, status)
@@ -80,7 +83,7 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 func TestGetTransactionByType_SC(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor(0, 0)
+	cp := createCommonProcessor()
 
 	nonce := uint64(10)
 	txHash := []byte("txHash")
@@ -117,7 +120,7 @@ func TestGetTransactionByType_SC(t *testing.T) {
 func TestGetTransactionByType_RewardTx(t *testing.T) {
 	t.Parallel()
 
-	cp := createCommonProcessor(0, 0)
+	cp := createCommonProcessor()
 
 	round := uint64(10)
 	rcvAddr := []byte("receiver")

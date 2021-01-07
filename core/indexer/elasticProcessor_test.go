@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -21,6 +20,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
@@ -35,7 +35,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.Marshalizer,
 			arguments.AddressPubkeyConverter,
 			arguments.ValidatorPubkeyConverter,
-			arguments.FeeConfig,
+			arguments.EconomicsHandler,
 			arguments.IsInImportDBMode,
 			arguments.ShardCoordinator,
 		),
@@ -50,6 +50,8 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 }
 
 func createMockElasticProcessorArgs() ArgElasticProcessor {
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
+
 	return ArgElasticProcessor{
 		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
@@ -61,11 +63,8 @@ func createMockElasticProcessorArgs() ArgElasticProcessor {
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
-		AccountsDB: &mock.AccountsStub{},
-		FeeConfig: &config.FeeSettings{
-			MinGasLimit:    "10",
-			GasPerDataByte: "1",
-		},
+		AccountsDB:       &mock.AccountsStub{},
+		EconomicsHandler: economicData,
 		ShardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
@@ -466,6 +465,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		Addresses: []string{"http://localhost:9200"},
 	})
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
 		Marshalizer:              &mock.MarshalizerMock{},
@@ -483,11 +483,7 @@ func TestUpdateMiniBlock(t *testing.T) {
 		},
 		AccountsDB:       &mock.AccountsStub{},
 		ShardCoordinator: &mock.ShardCoordinatorMock{},
-		FeeConfig: &config.FeeSettings{
-			MinGasLimit:    "10",
-			GasPerDataByte: "100",
-			MinGasPrice:    "1",
-		},
+		EconomicsHandler: economicData,
 	}
 
 	esDatabase, err := NewElasticProcessor(args)
@@ -547,6 +543,7 @@ func TestSaveRoundsInfo(t *testing.T) {
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	indexTemplates, indexPolicies := getIndexTemplateAndPolicies()
 	dbClient, _ := NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
@@ -567,13 +564,7 @@ func TestUpdateTransaction(t *testing.T) {
 			UseKibana:        false,
 			IndexerCacheSize: 10000,
 		},
-		FeeConfig: &config.FeeSettings{
-			MaxGasLimitPerBlock:     "10000000",
-			MaxGasLimitPerMetaBlock: "10000000",
-			GasPerDataByte:          "1",
-			MinGasPrice:             "1",
-			MinGasLimit:             "1",
-		},
+		EconomicsHandler: economicData,
 		EnabledIndexes: map[string]struct{}{
 			"transactions": {},
 		},

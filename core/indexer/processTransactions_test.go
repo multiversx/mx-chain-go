@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/fees"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -16,10 +17,50 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process/economics"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func createDummyEconomicsConfig(gasPriceModifier float64) *config.EconomicsConfig {
+	return &config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			GenesisTotalSupply: "2000000000000000000000",
+			MinimumInflation:   0,
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             0,
+					MaximumInflation: 0.01,
+				},
+			},
+		},
+		RewardsSettings: config.RewardsSettings{
+			LeaderPercentage:                 0.1,
+			ProtocolSustainabilityPercentage: 0.1,
+			ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			TopUpGradientPoint:               "300000000000000000000",
+			TopUpFactor:                      0.25,
+		},
+		FeeSettings: config.FeeSettings{
+			MaxGasLimitPerBlock:     "100000",
+			MaxGasLimitPerMetaBlock: "1000000",
+			MinGasPrice:             "1000000000",
+			MinGasLimit:             "50000",
+			GasPerDataByte:          "1500",
+			GasPriceModifier:        gasPriceModifier,
+		},
+	}
+}
+
+func createArgsForEconomicsData(gasPriceModifier float64) economics.ArgsNewEconomicsData {
+	args := economics.ArgsNewEconomicsData{
+		Economics:                      createDummyEconomicsConfig(gasPriceModifier),
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	return args
+}
 
 func TestPrepareTransactionsForDatabase(t *testing.T) {
 	t.Parallel()
@@ -123,12 +164,13 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		string(scHash3):  scResult3,
 	}
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txDbProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -141,12 +183,13 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 func TestPrepareTxLog(t *testing.T) {
 	t.Parallel()
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txDbProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -232,12 +275,13 @@ func TestRelayedTransactions(t *testing.T) {
 		string(scHash3): scResult3,
 	}
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txDbProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -261,12 +305,13 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		string(txHash2): tx2,
 	}
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txDbProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -441,10 +486,12 @@ func TestAlteredAddresses(t *testing.T) {
 		string(scr2Hash):   scr2,
 	}
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txLogProc := disabled.NewNilTxLogsProcessor()
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+			feesProcessor:          fees.NewFeesProcessor(economicData),
 		},
 		marshalizer:     &mock.MarshalizerMock{},
 		hasher:          &mock.HasherMock{},
@@ -501,22 +548,27 @@ func TestIsSCRForSenderWithGasUsed(t *testing.T) {
 		PreTxHash: txHash,
 	}
 
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
+	require.True(t, isSCRForSenderWithRefund(sc, tx))
 }
 
 func TestComputeTxGasUsedField(t *testing.T) {
 	t.Parallel()
 
 	tx := &Transaction{
-		GasLimit: 500,
-		GasPrice: 10,
+		GasLimit: 100000,
+		GasPrice: 1000000000,
+		Data:     []byte("increment"),
 	}
 	sc := ScResult{
-		Value: "3000",
+		Value: "30000000000",
 	}
 
-	expectedGasUsed := uint64(200)
-	require.Equal(t, expectedGasUsed, computeTxGasUsedField(sc, tx))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
+	feeProcessor := fees.NewFeesProcessor(economicData)
+
+	gasUsed, fee := feeProcessor.ComputeGasUsedAndFeeBasedOnRefundValue(tx, sc.Value)
+	require.Equal(t, uint64(99970), gasUsed)
+	require.Equal(t, big.NewInt(99970000000000), fee)
 }
 
 func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
@@ -540,19 +592,27 @@ func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
 		ReturnMessage:  "too much gas provided: gas needed = 109013, gas remained = 18609087",
 	}
 
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
-	require.Equal(t, uint64(40000000), computeTxGasUsedField(sc, tx))
+	require.True(t, isSCRForSenderWithRefund(sc, tx))
+
+	// fee multiplier is 1
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
+	feeProcessor := fees.NewFeesProcessor(economicData)
+
+	gasUsed, fee := feeProcessor.ComputeGasUsedAndFeeBasedOnRefundValue(tx, sc.Value)
+	require.Equal(t, uint64(40000000), gasUsed)
+	require.Equal(t, big.NewInt(40000000000000000), fee)
 }
 
 func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 	t.Parallel()
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -596,12 +656,13 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsData(1))
 	txProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		economicData,
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
