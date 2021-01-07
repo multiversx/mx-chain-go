@@ -346,7 +346,7 @@ type VirtualMachineConfig struct {
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process
 type QueryVirtualMachineConfig struct {
 	VirtualMachineConfig
-	NumConcurrentVms int
+	NumConcurrentVMs int
 }
 
 // VirtualMachineOutOfProcessConfig holds configuration for out-of-process virtual machine(s)

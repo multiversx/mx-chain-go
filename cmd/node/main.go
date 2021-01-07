@@ -1404,6 +1404,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating api resolver structure")
+	apiWorkingDir := filepath.Join(workingDir, factory.TemporaryPath)
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
@@ -1424,7 +1425,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
-		workingDir,
+		apiWorkingDir,
 	)
 	if err != nil {
 		return err
@@ -2461,6 +2462,9 @@ func createApiResolver(
 		epochNotifier,
 		workingDir,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	builtInFuncs, err := createBuiltinFuncs(
 		gasScheduleNotifier,
@@ -2512,7 +2516,7 @@ func createScQueryService(
 	epochNotifier process.EpochNotifier,
 	workingDir string,
 ) (process.SCQueryService, error) {
-	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVms
+	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
 	if numConcurrentVms < 1 {
 		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
 	}
@@ -2539,6 +2543,7 @@ func createScQueryService(
 			rater,
 			epochNotifier,
 			workingDir,
+			i,
 		)
 
 		if err != nil {
@@ -2576,6 +2581,7 @@ func createScQueryElement(
 	rater sharding.PeerAccountListAndRatingHandler,
 	epochNotifier process.EpochNotifier,
 	workingDir string,
+	index int,
 ) (process.SCQueryService, error) {
 	var vmFactory process.VirtualMachinesContainerFactory
 	var err error
@@ -2595,6 +2601,8 @@ func createScQueryElement(
 		return nil, err
 	}
 
+	scStorage := generalConfig.SmartContractsStorageForSCQuery
+	scStorage.DB.FilePath += fmt.Sprintf("%d", index)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -2605,10 +2613,10 @@ func createScQueryElement(
 		Uint64Converter:    uint64Converter,
 		BuiltInFunctions:   builtInFuncs,
 		DataPool:           dataPool,
-		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         workingDir,
-		NilCompiledSCStore: false,
+		NilCompiledSCStore: true,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
