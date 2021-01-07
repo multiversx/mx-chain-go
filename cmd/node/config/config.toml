@@ -625,7 +625,7 @@
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
-        [VirtualMachine.Execution.OutOfProcessConfig]
+        [VirtualMachine.Querying.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
