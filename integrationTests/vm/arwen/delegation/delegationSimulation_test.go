@@ -89,6 +89,11 @@ func TestSimulateExecutionOfStakeTransaction(t *testing.T) {
 	_, err = node.AccntState.Commit()
 	require.Nil(t, err)
 
+	scQuery := node.SCQueryService
+	go func() {
+
+	}()
+
 	for j := 0; j < 2; j++ {
 		numBatches := 10
 		log.Info("starting staking round", "round", j)

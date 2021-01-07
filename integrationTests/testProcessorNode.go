@@ -79,6 +79,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/transaction"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/ElrondNetwork/elrond-go/storage"
+	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
 	"github.com/ElrondNetwork/elrond-go/storage/timecache"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -690,7 +691,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
 	tpn.initInnerProcessors(gasMap)
-	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
+	tpn.createFullSCQueryService()
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
@@ -706,6 +707,107 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 	tpn.initNode()
 	tpn.addHandlersForCounters()
 	tpn.addGenesisBlocksIntoStorage()
+}
+
+func (tpn *TestProcessorNode) createFullSCQueryService() {
+	var vmFactory process.VirtualMachinesContainerFactory
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasScheduleNotifier,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     TestMarshalizer,
+		Accounts:        tpn.AccntState,
+	}
+	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
+
+	smartContractsCache := testscommon.NewCacherMock()
+
+	argsHook := hooks.ArgBlockChainHook{
+		Accounts:           tpn.AccntState,
+		PubkeyConv:         TestAddressPubkeyConverter,
+		StorageService:     tpn.Storage,
+		BlockChain:         tpn.BlockChain,
+		ShardCoordinator:   tpn.ShardCoordinator,
+		Marshalizer:        TestMarshalizer,
+		Uint64Converter:    TestUint64Converter,
+		BuiltInFunctions:   builtInFuncs,
+		DataPool:           tpn.DataPool,
+		CompiledSCPool:     smartContractsCache,
+		NilCompiledSCStore: true,
+	}
+
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
+		argsNewVmFactory := metaProcess.ArgsNewVMContainerFactory{
+			ArgBlockChainHook:   argsHook,
+			Economics:           tpn.EconomicsData,
+			MessageSignVerifier: sigVerifier,
+			GasSchedule:         gasScheduleNotifier,
+			NodesConfigProvider: tpn.NodesSetup,
+			Hasher:              TestHasher,
+			Marshalizer:         TestMarshalizer,
+			SystemSCConfig: &config.SystemSmartContractsConfig{
+				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "aaaaaa",
+				},
+				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
+				StakingSystemSCConfig: config.StakingSystemSCConfig{
+					GenesisNodePrice:                     "1000",
+					UnJailValue:                          "10",
+					MinStepValue:                         "10",
+					MinStakeValue:                        "1",
+					UnBondPeriod:                         1,
+					StakingV2Epoch:                       0,
+					StakeEnableEpoch:                     0,
+					NumRoundsWithoutBleed:                1,
+					MaximumPercentageToBleed:             1,
+					BleedPercentagePerRound:              1,
+					MaxNumberOfNodesForStake:             100,
+					ActivateBLSPubKeyMessageVerification: false,
+					MinUnstakeTokensValue:                "1",
+				},
+				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+					BaseIssuingCost:    "100",
+					MinCreationDeposit: "100",
+					EnabledEpoch:       0,
+				},
+				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+					MinStakeAmount: "100",
+					EnabledEpoch:   0,
+					MinServiceFee:  0,
+					MaxServiceFee:  100000,
+				},
+			},
+			ValidatorAccountsDB: tpn.PeerState,
+			ChanceComputer:      rater,
+			EpochNotifier:       epochNotifier,
+		}
+		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
+	} else {
+		vmFactory, _ = shard.NewVMContainerFactory(
+			config.VirtualMachineConfig{
+				OutOfProcessEnabled: false,
+				OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
+			},
+			tpn.EconomicsData.MaxGasLimitPerBlock(tpn.ShardCoordinator.SelfId()),
+			gasScheduleNotifier,
+			argsHook,
+			0,
+			0,
+		)
+	}
+
+	vmContainer, _ := vmFactory.Create()
+
+	_ = builtInFunctions.SetPayableHandler(builtInFuncs, vmFactory.BlockChainHookImpl())
+	tpn.SCQueryService, _ = smartContract.NewSCQueryService(vmContainer, tpn.EconomicsData, vmFactory.BlockChainHookImpl(), tpn.BlockChain)
 }
 
 // InitializeProcessors will reinitialize processors
