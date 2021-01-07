@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"io/ioutil"
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -104,7 +105,10 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 	_, err = node.AccntState.Commit()
 	require.Nil(t, err)
 
+	stopRequest := make(chan struct{})
+	wg := sync.WaitGroup{}
 	if numQueriesPerBatch > 0 {
+		wg.Add(1)
 		copiedAddresses := make([][]byte, 0)
 		for _, address := range addresses {
 			copiedAddresses = append(copiedAddresses, address)
@@ -112,6 +116,8 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 
 		scQuery := node.SCQueryService
 		go func() {
+			defer wg.Done()
+
 			getClaimableRewards := &process.SCQuery{
 				ScAddress:  delegationAddr,
 				FuncName:   "getClaimableRewards",
@@ -139,7 +145,11 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 					assert.Nil(t, errQuery)
 				}
 
-				time.Sleep(time.Second)
+				select {
+				case <-time.After(time.Second):
+				case <-stopRequest:
+					return
+				}
 			}
 		}()
 	}
@@ -167,6 +177,9 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 
 		}
 	}
+
+	stopRequest <- struct{}{}
+	wg.Wait()
 }
 
 func deployDelegationSC(t *testing.T, node *integrationTests.TestProcessorNode) {
