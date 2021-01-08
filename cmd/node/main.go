@@ -1128,6 +1128,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasLimit, economicsData.MinGasLimit())
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricRewardsTopUpGradientPoint, economicsData.RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricTopUpFactor, fmt.Sprintf("%g", economicsData.RewardsTopUpFactor()))
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricGasPriceModifier, fmt.Sprintf("%g", economicsData.GasPriceModifier()))
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoParams.PublicKeyString,
@@ -1196,7 +1197,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AccountsAdapter,
 		economicsConfig.GlobalSettings.Denomination,
 		shardCoordinator,
-		&economicsConfig.FeeSettings,
+		economicsData,
 		isInImportMode,
 		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
@@ -2020,7 +2021,7 @@ func createElasticIndexer(
 	accountsDB state.AccountsAdapter,
 	denomination int,
 	shardCoordinator sharding.Coordinator,
-	feeConfig *config.FeeSettings,
+	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
 	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
@@ -2042,7 +2043,7 @@ func createElasticIndexer(
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
-		FeeConfig:                feeConfig,
+		TransactionFeeCalculator: economicsHandler,
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},

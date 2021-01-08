@@ -606,6 +606,14 @@ type EconomicsDataHandler interface {
 	IsInterfaceNil() bool
 }
 
+// TransactionFeeCalculator is able to calculated fee of a transaction
+type TransactionFeeCalculator interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
+	IsInterfaceNil() bool
+}
+
 // TransactionWithFeeHandler represents a transaction structure that has economics variables defined
 type TransactionWithFeeHandler interface {
 	GetGasLimit() uint64
