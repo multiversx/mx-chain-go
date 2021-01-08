@@ -397,7 +397,11 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.Trans
 	}
 
 	gasRefund := ed.computeGasRefund(refundValue, tx.GetGasPrice())
-	gasUsed := tx.GetGasLimit() - gasRefund
+	gasUsed, err := core.SafeSubUint64(tx.GetGasLimit(), gasRefund)
+	if err != nil {
+		log.Warn("ComputeGasUsedAndFeeBasedOnRefundValue", "SafeSubUint64", err.Error())
+	}
+
 	txFee := big.NewInt(0).Sub(ed.ComputeTxFee(tx), refundValue)
 
 	return gasUsed, txFee

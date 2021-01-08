@@ -480,11 +480,7 @@ func hasScrWithRefund(tx *Transaction) bool {
 }
 
 func isRelayedTx(tx *Transaction) bool {
-	if strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0 {
-		return true
-	}
-
-	return false
+	return strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0
 }
 
 func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte, []byte, error) {

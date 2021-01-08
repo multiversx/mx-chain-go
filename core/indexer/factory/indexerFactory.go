@@ -159,7 +159,7 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
-	if arguments.TransactionFeeCalculator == nil {
+	if check.IfNil(arguments.TransactionFeeCalculator) {
 		return core.ErrNilTransactionFeeCalculator
 	}
 

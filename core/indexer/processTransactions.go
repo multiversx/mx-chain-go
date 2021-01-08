@@ -110,14 +110,9 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 				}
 			}
 
-			if isRelayedTx(tx) {
-				tx.GasUsed = tx.GasLimit
-				fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
-				transactions[hash].Fee = fee.String()
-				continue
+			if !isRelayedTx(tx) {
+				tx.Status = transaction.TxStatusFail.String()
 			}
-
-			tx.Status = transaction.TxStatusFail.String()
 
 			tx.GasUsed = tx.GasLimit
 			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
@@ -203,7 +198,6 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartCon
 	return tx
 }
 
-// TODO add GasPriceModifier in network config
 func isSCRForSenderWithRefund(dbScResult ScResult, tx *Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
 	isRightNonce := dbScResult.Nonce == tx.Nonce+1
