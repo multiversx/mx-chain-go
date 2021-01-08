@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
+	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -2491,7 +2492,18 @@ func createApiResolver(
 		return nil, err
 	}
 
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
+		ShardID:                     shardCoordinator.SelfId(),
+		RoundDurationInMilliseconds: nodesSetup.GetRoundDuration(),
+		InternalMarshalizer:         marshalizer,
+		Accounts:                    accnts,
+	}
+	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler, totalStakedValueHandler)
 }
 
 //TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists
