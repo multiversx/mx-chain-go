@@ -423,9 +423,7 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFe
 
 func (ed *economicsData) computeGasRefund(refundValue *big.Int, gasPrice uint64) uint64 {
 	gasPriceBig := big.NewInt(0).SetUint64(gasPrice)
-
 	gasRefund := big.NewInt(0).Div(refundValue, gasPriceBig).Uint64()
-
 	gasRefund = uint64(ed.GasPriceModifier() * float64(gasRefund))
 
 	return gasRefund
