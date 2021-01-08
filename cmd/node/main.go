@@ -2493,10 +2493,10 @@ func createApiResolver(
 	}
 
 	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
-		ShardID:                                shardCoordinator.SelfId(),
-		TotalStakedValueCacheDurationInMinutes: generalConfig.TotalStakedValueAPI.TotalStakedValueAPICacheDurationInMinutes,
-		InternalMarshalizer:                    marshalizer,
-		Accounts:                               accnts,
+		ShardID:                     shardCoordinator.SelfId(),
+		RoundDurationInMilliseconds: nodesSetup.GetRoundDuration(),
+		InternalMarshalizer:         marshalizer,
+		Accounts:                    accnts,
 	}
 	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
 	if err != nil {

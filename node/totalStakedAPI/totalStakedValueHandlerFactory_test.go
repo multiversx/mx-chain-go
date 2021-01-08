@@ -27,10 +27,10 @@ func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := &ArgsTotalStakedValueHandler{
-		ShardID:                                core.MetachainShardId,
-		InternalMarshalizer:                    &mock.MarshalizerMock{},
-		Accounts:                               &mock.AccountsStub{},
-		TotalStakedValueCacheDurationInMinutes: 10,
+		ShardID:                     core.MetachainShardId,
+		InternalMarshalizer:         &mock.MarshalizerMock{},
+		Accounts:                    &mock.AccountsStub{},
+		RoundDurationInMilliseconds: 5000,
 	}
 
 	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
