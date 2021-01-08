@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -18,6 +19,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type objectsMap = map[string]interface{}
@@ -25,8 +27,7 @@ type objectsMap = map[string]interface{}
 type commonProcessor struct {
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-	minGasLimit              uint64
-	gasPerDataByte           uint64
+	txFeeCalculator          process.TransactionFeeCalculator
 }
 
 func prepareGeneralInfo(tpsBenchmark statistics.TPSBenchmark) bytes.Buffer {
@@ -101,7 +102,8 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *Transaction {
-	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
+	gasUsed := cm.txFeeCalculator.ComputeGasLimit(tx)
+	fee := cm.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &Transaction{
 		Hash:          hex.EncodeToString(txHash),
@@ -120,6 +122,8 @@ func (cm *commonProcessor) buildTransaction(
 		Timestamp:     time.Duration(header.GetTimeStamp()),
 		Status:        txStatus,
 		GasUsed:       gasUsed,
+		Fee:           fee.String(),
+		rcvAddrBytes:  tx.RcvAddr,
 	}
 }
 
@@ -433,7 +437,7 @@ func prepareSerializedDataForATransaction(
 	}
 
 	var serializedData []byte
-	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) {
+	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) && !isRelayedTx(tx) {
 		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
 		serializedData =
 			[]byte(fmt.Sprintf(`{"script":{"source":"`+
@@ -455,9 +459,10 @@ func prepareSerializedDataForATransaction(
 				`ctx._source.scResults = params.scResults;`+
 				`ctx._source.timestamp = params.timestamp;`+
 				`ctx._source.gasUsed = params.gasUsed;`+
+				`ctx._source.fee = params.fee;`+
 				`","lang": "painless","params":`+
-				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d}},"upsert":%s}`,
-				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, string(marshaledTx)))
+				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
+				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
 	}
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
@@ -466,12 +471,16 @@ func prepareSerializedDataForATransaction(
 
 func hasScrWithRefund(tx *Transaction) bool {
 	for _, sc := range tx.SmartContractResults {
-		if isSCRForSenderWithGasUsed(sc, tx) {
+		if isSCRForSenderWithRefund(sc, tx) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func isRelayedTx(tx *Transaction) bool {
+	return strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0
 }
 
 func prepareSerializedAccountInfo(address string, account *AccountInfo) ([]byte, []byte, error) {
@@ -590,4 +599,13 @@ func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
 	}
 
 	return indexPolicy, nil
+}
+
+func stringValueToBigInt(strValue string) *big.Int {
+	value, ok := big.NewInt(0).SetString(strValue, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return value
 }

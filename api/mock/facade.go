@@ -48,6 +48,7 @@ type Facade struct {
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
 	GetBlockByHashCalled                    func(hash string, withTxs bool) (*apiBlock.APIBlock, error)
 	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error)
+	GetTotalStakedValueHandler              func() (*big.Int, error)
 }
 
 // GetUsername -
@@ -188,6 +189,11 @@ func (f *Facade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error)
 // StatusMetrics is the mock implementation for the StatusMetrics
 func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 	return f.StatusMetricsHandler()
+}
+
+// GetTotalStakedValue -
+func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+	return f.GetTotalStakedValueHandler()
 }
 
 // ComputeTransactionGasLimit --

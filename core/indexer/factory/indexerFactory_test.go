@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +32,7 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		Options:                  &indexer.Options{},
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
-		FeeConfig:                &config.FeeSettings{},
+		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		IsInImportDBMode:         false,
 	}
@@ -126,13 +126,13 @@ func TestNewIndexerFactory(t *testing.T) {
 			exError: core.ErrNilUrl,
 		},
 		{
-			name: "NilFeeConfig",
+			name: "NilEconomicsHandler",
 			argsFunc: func() *ArgsIndexerFactory {
 				args := createMockIndexerFactoryArgs()
-				args.FeeConfig = nil
+				args.TransactionFeeCalculator = nil
 				return args
 			},
-			exError: core.ErrNilFeeConfig,
+			exError: core.ErrNilTransactionFeeCalculator,
 		},
 		{
 			name: "All arguments ok",

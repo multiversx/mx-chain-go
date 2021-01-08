@@ -165,6 +165,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(core.MetricDenomination, 18)
 	sm.SetUInt64Value(core.MetricMinTransactionVersion, 2)
 	sm.SetStringValue(core.MetricTopUpFactor, fmt.Sprintf("%g", 12.134))
+	sm.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", 0.5))
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -183,6 +184,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_shard_consensus_group_size":    uint64(20),
 		"erd_start_time":                    uint64(9999),
 		"erd_top_up_factor":                 "12.134",
+		"erd_gas_price_modifier":            "0.5",
 	}
 
 	configMetrics := sm.ConfigMetrics()

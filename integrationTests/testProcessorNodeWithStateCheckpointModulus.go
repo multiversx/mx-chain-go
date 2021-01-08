@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
@@ -86,7 +87,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	tpn.initRounder()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
-	tpn.initAccountDBs()
+	tpn.initAccountDBs(CreateMemUnit())
 	tpn.initChainHandler()
 	tpn.initEconomicsData()
 	tpn.initRatingsData()
@@ -110,7 +111,7 @@ func NewTestProcessorNodeWithStateCheckpointModulus(
 	)
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
-	tpn.initInnerProcessors()
+	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(tpn.VMContainer, tpn.EconomicsData, tpn.BlockchainHook, tpn.BlockChain)
 	tpn.initBlockProcessor(stateCheckpointModulus)
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(

@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -128,7 +128,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -146,7 +146,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -237,7 +237,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -266,7 +266,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -445,6 +445,7 @@ func TestAlteredAddresses(t *testing.T) {
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+			txFeeCalculator:        &economicsmocks.EconomicsHandlerStub{},
 		},
 		marshalizer:     &mock.MarshalizerMock{},
 		hasher:          &mock.HasherMock{},
@@ -501,47 +502,7 @@ func TestIsSCRForSenderWithGasUsed(t *testing.T) {
 		PreTxHash: txHash,
 	}
 
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
-}
-
-func TestComputeTxGasUsedField(t *testing.T) {
-	t.Parallel()
-
-	tx := &Transaction{
-		GasLimit: 500,
-		GasPrice: 10,
-	}
-	sc := ScResult{
-		Value: "3000",
-	}
-
-	expectedGasUsed := uint64(200)
-	require.Equal(t, expectedGasUsed, computeTxGasUsedField(sc, tx))
-}
-
-func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
-	t.Parallel()
-
-	tx := &Transaction{
-		Hash:     "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		Nonce:    11,
-		GasLimit: 40000000,
-		GasPrice: 1000000000,
-		Status:   "success",
-		Sender:   "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
-	}
-	sc := ScResult{
-		PreTxHash:      "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		Nonce:          12,
-		Value:          "0",
-		Receiver:       "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
-		Data:           []byte("@6f6b@"),
-		OriginalTxHash: "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		ReturnMessage:  "too much gas provided: gas needed = 109013, gas remained = 18609087",
-	}
-
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
-	require.Equal(t, uint64(40000000), computeTxGasUsedField(sc, tx))
+	require.True(t, isSCRForSenderWithRefund(sc, tx))
 }
 
 func TestCheckGasUsedInvalidTransaction(t *testing.T) {
@@ -552,7 +513,7 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -601,7 +562,7 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -40,7 +40,7 @@ type ArgsIndexerFactory struct {
 	EnabledIndexes           []string
 	Denomination             int
 	AccountsDB               state.AccountsAdapter
-	FeeConfig                *config.FeeSettings
+	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
 }
 
@@ -126,7 +126,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
-		FeeConfig:                args.FeeConfig,
+		TransactionFeeCalculator: args.TransactionFeeCalculator,
 		IsInImportDBMode:         args.IsInImportDBMode,
 		ShardCoordinator:         args.ShardCoordinator,
 	}
@@ -159,8 +159,8 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	if check.IfNil(arguments.EpochStartNotifier) {
 		return core.ErrNilEpochStartNotifier
 	}
-	if arguments.FeeConfig == nil {
-		return core.ErrNilFeeConfig
+	if check.IfNil(arguments.TransactionFeeCalculator) {
+		return core.ErrNilTransactionFeeCalculator
 	}
 
 	return nil
