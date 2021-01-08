@@ -431,6 +431,10 @@ func (s *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (s *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("function deprecated")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 1 {
 		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
@@ -1546,6 +1550,8 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)
 	}
+
+	s.addToStakedNodes(int64(stakedNodes))
 
 	return vmcommon.Ok
 }

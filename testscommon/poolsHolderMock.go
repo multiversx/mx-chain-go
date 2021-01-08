@@ -9,7 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
 	"github.com/ElrondNetwork/elrond-go/storage"
 	"github.com/ElrondNetwork/elrond-go/storage/storageUnit"
-	 "github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
+	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
 )
 
 // PoolsHolderMock -

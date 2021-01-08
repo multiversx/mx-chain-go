@@ -977,6 +977,10 @@ func (sc *scProcessor) ProcessIfError(
 		return err
 	}
 
+	if len(returnMessage) == 0 && sc.flagDeploy.IsSet() {
+		returnMessage = []byte(returnCode)
+	}
+
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {

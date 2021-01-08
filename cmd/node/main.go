@@ -58,6 +58,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/ElrondNetwork/elrond-go/node/external"
 	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
+	"github.com/ElrondNetwork/elrond-go/node/totalStakedAPI"
 	"github.com/ElrondNetwork/elrond-go/node/txsimulator"
 	"github.com/ElrondNetwork/elrond-go/ntp"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -1127,6 +1128,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	metrics.SaveUint64Metric(coreComponents.StatusHandler, core.MetricMinGasLimit, economicsData.MinGasLimit())
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricRewardsTopUpGradientPoint, economicsData.RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricTopUpFactor, fmt.Sprintf("%g", economicsData.RewardsTopUpFactor()))
+	metrics.SaveStringMetric(coreComponents.StatusHandler, core.MetricGasPriceModifier, fmt.Sprintf("%g", economicsData.GasPriceModifier()))
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoParams.PublicKeyString,
@@ -1195,7 +1197,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		stateComponents.AccountsAdapter,
 		economicsConfig.GlobalSettings.Denomination,
 		shardCoordinator,
-		&economicsConfig.FeeSettings,
+		economicsData,
 		isInImportMode,
 		ctx.GlobalString(elasticSearchTemplates.Name),
 	)
@@ -1404,6 +1406,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 	}
 
 	log.Trace("creating api resolver structure")
+	apiWorkingDir := filepath.Join(workingDir, factory.TemporaryPath)
 	apiResolver, err := createApiResolver(
 		generalConfig,
 		stateComponents.AccountsAdapter,
@@ -1424,7 +1427,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		systemSCConfig,
 		rater,
 		epochNotifier,
-		workingDir,
+		apiWorkingDir,
 	)
 	if err != nil {
 		return err
@@ -2018,7 +2021,7 @@ func createElasticIndexer(
 	accountsDB state.AccountsAdapter,
 	denomination int,
 	shardCoordinator sharding.Coordinator,
-	feeConfig *config.FeeSettings,
+	economicsHandler process.TransactionFeeCalculator,
 	isInImportDBMode bool,
 	elasticSearchTemplatesPath string,
 ) (indexer.Indexer, error) {
@@ -2040,7 +2043,7 @@ func createElasticIndexer(
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
-		FeeConfig:                feeConfig,
+		TransactionFeeCalculator: economicsHandler,
 		Options: &indexer.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
@@ -2440,20 +2443,167 @@ func createApiResolver(
 	epochNotifier process.EpochNotifier,
 	workingDir string,
 ) (facade.ApiResolver, error) {
-	var vmFactory process.VirtualMachinesContainerFactory
-	var err error
-
-	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     gasScheduleNotifier,
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     marshalizer,
-		Accounts:        accnts,
-	}
-	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	scQueryService, err := createScQueryService(
+		generalConfig,
+		accnts,
+		validatorAccounts,
+		pubkeyConv,
+		storageService,
+		dataPool,
+		blockChain,
+		marshalizer,
+		hasher,
+		uint64Converter,
+		shardCoordinator,
+		gasScheduleNotifier,
+		economics,
+		messageSigVerifier,
+		nodesSetup,
+		systemSCConfig,
+		rater,
+		epochNotifier,
+		workingDir,
+	)
 	if err != nil {
 		return nil, err
 	}
-	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:  pubkeyConv,
+		ShardCoordinator: shardCoordinator,
+		BuiltInFuncNames: builtInFuncs.Keys(),
+		ArgumentParser:   parsers.NewCallArgsParser(),
+	}
+	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	args := &totalStakedAPI.ArgsTotalStakedValueHandler{
+		ShardID:                     shardCoordinator.SelfId(),
+		RoundDurationInMilliseconds: nodesSetup.GetRoundDuration(),
+		InternalMarshalizer:         marshalizer,
+		Accounts:                    accnts,
+	}
+	totalStakedValueHandler, err := totalStakedAPI.CreateTotalStakedValueHandler(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler, totalStakedValueHandler)
+}
+
+//TODO refactor this code when moving into feat/soft-restart. Maybe use arguments instead of endless parameter lists
+func createScQueryService(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+) (process.SCQueryService, error) {
+	numConcurrentVms := generalConfig.VirtualMachine.Querying.NumConcurrentVMs
+	if numConcurrentVms < 1 {
+		return nil, fmt.Errorf("VirtualMachine.Querying.NumConcurrentVms should be a positive number more than 1")
+	}
+
+	list := make([]process.SCQueryService, 0, numConcurrentVms)
+	for i := 0; i < numConcurrentVms; i++ {
+		scQueryService, err := createScQueryElement(
+			generalConfig,
+			accnts,
+			validatorAccounts,
+			pubkeyConv,
+			storageService,
+			dataPool,
+			blockChain,
+			marshalizer,
+			hasher,
+			uint64Converter,
+			shardCoordinator,
+			gasScheduleNotifier,
+			economics,
+			messageSigVerifier,
+			nodesSetup,
+			systemSCConfig,
+			rater,
+			epochNotifier,
+			workingDir,
+			i,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, scQueryService)
+	}
+
+	sqQueryDispatcher, err := smartContract.NewScQueryServiceDispatcher(list)
+	if err != nil {
+		return nil, err
+	}
+
+	return sqQueryDispatcher, nil
+}
+
+func createScQueryElement(
+	generalConfig *config.Config,
+	accnts state.AccountsAdapter,
+	validatorAccounts state.AccountsAdapter,
+	pubkeyConv core.PubkeyConverter,
+	storageService dataRetriever.StorageService,
+	dataPool dataRetriever.PoolsHolder,
+	blockChain data.ChainHandler,
+	marshalizer marshal.Marshalizer,
+	hasher hashing.Hasher,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	shardCoordinator sharding.Coordinator,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	economics process.EconomicsDataHandler,
+	messageSigVerifier vm.MessageSignVerifier,
+	nodesSetup sharding.GenesisNodesSetupHandler,
+	systemSCConfig *config.SystemSmartContractsConfig,
+	rater sharding.PeerAccountListAndRatingHandler,
+	epochNotifier process.EpochNotifier,
+	workingDir string,
+	index int,
+) (process.SCQueryService, error) {
+	var vmFactory process.VirtualMachinesContainerFactory
+	var err error
+
+	builtInFuncs, err := createBuiltinFuncs(
+		gasScheduleNotifier,
+		marshalizer,
+		accnts,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2464,6 +2614,8 @@ func createApiResolver(
 		return nil, err
 	}
 
+	scStorage := generalConfig.SmartContractsStorageForSCQuery
+	scStorage.DB.FilePath += fmt.Sprintf("%d", index)
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           accnts,
 		PubkeyConv:         pubkeyConv,
@@ -2474,10 +2626,10 @@ func createApiResolver(
 		Uint64Converter:    uint64Converter,
 		BuiltInFunctions:   builtInFuncs,
 		DataPool:           dataPool,
-		ConfigSCStorage:    generalConfig.SmartContractsStorageForSCQuery,
+		ConfigSCStorage:    scStorage,
 		CompiledSCPool:     smartContractsCache,
 		WorkingDir:         workingDir,
-		NilCompiledSCStore: false,
+		NilCompiledSCStore: true,
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2499,8 +2651,10 @@ func createApiResolver(
 			return nil, err
 		}
 	} else {
+		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
+		queryVirtualMachineConfig.OutOfProcessEnabled = true
 		vmFactory, err = shard.NewVMContainerFactory(
-			generalConfig.VirtualMachine.Querying,
+			queryVirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
 			gasScheduleNotifier,
 			argsHook,
@@ -2522,28 +2676,26 @@ func createApiResolver(
 		return nil, err
 	}
 
-	scQueryService, err := smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+	return smartContract.NewSCQueryService(vmContainer, economics, vmFactory.BlockChainHookImpl(), blockChain)
+}
+
+func createBuiltinFuncs(
+	gasScheduleNotifier core.GasScheduleNotifier,
+	marshalizer marshal.Marshalizer,
+	accnts state.AccountsAdapter,
+) (process.BuiltInFunctionContainer, error) {
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasScheduleNotifier,
+		MapDNSAddresses: make(map[string]struct{}),
+		Marshalizer:     marshalizer,
+		Accounts:        accnts,
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
 		return nil, err
 	}
 
-	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:  pubkeyConv,
-		ShardCoordinator: shardCoordinator,
-		BuiltInFuncNames: builtInFuncs.Keys(),
-		ArgumentParser:   parsers.NewCallArgsParser(),
-	}
-	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	txCostHandler, err := transaction.NewTransactionCostEstimator(txTypeHandler, economics, scQueryService, gasScheduleNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	return external.NewNodeApiResolver(scQueryService, statusMetrics, txCostHandler)
+	return builtInFuncFactory.CreateBuiltInFunctionContainer()
 }
 
 func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {

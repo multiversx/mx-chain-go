@@ -353,6 +353,11 @@ func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return nf.apiResolver.StatusMetrics()
 }
 
+// GetTotalStakedValue will return total staked value
+func (nf *nodeFacade) GetTotalStakedValue() (*big.Int, error) {
+	return nf.apiResolver.GetTotalStakedValue()
+}
+
 // ExecuteSCQuery retrieves data from existing SC trie
 func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
 	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)

@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"math/big"
-	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
@@ -37,6 +35,7 @@ type txDatabaseProcessor struct {
 	marshalizer      marshal.Marshalizer
 	isInImportMode   bool
 	shardCoordinator sharding.Coordinator
+	txFeeCalculator  process.TransactionFeeCalculator
 }
 
 func newTxDatabaseProcessor(
@@ -44,26 +43,22 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	feeConfig *config.FeeSettings,
+	txFeeCalculator process.TransactionFeeCalculator,
 	isInImportMode bool,
 	shardCoordinator sharding.Coordinator,
 ) *txDatabaseProcessor {
-	// this should never return error because is tested when economics file is created
-	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
-	gasPerDataByte, _ := strconv.ParseUint(feeConfig.GasPerDataByte, 10, 64)
-
 	return &txDatabaseProcessor{
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
-			minGasLimit:              minGasLimit,
-			gasPerDataByte:           gasPerDataByte,
+			txFeeCalculator:          txFeeCalculator,
 		},
 		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
 		isInImportMode:   isInImportMode,
 		shardCoordinator: shardCoordinator,
+		txFeeCalculator:  txFeeCalculator,
 	}
 }
 
@@ -76,24 +71,10 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	transactions, rewardsTxs, alteredAddresses := tdp.groupNormalTxsAndRewards(body, txPool, header, selfShardID)
 	//we can not iterate smart contract results directly on the miniblocks contained in the block body
 	// as some miniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
-	receipts := groupReceipts(txPool)
 	scResults := groupSmartContractResults(txPool)
 	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, scResults)
 
 	transactions = tdp.setTransactionSearchOrder(transactions)
-	for _, rec := range receipts {
-		tx, ok := transactions[string(rec.TxHash)]
-		if !ok {
-			continue
-		}
-
-		if tx.Status == transaction.TxStatusInvalid.String() {
-			// the invalid transactions have the gasUsed field equals with gasLimit and is already set
-			continue
-		}
-
-		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
-	}
 
 	countScResults := make(map[string]int)
 	for scHash, scResult := range scResults {
@@ -115,21 +96,27 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	}
 
 	for hash, nrScResult := range countScResults {
+		tx, ok := transactions[hash]
+		if !ok {
+			continue
+		}
+
 		if nrScResult < minimumNumberOfSmartContractResults {
-			if len(transactions[hash].SmartContractResults) > 0 {
-				scResultData := transactions[hash].SmartContractResults[0].Data
+			if len(tx.SmartContractResults) > 0 {
+				scResultData := tx.SmartContractResults[0].Data
 				if isScResultSuccessful(scResultData) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
 			}
 
-			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
-				transactions[hash].GasUsed = transactions[hash].GasLimit
-				continue
+			if !isRelayedTx(tx) {
+				tx.Status = transaction.TxStatusFail.String()
 			}
 
-			transactions[hash].Status = transaction.TxStatusFail.String()
+			tx.GasUsed = tx.GasLimit
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
+			tx.Fee = fee.String()
 		}
 	}
 
@@ -201,30 +188,17 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(scHash string, scr *smartCon
 	dbScResult := tdp.commonProcessor.convertScResultInDatabaseScr(scHash, scr)
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if isSCRForSenderWithGasUsed(dbScResult, tx) {
-		tx.GasUsed = computeTxGasUsedField(dbScResult, tx)
+	if isSCRForSenderWithRefund(dbScResult, tx) {
+		refundValue := stringValueToBigInt(dbScResult.Value)
+		gasUsed, fee := tdp.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+		tx.GasUsed = gasUsed
+		tx.Fee = fee.String()
 	}
 
 	return tx
 }
 
-func computeTxGasUsedField(dbScResult ScResult, tx *Transaction) uint64 {
-	fee := big.NewInt(0).SetUint64(tx.GasPrice)
-	fee.Mul(fee, big.NewInt(0).SetUint64(tx.GasLimit))
-
-	refundValue, ok := big.NewInt(0).SetString(dbScResult.Value, 10)
-	if !ok {
-		log.Warn("indexer.computeTxGasUsedField() cannot cast value from string to big.Int")
-		return fee.Uint64()
-	}
-
-	diff := fee.Sub(fee, refundValue)
-	gasUsedBig := diff.Div(diff, big.NewInt(0).SetUint64(tx.GasPrice))
-
-	return gasUsedBig.Uint64()
-}
-
-func isSCRForSenderWithGasUsed(dbScResult ScResult, tx *Transaction) bool {
+func isSCRForSenderWithRefund(dbScResult ScResult, tx *Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
 	isRightNonce := dbScResult.Nonce == tx.Nonce+1
 	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
@@ -314,7 +288,11 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
-				dbTx.GasUsed = tx.GasLimit
+
+				dbTx.GasUsed = dbTx.GasLimit
+				fee := tdp.commonProcessor.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, dbTx.GasUsed)
+				dbTx.Fee = fee.String()
+
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}
