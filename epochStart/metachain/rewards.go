@@ -41,7 +41,7 @@ type ArgsNewRewardsCreator struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	// this fixes the situation where a node has 0 proposed blocks and 0 validator failures
 	// but does not receive rewards.
-	RewardsFix1EpochEnable        uint32
+	RewardsFix1EpochEnable uint32
 }
 
 type rewardsCreator struct {
@@ -148,6 +148,8 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(metaBlock *block.MetaBlock, va
 
 	rc.clean()
 
+	log.Error("protocol sustainability at start of create rewards miniblocks", "value", metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+
 	miniBlocks := make(block.MiniBlockSlice, rc.shardCoordinator.NumberOfShards())
 	for i := uint32(0); i < rc.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{}
@@ -231,6 +233,7 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 		shardId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
 		if shardId == core.MetachainShardId {
 			protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, rwdTx.Value)
+			log.Error("addValidatorRewardsToMiniblocks", "value", protocolSustainabilityRwdTx.Value)
 			continue
 		}
 
@@ -272,10 +275,12 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 
 			isFix1Enabled := rc.isRewardsFix1Enabled(epoch)
 			if isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
+				log.Debug("computeValidatorInfoPerRewardAddress isFixEnabled", "value", protocolRewardValue)
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
 			if !isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
+				log.Debug("computeValidatorInfoPerRewardAddress isFixEnabled false", "value", protocolRewardValue)
 				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
 				continue
 			}
