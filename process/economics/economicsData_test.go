@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createDummyEconomicsConfig(gasModifier float64) *config.EconomicsConfig {
+func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.EconomicsConfig {
 	return &config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "2000000000000000000000",
@@ -36,20 +36,46 @@ func createDummyEconomicsConfig(gasModifier float64) *config.EconomicsConfig {
 			TopUpGradientPoint:               "300000000000000000000",
 			TopUpFactor:                      0.25,
 		},
-		FeeSettings: config.FeeSettings{
-			MaxGasLimitPerBlock:     "100000",
-			MaxGasLimitPerMetaBlock: "1000000",
-			MinGasPrice:             "18446744073709551615",
-			MinGasLimit:             "500",
-			GasPerDataByte:          "1",
-			GasPriceModifier:        gasModifier,
-		},
+		FeeSettings: feeSettings,
+	}
+}
+
+func feeSettingsDummy(gasModifier float64) config.FeeSettings {
+	return config.FeeSettings{
+		MaxGasLimitPerBlock:     "100000",
+		MaxGasLimitPerMetaBlock: "1000000",
+		MinGasPrice:             "18446744073709551615",
+		MinGasLimit:             "500",
+		GasPerDataByte:          "1",
+		GasPriceModifier:        gasModifier,
+	}
+}
+
+func feeSettingsReal() config.FeeSettings {
+	return config.FeeSettings{
+		MaxGasLimitPerBlock:     "1500000000",
+		MaxGasLimitPerMetaBlock: "15000000000",
+		MinGasPrice:             "1000000000",
+		MinGasLimit:             "50000",
+		GasPerDataByte:          "1500",
+		GasPriceModifier:        0.01,
 	}
 }
 
 func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsData {
+	feeSettings := feeSettingsDummy(gasModifier)
 	args := economics.ArgsNewEconomicsData{
-		Economics:                      createDummyEconomicsConfig(gasModifier),
+		Economics:                      createDummyEconomicsConfig(feeSettings),
+		PenalizedTooMuchGasEnableEpoch: 0,
+		EpochNotifier:                  &mock.EpochNotifierStub{},
+	}
+	return args
+}
+
+func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
+	feeSettings := feeSettingsReal()
+	args := economics.ArgsNewEconomicsData{
+		Economics:                      createDummyEconomicsConfig(feeSettings),
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
@@ -477,7 +503,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 	refundValue := big.NewInt(42500000000)
 
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
-	require.Equal(t, uint64(958), gasUsed)
+	require.Equal(t, uint64(957), gasUsed)
 	require.Equal(t, big.NewInt(957500000000), fee)
 }
 
@@ -495,7 +521,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueFeeMultiplier(t *te
 	refundValue := big.NewInt(42500000000)
 
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
-	require.Equal(t, uint64(979), gasUsed)
+	require.Equal(t, uint64(915), gasUsed)
 	require.Equal(t, big.NewInt(710000000000), fee)
 }
 
@@ -532,4 +558,77 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueZero(t *testing.T) 
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, big.NewInt(0))
 	require.Equal(t, uint64(1000), gasUsed)
 	require.Equal(t, big.NewInt(752500000000), fee)
+}
+
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheckGasUsedValue(t *testing.T) {
+	t.Parallel()
+
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
+	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
+	tx1 := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 3000000,
+		Data:     txData,
+	}
+
+	tx2 := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 4000000,
+		Data:     txData,
+	}
+
+	tx3 := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 5000000,
+		Data:     txData,
+	}
+
+	tx4 := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 4123456,
+		Data:     txData,
+	}
+
+	expectedGasUsed := uint64(1770511)
+	expectedFee, _ := big.NewInt(0).SetString("1077005110000000", 10)
+
+	refundValue, _ := big.NewInt(0).SetString("12294890000000", 10)
+	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx1, refundValue)
+	require.Equal(t, expectedGasUsed, gasUsed)
+	require.Equal(t, expectedFee, fee)
+
+	refundValue, _ = big.NewInt(0).SetString("22294890000000", 10)
+	gasUsed, fee = economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx2, refundValue)
+	require.Equal(t, expectedFee, fee)
+	require.Equal(t, expectedGasUsed, gasUsed)
+
+	refundValue, _ = big.NewInt(0).SetString("32294890000000", 10)
+	gasUsed, fee = economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx3, refundValue)
+	require.Equal(t, expectedFee, fee)
+	require.Equal(t, expectedGasUsed, gasUsed)
+
+	refundValue, _ = big.NewInt(0).SetString("23529450000000", 10)
+	gasUsed, fee = economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx4, refundValue)
+	require.Equal(t, expectedFee, fee)
+	require.Equal(t, expectedGasUsed, gasUsed)
+}
+
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheck(t *testing.T) {
+	t.Parallel()
+
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
+	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 1200000,
+		Data:     txData,
+	}
+
+	expectedGasUsed := uint64(1200000)
+	expectedFee, _ := big.NewInt(0).SetString("1071300000000000", 10)
+
+	refundValue, _ := big.NewInt(0).SetString("0", 10)
+	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, expectedGasUsed, gasUsed)
+	require.Equal(t, expectedFee, fee)
 }
