@@ -117,7 +117,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if len(message.TopicIDs) == 0 {
 		return p2p.ErrEmptyTopicList
 	}
-	if ds.checkAndSetSeenMessage(message) {
+	if ds.checkAndSetSeenMessage(message, fromConnectedPeer) {
 		return p2p.ErrAlreadySeenMessage
 	}
 
@@ -128,8 +128,8 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	return ds.messageHandler(pbMessage, core.PeerID(fromConnectedPeer))
 }
 
-func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
-	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
+func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message, fromConnectedPeer peer.ID) bool {
+	msgId := string(fromConnectedPeer) + string(msg.GetSeqno())
 
 	ds.mutSeenMesages.Lock()
 	defer ds.mutSeenMesages.Unlock()
