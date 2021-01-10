@@ -571,7 +571,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 	msg.From = []byte(id)
 	msg.TopicIDs = make([]string, 0)
 
-	err := ds.ProcessReceivedDirectMessage(msg, peer.ID("not the same peer id"))
+	err := ds.ProcessReceivedDirectMessage(msg, id)
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
