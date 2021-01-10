@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -117,7 +118,10 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	if len(message.TopicIDs) == 0 {
 		return p2p.ErrEmptyTopicList
 	}
-	if ds.checkAndSetSeenMessage(message, fromConnectedPeer) {
+	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
+		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidMessage)
+	}
+	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
 	}
 
@@ -128,8 +132,8 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	return ds.messageHandler(pbMessage, core.PeerID(fromConnectedPeer))
 }
 
-func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message, fromConnectedPeer peer.ID) bool {
-	msgId := string(fromConnectedPeer) + string(msg.GetSeqno())
+func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
+	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 
 	ds.mutSeenMesages.Lock()
 	defer ds.mutSeenMesages.Unlock()
