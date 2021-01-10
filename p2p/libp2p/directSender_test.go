@@ -527,7 +527,7 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 	stream.SetConn(
 		&mock.ConnStub{
 			RemotePeerCalled: func() peer.ID {
-				return "remote peer ID"
+				return remotePeer
 			},
 		})
 	stream.SetProtocol(libp2p.DirectSendID)
@@ -538,6 +538,9 @@ func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t
 
 	netw.ConnsToPeerCalled = func(p peer.ID) []network.Conn {
 		return []network.Conn{cs}
+	}
+	cs.LocalPeerCalled = func() peer.ID {
+		return cs.RemotePeer()
 	}
 
 	data := []byte("data")
@@ -571,7 +574,7 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 	msg.From = []byte(id)
 	msg.TopicIDs = make([]string, 0)
 
-	err := ds.ProcessReceivedDirectMessage(msg, id)
+	err := ds.ProcessReceivedDirectMessage(msg, peer.ID("not the same peer id"))
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
