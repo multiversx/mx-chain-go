@@ -101,6 +101,14 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
+		if isRelayedTx(tx) {
+			tx.GasUsed = tx.GasLimit
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
+			tx.Fee = fee.String()
+
+			continue
+		}
+
 		if nrScResult < minimumNumberOfSmartContractResults {
 			if len(tx.SmartContractResults) > 0 {
 				scResultData := tx.SmartContractResults[0].Data
@@ -110,9 +118,7 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 				}
 			}
 
-			if !isRelayedTx(tx) {
-				tx.Status = transaction.TxStatusFail.String()
-			}
+			tx.Status = transaction.TxStatusFail.String()
 
 			tx.GasUsed = tx.GasLimit
 			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
