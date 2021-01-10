@@ -119,7 +119,7 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 		return p2p.ErrEmptyTopicList
 	}
 	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
-		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidMessage)
+		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
