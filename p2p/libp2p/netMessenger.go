@@ -145,6 +145,7 @@ func NewNetworkMessenger(args ArgsNetworkMessenger) (*networkMessenger, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	h, err := libp2p.New(ctx, opts...)
 	if err != nil {
+		cancelFunc()
 		return nil, err
 	}
 
