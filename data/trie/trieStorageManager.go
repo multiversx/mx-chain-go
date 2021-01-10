@@ -499,18 +499,7 @@ func newSnapshotNode(
 		return nil, err
 	}
 
-	trieStorage := &trieStorageManager{
-		db: db,
-	}
-
-	snapshotPmt := &patriciaMerkleTrie{
-		root:        newRoot,
-		trieStorage: trieStorage,
-		marshalizer: msh,
-		hasher:      hsh,
-	}
-
-	return snapshotPmt.root, nil
+	return newRoot, nil
 }
 
 func (tsm *trieStorageManager) newSnapshotDb() (storage.Persister, error) {
