@@ -91,6 +91,7 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 		for hash, shardId := range mapHashesToRequest {
 			if _, ok := m.mapHeaders[hash]; ok {
 				delete(mapHashesToRequest, hash)
+				continue
 			}
 
 			m.mapHashes[hash] = struct{}{}
