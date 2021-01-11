@@ -20,11 +20,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type objectsMap = map[string]interface{}
 
 type commonProcessor struct {
+	shardCoordinator         sharding.Coordinator
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
 	txFeeCalculator          process.TransactionFeeCalculator
@@ -113,7 +115,7 @@ func (cm *commonProcessor) buildTransaction(
 		Value:         tx.Value.String(),
 		Receiver:      cm.addressPubkeyConverter.Encode(tx.RcvAddr),
 		Sender:        cm.addressPubkeyConverter.Encode(tx.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
+		ReceiverShard: cm.shardCoordinator.ComputeId(tx.RcvAddr),
 		SenderShard:   mb.SenderShardID,
 		GasPrice:      tx.GasPrice,
 		GasLimit:      tx.GasLimit,

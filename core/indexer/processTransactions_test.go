@@ -441,25 +441,28 @@ func TestAlteredAddresses(t *testing.T) {
 		string(scr2Hash):   scr2,
 	}
 
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(address []byte) uint32 {
+			switch string(address) {
+			case string(address1), string(address4), string(address5), string(address7), string(address9):
+				return 0
+			default:
+				return 1
+			}
+		},
+	}
+
 	txLogProc := disabled.NewNilTxLogsProcessor()
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
 			txFeeCalculator:        &economicsmocks.EconomicsHandlerStub{},
+			shardCoordinator:       shardCoordinator,
 		},
-		marshalizer:     &mock.MarshalizerMock{},
-		hasher:          &mock.HasherMock{},
-		txLogsProcessor: txLogProc,
-		shardCoordinator: &mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(address []byte) uint32 {
-				switch string(address) {
-				case string(address1), string(address4), string(address5), string(address7), string(address9):
-					return 0
-				default:
-					return 1
-				}
-			},
-		},
+		marshalizer:      &mock.MarshalizerMock{},
+		hasher:           &mock.HasherMock{},
+		txLogsProcessor:  txLogProc,
+		shardCoordinator: shardCoordinator,
 	}
 
 	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)

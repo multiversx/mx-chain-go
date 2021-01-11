@@ -54,6 +54,7 @@ func newTxDatabaseProcessor(
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
 			txFeeCalculator:          txFeeCalculator,
+			shardCoordinator:         shardCoordinator,
 		},
 		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
 		isInImportMode:   isInImportMode,
@@ -348,6 +349,11 @@ func addToAlteredAddresses(
 	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
 		alteredAddresses[tx.Sender] = struct{}{}
 	}
+
+	if tx.Status == transaction.TxStatusInvalid.String() {
+		return
+	}
+
 	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
 		alteredAddresses[tx.Receiver] = struct{}{}
 	}

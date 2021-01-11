@@ -32,6 +32,7 @@ func createCommonProcessor() commonProcessor {
 				return 500
 			},
 		},
+		shardCoordinator: &mock.ShardCoordinatorMock{},
 	}
 }
 

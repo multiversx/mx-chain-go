@@ -505,6 +505,10 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 			continue
 		}
 
+		if ei.shardCoordinator.ComputeId(addressBytes) != ei.shardCoordinator.SelfId() {
+			continue
+		}
+
 		account, err := ei.accountsDB.LoadAccount(addressBytes)
 		if err != nil {
 			log.Warn("cannot load account", "address bytes", addressBytes, "error", err)
