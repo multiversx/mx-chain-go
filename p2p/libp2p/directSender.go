@@ -29,13 +29,13 @@ const timeSeenMessages = time.Second * 120
 const maxMutexes = 10000
 
 type directSender struct {
-	counter        uint64
-	ctx            context.Context
-	hostP2P        host.Host
-	messageHandler func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error
-	mutSeenMesages sync.Mutex
-	seenMessages   *timecache.TimeCache
-	mutexForPeer   *MutexHolder
+	counter         uint64
+	ctx             context.Context
+	hostP2P         host.Host
+	messageHandler  func(msg *pubsub.Message, fromConnectedPeer core.PeerID) error
+	mutSeenMessages sync.Mutex
+	seenMessages    *timecache.TimeCache
+	mutexForPeer    *MutexHolder
 }
 
 // NewDirectSender returns a new instance of direct sender object
@@ -135,8 +135,8 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 func (ds *directSender) checkAndSetSeenMessage(msg *pubsubPb.Message) bool {
 	msgId := string(msg.GetFrom()) + string(msg.GetSeqno())
 
-	ds.mutSeenMesages.Lock()
-	defer ds.mutSeenMesages.Unlock()
+	ds.mutSeenMessages.Lock()
+	defer ds.mutSeenMessages.Unlock()
 
 	if ds.seenMessages.Has(msgId) {
 		return true

@@ -20,8 +20,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p-pubsub/pb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -492,7 +492,7 @@ func TestDirectSender_SendDirectToConnectedPeerNewStreamShouldSendToStream(t *te
 	assert.Equal(t, receivedMsg.TopicIDs[0], topic)
 }
 
-//------- received mesages tests
+//------- received messages tests
 
 func TestDirectSender_ReceivedSentMessageShouldCallMessageHandlerTestFullCycle(t *testing.T) {
 	var streamHandler network.StreamHandler
@@ -572,9 +572,9 @@ func TestDirectSender_ProcessReceivedDirectMessageFromMismatchesFromConnectedPee
 	msg.Data = []byte("data")
 	msg.Seqno = []byte("111")
 	msg.From = []byte(id)
-	msg.TopicIDs = make([]string, 0)
+	msg.TopicIDs = []string{"topic"}
 
-	err := ds.ProcessReceivedDirectMessage(msg, peer.ID("not the same peer id"))
+	err := ds.ProcessReceivedDirectMessage(msg, "not the same peer id")
 
 	assert.True(t, errors.Is(err, p2p.ErrInvalidValue))
 }
