@@ -112,6 +112,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 				AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+				DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -134,6 +135,7 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 			AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+			DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 		},
 	)
 }
