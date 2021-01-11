@@ -1,7 +1,9 @@
 package mock
 
 import (
+	"context"
 	"errors"
+	"github.com/ElrondNetwork/elrond-go/core"
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -20,10 +22,20 @@ type AccountsStub struct {
 	RecreateTrieCalled       func(rootHash []byte) error
 	PruneTrieCalled          func(rootHash []byte, identifier data.TriePruningIdentifier)
 	CancelPruneCalled        func(rootHash []byte, identifier data.TriePruningIdentifier)
-	SnapshotStateCalled      func(rootHash []byte)
-	SetStateCheckpointCalled func(rootHash []byte)
+	SnapshotStateCalled      func(rootHash []byte, ctx context.Context)
+	SetStateCheckpointCalled func(rootHash []byte, ctx context.Context)
 	IsPruningEnabledCalled   func() bool
-	GetAllLeavesCalled       func(rootHash []byte) (map[string][]byte, error)
+	GetAllLeavesCalled       func(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
+}
+
+// GetNumCheckpoints -
+func (as *AccountsStub) GetNumCheckpoints() uint32 {
+	panic("implement me")
+}
+
+// RecreateAllTries -
+func (as *AccountsStub) RecreateAllTries(_ []byte, _ context.Context) (map[string]data.Trie, error) {
+	panic("implement me")
 }
 
 // LoadAccount -
@@ -43,9 +55,9 @@ func (as *AccountsStub) SaveAccount(account state.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(rootHash []byte) (map[string][]byte, error) {
+func (as *AccountsStub) GetAllLeaves(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error) {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(rootHash)
+		return as.GetAllLeavesCalled(rootHash, ctx)
 	}
 	return nil, nil
 }
@@ -130,16 +142,16 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier data.TriePruning
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, ctx context.Context) {
 	if as.SnapshotStateCalled != nil {
-		as.SnapshotStateCalled(rootHash)
+		as.SnapshotStateCalled(rootHash, ctx)
 	}
 }
 
 // SetStateCheckpoint -
-func (as *AccountsStub) SetStateCheckpoint(rootHash []byte) {
+func (as *AccountsStub) SetStateCheckpoint(rootHash []byte, ctx context.Context) {
 	if as.SetStateCheckpointCalled != nil {
-		as.SetStateCheckpointCalled(rootHash)
+		as.SetStateCheckpointCalled(rootHash, ctx)
 	}
 }
 

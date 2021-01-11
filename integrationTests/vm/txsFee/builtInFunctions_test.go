@@ -7,6 +7,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -23,6 +24,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
 	gasPrice := uint64(10)
@@ -48,6 +50,14 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(85), indexerTx.GasUsed)
+	require.Equal(t, "850", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
@@ -55,6 +65,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	defer testContext.Close()
 
 	scAddress, initialOwner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	sndAddr := []byte("12345678901234567890123456789113")
@@ -84,6 +95,14 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(1000), indexerTx.GasUsed)
+	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
@@ -91,6 +110,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("invalidAddress")
@@ -117,6 +137,14 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(1000), indexerTx.GasUsed)
+	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -160,6 +188,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -187,4 +216,12 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "840", indexerTx.Fee)
 }

@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/receipt"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -46,6 +47,13 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
+
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(5), indexerTx.GasUsed)
+	require.Equal(t, "50", indexerTx.Fee)
 }
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
@@ -104,6 +112,13 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
+
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(5), indexerTx.GasUsed)
+	require.Equal(t, "50", indexerTx.Fee)
 }
 
 func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
@@ -132,6 +147,13 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(20), accumulatedFees)
+
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.InvalidBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(20), indexerTx.GasUsed)
+	require.Equal(t, "20", indexerTx.Fee)
 }
 
 func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {

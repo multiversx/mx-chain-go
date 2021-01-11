@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -44,6 +46,14 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(0), accumulatedFees)
+
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(5), indexerTx.GasUsed)
+	require.Equal(t, "50", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }
 
 func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
@@ -83,6 +93,15 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(0), accumulatedFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(100), indexerTx.GasUsed)
+	require.Equal(t, "1000", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
 }
 
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
@@ -122,6 +141,15 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(910), accumulatedFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(100), indexerTx.GasUsed)
+	require.Equal(t, "1000", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
 }
 
 func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
@@ -157,6 +185,14 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	expectedBalanceSender := big.NewInt(99810)
 	utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalanceSender)
 
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(9), indexerTx.GasUsed)
+	require.Equal(t, "90", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	// check accumulated fees
 	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(90), accumulatedFees)
@@ -177,4 +213,12 @@ func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(0), accumulatedFees)
+
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(9), indexerTx.GasUsed)
+	require.Equal(t, "90", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }

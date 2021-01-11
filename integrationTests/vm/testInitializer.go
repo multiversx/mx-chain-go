@@ -77,6 +77,7 @@ type VMTestContext struct {
 	TxFeeHandler     process.TransactionFeeHandler
 	ShardCoordinator sharding.Coordinator
 	ScForwarder      process.IntermediateTransactionHandler
+	EconomicsData    process.EconomicsDataHandler
 }
 
 // Close -
@@ -419,7 +420,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
 	argEnableEpoch ArgEnableEpoch,
-) (process.TransactionProcessor, process.SmartContractProcessor, process.IntermediateTransactionHandler) {
+) (process.TransactionProcessor, process.SmartContractProcessor, process.IntermediateTransactionHandler, process.EconomicsDataHandler) {
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
@@ -483,7 +484,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 	txProcessor, _ := transaction.NewTxProcessor(argsNewTxProcessor)
 
-	return txProcessor, scProcessor, intermediateTxHandler
+	return txProcessor, scProcessor, intermediateTxHandler, economicsData
 }
 
 // TestDeployedContractContents -
@@ -541,7 +542,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
-	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
+	txProcessor, scProcessor, scForwarder, _ := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
 		vmContainer,
@@ -567,7 +568,7 @@ func CreatePreparedTxProcessorWithVMs(tb testing.TB, argEnableEpoch ArgEnableEpo
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
-	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
+	txProcessor, scProcessor, scForwarder, economicsData := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
 		vmContainer,
@@ -578,13 +579,15 @@ func CreatePreparedTxProcessorWithVMs(tb testing.TB, argEnableEpoch ArgEnableEpo
 	)
 
 	return VMTestContext{
-		TxProcessor:    txProcessor,
-		ScProcessor:    scProcessor,
-		Accounts:       accounts,
-		BlockchainHook: blockchainHook,
-		VMContainer:    vmContainer,
-		TxFeeHandler:   feeAccumulator,
-		ScForwarder:    scForwarder,
+		TxProcessor:      txProcessor,
+		ScProcessor:      scProcessor,
+		Accounts:         accounts,
+		BlockchainHook:   blockchainHook,
+		VMContainer:      vmContainer,
+		TxFeeHandler:     feeAccumulator,
+		ScForwarder:      scForwarder,
+		ShardCoordinator: oneShardCoordinator,
+		EconomicsData:    economicsData,
 	}
 }
 
@@ -602,7 +605,7 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, outOfProcess, oneShardCoordinator)
-	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
+	txProcessor, scProcessor, scForwarder, _ := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
 		vmContainer,
@@ -815,7 +818,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(tb testing.TB, selfShardID uint3
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
-	txProcessor, scProcessor, scrForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
+	txProcessor, scProcessor, scrForwarder, economicsData := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
 		vmContainer,
@@ -834,5 +837,6 @@ func CreatePreparedTxProcessorWithVMsMultiShard(tb testing.TB, selfShardID uint3
 		TxFeeHandler:     feeAccumulator,
 		ShardCoordinator: shardCoordinator,
 		ScForwarder:      scrForwarder,
+		EconomicsData:    economicsData,
 	}
 }

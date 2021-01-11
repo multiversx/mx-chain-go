@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -20,6 +22,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
 	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 	testContextDst.TxFeeHandler.CreateBlockStarted()
 
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
@@ -55,6 +58,15 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	developerFees := testContextSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
+	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(10), indexerTx.GasUsed)
+	require.Equal(t, "100", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	//execute on destination shard
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -73,7 +85,17 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
-	scr := txs[1]
+
+	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(386), indexerTx.GasUsed)
+	require.Equal(t, "3860", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+
+	scr := txs[0]
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
@@ -129,6 +151,15 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	developerFees := testContextSource.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
+	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(10), indexerTx.GasUsed)
+	require.Equal(t, "100", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	//execute on destination shard
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(tx)
@@ -148,6 +179,16 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
+
+	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
+	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "5000", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusFail.String(), indexerTx.Status)
+
 	scr := txs[0]
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
