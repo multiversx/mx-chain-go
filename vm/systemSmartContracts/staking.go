@@ -199,6 +199,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.stakeNodesFromQueue(args)
 	case "unStakeAtEndOfEpoch":
 		return s.unStakeAtEndOfEpoch(args)
+	case "getTotalNumberOfRegisteredNodes":
+		return s.getTotalNumberOfRegisteredNodes(args)
 	}
 
 	return vmcommon.UserError
@@ -429,6 +431,10 @@ func (s *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (s *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("function deprecated")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 1 {
 		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
@@ -565,12 +571,22 @@ func (s *stakingSC) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcomm
 		return vmcommon.Ok
 	}
 
-	if !registrationData.Staked {
-		s.eei.AddReturnMessage("cannot unStake node which was already unStaked")
-		return vmcommon.UserError
+	if !registrationData.Staked && !registrationData.Waiting {
+		log.Debug("stakingSC.unStakeAtEndOfEpoch: cannot unStake node which was already unStaked", "blsKey", hex.EncodeToString(args.Arguments[0]))
+		return vmcommon.Ok
 	}
 
-	s.removeFromStakedNodes()
+	if registrationData.Staked {
+		s.removeFromStakedNodes()
+	}
+	if registrationData.Waiting {
+		err = s.removeFromWaitingList(args.Arguments[0])
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
@@ -1343,10 +1359,18 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	passedNonce := currentNonce - stakedData.UnStakedNonce
 	if passedNonce >= s.unBondPeriod {
-		s.eei.Finish([]byte("0"))
+		if s.flagStakingV2.IsSet() {
+			s.eei.Finish(zero.Bytes())
+		} else {
+			s.eei.Finish([]byte("0"))
+		}
 	} else {
 		remaining := s.unBondPeriod - passedNonce
-		s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+		if s.flagStakingV2.IsSet() {
+			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
+		} else {
+			s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
+		}
 	}
 
 	return vmcommon.Ok
@@ -1439,7 +1463,29 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return vmcommon.UserError
 	}
 
-	s.eei.Finish([]byte(hex.EncodeToString(stakedData.OwnerAddress)))
+	s.eei.Finish(stakedData.OwnerAddress)
+	return vmcommon.Ok
+}
+
+func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+
+	stakeConfig := s.getConfig()
+	waitingListHead, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
+	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }
 
@@ -1499,10 +1545,13 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 			return vmcommon.UserError
 		}
 
+		stakedNodes++
 		// return the change key
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)
 	}
+
+	s.addToStakedNodes(int64(stakedNodes))
 
 	return vmcommon.Ok
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -45,6 +46,9 @@ type Facade struct {
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
+	GetBlockByHashCalled                    func(hash string, withTxs bool) (*apiBlock.APIBlock, error)
+	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error)
+	GetTotalStakedValueHandler              func() (*big.Int, error)
 }
 
 // GetUsername -
@@ -187,6 +191,11 @@ func (f *Facade) StatusMetrics() external.StatusMetricsHandler {
 	return f.StatusMetricsHandler()
 }
 
+// GetTotalStakedValue -
+func (f *Facade) GetTotalStakedValue() (*big.Int, error) {
+	return f.GetTotalStakedValueHandler()
+}
+
 // ComputeTransactionGasLimit --
 func (f *Facade) ComputeTransactionGasLimit(tx *transaction.Transaction) (uint64, error) {
 	return f.ComputeTransactionGasLimitHandler(tx)
@@ -233,6 +242,16 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 	}
 
 	return 0
+}
+
+// GetBlockByNonce -
+func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error) {
+	return f.GetBlockByNonceCalled(nonce, withTxs)
+}
+
+// GetBlockByHash -
+func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*apiBlock.APIBlock, error) {
+	return f.GetBlockByHashCalled(hash, withTxs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

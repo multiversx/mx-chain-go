@@ -64,4 +64,5 @@ type ArgMetaProcessor struct {
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	RewardsV2EnableEpoch         uint32
 }

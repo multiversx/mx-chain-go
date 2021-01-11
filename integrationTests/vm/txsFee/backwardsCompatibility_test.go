@@ -16,7 +16,6 @@ import (
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(
 		t,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 			BuiltinEnableEpoch:             100,
@@ -60,7 +59,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(
 		t,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 			BuiltinEnableEpoch:             100,
@@ -86,7 +84,6 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(
 		t,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 0,
 			BuiltinEnableEpoch:             100,

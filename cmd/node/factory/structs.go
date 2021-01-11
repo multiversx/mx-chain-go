@@ -89,6 +89,8 @@ const (
 	DefaultStaticDbString = "Static"
 	// DefaultShardString is the default Shard string when creating DB path
 	DefaultShardString = "Shard"
+	// TemporaryPath is the default temporary path directory
+	TemporaryPath = "temp"
 )
 
 //TODO remove this
@@ -1412,6 +1414,7 @@ func newBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
+	workingDir := filepath.Join(processArgs.workingDir, TemporaryPath)
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
@@ -1442,7 +1445,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1478,7 +1481,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 			processArgs.rater,
 		)
 	}
@@ -2107,6 +2110,7 @@ func newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -2218,6 +2222,7 @@ func newMetaBlockProcessor(
 		MaxNodesEnableConfig:                   generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
 		StakingDataProvider:                    stakingDataProvider,
 		NodesConfigProvider:                    nodesCoordinator,
+		ShardCoordinator:                       shardCoordinator,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -2234,6 +2239,7 @@ func newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		RewardsV2EnableEpoch:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

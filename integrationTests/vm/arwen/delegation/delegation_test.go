@@ -201,20 +201,12 @@ func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
 	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
 }
 
-func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, false, 100, 1)
-}
-
 func TestDelegationProcessManyAotInProcess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -222,7 +214,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -230,10 +222,10 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -249,7 +241,6 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		warmInstance,
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)

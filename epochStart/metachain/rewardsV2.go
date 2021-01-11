@@ -316,8 +316,8 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 	// topUpRewardPerNodeInShardX = nodePowerInShardX*topUpRewardsShardX/totalPowerInShardX
 	for shardID, nodeInfoList := range nodesRewardInfo {
 		if totalPowerInShard[shardID].Cmp(zero) == 0 {
-			log.Warn("rewardsCreatorV2.computeTopUpRewardsPerNode",
-				"error", "shardPower zero",
+			log.Debug("rewardsCreatorV2.computeTopUpRewardsPerNode",
+				"shardPower", 0,
 				"shardID", shardID)
 			continue
 		}
