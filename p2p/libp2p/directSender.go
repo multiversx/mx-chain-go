@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -116,6 +117,9 @@ func (ds *directSender) processReceivedDirectMessage(message *pubsubPb.Message, 
 	}
 	if len(message.TopicIDs) == 0 {
 		return p2p.ErrEmptyTopicList
+	}
+	if !bytes.Equal(message.GetFrom(), []byte(fromConnectedPeer)) {
+		return fmt.Errorf("%w mismatch between From and fromConnectedPeer values", p2p.ErrInvalidValue)
 	}
 	if ds.checkAndSetSeenMessage(message) {
 		return p2p.ErrAlreadySeenMessage
