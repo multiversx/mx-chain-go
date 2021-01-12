@@ -418,7 +418,7 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.PublicKey)
 			if err != nil {
 				log.Error("fillStakingDataForNonEligible", "error", err)
-				if validatorInfo.List == string(core.WaitingList) || validatorInfo.List == string(core.JailedList) {
+				if len(validatorInfo.List) > 0 {
 					return err
 				}
 

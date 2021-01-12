@@ -2075,6 +2075,7 @@ func newMetaBlockProcessor(
 		RatingsData:      ratingsData,
 		EpochNotifier:    epochNotifier,
 		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
+		UnBondCorrection: generalConfig.GeneralSettings.SCDeployEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
