@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
@@ -355,8 +354,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 }
 
 // SetTxLogsProcessor will set tx logs processor
-func (ei *elasticProcessor) SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase) {
-	//ei.txLogsProcessor = txLogsProc
+func (ei *elasticProcessor) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server

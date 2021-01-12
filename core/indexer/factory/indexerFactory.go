@@ -8,7 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -83,7 +83,7 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	return indexer.NewDataIndexer(arguments)
 }
 
-func createDatabaseClient(url, userName, password string) (process.DatabaseClientHandler, error) {
+func createDatabaseClient(url, userName, password string) (processIndexer.DatabaseClientHandler, error) {
 	return client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{url},
 		Username:  userName,
@@ -104,7 +104,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		templatesPath = path.Join(args.TemplatesPath, noKibanaFolder)
 	}
 
-	indexTemplates, indexPolicies, err := process.GetElasticTemplatesAndPolicies(templatesPath, args.Options.UseKibana)
+	indexTemplates, indexPolicies, err := processIndexer.GetElasticTemplatesAndPolicies(templatesPath, args.Options.UseKibana)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		return nil, indexer.ErrEmptyEnabledIndexes
 	}
 
-	esIndexerArgs := process.ArgElasticProcessor{
+	esIndexerArgs := processIndexer.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              args.Marshalizer,
@@ -134,7 +134,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		ShardCoordinator:         args.ShardCoordinator,
 	}
 
-	return process.NewElasticProcessor(esIndexerArgs)
+	return processIndexer.NewElasticProcessor(esIndexerArgs)
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {

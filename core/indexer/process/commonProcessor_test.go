@@ -33,7 +33,7 @@ func createCommonProcessor() commonProcessor {
 			},
 		},
 		shardCoordinator: &mock.ShardCoordinatorMock{},
-		esdtProc:                 newEsdtTransactionHandler(),
+		esdtProc:         newEsdtTransactionHandler(),
 	}
 }
 
@@ -81,7 +81,7 @@ func TestGetMoveBalanceTransaction(t *testing.T) {
 		Signature:        hex.EncodeToString(tx.Signature),
 		Timestamp:        time.Duration(header.GetTimeStamp()),
 		Status:           status,
-		rcvAddrBytes:     []byte("receiver"),
+		RcvAddrBytes:     []byte("receiver"),
 		Fee:              "100",
 		ReceiverUserName: []byte("rcv"),
 		SenderUserName:   []byte("snd"),
@@ -157,21 +157,4 @@ func TestGetTransactionByType_RewardTx(t *testing.T) {
 	}
 
 	require.Equal(t, expectedTx, resultTx)
-}
-
-func TestPrepareBufferMiniblocks(t *testing.T) {
-	var buff bytes.Buffer
-
-	meta := []byte("test1")
-	serializedData := []byte("test2")
-
-	buff = prepareBufferMiniblocks(buff, meta, serializedData)
-
-	var expectedBuff bytes.Buffer
-	serializedData = append(serializedData, "\n"...)
-	expectedBuff.Grow(len(meta) + len(serializedData))
-	_, _ = expectedBuff.Write(meta)
-	_, _ = expectedBuff.Write(serializedData)
-
-	require.Equal(t, expectedBuff, buff)
 }

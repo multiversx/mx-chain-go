@@ -63,7 +63,7 @@ func TestIsSCRForSenderWithGasUsed(t *testing.T) {
 		PreTxHash: txHash,
 	}
 
-	require.True(t, isSCRForSenderWithGasUsed(sc, tx))
+	require.True(t, isSCRForSenderWithRefund(sc, tx))
 }
 
 func TestComputeTxGasUsedField(t *testing.T) {

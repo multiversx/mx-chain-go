@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -20,8 +23,8 @@ type commonProcessor struct {
 	esdtProc                 *esdtTransactionProcessor
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
-	minGasLimit              uint64
-	gasPerDataByte           uint64
+	shardCoordinator         sharding.Coordinator
+	txFeeCalculator          process.TransactionFeeCalculator
 }
 
 func (cm *commonProcessor) buildTransaction(
@@ -32,12 +35,13 @@ func (cm *commonProcessor) buildTransaction(
 	header data.HeaderHandler,
 	txStatus string,
 ) *types.Transaction {
-	gasUsed := cm.minGasLimit + uint64(len(tx.Data))*cm.gasPerDataByte
-
 	var tokenIdentifier, esdtValue string
 	if isESDTTx := cm.esdtProc.isESDTTx(tx); isESDTTx {
 		tokenIdentifier, esdtValue = cm.esdtProc.getTokenIdentifierAndValue(tx)
 	}
+
+	gasUsed := cm.txFeeCalculator.ComputeGasLimit(tx)
+	fee := cm.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &types.Transaction{
 		Hash:                hex.EncodeToString(txHash),
@@ -55,9 +59,13 @@ func (cm *commonProcessor) buildTransaction(
 		Signature:           hex.EncodeToString(tx.Signature),
 		Timestamp:           time.Duration(header.GetTimeStamp()),
 		Status:              txStatus,
-		GasUsed:             gasUsed,
 		EsdtTokenIdentifier: tokenIdentifier,
 		EsdtValue:           esdtValue,
+		GasUsed:             gasUsed,
+		Fee:                 fee.String(),
+		ReceiverUserName:    tx.RcvUserName,
+		SenderUserName:      tx.SndUserName,
+		RcvAddrBytes:        tx.RcvAddr,
 	}
 }
 

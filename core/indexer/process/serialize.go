@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -389,12 +390,11 @@ func prepareSerializedDataForATransaction(
 		`{"status": "%s", "miniBlockHash": "%s", "log": %s, ""timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
 		tx.Status, tx.MBHash, string(marshaledLog), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
 
-
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
 	return metaData, serializedData, nil
 }
 
-func isRelayedTx(tx *Transaction) bool {
+func isRelayedTx(tx *types.Transaction) bool {
 	return strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0
 }

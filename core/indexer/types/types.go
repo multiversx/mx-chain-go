@@ -34,7 +34,7 @@ type Transaction struct {
 	ReceiverUserName     []byte        `json:"rcvUserName,omitempty"`
 	SmartContractResults []*ScResult   `json:"-"`
 	Log                  TxLog         `json:"-"`
-	rcvAddrBytes         []byte
+	RcvAddrBytes         []byte        `json:"-"`
 }
 
 // GetGasLimit will return transaction gas limit
@@ -54,7 +54,7 @@ func (t *Transaction) GetData() []byte {
 
 // GetRcvAddr will return transaction receiver address
 func (t *Transaction) GetRcvAddr() []byte {
-	return t.rcvAddrBytes
+	return t.RcvAddrBytes
 }
 
 // GetValue wil return transaction value

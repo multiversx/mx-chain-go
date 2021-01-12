@@ -459,11 +459,11 @@ func TestAlteredAddresses(t *testing.T) {
 			txFeeCalculator:        &economicsmocks.EconomicsHandlerStub{},
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
 			esdtProc:               newEsdtTransactionHandler(),
+			shardCoordinator:       shardCoordinator,
 		},
-		marshalizer:      &mock.MarshalizerMock{},
-		hasher:           &mock.HasherMock{},
-		txLogsProcessor:  txLogProc,
-		shardCoordinator: shardCoordinator,
+		marshalizer:     &mock.MarshalizerMock{},
+		hasher:          &mock.HasherMock{},
+		txLogsProcessor: txLogProc,
 	}
 
 	_, _, _, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
@@ -488,19 +488,18 @@ func txPoolHasSearchOrder(txPool map[string]*types.Transaction, searchOrder uint
 }
 
 func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
-func TestIsSCRForSenderWithGasUsed(t *testing.T) {
 	t.Parallel()
 
 	txHash := "txHash"
 	nonce := uint64(10)
 	sender := "sender"
 
-	tx := &Transaction{
+	tx := &types.Transaction{
 		Hash:   txHash,
 		Nonce:  nonce,
 		Sender: sender,
 	}
-	sc := ScResult{
+	sc := &types.ScResult{
 		Data:      []byte("@6f6b@something"),
 		Nonce:     nonce + 1,
 		Receiver:  sender,
@@ -554,7 +553,7 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 		string(recHash1): rec1,
 	}
 
-	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	txs, _, _, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	require.Len(t, txs, 1)
 	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
 }
@@ -562,13 +561,6 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
-	tx := &types.Transaction{
-		Hash:     "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		Nonce:    11,
-		GasLimit: 40000000,
-		GasPrice: 1000000000,
-		Status:   "success",
-		Sender:   "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
 	txProc := newTxDatabaseProcessor(
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
@@ -602,14 +594,6 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 			},
 		},
 	}
-	sc := &types.ScResult{
-		PreTxHash:      "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		Nonce:          12,
-		Value:          "0",
-		Receiver:       "erd1xa7lf3kux3ujrzc6ul0t7tq2x0zdph99pcg0zdj8jctftsk7krus3luq53",
-		Data:           []byte("@6f6b@"),
-		OriginalTxHash: "dad46ed504695598d1e95781e77f224bf4fd829a63f2b05170f1b7f4e5bcd329",
-		ReturnMessage:  "too much gas provided: gas needed = 109013, gas remained = 18609087",
 
 	header := &block.Header{}
 
@@ -618,7 +602,7 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 		string(scResHash1): scRes1,
 	}
 
-	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	txs, _, _, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
 	require.Len(t, txs, 1)
 	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
 }

@@ -2,12 +2,8 @@ package process
 
 import (
 	"encoding/hex"
-	"strconv"
-	"math/big"
-	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
@@ -31,12 +27,10 @@ var log = logger.GetOrCreate("indexer/process")
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor  process.TransactionLogProcessorDatabase
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
-	isInImportMode   bool
-	shardCoordinator sharding.Coordinator
-	txFeeCalculator  process.TransactionFeeCalculator
+	txLogsProcessor process.TransactionLogProcessorDatabase
+	hasher          hashing.Hasher
+	marshalizer     marshal.Marshalizer
+	isInImportMode  bool
 }
 
 func newTxDatabaseProcessor(
@@ -58,10 +52,8 @@ func newTxDatabaseProcessor(
 			shardCoordinator:         shardCoordinator,
 			esdtProc:                 newEsdtTransactionHandler(),
 		},
-		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
-		isInImportMode:   isInImportMode,
-		shardCoordinator: shardCoordinator,
-		txFeeCalculator:  txFeeCalculator,
+		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
+		isInImportMode:  isInImportMode,
 	}
 }
 
@@ -197,22 +189,6 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResult *types.ScResult, 
 	}
 
 	return tx
-}
-
-func isSCRForSenderWithRefund(dbScResult ScResult, tx *Transaction) bool {
-	isForSender := dbScResult.Receiver == tx.Sender
-	isRightNonce := dbScResult.Nonce == tx.Nonce+1
-	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
-	isScrDataOk := isDataOk(dbScResult.Data)
-
-	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
-}
-
-func isDataOk(data []byte) bool {
-	okEncoded := hex.EncodeToString([]byte("ok"))
-	dataFieldStr := "@" + okEncoded
-
-	return strings.HasPrefix(string(data), dataFieldStr)
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {

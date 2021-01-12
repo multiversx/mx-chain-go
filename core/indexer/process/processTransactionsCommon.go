@@ -3,9 +3,6 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
-	"math/big"
-	"strings"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
@@ -17,6 +14,8 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"math/big"
+	"strings"
 )
 
 func convertMapTxsToSlice(txs map[string]*types.Transaction) []*types.Transaction {
@@ -177,7 +176,7 @@ func computeTxGasUsedField(dbScResult *types.ScResult, tx *types.Transaction) ui
 	return gasUsedBig.Uint64()
 }
 
-func isSCRForSenderWithGasUsed(dbScResult *types.ScResult, tx *types.Transaction) bool {
+func isSCRForSenderWithRefund(dbScResult *types.ScResult, tx *types.Transaction) bool {
 	isForSender := dbScResult.Receiver == tx.Sender
 	isRightNonce := dbScResult.Nonce == tx.Nonce+1
 	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
@@ -191,4 +190,13 @@ func isDataOk(data []byte) bool {
 	dataFieldStr := "@" + okEncoded
 
 	return strings.HasPrefix(string(data), dataFieldStr)
+}
+
+func stringValueToBigInt(strValue string) *big.Int {
+	value, ok := big.NewInt(0).SetString(strValue, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return value
 }
