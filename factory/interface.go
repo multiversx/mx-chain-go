@@ -102,7 +102,7 @@ type CoreComponentsHolder interface {
 	Watchdog() core.WatchdogTimer
 	AlarmScheduler() core.TimersScheduler
 	SyncTimer() ntp.SyncTimer
-	Rounder() consensus.Rounder
+	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsHandler
 	RatingsData() process.RatingsInfoHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
@@ -239,7 +239,7 @@ type ProcessComponentsHolder interface {
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
 	ResolversFinder() dataRetriever.ResolversFinder
-	Rounder() consensus.Rounder
+	RoundHandler() consensus.RoundHandler
 	EpochStartTrigger() epochStart.TriggerHandler
 	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector

@@ -61,7 +61,7 @@ type baseProcessor struct {
 	headerValidator         process.HeaderConstructionValidator
 	blockChainHook          process.BlockChainHookHandler
 	txCoordinator           process.TransactionCoordinator
-	rounder                 consensus.Rounder
+	roundHandler            consensus.RoundHandler
 	bootStorer              process.BootStorer
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
@@ -244,7 +244,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.rounder.Index() - 1
+		lastRound := bp.roundHandler.Index() - 1
 		roundsDiff := lastRound - int64(prevHdr.GetRound())
 		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
 		missingNonces = append(missingNonces, nonces...)
@@ -385,8 +385,8 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.EpochStartTrigger) {
 		return process.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(arguments.Rounder) {
-		return process.ErrNilRounder
+	if check.IfNil(arguments.RoundHandler) {
+		return process.ErrNilRoundHandler
 	}
 	if check.IfNil(arguments.BootStorer) {
 		return process.ErrNilStorage
@@ -1223,7 +1223,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	}
 
 	waitTime := core.ExtraDelayForRequestBlockInfo
-	roundDifferences := bp.rounder.Index() - int64(headerHandler.GetRound())
+	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}

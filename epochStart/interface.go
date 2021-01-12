@@ -30,8 +30,8 @@ type TriggerHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
-type Rounder interface {
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
 	// Index returns the current round
 	Index() int64
 	// TimeStamp returns the time stamp of the round

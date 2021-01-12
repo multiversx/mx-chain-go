@@ -92,7 +92,7 @@ type epochStartBootstrap struct {
 	trieStorageManagers        map[string]data.StorageManager
 	mutTrieStorageManagers     sync.RWMutex
 	nodeShuffler               sharding.NodesShuffler
-	rounder                    epochStart.Rounder
+	roundHandler               epochStart.RoundHandler
 	addressPubkeyConverter     core.PubkeyConverter
 	statusHandler              core.AppStatusHandler
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -150,7 +150,7 @@ type ArgsEpochStartBootstrap struct {
 	LatestStorageDataProvider  storage.LatestStorageDataProviderHandler
 	Rater                      sharding.ChanceComputer
 	NodeShuffler               sharding.NodesShuffler
-	Rounder                    epochStart.Rounder
+	RoundHandler               epochStart.RoundHandler
 	ArgumentsParser            process.ArgumentsParser
 	StatusHandler              core.AppStatusHandler
 	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
@@ -174,7 +174,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		rater:                      args.Rater,
 		destinationShardAsObserver: args.DestinationShardAsObserver,
 		nodeShuffler:               args.NodeShuffler,
-		rounder:                    args.Rounder,
+		roundHandler:               args.RoundHandler,
 		storageOpenerHandler:       args.StorageUnitOpener,
 		latestStorageDataProvider:  args.LatestStorageDataProvider,
 		shuffledOut:                false,
@@ -222,7 +222,7 @@ func (e *epochStartBootstrap) isStartInEpochZero() bool {
 		return true
 	}
 
-	currentRound := e.rounder.Index() - e.startRound
+	currentRound := e.roundHandler.Index() - e.startRound
 	epochEndPlusGracePeriod := float64(e.generalConfig.EpochStartConfig.RoundsPerEpoch) * (gracePeriodInPercentage + 1.0)
 	log.Debug("IsStartInEpochZero", "currentRound", currentRound, "epochEndRound", epochEndPlusGracePeriod)
 	return float64(currentRound) < epochEndPlusGracePeriod
@@ -423,7 +423,7 @@ func (e *epochStartBootstrap) computeIfCurrentEpochIsSaved() bool {
 		return false
 	}
 
-	computedRound := e.rounder.Index()
+	computedRound := e.roundHandler.Index()
 	log.Debug("computed round", "round", computedRound, "lastRound", e.baseData.lastRound)
 	if computedRound-e.baseData.lastRound < roundGracePeriod {
 		return true

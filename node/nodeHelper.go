@@ -75,7 +75,7 @@ func CreateHardForkTrigger(
 		InputAntifloodHandler:     network.InputAntiFloodHandler(),
 		OutputAntifloodHandler:    network.OutputAntiFloodHandler(),
 		ValidityAttester:          process.BlockTracker(),
-		Rounder:                   process.Rounder(),
+		RoundHandler:              process.RoundHandler(),
 		InterceptorDebugConfig:    config.Debug.InterceptorResolver,
 		EnableSignTxWithHashEpoch: config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch,
 	}
@@ -97,7 +97,7 @@ func CreateHardForkTrigger(
 		EpochConfirmedNotifier:    epochStartNotifier,
 		CloseAfterExportInMinutes: config.Hardfork.CloseAfterExportInMinutes,
 		ImportStartHandler:        importStartHandler,
-		RoundHandler:              process.Rounder(),
+		RoundHandler:              process.RoundHandler(),
 	}
 	hardforkTrigger, err := trigger.NewTrigger(argTrigger)
 	if err != nil {

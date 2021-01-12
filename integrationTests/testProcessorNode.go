@@ -242,7 +242,7 @@ type TestProcessorNode struct {
 	BroadcastMessenger       consensus.BroadcastMessenger
 	MiniblocksProvider       process.MiniBlockProvider
 	Bootstrapper             TestBootstrapper
-	Rounder                  *mock.RounderMock
+	RoundHandler             *mock.RoundHandlerMock
 	BootstrapStorer          *mock.BoostrapStorerMock
 	StorageBootstrapper      *mock.StorageBootstrapperMock
 	RequestedItemsHandler    dataRetriever.RequestedItemsHandler
@@ -454,7 +454,7 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn := newBaseTestProcessorNode(maxShards, nodeShardId, txSignPrivKeyShardId, initialNodeAddr)
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -596,7 +596,7 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 func (tpn *TestProcessorNode) initTestNode() {
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs()
@@ -862,7 +862,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: tpn.Rounder.TimeStamp(),
+			GenesisTime: tpn.RoundHandler.TimeStamp(),
 			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
@@ -925,7 +925,7 @@ func (tpn *TestProcessorNode) initInterceptors() {
 			Finality:             1,
 			EpochStartNotifier:   tpn.EpochStartNotifier,
 			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			Rounder:              tpn.Rounder,
+			RoundHandler:         tpn.RoundHandler,
 			AppStatusHandler:     &testscommon.AppStatusHandlerStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
@@ -1392,9 +1392,9 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 	var err error
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = sync2.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	} else {
-		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
+		tpn.ForkDetector, _ = sync2.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
 	}
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
@@ -1422,7 +1422,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		RequestHandler:   tpn.RequestHandler,
 		BlockChainHook:   tpn.BlockchainHook,
 		HeaderValidator:  tpn.HeaderValidator,
-		Rounder:          tpn.Rounder,
+		RoundHandler:     tpn.RoundHandler,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -1445,7 +1445,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime: argumentsBase.Rounder.TimeStamp(),
+			GenesisTime: argumentsBase.RoundHandler.TimeStamp(),
 			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1000,
 				RoundsPerEpoch:         10000,
@@ -1495,7 +1495,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			Store:              tpn.Storage,
 			ShardCoordinator:   tpn.ShardCoordinator,
 			RewardsHandler:     tpn.EconomicsData,
-			RoundTime:          tpn.Rounder,
+			RoundTime:          tpn.RoundHandler,
 			GenesisTotalSupply: tpn.EconomicsData.GenesisTotalSupply(),
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
@@ -1573,7 +1573,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				Finality:             1,
 				EpochStartNotifier:   tpn.EpochStartNotifier,
 				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-				Rounder:              tpn.Rounder,
+				RoundHandler:         tpn.RoundHandler,
 				AppStatusHandler:     &testscommon.AppStatusHandlerStub{},
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
@@ -1803,7 +1803,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	blockHeader.SetSoftwareVersion(SoftwareVersion)
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
-	blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.Rounder.TimeDuration().Seconds()))
+	blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
 
 	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
 	if err != nil {
@@ -2072,8 +2072,8 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 	return true
 }
 
-func (tpn *TestProcessorNode) initRounder() {
-	tpn.Rounder = &mock.RounderMock{TimeDurationField: 5 * time.Second}
+func (tpn *TestProcessorNode) initRoundHandler() {
+	tpn.RoundHandler = &mock.RoundHandlerMock{TimeDurationField: 5 * time.Second}
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
@@ -2086,7 +2086,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		HeaderValidator:  tpn.HeaderValidator,
 		Marshalizer:      TestMarshalizer,
 		RequestHandler:   tpn.RequestHandler,
-		Rounder:          tpn.Rounder,
+		RoundHandler:     tpn.RoundHandler,
 		ShardCoordinator: tpn.ShardCoordinator,
 		Store:            tpn.Storage,
 		StartHeaders:     tpn.GenesisBlocks,
@@ -2132,7 +2132,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger(heartbeatPk str
 		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
 		SelfPubKeyBytes:           pkBytes,
 		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RounderMock{},
+		RoundHandler:              &mock.RoundHandlerMock{},
 	}
 	var err error
 	if len(heartbeatPk) > 0 {
@@ -2255,7 +2255,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 		WatchdogField:          &testscommon.WatchdogMock{},
 		AlarmSchedulerField:    &testscommon.AlarmSchedulerStub{},
 		SyncTimerField:         &testscommon.SyncTimerStub{},
-		RounderField:           &testscommon.RounderMock{},
+		RoundHandlerField:      &testscommon.RoundHandlerMock{},
 		EconomicsDataField:     &economicsMocks.EconomicsHandlerMock{},
 		RatingsDataField:       &testscommon.RatingsInfoMock{},
 		RaterField:             &testscommon.RaterMock{},
@@ -2276,7 +2276,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		},
 		IntContainer:             &mock.InterceptorsContainerStub{},
 		ResFinder:                &mock.ResolversFinderStub{},
-		RoundHandler:             &testscommon.RounderMock{},
+		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorStub{},

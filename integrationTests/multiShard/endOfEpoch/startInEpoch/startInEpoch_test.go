@@ -179,7 +179,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.Messenger = messenger
 
-	rounder := &mock.RounderMock{IndexField: int64(round)}
+	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
@@ -211,7 +211,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		Rater:                      &mock.RaterMock{},
 		DestinationShardAsObserver: shardID,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    rounder,
+		RoundHandler:               roundHandler,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              &mock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    integrationTests.CreateHeaderIntegrityVerifier(),

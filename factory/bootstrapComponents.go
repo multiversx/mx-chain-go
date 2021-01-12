@@ -148,7 +148,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		Rater:                      bcf.coreComponents.Rater(),
 		DestinationShardAsObserver: destShardIdAsObserver,
 		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
-		Rounder:                    bcf.coreComponents.Rounder(),
+		RoundHandler:               bcf.coreComponents.RoundHandler(),
 		LatestStorageDataProvider:  latestStorageDataProvider,
 		ArgumentsParser:            smartContract.NewArgumentParser(),
 		StatusHandler:              bcf.coreComponents.StatusHandler(),
@@ -228,7 +228,6 @@ func (bc *bootstrapComponents) ShardCoordinator() sharding.Coordinator {
 func (bc *bootstrapComponents) HeaderIntegrityVerifier() HeaderIntegrityVerifierHandler {
 	return bc.headerIntegrityVerifier
 }
-
 
 // CreateLatestStorageDataProvider will create a latest storage data provider handler
 func CreateLatestStorageDataProvider(

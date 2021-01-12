@@ -317,8 +317,8 @@ var ErrNilRequestHandler = errors.New("nil request handler")
 // ErrNilResolversFinder signals that a nil resolver finder was provided
 var ErrNilResolversFinder = errors.New("nil resolvers finder")
 
-// ErrNilRounder signals that a nil rounder was provided
-var ErrNilRounder = errors.New("nil rounder")
+// ErrNilRoundHandler signals that a nil roundHandler was provided
+var ErrNilRoundHandler = errors.New("nil roundHandler")
 
 // ErrNilShardCoordinator signals that a nil shard coordinator was provided
 var ErrNilShardCoordinator = errors.New("nil shard coordinator provided")

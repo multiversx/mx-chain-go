@@ -35,7 +35,7 @@ type CoreComponentsStub struct {
 	WatchdogField                      core.WatchdogTimer
 	AlarmSchedulerField                core.TimersScheduler
 	SyncTimerField                     ntp.SyncTimer
-	RounderField                       consensus.Rounder
+	RoundHandlerField                  consensus.RoundHandler
 	EconomicsDataField                 process.EconomicsHandler
 	RatingsDataField                   process.RatingsInfoHandler
 	RaterField                         sharding.PeerAccountListAndRatingHandler
@@ -93,9 +93,9 @@ func (ccs *CoreComponentsStub) SyncTimer() ntp.SyncTimer {
 	return ccs.SyncTimerField
 }
 
-// Rounder -
-func (ccs *CoreComponentsStub) Rounder() consensus.Rounder {
-	return ccs.RounderField
+// RoundHandler -
+func (ccs *CoreComponentsStub) RoundHandler() consensus.RoundHandler {
+	return ccs.RoundHandlerField
 }
 
 // EconomicsData -

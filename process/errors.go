@@ -146,8 +146,8 @@ var ErrNilNodesConfigProvider = errors.New("nil nodes config provider")
 // ErrNilSystemSCConfig signals that nil system sc config was provided
 var ErrNilSystemSCConfig = errors.New("nil system sc config")
 
-// ErrNilRounder signals that an operation has been attempted to or with a nil Rounder implementation
-var ErrNilRounder = errors.New("nil Rounder")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
 
 // ErrNilMessenger signals that a nil Messenger object was provided
 var ErrNilMessenger = errors.New("nil Messenger")

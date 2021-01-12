@@ -58,7 +58,7 @@ type ArgsExporter struct {
 	ValidityAttester          process.ValidityAttester
 	InputAntifloodHandler     process.P2PAntifloodHandler
 	OutputAntifloodHandler    process.P2PAntifloodHandler
-	Rounder                   process.Rounder
+	RoundHandler              process.RoundHandler
 	InterceptorDebugConfig    config.InterceptorResolverDebugConfig
 	EnableSignTxWithHashEpoch uint32
 }
@@ -91,7 +91,7 @@ type exportHandlerFactory struct {
 	resolverContainer         dataRetriever.ResolversContainer
 	inputAntifloodHandler     process.P2PAntifloodHandler
 	outputAntifloodHandler    process.P2PAntifloodHandler
-	rounder                   process.Rounder
+	roundHandler              process.RoundHandler
 	interceptorDebugConfig    config.InterceptorResolverDebugConfig
 	enableSignTxWithHashEpoch uint32
 }
@@ -188,7 +188,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.OutputAntifloodHandler) {
 		return nil, update.ErrNilAntiFloodHandler
 	}
-	if check.IfNil(args.Rounder) {
+	if check.IfNil(args.RoundHandler) {
 		return nil, update.ErrNilRoundHandler
 	}
 	if check.IfNil(args.CoreComponents.TxSignHasher()) {
@@ -223,7 +223,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		inputAntifloodHandler:     args.InputAntifloodHandler,
 		outputAntifloodHandler:    args.OutputAntifloodHandler,
 		maxTrieLevelInMemory:      args.MaxTrieLevelInMemory,
-		rounder:                   args.Rounder,
+		roundHandler:              args.RoundHandler,
 		interceptorDebugConfig:    args.InterceptorDebugConfig,
 		enableSignTxWithHashEpoch: args.EnableSignTxWithHashEpoch,
 	}
@@ -265,7 +265,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Validity:             process.MetaBlockValidity,
 		Finality:             process.BlockFinality,
 		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		Rounder:              e.rounder,
+		RoundHandler:         e.roundHandler,
 		AppStatusHandler:     e.CoreComponents.StatusHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)

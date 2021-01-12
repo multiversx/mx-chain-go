@@ -45,7 +45,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		SelfNotarizedFromCrossHeadersNotifier: bbt.selfNotarizedFromCrossHeadersNotifier,
 		SelfNotarizedHeadersNotifier:          bbt.selfNotarizedHeadersNotifier,
 		FinalMetachainHeadersNotifier:         bbt.finalMetachainHeadersNotifier,
-		Rounder:                               arguments.Rounder,
+		RoundHandler:                          arguments.RoundHandler,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

@@ -322,7 +322,7 @@ func CreateMockArguments(
 			TxCoordinator:     &mock.TransactionCoordinatorMock{},
 			EpochStartTrigger: &mock.EpochStartTriggerStub{},
 			HeaderValidator:   headerValidator,
-			Rounder:           &mock.RounderMock{},
+			RoundHandler:      &mock.RoundHandlerMock{},
 			BootStorer: &mock.BoostrapStorerMock{
 				PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 					return nil
@@ -1036,7 +1036,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents)
-	rounder := &mock.RounderMock{}
+	roundHandler := &mock.RoundHandlerMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
@@ -1044,14 +1044,14 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 			mutRequestedNonces.Unlock()
 		},
 	}
-	arguments.Rounder = rounder
+	arguments.RoundHandler = roundHandler
 	arguments.RequestHandler = requestHandlerStub
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	sortedHeaders := make([]data.HeaderHandler, 0)
 
 	requestedNonces = make([]uint64, 0)
-	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 5
+	roundHandler.RoundIndex = process.MaxHeaderRequestsAllowed + 5
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
@@ -1063,7 +1063,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 	assert.Equal(t, expectedNonces, requestedNonces)
 
 	requestedNonces = make([]uint64, 0)
-	rounder.RoundIndex = 5
+	roundHandler.RoundIndex = 5
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
@@ -1083,7 +1083,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents)
-	rounder := &mock.RounderMock{}
+	roundHandler := &mock.RoundHandlerMock{}
 	requestHandlerStub := &mock.RequestHandlerStub{
 		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
 			mutRequestedNonces.Lock()
@@ -1091,7 +1091,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 			mutRequestedNonces.Unlock()
 		},
 	}
-	arguments.Rounder = rounder
+	arguments.RoundHandler = roundHandler
 	arguments.RequestHandler = requestHandlerStub
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1122,7 +1122,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	sortedHeaders = append(sortedHeaders, hdr3)
 
 	requestedNonces = make([]uint64, 0)
-	rounder.RoundIndex = 15
+	roundHandler.RoundIndex = 15
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
@@ -1134,7 +1134,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	assert.Equal(t, expectedNonces, requestedNonces)
 
 	requestedNonces = make([]uint64, 0)
-	rounder.RoundIndex = process.MaxHeaderRequestsAllowed + 10
+	roundHandler.RoundIndex = process.MaxHeaderRequestsAllowed + 10
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 	time.Sleep(100 * time.Millisecond)
 	mutRequestedNonces.Lock()
@@ -1163,8 +1163,8 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	coreComponents, dataComponents := createComponentHolderMocks()
 	dataComponents.DataPool = poolsHolderStub
 	arguments := CreateMockArguments(coreComponents, dataComponents)
-	rounder := &mock.RounderMock{}
-	arguments.Rounder = rounder
+	roundHandler := &mock.RoundHandlerMock{}
+	arguments.RoundHandler = roundHandler
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
@@ -1196,7 +1196,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 
 	addedNonces = make([]uint64, 0)
 
-	rounder.RoundIndex = 12
+	roundHandler.RoundIndex = 12
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 
 	expectedAddedNonces := []uint64{6, 7, 9}

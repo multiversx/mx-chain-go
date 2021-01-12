@@ -127,7 +127,7 @@ func getProcessArgs(
 		SmartContractParser: &mock.SmartContractParserStub{},
 		EconomicsData:       CreateEconomicsData(),
 		GasSchedule:         gasScheduleNotifier,
-		Rounder: &mock.RounderMock{
+		RoundHandler: &mock.RoundHandlerMock{
 			RoundTimeDuration: time.Second,
 		},
 		ShardCoordinator:          shardCoordinator,

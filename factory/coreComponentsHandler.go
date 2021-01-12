@@ -123,8 +123,8 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.syncTimer) {
 		return errors.ErrNilSyncTimer
 	}
-	if check.IfNil(mcc.rounder) {
-		return errors.ErrNilRounder
+	if check.IfNil(mcc.RoundHandler()) {
+		return errors.ErrNilRoundHandler
 	}
 	if check.IfNil(mcc.economicsData) {
 		return errors.ErrNilEconomicsHandler
@@ -429,8 +429,8 @@ func (mcc *managedCoreComponents) GenesisNodesSetup() sharding.GenesisNodesSetup
 	return mcc.coreComponents.nodesSetupHandler
 }
 
-// Rounder returns the rounder
-func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
+// RoundHandler returns the roundHandler
+func (mcc *managedCoreComponents) RoundHandler() consensus.RoundHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -438,7 +438,7 @@ func (mcc *managedCoreComponents) Rounder() consensus.Rounder {
 		return nil
 	}
 
-	return mcc.coreComponents.rounder
+	return mcc.coreComponents.RoundHandler
 }
 
 // NodesShuffler returns the nodes shuffler

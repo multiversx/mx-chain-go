@@ -39,7 +39,7 @@ type CoreComponentsMock struct {
 	ChainIdCalled               func() string
 	MinTransactionVersionCalled func() uint32
 	mutIntMarshalizer           sync.RWMutex
-	RoundHandler                consensus.Rounder
+	RoundHandlerField           consensus.RoundHandler
 	EconomicsHandler            process.EconomicsHandler
 	RatingsConfig               process.RatingsInfoHandler
 	RatingHandler               sharding.PeerAccountListAndRatingHandler
@@ -163,12 +163,12 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 
 // TxVersionChecker -
 func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
-		return ccm.TxVersionCheckHandler
+	return ccm.TxVersionCheckHandler
 }
 
-// Rounder -
-func (ccm *CoreComponentsMock) Rounder() consensus.Rounder {
-	return ccm.RoundHandler
+// RoundHandler -
+func (ccm *CoreComponentsMock) RoundHandler() consensus.RoundHandler {
+	return ccm.RoundHandlerField
 }
 
 // EconomicsData -

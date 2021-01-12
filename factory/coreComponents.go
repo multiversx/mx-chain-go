@@ -70,7 +70,7 @@ type coreComponents struct {
 	statusHandlersUtils           factory.StatusHandlersUtils
 	pathHandler                   storage.PathManagerHandler
 	syncTimer                     ntp.SyncTimer
-	rounder                       consensus.Rounder
+	RoundHandler                  consensus.RoundHandler
 	alarmScheduler                core.TimersScheduler
 	watchdog                      core.WatchdogTimer
 	nodesSetupHandler             sharding.GenesisNodesSetupHandler
@@ -187,7 +187,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Debug("config", "file", ccf.nodesFilename)
 
 	genesisTime := time.Unix(genesisNodesConfig.StartTime, 0)
-	rounder, err := round.NewRound(
+	roundHandler, err := round.NewRound(
 		genesisTime,
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(genesisNodesConfig.RoundDuration),
@@ -263,7 +263,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		statusHandlersUtils:           statusHandlersInfo,
 		pathHandler:                   pathHandler,
 		syncTimer:                     syncer,
-		rounder:                       rounder,
+		RoundHandler:                  roundHandler,
 		alarmScheduler:                alarmScheduler,
 		watchdog:                      watchdogTimer,
 		nodesSetupHandler:             genesisNodesConfig,

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/crypto"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
@@ -716,7 +716,7 @@ type BlockTracker interface {
 	AddSelfNotarizedHeader(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
@@ -826,7 +826,7 @@ type EpochStartSystemSCProcessor interface {
 // ValidityAttester is able to manage the valid blocks
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstRounder(headerHandler data.HeaderHandler) error
+	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
 	IsInterfaceNil() bool
 }
@@ -862,8 +862,8 @@ type RoundTimeDurationHandler interface {
 	IsInterfaceNil() bool
 }
 
-// Rounder defines the actions which should be handled by a round implementation
-type Rounder interface {
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
 	Index() int64
 	IsInterfaceNil() bool
 }

@@ -47,7 +47,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      &mock.PubkeyConverterMock{},
 			PathHdl:             &mock.PathManagerStub{},
-			EpochNotifierField: &mock.EpochNotifierStub{},
+			EpochNotifierField:  &mock.EpochNotifierStub{},
 			TxVersionCheckField: versioning.NewTxVersionChecker(1),
 		}, &mock.CryptoComponentsMock{
 			PubKey:   &mock.PublicKeyMock{},
@@ -140,7 +140,7 @@ func createMockEpochStartBootstrapArgs(
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
 		NodeShuffler:               &mock.NodeShufflerMock{},
-		Rounder:                    &mock.RounderStub{},
+		RoundHandler:               &mock.RoundHandlerStub{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &mock.UnitOpenerStub{},
 		ArgumentsParser:            &mock.ArgumentParserMock{},

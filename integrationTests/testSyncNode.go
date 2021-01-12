@@ -107,7 +107,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initChainHandler()
 	tpn.initHeaderValidator()
-	tpn.initRounder()
+	tpn.initRoundHandler()
 	tpn.initStorage()
 	tpn.initAccountDBs()
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
@@ -182,7 +182,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockChainHook:    &mock.BlockChainHookHandlerMock{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{},
 		HeaderValidator:   tpn.HeaderValidator,
-		Rounder:           &mock.RounderMock{},
+		RoundHandler:      &mock.RoundHandlerMock{},
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -200,7 +200,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -217,7 +217,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.Rounder, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -238,9 +238,9 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
 		ChainHandler:        tpn.BlockChain,
-		Rounder:             tpn.Rounder,
+		RoundHandler:        tpn.RoundHandler,
 		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.Rounder.TimeDuration(),
+		WaitTime:            tpn.RoundHandler.TimeDuration(),
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		ForkDetector:        tpn.ForkDetector,
@@ -277,9 +277,9 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		PoolsHolder:         tpn.DataPool,
 		Store:               tpn.Storage,
 		ChainHandler:        tpn.BlockChain,
-		Rounder:             tpn.Rounder,
+		RoundHandler:        tpn.RoundHandler,
 		BlockProcessor:      tpn.BlockProcessor,
-		WaitTime:            tpn.Rounder.TimeDuration(),
+		WaitTime:            tpn.RoundHandler.TimeDuration(),
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		ForkDetector:        tpn.ForkDetector,

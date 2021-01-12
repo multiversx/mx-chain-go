@@ -95,7 +95,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		txCoordinator:           arguments.TxCoordinator,
 		epochStartTrigger:       arguments.EpochStartTrigger,
 		headerValidator:         arguments.HeaderValidator,
-		rounder:                 arguments.Rounder,
+		roundHandler:            arguments.RoundHandler,
 		bootStorer:              arguments.BootStorer,
 		blockTracker:            arguments.BlockTracker,
 		dataPool:                arguments.DataComponents.Datapool(),
@@ -985,7 +985,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		roundTooOld := mp.rounder.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
 		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1
@@ -1134,7 +1134,7 @@ func (mp *metaProcessor) CommitBlock(
 		headerHash,
 		numShardHeadersFromPool,
 		mp.blockTracker,
-		uint64(mp.rounder.TimeDuration().Seconds()),
+		uint64(mp.roundHandler.TimeDuration().Seconds()),
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{

@@ -4608,12 +4608,12 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	coreComponents, dataComponents := CreateCoreComponentsMultiShard()
 	dataComponents.DataPool = poolsHolderStub
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents)
-	rounderMock := &mock.RounderMock{}
-	arguments.Rounder = rounderMock
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	arguments.RoundHandler = roundHandlerMock
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	rounderMock.RoundIndex = 20
+	roundHandlerMock.RoundIndex = 20
 	metaBlock := &block.MetaBlock{
 		Round: 9,
 		Nonce: 5,
