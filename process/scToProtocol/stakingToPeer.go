@@ -26,16 +26,17 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv       core.PubkeyConverter
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	PeerState        state.AccountsAdapter
-	BaseState        state.AccountsAdapter
-	ArgParser        process.ArgumentsParser
-	CurrTxs          dataRetriever.TransactionCacher
-	RatingsData      process.RatingsInfoHandler
-	StakeEnableEpoch uint32
-	EpochNotifier    process.EpochNotifier
+	PubkeyConv            core.PubkeyConverter
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	PeerState             state.AccountsAdapter
+	BaseState             state.AccountsAdapter
+	ArgParser             process.ArgumentsParser
+	CurrTxs               dataRetriever.TransactionCacher
+	RatingsData           process.RatingsInfoHandler
+	StakeEnableEpoch      uint32
+	UnBondCorrectionEpoch uint32
+	EpochNotifier         process.EpochNotifier
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -47,13 +48,15 @@ type stakingToPeer struct {
 	peerState   state.AccountsAdapter
 	baseState   state.AccountsAdapter
 
-	argParser        process.ArgumentsParser
-	currTxs          dataRetriever.TransactionCacher
-	startRating      uint32
-	unJailRating     uint32
-	jailRating       uint32
-	stakeEnableEpoch uint32
-	flagStaking      atomic.Flag
+	argParser             process.ArgumentsParser
+	currTxs               dataRetriever.TransactionCacher
+	startRating           uint32
+	unJailRating          uint32
+	jailRating            uint32
+	stakeEnableEpoch      uint32
+	unBondCorrectionEpoch uint32
+	flagStaking           atomic.Flag
+	flagUnBondCorrection  atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -64,17 +67,18 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:       args.PubkeyConv,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		peerState:        args.PeerState,
-		baseState:        args.BaseState,
-		argParser:        args.ArgParser,
-		currTxs:          args.CurrTxs,
-		startRating:      args.RatingsData.StartRating(),
-		unJailRating:     args.RatingsData.StartRating(),
-		jailRating:       args.RatingsData.MinRating(),
-		stakeEnableEpoch: args.StakeEnableEpoch,
+		pubkeyConv:            args.PubkeyConv,
+		hasher:                args.Hasher,
+		marshalizer:           args.Marshalizer,
+		peerState:             args.PeerState,
+		baseState:             args.BaseState,
+		argParser:             args.ArgParser,
+		currTxs:               args.CurrTxs,
+		startRating:           args.RatingsData.StartRating(),
+		unJailRating:          args.RatingsData.StartRating(),
+		jailRating:            args.RatingsData.MinRating(),
+		stakeEnableEpoch:      args.StakeEnableEpoch,
+		unBondCorrectionEpoch: args.UnBondCorrectionEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
@@ -177,16 +181,25 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		var data []byte
 		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
-		if len(data) == 0 {
+		var existingAcc state.AccountHandler
+		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)
+		shouldDeleteAccount := len(data) == 0 && !check.IfNil(existingAcc) && err == nil
+		if shouldDeleteAccount {
 			err = stp.peerState.RemoveAccount(blsPubKey)
 			if err != nil {
 				log.Debug("staking to protocol RemoveAccount", "error", err, "blsPubKey", hex.EncodeToString(blsPubKey))
+				continue
 			}
+			log.Debug("remove account from validator statistics", "blsPubKey", blsPubKey)
 
 			continue
 		}
 
-		var stakingData systemSmartContracts.StakedDataV2
+		if len(data) == 0 && stp.flagUnBondCorrection.IsSet() {
+			continue
+		}
+
+		var stakingData systemSmartContracts.StakedDataV2_0
 		err = stp.marshalizer.Unmarshal(&stakingData, data)
 		if err != nil {
 			return err
@@ -202,7 +215,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 }
 
 func (stp *stakingToPeer) updatePeerStateV1(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
@@ -264,7 +277,7 @@ func (stp *stakingToPeer) updatePeerStateV1(
 }
 
 func (stp *stakingToPeer) updatePeerState(
-	stakingData systemSmartContracts.StakedDataV2,
+	stakingData systemSmartContracts.StakedDataV2_0,
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
@@ -403,6 +416,9 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
+
+	stp.flagUnBondCorrection.Toggle(epoch >= stp.unBondCorrectionEpoch)
+	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagUnBondCorrection.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

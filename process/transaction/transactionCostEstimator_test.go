@@ -74,8 +74,8 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(1))
 	consumedGasUnits := uint64(1000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.MoveBalance
 		},
 	}, &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
@@ -95,8 +95,8 @@ func TestComputeTransactionGasLimit_SmartContractDeploy(t *testing.T) {
 	gasSchedule := mock.NewGasScheduleNotifierMock(createGasMap(2))
 	gasLimitBaseTx := uint64(500)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCDeployment
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCDeployment, process.SCDeployment
 		},
 	}, &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
@@ -119,8 +119,8 @@ func TestComputeTransactionGasLimit_SmartContractCall(t *testing.T) {
 	gasLimitBaseTx := uint64(500)
 	consumedGasUnits := big.NewInt(1000)
 	tce, _ := NewTransactionCostEstimator(&mock.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType) {
-			return process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		},
 	}, &mock.FeeHandlerStub{
 		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {

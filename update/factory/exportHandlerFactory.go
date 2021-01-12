@@ -363,14 +363,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsAccountsSyncers := ArgsNewAccountsDBSyncersContainerFactory{
-		TrieCacher:           e.dataPool.TrieNodes(),
-		RequestHandler:       e.requestHandler,
-		ShardCoordinator:     e.shardCoordinator,
-		Hasher:               e.hasher,
-		Marshalizer:          e.marshalizer,
-		TrieStorageManager:   dataTriesContainerFactory.TrieStorageManager(),
-		WaitTime:             update.MaxTimeSpanToSyncTries,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
+		TrieCacher:            e.dataPool.TrieNodes(),
+		RequestHandler:        e.requestHandler,
+		ShardCoordinator:      e.shardCoordinator,
+		Hasher:                e.hasher,
+		Marshalizer:           e.marshalizer,
+		TrieStorageManager:    dataTriesContainerFactory.TrieStorageManager(),
+		TimoutGettingTrieNode: update.TimeoutGettingTrieNodes,
+		MaxTrieLevelInMemory:  e.maxTrieLevelInMemory,
 	}
 	accountsDBSyncerFactory, err := NewAccountsDBSContainerFactory(argsAccountsSyncers)
 	if err != nil {
@@ -453,6 +453,9 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer: e.marshalizer,
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return nil, err
+	}
 
 	argsExporter := genesis.ArgsNewStateExporter{
 		ShardCoordinator:         e.shardCoordinator,

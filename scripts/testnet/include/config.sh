@@ -11,8 +11,6 @@ generateConfig() {
     -num-of-metachain-nodes $META_VALIDATORCOUNT          \
     -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
-    -tx-sign-key-format $TX_SIGN_FORMAT                   \
-    -block-sign-key-format $BLOCK_SIGN_FORMAT             \
     -stake-type $GENESIS_STAKE_TYPE
   popd
 }
@@ -56,12 +54,13 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
-  cp $NODEDIR/config/gasSchedule.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
   cp $NODEDIR/config/genesisSmartContracts.json ./node/config
   cp -r $NODEDIR/config/elasticIndexTemplates ./node/config
   mkdir ./node/config/genesisContracts -p
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
+  mkdir ./node/config/gasSchedules -p
+  cp $NODEDIR/config/gasSchedules/*.* ./node/config/gasSchedules
 
   echo "Configuration files copied from the Node to the working directories of the executables."
   popd

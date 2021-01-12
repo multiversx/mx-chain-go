@@ -35,7 +35,17 @@ func TestChangeOwnerAddress_ProcessBuiltinFunction(t *testing.T) {
 	_, err = coa.ProcessBuiltinFunction(nil, nil, vmInput)
 	require.Nil(t, err)
 
+	var vmOutput *vmcommon.VMOutput
 	acc.OwnerAddress = owner
-	_, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
+	vmInput.GasProvided = 10
+	vmOutput, err = coa.ProcessBuiltinFunction(nil, acc, vmInput)
 	require.Nil(t, err)
+	require.Equal(t, vmOutput.GasRemaining, uint64(0))
+
+	coa.gasCost = 1
+	vmInput.GasProvided = 10
+	acc.OwnerAddress = owner
+	vmOutput, err = coa.ProcessBuiltinFunction(acc, acc, vmInput)
+	require.Nil(t, err)
+	require.Equal(t, vmOutput.GasRemaining, vmInput.GasProvided-coa.gasCost)
 }

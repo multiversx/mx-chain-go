@@ -28,19 +28,19 @@ func TestBlake2b_Empty(t *testing.T) {
 	hasher := &blake2b.Blake2b{HashSize: 64}
 
 	var nilStr string
-	res_nil := hasher.Compute(nilStr)
-	assert.Equal(t, 64, len(res_nil))
+	resNil := hasher.Compute(nilStr)
+	assert.Equal(t, 64, len(resNil))
 
-	res_empty := hasher.Compute("")
-	assert.Equal(t, 64, len(res_empty))
+	resEmpty := hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, res_empty, res_nil)
+	assert.Equal(t, resEmpty, resNil)
 
 	// force recompute
 	hasher = &blake2b.Blake2b{HashSize: 64}
 
-	res_empty = hasher.Compute("")
-	assert.Equal(t, 64, len(res_empty))
+	resEmpty = hasher.Compute("")
+	assert.Equal(t, 64, len(resEmpty))
 
-	assert.Equal(t, res_empty, res_nil)
+	assert.Equal(t, resEmpty, resNil)
 }

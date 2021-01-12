@@ -1,7 +1,7 @@
 package shard
 
 import (
-	arwen "github.com/ElrondNetwork/arwen-wasm-vm/arwen"
+	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
 	ipcMarshaling "github.com/ElrondNetwork/arwen-wasm-vm/ipc/marshaling"
@@ -111,8 +111,8 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				ProtocolBuiltinFunctions: vmf.builtinFunctions,
 				ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-				UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 				AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+				DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,
@@ -134,8 +134,8 @@ func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHan
 			ProtocolBuiltinFunctions: vmf.builtinFunctions,
 			ElrondProtectedKeyPrefix: []byte(core.ElrondProtectedKeyPrefix),
 			ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
-			UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 			AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
+			DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
 		},
 	)
 }

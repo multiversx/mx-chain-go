@@ -309,6 +309,15 @@ const MetricMinGasPrice = "erd_min_gas_price"
 // MetricMinGasLimit is the metric that specifies the minimum gas limit
 const MetricMinGasLimit = "erd_min_gas_limit"
 
+// MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
+const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
+
+// MetricGasPriceModifier is the metric that specifies the gas price modifier
+const MetricGasPriceModifier = "erd_gas_price_modifier"
+
+// MetricTopUpFactor is the metric that specifies the top up factor
+const MetricTopUpFactor = "erd_top_up_factor"
+
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
 
@@ -493,6 +502,9 @@ const SleepTimeBetweenCreateDBRetries = 5 * time.Second
 // ElrondProtectedKeyPrefix is the key prefix which is protected from writing in the trie - only for special builtin functions
 const ElrondProtectedKeyPrefix = "ELROND"
 
+// DelegationSystemSCKey is the key under which there is data in case of system delegation smart contracts
+const DelegationSystemSCKey = "delegation"
+
 // ESDTKeyIdentifier is the key prefix for esdt tokens
 const ESDTKeyIdentifier = "esdt"
 
@@ -557,3 +569,6 @@ const MinMetaTxExtraGasCost = uint64(1_000_000)
 
 // MaxLeafSize represents maximum amount of data which can be saved under one leaf
 const MaxLeafSize = uint64(1<<18) + uint64(1<<19) //786KB
+
+// MaxUserNameLength represents the maximum number of bytes a UserName can have
+const MaxUserNameLength = 32

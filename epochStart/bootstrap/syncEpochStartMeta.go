@@ -15,7 +15,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	interceptorsFactory "github.com/ElrondNetwork/elrond-go/process/interceptors/factory"
@@ -46,7 +45,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	Signer                  crypto.SingleSigner
 	BlockSigner             crypto.SingleSigner
 	ChainID                 []byte
-	EconomicsData           *economics.EconomicsData
+	EconomicsData           process.EconomicsDataHandler
 	WhitelistHandler        process.WhiteListHandler
 	AddressPubkeyConv       core.PubkeyConverter
 	NonceConverter          typeConverters.Uint64ByteSliceConverter

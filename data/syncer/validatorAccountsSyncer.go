@@ -35,7 +35,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		dataTries:            make(map[string]data.Trie),
 		trieStorageManager:   args.TrieStorageManager,
 		requestHandler:       args.RequestHandler,
-		waitTime:             args.WaitTime,
+		timeout:              args.Timeout,
 		shardId:              core.MetachainShardId,
 		cacher:               args.Cacher,
 		rootHash:             nil,
@@ -55,7 +55,7 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), v.waitTime)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	tss := statistics.NewTrieSyncStatistics()

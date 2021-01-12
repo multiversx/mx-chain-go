@@ -48,7 +48,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/p2p/libp2p"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
@@ -64,10 +63,10 @@ import (
 )
 
 // StepDelay is used so that transactions can disseminate properly
-var StepDelay = time.Second
+var StepDelay = time.Second / 10
 
 // SyncDelay is used so that nodes have enough time to sync
-var SyncDelay = time.Second * 2
+var SyncDelay = time.Second / 5
 
 // P2pBootstrapDelay is used so that nodes have enough time to bootstrap
 var P2pBootstrapDelay = 5 * time.Second
@@ -351,8 +350,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func CreateTrieStorageManager() (data.StorageManager, storage.Storer) {
-	store := CreateMemUnit()
+func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storage.Storer) {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
 	// TODO change this implementation with a factory
@@ -490,7 +488,7 @@ func CreateGenesisBlocks(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -527,7 +525,7 @@ func CreateFullGenesisBlocks(
 	store dataRetriever.StorageService,
 	blkc data.ChainHandler,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 ) map[uint32]data.HeaderHandler {
@@ -572,14 +570,25 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   10000000,
+				StakingV2Epoch:                       StakingV2Epoch,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "100",
+				MinCreationDeposit: "100",
+				EnabledEpoch:       0,
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "100",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  100,
 			},
 		},
 		AccountsParser:      accountsParser,
@@ -618,7 +627,7 @@ func CreateGenesisMetaBlock(
 	hasher hashing.Hasher,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	dataPool dataRetriever.PoolsHolder,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 ) data.HeaderHandler {
 	gasSchedule := arwenConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -661,14 +670,25 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   10000000,
+				StakingV2Epoch:                       StakingV2Epoch,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "100",
+				MinCreationDeposit: "100",
+				EnabledEpoch:       0,
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "100",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  100,
 			},
 		},
 		BlockSignKeyGen:    &mock.KeyGenMock{},
@@ -691,7 +711,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
-		trieStorage, _ := CreateTrieStorageManager()
+		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -786,7 +806,7 @@ func CreateRandomBytes(chars int) []byte {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	trieStorage, _ := CreateTrieStorageManager()
+	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 	account, _ := state.NewUserAccount(adr)
 
@@ -1665,7 +1685,7 @@ func CreateAndSendTransactions(
 	}
 
 	fmt.Println("Delaying for disseminating transactions...")
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second)
 }
 
 // CreateMintingForSenders creates account with balances for every node in a given shard
@@ -1840,7 +1860,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	trieStorage, _ := CreateTrieStorageManager()
+	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	accnts, _ := CreateAccountsDB(UserAccount, trieStorage)
 	acc, _ := accnts.LoadAccount(pkSenderBuff)
 	_ = accnts.SaveAccount(acc)

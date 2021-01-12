@@ -95,6 +95,10 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 }
 
 func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Parallel()
 
 	args := createMockArgsOpenStorageUnits()

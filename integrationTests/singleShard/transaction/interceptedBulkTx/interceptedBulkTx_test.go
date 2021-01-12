@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var stepDelay = time.Second
+var stepDelay = time.Second / 10
 
 func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 	if testing.Short() {
@@ -83,7 +83,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	shardId := uint32(0)
 	senderPrivateKeys := []crypto.PrivateKey{n.OwnAccount.SkTxSign}
-	mintingValue := big.NewInt(100000)
+	mintingValue := big.NewInt(10000000000)
 	integrationTests.CreateMintingForSenders([]*integrationTests.TestProcessorNode{n}, shardId, senderPrivateKeys, mintingValue)
 
 	receiver := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))

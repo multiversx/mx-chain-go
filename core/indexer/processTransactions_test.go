@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
@@ -17,6 +16,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
+	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -128,7 +128,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -146,7 +146,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -237,7 +237,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -266,7 +266,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&mock.MarshalizerMock{},
 		&mock.PubkeyConverterMock{},
 		&mock.PubkeyConverterMock{},
-		&config.FeeSettings{},
+		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 	)
@@ -441,24 +441,28 @@ func TestAlteredAddresses(t *testing.T) {
 		string(scr2Hash):   scr2,
 	}
 
+	shardCoordinator := &mock.ShardCoordinatorMock{
+		ComputeIdCalled: func(address []byte) uint32 {
+			switch string(address) {
+			case string(address1), string(address4), string(address5), string(address7), string(address9):
+				return 0
+			default:
+				return 1
+			}
+		},
+	}
+
 	txLogProc := disabled.NewNilTxLogsProcessor()
 	txProc := &txDatabaseProcessor{
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+			txFeeCalculator:        &economicsmocks.EconomicsHandlerStub{},
+			shardCoordinator:       shardCoordinator,
 		},
-		marshalizer:     &mock.MarshalizerMock{},
-		hasher:          &mock.HasherMock{},
-		txLogsProcessor: txLogProc,
-		shardCoordinator: &mock.ShardCoordinatorMock{
-			ComputeIdCalled: func(address []byte) uint32 {
-				switch string(address) {
-				case string(address1), string(address4), string(address5), string(address7), string(address9):
-					return 0
-				default:
-					return 1
-				}
-			},
-		},
+		marshalizer:      &mock.MarshalizerMock{},
+		hasher:           &mock.HasherMock{},
+		txLogsProcessor:  txLogProc,
+		shardCoordinator: shardCoordinator,
 	}
 
 	_, alteredAddresses := txProc.prepareTransactionsForDatabase(body, hdr, txPool, selfShardID)
@@ -480,4 +484,124 @@ func txPoolHasSearchOrder(txPool map[string]*Transaction, searchOrder uint32) bo
 	}
 
 	return false
+}
+
+func TestIsSCRForSenderWithGasUsed(t *testing.T) {
+	t.Parallel()
+
+	txHash := "txHash"
+	nonce := uint64(10)
+	sender := "sender"
+
+	tx := &Transaction{
+		Hash:   txHash,
+		Nonce:  nonce,
+		Sender: sender,
+	}
+	sc := ScResult{
+		Data:      []byte("@6f6b@something"),
+		Nonce:     nonce + 1,
+		Receiver:  sender,
+		PreTxHash: txHash,
+	}
+
+	require.True(t, isSCRForSenderWithRefund(sc, tx))
+}
+
+func TestCheckGasUsedInvalidTransaction(t *testing.T) {
+	t.Parallel()
+
+	txProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		false,
+		&mock.ShardCoordinatorMock{},
+	)
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 100,
+	}
+	recHash1 := []byte("recHash1")
+	rec1 := &receipt.Receipt{
+		Value:  big.NewInt(100),
+		TxHash: txHash1,
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1},
+				Type:     block.InvalidBlock,
+			},
+			{
+				TxHashes: [][]byte{recHash1},
+				Type:     block.ReceiptBlock,
+			},
+		},
+	}
+
+	header := &block.Header{}
+
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1):  tx1,
+		string(recHash1): rec1,
+	}
+
+	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	require.Len(t, txs, 1)
+	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
+}
+
+func TestCheckGasUsedRelayedTransaction(t *testing.T) {
+	t.Parallel()
+
+	txProc := newTxDatabaseProcessor(
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.PubkeyConverterMock{},
+		&mock.PubkeyConverterMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		false,
+		&mock.ShardCoordinatorMock{},
+	)
+
+	txHash1 := []byte("txHash1")
+	tx1 := &transaction.Transaction{
+		GasLimit: 100,
+		GasPrice: 123456,
+		Data:     []byte("relayedTx@1231231231239129312"),
+	}
+	scResHash1 := []byte("scResHash1")
+	scRes1 := &smartContractResult.SmartContractResult{
+		OriginalTxHash: txHash1,
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes: [][]byte{txHash1},
+				Type:     block.TxBlock,
+			},
+			{
+				TxHashes: [][]byte{scResHash1},
+				Type:     block.SmartContractResultBlock,
+			},
+		},
+	}
+
+	header := &block.Header{}
+
+	txPool := map[string]data.TransactionHandler{
+		string(txHash1):    tx1,
+		string(scResHash1): scRes1,
+	}
+
+	txs, _ := txProc.prepareTransactionsForDatabase(body, header, txPool, 0)
+	require.Len(t, txs, 1)
+	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
 }

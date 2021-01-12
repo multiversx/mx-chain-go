@@ -123,8 +123,8 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
-			return process.SCInvoking
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		}},
 	)
 
@@ -144,8 +144,8 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
-			return process.SCInvoking
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
 		}},
 	)
 
@@ -224,11 +224,11 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 				return 6
 			},
 		},
-		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) process.TransactionType {
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-				return process.SCInvoking
+				return process.SCInvoking, process.SCInvoking
 			}
-			return process.MoveBalance
+			return process.MoveBalance, process.MoveBalance
 		}},
 	)
 

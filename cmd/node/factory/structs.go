@@ -50,7 +50,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/block/postprocess"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
 	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
 	"github.com/ElrondNetwork/elrond-go/process/factory/metachain"
@@ -90,6 +89,8 @@ const (
 	DefaultStaticDbString = "Static"
 	// DefaultShardString is the default Shard string when creating DB path
 	DefaultShardString = "Shard"
+	// TemporaryPath is the default temporary path directory
+	TemporaryPath = "temp"
 )
 
 //TODO remove this
@@ -134,7 +135,7 @@ type processComponentsFactoryArgs struct {
 	coreComponents            *mainFactory.CoreComponentsFactoryArgs
 	accountsParser            genesis.AccountsParser
 	smartContractParser       genesis.InitialSmartContractParser
-	economicsData             *economics.EconomicsData
+	economicsData             process.EconomicsDataHandler
 	nodesConfig               *sharding.NodesSetup
 	gasSchedule               core.GasScheduleNotifier
 	rounder                   consensus.Rounder
@@ -184,7 +185,7 @@ func NewProcessComponentsFactoryArgs(
 	coreComponents *mainFactory.CoreComponentsFactoryArgs,
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
-	economicsData *economics.EconomicsData,
+	economicsData process.EconomicsDataHandler,
 	nodesConfig *sharding.NodesSetup,
 	gasSchedule core.GasScheduleNotifier,
 	rounder consensus.Rounder,
@@ -836,7 +837,7 @@ func newInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1100,7 +1101,7 @@ func newShardInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	state *mainFactory.StateComponents,
 	network *mainFactory.NetworkComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1162,7 +1163,7 @@ func newMetaInterceptorContainerFactory(
 	crypto *mainFactory.CryptoComponents,
 	network *mainFactory.NetworkComponents,
 	state *mainFactory.StateComponents,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	headerSigVerifier HeaderSigVerifierHandler,
 	headerIntegrityVerifier HeaderIntegrityVerifierHandler,
 	sizeCheckDelta uint32,
@@ -1413,6 +1414,7 @@ func newBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
+	workingDir := filepath.Join(processArgs.workingDir, TemporaryPath)
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
@@ -1443,7 +1445,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1479,7 +1481,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 			processArgs.rater,
 		)
 	}
@@ -1496,7 +1498,7 @@ func newShardBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	economics *economics.EconomicsData,
+	economics process.EconomicsDataHandler,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
 	bootStorer process.BootStorer,
@@ -1813,7 +1815,7 @@ func newMetaBlockProcessor(
 	core *mainFactory.CoreComponents,
 	stateComponents *mainFactory.StateComponents,
 	forkDetector process.ForkDetector,
-	economicsData *economics.EconomicsData,
+	economicsData process.EconomicsDataHandler,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	rounder consensus.Rounder,
 	epochStartTrigger epochStart.TriggerHandler,
@@ -1841,7 +1843,20 @@ func newMetaBlockProcessor(
 	rater sharding.PeerAccountListAndRatingHandler,
 ) (process.BlockProcessor, error) {
 
-	builtInFuncs := builtInFunctions.NewBuiltInFunctionContainer()
+	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
+		GasSchedule:     gasSchedule,
+		MapDNSAddresses: make(map[string]struct{}), // no dns for meta
+		Marshalizer:     core.InternalMarshalizer,
+		Accounts:        stateComponents.AccountsAdapter,
+	}
+	builtInFuncFactory, err := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
+	if err != nil {
+		return nil, err
+	}
+	builtInFuncs, err := builtInFuncFactory.CreateBuiltInFunctionContainer()
+	if err != nil {
+		return nil, err
+	}
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:           stateComponents.AccountsAdapter,
 		PubkeyConv:         stateComponents.AddressPubkeyConverter,
@@ -1850,26 +1865,27 @@ func newMetaBlockProcessor(
 		ShardCoordinator:   shardCoordinator,
 		Marshalizer:        core.InternalMarshalizer,
 		Uint64Converter:    core.Uint64ByteSliceConverter,
-		BuiltInFunctions:   builtInFuncs, // no built-in functions for meta.
+		BuiltInFunctions:   builtInFuncs,
 		DataPool:           data.Datapool,
 		CompiledSCPool:     data.Datapool.SmartContracts(),
 		ConfigSCStorage:    generalConfig.SmartContractsStorage,
 		WorkingDir:         workingDir,
 		NilCompiledSCStore: false,
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(
-		argsHook,
-		economicsData,
-		messageSignVerifier,
-		gasSchedule,
-		nodesSetup,
-		core.Hasher,
-		core.InternalMarshalizer,
-		systemSCConfig,
-		stateComponents.PeerAccounts,
-		rater,
-		epochNotifier,
-	)
+	argsNewVMContainer := metachain.ArgsNewVMContainerFactory{
+		ArgBlockChainHook:   argsHook,
+		Economics:           economicsData,
+		MessageSignVerifier: messageSignVerifier,
+		GasSchedule:         gasSchedule,
+		NodesConfigProvider: nodesSetup,
+		Hasher:              core.Hasher,
+		Marshalizer:         core.InternalMarshalizer,
+		SystemSCConfig:      systemSCConfig,
+		ValidatorAccountsDB: stateComponents.PeerAccounts,
+		ChanceComputer:      rater,
+		EpochNotifier:       epochNotifier,
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsNewVMContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -2049,16 +2065,17 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		PeerState:        stateComponents.PeerAccounts,
-		BaseState:        stateComponents.AccountsAdapter,
-		ArgParser:        argsParser,
-		CurrTxs:          data.Datapool.CurrentBlockTxs(),
-		RatingsData:      ratingsData,
-		EpochNotifier:    epochNotifier,
-		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
+		PubkeyConv:            stateComponents.ValidatorPubkeyConverter,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.InternalMarshalizer,
+		PeerState:             stateComponents.PeerAccounts,
+		BaseState:             stateComponents.AccountsAdapter,
+		ArgParser:             argsParser,
+		CurrTxs:               data.Datapool.CurrentBlockTxs(),
+		RatingsData:           ratingsData,
+		EpochNotifier:         epochNotifier,
+		StakeEnableEpoch:      systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
+		UnBondCorrectionEpoch: generalConfig.GeneralSettings.SCDeployEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -2082,37 +2099,62 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
+	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
 	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:        core.InternalMarshalizer,
-		Hasher:             core.Hasher,
-		Store:              data.Store,
-		ShardCoordinator:   shardCoordinator,
-		RewardsHandler:     economicsData,
-		RoundTime:          rounder,
-		GenesisNonce:       genesisHdr.GetNonce(),
-		GenesisEpoch:       genesisHdr.GetEpoch(),
-		GenesisTotalSupply: economicsData.GenesisTotalSupply(),
+		Marshalizer:           core.InternalMarshalizer,
+		Hasher:                core.Hasher,
+		Store:                 data.Store,
+		ShardCoordinator:      shardCoordinator,
+		RewardsHandler:        economicsData,
+		RoundTime:             rounder,
+		GenesisNonce:          genesisHdr.GetNonce(),
+		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTotalSupply:    economicsData.GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
 		return nil, err
 	}
 
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: in case of changing the minimum node price, make sure to update the staking data provider
+	stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(systemVM, systemSCConfig.StakingSystemSCConfig.GenesisNodePrice)
+	if err != nil {
+		return nil, err
+	}
+
 	rewardsStorage := data.Store.GetStorer(dataRetriever.RewardTransactionUnit)
 	miniBlockStorage := data.Store.GetStorer(dataRetriever.MiniBlockUnit)
-	argsEpochRewards := metachainEpochStart.ArgsNewRewardsCreator{
-		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               stateComponents.AddressPubkeyConverter,
-		RewardsStorage:                rewardsStorage,
-		MiniBlockStorage:              miniBlockStorage,
-		Hasher:                        core.Hasher,
-		Marshalizer:                   core.InternalMarshalizer,
-		DataPool:                      data.Datapool,
-		ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
-		NodesConfigProvider:           nodesCoordinator,
-		RewardsFix1EpochEnable:        generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
+		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
+			ShardCoordinator:              shardCoordinator,
+			PubkeyConverter:               stateComponents.AddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        core.Hasher,
+			Marshalizer:                   core.InternalMarshalizer,
+			DataPool:                      data.Datapool,
+			ProtocolSustainabilityAddress: economicsData.ProtocolSustainabilityAddress(),
+			NodesConfigProvider:           nodesCoordinator,
+			UserAccountsDB:                stateComponents.AccountsAdapter,
+			RewardsFix1EpochEnable:        generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
+			DelegationSystemSCEnableEpoch: systemSCConfig.DelegationSystemSCConfig.EnabledEpoch,
+		},
+
+		StakingDataProvider:   stakingDataProvider,
+		TopUpRewardFactor:     economicsData.RewardsTopUpFactor(),
+		TopUpGradientPoint:    economicsData.RewardsTopUpGradientPoint(),
+		EconomicsDataProvider: economicsDataProvider,
+		EpochEnableV2:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
-	epochRewards, err := metachainEpochStart.NewEpochStartRewardsCreator(argsEpochRewards)
+
+	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -2162,10 +2204,6 @@ func newMetaBlockProcessor(
 		EpochNotifier:           epochNotifier,
 	}
 
-	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
-	if err != nil {
-		return nil, err
-	}
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                               systemVM,
 		UserAccountsDB:                         stateComponents.AccountsAdapter,
@@ -2179,7 +2217,13 @@ func newMetaBlockProcessor(
 		EpochNotifier:                          epochNotifier,
 		SwitchJailWaitingEnableEpoch:           generalConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: generalConfig.GeneralSettings.SwitchHysteresisForMinNodesEnableEpoch,
+		DelegationEnableEpoch:                  systemSCConfig.DelegationManagerSystemSCConfig.EnabledEpoch,
+		StakingV2EnableEpoch:                   systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 		GenesisNodesConfig:                     nodesSetup,
+		MaxNodesEnableConfig:                   generalConfig.GeneralSettings.MaxNodesChangeEnableEpoch,
+		StakingDataProvider:                    stakingDataProvider,
+		NodesConfigProvider:                    nodesCoordinator,
+		ShardCoordinator:                       shardCoordinator,
 	}
 	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 	if err != nil {
@@ -2196,6 +2240,7 @@ func newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		RewardsV2EnableEpoch:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

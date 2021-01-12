@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -22,29 +21,27 @@ const numConcurrentTrieSyncers = 50
 
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
 type ArgsNewAccountsDBSyncersContainerFactory struct {
-	TrieCacher           storage.Cacher
-	RequestHandler       update.RequestHandler
-	ShardCoordinator     sharding.Coordinator
-	Hasher               hashing.Hasher
-	Marshalizer          marshal.Marshalizer
-	TrieStorageManager   data.StorageManager
-	WaitTime             time.Duration
-	MaxTrieLevelInMemory uint
+	TrieCacher            storage.Cacher
+	RequestHandler        update.RequestHandler
+	ShardCoordinator      sharding.Coordinator
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	TrieStorageManager    data.StorageManager
+	TimoutGettingTrieNode time.Duration
+	MaxTrieLevelInMemory  uint
 }
 
 type accountDBSyncersContainerFactory struct {
-	trieCacher           storage.Cacher
-	requestHandler       update.RequestHandler
-	container            update.AccountsDBSyncContainer
-	shardCoordinator     sharding.Coordinator
-	hasher               hashing.Hasher
-	marshalizer          marshal.Marshalizer
-	waitTime             time.Duration
-	trieStorageManager   data.StorageManager
-	maxTrieLevelinMemory uint
+	trieCacher             storage.Cacher
+	requestHandler         update.RequestHandler
+	container              update.AccountsDBSyncContainer
+	shardCoordinator       sharding.Coordinator
+	hasher                 hashing.Hasher
+	marshalizer            marshal.Marshalizer
+	timeoutGettingTrieNode time.Duration
+	trieStorageManager     data.StorageManager
+	maxTrieLevelinMemory   uint
 }
-
-const minWaitTime = time.Second
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
 func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactory) (*accountDBSyncersContainerFactory, error) {
@@ -66,19 +63,16 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.TrieStorageManager) {
 		return nil, update.ErrNilStorageManager
 	}
-	if args.WaitTime < minWaitTime {
-		return nil, fmt.Errorf("%w, minWaitTime is %d", update.ErrInvalidWaitTime, minWaitTime)
-	}
 
 	t := &accountDBSyncersContainerFactory{
-		shardCoordinator:     args.ShardCoordinator,
-		trieCacher:           args.TrieCacher,
-		requestHandler:       args.RequestHandler,
-		hasher:               args.Hasher,
-		marshalizer:          args.Marshalizer,
-		trieStorageManager:   args.TrieStorageManager,
-		waitTime:             args.WaitTime,
-		maxTrieLevelinMemory: args.MaxTrieLevelInMemory,
+		shardCoordinator:       args.ShardCoordinator,
+		trieCacher:             args.TrieCacher,
+		requestHandler:         args.RequestHandler,
+		hasher:                 args.Hasher,
+		marshalizer:            args.Marshalizer,
+		trieStorageManager:     args.TrieStorageManager,
+		timeoutGettingTrieNode: args.TimoutGettingTrieNode,
+		maxTrieLevelinMemory:   args.MaxTrieLevelInMemory,
 	}
 
 	return t, nil
@@ -120,7 +114,7 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			Marshalizer:          a.marshalizer,
 			TrieStorageManager:   a.trieStorageManager,
 			RequestHandler:       a.requestHandler,
-			WaitTime:             a.waitTime,
+			Timeout:              a.timeoutGettingTrieNode,
 			Cacher:               a.trieCacher,
 			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
 		},
@@ -143,7 +137,7 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			Marshalizer:          a.marshalizer,
 			TrieStorageManager:   a.trieStorageManager,
 			RequestHandler:       a.requestHandler,
-			WaitTime:             a.waitTime,
+			Timeout:              a.timeoutGettingTrieNode,
 			Cacher:               a.trieCacher,
 			MaxTrieLevelInMemory: a.maxTrieLevelinMemory,
 		},

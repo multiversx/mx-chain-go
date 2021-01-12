@@ -2,7 +2,6 @@ package systemVM
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
+	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -71,7 +71,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
 	time.Sleep(time.Second)
@@ -88,7 +88,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
 	time.Sleep(time.Second)
@@ -106,7 +106,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironment(t *testing.T) {
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
 	time.Sleep(time.Second)
@@ -148,7 +148,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
+		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		require.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
@@ -186,7 +186,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "stake" + "@" + oneEncoded + "@" + pubKey + "@" + hex.EncodeToString([]byte("msg"))
-		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, nodePrice, vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
 	time.Sleep(time.Second)
@@ -208,7 +208,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unStake" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 	consumed := big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -227,7 +227,7 @@ func TestStakingUnstakingAndUnboundingOnMultiShardEnvironmentWithValidatorStatis
 	for index, node := range nodes {
 		pubKey := generateUniqueKey(index)
 		txData = "unBond" + "@" + pubKey
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 	consumed = big.NewInt(0).Add(big.NewInt(0).SetUint64(integrationTests.MinTxGasLimit), big.NewInt(int64(len(txData))))
 	consumed.Mul(consumed, big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
@@ -272,7 +272,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
+		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
 
 		idxProposers = append(idxProposers, idx)
@@ -310,7 +310,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	var txData string
 	for _, node := range nodes {
 		txData = "changeRewardAddress" + "@" + hex.EncodeToString(rewardAccount.Address)
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.AuctionSCAddress, txData, core.MinMetaTxExtraGasCost)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), vm.ValidatorSCAddress, txData, core.MinMetaTxExtraGasCost)
 	}
 
 	nbBlocksToProduce := roundsPerEpoch * 3
@@ -328,7 +328,7 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 		round++
 		nonce++
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	rewardShardID := nodes[0].ShardCoordinator.ComputeId(rewardAccount.Address)
@@ -342,33 +342,22 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 }
 
-func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
-	for i := range nodeList {
-		if node == nodeList[i] {
-			return i, nil
-		}
-	}
-
-	return 0, errors.New("no such node in list")
-}
-
 func verifyUnbound(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9969963930)
+	expectedValue := big.NewInt(0).SetUint64(9996639300)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
 		for _, helperNode := range nodes {
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
-				break
+				assert.Equal(t, expectedValue.String(), sndAcc.GetBalance().String())
 			}
 		}
 	}
 }
 
 func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProcessorNode) {
-	expectedValue := big.NewInt(0).SetUint64(9989986920)
+	expectedValue := big.NewInt(0).SetUint64(9998878200)
 	for _, node := range nodes {
 		accShardId := node.ShardCoordinator.ComputeId(node.OwnAccount.Address)
 
@@ -376,7 +365,7 @@ func checkAccountsAfterStaking(t *testing.T, nodes []*integrationTests.TestProce
 			if helperNode.ShardCoordinator.SelfId() == accShardId {
 
 				sndAcc := getAccountFromAddrBytes(helperNode.AccntState, node.OwnAccount.Address)
-				require.True(t, sndAcc.GetBalance().Cmp(expectedValue) == 0)
+				assert.Equal(t, sndAcc.GetBalance().String(), expectedValue.String())
 				break
 			}
 		}

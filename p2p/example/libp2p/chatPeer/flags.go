@@ -35,9 +35,9 @@ var defaultBootstrapAddrStrings = make([]string, 0)
 // StringsToAddrs will convert from string representations to a slice of Multiaddr
 func StringsToAddrs(addrStrings []string) (maddrs []maddr.Multiaddr, err error) {
 	for _, addrString := range addrStrings {
-		addr, err := maddr.NewMultiaddr(addrString)
-		if err != nil {
-			return maddrs, err
+		addr, errNewMultiaddr := maddr.NewMultiaddr(addrString)
+		if errNewMultiaddr != nil {
+			return maddrs, errNewMultiaddr
 		}
 		maddrs = append(maddrs, addr)
 	}

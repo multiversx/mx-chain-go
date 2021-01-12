@@ -79,16 +79,16 @@ func (bap *baseAPIBockProcessor) getTxsFromMiniblock(
 	start = time.Now()
 	txs := make([]*transaction.ApiTransactionResult, 0)
 	for txHash, txBytes := range marshalizedTxs {
-		tx, err := bap.unmarshalTx(txBytes, txType)
-		if err != nil {
+		tx, errUnmarshalTx := bap.unmarshalTx(txBytes, txType)
+		if errUnmarshalTx != nil {
 			log.Warn("cannot unmarshal transaction",
 				"hash", hex.EncodeToString([]byte(txHash)),
-				"error", err.Error())
+				"error", errUnmarshalTx.Error())
 			continue
 		}
 		tx.Hash = hex.EncodeToString([]byte(txHash))
 		tx.MiniBlockType = miniblock.Type.String()
-		tx.MiniBlockHash = hex.EncodeToString([]byte(miniblockHash))
+		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
 

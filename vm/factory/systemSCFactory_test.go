@@ -1,6 +1,9 @@
 package factory
 
 import (
+	"encoding/hex"
+	"fmt"
+	"math/big"
 	"testing"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -42,17 +45,29 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
-				AuctionEnableEpoch:                   0,
+				StakingV2Epoch:                       1,
 				StakeEnableEpoch:                     0,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             100,
-				NodesToSelectInAuction:               100,
 				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinStakeAmount: "10",
+				EnabledEpoch:   0,
+				MinServiceFee:  0,
+				MaxServiceFee:  10000,
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				BaseIssuingCost:    "10",
+				MinCreationDeposit: "10",
+				EnabledEpoch:       0,
 			},
 		},
-		EpochNotifier: &mock.EpochNotifierStub{},
+		EpochNotifier:          &mock.EpochNotifierStub{},
+		AddressPubKeyConverter: &mock.PubkeyConverterMock{},
 	}
 }
 
@@ -65,6 +80,9 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
+
+	value, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
+	fmt.Println(hex.EncodeToString(value.Bytes()))
 }
 
 func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
@@ -76,6 +94,17 @@ func TestNewSystemSCFactory_NilEconomicsData(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.Equal(t, vm.ErrNilEconomicsData, err)
+}
+
+func TestNewSystemSCFactory_NilPubKeyConverter(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.AddressPubKeyConverter = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.Equal(t, vm.ErrNilAddressPubKeyConverter, err)
 }
 
 func TestNewSystemSCFactory_Ok(t *testing.T) {
@@ -95,6 +124,17 @@ func TestSystemSCFactory_Create(t *testing.T) {
 	scFactory, _ := NewSystemSCFactory(arguments)
 
 	container, err := scFactory.Create()
+	assert.Nil(t, err)
+	assert.Equal(t, 6, container.Len())
+}
+
+func TestSystemSCFactory_CreateForGenesis(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, _ := NewSystemSCFactory(arguments)
+
+	container, err := scFactory.CreateForGenesis()
 	assert.Nil(t, err)
 	assert.Equal(t, 4, container.Len())
 }

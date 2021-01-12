@@ -82,7 +82,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 			DestinationShard: mb.ReceiverShardID,
 		}
 		if withTxs {
-			miniblockAPI.Transactions = mbp.getTxsByMb(&mb, headerEpoch)
+			miniBlockCopy := mb
+			miniblockAPI.Transactions = mbp.getTxsByMb(&miniBlockCopy, headerEpoch)
 		}
 
 		miniblocks = append(miniblocks, miniblockAPI)

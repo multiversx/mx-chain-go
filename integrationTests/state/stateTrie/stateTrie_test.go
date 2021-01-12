@@ -137,7 +137,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	wg := sync.WaitGroup{}
@@ -224,7 +224,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	//reloading a new trie to test if data is inside
 	rootHash, err = adb.RootHash()
@@ -278,7 +278,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	trieStore, mu := integrationTests.CreateTrieStorageManager()
+	trieStore, mu := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -312,7 +312,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
-	fmt.Printf("Data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
+	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), integrationTests.TestMarshalizer)
 	trieStorage, _ := trie.NewTrieStorageManager(mu, integrationTests.TestMarshalizer, integrationTests.TestHasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
@@ -350,7 +350,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	hash, err := adb.Commit()
@@ -424,7 +424,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -501,7 +501,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -581,7 +581,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
@@ -652,7 +652,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -674,7 +674,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
@@ -690,7 +690,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -731,7 +731,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -753,7 +753,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-	fmt.Printf("Data root - 1-st account: %v\n", hrRoot1)
+	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
 	state2, err := adb.LoadAccount(adr2)
 	assert.Nil(t, err)
@@ -769,7 +769,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2)
 
 	//Test 2.1. test that hashes and snapshots ID are different
 	assert.NotEqual(t, snapshotCreated2, snapshotCreated1)
@@ -799,7 +799,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
 	fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2p1)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2p1)
 
 	//Test 4.1 test that hashes are different
 	assert.NotEqual(t, hrCreated2p1, hrCreated2)
@@ -820,7 +820,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	assert.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
-	fmt.Printf("Data root - 2-nd account: %v\n", hrRoot2Rev)
+	fmt.Printf("data root - 2-nd account: %v\n", hrRoot2Rev)
 	assert.Equal(t, hrCommit, hrCreated2Rev)
 	assert.Equal(t, hrRoot2, hrRoot2Rev)
 }
@@ -832,7 +832,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -886,7 +886,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -920,7 +920,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -1091,7 +1091,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)

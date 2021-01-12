@@ -14,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
+// CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
 func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, p2p.Messenger) {
 	numOfShards := 2
 	nodesPerShard := 1
@@ -102,7 +103,7 @@ func createUserTx(
 }
 
 func createRelayedTx(
-	feeHandler process.FeeHandler,
+	economicsFee process.FeeHandler,
 	relayer *integrationTests.TestWalletAccount,
 	userTx *transaction.Transaction,
 ) *transaction.Transaction {
@@ -119,13 +120,13 @@ func createRelayedTx(
 		ChainID:  userTx.ChainID,
 		Version:  userTx.Version,
 	}
-	gasLimit := feeHandler.ComputeGasLimit(tx)
+	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit
 
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
-	txFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasLimit), big.NewInt(0).SetUint64(tx.GasPrice))
+	txFee := economicsFee.ComputeTxFee(tx)
 	relayer.Balance.Sub(relayer.Balance, txFee)
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
@@ -166,6 +167,7 @@ func getNodeWithinSameShardAsPlayer(
 	return nodeWithCaller
 }
 
+// GetUserAccount -
 func GetUserAccount(
 	nodes []*integrationTests.TestProcessorNode,
 	address []byte,

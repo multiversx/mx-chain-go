@@ -45,15 +45,6 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 	return []byte("receiptHash"), nil
 }
 
-// ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, error) {
-	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0, nil
-	}
-
-	return tcm.ComputeTransactionTypeCalled(tx)
-}
-
 // RequestMiniBlocks -
 func (tcm *TransactionCoordinatorMock) RequestMiniBlocks(header data.HeaderHandler) {
 	if tcm.RequestMiniBlocksCalled == nil {

@@ -98,7 +98,7 @@ func TestScDeploy(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	log.Info("resulted sc address (failed)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deployedFailedAddress))
@@ -111,7 +111,7 @@ func TestScDeploy(t *testing.T) {
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	log.Info("resulted sc address (success)", "address", integrationTests.TestAddressPubkeyConverter.Encode(deploySucceeded))

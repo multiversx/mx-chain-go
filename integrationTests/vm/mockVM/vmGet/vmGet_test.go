@@ -49,12 +49,12 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 }
 
 func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int) {
-	vmOpGas := uint64(0)
+	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := vmOpGas
+	gasLimit := vmOpGas + 1000
 	transferOnCalls := big.NewInt(0)
 
 	initialValueForInternalVariable := uint64(45)
@@ -71,7 +71,14 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(t, vmOpGas, senderNonce, senderAddressBytes, senderBalance)
+	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
+		t,
+		vmOpGas,
+		senderNonce,
+		senderAddressBytes,
+		senderBalance,
+		vm.ArgEnableEpoch{},
+	)
 
 	_, err := txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)

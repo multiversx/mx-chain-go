@@ -1,6 +1,11 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/data"
+import (
+	"math/big"
+
+	"github.com/ElrondNetwork/elrond-go/data"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
+)
 
 // TxForCurrentBlockStub -
 type TxForCurrentBlockStub struct {
@@ -21,7 +26,7 @@ func (t *TxForCurrentBlockStub) GetTx(txHash []byte) (data.TransactionHandler, e
 	if t.GetTxCalled != nil {
 		return t.GetTxCalled(txHash)
 	}
-	return nil, nil
+	return &rewardTx.RewardTx{Value: big.NewInt(0)}, nil
 }
 
 // AddTx -

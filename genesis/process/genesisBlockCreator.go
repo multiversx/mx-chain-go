@@ -96,6 +96,9 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		Marshalizer: gbc.arg.Marshalizer,
 	}
 	hs, err := storing.NewHardforkStorer(arg)
+	if err != nil {
+		return err
+	}
 
 	argsHardForkImport := hardfork.ArgsNewStateImport{
 		HardforkStorer:      hs,
@@ -193,7 +196,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 
 func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 	genesisEpoch := uint32(0)
-	if arg.HardForkConfig.AfterHardFork == true {
+	if arg.HardForkConfig.AfterHardFork {
 		genesisEpoch = arg.HardForkConfig.StartEpoch
 	}
 

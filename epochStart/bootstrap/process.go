@@ -30,7 +30,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
 	"github.com/ElrondNetwork/elrond-go/process/interceptors"
 	disabledInterceptors "github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -45,7 +44,7 @@ import (
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 const timeToWait = time.Minute
-const trieSyncWaitTime = 10 * time.Minute
+const timeoutGettingTrieNode = time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
@@ -83,7 +82,7 @@ type epochStartBootstrap struct {
 	hasher                     hashing.Hasher
 	messenger                  Messenger
 	generalConfig              config.Config
-	economicsData              *economics.EconomicsData
+	economicsData              process.EconomicsDataHandler
 	singleSigner               crypto.SingleSigner
 	blockSingleSigner          crypto.SingleSigner
 	keyGen                     crypto.KeyGenerator
@@ -159,7 +158,7 @@ type ArgsEpochStartBootstrap struct {
 	Hasher                     hashing.Hasher
 	Messenger                  Messenger
 	GeneralConfig              config.Config
-	EconomicsData              *economics.EconomicsData
+	EconomicsData              process.EconomicsDataHandler
 	SingleSigner               crypto.SingleSigner
 	BlockSingleSigner          crypto.SingleSigner
 	KeyGen                     crypto.KeyGenerator
@@ -848,7 +847,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			Marshalizer:          e.marshalizer,
 			TrieStorageManager:   e.trieStorageManagers[factory.UserAccountTrie],
 			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
+			Timeout:              timeoutGettingTrieNode,
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		},
@@ -920,7 +919,7 @@ func (e *epochStartBootstrap) syncPeerAccountsState(rootHash []byte) error {
 			Marshalizer:          e.marshalizer,
 			TrieStorageManager:   e.trieStorageManagers[factory.PeerAccountTrie],
 			RequestHandler:       e.requestHandler,
-			WaitTime:             trieSyncWaitTime,
+			Timeout:              timeoutGettingTrieNode,
 			Cacher:               e.dataPool.TrieNodes(),
 			MaxTrieLevelInMemory: e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 		},

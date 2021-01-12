@@ -134,13 +134,14 @@ func TestESDTTransfer_ProcessBuiltInFunctionDestInShard(t *testing.T) {
 	input.Arguments = [][]byte{key, value}
 	accDst, _ := state.NewUserAccount([]byte("dst"))
 
-	_, err := transferFunc.ProcessBuiltinFunction(nil, accDst, input)
+	vmOutput, err := transferFunc.ProcessBuiltinFunction(nil, accDst, input)
 	assert.Nil(t, err)
 	esdtKey := append(transferFunc.keyPrefix, key...)
 	esdtToken := &esdt.ESDigitalToken{}
 	marshaledData, _ := accDst.DataTrieTracker().RetrieveValue(esdtKey)
 	_ = marshalizer.Unmarshal(esdtToken, marshaledData)
 	assert.True(t, esdtToken.Value.Cmp(big.NewInt(10)) == 0)
+	assert.Equal(t, uint64(0), vmOutput.GasRemaining)
 }
 
 func TestESDTTransfer_SndDstFrozen(t *testing.T) {

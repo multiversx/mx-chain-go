@@ -125,7 +125,7 @@ type HeaderSyncHandler interface {
 
 // EpochStartTriesSyncHandler defines the methods to sync all tries from a given epoch start metablock
 type EpochStartTriesSyncHandler interface {
-	SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error
+	SyncTriesFrom(meta *block.MetaBlock) error
 	GetTries() (map[string]data.Trie, error)
 	IsInterfaceNil() bool
 }

@@ -98,7 +98,7 @@ func (ss *syncState) SyncAllState(epoch uint32) error {
 	mutErr := sync.Mutex{}
 
 	go func() {
-		errSync := ss.tries.SyncTriesFrom(meta, update.MaxTimeSpanToSyncTries)
+		errSync := ss.tries.SyncTriesFrom(meta)
 		if errSync != nil {
 			mutErr.Lock()
 			errFound = fmt.Errorf("%w in syncState.SyncAllState - SyncTriesFrom", errSync)

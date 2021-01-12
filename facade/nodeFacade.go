@@ -94,7 +94,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		return nil, ErrNilApiResolver
 	}
 	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrErrNilTransactionSimulatorProcessor
+		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -351,6 +351,11 @@ func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 // StatusMetrics will return the node's status metrics
 func (nf *nodeFacade) StatusMetrics() external.StatusMetricsHandler {
 	return nf.apiResolver.StatusMetrics()
+}
+
+// GetTotalStakedValue will return total staked value
+func (nf *nodeFacade) GetTotalStakedValue() (*big.Int, error) {
+	return nf.apiResolver.GetTotalStakedValue()
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie

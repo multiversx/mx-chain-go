@@ -53,7 +53,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -112,7 +112,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 		integrationTests.MinTransactionVersion,
 	)
 
-	transferTokenVMGas := uint64(6960)
+	transferTokenVMGas := uint64(7200)
 	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
 	transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
 
@@ -143,7 +143,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	roundToPropagateMultiShard := int64(20)
@@ -160,8 +160,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
 
-	players = append(players, relayer)
 	checkPlayerBalances(t, nodes, players)
+
+	userAcc := GetUserAccount(nodes, relayer.Address)
+	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 1)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
@@ -190,7 +192,11 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	issuePrice := big.NewInt(1000)
 	initalSupply := big.NewInt(10000000000)
 	tokenIssuer := nodes[0]
-	txData := "issue" + "@" + hex.EncodeToString([]byte("robertWhyNot")) + "@" + hex.EncodeToString([]byte("RBT")) + "@" + hex.EncodeToString(initalSupply.Bytes())
+	txData := "issue" +
+		"@" + hex.EncodeToString([]byte("robertWhyNot")) +
+		"@" + hex.EncodeToString([]byte("RBT")) +
+		"@" + hex.EncodeToString(initalSupply.Bytes()) +
+		"@" + hex.EncodeToString([]byte{6})
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 
 	time.Sleep(time.Second)
@@ -198,7 +204,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 	time.Sleep(time.Second)
 
@@ -216,14 +222,14 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 	time.Sleep(time.Second)
 
 	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(sendValue.Bytes())
 	transferTokenESDTGas := uint64(1)
 	transferTokenBaseGas := tokenIssuer.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
-	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas
+	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas + uint64(100) // use more gas to simulate gas refund
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
@@ -234,7 +240,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	nrRoundsToPropagateMultiShard = int64(20)

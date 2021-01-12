@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -53,7 +52,7 @@ func NewSyncAccountsDBsHandler(args ArgsNewSyncAccountsDBsHandler) (*syncAccount
 }
 
 // SyncTriesFrom syncs all the state tries from an epoch start metachain
-func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Duration) error {
+func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock) error {
 	if !meta.IsStartOfEpochBlock() && meta.Nonce > 0 {
 		return update.ErrNotEpochStartBlock
 	}
@@ -96,10 +95,7 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta *block.MetaBlock, waitTime time.Du
 		}(shData)
 	}
 
-	err := WaitFor(chDone, waitTime)
-	if err != nil {
-		return err
-	}
+	<-chDone
 
 	if errFound != nil {
 		return errFound

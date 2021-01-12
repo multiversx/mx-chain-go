@@ -38,7 +38,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	round := uint64(0)
 	nonce := uint64(0)
 
-	valMinting := big.NewInt(100000)
+	valMinting := big.NewInt(10000000)
 	valToTransferPerTx := big.NewInt(2)
 
 	advertiser := integrationTests.CreateMessengerWithKadDht("")
@@ -186,7 +186,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		}
 	}()
 
-	initialVal := big.NewInt(10000000)
+	initialVal := big.NewInt(1000000000)
 	sendValue := big.NewInt(5)
 	integrationTests.MintAllNodes(nodes, initialVal)
 	receiverAddress := []byte("12345678901234567890123456789012")
@@ -217,7 +217,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 			)
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -339,7 +339,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
-		time.Sleep(time.Second)
+		time.Sleep(integrationTests.StepDelay)
 	}
 
 	time.Sleep(time.Second)
@@ -535,7 +535,8 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
-	txCost := big.NewInt(0).SetUint64(gasPrice * gasLimit)
+	tx := &transaction.Transaction{GasPrice: gasPrice, GasLimit: gasLimit, Data: []byte(txData)}
+	txCost := consensusNodes[shardId0][0].EconomicsData.ComputeTxFee(tx)
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
 
