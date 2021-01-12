@@ -389,6 +389,41 @@ func (ed *economicsData) ComputeGasLimit(tx process.TransactionWithFeeHandler) u
 	return gasLimit
 }
 
+// ComputeGasUsedAndFeeBasedOnRefundValue will compute gas used value and transaction fee using refund value from a SCR
+func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
+	if refundValue.Cmp(big.NewInt(0)) == 0 {
+		txFee := ed.ComputeTxFee(tx)
+		return tx.GetGasLimit(), txFee
+	}
+
+	txFee := big.NewInt(0).Sub(ed.ComputeTxFee(tx), refundValue)
+
+	moveBalanceGasUnits := ed.ComputeGasLimit(tx)
+	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+
+	scOpFee := big.NewInt(0).Sub(txFee, moveBalanceFee)
+	gasPriceForProcessing := big.NewInt(0).SetUint64(ed.GasPriceForProcessing(tx))
+	scOpGasUnits := big.NewInt(0).Div(scOpFee, gasPriceForProcessing)
+
+	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
+
+	return gasUsed, txFee
+}
+
+// ComputeTxFeeBasedOnGasUsed will compute transaction fee
+func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
+	moveBalanceGasLimit := ed.ComputeGasLimit(tx)
+	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+	if gasUsed <= moveBalanceGasLimit {
+		return moveBalanceFee
+	}
+
+	computeFeeForProcessing := ed.ComputeFeeForProcessing(tx, gasUsed-moveBalanceGasLimit)
+	txFee := big.NewInt(0).Add(moveBalanceFee, computeFeeForProcessing)
+
+	return txFee
+}
+
 // EpochConfirmed is called whenever a new epoch is confirmed
 func (ed *economicsData) EpochConfirmed(epoch uint32) {
 	ed.flagPenalizedTooMuchGas.Toggle(epoch >= ed.penalizedTooMuchGasEnableEpoch)

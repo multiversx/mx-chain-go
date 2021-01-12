@@ -3,6 +3,7 @@ package process
 import (
 	"encoding/hex"
 	"strconv"
+	"math/big"
 	"strings"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -35,6 +36,7 @@ type txDatabaseProcessor struct {
 	marshalizer      marshal.Marshalizer
 	isInImportMode   bool
 	shardCoordinator sharding.Coordinator
+	txFeeCalculator  process.TransactionFeeCalculator
 }
 
 func newTxDatabaseProcessor(
@@ -42,27 +44,24 @@ func newTxDatabaseProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	validatorPubkeyConverter core.PubkeyConverter,
-	feeConfig *config.FeeSettings,
+	txFeeCalculator process.TransactionFeeCalculator,
 	isInImportMode bool,
 	shardCoordinator sharding.Coordinator,
 ) *txDatabaseProcessor {
-	// this should never return error because is tested when economics file is created
-	minGasLimit, _ := strconv.ParseUint(feeConfig.MinGasLimit, 10, 64)
-	gasPerDataByte, _ := strconv.ParseUint(feeConfig.GasPerDataByte, 10, 64)
-
 	return &txDatabaseProcessor{
 		hasher:      hasher,
 		marshalizer: marshalizer,
 		commonProcessor: &commonProcessor{
 			addressPubkeyConverter:   addressPubkeyConverter,
 			validatorPubkeyConverter: validatorPubkeyConverter,
-			minGasLimit:              minGasLimit,
-			gasPerDataByte:           gasPerDataByte,
+			txFeeCalculator:          txFeeCalculator,
+			shardCoordinator:         shardCoordinator,
 			esdtProc:                 newEsdtTransactionHandler(),
 		},
 		txLogsProcessor:  disabled.NewNilTxLogsProcessor(),
 		isInImportMode:   isInImportMode,
 		shardCoordinator: shardCoordinator,
+		txFeeCalculator:  txFeeCalculator,
 	}
 }
 
@@ -83,13 +82,6 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	transactions = tdp.setTransactionSearchOrder(transactions)
 	for recHash, rec := range receipts {
 		dbReceipts = append(dbReceipts, tdp.commonProcessor.convertReceiptInDatabaseReceipt(recHash, rec, header))
-
-		tx, ok := transactions[string(rec.TxHash)]
-		if !ok {
-			continue
-		}
-
-		tx.GasUsed = getGasUsedFromReceipt(rec, tx)
 	}
 
 	dbSCResults := make([]*types.ScResult, 0)
@@ -120,20 +112,33 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 	tdp.addScrsReceiverToAlteredAccounts(alteredAddresses, dbSCResults)
 
 	for hash, nrScResult := range countScResults {
+		tx, ok := transactions[hash]
+		if !ok {
+			continue
+		}
+
+		if isRelayedTx(tx) {
+			tx.GasUsed = tx.GasLimit
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
+			tx.Fee = fee.String()
+
+			continue
+		}
+
 		if nrScResult < minimumNumberOfSmartContractResults {
-			if len(transactions[hash].SmartContractResults) > 0 {
-				scResultData := transactions[hash].SmartContractResults[0].Data
+			if len(tx.SmartContractResults) > 0 {
+				scResultData := tx.SmartContractResults[0].Data
 				if isScResultSuccessful(scResultData) {
 					// ESDT contract calls generate just one smart contract result
 					continue
 				}
 			}
 
-			if strings.Contains(string(transactions[hash].Data), "relayedTx") {
-				continue
-			}
+			tx.Status = transaction.TxStatusFail.String()
 
-			transactions[hash].Status = transaction.TxStatusFail.String()
+			tx.GasUsed = tx.GasLimit
+			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)
+			tx.Fee = fee.String()
 		}
 	}
 
@@ -184,11 +189,30 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResult *types.ScResult, tx *types.Transaction) *types.Transaction {
 	tx.SmartContractResults = append(tx.SmartContractResults, dbScResult)
 
-	if isSCRForSenderWithGasUsed(dbScResult, tx) {
-		tx.GasUsed = computeTxGasUsedField(dbScResult, tx)
+	if isSCRForSenderWithRefund(dbScResult, tx) {
+		refundValue := stringValueToBigInt(dbScResult.Value)
+		gasUsed, fee := tdp.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+		tx.GasUsed = gasUsed
+		tx.Fee = fee.String()
 	}
 
 	return tx
+}
+
+func isSCRForSenderWithRefund(dbScResult ScResult, tx *Transaction) bool {
+	isForSender := dbScResult.Receiver == tx.Sender
+	isRightNonce := dbScResult.Nonce == tx.Nonce+1
+	isFromCurrentTx := dbScResult.PreTxHash == tx.Hash
+	isScrDataOk := isDataOk(dbScResult.Data)
+
+	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
+}
+
+func isDataOk(data []byte) bool {
+	okEncoded := hex.EncodeToString([]byte("ok"))
+	dataFieldStr := "@" + okEncoded
+
+	return strings.HasPrefix(string(data), dataFieldStr)
 }
 
 func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {
@@ -255,6 +279,11 @@ func (tdp *txDatabaseProcessor) groupNormalTxsAndRewards(
 			for hash, tx := range txs {
 				dbTx := tdp.commonProcessor.buildTransaction(tx, []byte(hash), mbHash, mb, header, transaction.TxStatusInvalid.String())
 				addToAlteredAddresses(dbTx, alteredAddresses, mb, selfShardID, false)
+
+				dbTx.GasUsed = dbTx.GasLimit
+				fee := tdp.commonProcessor.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, dbTx.GasUsed)
+				dbTx.Fee = fee.String()
+
 				transactions[hash] = dbTx
 				delete(txPool, hash)
 			}

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"math/big"
 	"net/http"
 
 	"github.com/ElrondNetwork/elrond-go/api/errors"
@@ -11,13 +12,15 @@ import (
 )
 
 const (
-	getConfigPath = "/config"
-	getStatusPath = "/status"
-	economicsPath = "/economics"
+	getConfigPath   = "/config"
+	getStatusPath   = "/status"
+	economicsPath   = "/economics"
+	totalStakedPath = "/total-staked"
 )
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
+	GetTotalStakedValue() (*big.Int, error)
 	StatusMetrics() external.StatusMetricsHandler
 	IsInterfaceNil() bool
 }
@@ -27,6 +30,7 @@ func Routes(router *wrapper.RouterWrapper) {
 	router.RegisterHandler(http.MethodGet, getConfigPath, GetNetworkConfig)
 	router.RegisterHandler(http.MethodGet, getStatusPath, GetNetworkStatus)
 	router.RegisterHandler(http.MethodGet, economicsPath, EconomicsMetrics)
+	router.RegisterHandler(http.MethodGet, totalStakedPath, GetTotalStaked)
 }
 
 func getFacade(c *gin.Context) (FacadeHandler, bool) {
@@ -111,4 +115,40 @@ func EconomicsMetrics(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+// GetTotalStaked is the endpoint that will return the total staked value
+func GetTotalStaked(c *gin.Context) {
+	facade, ok := getFacade(c)
+	if !ok {
+		return
+	}
+
+	totalStakedValue, err := facade.GetTotalStakedValue()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	totalStakedValueStr := "0"
+	if totalStakedValue != nil {
+		totalStakedValueStr = totalStakedValue.String()
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"totalStakedValue": totalStakedValueStr},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+	return
 }

@@ -1064,6 +1064,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.StakingV2Epoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1102,6 +1103,14 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Jailed)
 	assert.True(t, stakedData.Staked)
+
+	arguments.Function = "getTotalNumberOfRegisteredNodes"
+	arguments.Arguments = [][]byte{}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.Equal(t, lastOutput, []byte{2})
 }
 
 func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
@@ -1121,6 +1130,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.StakingSCConfig.StakingV2Epoch = 0
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1227,6 +1237,14 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	assert.Equal(t, 4, len(outPut))
 	assert.Equal(t, []byte(strconv.Itoa(101)), outPut[3])
 	assert.Equal(t, []byte(hex.EncodeToString(stakerAddress)), outPut[2])
+
+	arguments.Function = "getTotalNumberOfRegisteredNodes"
+	arguments.Arguments = [][]byte{}
+	retCode = stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	lastOutput := eei.output[len(eei.output)-1]
+	assert.Equal(t, lastOutput, []byte{4})
 }
 
 func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
@@ -1806,6 +1824,8 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
 	}
 	assert.Equal(t, 6, len(eei.output)-currentOutPutIndex)
+	stakingConfig := stakingSmartContract.getConfig()
+	assert.Equal(t, stakingConfig.StakedNodes, int64(4))
 }
 
 func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
@@ -1870,7 +1890,7 @@ func doGetRemainingUnbondPeriod(t *testing.T, sc *stakingSC, eei *vmContext, bls
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	lastOutput := eei.output[len(eei.output)-1]
-	assert.True(t, bytes.Equal(lastOutput, []byte(strconv.Itoa(expected))))
+	assert.True(t, bytes.Equal(lastOutput, big.NewInt(int64(expected)).Bytes()))
 }
 
 func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, expectedStatus string) {

@@ -402,7 +402,8 @@ func createStakingDataProviderWithMockArgs(
 					ReturnData: [][]byte{owner},
 				}, nil
 			case "getTotalStakedTopUpStakedBlsKeys":
-				assert.Equal(t, owner, input.VMInput.CallerAddr)
+				assert.Equal(t, 1, len(input.Arguments))
+				assert.Equal(t, owner, input.Arguments[0])
 				assert.Equal(t, vm.ValidatorSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{

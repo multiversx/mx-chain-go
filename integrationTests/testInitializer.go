@@ -350,8 +350,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 }
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
-func CreateTrieStorageManager() (data.StorageManager, storage.Storer) {
-	store := CreateMemUnit()
+func CreateTrieStorageManager(store storage.Storer) (data.StorageManager, storage.Storer) {
 	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, memorydb.New(), TestMarshalizer)
 
 	// TODO change this implementation with a factory
@@ -712,7 +711,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := testscommon.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc := blockchain.NewMetaChain()
-		trieStorage, _ := CreateTrieStorageManager()
+		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 		newAccounts, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -807,7 +806,7 @@ func CreateRandomBytes(chars int) []byte {
 // GenerateAddressJournalAccountAccountsDB returns an account, the accounts address, and the accounts database
 func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler, *state.AccountsDB) {
 	adr := CreateRandomAddress()
-	trieStorage, _ := CreateTrieStorageManager()
+	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 	account, _ := state.NewUserAccount(adr)
 
@@ -1861,7 +1860,7 @@ func generateValidTx(
 	_, pkRecv, _ := GenerateSkAndPkInShard(shardCoordinator, receiverShardId)
 	pkRecvBuff, _ := pkRecv.ToByteArray()
 
-	trieStorage, _ := CreateTrieStorageManager()
+	trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
 	accnts, _ := CreateAccountsDB(UserAccount, trieStorage)
 	acc, _ := accnts.LoadAccount(pkSenderBuff)
 	_ = accnts.SaveAccount(acc)

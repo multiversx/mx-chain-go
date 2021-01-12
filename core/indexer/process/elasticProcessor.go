@@ -37,7 +37,7 @@ type ArgElasticProcessor struct {
 	EnabledIndexes           map[string]struct{}
 	AccountsDB               state.AccountsAdapter
 	Denomination             int
-	FeeConfig                *config.FeeSettings
+	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
 	ShardCoordinator         sharding.Coordinator
 }
@@ -72,7 +72,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, erro
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
-		arguments.FeeConfig,
+		arguments.TransactionFeeCalculator,
 		arguments.IsInImportDBMode,
 		arguments.ShardCoordinator,
 	)

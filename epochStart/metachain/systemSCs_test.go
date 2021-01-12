@@ -408,6 +408,11 @@ func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsK
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
 	require.Nil(t, err)
+	if len(expectedOwner) == 0 {
+		require.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
+		return
+	}
+
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 
@@ -1067,6 +1072,28 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	numRegistered := getTotalNumberOfRegisteredNodes(t, s)
+	assert.Equal(t, 1, numRegistered)
+}
+
+func getTotalNumberOfRegisteredNodes(t *testing.T, s *systemSCProcessor) int {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  make([][]byte, 0),
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "getTotalNumberOfRegisteredNodes",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	require.Nil(t, errRun)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, 1, len(vmOutput.ReturnData))
+
+	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+
+	return int(value.Int64())
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwnerNotSet(t *testing.T) {
@@ -1313,6 +1340,60 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 2, len(dStatus.StakedKeys))
 	assert.Equal(t, []byte("stakedPubKey1"), dStatus.UnStakedKeys[0].BLSKey)
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeCleaned(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("oneAddress1"),
+		[]byte("oneAddress2"),
+		args.Marshalizer,
+		[]byte("oneAddress1"),
+		[]byte("oneAddress1"),
+	)
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey2"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey3"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("oneAddress1"),
+		List:            string(core.EligibleList),
+		RewardAddress:   []byte("oneAddress1"),
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(validatorInfos[0]), 1)
 }
 
 func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {

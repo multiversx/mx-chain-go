@@ -89,6 +89,8 @@ const (
 	DefaultStaticDbString = "Static"
 	// DefaultShardString is the default Shard string when creating DB path
 	DefaultShardString = "Shard"
+	// TemporaryPath is the default temporary path directory
+	TemporaryPath = "temp"
 )
 
 //TODO remove this
@@ -1412,6 +1414,7 @@ func newBlockProcessor(
 ) (process.BlockProcessor, error) {
 
 	shardCoordinator := processArgs.shardCoordinator
+	workingDir := filepath.Join(processArgs.workingDir, TemporaryPath)
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
@@ -1442,7 +1445,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1478,7 +1481,7 @@ func newBlockProcessor(
 			processArgs.epochNotifier,
 			txSimulatorProcessorArgs,
 			processArgs.mainConfig,
-			processArgs.workingDir,
+			workingDir,
 			processArgs.rater,
 		)
 	}
@@ -2062,16 +2065,17 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
-		Hasher:           core.Hasher,
-		Marshalizer:      core.InternalMarshalizer,
-		PeerState:        stateComponents.PeerAccounts,
-		BaseState:        stateComponents.AccountsAdapter,
-		ArgParser:        argsParser,
-		CurrTxs:          data.Datapool.CurrentBlockTxs(),
-		RatingsData:      ratingsData,
-		EpochNotifier:    epochNotifier,
-		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
+		PubkeyConv:            stateComponents.ValidatorPubkeyConverter,
+		Hasher:                core.Hasher,
+		Marshalizer:           core.InternalMarshalizer,
+		PeerState:             stateComponents.PeerAccounts,
+		BaseState:             stateComponents.AccountsAdapter,
+		ArgParser:             argsParser,
+		CurrTxs:               data.Datapool.CurrentBlockTxs(),
+		RatingsData:           ratingsData,
+		EpochNotifier:         epochNotifier,
+		StakeEnableEpoch:      systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
+		UnBondCorrectionEpoch: generalConfig.GeneralSettings.SCDeployEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {
@@ -2236,6 +2240,7 @@ func newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		RewardsV2EnableEpoch:         systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/fallback"
@@ -55,7 +56,7 @@ func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 	storageService := &mock.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, storageService)
-	assert.NotNil(t, fhv)
+	assert.False(t, check.IfNil(fhv))
 	assert.Nil(t, err)
 }
 

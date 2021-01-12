@@ -1,8 +1,11 @@
 package indexer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
+	"bytes"
+	"math/big"
+
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -56,4 +59,11 @@ type ElasticProcessor interface {
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
 	SaveAccounts(accounts []state.UserAccountHandler) error
 	IsInterfaceNil() bool
+}
+
+// FeesProcessorHandler defines the interface for the transaction fees processor
+type FeesProcessorHandler interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx process.TransactionWithFeeHandler, refundValueStr string) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeMoveBalanceGasUsed(tx process.TransactionWithFeeHandler) uint64
 }

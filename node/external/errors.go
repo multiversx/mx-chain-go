@@ -10,3 +10,6 @@ var ErrNilStatusMetrics = errors.New("nil status metrics handler")
 
 // ErrNilTransactionCostHandler signals that a nil transaction cost handler was provided
 var ErrNilTransactionCostHandler = errors.New("nil transaction cost handler")
+
+// ErrNilTotalStakedValueHandler signals that a nil total staked value handler has been provided
+var ErrNilTotalStakedValueHandler = errors.New("nil total staked value handler")
