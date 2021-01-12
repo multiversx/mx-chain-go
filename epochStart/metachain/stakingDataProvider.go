@@ -165,13 +165,13 @@ func (sdp *stakingDataProvider) FillValidatorInfo(blsKey []byte) error {
 func (sdp *stakingDataProvider) getAndFillOwnerStatsFromSC(blsKey []byte) (*ownerStats, error) {
 	owner, err := sdp.getBlsKeyOwner(blsKey)
 	if err != nil {
-		log.Debug("error computing rewards for bls key", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
+		log.Debug("error fill owner stats", "step", "get owner from bls", "key", hex.EncodeToString(blsKey), "error", err)
 		return nil, err
 	}
 
 	ownerData, err := sdp.getValidatorData(owner)
 	if err != nil {
-		log.Debug("error computing rewards for bls key", "step", "get owner data", "key", hex.EncodeToString(blsKey), "error", err)
+		log.Debug("error fill owner stats", "step", "get owner data", "key", hex.EncodeToString(blsKey), "owner", hex.EncodeToString([]byte(owner)), "error", err)
 		return nil, err
 	}
 
@@ -270,7 +270,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 		return nil, nil, nil, nil, err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, nil, nil, nil, fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+		return nil, nil, nil, nil, fmt.Errorf("%w, error: %v message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 
 	if len(vmOutput.ReturnData) < 3 {
