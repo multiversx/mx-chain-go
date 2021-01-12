@@ -142,10 +142,10 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 		return indexer.ErrNegativeCacheSize
 	}
 	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", process.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting AddressPubkeyConverter in indexer", processIndexer.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", process.ErrNilPubkeyConverter)
+		return fmt.Errorf("%w when setting ValidatorPubkeyConverter in indexer", processIndexer.ErrNilPubkeyConverter)
 	}
 	if arguments.Url == "" {
 		return core.ErrNilUrl
