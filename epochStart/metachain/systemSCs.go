@@ -415,6 +415,7 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 
 		for _, validatorInfo := range validatorsInfoSlice {
 			if validatorInfo.List == string(core.EligibleList) {
+				newList = append(newList, validatorInfo)
 				continue
 			}
 
