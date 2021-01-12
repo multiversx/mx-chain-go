@@ -20,11 +20,13 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
 type objectsMap = map[string]interface{}
 
 type commonProcessor struct {
+	shardCoordinator         sharding.Coordinator
 	addressPubkeyConverter   core.PubkeyConverter
 	validatorPubkeyConverter core.PubkeyConverter
 	txFeeCalculator          process.TransactionFeeCalculator
@@ -106,24 +108,26 @@ func (cm *commonProcessor) buildTransaction(
 	fee := cm.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &Transaction{
-		Hash:          hex.EncodeToString(txHash),
-		MBHash:        hex.EncodeToString(mbHash),
-		Nonce:         tx.Nonce,
-		Round:         header.GetRound(),
-		Value:         tx.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:        cm.addressPubkeyConverter.Encode(tx.SndAddr),
-		ReceiverShard: mb.ReceiverShardID,
-		SenderShard:   mb.SenderShardID,
-		GasPrice:      tx.GasPrice,
-		GasLimit:      tx.GasLimit,
-		Data:          tx.Data,
-		Signature:     hex.EncodeToString(tx.Signature),
-		Timestamp:     time.Duration(header.GetTimeStamp()),
-		Status:        txStatus,
-		GasUsed:       gasUsed,
-		Fee:           fee.String(),
-		rcvAddrBytes:  tx.RcvAddr,
+		Hash:             hex.EncodeToString(txHash),
+		MBHash:           hex.EncodeToString(mbHash),
+		Nonce:            tx.Nonce,
+		Round:            header.GetRound(),
+		Value:            tx.Value.String(),
+		Receiver:         cm.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:           cm.addressPubkeyConverter.Encode(tx.SndAddr),
+		ReceiverShard:    cm.shardCoordinator.ComputeId(tx.RcvAddr),
+		SenderShard:      mb.SenderShardID,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
+		Timestamp:        time.Duration(header.GetTimeStamp()),
+		Status:           txStatus,
+		GasUsed:          gasUsed,
+		Fee:              fee.String(),
+		ReceiverUserName: tx.RcvUserName,
+		SenderUserName:   tx.SndUserName,
+		rcvAddrBytes:     tx.RcvAddr,
 	}
 }
 
@@ -436,47 +440,21 @@ func prepareSerializedDataForATransaction(
 		return nil, nil, err
 	}
 
-	var serializedData []byte
-	if tx.GasUsed == tx.GasLimit && !hasScrWithRefund(tx) && !isRelayedTx(tx) {
-		// do not update gasUsed because it is the same with gasUsed when transaction was saved first time in database
-		serializedData =
-			[]byte(fmt.Sprintf(`{"script":{"source":"`+
-				`ctx._source.status = params.status;`+
-				`ctx._source.miniBlockHash = params.miniBlockHash;`+
-				`ctx._source.log = params.log;`+
-				`ctx._source.scResults = params.scResults;`+
-				`ctx._source.timestamp = params.timestamp;`+
-				`","lang": "painless","params":`+
-				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s}},"upsert":%s}`,
-				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), string(marshaledTx)))
-	} else {
-		// update gasUsed because was changed (is a smart contract operation)
-		serializedData =
-			[]byte(fmt.Sprintf(`{"script":{"source":"`+
-				`ctx._source.status = params.status;`+
-				`ctx._source.miniBlockHash = params.miniBlockHash;`+
-				`ctx._source.log = params.log;`+
-				`ctx._source.scResults = params.scResults;`+
-				`ctx._source.timestamp = params.timestamp;`+
-				`ctx._source.gasUsed = params.gasUsed;`+
-				`ctx._source.fee = params.fee;`+
-				`","lang": "painless","params":`+
-				`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
-				tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
-	}
+	serializedData := []byte(fmt.Sprintf(`{"script":{"source":"`+
+		`ctx._source.status = params.status;`+
+		`ctx._source.miniBlockHash = params.miniBlockHash;`+
+		`ctx._source.log = params.log;`+
+		`ctx._source.scResults = params.scResults;`+
+		`ctx._source.timestamp = params.timestamp;`+
+		`ctx._source.gasUsed = params.gasUsed;`+
+		`ctx._source.fee = params.fee;`+
+		`","lang": "painless","params":`+
+		`{"status": "%s", "miniBlockHash": "%s", "log": %s, "scResults": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
+		tx.Status, tx.MBHash, string(marshaledLog), string(scResults), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
+
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 
 	return metaData, serializedData, nil
-}
-
-func hasScrWithRefund(tx *Transaction) bool {
-	for _, sc := range tx.SmartContractResults {
-		if isSCRForSenderWithRefund(sc, tx) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func isRelayedTx(tx *Transaction) bool {

@@ -396,13 +396,16 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx process.Trans
 		return tx.GetGasLimit(), txFee
 	}
 
-	gasRefund := ed.computeGasRefund(refundValue, tx.GetGasPrice())
-	gasUsed, err := core.SafeSubUint64(tx.GetGasLimit(), gasRefund)
-	if err != nil {
-		log.Warn("ComputeGasUsedAndFeeBasedOnRefundValue", "SafeSubUint64", err.Error())
-	}
-
 	txFee := big.NewInt(0).Sub(ed.ComputeTxFee(tx), refundValue)
+
+	moveBalanceGasUnits := ed.ComputeGasLimit(tx)
+	moveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+
+	scOpFee := big.NewInt(0).Sub(txFee, moveBalanceFee)
+	gasPriceForProcessing := big.NewInt(0).SetUint64(ed.GasPriceForProcessing(tx))
+	scOpGasUnits := big.NewInt(0).Div(scOpFee, gasPriceForProcessing)
+
+	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
 
 	return gasUsed, txFee
 }
@@ -419,14 +422,6 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx process.TransactionWithFe
 	txFee := big.NewInt(0).Add(moveBalanceFee, computeFeeForProcessing)
 
 	return txFee
-}
-
-func (ed *economicsData) computeGasRefund(refundValue *big.Int, gasPrice uint64) uint64 {
-	gasPriceBig := big.NewInt(0).SetUint64(gasPrice)
-	gasRefund := big.NewInt(0).Div(refundValue, gasPriceBig).Uint64()
-	gasRefund = uint64(ed.GasPriceModifier() * float64(gasRefund))
-
-	return gasRefund
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
