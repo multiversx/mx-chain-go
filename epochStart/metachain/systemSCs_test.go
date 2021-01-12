@@ -408,6 +408,11 @@ func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsK
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
 	require.Nil(t, err)
+	if len(expectedOwner) == 0 {
+		require.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
+		return
+	}
+
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 

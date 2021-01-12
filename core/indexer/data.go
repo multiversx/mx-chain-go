@@ -31,6 +31,8 @@ type Transaction struct {
 	Status               string        `json:"status"`
 	SearchOrder          uint32        `json:"searchOrder"`
 	SmartContractResults []ScResult    `json:"scResults,omitempty"`
+	SenderUserName       []byte        `json:"sndUserName,omitempty"`
+	ReceiverUserName     []byte        `json:"rcvUserName,omitempty"`
 	Log                  TxLog         `json:"-"`
 	rcvAddrBytes         []byte
 }
