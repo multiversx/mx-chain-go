@@ -120,8 +120,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
-	t.Parallel()
-
 	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 
@@ -204,8 +202,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
-	t.Parallel()
-
 	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
 	defer testContextSource.Close()
 

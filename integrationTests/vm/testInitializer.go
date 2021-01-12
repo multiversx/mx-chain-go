@@ -47,6 +47,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var dnsAddr = []byte{0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 137, 17, 46, 56, 127, 47, 62, 172, 4, 126, 190, 242, 221, 230, 209, 243, 105, 104, 242, 66, 49, 49}
+
 // TODO: Merge test utilities from this file with the ones from "arwen/utils.go"
 
 var testMarshalizer = &marshal.GogoProtoMarshalizer{}
@@ -361,10 +363,12 @@ func CreateVMAndBlockchainHook(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:     mock.NewGasScheduleNotifierMock(actualGasSchedule),
-		MapDNSAddresses: make(map[string]struct{}),
-		Marshalizer:     testMarshalizer,
-		Accounts:        accnts,
+		GasSchedule: mock.NewGasScheduleNotifierMock(actualGasSchedule),
+		MapDNSAddresses: map[string]struct{}{
+			string(dnsAddr): {},
+		},
+		Marshalizer: testMarshalizer,
+		Accounts:    accnts,
 	}
 	builtInFuncFactory, _ := builtInFunctions.NewBuiltInFunctionsFactory(argsBuiltIn)
 	builtInFuncs, _ := builtInFuncFactory.CreateBuiltInFunctionContainer()
@@ -731,6 +735,13 @@ func ComputeExpectedBalance(
 
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
+	vmOutput := GetVmOutput(gasSchedule, accnts, scAddressBytes, funcName, args...)
+
+	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+}
+
+// GetVmOutput -
+func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *vmcommon.VMOutput {
 	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule, false, oneShardCoordinator)
 	defer func() {
 		_ = vmContainer.Close()
@@ -752,10 +763,10 @@ func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.Ac
 
 	if err != nil {
 		fmt.Println("ERROR at GetIntValueFromSC()", err)
-		return big.NewInt(-1)
+		return nil
 	}
 
-	return big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+	return vmOutput
 }
 
 // CreateTransferTokenTx -

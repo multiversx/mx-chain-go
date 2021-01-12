@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -11,6 +14,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing/keccak"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
@@ -56,6 +60,36 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
 
+	return scAddr, owner
+}
+
+// DoDeployDNS -
+func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
+	owner = []byte("12345678901234567890123456789011")
+	senderNonce := uint64(0)
+	senderBalance := big.NewInt(10000000)
+	gasPrice := uint64(10)
+	gasLimit := uint64(400000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
+
+	initParameter := hex.EncodeToString(big.NewInt(1000).Bytes())
+	scCode := []byte(arwen.GetSCCode(pathToContract))
+	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte(initParameter), []byte("00")}, []byte("@"))
+	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, testContext.GetLatestError())
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	testContext.TxFeeHandler.CreateBlockStarted()
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, 0, factory.ArwenVirtualMachine)
+	fmt.Println(hex.EncodeToString(scAddr))
 	return scAddr, owner
 }
 
@@ -126,4 +160,30 @@ func CleanAccumulatedIntermediateTransactions(t *testing.T, testContext *vm.VMTe
 	require.True(t, ok)
 
 	mockIntermediate.Clean()
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+
+// randStringBytes -
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+// GenerateUserNameForMyDNSContract -
+func GenerateUserNameForMyDNSContract() []byte {
+	testHasher := keccak.Keccak{}
+	contractLastByte := byte(49)
+
+	for {
+		userName := randStringBytes(10)
+		userNameHash := testHasher.Compute(userName)
+
+		if userNameHash[len(userNameHash)-1] == contractLastByte {
+			return []byte(userName)
+		}
+	}
 }
