@@ -1462,6 +1462,10 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		s.eei.AddReturnMessage(errGet.Error())
 		return vmcommon.UserError
 	}
+	if len(stakedData.OwnerAddress) == 0 {
+		s.eei.AddReturnMessage("owner address is nil")
+		return vmcommon.UserError
+	}
 
 	s.eei.Finish(stakedData.OwnerAddress)
 	return vmcommon.Ok
