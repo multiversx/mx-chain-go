@@ -418,7 +418,7 @@ func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
 
 	stp.flagUnBondCorrection.Toggle(epoch >= stp.unBondCorrectionEpoch)
-	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagStaking.IsSet())
+	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagUnBondCorrection.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
