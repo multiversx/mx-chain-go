@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"path"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ type testIndexer struct {
 	marshalizer      marshal.Marshalizer
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
+	mutex            sync.RWMutex
 }
 
 // CreateTestIndexer -
@@ -35,6 +37,7 @@ func CreateTestIndexer(
 ) *testIndexer {
 	ti := &testIndexer{
 		indexerData: map[string]*bytes.Buffer{},
+		mutex:       sync.RWMutex{},
 	}
 
 	dispatcher, err := indexer.NewDataDispatcher(100)
@@ -171,6 +174,9 @@ func (ti *testIndexer) SaveTransaction(
 
 func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
 	doBulkRequest := func(buff *bytes.Buffer, index string) error {
+		ti.mutex.Lock()
+		defer ti.mutex.Unlock()
+
 		ti.indexerData[index] = buff
 		return nil
 	}
@@ -184,7 +190,10 @@ func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
 
 // GetIndexerPreparedTransaction -
 func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexer.Transaction {
+	ti.mutex.RLock()
 	txData, ok := ti.indexerData["transactions"]
+	ti.mutex.RUnlock()
+
 	require.True(t, ok)
 
 	split := bytes.Split(txData.Bytes(), []byte("\n"))
