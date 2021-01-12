@@ -302,7 +302,7 @@ func printTestDebugLines(
 }
 
 func getRootHashByRunningInitialAccounts(initialAccounts []genesis.InitialAccountHandler) ([]byte, state.AccountsAdapter) {
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	uniformIndexes := make([]int, len(initialAccounts))

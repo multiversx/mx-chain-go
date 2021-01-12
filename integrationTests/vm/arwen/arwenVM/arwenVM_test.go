@@ -58,7 +58,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		true,
 		vm.ArgEnableEpoch{},
 	)
 	defer testContext.Close()
@@ -95,7 +94,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
@@ -188,7 +186,6 @@ func TestWASMMetering(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
@@ -250,9 +247,8 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -260,9 +256,8 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
 }
 
 func deployAndExecuteERC20WithBigInt(
@@ -272,7 +267,6 @@ func deployAndExecuteERC20WithBigInt(
 	gasSchedule map[string]map[string]uint64,
 	fileName string,
 	functionName string,
-	warmInstance bool,
 	outOfProcess bool,
 ) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
@@ -290,7 +284,6 @@ func deployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		warmInstance,
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
@@ -389,7 +382,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		false,
 		vm.ArgEnableEpoch{},
 	)
@@ -597,7 +589,6 @@ func TestAndCatchTrieError(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		false,
 		vm.ArgEnableEpoch{},
 	)

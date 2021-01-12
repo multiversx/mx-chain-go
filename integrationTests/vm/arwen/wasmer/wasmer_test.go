@@ -100,7 +100,6 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		false,
 		vm.ArgEnableEpoch{},
 	)
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)

@@ -132,7 +132,7 @@ func TestGasModel(t *testing.T) {
 	}
 	fmt.Println("gasSchedule: " + big.NewInt(int64(totalOp)).String())
 	fmt.Println("ERC20 BIGINT")
-	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
+	deployAndExecuteERC20WithBigInt(t, 1, 100, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
 
 	runWASMVMBenchmark(t, "../testdata/misc/cpucalculate_arwen/output/cpucalculate.wasm", 8000, "cpuCalculate", nil, 2, gasSchedule)
 
@@ -193,7 +193,6 @@ func runWASMVMBenchmark(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		false,
 		false,
 		vm.ArgEnableEpoch{},
 	)
