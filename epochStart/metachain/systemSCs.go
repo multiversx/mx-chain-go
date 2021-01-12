@@ -221,6 +221,8 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.flagStakingV2Enabled.IsSet() {
+		return fmt.Errorf("should stop")
+
 		err := s.prepareRewardsData(validatorInfos)
 		if err != nil {
 			return err
