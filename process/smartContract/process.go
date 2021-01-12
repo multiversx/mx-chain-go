@@ -662,11 +662,10 @@ func (sc *scProcessor) resolveFailedTransaction(
 }
 
 func (sc *scProcessor) computeBuiltInFuncGasUsed(
-	tx data.TransactionHandler,
+	txTypeOnDst process.TransactionType,
 	gasProvided uint64,
 	gasRemaining uint64,
 ) (uint64, error) {
-	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnDst != process.SCInvoking {
 		return core.SafeSubUint64(gasProvided, gasRemaining)
 	}
@@ -698,10 +697,14 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		log.Debug("processed built in functions error", "error", err.Error())
 		return 0, err
 	}
-	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(tx, vmInput.GasProvided, vmOutput.GasRemaining)
+	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
+	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.GasProvided, vmOutput.GasRemaining)
 	log.LogIfError(err, "ExecuteBultInFunction", "computeBuiltInFuncGasUSed")
 
-	vmOutput.GasRemaining += vmInput.GasLocked
+	if txTypeOnDst != process.SCInvoking {
+		vmOutput.GasRemaining += vmInput.GasLocked
+	}
+
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
@@ -726,7 +729,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		}
 	}
 
-	isSCCall, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, acntDst, snapshot)
+	isSCCallSelfShard, newVMOutput, newVMInput, err := sc.treatExecutionAfterBuiltInFunc(tx, vmInput, vmOutput, acntSnd, acntDst, snapshot)
 	if err != nil {
 		log.Debug("treat execution after built in function", "error", err.Error())
 		return 0, err
@@ -735,7 +738,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return newVMOutput.ReturnCode, nil
 	}
 
-	if isSCCall {
+	if isSCCallSelfShard {
 		err = sc.gasConsumedChecks(tx, newVMInput.GasProvided, newVMInput.GasLocked, newVMOutput)
 		if err != nil {
 			log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
@@ -756,26 +759,31 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		}
 	}
 
-	scrForSender, scrForRelayer, err := sc.processSCRForSender(tx, txHash, vmInput, newVMOutput)
-	if err != nil {
-		return 0, err
-	}
+	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
+	if !isSCCallCrossShard {
+		scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
+		if errCreateSCR != nil {
+			return 0, errCreateSCR
+		}
 
-	if !createdAsyncCallback && vmInput.CallType == vmcommon.AsynchronousCall {
-		asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
-		scrResults = append(scrResults, asyncCallBackSCR)
-	} else if !createdAsyncCallback {
-		scrResults = append(scrResults, scrForSender)
-	}
+		if !createdAsyncCallback {
+			if vmInput.CallType == vmcommon.AsynchronousCall {
+				asyncCallBackSCR := createAsyncCallBackSCRFromVMOutput(newVMOutput, tx, txHash)
+				scrResults = append(scrResults, asyncCallBackSCR)
+			} else {
+				scrResults = append(scrResults, scrForSender)
+			}
+		}
 
-	if !check.IfNil(scrForRelayer) {
-		scrResults = append(scrResults, scrForRelayer)
+		if !check.IfNil(scrForRelayer) {
+			scrResults = append(scrResults, scrForRelayer)
+		}
 	}
 
 	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
 }
 
-func (sc *scProcessor) processSCRForSender(
+func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
 	tx data.TransactionHandler,
 	txHash []byte,
 	vmInput *vmcommon.ContractCallInput,
@@ -800,6 +808,7 @@ func (sc *scProcessor) processSCRForSender(
 			return nil, nil, err
 		}
 	}
+
 	return scrForSender, scrForRelayer, nil
 }
 
@@ -896,8 +905,9 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return false, nil, nil
 	}
 
+	scExecuteOutTransfer := outAcc.OutputTransfers[0]
 	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCallBack(outAcc.OutputTransfers[0].Data, callType)
+	txData := prependCallbackToTxDataIfAsyncCallBack(scExecuteOutTransfer.Data, callType)
 
 	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
 	if err != nil {
@@ -911,7 +921,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 			CallValue:      big.NewInt(0),
 			CallType:       callType,
 			GasPrice:       vmInput.GasPrice,
-			GasProvided:    vmOutput.GasRemaining - vmInput.GasLocked,
+			GasProvided:    scExecuteOutTransfer.GasLimit,
 			GasLocked:      vmInput.GasLocked,
 			OriginalTxHash: vmInput.OriginalTxHash,
 			CurrentTxHash:  vmInput.CurrentTxHash,
@@ -954,7 +964,7 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) bool
 	return function == core.BuiltInFunctionESDTTransfer
 }
 
-// ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
+// ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
 func (sc *scProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
 	txHash []byte,
@@ -968,6 +978,10 @@ func (sc *scProcessor) ProcessIfError(
 	if err != nil {
 		log.Warn("revert to snapshot", "error", err.Error())
 		return err
+	}
+
+	if len(returnMessage) == 0 && sc.flagDeploy.IsSet() {
+		returnMessage = []byte(returnCode)
 	}
 
 	scrIfError, consumedFee := sc.createSCRsWhenError(acntSnd, txHash, tx, returnCode, returnMessage, gasLocked)
@@ -1105,7 +1119,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
-		log.Debug("wrong transaction", "error", process.ErrWrongTransaction.Error())
+		log.Debug("wrong transaction - not empty address", "error", process.ErrWrongTransaction.Error())
 		return 0, process.ErrWrongTransaction
 	}
 
@@ -1368,6 +1382,9 @@ func (sc *scProcessor) penalizeUserIfNeeded(
 
 	if sc.flagDeploy.IsSet() {
 		vmOutput.ReturnMessage += "@"
+		if !isSmartContractResult(tx) {
+			gasUsed += sc.economicsFee.ComputeGasLimit(tx)
+		}
 	}
 
 	vmOutput.ReturnMessage += fmt.Sprintf("too much gas provided: gas needed = %d, gas remained = %d",
@@ -1408,6 +1425,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	accumulatedSCRData := ""
+	// TODO: check why just ESDTTransfer here. No problem with burn, freeze? Can't they be crossShard?
 	if sc.isCrossShardESDTTransfer(tx) {
 		accumulatedSCRData += string(tx.GetData())
 	}
@@ -1424,6 +1442,7 @@ func (sc *scProcessor) createSCRsWhenError(
 			consumedFee.Sub(consumedFee, moveBalanceCost)
 		}
 	} else {
+		//TODO: just AsynchronousCall here? No need for AsynchronousCallBack?
 		if callType == vmcommon.AsynchronousCall {
 			scr.CallType = vmcommon.AsynchronousCallBack
 			scr.GasPrice = tx.GetGasPrice()

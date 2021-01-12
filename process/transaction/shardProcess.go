@@ -249,6 +249,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return nil
 	}
 
+	//TODO: check here, there is no  if !flagPenalizedTooMuchGas.IsSet():
+	// could it happen that not all taken fee or too much is taken from the sender account?
 	txFee := txProc.economicsFee.ComputeTxFee(tx)
 	err := acntSnd.SubFromBalance(txFee)
 	if err != nil {
@@ -265,6 +267,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 	if err != nil {
 		return err
 	}
+
+	log.Trace("executingFailedTransaction", "fail reason(error)", txError, "tx hash", txHash)
 
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(txFee),

@@ -333,6 +333,7 @@ func (inTx *InterceptedTransaction) SenderAddress() []byte {
 
 // Fee returns the estimated cost of the transaction
 func (inTx *InterceptedTransaction) Fee() *big.Int {
+	//TODO: check this, also no:  !txProc.flagPenalizedTooMuchGas.IsSet()
 	return inTx.feeHandler.ComputeTxFee(inTx.tx)
 }
 

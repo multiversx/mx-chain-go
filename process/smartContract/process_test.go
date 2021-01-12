@@ -106,6 +106,7 @@ func TestNewSmartContractProcessorNilVM(t *testing.T) {
 	sc, err := NewSmartContractProcessor(arguments)
 
 	require.Nil(t, sc)
+	require.Nil(t, sc)
 	require.Equal(t, process.ErrNoVM, err)
 }
 
@@ -718,9 +719,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	sc, err := NewSmartContractProcessor(arguments)
-	require.NotNil(t, sc)
-	require.Nil(t, err)
+	sc, _ := NewSmartContractProcessor(arguments)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 0
@@ -730,8 +729,265 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	tx.Value = big.NewInt(45)
 	acntSrc, _ := createAccounts(tx)
 
-	_, err = sc.DeploySmartContract(tx, acntSrc)
+	_, err := sc.DeploySmartContract(tx, acntSrc)
 	require.Equal(t, process.ErrWrongTransaction, err)
+}
+
+func TestScProcessor_DeploySmartContractNilTx(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err := sc.DeploySmartContract(nil, acntSrc)
+	require.Equal(t, process.ErrNilTransaction, err)
+}
+
+func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	arguments.PubkeyConv = mock.NewPubkeyConverterMock(3)
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, process.ErrWrongTransaction, err)
+}
+
+func TestScProcessor_DeploySmartContractCalculateHashFails(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	arguments.Marshalizer = &mock.MarshalizerMock{
+		Fail: true,
+	}
+
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err = sc.DeploySmartContract(tx, acntSrc)
+	require.NotNil(t, err)
+	require.Equal(t, "MarshalizerMock generic error", err.Error())
+}
+
+func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("expected error")
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	arguments.EconomicsFee = &mock.FeeHandlerStub{
+		CheckValidityTxValuesCalled: func(tx process.TransactionWithFeeHandler) error {
+			return expectedError
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, expectedError, err)
+}
+
+func TestScProcessor_DeploySmartContractEconomicsFeeSaveAccountsFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("expected error")
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	arguments.AccountsDB = &mock.AccountsStub{
+		SaveAccountCalled: func(account state.AccountHandler) error {
+			return expectedError
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, expectedError, err)
+}
+
+func TestScProcessor_DeploySmartContractEconomicsWithFlagPenalizeTooMuchGasEnabled(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sc.flagPenalizedTooMuchGas.Toggle(false)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	_, err := sc.DeploySmartContract(tx, acntSrc)
+	require.Equal(t, nil, err)
+}
+
+func TestScProcessor_DeploySmartContractVmContainerGetFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("expected error")
+	argParser := NewArgumentParser()
+	vm := &mock.VMContainerMock{}
+	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
+		return nil, expectedError
+	}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	errCode, err := sc.DeploySmartContract(tx, acntSrc)
+	// TODO: check why nil error here
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, errCode)
+}
+
+func TestScProcessor_DeploySmartContractVmExecuteCreateSCFails(t *testing.T) {
+	t.Parallel()
+
+	expectedError := errors.New("expected error")
+	argParser := NewArgumentParser()
+	vm := &mock.VMContainerMock{}
+	vmExecutor := &mock.VMExecutionHandlerStub{
+		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+			return nil, expectedError
+		},
+	}
+	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
+		return vmExecutor, nil
+	}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	errCode, err := sc.DeploySmartContract(tx, acntSrc)
+	// TODO: check why nil error here
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, errCode)
+}
+
+func TestScProcessor_DeploySmartContractVmExecuteCreateSCVMOutputNil(t *testing.T) {
+	t.Parallel()
+
+	argParser := NewArgumentParser()
+	vm := &mock.VMContainerMock{}
+	vmExecutor := &mock.VMExecutionHandlerStub{
+		RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+			return nil, nil
+		},
+	}
+	vm.GetCalled = func(key []byte) (vmcommon.VMExecutionHandler, error) {
+		return vmExecutor, nil
+	}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = make([]byte, sc.pubkeyConv.Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(45)
+	acntSrc, _ := createAccounts(tx)
+
+	errCode, err := sc.DeploySmartContract(tx, acntSrc)
+	// TODO: check why nil error here
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.UserError, errCode)
 }
 
 func TestScProcessor_DeploySmartContract(t *testing.T) {
@@ -2843,6 +3099,24 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 
 	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)
 	assert.Equal(t, sc.shardCoordinator.SelfId(), senderID)
+}
+
+func TestScProcessor_ProcessIfErrorRevertAccountFails(t *testing.T) {
+	t.Parallel()
+	expectedError := errors.New("expected error")
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = &mock.AccountsStub{
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return expectedError
+		},
+	}
+
+	sc, _ := NewSmartContractProcessor(arguments)
+
+	sndAccount := &mock.UserAccountStub{}
+	err := sc.ProcessIfError(sndAccount, []byte("txHash"), nil, "0", []byte("message"), 1, 100)
+	require.NotNil(t, err)
+	require.Equal(t, expectedError, err)
 }
 
 func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledShouldBeCalled(t *testing.T) {

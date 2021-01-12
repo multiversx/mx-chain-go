@@ -176,6 +176,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		Marshalizer:        scf.marshalizer,
 		GenesisTotalSupply: scf.economics.GenesisTotalSupply(),
 		EpochNotifier:      scf.epochNotifier,
+		MinDeposit:         scf.systemSCConfig.DelegationManagerSystemSCConfig.MinCreationDeposit,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err

@@ -150,6 +150,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
 
+	// TODO: check this: if checks the txFee against the balance before the txFee is finalized on the next if
 	if stAcc.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,

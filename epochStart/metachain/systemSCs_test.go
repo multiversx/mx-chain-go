@@ -408,6 +408,11 @@ func checkOwnerOfBlsKey(t *testing.T, systemVm vmcommon.VMExecutionHandler, blsK
 
 	vmOutput, err := systemVm.RunSmartContractCall(vmInput)
 	require.Nil(t, err)
+	if len(expectedOwner) == 0 {
+		require.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
+		return
+	}
+
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 
@@ -1067,6 +1072,28 @@ func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueue(t *
 	assert.Nil(t, err)
 	assert.True(t, bytes.Equal(peerAcc.GetBLSPublicKey(), []byte("waitingPubKey")))
 	assert.Equal(t, peerAcc.GetList(), string(core.NewList))
+	numRegistered := getTotalNumberOfRegisteredNodes(t, s)
+	assert.Equal(t, 1, numRegistered)
+}
+
+func getTotalNumberOfRegisteredNodes(t *testing.T, s *systemSCProcessor) int {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  make([][]byte, 0),
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "getTotalNumberOfRegisteredNodes",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	require.Nil(t, errRun)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+	require.Equal(t, 1, len(vmOutput.ReturnData))
+
+	value := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
+
+	return int(value.Int64())
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractMaxNodesStakedFromQueueOwnerNotSet(t *testing.T) {
