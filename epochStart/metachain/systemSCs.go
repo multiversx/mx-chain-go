@@ -417,7 +417,17 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 
 			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.PublicKey)
 			if err != nil {
-				return err
+				log.Error("fillStakingDataForNonEligible", "error", err)
+				if validatorInfo.List == string(core.WaitingList) || validatorInfo.List == string(core.JailedList) {
+					return err
+				}
+
+				err = s.peerAccountsDB.RemoveAccount(validatorInfo.PublicKey)
+				if err != nil {
+					log.Error("fillStakingDataForNonEligible removeAccount", "error", err)
+				}
+
+				deleteNewValidatorIfExistsFromMap(validatorInfos, validatorInfo.PublicKey, validatorInfo.ShardId)
 			}
 		}
 	}
