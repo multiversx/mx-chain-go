@@ -409,7 +409,10 @@ func getValidatorInfoWithBLSKey(validatorInfos map[uint32][]*state.ValidatorInfo
 }
 
 func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uint32][]*state.ValidatorInfo) error {
-	for _, validatorsInfoSlice := range validatorInfos {
+	for shId, validatorsInfoSlice := range validatorInfos {
+		newList := make([]*state.ValidatorInfo, 0, len(validatorsInfoSlice))
+		deleteCalled := false
+
 		for _, validatorInfo := range validatorsInfoSlice {
 			if validatorInfo.List == string(core.EligibleList) {
 				continue
@@ -417,6 +420,8 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 
 			err := s.stakingDataProvider.FillValidatorInfo(validatorInfo.PublicKey)
 			if err != nil {
+				deleteCalled = true
+
 				log.Error("fillStakingDataForNonEligible", "error", err)
 				if len(validatorInfo.List) > 0 {
 					return err
@@ -427,8 +432,14 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 					log.Error("fillStakingDataForNonEligible removeAccount", "error", err)
 				}
 
-				deleteNewValidatorIfExistsFromMap(validatorInfos, validatorInfo.PublicKey, validatorInfo.ShardId)
+				continue
 			}
+
+			newList = append(newList, validatorInfo)
+		}
+
+		if deleteCalled {
+			validatorInfos[shId] = newList
 		}
 	}
 
