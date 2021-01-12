@@ -1383,11 +1383,17 @@ func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeC
 		RewardAddress:   []byte("stakedPubKey0"),
 		AccumulatedFees: big.NewInt(0),
 	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("oneAddress1"),
+		List:            string(core.EligibleList),
+		RewardAddress:   []byte("oneAddress1"),
+		AccumulatedFees: big.NewInt(0),
+	})
 
 	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
 	assert.Nil(t, err)
 
-	assert.Equal(t, len(validatorInfos[0]), 0)
+	assert.Equal(t, len(validatorInfos[0]), 1)
 }
 
 func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
