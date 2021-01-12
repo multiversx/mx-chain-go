@@ -35,6 +35,7 @@ type ArgStakingToPeer struct {
 	CurrTxs          dataRetriever.TransactionCacher
 	RatingsData      process.RatingsInfoHandler
 	StakeEnableEpoch uint32
+	UnBondCorrection uint32
 	EpochNotifier    process.EpochNotifier
 }
 
@@ -47,13 +48,15 @@ type stakingToPeer struct {
 	peerState   state.AccountsAdapter
 	baseState   state.AccountsAdapter
 
-	argParser        process.ArgumentsParser
-	currTxs          dataRetriever.TransactionCacher
-	startRating      uint32
-	unJailRating     uint32
-	jailRating       uint32
-	stakeEnableEpoch uint32
-	flagStaking      atomic.Flag
+	argParser             process.ArgumentsParser
+	currTxs               dataRetriever.TransactionCacher
+	startRating           uint32
+	unJailRating          uint32
+	jailRating            uint32
+	stakeEnableEpoch      uint32
+	unBondCorrectionEpoch uint32
+	flagStaking           atomic.Flag
+	flagUnBondCorrection  atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -188,6 +191,10 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			}
 			log.Debug("remove account from validator statistics", "blsPubKey", blsPubKey)
 
+			continue
+		}
+
+		if len(data) == 0 && stp.flagUnBondCorrection.IsSet() {
 			continue
 		}
 
@@ -408,6 +415,9 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
+
+	stp.flagStaking.Toggle(epoch >= stp.unBondCorrectionEpoch)
+	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagStaking.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
