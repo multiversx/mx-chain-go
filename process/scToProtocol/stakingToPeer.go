@@ -26,17 +26,17 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv       core.PubkeyConverter
-	Hasher           hashing.Hasher
-	Marshalizer      marshal.Marshalizer
-	PeerState        state.AccountsAdapter
-	BaseState        state.AccountsAdapter
-	ArgParser        process.ArgumentsParser
-	CurrTxs          dataRetriever.TransactionCacher
-	RatingsData      process.RatingsInfoHandler
-	StakeEnableEpoch uint32
-	UnBondCorrection uint32
-	EpochNotifier    process.EpochNotifier
+	PubkeyConv            core.PubkeyConverter
+	Hasher                hashing.Hasher
+	Marshalizer           marshal.Marshalizer
+	PeerState             state.AccountsAdapter
+	BaseState             state.AccountsAdapter
+	ArgParser             process.ArgumentsParser
+	CurrTxs               dataRetriever.TransactionCacher
+	RatingsData           process.RatingsInfoHandler
+	StakeEnableEpoch      uint32
+	UnBondCorrectionEpoch uint32
+	EpochNotifier         process.EpochNotifier
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -67,17 +67,18 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:       args.PubkeyConv,
-		hasher:           args.Hasher,
-		marshalizer:      args.Marshalizer,
-		peerState:        args.PeerState,
-		baseState:        args.BaseState,
-		argParser:        args.ArgParser,
-		currTxs:          args.CurrTxs,
-		startRating:      args.RatingsData.StartRating(),
-		unJailRating:     args.RatingsData.StartRating(),
-		jailRating:       args.RatingsData.MinRating(),
-		stakeEnableEpoch: args.StakeEnableEpoch,
+		pubkeyConv:            args.PubkeyConv,
+		hasher:                args.Hasher,
+		marshalizer:           args.Marshalizer,
+		peerState:             args.PeerState,
+		baseState:             args.BaseState,
+		argParser:             args.ArgParser,
+		currTxs:               args.CurrTxs,
+		startRating:           args.RatingsData.StartRating(),
+		unJailRating:          args.RatingsData.StartRating(),
+		jailRating:            args.RatingsData.MinRating(),
+		stakeEnableEpoch:      args.StakeEnableEpoch,
+		unBondCorrectionEpoch: args.UnBondCorrectionEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
@@ -416,7 +417,7 @@ func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
 
-	stp.flagStaking.Toggle(epoch >= stp.unBondCorrectionEpoch)
+	stp.flagUnBondCorrection.Toggle(epoch >= stp.unBondCorrectionEpoch)
 	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagStaking.IsSet())
 }
 
