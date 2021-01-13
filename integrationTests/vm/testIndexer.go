@@ -121,7 +121,6 @@ func (ti *testIndexer) SaveTransaction(
 	mbType block.Type,
 	intermediateTxs []data.TransactionHandler,
 ) {
-
 	txHash, _ := core.CalculateHash(ti.marshalizer, ti.hasher, tx)
 
 	sndShardID := ti.shardCoordinator.ComputeId(tx.GetSndAddr())
@@ -168,7 +167,7 @@ func (ti *testIndexer) SaveTransaction(
 
 	ti.indexer.SaveBlock(blk, header, txsPool, nil, nil, nil)
 
-	// wait --> dataDispatcher needs needs to save the block
+	// wait --> dataDispatcher needs to save the block
 	time.Sleep(5 * time.Millisecond)
 }
 

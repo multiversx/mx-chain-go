@@ -230,7 +230,7 @@ func TestMoveBalanceInvalidUserName(t *testing.T) {
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
-	tx.SndUserName = []byte("invaidUserName")
+	tx.SndUserName = []byte("invalidUserName")
 	tx.RcvUserName = []byte("invalidRcvUserName")
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)

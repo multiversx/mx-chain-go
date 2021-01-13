@@ -15,51 +15,51 @@ type EpochStartNotifierStub struct {
 }
 
 // RegisterHandler -
-func (esnm *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
-	if esnm.RegisterHandlerCalled != nil {
-		esnm.RegisterHandlerCalled(handler)
+func (esns *EpochStartNotifierStub) RegisterHandler(handler epochStart.ActionHandler) {
+	if esns.RegisterHandlerCalled != nil {
+		esns.RegisterHandlerCalled(handler)
 	}
 
-	esnm.epochStartHdls = append(esnm.epochStartHdls, handler)
+	esns.epochStartHdls = append(esns.epochStartHdls, handler)
 }
 
 // UnregisterHandler -
-func (esnm *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
-	if esnm.UnregisterHandlerCalled != nil {
-		esnm.UnregisterHandlerCalled(handler)
+func (esns *EpochStartNotifierStub) UnregisterHandler(handler epochStart.ActionHandler) {
+	if esns.UnregisterHandlerCalled != nil {
+		esns.UnregisterHandlerCalled(handler)
 	}
 
-	for i, hdl := range esnm.epochStartHdls {
+	for i, hdl := range esns.epochStartHdls {
 		if hdl == handler {
-			esnm.epochStartHdls = append(esnm.epochStartHdls[:i], esnm.epochStartHdls[i+1:]...)
+			esns.epochStartHdls = append(esns.epochStartHdls[:i], esns.epochStartHdls[i+1:]...)
 			break
 		}
 	}
 }
 
 // NotifyAllPrepare -
-func (esnm *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
-	if esnm.NotifyAllPrepareCalled != nil {
-		esnm.NotifyAllPrepareCalled(metaHdr, body)
+func (esns *EpochStartNotifierStub) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
+	if esns.NotifyAllPrepareCalled != nil {
+		esns.NotifyAllPrepareCalled(metaHdr, body)
 	}
 
-	for _, hdl := range esnm.epochStartHdls {
+	for _, hdl := range esns.epochStartHdls {
 		hdl.EpochStartPrepare(metaHdr, body)
 	}
 }
 
 // NotifyAll -
-func (esnm *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
-	if esnm.NotifyAllCalled != nil {
-		esnm.NotifyAllCalled(hdr)
+func (esns *EpochStartNotifierStub) NotifyAll(hdr data.HeaderHandler) {
+	if esns.NotifyAllCalled != nil {
+		esns.NotifyAllCalled(hdr)
 	}
 
-	for _, hdl := range esnm.epochStartHdls {
+	for _, hdl := range esns.epochStartHdls {
 		hdl.EpochStartAction(hdr)
 	}
 }
 
 // IsInterfaceNil -
-func (esnm *EpochStartNotifierStub) IsInterfaceNil() bool {
-	return esnm == nil
+func (esns *EpochStartNotifierStub) IsInterfaceNil() bool {
+	return esns == nil
 }
