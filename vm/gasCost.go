@@ -8,6 +8,7 @@ type BaseOperationCost struct {
 	PersistPerByte    uint64
 	CompilePerByte    uint64
 	AoTPreparePerByte uint64
+	GetCode           uint64
 }
 
 // MetaChainSystemSCsCost defines the cost of system staking SCs methods
