@@ -22,7 +22,7 @@ func createGasMap(value uint64) map[string]map[string]uint64 {
 	baseOpMap["StorePerByte"] = value
 	baseOpMap["CompilePerByte"] = value
 	baseOpMap["AoTPreparePerByte"] = value
-
+	baseOpMap["GetCode"] = value
 	gasMap[core.BaseOperationCost] = baseOpMap
 
 	return gasMap
