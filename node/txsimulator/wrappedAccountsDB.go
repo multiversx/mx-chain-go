@@ -24,6 +24,7 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
+// GetCode returns the code for the given account
 func (w *readOnlyAccountsDB) GetCode(account state.AccountHandler) []byte {
 	return w.originalAccounts.GetCode(account)
 }

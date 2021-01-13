@@ -383,8 +383,8 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 	t.Parallel()
 	returnedError := "i am an error"
 	facade := mock.Facade{
-		GetAccountHandlerAndCode: func(address string) (state.UserAccountHandler, []byte, error) {
-			return nil, nil, errors.New(returnedError)
+		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
+			return nil, errors.New(returnedError)
 		},
 	}
 	ws := startNodeServer(&facade)
@@ -404,12 +404,12 @@ func TestGetAccount_FailWhenFacadeGetAccountFails(t *testing.T) {
 func TestGetAccount_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 	facade := mock.Facade{
-		GetAccountHandlerAndCode: func(address string) (state.UserAccountHandler, []byte, error) {
+		GetAccountHandler: func(address string) (state.UserAccountHandler, error) {
 			acc, _ := state.NewUserAccount([]byte("1234"))
 			_ = acc.AddToBalance(big.NewInt(100))
 			acc.IncreaseNonce(1)
 
-			return acc, nil, nil
+			return acc, nil
 		},
 	}
 	ws := startNodeServer(&facade)

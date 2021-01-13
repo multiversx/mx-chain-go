@@ -87,14 +87,11 @@ func getNumCheckpoints(trie data.Trie) uint32 {
 	return binary.BigEndian.Uint32(val)
 }
 
+//GetCode returns the code for the given account
 func (adb *AccountsDB) GetCode(account AccountHandler) []byte {
 	baseAcc, ok := account.(baseAccountHandler)
 	if !ok {
 		return nil
-	}
-
-	if len(baseAcc.GetCode()) != 0 {
-		return baseAcc.GetCode()
 	}
 
 	if len(baseAcc.GetCodeHash()) == 0 {
@@ -537,11 +534,6 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		//err = adb.loadCode(baseAcc)
-		//if err != nil {
-		//	return nil, err
-		//}
-
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {
 			return nil, err
@@ -596,11 +588,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		//err = adb.loadCode(baseAcc)
-		//if err != nil {
-		//	return nil, err
-		//}
-
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {
 			return nil, err

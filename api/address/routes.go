@@ -27,7 +27,8 @@ type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
-	GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error)
+	GetAccount(address string) (state.UserAccountHandler, error)
+	GetCode(account state.UserAccountHandler) []byte
 	GetESDTBalance(address string, key string) (string, string, error)
 	GetAllESDTTokens(address string) ([]string, error)
 	IsInterfaceNil() bool
@@ -98,7 +99,7 @@ func GetAccount(c *gin.Context) {
 	}
 
 	addr := c.Param("address")
-	acc, code, err := facade.GetAccountAndCode(addr)
+	acc, err := facade.GetAccount(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -111,6 +112,7 @@ func GetAccount(c *gin.Context) {
 		return
 	}
 
+	code := facade.GetCode(acc)
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{

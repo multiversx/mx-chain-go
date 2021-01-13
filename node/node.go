@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -1107,35 +1107,40 @@ func (n *Node) CreateTransaction(
 	return tx, txHash, nil
 }
 
-// GetAccountAndCode will return account details for a given address
-func (n *Node) GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error) {
+// GetAccount will return account details for a given address
+func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	if check.IfNil(n.addressPubkeyConverter) {
-		return nil, nil, ErrNilPubkeyConverter
+		return nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.accounts) {
-		return nil, nil, ErrNilAccountsAdapter
+		return nil, ErrNilAccountsAdapter
 	}
 
 	addr, err := n.addressPubkeyConverter.Decode(address)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
 			newAcc, err := state.NewUserAccount(addr)
-			return newAcc, nil, err
+			return newAcc, err
 		}
-		return nil, nil, errors.New("could not fetch sender address from provided param: " + err.Error())
+		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
 
 	account, ok := accWrp.(state.UserAccountHandler)
 	if !ok {
-		return nil, nil, errors.New("account is not of type with balance and nonce")
+		return nil, errors.New("account is not of type with balance and nonce")
 	}
 
-	return account, n.accounts.GetCode(account), nil
+	return account, nil
+}
+
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account)
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module

@@ -42,6 +42,7 @@ func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
 }
 
+// HasNewCode returns true if there was a code change for the account
 func (ba *baseAccount) HasNewCode() bool {
 	return ba.hasNewCode
 }

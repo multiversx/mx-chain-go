@@ -16,6 +16,7 @@ func NewAccountsAdapter() *accountsAdapter {
 	return &accountsAdapter{}
 }
 
+// GetCode -
 func (a *accountsAdapter) GetCode(_ state.AccountHandler) []byte {
 	return nil
 }
