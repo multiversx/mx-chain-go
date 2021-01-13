@@ -283,8 +283,10 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,
 	value string,
-	receiverHex string,
-	senderHex string,
+	receiver string,
+	receiverUsername []byte,
+	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	txData []byte,
@@ -294,7 +296,7 @@ func (nf *nodeFacade) CreateTransaction(
 	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 
-	return nf.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
+	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
 }
 
 // ValidateTransaction will validate a transaction
