@@ -921,9 +921,13 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	snapshot := tc.accounts.JournalLen()
 
-	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
+	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
-		log.Debug("processCompleteMiniBlock.ProcessMiniBlock", "num txs processed", len(processedTxs), "error", err.Error())
+		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
+			"txs to be reverted", len(txsToBeReverted),
+			"num txs processed", numTxsProcessed,
+			"error", err.Error(),
+		)
 
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
@@ -931,8 +935,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
-		if len(processedTxs) > 0 {
-			tc.revertProcessedTxsResults(processedTxs)
+		if len(txsToBeReverted) > 0 {
+			tc.revertProcessedTxsResults(txsToBeReverted)
 		}
 
 		return err

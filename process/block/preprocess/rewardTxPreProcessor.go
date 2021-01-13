@@ -422,35 +422,35 @@ func (rtp *rewardTxPreprocessor) CreateAndProcessMiniBlocks(
 
 // ProcessMiniBlock processes all the reward transactions from a miniblock and saves the processed reward transactions
 // in local cache
-func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, error) {
+func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, _ func() (int, int)) ([][]byte, int, error) {
 
 	if miniBlock.Type != block.RewardsBlock {
-		return nil, process.ErrWrongTypeInMiniBlock
+		return nil, 0, process.ErrWrongTypeInMiniBlock
 	}
 	if miniBlock.SenderShardID != core.MetachainShardId {
-		return nil, process.ErrRewardMiniBlockNotFromMeta
+		return nil, 0, process.ErrRewardMiniBlockNotFromMeta
 	}
 
 	miniBlockRewardTxs, miniBlockTxHashes, err := rtp.getAllRewardTxsFromMiniBlock(miniBlock, haveTime)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if rtp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlockRewardTxs)) {
-		return nil, process.ErrMaxBlockSizeReached
+		return nil, 0, process.ErrMaxBlockSizeReached
 	}
 
 	processedTxHashes := make([][]byte, 0)
 	for index := range miniBlockRewardTxs {
 		if !haveTime() {
-			return processedTxHashes, process.ErrTimeIsOut
+			return processedTxHashes, len(processedTxHashes), process.ErrTimeIsOut
 		}
 
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
-			return processedTxHashes, err
+			return processedTxHashes, len(processedTxHashes), err
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
@@ -467,7 +467,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	rtp.blockSizeComputation.AddNumMiniBlocks(1)
 	rtp.blockSizeComputation.AddNumTxs(len(miniBlockRewardTxs))
 
-	return nil, nil
+	return nil, len(processedTxHashes), nil
 }
 
 // CreateMarshalizedData marshalizes reward transaction hashes and and saves them into a new structure
