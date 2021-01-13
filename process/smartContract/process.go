@@ -1650,7 +1650,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if !sc.isTransferWithNoDataOrBuiltInCall(outputTransfer.Data) {
+	if !sc.isTransferWithNoAdditionalData(outputTransfer.Data) {
 		return false
 	}
 
@@ -1660,17 +1660,25 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	return true
 }
 
-func (sc *scProcessor) isTransferWithNoDataOrBuiltInCall(data []byte) bool {
+func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	function, _, err := sc.argsParser.ParseCallData(string(data))
+	function, args, err := sc.argsParser.ParseCallData(string(data))
 	if err != nil {
 		return false
 	}
 
 	_, err = sc.builtInFunctions.Get(function)
-	return err == nil
+	if err != nil {
+		return false
+	}
+
+	if function != core.BuiltInFunctionESDTTransfer {
+		return true
+	}
+
+	return len(args) == 2
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
