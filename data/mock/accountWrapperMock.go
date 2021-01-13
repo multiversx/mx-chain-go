@@ -114,6 +114,11 @@ func (awm *AccountWrapMock) GetCode() []byte {
 	return awm.code
 }
 
+// HasNewCode -
+func (awm *AccountWrapMock) HasNewCode() bool {
+	return true
+}
+
 // SetCodeMetadata -
 func (awm *AccountWrapMock) SetCodeMetadata(codeMetadata []byte) {
 	awm.CodeMetadata = codeMetadata

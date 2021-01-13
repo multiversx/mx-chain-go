@@ -332,10 +332,10 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (u
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
 }
 
-// GetAccount returns an accountResponse containing information
+// GetAccountAndCode returns an accountResponse containing information
 // about the account correlated with provided address
-func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
-	return nf.node.GetAccount(address)
+func (nf *nodeFacade) GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error) {
+	return nf.node.GetAccountAndCode(address)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

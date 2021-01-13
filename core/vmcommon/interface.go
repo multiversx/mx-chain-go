@@ -65,6 +65,9 @@ type BlockchainHook interface {
 	// GetUserAccount returns a user account
 	GetUserAccount(address []byte) (UserAccountHandler, error)
 
+	// GetCode returns the code for the given account
+	GetCode(account UserAccountHandler) []byte
+
 	// GetShardOfAddress returns the shard ID of a given address
 	GetShardOfAddress(address []byte) uint32
 
@@ -91,7 +94,6 @@ type BlockchainHook interface {
 type UserAccountHandler interface {
 	AddressBytes() []byte
 	GetNonce() uint64
-	GetCode() []byte
 	GetCodeMetadata() []byte
 	GetCodeHash() []byte
 	GetRootHash() []byte

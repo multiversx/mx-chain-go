@@ -33,6 +33,11 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 	}
 }
 
+// HasNewCode -
+func (awm *AccountWrapMock) HasNewCode() bool {
+	return false
+}
+
 // SetUserName -
 func (awm *AccountWrapMock) SetUserName(_ []byte) {
 }

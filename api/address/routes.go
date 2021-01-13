@@ -27,7 +27,7 @@ type FacadeHandler interface {
 	GetBalance(address string) (*big.Int, error)
 	GetUsername(address string) (string, error)
 	GetValueForKey(address string, key string) (string, error)
-	GetAccount(address string) (state.UserAccountHandler, error)
+	GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error)
 	GetESDTBalance(address string, key string) (string, string, error)
 	GetAllESDTTokens(address string) ([]string, error)
 	IsInterfaceNil() bool
@@ -98,7 +98,7 @@ func GetAccount(c *gin.Context) {
 	}
 
 	addr := c.Param("address")
-	acc, err := facade.GetAccount(addr)
+	acc, code, err := facade.GetAccountAndCode(addr)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -114,7 +114,7 @@ func GetAccount(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, acc)},
+			Data:  gin.H{"account": accountResponseFromBaseAccount(addr, code, acc)},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
@@ -366,13 +366,13 @@ func GetESDTTokens(c *gin.Context) {
 	)
 }
 
-func accountResponseFromBaseAccount(address string, account state.UserAccountHandler) accountResponse {
+func accountResponseFromBaseAccount(address string, code []byte, account state.UserAccountHandler) accountResponse {
 	return accountResponse{
 		Address:  address,
 		Nonce:    account.GetNonce(),
 		Balance:  account.GetBalance().String(),
 		Username: string(account.GetUserName()),
-		Code:     hex.EncodeToString(account.GetCode()),
+		Code:     hex.EncodeToString(code),
 		CodeHash: account.GetCodeHash(),
 		RootHash: account.GetRootHash(),
 	}

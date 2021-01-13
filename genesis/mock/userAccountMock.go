@@ -21,6 +21,11 @@ type UserAccountMock struct {
 	BalanceField *big.Int
 }
 
+// HasNewCode -
+func (uam *UserAccountMock) HasNewCode() bool {
+	return false
+}
+
 // SetCode -
 func (uam *UserAccountMock) SetCode(code []byte) {
 	uam.code = code

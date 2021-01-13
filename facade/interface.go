@@ -48,9 +48,9 @@ type NodeHandler interface {
 	//GetTransaction will return a transaction based on the hash
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 
-	// GetAccount returns an accountResponse containing information
+	// GetAccountAndCode returns an accountResponse containing information
 	//  about the account corelated with provided address
-	GetAccount(address string) (state.UserAccountHandler, error)
+	GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error)
 
 	// GetHeartbeats returns the heartbeat status for each public key defined in genesis.json
 	GetHeartbeats() []data.PubKeyHeartbeat

@@ -87,6 +87,34 @@ func getNumCheckpoints(trie data.Trie) uint32 {
 	return binary.BigEndian.Uint32(val)
 }
 
+func (adb *AccountsDB) GetCode(account AccountHandler) []byte {
+	baseAcc, ok := account.(baseAccountHandler)
+	if !ok {
+		return nil
+	}
+
+	if len(baseAcc.GetCode()) != 0 {
+		return baseAcc.GetCode()
+	}
+
+	if len(baseAcc.GetCodeHash()) == 0 {
+		return nil
+	}
+
+	val, err := adb.mainTrie.Get(baseAcc.GetCodeHash())
+	if err != nil {
+		return nil
+	}
+
+	var codeEntry CodeEntry
+	err = adb.marshalizer.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return nil
+	}
+
+	return codeEntry.Code
+}
+
 // ImportAccount saves the account in the trie. It does not modify
 func (adb *AccountsDB) ImportAccount(account AccountHandler) error {
 	adb.mutOp.Lock()
@@ -154,6 +182,10 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc AccountHandler) error 
 
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	// TODO when state splitting is implemented, check how the code should be copied in different shards
+
+	if !newAcc.HasNewCode() {
+		return nil
+	}
 
 	var oldCodeHash []byte
 	if !check.IfNil(oldAcc) {
@@ -505,10 +537,10 @@ func (adb *AccountsDB) LoadAccount(address []byte) (AccountHandler, error) {
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadCode(baseAcc)
-		if err != nil {
-			return nil, err
-		}
+		//err = adb.loadCode(baseAcc)
+		//if err != nil {
+		//	return nil, err
+		//}
 
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {
@@ -564,10 +596,10 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (AccountHandler, error
 
 	baseAcc, ok := acnt.(baseAccountHandler)
 	if ok {
-		err = adb.loadCode(baseAcc)
-		if err != nil {
-			return nil, err
-		}
+		//err = adb.loadCode(baseAcc)
+		//if err != nil {
+		//	return nil, err
+		//}
 
 		err = adb.loadDataTrie(baseAcc)
 		if err != nil {

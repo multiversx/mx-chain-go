@@ -383,7 +383,7 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
+func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc := generateAccount()
@@ -414,7 +414,6 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
-	assert.Equal(t, code, account.GetCode())
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
@@ -481,7 +480,6 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
-	assert.Equal(t, code, account.GetCode())
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 

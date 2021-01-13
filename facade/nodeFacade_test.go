@@ -279,16 +279,16 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 	called := 0
 	node := &mock.NodeStub{}
-	node.GetAccountHandler = func(address string) (state.UserAccountHandler, error) {
+	node.GetAccountHandlerAndCode = func(address string) (state.UserAccountHandler, []byte, error) {
 		called++
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	arg := createMockArguments()
 	arg.Node = node
 	nf, _ := NewNodeFacade(arg)
 
-	_, _ = nf.GetAccount("test")
+	_, _, _ = nf.GetAccountAndCode("test")
 	assert.Equal(t, called, 1)
 }
 

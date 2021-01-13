@@ -24,6 +24,10 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 	return &readOnlyAccountsDB{originalAccounts: accountsDB}, nil
 }
 
+func (w *readOnlyAccountsDB) GetCode(account state.AccountHandler) []byte {
+	return w.originalAccounts.GetCode(account)
+}
+
 // GetExistingAccount will call the original accounts' function with the same name
 func (w *readOnlyAccountsDB) GetExistingAccount(address []byte) (state.AccountHandler, error) {
 	return w.originalAccounts.GetExistingAccount(address)

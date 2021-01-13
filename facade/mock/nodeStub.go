@@ -25,7 +25,7 @@ type NodeStub struct {
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
-	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
+	GetAccountHandlerAndCode                       func(address string) (state.UserAccountHandler, []byte, error)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -118,9 +118,9 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 	return ns.SendBulkTransactionsHandler(txs)
 }
 
-// GetAccount -
-func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error) {
-	return ns.GetAccountHandler(address)
+// GetAccountAndCode -
+func (ns *NodeStub) GetAccountAndCode(address string) (state.UserAccountHandler, []byte, error) {
+	return ns.GetAccountHandlerAndCode(address)
 }
 
 // GetHeartbeats -

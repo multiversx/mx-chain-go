@@ -14,6 +14,11 @@ type UserAccountStub struct {
 	AddToBalanceCalled func(value *big.Int) error
 }
 
+// HasNewCode -
+func (u *UserAccountStub) HasNewCode() bool {
+	return false
+}
+
 // SetUserName -
 func (u *UserAccountStub) SetUserName(_ []byte) {
 }

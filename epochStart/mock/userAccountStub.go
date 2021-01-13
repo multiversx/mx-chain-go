@@ -15,6 +15,11 @@ type UserAccountStub struct {
 	DataTrieTrackerCalled func() state.DataTrieTracker
 }
 
+// HasNewCode -
+func (u *UserAccountStub) HasNewCode() bool {
+	return false
+}
+
 // SetUserName -
 func (u *UserAccountStub) SetUserName(_ []byte) {
 }

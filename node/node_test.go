@@ -1790,7 +1790,7 @@ func TestNode_GetAccountWithNilAccountsAdapterShouldErr(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
 	assert.Equal(t, node.ErrNilAccountsAdapter, err)
@@ -1809,7 +1809,7 @@ func TestNode_GetAccountWithNilPubkeyConverterShouldErr(t *testing.T) {
 		node.WithAccountsAdapter(accDB),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
 	assert.Equal(t, node.ErrNilPubkeyConverter, err)
@@ -1835,7 +1835,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 			}),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
 	assert.Equal(t, errExpected, err)
@@ -1855,7 +1855,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.GetNonce())
@@ -1879,7 +1879,7 @@ func TestNode_GetAccountAccountsAdapterFailsShouldErr(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, recovAccnt)
 	assert.NotNil(t, err)
@@ -1906,7 +1906,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithAddressPubkeyConverter(createMockPubkeyConverter()),
 	)
 
-	recovAccnt, err := n.GetAccount(createDummyHexAddress(64))
+	recovAccnt, _, err := n.GetAccountAndCode(createDummyHexAddress(64))
 
 	assert.Nil(t, err)
 	assert.Equal(t, accnt, recovAccnt)
