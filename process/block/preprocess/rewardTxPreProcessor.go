@@ -443,14 +443,14 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(miniBlock *block.MiniBlock, ha
 	processedTxHashes := make([][]byte, 0)
 	for index := range miniBlockRewardTxs {
 		if !haveTime() {
-			return processedTxHashes, len(processedTxHashes), process.ErrTimeIsOut
+			return processedTxHashes, index, process.ErrTimeIsOut
 		}
 
 		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[index].GetRcvAddr())
 
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[index])
 		if err != nil {
-			return processedTxHashes, len(processedTxHashes), err
+			return processedTxHashes, index, err
 		}
 
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[index])
