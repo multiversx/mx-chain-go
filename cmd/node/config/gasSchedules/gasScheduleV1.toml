@@ -35,6 +35,7 @@
     PersistPerByte    = 10000
     CompilePerByte    = 300
     AoTPreparePerByte = 50
+    GetCode           = 100000
 
 [ElrondAPICost]
     GetSCAddress       = 100

@@ -220,7 +220,7 @@ func FillGasMapBaseOperationCosts(value uint64) map[string]uint64 {
 	gasMap["PersistPerByte"] = value
 	gasMap["CompilePerByte"] = value
 	gasMap["AoTPreparePerByte"] = value
-
+	gasMap["GetCode"] = value
 	return gasMap
 }
 
