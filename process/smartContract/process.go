@@ -945,23 +945,35 @@ func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmco
 	newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
 }
 
-func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) bool {
+func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
 	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
 	if sndShardID == sc.shardCoordinator.SelfId() {
-		return false
+		return "", false
 	}
 
 	dstShardID := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
 	if dstShardID == sndShardID {
-		return false
+		return "", false
 	}
 
-	function, _, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
-		return false
+		return "", false
 	}
 
-	return function == core.BuiltInFunctionESDTTransfer
+	if function != core.BuiltInFunctionESDTTransfer {
+		return "", false
+	}
+	if len(args) < 2 {
+		return "", false
+	}
+
+	returnData := ""
+	returnData += function + "@"
+	returnData += hex.EncodeToString(args[0]) + "@"
+	returnData += hex.EncodeToString(args[1])
+
+	return returnData, true
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
@@ -1425,8 +1437,9 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	accumulatedSCRData := ""
-	if sc.isCrossShardESDTTransfer(tx) {
-		accumulatedSCRData += string(tx.GetData())
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx)
+	if isCrossShardESDTCall {
+		accumulatedSCRData += esdtReturnData
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
