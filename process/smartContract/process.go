@@ -740,7 +740,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		if !check.IfNil(acntSnd) {
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
 		}
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.UserError, nil
 	}
 
 	if isSCCallSelfShard {
@@ -2070,10 +2070,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && sc.flagDeploy.IsSet() {
-			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
-			return returnCode, err
-		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
