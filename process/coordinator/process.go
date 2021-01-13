@@ -633,7 +633,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -916,6 +916,7 @@ func (tc *transactionCoordinator) receivedMiniBlock(key []byte, value interface{
 func (tc *transactionCoordinator) processCompleteMiniBlock(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
 	haveTime func() bool,
 ) error {
 
@@ -924,6 +925,11 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
 		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
+			"hash", miniBlockHash,
+			"type", miniBlock.Type,
+			"snd shard", miniBlock.SenderShardID,
+			"rcv shard", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes),
 			"txs to be reverted", len(txsToBeReverted),
 			"num txs processed", numTxsProcessed,
 			"error", err.Error(),
