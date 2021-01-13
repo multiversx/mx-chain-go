@@ -709,6 +709,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
+		// in case of asynchronous callback - the process of built in function is a must
+		snapshot = sc.accounts.JournalLen()
+	}
+
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
 	if err != nil {
 		log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
@@ -897,6 +902,12 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return false, nil, nil
 	}
 
+	callType := determineCallType(tx)
+	if callType == vmcommon.AsynchronousCallBack {
+		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput)
+		return true, newVMInput, nil
+	}
+
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if !ok {
 		return false, nil, nil
@@ -906,10 +917,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
-	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCallBack(scExecuteOutTransfer.Data, callType)
-
-	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
+	function, arguments, err := sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
 	if err != nil {
 		return true, nil, err
 	}
@@ -934,6 +942,45 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	fillWithESDTValue(vmInput, newVMInput)
 
 	return true, newVMInput, nil
+}
+
+func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.ContractCallInput, vmOutput *vmcommon.VMOutput) *vmcommon.ContractCallInput {
+	arguments := make([][]byte, 0)
+	gasLimit := vmOutput.GasRemaining
+
+	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
+	if ok && len(outAcc.OutputTransfers) == 1 {
+		gasLimit = outAcc.OutputTransfers[0].GasLimit
+		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
+		log.LogIfError(err, "createVMInputWithAsyncCallBack", "error", err)
+		if len(function) > 0 {
+			arguments = append(arguments, []byte(function))
+		}
+
+		for _, arg := range args {
+			arguments = append(arguments, arg)
+		}
+	}
+
+	newVMInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:     vmInput.CallerAddr,
+			Arguments:      arguments,
+			CallValue:      big.NewInt(0),
+			CallType:       vmcommon.AsynchronousCallBack,
+			GasPrice:       vmInput.GasPrice,
+			GasProvided:    gasLimit,
+			GasLocked:      vmInput.GasLocked,
+			OriginalTxHash: vmInput.OriginalTxHash,
+			CurrentTxHash:  vmInput.CurrentTxHash,
+		},
+		RecipientAddr:     vmInput.RecipientAddr,
+		Function:          "callback",
+		AllowInitFunction: false,
+	}
+
+	fillWithESDTValue(vmInput, newVMInput)
+	return newVMInput
 }
 
 func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmcommon.ContractCallInput) {
@@ -1438,7 +1485,7 @@ func (sc *scProcessor) createSCRsWhenError(
 
 	accumulatedSCRData := ""
 	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx)
-	if isCrossShardESDTCall {
+	if callType != vmcommon.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
 
