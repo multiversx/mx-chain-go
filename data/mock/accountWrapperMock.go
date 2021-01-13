@@ -109,11 +109,6 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 	awm.code = code
 }
 
-// GetCode -
-func (awm *AccountWrapMock) GetCode() []byte {
-	return awm.code
-}
-
 // HasNewCode -
 func (awm *AccountWrapMock) HasNewCode() bool {
 	return true

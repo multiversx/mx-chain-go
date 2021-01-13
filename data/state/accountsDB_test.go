@@ -571,7 +571,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 
 	err := adb.LoadCode(account)
 	assert.Nil(t, err)
-	assert.Equal(t, adr, account.GetCode())
+	assert.Equal(t, adr, state.GetCode(account))
 }
 
 //------- RetrieveData

@@ -31,11 +31,6 @@ func (uam *UserAccountMock) SetCode(code []byte) {
 	uam.code = code
 }
 
-// GetCode -
-func (uam *UserAccountMock) GetCode() []byte {
-	return uam.code
-}
-
 // SetCodeMetadata -
 func (uam *UserAccountMock) SetCodeMetadata(codeMetadata []byte) {
 	uam.codeMetadata = codeMetadata

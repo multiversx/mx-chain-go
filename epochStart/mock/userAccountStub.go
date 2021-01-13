@@ -96,11 +96,6 @@ func (u *UserAccountStub) SetCode(_ []byte) {
 
 }
 
-// GetCode -
-func (u *UserAccountStub) GetCode() []byte {
-	return nil
-}
-
 // SetCodeMetadata -
 func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 }
