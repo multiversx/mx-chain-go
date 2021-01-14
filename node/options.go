@@ -545,8 +545,8 @@ func WithMinTransactionVersion(minTransactionVersion uint32) Option {
 // WithMaxTransactionValueLength sets up the maximum length for the transaction's value field
 func WithMaxTransactionValueLength(maxLength int) Option {
 	return func(n *Node) error {
-		if maxLength == 0 {
-			return ErrInvalidTransactionVersion
+		if maxLength <= 0 {
+			return ErrInvalidMaxTransactionValueLength
 		}
 		n.maxTransactionValueLength = maxLength
 

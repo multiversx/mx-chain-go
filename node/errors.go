@@ -182,7 +182,10 @@ var ErrNilWatchdog = errors.New("nil watchdog")
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
 
 // ErrInvalidMaxTransactionValueLength signals that an invalid maximum transaction value length has been provided
-var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction version")
+var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction value length")
+
+// ErrTransactionValueLengthTooBig signals that a too big value has been given to a transaction
+var ErrTransactionValueLengthTooBig = errors.New("value length is too big")
 
 // ErrNilHistoryRepository signals that history repository is nil
 var ErrNilHistoryRepository = errors.New("history repository is nil")

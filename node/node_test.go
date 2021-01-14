@@ -779,7 +779,7 @@ func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "too large")
+	assert.Equal(t, node.ErrTransactionValueLengthTooBig, err)
 }
 
 func TestCreateTransaction_OkValsShouldWork(t *testing.T) {

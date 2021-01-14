@@ -1356,7 +1356,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
-	maxTxValueStringLength := len(economicsConfig.GlobalSettings.GenesisTotalSupply)
+	maxTxValueStringLength := len(economicsConfig.GlobalSettings.GenesisTotalSupply) + 1
 
 	log.Trace("creating node structure")
 	currentNode, err := createNode(

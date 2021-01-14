@@ -1081,7 +1081,7 @@ func (n *Node) CreateTransaction(
 	}
 
 	if len(value) > n.maxTransactionValueLength {
-		return nil, nil, errors.New("value is too large")
+		return nil, nil, ErrTransactionValueLengthTooBig
 	}
 
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
