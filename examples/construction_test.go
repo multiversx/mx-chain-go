@@ -46,6 +46,30 @@ func TestConstructTransaction_NoDataNoValue(t *testing.T) {
 	require.Equal(t, "eb30c50c8831885ebcfac986d27e949ec02cf25676e22a009b7a486e5431ec2e", hex.EncodeToString(txHash))
 }
 
+func TestConstructTransaction_Usernames(t *testing.T) {
+	tx := &transaction.Transaction{
+		Nonce:       89,
+		Value:       big.NewInt(0),
+		RcvAddr:     getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
+		SndAddr:     getPubkeyOfAddress(t, "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"),
+		GasPrice:    1000000000,
+		GasLimit:    50000,
+		ChainID:     []byte("local-testnet"),
+		Version:     1,
+		SndUserName: []byte("alice"),
+		RcvUserName: []byte("bob"),
+	}
+
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
+	require.Equal(t, "1bed82c3f91c9d24f3a163e7b93a47453d70e8743201fe7d3656c0214569566a76503ef0968279ac942ca43b9c930bd26638dfb075a220ce80b058ab7bca140a", hex.EncodeToString(tx.Signature))
+
+	data, _ := contentMarshalizer.Marshal(tx)
+	require.Equal(t, "0859120200001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82203626f622a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e13205616c696365388094ebdc0340d08603520d6c6f63616c2d746573746e6574580162401bed82c3f91c9d24f3a163e7b93a47453d70e8743201fe7d3656c0214569566a76503ef0968279ac942ca43b9c930bd26638dfb075a220ce80b058ab7bca140a", hex.EncodeToString(data))
+
+	txHash := contentHasher.Compute(string(data))
+	require.Equal(t, "bc4ae6cf29e701f6d0d0e3aad1781b4b9464fccbd1cd2be5b6d3a33af76ce8e8", hex.EncodeToString(txHash))
+}
+
 func TestConstructTransaction_WithDataNoValue(t *testing.T) {
 	tx := &transaction.Transaction{
 		Nonce:    90,
