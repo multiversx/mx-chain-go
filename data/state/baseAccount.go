@@ -16,11 +16,6 @@ func (ba *baseAccount) AddressBytes() []byte {
 	return ba.address
 }
 
-// GetCode gets the actual code that needs to be run in the VM
-func (ba *baseAccount) GetCode() []byte {
-	return ba.code
-}
-
 // SetCode sets the actual code that needs to be run in the VM
 func (ba *baseAccount) SetCode(code []byte) {
 	ba.hasNewCode = true

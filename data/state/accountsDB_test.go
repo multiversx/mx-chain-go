@@ -3,6 +3,7 @@ package state_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
@@ -571,7 +573,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 
 	err := adb.LoadCode(account)
 	assert.Nil(t, err)
-	assert.Equal(t, adr, account.GetCode())
+	assert.Equal(t, adr, state.GetCode(account))
 }
 
 //------- RetrieveData
@@ -1391,4 +1393,40 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	rootHash = append(rootHash, byte(data.OldRoot))
 	oldHashes := ewl.Cache[string(rootHash)]
 	assert.Equal(t, 5, len(oldHashes))
+}
+
+func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator())
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(b, err)
+
+	userAcc := acc.(state.UserAccountHandler)
+	codeLen := 100000
+	code := make([]byte, codeLen)
+
+	n, err := rand.Read(code)
+	require.Nil(b, err)
+	require.Equal(b, codeLen, n)
+
+	userAcc.SetCode(code)
+	err = adb.SaveAccount(userAcc)
+	require.Nil(b, err)
+
+	codeHash := hasher.Compute(string(code))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		entry, _ := state.GetCodeEntry(codeHash, tr, marshalizer)
+		assert.Equal(b, code, entry.Code)
+	}
 }

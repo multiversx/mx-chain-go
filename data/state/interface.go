@@ -165,7 +165,6 @@ type baseAccountHandler interface {
 	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	SetCode(code []byte)
-	GetCode() []byte
 	HasNewCode() bool
 	SetCodeMetadata(codeMetadata []byte)
 	GetCodeMetadata() []byte

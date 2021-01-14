@@ -189,7 +189,12 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		oldCodeHash = oldAcc.GetCodeHash()
 	}
 
-	newCode := newAcc.GetCode()
+	userAcc, ok := newAcc.(*userAccount)
+	if !ok {
+		return ErrWrongTypeAssertion
+	}
+
+	newCode := userAcc.code
 	var newCodeHash []byte
 	if len(newCode) != 0 {
 		newCodeHash = adb.hasher.Compute(string(newCode))
