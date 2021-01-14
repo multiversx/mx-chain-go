@@ -63,6 +63,43 @@ func DoDeploy(t *testing.T, testContext *vm.VMTestContext, pathToContract string
 	return scAddr, owner
 }
 
+// DoDeploySecond -
+func DoDeploySecond(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	pathToContract string,
+	senderAccount state.AccountHandler,
+	gasPrice uint64,
+	gasLimit uint64,
+	args [][]byte,
+) (scAddr []byte) {
+	ownerNonce := senderAccount.GetNonce()
+	owner := senderAccount.AddressBytes()
+	scCode := []byte(arwen.GetSCCode(pathToContract))
+
+	txData := bytes.Join([][]byte{scCode, []byte(arwen.VMTypeHex), []byte(arwen.DummyCodeMetadataHex)}, []byte("@"))
+	if args != nil {
+		txData = []byte(string(txData) + "@" + string(bytes.Join(args, []byte("@"))))
+	}
+
+	tx := vm.CreateTransaction(ownerNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
+
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Equal(t, vmcommon.Ok, retCode)
+	require.Nil(t, err)
+	require.Nil(t, testContext.GetLatestError())
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	acc, _ := testContext.Accounts.LoadAccount(owner)
+	require.Equal(t, ownerNonce+1, acc.GetNonce())
+
+	scAddr, _ = testContext.BlockchainHook.NewAddress(owner, ownerNonce, factory.ArwenVirtualMachine)
+
+	return scAddr
+}
+
 // DoDeployDNS -
 func DoDeployDNS(t *testing.T, testContext *vm.VMTestContext, pathToContract string) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")

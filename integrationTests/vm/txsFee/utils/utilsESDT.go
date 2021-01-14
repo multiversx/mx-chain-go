@@ -79,7 +79,7 @@ func CheckESDTBalance(t *testing.T, testContext *vm.VMTestContext, addr []byte, 
 
 	tokenKey := core.ElrondProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenIdentifier)
 	valueBytes, err := userAccount.DataTrieTracker().RetrieveValue([]byte(tokenKey))
-	if err != nil {
+	if err != nil || len(valueBytes) == 0 {
 		require.Equal(t, big.NewInt(0), expectedBalance)
 		return
 	}
