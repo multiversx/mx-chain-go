@@ -338,6 +338,11 @@ func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, erro
 	return nf.node.GetAccount(address)
 }
 
+// GetCode returns the code for the given account
+func (nf *nodeFacade) GetCode(account state.UserAccountHandler) []byte {
+	return nf.node.GetCode(account)
+}
+
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network
 func (nf *nodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	hbStatus := nf.node.GetHeartbeats()
