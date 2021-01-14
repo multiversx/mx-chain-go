@@ -1342,6 +1342,60 @@ func TestSystemSCProcessor_ProcessSystemSmartContractUnStakeFromDelegationContra
 	assert.Equal(t, []byte("stakedPubKey1"), dStatus.UnStakedKeys[0].BLSKey)
 }
 
+func TestSystemSCProcessor_ProcessSystemSmartContractWrongValidatorInfoShouldBeCleaned(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(0, createMemUnit())
+	args.StakingV2EnableEpoch = 0
+	s, _ := NewSystemSCProcessor(args)
+
+	prepareStakingContractWithData(
+		args.UserAccountsDB,
+		[]byte("oneAddress1"),
+		[]byte("oneAddress2"),
+		args.Marshalizer,
+		[]byte("oneAddress1"),
+		[]byte("oneAddress1"),
+	)
+
+	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey0"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey1"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey2"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("stakedPubKey3"),
+		List:            "",
+		RewardAddress:   []byte("stakedPubKey0"),
+		AccumulatedFees: big.NewInt(0),
+	})
+	validatorInfos[0] = append(validatorInfos[0], &state.ValidatorInfo{
+		PublicKey:       []byte("oneAddress1"),
+		List:            string(core.EligibleList),
+		RewardAddress:   []byte("oneAddress1"),
+		AccumulatedFees: big.NewInt(0),
+	})
+
+	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	assert.Nil(t, err)
+
+	assert.Equal(t, len(validatorInfos[0]), 1)
+}
+
 func TestSystemSCProcessor_TogglePauseUnPause(t *testing.T) {
 	t.Parallel()
 

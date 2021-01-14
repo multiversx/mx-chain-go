@@ -33,9 +33,9 @@
    # also (minimum) hysteresis nodes for the minimum number of nodes
    SwitchHysteresisForMinNodesEnableEpoch = 2
 
-    # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
-    # signed with the hash of transaction
-    TransactionSignedWithTxHashEnableEpoch = 3
+   # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
+   # signed with the hash of transaction
+   TransactionSignedWithTxHashEnableEpoch = 4
 
    # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
    MetaProtectionEnableEpoch = 3
@@ -50,7 +50,7 @@
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [
         { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 3, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 4, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
    ]
 
    # GenesisString represents the encoded string for the genesis block
