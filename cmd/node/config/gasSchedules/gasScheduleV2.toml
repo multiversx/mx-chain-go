@@ -1,7 +1,7 @@
 [BuiltInCost]
     ChangeOwnerAddress    = 5000000
     ClaimDeveloperRewards = 5000000
-    SaveUserName          = 5000000
+    SaveUserName          = 1000000
     SaveKeyValue          = 250000
     ESDTTransfer          = 250000
     ESDTBurn              = 250000
@@ -33,7 +33,7 @@
     PersistPerByte    = 10000
     CompilePerByte    = 300
     AoTPreparePerByte = 200
-    GetCode           = 100000
+    GetCode           = 1000000
 
 [ElrondAPICost]
     GetSCAddress       = 100
@@ -68,7 +68,7 @@
     ExecuteOnDestContext = 160000
     DelegateExecution    = 160000
     AsyncCallStep        = 200000
-    AsyncCallbackGasLock = 20000000
+    AsyncCallbackGasLock = 2000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
     GetReturnData        = 100
