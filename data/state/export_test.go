@@ -1,5 +1,7 @@
 package state
 
+import "github.com/ElrondNetwork/elrond-go/marshal"
+
 func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
 	return &baseAccount{
 		address:         address,
@@ -26,4 +28,8 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 func GetCode(account baseAccountHandler) []byte {
 	userAcc := account.(*userAccount)
 	return userAcc.code
+}
+
+func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+	return getCodeEntry(codeHash, trie, marshalizer)
 }
