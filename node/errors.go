@@ -178,8 +178,11 @@ var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 // ErrNilWatchdog signals that a nil watchdog has been provided
 var ErrNilWatchdog = errors.New("nil watchdog")
 
-// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+// ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
+
+// ErrInvalidMaxTransactionValueLength signals that an invalid maximum transaction value length has been provided
+var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction version")
 
 // ErrNilHistoryRepository signals that history repository is nil
 var ErrNilHistoryRepository = errors.New("history repository is nil")

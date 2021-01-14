@@ -1356,6 +1356,8 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		processComponents.TxLogsProcessor.EnableLogToBeSavedInCache()
 	}
 
+	maxTxValueStringLength := len(economicsConfig.GlobalSettings.GenesisTotalSupply)
+
 	log.Trace("creating node structure")
 	currentNode, err := createNode(
 		generalConfig,
@@ -1386,6 +1388,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		hardForkTrigger,
 		historyRepository,
 		fallbackHeaderValidator,
+		maxTxValueStringLength,
 		isInImportMode,
 	)
 	if err != nil {
@@ -2199,6 +2202,7 @@ func createNode(
 	hardForkTrigger node.HardforkTrigger,
 	historyRepository dblookupext.HistoryRepository,
 	fallbackHeaderValidator consensus.FallbackHeaderValidator,
+	maxTxValueStringLength int,
 	isInImportDbMode bool,
 ) (*node.Node, error) {
 	var err error
@@ -2327,6 +2331,7 @@ func createNode(
 		node.WithEnableSignTxWithHashEpoch(config.GeneralSettings.TransactionSignedWithTxHashEnableEpoch),
 		node.WithTxSignHasher(coreData.TxSignHasher),
 		node.WithTxVersionChecker(txVersionCheckerHandler),
+		node.WithMaxTransactionValueLength(maxTxValueStringLength),
 		node.WithImportMode(isInImportDbMode),
 	)
 	if err != nil {

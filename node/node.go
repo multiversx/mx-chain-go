@@ -133,8 +133,9 @@ type Node struct {
 	headerSigVerifier       consensus.HeaderSigVerifier
 	headerIntegrityVerifier spos.HeaderIntegrityVerifier
 
-	chainID               []byte
-	minTransactionVersion uint32
+	chainID                   []byte
+	minTransactionVersion     uint32
+	maxTransactionValueLength int
 
 	sizeCheckDelta        uint32
 	txSentCounter         uint32
@@ -1077,6 +1078,10 @@ func (n *Node) CreateTransaction(
 	signatureBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
 		return nil, nil, errors.New("could not fetch signature bytes")
+	}
+
+	if len(value) > n.maxTransactionValueLength {
+		return nil, nil, errors.New("value is too large")
 	}
 
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)

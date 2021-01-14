@@ -542,6 +542,18 @@ func WithMinTransactionVersion(minTransactionVersion uint32) Option {
 	}
 }
 
+// WithMaxTransactionValueLength sets up the maximum length for the transaction's value field
+func WithMaxTransactionValueLength(maxLength int) Option {
+	return func(n *Node) error {
+		if maxLength == 0 {
+			return ErrInvalidTransactionVersion
+		}
+		n.maxTransactionValueLength = maxLength
+
+		return nil
+	}
+}
+
 // WithBlockTracker sets up the block tracker for the Node
 func WithBlockTracker(blockTracker process.BlockTracker) Option {
 	return func(n *Node) error {
