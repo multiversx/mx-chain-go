@@ -1124,7 +1124,8 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			return state.NewUserAccount(addr)
+			newAcc, err := state.NewUserAccount(addr)
+			return newAcc, err
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
@@ -1135,6 +1136,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	}
 
 	return account, nil
+}
+
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account.GetCodeHash())
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module

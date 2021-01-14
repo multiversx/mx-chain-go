@@ -1939,7 +1939,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
-	sameCode := bytes.Equal(outputAccount.Code, stateAccount.GetCode())
+	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccount.CodeMetadata, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
 		return
@@ -1949,7 +1949,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	isCodeDeployerSet := len(outputAccount.CodeDeployerAddress) > 0
 	isCodeDeployerOwner := bytes.Equal(currentOwner, outputAccount.CodeDeployerAddress) && isCodeDeployerSet
 
-	noExistingCode := len(stateAccount.GetCode()) == 0
+	noExistingCode := len(sc.accounts.GetCode(stateAccount.GetCodeHash())) == 0
 	noExistingOwner := len(currentOwner) == 0
 	currentCodeMetadata := vmcommon.CodeMetadataFromBytes(stateAccount.GetCodeMetadata())
 	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccount.CodeMetadata)
