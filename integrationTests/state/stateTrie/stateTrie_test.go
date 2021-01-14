@@ -81,7 +81,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	err := adb.SaveAccount(account)
 	assert.Nil(t, err)
 	assert.NotNil(t, account.GetCodeHash())
-	assert.Equal(t, []byte("Smart contract code"), adb.GetCode(account))
+	assert.Equal(t, []byte("Smart contract code"), adb.GetCode(account.GetCodeHash()))
 
 	fmt.Printf("SC code is at address: %v\n", account.GetCodeHash())
 
@@ -89,7 +89,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
-	assert.Equal(t, adb.GetCode(account), adb.GetCode(recoveredAccount))
+	assert.Equal(t, adb.GetCode(account.GetCodeHash()), adb.GetCode(recoveredAccount.GetCodeHash()))
 	assert.Equal(t, account.GetCodeHash(), recoveredAccount.GetCodeHash())
 }
 
@@ -1792,7 +1792,7 @@ func updateCode(
 	codeIndex := rand.Intn(numCodes)
 	code := codeArray[codeIndex]
 
-	oldCode := AccntState.GetCode(account)
+	oldCode := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(code)
 	_ = AccntState.SaveAccount(account)
 
@@ -1818,7 +1818,7 @@ func removeCode(
 	account state.AccountHandler,
 ) {
 	snapshot := AccntState.JournalLen()
-	code := AccntState.GetCode(account)
+	code := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(nil)
 	_ = AccntState.SaveAccount(account)
 
@@ -1835,6 +1835,7 @@ func removeCode(
 
 	fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(account.AddressBytes()))
 }
+
 func checkCodeConsistency(
 	t *testing.T,
 	shardNode *integrationTests.TestProcessorNode,
@@ -1916,7 +1917,7 @@ func TestAccountRemoval(t *testing.T) {
 			if err != nil {
 				continue
 			}
-			code := shardNode.AccntState.GetCode(account)
+			code := shardNode.AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 
 			_ = shardNode.AccntState.RemoveAccount(account.AddressBytes())
 

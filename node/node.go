@@ -1140,7 +1140,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 
 // GetCode returns the code for the given account
 func (n *Node) GetCode(account state.UserAccountHandler) []byte {
-	return n.accounts.GetCode(account)
+	return n.accounts.GetCode(account.GetCodeHash())
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module

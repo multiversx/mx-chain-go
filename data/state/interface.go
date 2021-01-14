@@ -130,7 +130,7 @@ type AccountsAdapter interface {
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
 	GetNumCheckpoints() uint32
-	GetCode(AccountHandler) []byte
+	GetCode(codeHash []byte) []byte
 
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error

@@ -139,13 +139,8 @@ func checkForNil(args ArgBlockChainHook) error {
 }
 
 // GetCode returns the code for the given account
-func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byte {
-	userAcc, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil
-	}
-
-	return bh.accounts.GetCode(userAcc)
+func (bh *BlockChainHookImpl) GetCode(codeHash []byte) []byte {
+	return bh.accounts.GetCode(codeHash)
 }
 
 // GetUserAccount returns the balance of a shard account

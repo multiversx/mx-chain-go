@@ -25,8 +25,8 @@ func NewReadOnlyAccountsDB(accountsDB state.AccountsAdapter) (*readOnlyAccountsD
 }
 
 // GetCode returns the code for the given account
-func (w *readOnlyAccountsDB) GetCode(account state.AccountHandler) []byte {
-	return w.originalAccounts.GetCode(account)
+func (w *readOnlyAccountsDB) GetCode(codeHash []byte) []byte {
+	return w.originalAccounts.GetCode(codeHash)
 }
 
 // GetExistingAccount will call the original accounts' function with the same name

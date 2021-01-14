@@ -88,17 +88,12 @@ func getNumCheckpoints(trie data.Trie) uint32 {
 }
 
 //GetCode returns the code for the given account
-func (adb *AccountsDB) GetCode(account AccountHandler) []byte {
-	baseAcc, ok := account.(baseAccountHandler)
-	if !ok {
+func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
+	if len(codeHash) == 0 {
 		return nil
 	}
 
-	if len(baseAcc.GetCodeHash()) == 0 {
-		return nil
-	}
-
-	val, err := adb.mainTrie.Get(baseAcc.GetCodeHash())
+	val, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return nil
 	}
