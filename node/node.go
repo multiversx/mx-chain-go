@@ -1142,6 +1142,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	return account, nil
 }
 
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account.GetCodeHash())
+}
+
 // StartHeartbeat starts the node's heartbeat processing/signaling module
 //TODO(next PR) remove the instantiation of the heartbeat component from here
 func (n *Node) StartHeartbeat(hbConfig config.HeartbeatConfig, versionNumber string, prefsConfig config.PreferencesConfig) error {
