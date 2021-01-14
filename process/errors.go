@@ -750,7 +750,7 @@ var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
 // ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
-var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("mismatch between receiver username and address")
 
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
