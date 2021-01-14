@@ -111,7 +111,7 @@ func (awm *AccountWrapMock) SetCode(code []byte) {
 
 // HasNewCode -
 func (awm *AccountWrapMock) HasNewCode() bool {
-	return true
+	return len(awm.code) > 0
 }
 
 // SetCodeMetadata -

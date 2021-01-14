@@ -26,8 +26,7 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 }
 
 func GetCode(account baseAccountHandler) []byte {
-	userAcc := account.(*userAccount)
-	return userAcc.code
+	return account.GetCodeHash()
 }
 
 func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {

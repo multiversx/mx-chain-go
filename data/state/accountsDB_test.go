@@ -223,7 +223,8 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 		},
 	})
 
-	err := adb.SaveAccount(generateAccount())
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
+	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
 }
@@ -231,16 +232,18 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 	t.Parallel()
 
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
+
 	adb := generateAccountDBFromTrie(&mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
-			return (&mock.MarshalizerMock{}).Marshal(generateAccount())
+			return (&mock.MarshalizerMock{}).Marshal(acc)
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
 	})
 
-	err := adb.SaveAccount(generateAccount())
+	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
 }
@@ -275,7 +278,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	accCode := []byte("code")
-	acc := generateAccount()
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
 	acc.SetCode(accCode)
 	_ = acc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
 
