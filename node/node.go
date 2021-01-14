@@ -1124,8 +1124,7 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	accWrp, err := n.accounts.GetExistingAccount(addr)
 	if err != nil {
 		if err == state.ErrAccNotFound {
-			newAcc, err := state.NewUserAccount(addr)
-			return newAcc, err
+			return state.NewUserAccount(addr)
 		}
 		return nil, errors.New("could not fetch sender address from provided param: " + err.Error())
 	}
