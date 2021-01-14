@@ -135,7 +135,7 @@ func (vm *OneSCExecutorMockVM) RunSmartContractCall(input *vmcommon.ContractCall
 		return nil, err
 	}
 
-	if len(recipientAccount.GetCode()) == 0 {
+	if len(vm.blockchainHook.GetCode(recipientAccount)) == 0 {
 		return nil, hooks.ErrEmptyCode
 	}
 

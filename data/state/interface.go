@@ -85,7 +85,6 @@ type PeerAccountHandler interface {
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
 	SetCode(code []byte)
-	GetCode() []byte
 	SetCodeMetadata(codeMetadata []byte)
 	GetCodeMetadata() []byte
 	SetCodeHash([]byte)
@@ -131,6 +130,7 @@ type AccountsAdapter interface {
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
 	GetNumCheckpoints() uint32
+	GetCode(codeHash []byte) []byte
 
 	RootHash() ([]byte, error)
 	RecreateTrie(rootHash []byte) error
@@ -165,7 +165,7 @@ type baseAccountHandler interface {
 	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
 	SetCode(code []byte)
-	GetCode() []byte
+	HasNewCode() bool
 	SetCodeMetadata(codeMetadata []byte)
 	GetCodeMetadata() []byte
 	SetCodeHash([]byte)
