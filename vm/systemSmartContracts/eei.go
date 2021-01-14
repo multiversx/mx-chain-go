@@ -81,7 +81,7 @@ func (host *vmContext) getCodeFromAddress(address []byte) []byte {
 		return address
 	}
 
-	code := host.blockChainHook.GetCode(userAcc.GetCodeHash())
+	code := host.blockChainHook.GetCode(userAcc)
 	if len(code) == 0 {
 		return address
 	}

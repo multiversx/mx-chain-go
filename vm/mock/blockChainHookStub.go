@@ -30,7 +30,7 @@ type BlockChainHookStub struct {
 	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
 	IsPayableCalled               func(address []byte) (bool, error)
 	NumberOfShardsCalled          func() uint32
-	GetCodeCalled                 func([]byte) []byte
+	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
 }
 
 // AccountExists -
@@ -50,9 +50,9 @@ func (b *BlockChainHookStub) NewAddress(creatorAddress []byte, creatorNonce uint
 }
 
 // GetCode -
-func (b *BlockChainHookStub) GetCode(codeHash []byte) []byte {
+func (b *BlockChainHookStub) GetCode(account vmcommon.UserAccountHandler) []byte {
 	if b.GetCodeCalled != nil {
-		return b.GetCodeCalled(codeHash)
+		return b.GetCodeCalled(account)
 	}
 	return nil
 }
