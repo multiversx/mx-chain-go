@@ -8,6 +8,7 @@ type baseAccount struct {
 	address         []byte
 	code            []byte
 	dataTrieTracker DataTrieTracker
+	hasNewCode      bool
 }
 
 // AddressBytes returns the address associated with the account as byte slice
@@ -15,13 +16,9 @@ func (ba *baseAccount) AddressBytes() []byte {
 	return ba.address
 }
 
-// GetCode gets the actual code that needs to be run in the VM
-func (ba *baseAccount) GetCode() []byte {
-	return ba.code
-}
-
 // SetCode sets the actual code that needs to be run in the VM
 func (ba *baseAccount) SetCode(code []byte) {
+	ba.hasNewCode = true
 	ba.code = code
 }
 
@@ -38,6 +35,11 @@ func (ba *baseAccount) SetDataTrie(trie data.Trie) {
 // DataTrieTracker returns the trie wrapper used in managing the SC data
 func (ba *baseAccount) DataTrieTracker() DataTrieTracker {
 	return ba.dataTrieTracker
+}
+
+// HasNewCode returns true if there was a code change for the account
+func (ba *baseAccount) HasNewCode() bool {
+	return ba.hasNewCode
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

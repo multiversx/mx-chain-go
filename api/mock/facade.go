@@ -24,6 +24,7 @@ type Facade struct {
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
+	GetCodeCalled              func(state.AccountHandler) []byte
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
@@ -132,6 +133,15 @@ func (f *Facade) GetAllESDTTokens(address string) ([]string, error) {
 // GetAccount is the mock implementation of a handler's GetAccount method
 func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
+}
+
+// GetCode -
+func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
+	if f.GetCodeCalled != nil {
+		f.GetCodeCalled(account)
+	}
+
+	return nil
 }
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method

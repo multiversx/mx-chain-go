@@ -138,6 +138,11 @@ func checkForNil(args ArgBlockChainHook) error {
 	return nil
 }
 
+// GetCode returns the code for the given account
+func (bh *BlockChainHookImpl) GetCode(account vmcommon.UserAccountHandler) []byte {
+	return bh.accounts.GetCode(account.GetCodeHash())
+}
+
 // GetUserAccount returns the balance of a shard account
 func (bh *BlockChainHookImpl) GetUserAccount(address []byte) (vmcommon.UserAccountHandler, error) {
 	defer stopMeasure(startMeasure("GetUserAccount"))
