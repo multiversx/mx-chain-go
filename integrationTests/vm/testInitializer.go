@@ -507,7 +507,7 @@ func TestDeployedContractContents(
 	//test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovShardAccount.GetCodeHash())
 	//test code
-	assert.Equal(t, scCodeBytes, destinationRecovShardAccount.GetCode())
+	assert.Equal(t, scCodeBytes, accnts.GetCode(destinationRecovShardAccount))
 	//in this test we know we have a as a variable inside the contract, we can ask directly its value
 	// using trackableDataTrie functionality
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
