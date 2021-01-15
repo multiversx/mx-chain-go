@@ -70,7 +70,7 @@ type AccountsDB struct {
 	mutOp        sync.RWMutex
 
 	numCheckpoints       uint32
-	loadCodeMeasurements loadingMeasurements
+	loadCodeMeasurements *loadingMeasurements
 }
 
 var log = logger.GetOrCreate("state")
@@ -106,7 +106,7 @@ func NewAccountsDB(
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		numCheckpoints:         numCheckpoints,
-		loadCodeMeasurements: loadingMeasurements{
+		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
 	}, nil
