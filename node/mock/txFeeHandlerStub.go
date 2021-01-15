@@ -19,6 +19,7 @@ type FeeHandlerStub struct {
 	MinGasPriceCalled             func() uint64
 	GasPriceModifierCalled        func() float64
 	ComputeFeeForProcessingCalled func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	GenesisTotalSupplyCalled      func() *big.Int
 }
 
 // ComputeFeeForProcessing -
@@ -73,6 +74,15 @@ func (fhs *FeeHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *b
 // CheckValidityTxValues -
 func (fhs *FeeHandlerStub) CheckValidityTxValues(tx process.TransactionWithFeeHandler) error {
 	return fhs.CheckValidityTxValuesCalled(tx)
+}
+
+// GenesisTotalSupply -
+func (fhs *FeeHandlerStub) GenesisTotalSupply() *big.Int {
+	if fhs.GenesisTotalSupplyCalled != nil {
+		return fhs.GenesisTotalSupplyCalled()
+	}
+
+	return big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

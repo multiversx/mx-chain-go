@@ -564,6 +564,7 @@ type FeeHandler interface {
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
+	GenesisTotalSupply() *big.Int
 	IsInterfaceNil() bool
 }
 

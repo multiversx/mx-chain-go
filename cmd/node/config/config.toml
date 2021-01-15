@@ -520,7 +520,7 @@
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"
-    SignatureLength = 0
+    SignatureLength = 64
 
 [ValidatorPubkeyConverter]
     Length = 96
