@@ -156,8 +156,8 @@
     Keccak256       = 600
     Ripemd160       = 600
     VerifyBLS       = 5000000
-    VerifyEd25519   = 1000000
-    VerifySecp256k1 = 200000
+    VerifyEd25519   = 2000000
+    VerifySecp256k1 = 2000000
 
 [WASMOpcodeCost]
     Unreachable = 1
