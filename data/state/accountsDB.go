@@ -676,7 +676,6 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	defer func() {
 		log.Trace("accountsDB.RevertToSnapshot ended")
 		adb.mutOp.Unlock()
-		adb.loadCodeMeasurements.resetAndPrint()
 	}()
 
 	if snapshot > len(adb.entries) || snapshot < 0 {
