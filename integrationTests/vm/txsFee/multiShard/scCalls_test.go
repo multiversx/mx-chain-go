@@ -78,7 +78,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
 	// check sender balance after refund
-	expectedBalance = big.NewInt(6140)
+	expectedBalance = big.NewInt(6130)
 	vm.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalance)
 
 	// check accumulated fees
