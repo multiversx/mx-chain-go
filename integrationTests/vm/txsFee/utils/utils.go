@@ -72,6 +72,7 @@ func DoDeploySecond(
 	gasPrice uint64,
 	gasLimit uint64,
 	args [][]byte,
+	value *big.Int,
 ) (scAddr []byte) {
 	ownerNonce := senderAccount.GetNonce()
 	owner := senderAccount.AddressBytes()
@@ -82,7 +83,7 @@ func DoDeploySecond(
 		txData = []byte(string(txData) + "@" + string(bytes.Join(args, []byte("@"))))
 	}
 
-	tx := vm.CreateTransaction(ownerNonce, big.NewInt(0), owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
+	tx := vm.CreateTransaction(ownerNonce, value, owner, vm.CreateEmptyAddress(), gasPrice, gasLimit, txData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)

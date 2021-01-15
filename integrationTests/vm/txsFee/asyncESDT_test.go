@@ -34,11 +34,11 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond)
+	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args)
+	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
 	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
@@ -95,11 +95,11 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond)
+	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args)
+	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
 	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
@@ -156,11 +156,11 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond)
+	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args)
+	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
 	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
