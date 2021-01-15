@@ -1,10 +1,13 @@
 package node
 
 import (
+	"bytes"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
 	"github.com/ElrondNetwork/elrond-go/core/versioning"
 	"github.com/ElrondNetwork/elrond-go/data/blockchain"
 	"github.com/ElrondNetwork/elrond-go/data/endProcess"
@@ -190,13 +193,17 @@ func TestWithAddressPubkeyConverter_ShouldWork(t *testing.T) {
 
 	node, _ := NewNode()
 
-	converter := &mock.PubkeyConverterStub{}
+	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32)
+	emptyBech32Address := converter.Encode(bytes.Repeat([]byte{0}, 32))
+	expectedBech32AddressLength := len(emptyBech32Address)
 
 	opt := WithAddressPubkeyConverter(converter)
 	err := opt(node)
 
 	assert.True(t, node.addressPubkeyConverter == converter)
 	assert.Nil(t, err)
+
+	assert.Equal(t, expectedBech32AddressLength, node.encodedAddressLength)
 }
 
 func TestWithValidatorPubkeyConverter_NilConverterShouldErr(t *testing.T) {
@@ -1283,15 +1290,30 @@ func TestWithWhiteListHandlerVerified_WhiteListHandlerShouldWork(t *testing.T) {
 	assert.True(t, node.whiteListerVerifiedTxs == whiteListHandler)
 }
 
-func TestWithSignatureSize(t *testing.T) {
+func TestWithAddressSignatureSize(t *testing.T) {
+	t.Parallel()
+
+	node, _ := NewNode()
+	signatureSize := 32
+	opt := WithAddressSignatureSize(signatureSize)
+
+	err := opt(node)
+	assert.Equal(t, signatureSize, node.addressSignatureSize)
+	assert.Nil(t, err)
+
+	expectedHexSize := len(hex.EncodeToString(bytes.Repeat([]byte{0}, signatureSize)))
+	assert.Equal(t, expectedHexSize, node.addressSignatureHexSize)
+}
+
+func TestWithValidatorSignatureSize(t *testing.T) {
 	t.Parallel()
 
 	node, _ := NewNode()
 	signatureSize := 48
-	opt := WithSignatureSize(signatureSize)
+	opt := WithValidatorSignatureSize(signatureSize)
 
 	err := opt(node)
-	assert.Equal(t, signatureSize, node.signatureSize)
+	assert.Equal(t, signatureSize, node.validatorSignatureSize)
 	assert.Nil(t, err)
 }
 
