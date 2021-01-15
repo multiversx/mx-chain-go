@@ -737,9 +737,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
-		if !check.IfNil(acntSnd) {
-			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
-		}
 		return vmcommon.UserError, nil
 	}
 
