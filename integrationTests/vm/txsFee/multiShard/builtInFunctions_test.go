@@ -95,14 +95,14 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	_, err = testContextDst.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(6140)
+	expectedBalance := big.NewInt(6130)
 	vm.TestAccount(t, testContextDst.Accounts, sndAddr, 1, expectedBalance)
 
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4710), accumulatedFees)
+	require.Equal(t, big.NewInt(4720), accumulatedFees)
 
 	developerFees := testContextDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(376), developerFees)
+	require.Equal(t, big.NewInt(377), developerFees)
 
 	intermediateTxs := testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
@@ -164,7 +164,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
-	expectedBalance = big.NewInt(9770 + 376 + currentSCDevBalance.Int64())
+	expectedBalance = big.NewInt(9771 + 376 + currentSCDevBalance.Int64())
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 
 }

@@ -43,15 +43,15 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(2), ret)
 
-	expectedBalance := big.NewInt(24170)
+	expectedBalance := big.NewInt(24160)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(16700), accumulatedFees)
+	require.Equal(t, big.NewInt(16710), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(744), developerFees)
+	require.Equal(t, big.NewInt(745), developerFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)

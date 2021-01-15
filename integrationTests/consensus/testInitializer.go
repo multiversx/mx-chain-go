@@ -414,7 +414,7 @@ func createConsensusOnlyNode(
 		node.WithUint64ByteSliceConverter(&mock.Uint64ByteSliceConverterMock{}),
 		node.WithBlockTracker(&mock.BlockTrackerStub{}),
 		node.WithInputAntifloodHandler(&mock.NilAntifloodHandler{}),
-		node.WithSignatureSize(signatureSize),
+		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 		node.WithPeerHonestyHandler(&mock.PeerHonestyHandlerStub{}),
 		node.WithFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{}),
