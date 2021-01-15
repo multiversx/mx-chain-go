@@ -78,6 +78,11 @@ func (fh *FeeHandler) GetDeveloperFees() *big.Int {
 	return big.NewInt(0)
 }
 
+// GenesisTotalSupply -
+func (fh *FeeHandler) GenesisTotalSupply() *big.Int {
+	return big.NewInt(0)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (fh *FeeHandler) IsInterfaceNil() bool {
 	return fh == nil

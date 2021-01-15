@@ -115,6 +115,24 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrInvalidSignatureLength signals that an invalid signature length has been provided
+var ErrInvalidSignatureLength = errors.New("invalid signature length")
+
+// ErrInvalidAddressLength signals that an invalid address length has been provided
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrInvalidChainIDInTransaction signals that an invalid chain id has been provided in transaction
+var ErrInvalidChainIDInTransaction = errors.New("invalid chain ID")
+
+// ErrInvalidSenderUsernameLength signals that the length of the sender username is invalid
+var ErrInvalidSenderUsernameLength = errors.New("invalid sender username length")
+
+// ErrInvalidReceiverUsernameLength signals that the length of the receiver username is invalid
+var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username length")
+
+// ErrDataFieldTooBig signals that the data field is too big
+var ErrDataFieldTooBig = errors.New("data field is too big")
+
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
 

@@ -1,6 +1,8 @@
 package node
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -110,6 +112,11 @@ func WithAddressPubkeyConverter(pubkeyConverter core.PubkeyConverter) Option {
 			return fmt.Errorf("%w in WithAddressPubkeyConverter", ErrNilPubkeyConverter)
 		}
 		n.addressPubkeyConverter = pubkeyConverter
+
+		emptyAddress := bytes.Repeat([]byte{0}, pubkeyConverter.Len())
+		encodedEmptyAddress := pubkeyConverter.Encode(emptyAddress)
+		n.encodedAddressLength = len(encodedEmptyAddress)
+
 		return nil
 	}
 }
@@ -542,18 +549,6 @@ func WithMinTransactionVersion(minTransactionVersion uint32) Option {
 	}
 }
 
-// WithMaxTransactionValueLength sets up the maximum length for the transaction's value field
-func WithMaxTransactionValueLength(maxLength int) Option {
-	return func(n *Node) error {
-		if maxLength <= 0 {
-			return ErrInvalidMaxTransactionValueLength
-		}
-		n.maxTransactionValueLength = maxLength
-
-		return nil
-	}
-}
-
 // WithBlockTracker sets up the block tracker for the Node
 func WithBlockTracker(blockTracker process.BlockTracker) Option {
 	return func(n *Node) error {
@@ -663,10 +658,22 @@ func WithWhiteListHandlerVerified(whiteListHandler process.WhiteListHandler) Opt
 	}
 }
 
-// WithSignatureSize sets up a signatureSize option for the Node
-func WithSignatureSize(signatureSize int) Option {
+// WithAddressSignatureSize sets up an addressSignatureSize option for the Node
+func WithAddressSignatureSize(signatureSize int) Option {
 	return func(n *Node) error {
-		n.signatureSize = signatureSize
+		n.addressSignatureSize = signatureSize
+		emptyByteSlice := bytes.Repeat([]byte{0}, signatureSize)
+		hexEncodedEmptyByteSlice := hex.EncodeToString(emptyByteSlice)
+		n.addressSignatureHexSize = len(hexEncodedEmptyByteSlice)
+
+		return nil
+	}
+}
+
+// WithValidatorSignatureSize sets up a validatorSignatureSize option for the Node
+func WithValidatorSignatureSize(signatureSize int) Option {
+	return func(n *Node) error {
+		n.validatorSignatureSize = signatureSize
 		return nil
 	}
 }

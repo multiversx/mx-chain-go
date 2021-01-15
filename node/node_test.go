@@ -44,8 +44,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testMaxTxValueLength = 30
-
 func createMockPubkeyConverter() *mock.PubkeyConverterMock {
 	return mock.NewPubkeyConverterMock(32)
 }
@@ -520,12 +518,14 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
+	chainID := []byte("chain id")
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
 		node.WithTxSignMarshalizer(getMarshalizer()),
 		node.WithHasher(getHasher()),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithChainID(chainID),
 	)
 
 	nonce := uint64(0)
@@ -537,7 +537,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -547,6 +547,7 @@ func TestCreateTransaction_NilAddrConverterShouldErr(t *testing.T) {
 func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	t.Parallel()
 
+	chainID := "chain id"
 	n, _ := node.NewNode(
 		node.WithInternalMarshalizer(getMarshalizer(), testSizeCheckDelta),
 		node.WithVmMarshalizer(getMarshalizer()),
@@ -558,6 +559,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 				},
 			},
 		),
+		node.WithChainID([]byte(chainID)),
 	)
 
 	nonce := uint64(0)
@@ -569,7 +571,7 @@ func TestCreateTransaction_NilAccountsAdapterShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "-"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "chainID", 1, 0)
+	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
 
 	assert.Nil(t, tx)
 	assert.Nil(t, txHash)
@@ -592,7 +594,6 @@ func TestCreateTransaction_InvalidSignatureShouldErr(t *testing.T) {
 			},
 		),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
 	)
 
 	nonce := uint64(0)
@@ -633,7 +634,6 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
 	)
 
 	nonce := uint64(0)
@@ -645,7 +645,7 @@ func TestCreateTransaction_InvalidChainIDShouldErr(t *testing.T) {
 	txData := []byte("-")
 	signature := "617eff4f"
 	_, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, "", 1, 0)
-	assert.Equal(t, node.ErrInvalidChainID, err)
+	assert.Equal(t, node.ErrInvalidChainIDInTransaction, err)
 }
 
 func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
@@ -670,7 +670,6 @@ func TestCreateTransaction_InvalidTxVersionShouldErr(t *testing.T) {
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
 	)
 
 	nonce := uint64(0)
@@ -708,6 +707,12 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return []byte(hexAddress), nil
 				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
@@ -727,7 +732,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 		}),
 		node.WithChainID(chainID),
 		node.WithMinTransactionVersion(version),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -737,7 +742,7 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
 	assert.NotNil(t, tx)
@@ -751,31 +756,340 @@ func TestCreateTransaction_SenderShardIdIsInDifferentShardShouldNotValidate(t *t
 	assert.True(t, errors.Is(err, node.ErrDifferentSenderShardId))
 }
 
-func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
+func TestCreateTransaction_InvalidSignatureLengthShouldErr(t *testing.T) {
 	t.Parallel()
 
 	maxLength := 7
+	chainID := "chain id"
 	n, _ := node.NewNode(
 		node.WithAddressPubkeyConverter(
 			&mock.PubkeyConverterStub{
 				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return []byte(hexAddress), nil
 				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
-		node.WithMaxTransactionValueLength(maxLength),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
-	value := "1" + strings.Repeat("0", maxLength)
+	value := "1" + strings.Repeat("0", maxLength+1)
 	receiver := "rcv"
 	sender := "snd"
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := "wrong sized signature"
 
-	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, sender, gasPrice, gasLimit, txData, signature, "chId", 1, 0)
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrInvalidSignatureLength, err)
+}
+
+func TestCreateTransaction_InvalidSenderLengthShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "wrong sized sender"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, node.ErrInvalidAddressLength))
+}
+
+func TestCreateTransaction_InvalidReceiverLengthShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "wrong sized receiver"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, node.ErrInvalidAddressLength))
+}
+
+func TestCreateTransaction_TooBigSenderUsernameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	senderUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, senderUsername, gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrInvalidSenderUsernameLength, err)
+}
+
+func TestCreateTransaction_TooBigReceiverUsernameShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	receiverUsername := bytes.Repeat([]byte{0}, core.MaxUserNameLength+1)
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, receiverUsername, sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrInvalidReceiverUsernameLength, err)
+}
+
+func TestCreateTransaction_DataFieldSizeExceedsMaxShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := bytes.Repeat([]byte{0}, core.MegabyteSize+1)
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
+	assert.Nil(t, tx)
+	assert.Empty(t, txHash)
+	assert.Error(t, err)
+	assert.Equal(t, node.ErrDataFieldTooBig, err)
+}
+
+func TestCreateTransaction_TooLargeValueFieldShouldErr(t *testing.T) {
+	t.Parallel()
+
+	maxLength := 7
+	chainID := "chain id"
+	n, _ := node.NewNode(
+		node.WithAddressPubkeyConverter(
+			&mock.PubkeyConverterStub{
+				DecodeCalled: func(hexAddress string) ([]byte, error) {
+					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
+			}),
+		node.WithAccountsAdapter(&mock.AccountsStub{}),
+		node.WithTxFeeHandler(
+			&mock.FeeHandlerStub{
+				GenesisTotalSupplyCalled: func() *big.Int {
+					str := strings.Repeat("1", maxLength)
+					bi := big.NewInt(0)
+					bi.SetString(str, 10)
+					return bi
+				},
+			}),
+		node.WithChainID([]byte(chainID)),
+		node.WithAddressSignatureSize(10),
+	)
+
+	nonce := uint64(0)
+	value := "1" + strings.Repeat("0", maxLength+1)
+	receiver := "rcv"
+	sender := "snd"
+	gasPrice := uint64(10)
+	gasLimit := uint64(20)
+	txData := []byte("-")
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
+
+	tx, txHash, err := n.CreateTransaction(nonce, value, receiver, []byte("rcvrUsername"), sender, []byte("sndrUsername"), gasPrice, gasLimit, txData, signature, chainID, 1, 0)
 	assert.Nil(t, tx)
 	assert.Empty(t, txHash)
 	assert.Error(t, err)
@@ -805,6 +1119,12 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return []byte(hexAddress), nil
 				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
@@ -831,7 +1151,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 		}),
 		node.WithTxSignHasher(&mock.HasherMock{}),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -841,7 +1161,7 @@ func TestCreateTransaction_OkValsShouldWork(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	tx, txHash, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, 0)
 	assert.NotNil(t, tx)
@@ -878,6 +1198,12 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return []byte(hexAddress), nil
 				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
+				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
 		node.WithShardCoordinator(&mock.ShardCoordinatorMock{
@@ -905,7 +1231,7 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 		node.WithEnableSignTxWithHashEpoch(2),
 		node.WithTxSignHasher(&mock.HasherMock{}),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -915,12 +1241,12 @@ func TestCreateTransaction_TxSignedWithHashShouldErrVersionShoudBe2(t *testing.T
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
-	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
-
-	err := n.ValidateTransaction(tx)
+	tx, _, err := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version, options)
+	require.Nil(t, err)
+	err = n.ValidateTransaction(tx)
 	assert.Equal(t, process.ErrInvalidTransactionVersion, err)
 }
 
@@ -946,6 +1272,12 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 			&mock.PubkeyConverterStub{
 				DecodeCalled: func(hexAddress string) ([]byte, error) {
 					return []byte(hexAddress), nil
+				},
+				EncodeCalled: func(pkBytes []byte) string {
+					return string(pkBytes)
+				},
+				LenCalled: func() int {
+					return 3
 				},
 			}),
 		node.WithAccountsAdapter(&mock.AccountsStub{}),
@@ -982,7 +1314,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 		node.WithEnableSignTxWithHashEpoch(2),
 		node.WithTxSignHasher(&mock.HasherMock{}),
 		node.WithTxVersionChecker(versioning.NewTxVersionChecker(version)),
-		node.WithMaxTransactionValueLength(testMaxTxValueLength),
+		node.WithAddressSignatureSize(10),
 	)
 
 	nonce := uint64(0)
@@ -992,7 +1324,7 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 	txData := []byte("-")
-	signature := "617eff4f"
+	signature := hex.EncodeToString(bytes.Repeat([]byte{0}, 10))
 
 	options := versioning.MaskSignedWithHash
 	tx, _, _ := n.CreateTransaction(nonce, value.String(), receiver, nil, sender, nil, gasPrice, gasLimit, txData, signature, string(chainID), version+1, options)
