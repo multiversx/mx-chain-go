@@ -2,7 +2,7 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"errors"
+	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
 
@@ -103,6 +103,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 
 	testContext.TxFeeHandler.CreateBlockStarted()
 	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	require.Equal(t, big.NewInt(0), testContext.TxFeeHandler.GetAccumulatedFees())
 
 	gasLimit := uint64(500000)
 	tx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
@@ -110,8 +111,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Nil(t, err)
-	require.Equal(t, errors.New("function not found"), testContext.GetLatestError())
+	require.Equal(t, process.ErrFailedTransaction, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -171,8 +171,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Nil(t, err)
-	require.Equal(t, errors.New("out of gas"), testContext.GetLatestError())
+	require.Equal(t, process.ErrFailedTransaction, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)

@@ -62,6 +62,11 @@ func (as *AccountsStub) GetAllLeaves(rootHash []byte, ctx context.Context) (chan
 	return nil, nil
 }
 
+// GetCode -
+func (as *AccountsStub) GetCode(_ []byte) []byte {
+	return nil
+}
+
 var errNotImplemented = errors.New("not implemented")
 
 // Commit -
