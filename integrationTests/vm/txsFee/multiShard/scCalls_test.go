@@ -91,8 +91,8 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(386), indexerTx.GasUsed)
-	require.Equal(t, "3860", indexerTx.Fee)
+	require.Equal(t, uint64(387), indexerTx.GasUsed)
+	require.Equal(t, "3870", indexerTx.Fee)
 	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	scr := txs[0]

@@ -119,7 +119,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
-	require.Equal(t, vmcommon.ExecutionFailed, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
@@ -185,7 +185,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
-	require.Equal(t, vmcommon.ExecutionFailed, retCode)
+	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()

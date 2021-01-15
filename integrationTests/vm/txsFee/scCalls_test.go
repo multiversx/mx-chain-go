@@ -42,8 +42,8 @@ func TestScCallShouldWork(t *testing.T) {
 		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(386), indexerTx.GasUsed)
-		require.Equal(t, "3860", indexerTx.Fee)
+		require.Equal(t, uint64(387), indexerTx.GasUsed)
+		require.Equal(t, "3870", indexerTx.Fee)
 	}
 
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")

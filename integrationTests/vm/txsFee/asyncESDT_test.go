@@ -2,7 +2,6 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"math/big"
 	"testing"
 
@@ -111,7 +110,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
@@ -171,7 +170,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, process.ErrFailedTransaction, err)
+	require.Nil(t, err)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
