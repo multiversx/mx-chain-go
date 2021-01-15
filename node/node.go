@@ -146,8 +146,11 @@ type Node struct {
 
 	requestHandler process.RequestHandler
 
-	signatureSize int
-	publicKeySize int
+	addressSignatureSize    int
+	addressSignatureHexSize int
+	encodedAddressLength    int
+	validatorSignatureSize  int
+	publicKeySize           int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
@@ -322,7 +325,7 @@ func (n *Node) StartConsensus() error {
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
 		PoolAdder:                n.dataPool.MiniBlocks(),
-		SignatureSize:            n.signatureSize,
+		SignatureSize:            n.validatorSignatureSize,
 		PublicKeySize:            n.publicKeySize,
 	}
 
@@ -1056,14 +1059,32 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" {
-		return nil, nil, ErrInvalidChainID
+	if chainID == "" || len(chainID) != len(string(n.chainID)) {
+		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.accounts) {
 		return nil, nil, ErrNilAccountsAdapter
+	}
+	if len(signatureHex) != n.addressSignatureHexSize {
+		return nil, nil, ErrInvalidSignatureLength
+	}
+	if len(receiver) != n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
+	}
+	if len(sender) != n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if len(senderUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidSenderUsernameLength
+	}
+	if len(receiverUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidReceiverUsernameLength
+	}
+	if len(dataField) > core.MegabyteSize {
+		return nil, nil, ErrDataFieldTooBig
 	}
 
 	receiverAddress, err := n.addressPubkeyConverter.Decode(receiver)
@@ -1079,6 +1100,10 @@ func (n *Node) CreateTransaction(
 	signatureBytes, err := hex.DecodeString(signatureHex)
 	if err != nil {
 		return nil, nil, errors.New("could not fetch signature bytes")
+	}
+
+	if len(value) > len(n.feeHandler.GenesisTotalSupply().String())+1 {
+		return nil, nil, ErrTransactionValueLengthTooBig
 	}
 
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
