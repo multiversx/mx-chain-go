@@ -709,6 +709,11 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
+	if vmInput.CallType == vmcommon.AsynchronousCallBack {
+		// in case of asynchronous callback - the process of built in function is a must
+		snapshot = sc.accounts.JournalLen()
+	}
+
 	err = sc.gasConsumedChecks(tx, vmInput.GasProvided, vmInput.GasLocked, vmOutput)
 	if err != nil {
 		log.Error("gasConsumedChecks with problem ", "err", err.Error(), "txHash", txHash)
@@ -732,7 +737,10 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
-		return newVMOutput.ReturnCode, nil
+		if !check.IfNil(acntSnd) {
+			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
+		}
+		return vmcommon.UserError, nil
 	}
 
 	if isSCCallSelfShard {
@@ -894,6 +902,12 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 		return false, nil, nil
 	}
 
+	callType := determineCallType(tx)
+	if callType == vmcommon.AsynchronousCallBack {
+		newVMInput := sc.createVMInputWithAsyncCallBack(vmInput, vmOutput)
+		return true, newVMInput, nil
+	}
+
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
 	if !ok {
 		return false, nil, nil
@@ -903,10 +917,7 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	}
 
 	scExecuteOutTransfer := outAcc.OutputTransfers[0]
-	callType := determineCallType(tx)
-	txData := prependCallbackToTxDataIfAsyncCallBack(scExecuteOutTransfer.Data, callType)
-
-	function, arguments, err := sc.argsParser.ParseCallData(string(txData))
+	function, arguments, err := sc.argsParser.ParseCallData(string(scExecuteOutTransfer.Data))
 	if err != nil {
 		return true, nil, err
 	}
@@ -933,6 +944,45 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 	return true, newVMInput, nil
 }
 
+func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.ContractCallInput, vmOutput *vmcommon.VMOutput) *vmcommon.ContractCallInput {
+	arguments := make([][]byte, 0)
+	gasLimit := vmOutput.GasRemaining
+
+	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
+	if ok && len(outAcc.OutputTransfers) == 1 {
+		gasLimit = outAcc.OutputTransfers[0].GasLimit
+		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
+		log.LogIfError(err, "createVMInputWithAsyncCallBack", "error", err)
+		if len(function) > 0 {
+			arguments = append(arguments, []byte(function))
+		}
+
+		for _, arg := range args {
+			arguments = append(arguments, arg)
+		}
+	}
+
+	newVMInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:     vmInput.CallerAddr,
+			Arguments:      arguments,
+			CallValue:      big.NewInt(0),
+			CallType:       vmcommon.AsynchronousCallBack,
+			GasPrice:       vmInput.GasPrice,
+			GasProvided:    gasLimit,
+			GasLocked:      vmInput.GasLocked,
+			OriginalTxHash: vmInput.OriginalTxHash,
+			CurrentTxHash:  vmInput.CurrentTxHash,
+		},
+		RecipientAddr:     vmInput.RecipientAddr,
+		Function:          "callback",
+		AllowInitFunction: false,
+	}
+
+	fillWithESDTValue(vmInput, newVMInput)
+	return newVMInput
+}
+
 func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmcommon.ContractCallInput) {
 	if fullVMInput.Function != core.BuiltInFunctionESDTTransfer {
 		return
@@ -942,23 +992,35 @@ func fillWithESDTValue(fullVMInput *vmcommon.ContractCallInput, newVMInput *vmco
 	newVMInput.ESDTValue = big.NewInt(0).SetBytes(fullVMInput.Arguments[1])
 }
 
-func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) bool {
+func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (string, bool) {
 	sndShardID := sc.shardCoordinator.ComputeId(tx.GetSndAddr())
 	if sndShardID == sc.shardCoordinator.SelfId() {
-		return false
+		return "", false
 	}
 
 	dstShardID := sc.shardCoordinator.ComputeId(tx.GetRcvAddr())
 	if dstShardID == sndShardID {
-		return false
+		return "", false
 	}
 
-	function, _, err := sc.argsParser.ParseCallData(string(tx.GetData()))
+	function, args, err := sc.argsParser.ParseCallData(string(tx.GetData()))
 	if err != nil {
-		return false
+		return "", false
 	}
 
-	return function == core.BuiltInFunctionESDTTransfer
+	if function != core.BuiltInFunctionESDTTransfer {
+		return "", false
+	}
+	if len(args) < 2 {
+		return "", false
+	}
+
+	returnData := ""
+	returnData += function + "@"
+	returnData += hex.EncodeToString(args[0]) + "@"
+	returnData += hex.EncodeToString(args[1])
+
+	return returnData, true
 }
 
 // ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
@@ -1422,8 +1484,9 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	accumulatedSCRData := ""
-	if sc.isCrossShardESDTTransfer(tx) {
-		accumulatedSCRData += string(tx.GetData())
+	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx)
+	if callType != vmcommon.AsynchronousCallBack && isCrossShardESDTCall {
+		accumulatedSCRData += esdtReturnData
 	}
 
 	consumedFee := sc.economicsFee.ComputeTxFee(tx)
@@ -1647,7 +1710,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 		return false
 	}
 
-	if !sc.isTransferWithNoDataOrBuiltInCall(outputTransfer.Data) {
+	if !sc.isTransferWithNoAdditionalData(outputTransfer.Data) {
 		return false
 	}
 
@@ -1657,17 +1720,25 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	return true
 }
 
-func (sc *scProcessor) isTransferWithNoDataOrBuiltInCall(data []byte) bool {
+func (sc *scProcessor) isTransferWithNoAdditionalData(data []byte) bool {
 	if len(data) == 0 {
 		return true
 	}
-	function, _, err := sc.argsParser.ParseCallData(string(data))
+	function, args, err := sc.argsParser.ParseCallData(string(data))
 	if err != nil {
 		return false
 	}
 
 	_, err = sc.builtInFunctions.Get(function)
-	return err == nil
+	if err != nil {
+		return false
+	}
+
+	if function != core.BuiltInFunctionESDTTransfer {
+		return true
+	}
+
+	return len(args) == 2
 }
 
 // createSCRForSender(vmOutput, tx, txHash, acntSnd)
@@ -1868,7 +1939,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	}
 
 	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
-	sameCode := bytes.Equal(outputAccount.Code, stateAccount.GetCode())
+	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccount.CodeMetadata, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
 		return
@@ -1878,7 +1949,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	isCodeDeployerSet := len(outputAccount.CodeDeployerAddress) > 0
 	isCodeDeployerOwner := bytes.Equal(currentOwner, outputAccount.CodeDeployerAddress) && isCodeDeployerSet
 
-	noExistingCode := len(stateAccount.GetCode()) == 0
+	noExistingCode := len(sc.accounts.GetCode(stateAccount.GetCodeHash())) == 0
 	noExistingOwner := len(currentOwner) == 0
 	currentCodeMetadata := vmcommon.CodeMetadataFromBytes(stateAccount.GetCodeMetadata())
 	newCodeMetadata := vmcommon.CodeMetadataFromBytes(outputAccount.CodeMetadata)
@@ -1999,10 +2070,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && sc.flagDeploy.IsSet() {
-			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
-			return returnCode, err
-		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
