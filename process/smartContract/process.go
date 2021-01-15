@@ -363,7 +363,6 @@ func (sc *scProcessor) executeSmartContractCall(
 	vmOutput.GasRemaining += vmInput.GasLocked
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		// TODO second time
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
@@ -739,7 +738,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
-			// TODO here added 5kk
 			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
 		}
 		return vmcommon.UserError, nil
