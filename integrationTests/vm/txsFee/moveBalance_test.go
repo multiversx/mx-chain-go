@@ -217,7 +217,7 @@ func TestMoveBalanceMoreGasThanGasLimitPerBlock(t *testing.T) {
 	require.Equal(t, big.NewInt(0), accumulatedFees)
 }
 
-func TestMoveBalanceInvalidUserName(t *testing.T) {
+func TestMoveBalanceInvalidUserNames(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
@@ -234,21 +234,21 @@ func TestMoveBalanceInvalidUserName(t *testing.T) {
 	tx.RcvUserName = []byte("invalidRcvUserName")
 
 	_, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Equal(t, process.ErrUserNameDoesNotMatch, err)
+	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(10000)
+	expectedBalance := big.NewInt(9000)
 	utils.TestAccount(
 		t,
 		testContext.Accounts,
 		sndAddr,
-		0,
+		1,
 		expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(0), accumulatedFees)
+	require.Equal(t, big.NewInt(1000), accumulatedFees)
 }

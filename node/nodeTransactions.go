@@ -265,31 +265,35 @@ func (n *Node) unmarshalTransaction(txBytes []byte, txType transaction.TxType) (
 
 func (n *Node) prepareNormalTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeNormal),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeNormal),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.addressPubkeyConverter.Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 
 func (n *Node) prepareInvalidTx(tx *transaction.Transaction) (*transaction.ApiTransactionResult, error) {
 	return &transaction.ApiTransactionResult{
-		Tx:        tx,
-		Type:      string(transaction.TxTypeInvalid),
-		Nonce:     tx.Nonce,
-		Value:     tx.Value.String(),
-		Receiver:  n.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:    n.addressPubkeyConverter.Encode(tx.SndAddr),
-		GasPrice:  tx.GasPrice,
-		GasLimit:  tx.GasLimit,
-		Data:      tx.Data,
-		Signature: hex.EncodeToString(tx.Signature),
+		Tx:               tx,
+		Type:             string(transaction.TxTypeInvalid),
+		Nonce:            tx.Nonce,
+		Value:            tx.Value.String(),
+		Receiver:         n.addressPubkeyConverter.Encode(tx.RcvAddr),
+		ReceiverUsername: tx.RcvUserName,
+		Sender:           n.addressPubkeyConverter.Encode(tx.SndAddr),
+		SenderUsername:   tx.SndUserName,
+		GasPrice:         tx.GasPrice,
+		GasLimit:         tx.GasLimit,
+		Data:             tx.Data,
+		Signature:        hex.EncodeToString(tx.Signature),
 	}, nil
 }
 

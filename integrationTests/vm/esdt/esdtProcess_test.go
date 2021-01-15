@@ -757,21 +757,20 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	txData := core.BuiltInFunctionESDTTransfer + "@" +
 		hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
 		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
-		hex.EncodeToString([]byte("transferToSecondContractRejected"))
+		hex.EncodeToString([]byte("transfer_to_second_contract_rejected"))
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initalSupply-valueToSendToSc))
 
-	emptyEsdtData := &esdt.ESDigitalToken{}
 	esdtData := getESDTTokenData(t, firstScAddress, nodes, tokenIdenfitifer)
-	assert.Equal(t, emptyEsdtData, esdtData)
+	assert.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToSendToSc)}, esdtData)
 
 	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdenfitifer)
-	assert.Equal(t, emptyEsdtData, esdtData)
+	assert.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, esdtData)
 }
 
 func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
@@ -871,21 +870,20 @@ func TestScCallsScWithEsdtCrossShard_SecondScRefusesPayment(t *testing.T) {
 	txData := core.BuiltInFunctionESDTTransfer + "@" +
 		hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" +
 		hex.EncodeToString(big.NewInt(valueToSendToSc).Bytes()) + "@" +
-		hex.EncodeToString([]byte("transferToSecondContractRejected"))
+		hex.EncodeToString([]byte("transfer_to_second_contract_rejected"))
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), firstScAddress, txData, integrationTests.AdditionalGasLimit)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard*2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
-	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initialSupply))
+	checkAddressHasESDTTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, big.NewInt(initialSupply-valueToSendToSc))
 
-	emptyEsdtData := &esdt.ESDigitalToken{}
 	esdtData := getESDTTokenData(t, firstScAddress, nodes, tokenIdenfitifer)
-	assert.Equal(t, emptyEsdtData, esdtData)
+	assert.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(valueToSendToSc)}, esdtData)
 
 	esdtData = getESDTTokenData(t, secondScAddress, nodes, tokenIdenfitifer)
-	assert.Equal(t, emptyEsdtData, esdtData)
+	assert.Equal(t, &esdt.ESDigitalToken{}, esdtData)
 }
 
 func issueTestToken(nodes []*integrationTests.TestProcessorNode, initalSupply int64) {
