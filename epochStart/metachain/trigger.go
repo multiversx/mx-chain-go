@@ -204,7 +204,6 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		t.isEpochStart = true
 		t.prevEpochStartRound = t.currEpochStartRound
 		t.currEpochStartRound = t.currentRound
-		t.saveCurrentState(round)
 
 		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
 		log.Debug(display.Headline(msg, "", "#"))
