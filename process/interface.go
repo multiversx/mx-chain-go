@@ -208,7 +208,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -564,6 +564,7 @@ type FeeHandler interface {
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
+	GenesisTotalSupply() *big.Int
 	IsInterfaceNil() bool
 }
 
