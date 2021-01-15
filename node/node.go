@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -1042,7 +1042,9 @@ func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
 	receiver string,
+	receiverUsername []byte,
 	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	dataField []byte,
@@ -1085,17 +1087,19 @@ func (n *Node) CreateTransaction(
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:     nonce,
-		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress,
-		SndAddr:   senderAddress,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      dataField,
-		Signature: signatureBytes,
-		ChainID:   []byte(chainID),
-		Version:   version,
-		Options:   options,
+		Nonce:       nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: receiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: senderUsername,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        dataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(chainID),
+		Version:     version,
+		Options:     options,
 	}
 
 	var txHash []byte
@@ -1135,6 +1139,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	}
 
 	return account, nil
+}
+
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account.GetCodeHash())
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module
