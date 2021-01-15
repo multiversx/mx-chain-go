@@ -66,10 +66,10 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 
 	// check accumulated fees dest
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(3760), accumulatedFees)
+	require.Equal(t, big.NewInt(3770), accumulatedFees)
 
 	developerFees = testContextDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(376), developerFees)
+	require.Equal(t, big.NewInt(377), developerFees)
 
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
