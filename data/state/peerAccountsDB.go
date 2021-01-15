@@ -46,6 +46,9 @@ func NewPeerAccountsDB(
 			dataTries:      NewDataTriesHolder(),
 			mutOp:          sync.RWMutex{},
 			numCheckpoints: numCheckpoints,
+			loadCodeMeasurements: &loadingMeasurements{
+				identifier: "load code",
+			},
 		},
 	}, nil
 }

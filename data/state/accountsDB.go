@@ -20,6 +20,41 @@ import (
 
 var numCheckpointsKey = []byte("state checkpoint")
 
+type loadingMeasurements struct {
+	sync.Mutex
+	numCalls   uint64
+	size       uint64
+	duration   time.Duration
+	identifier string
+}
+
+func (lm *loadingMeasurements) addMeasurement(size int, duration time.Duration) {
+	lm.Lock()
+	lm.numCalls++
+	lm.size += uint64(size)
+	lm.duration += duration
+	lm.Unlock()
+}
+
+func (lm *loadingMeasurements) resetAndPrint() {
+	lm.Lock()
+	numCalls := lm.numCalls
+	lm.numCalls = 0
+
+	size := lm.size
+	lm.size = 0
+
+	duration := lm.duration
+	lm.duration = 0
+	lm.Unlock()
+
+	log.Debug(lm.identifier+" time measurements",
+		"num calls", numCalls,
+		"total size in bytes", size,
+		"total cumulated duration", duration,
+	)
+}
+
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
 	mainTrie       data.Trie
@@ -34,7 +69,8 @@ type AccountsDB struct {
 	entries      []JournalEntry
 	mutOp        sync.RWMutex
 
-	numCheckpoints uint32
+	numCheckpoints       uint32
+	loadCodeMeasurements *loadingMeasurements
 }
 
 var log = logger.GetOrCreate("state")
@@ -70,6 +106,9 @@ func NewAccountsDB(
 		dataTries:              NewDataTriesHolder(),
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		numCheckpoints:         numCheckpoints,
+		loadCodeMeasurements: &loadingMeasurements{
+			identifier: "load code",
+		},
 	}, nil
 }
 
@@ -93,12 +132,19 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
+	var codeEntry CodeEntry
+
+	startTime := time.Now()
+	defer func() {
+		duration := time.Since(startTime)
+		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
+	}()
+
 	val, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return nil
 	}
 
-	var codeEntry CodeEntry
 	err = adb.marshalizer.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil
@@ -676,7 +722,10 @@ func (adb *AccountsDB) JournalLen() int {
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
+	defer func() {
+		adb.mutOp.Unlock()
+		adb.loadCodeMeasurements.resetAndPrint()
+	}()
 
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
