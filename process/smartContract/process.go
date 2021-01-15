@@ -1173,6 +1173,7 @@ func (sc *scProcessor) addBackTxValues(
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
+	// TODO: check return 0 and err is ok? 0 is vmCommon.OK
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -1223,6 +1224,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
+	//TODO: check why userError in the following ifs and not vmoutput.ReturnCode
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
@@ -1248,6 +1250,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
+		// TODO: check why return code here. It's OK and ProcessIfError returns nil. So this is an ok tx?
 		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
