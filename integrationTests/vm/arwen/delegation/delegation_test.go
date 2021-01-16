@@ -102,15 +102,15 @@ func TestDelegation_Claims(t *testing.T) {
 	context.TakeAccountBalanceSnapshot(&context.Bob)
 	context.TakeAccountBalanceSnapshot(&context.Carol)
 
-	context.GasLimit = 20000000
+	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15727626, int(context.LastConsumedFee))
+	require.Equal(t, 22356926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15286626, int(context.LastConsumedFee))
+	require.Equal(t, 21915926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
@@ -163,10 +163,10 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	for _, user := range context.Participants {
 		context.TakeAccountBalanceSnapshot(user)
 
-		context.GasLimit = 20000000
+		context.GasLimit = 30000000
 		err = context.ExecuteSC(user, "claimRewards")
 		require.Nil(t, err)
-		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)
+		require.LessOrEqual(t, int(context.LastConsumedFee), 25000000)
 		RequireAlmostEquals(t, NewBalance(10000/numUsers), NewBalanceBig(context.GetAccountBalanceDelta(user)))
 	}
 }
