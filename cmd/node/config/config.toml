@@ -520,7 +520,7 @@
 [AddressPubkeyConverter]
     Length = 32
     Type = "bech32"
-    SignatureLength = 0
+    SignatureLength = 64
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -620,14 +620,16 @@
 [VirtualMachine]
     [VirtualMachine.Execution]
         OutOfProcessEnabled = false
-        WarmInstanceEnabled = false
         [VirtualMachine.Execution.OutOfProcessConfig]
             LogsMarshalizer = "json"
             MessagesMarshalizer = "json"
             MaxLoopTime = 1000
     [VirtualMachine.Querying]
-        OutOfProcessEnabled = false
-        WarmInstanceEnabled = false
+        NumConcurrentVMs = 20
+        [VirtualMachine.Querying.OutOfProcessConfig]
+            LogsMarshalizer = "json"
+            MessagesMarshalizer = "json"
+            MaxLoopTime = 10000
 
 [Hardfork]
     EnableTrigger = true

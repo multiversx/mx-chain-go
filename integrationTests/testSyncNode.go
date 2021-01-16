@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"fmt"
 
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/forking"
@@ -109,7 +110,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initHeaderValidator()
 	tpn.initRounder()
 	tpn.initStorage()
-	tpn.initAccountDBs()
+	tpn.initAccountDBs(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
 	tpn.initEconomicsData()
 	tpn.initRatingsData()
@@ -117,7 +118,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initResolvers()
 	tpn.initBlockTracker()
 	tpn.initInterceptors()
-	tpn.initInnerProcessors()
+	tpn.initInnerProcessors(arwenConfig.MakeGasMapForTests())
 	tpn.initBlockProcessorWithSync()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,

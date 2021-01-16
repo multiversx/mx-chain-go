@@ -199,6 +199,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.stakeNodesFromQueue(args)
 	case "unStakeAtEndOfEpoch":
 		return s.unStakeAtEndOfEpoch(args)
+	case "getTotalNumberOfRegisteredNodes":
+		return s.getTotalNumberOfRegisteredNodes(args)
 	}
 
 	return vmcommon.UserError
@@ -429,6 +431,10 @@ func (s *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (s *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("function deprecated")
+		return vmcommon.UserError
+	}
 	if len(args.Arguments) < 1 {
 		s.eei.AddReturnMessage(fmt.Sprintf("invalid number of arguments: expected min %d, got %d", 1, 0))
 		return vmcommon.UserError
@@ -1456,8 +1462,34 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		s.eei.AddReturnMessage(errGet.Error())
 		return vmcommon.UserError
 	}
+	if len(stakedData.OwnerAddress) == 0 {
+		s.eei.AddReturnMessage("owner address is nil")
+		return vmcommon.UserError
+	}
 
 	s.eei.Finish(stakedData.OwnerAddress)
+	return vmcommon.Ok
+}
+
+func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.flagStakingV2.IsSet() {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		s.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
+		return vmcommon.UserError
+	}
+
+	stakeConfig := s.getConfig()
+	waitingListHead, err := s.getWaitingListHead()
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	totalRegistered := stakeConfig.StakedNodes + stakeConfig.JailedNodes + int64(waitingListHead.Length)
+	s.eei.Finish(big.NewInt(totalRegistered).Bytes())
 	return vmcommon.Ok
 }
 
@@ -1522,6 +1554,8 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 		s.eei.Finish(blsKey)
 		s.eei.Finish(stakedData.RewardAddress)
 	}
+
+	s.addToStakedNodes(int64(stakedNodes))
 
 	return vmcommon.Ok
 }

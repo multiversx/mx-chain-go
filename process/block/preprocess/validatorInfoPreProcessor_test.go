@@ -95,7 +95,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShould
 		Type:            0,
 	}
 
-	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 	assert.Equal(t, process.ErrWrongTypeInMiniBlock, err)
 }
 
@@ -116,7 +116,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		Type:            block.PeerBlock,
 	}
 
-	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 	assert.Nil(t, err)
 }
 
@@ -137,7 +137,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) 
 		Type:            block.PeerBlock,
 	}
 
-	_, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
+	_, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, getNumOfCrossInterMbsAndTxsZero)
 	assert.Equal(t, process.ErrValidatorInfoMiniBlockNotFromMeta, err)
 }
 

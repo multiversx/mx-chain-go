@@ -58,7 +58,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
-		true,
 		vm.ArgEnableEpoch{},
 	)
 	defer testContext.Close()
@@ -95,7 +94,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
@@ -188,7 +186,6 @@ func TestWASMMetering(t *testing.T) {
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
-		true,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
@@ -228,7 +225,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	expectedBalance := big.NewInt(2998081)
+	expectedBalance := big.NewInt(2998080)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -242,7 +239,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 1904, int(consumedGasValue))
+	require.Equal(t, 1905, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
@@ -250,9 +247,8 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -260,9 +256,43 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true, false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false, true)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
+	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
+}
+
+func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(1000000000000000)
+	gasPrice := uint64(1)
+
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
+		t,
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		gasSchedule,
+		false,
+		vm.ArgEnableEpoch{},
+	)
+	defer testContext.Close()
+
+	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		2_800_000,
+		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
+	)
+
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, "out of gas", testContext.GetLatestError().Error())
 }
 
 func deployAndExecuteERC20WithBigInt(
@@ -272,14 +302,12 @@ func deployAndExecuteERC20WithBigInt(
 	gasSchedule map[string]map[string]uint64,
 	fileName string,
 	functionName string,
-	warmInstance bool,
 	outOfProcess bool,
 ) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
 	scCode := arwen.GetSCCode(fileName)
@@ -290,7 +318,6 @@ func deployAndExecuteERC20WithBigInt(
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		warmInstance,
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
@@ -304,7 +331,7 @@ func deployAndExecuteERC20WithBigInt(
 		ownerNonce,
 		big.NewInt(0),
 		gasPrice,
-		gasLimit,
+		300_000_000,
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
@@ -389,7 +416,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		false,
 		vm.ArgEnableEpoch{},
 	)
@@ -597,7 +623,6 @@ func TestAndCatchTrieError(t *testing.T) {
 		ownerAddressBytes,
 		ownerBalance,
 		nil,
-		false,
 		false,
 		vm.ArgEnableEpoch{},
 	)

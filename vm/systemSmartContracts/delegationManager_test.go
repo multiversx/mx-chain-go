@@ -443,9 +443,8 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: [][]byte{addr1, addr2}})
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
-	assert.Equal(t, 2, len(eei.output))
-	assert.Equal(t, addr1, eei.output[0])
-	assert.Equal(t, addr2, eei.output[1])
+	assert.Equal(t, 1, len(eei.output))
+	assert.Equal(t, addr2, eei.output[0])
 }
 
 func TestDelegationManagerSystemSC_ExecuteChangeBaseIssuingCostUserErrors(t *testing.T) {

@@ -102,15 +102,15 @@ func TestDelegation_Claims(t *testing.T) {
 	context.TakeAccountBalanceSnapshot(&context.Bob)
 	context.TakeAccountBalanceSnapshot(&context.Carol)
 
-	context.GasLimit = 20000000
+	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15627626, int(context.LastConsumedFee))
+	require.Equal(t, 22356926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 15186626, int(context.LastConsumedFee))
+	require.Equal(t, 21915926, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
@@ -163,10 +163,10 @@ func TestDelegation_WithManyUsers_Claims(t *testing.T) {
 	for _, user := range context.Participants {
 		context.TakeAccountBalanceSnapshot(user)
 
-		context.GasLimit = 20000000
+		context.GasLimit = 30000000
 		err = context.ExecuteSC(user, "claimRewards")
 		require.Nil(t, err)
-		require.LessOrEqual(t, int(context.LastConsumedFee), 17000000)
+		require.LessOrEqual(t, int(context.LastConsumedFee), 25000000)
 		RequireAlmostEquals(t, NewBalance(10000/numUsers), NewBalanceBig(context.GetAccountBalanceDelta(user)))
 	}
 }
@@ -201,20 +201,12 @@ func addNodes(context *arwen.TestContext, stakePerNode int, numNodes int) {
 	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
 }
 
-func TestDelegationProcessManyTimeWarmInstance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, false, 100, 1)
-}
-
 func TestDelegationProcessManyAotInProcess(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, 2, 1)
 }
 
 func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
@@ -222,7 +214,7 @@ func TestDelegationShrinkedProcessManyAotInProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, false, 2, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_2_full.wasm", false, 2, 1)
 }
 
 func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
@@ -230,10 +222,10 @@ func TestDelegationProcessManyTimeCompileWithOutOfProcess(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", false, true, 100, 1)
+	delegationProcessManyTimes(t, "../testdata/delegation/delegation_v0_5_1_full.wasm", true, 100, 1)
 }
 
-func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool, outOfProcess bool, txPerBenchmark int, numRun int) {
+func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool, txPerBenchmark int, numRun int) {
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(10000000000000)
@@ -249,7 +241,6 @@ func delegationProcessManyTimes(t *testing.T, fileName string, warmInstance bool
 		ownerAddressBytes,
 		ownerBalance,
 		gasSchedule,
-		warmInstance,
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)

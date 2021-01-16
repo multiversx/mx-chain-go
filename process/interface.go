@@ -208,7 +208,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, getNumOfCrossInterMbsAndTxs func() (int, int)) ([][]byte, int, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool) (block.MiniBlockSlice, error)
 
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
@@ -564,6 +564,7 @@ type FeeHandler interface {
 	ComputeFeeForProcessing(tx TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	GasPriceModifier() float64
+	GenesisTotalSupply() *big.Int
 	IsInterfaceNil() bool
 }
 
@@ -603,6 +604,14 @@ type EconomicsDataHandler interface {
 	GasPriceForProcessing(tx TransactionWithFeeHandler) uint64
 	GasPriceForMove(tx TransactionWithFeeHandler) uint64
 	MinGasPriceForProcessing() uint64
+	IsInterfaceNil() bool
+}
+
+// TransactionFeeCalculator is able to calculated fee of a transaction
+type TransactionFeeCalculator interface {
+	ComputeGasUsedAndFeeBasedOnRefundValue(tx TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsed(tx TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeGasLimit(tx TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 }
 
@@ -793,6 +802,7 @@ type PeerValidatorMapper interface {
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
 	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	IsInterfaceNil() bool
 }
 

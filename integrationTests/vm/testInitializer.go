@@ -350,7 +350,6 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 func CreateVMAndBlockchainHook(
 	accnts state.AccountsAdapter,
 	gasSchedule map[string]map[string]uint64,
-	warmInstance bool,
 	outOfProcess bool,
 	shardCoordinator sharding.Coordinator,
 ) (process.VirtualMachinesContainer, *hooks.BlockChainHookImpl) {
@@ -389,7 +388,6 @@ func CreateVMAndBlockchainHook(
 		config.VirtualMachineConfig{
 			OutOfProcessEnabled: outOfProcess,
 			OutOfProcessConfig:  config.VirtualMachineOutOfProcessConfig{MaxLoopTime: 1000},
-			WarmInstanceEnabled: warmInstance,
 		},
 		maxGasLimitPerBlock,
 		mock.NewGasScheduleNotifierMock(actualGasSchedule),
@@ -509,7 +507,7 @@ func TestDeployedContractContents(
 	//test codehash
 	assert.Equal(t, testHasher.Compute(string(scCodeBytes)), destinationRecovShardAccount.GetCodeHash())
 	//test code
-	assert.Equal(t, scCodeBytes, destinationRecovShardAccount.GetCode())
+	assert.Equal(t, scCodeBytes, accnts.GetCode(destinationRecovShardAccount.GetCodeHash()))
 	//in this test we know we have a as a variable inside the contract, we can ask directly its value
 	// using trackableDataTrie functionality
 	assert.NotNil(t, destinationRecovShardAccount.GetRootHash())
@@ -537,13 +535,12 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	senderNonce uint64,
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
-	warmInstance bool,
 	argEnableEpoch ArgEnableEpoch,
 ) VMTestContext {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false, oneShardCoordinator)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
 	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
@@ -566,10 +563,10 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 }
 
 // CreatePreparedTxProcessorWithVMs -
-func CreatePreparedTxProcessorWithVMs(tb testing.TB, warmInstance bool, argEnableEpoch ArgEnableEpoch) VMTestContext {
+func CreatePreparedTxProcessorWithVMs(tb testing.TB, argEnableEpoch ArgEnableEpoch) VMTestContext {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, warmInstance, false, oneShardCoordinator)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
 	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
@@ -598,14 +595,13 @@ func CreateTxProcessorArwenVMWithGasSchedule(
 	senderAddressBytes []byte,
 	senderBalance *big.Int,
 	gasSchedule map[string]map[string]uint64,
-	warmInstance bool,
 	outOfProcess bool,
 	argEnableEpoch ArgEnableEpoch,
 ) VMTestContext {
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, warmInstance, outOfProcess, oneShardCoordinator)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, gasSchedule, outOfProcess, oneShardCoordinator)
 	txProcessor, scProcessor, scForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,
@@ -732,7 +728,7 @@ func ComputeExpectedBalance(
 
 // GetIntValueFromSC -
 func GetIntValueFromSC(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *big.Int {
-	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule, true, false, oneShardCoordinator)
+	vmContainer, blockChainHook := CreateVMAndBlockchainHook(accnts, gasSchedule, false, oneShardCoordinator)
 	defer func() {
 		_ = vmContainer.Close()
 	}()
@@ -774,7 +770,7 @@ func CreateTransferTokenTx(
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 1,
-		GasLimit: 5000000,
+		GasLimit: 7000000,
 		Data:     []byte(functionName + "@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
 		ChainID:  integrationTests.ChainID,
 	}
@@ -818,7 +814,7 @@ func CreatePreparedTxProcessorWithVMsMultiShard(tb testing.TB, selfShardID uint3
 
 	feeAccumulator, _ := postprocess.NewFeeAccumulator()
 	accounts := CreateInMemoryShardAccountsDB()
-	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, true, false, shardCoordinator)
+	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, shardCoordinator)
 	txProcessor, scProcessor, scrForwarder := CreateTxProcessorWithOneSCExecutorWithVMs(
 		tb,
 		accounts,

@@ -57,7 +57,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (ElasticProcessor, error
 		arguments.Marshalizer,
 		arguments.AddressPubkeyConverter,
 		arguments.ValidatorPubkeyConverter,
-		arguments.FeeConfig,
+		arguments.TransactionFeeCalculator,
 		arguments.IsInImportDBMode,
 		arguments.ShardCoordinator,
 	)
@@ -502,6 +502,10 @@ func (ei *elasticProcessor) indexAlteredAccounts(accounts map[string]struct{}) e
 		addressBytes, err := ei.addressPubkeyConverter.Decode(address)
 		if err != nil {
 			log.Warn("cannot decode address", "address", address, "error", err)
+			continue
+		}
+
+		if ei.shardCoordinator.ComputeId(addressBytes) != ei.shardCoordinator.SelfId() {
 			continue
 		}
 

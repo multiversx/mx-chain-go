@@ -173,6 +173,13 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			}
 		}
 
+		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.flagRelayedTx.IsSet() {
+			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
+			if receiptErr != nil {
+				return vmcommon.UserError, receiptErr
+			}
+		}
+
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
 			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
 			if errProcessIfErr != nil {
@@ -265,6 +272,8 @@ func (txProc *txProcessor) executingFailedTransaction(
 	if err != nil {
 		return err
 	}
+
+	log.Trace("executingFailedTransaction", "fail reason(error)", txError, "tx hash", txHash)
 
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(txFee),

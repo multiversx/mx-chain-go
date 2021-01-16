@@ -71,8 +71,8 @@ var ErrNotEnoughArgumentsToStake = errors.New("not enough arguments to stake")
 // ErrNilKeyGenerator signals that key generator is nil
 var ErrNilKeyGenerator = errors.New("nil key generator")
 
-// ErrSingleSigner signals that single signer is nil
-var ErrSingleSigner = errors.New("nil single signer")
+// ErrNilSingleSigner signals that the single signer is nil
+var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrIncorrectConfig signals that the config is incorrect
 var ErrIncorrectConfig = errors.New("config incorrect")

@@ -81,7 +81,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	err := adb.SaveAccount(account)
 	assert.Nil(t, err)
 	assert.NotNil(t, account.GetCodeHash())
-	assert.Equal(t, []byte("Smart contract code"), account.GetCode())
+	assert.Equal(t, []byte("Smart contract code"), adb.GetCode(account.GetCodeHash()))
 
 	fmt.Printf("SC code is at address: %v\n", account.GetCodeHash())
 
@@ -89,7 +89,7 @@ func TestAccountsDB_PutCodeWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	recoveredAccount := acc.(state.UserAccountHandler)
 
-	assert.Equal(t, account.GetCode(), recoveredAccount.GetCode())
+	assert.Equal(t, adb.GetCode(account.GetCodeHash()), adb.GetCode(recoveredAccount.GetCodeHash()))
 	assert.Equal(t, account.GetCodeHash(), recoveredAccount.GetCodeHash())
 }
 
@@ -137,7 +137,7 @@ func TestAccountsDB_GetJournalizedAccountReturnNotFoundAccntShouldWork(t *testin
 func TestAccountsDB_GetExistingAccountConcurrentlyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	wg := sync.WaitGroup{}
@@ -278,7 +278,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	//verifies that commit saves the new tries and that can be loaded back
 	t.Parallel()
 
-	trieStore, mu := integrationTests.CreateTrieStorageManager()
+	trieStore, mu := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStore)
 	adr1 := integrationTests.CreateRandomAddress()
 	adr2 := integrationTests.CreateRandomAddress()
@@ -350,7 +350,7 @@ func TestAccountsDB_CommitAnEmptyStateShouldWork(t *testing.T) {
 		}
 	}()
 
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	hash, err := adb.Commit()
@@ -424,7 +424,7 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -501,7 +501,7 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -581,7 +581,7 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	require.Nil(t, err)
@@ -652,7 +652,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -731,7 +731,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	adr2 := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, err := adb.RootHash()
 	assert.Nil(t, err)
@@ -832,7 +832,7 @@ func TestAccountsDB_ExecBalanceTxExecution(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -886,7 +886,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -920,7 +920,7 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -1091,7 +1091,7 @@ func BenchmarkTxExecution(b *testing.B) {
 	adrDest := integrationTests.CreateRandomAddress()
 
 	//Step 1. create accounts objects
-	trieStorage, _ := integrationTests.CreateTrieStorageManager()
+	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	adb, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 
 	acntSrc, err := adb.LoadAccount(adrSrc)
@@ -1792,7 +1792,7 @@ func updateCode(
 	codeIndex := rand.Intn(numCodes)
 	code := codeArray[codeIndex]
 
-	oldCode := account.(state.UserAccountHandler).GetCode()
+	oldCode := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(code)
 	_ = AccntState.SaveAccount(account)
 
@@ -1818,7 +1818,7 @@ func removeCode(
 	account state.AccountHandler,
 ) {
 	snapshot := AccntState.JournalLen()
-	code := account.(state.UserAccountHandler).GetCode()
+	code := AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 	account.(state.UserAccountHandler).SetCode(nil)
 	_ = AccntState.SaveAccount(account)
 
@@ -1835,6 +1835,7 @@ func removeCode(
 
 	fmt.Printf("removed old code %v from account %v \n", code, hex.EncodeToString(account.AddressBytes()))
 }
+
 func checkCodeConsistency(
 	t *testing.T,
 	shardNode *integrationTests.TestProcessorNode,
@@ -1916,7 +1917,7 @@ func TestAccountRemoval(t *testing.T) {
 			if err != nil {
 				continue
 			}
-			code := account.(state.UserAccountHandler).GetCode()
+			code := shardNode.AccntState.GetCode(account.(state.UserAccountHandler).GetCodeHash())
 
 			_ = shardNode.AccntState.RemoveAccount(account.AddressBytes())
 

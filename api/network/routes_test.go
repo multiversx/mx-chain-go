@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -173,6 +174,42 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestTotalStaked_NilContextShouldErr(t *testing.T) {
+	ws := startNodeServer(nil)
+	req, _ := http.NewRequest(http.MethodGet, "/network/total-staked", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := shared.GenericAPIResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+	assert.True(t, strings.Contains(response.Error, errors.ErrNilAppContext.Error()))
+
+}
+
+func TestTotalStaked_ShouldWork(t *testing.T) {
+	totalStaked := big.NewInt(250000000)
+	facade := &mock.Facade{}
+	facade.GetTotalStakedValueHandler = func() (*big.Int, error) {
+		return totalStaked, nil
+	}
+
+	ws := startNodeServer(facade)
+	req, err := http.NewRequest(http.MethodGet, "/network/total-staked", nil)
+	fmt.Println(err)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	key := "totalStakedValue"
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, totalStaked.String())
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func loadResponse(rsp io.Reader, destination interface{}) {
 	jsonParser := json.NewDecoder(rsp)
 	err := jsonParser.Decode(destination)
@@ -222,6 +259,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/config", Open: true},
 					{Name: "/status", Open: true},
 					{Name: "/economics", Open: true},
+					{Name: "/total-staked", Open: true},
 				},
 			},
 		},

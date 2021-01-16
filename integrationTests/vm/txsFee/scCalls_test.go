@@ -14,7 +14,7 @@ import (
 )
 
 func TestScCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -39,19 +39,19 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(61400)
+	expectedBalance := big.NewInt(61300)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(49570), accumulatedFees)
+	require.Equal(t, big.NewInt(49670), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4128), developerFees)
+	require.Equal(t, big.NewInt(4138), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress := "00000000000000000500dbb53e4b23392b0d6f36cce32deb2d623e9625ab3132"
@@ -81,7 +81,7 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -114,7 +114,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
@@ -149,7 +149,7 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, true, vm.ArgEnableEpoch{})
+	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
