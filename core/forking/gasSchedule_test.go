@@ -140,7 +140,7 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 			atomic.AddUint32(&numCalled, 1)
 
 			if numCalled == 2 {
-				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(200))
+				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(300))
 			} else {
 				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(50))
 			}
@@ -151,7 +151,7 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, newEpoch, g.currentEpoch)
-	assert.Equal(t, g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"], uint64(200))
+	assert.Equal(t, g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"], uint64(300))
 }
 
 func TestGasScheduleNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
