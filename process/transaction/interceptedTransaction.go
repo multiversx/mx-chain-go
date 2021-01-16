@@ -249,11 +249,11 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 	if tx.Signature == nil {
 		return process.ErrNilSignature
 	}
-	if tx.RcvAddr == nil {
-		return process.ErrNilRcvAddr
+	if len(tx.RcvAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidRcvAddr
 	}
-	if tx.SndAddr == nil {
-		return process.ErrNilSndAddr
+	if len(tx.SndAddr) != inTx.pubkeyConv.Len() {
+		return process.ErrInvalidSndAddr
 	}
 	if tx.Value == nil {
 		return process.ErrNilValue
