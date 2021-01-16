@@ -99,6 +99,10 @@ func (rc *rewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabi
 		protocolSustainabilityRwdTx.Value.SetUint64(0)
 	}
 
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Debug("will adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+	}
+
 	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
 
 	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards - rewardsCreator",
