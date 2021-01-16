@@ -770,7 +770,7 @@ func CreateTransferTokenTx(
 		RcvAddr:  scAddrress,
 		SndAddr:  sndAddress,
 		GasPrice: 1,
-		GasLimit: 5000000,
+		GasLimit: 7000000,
 		Data:     []byte(functionName + "@" + hex.EncodeToString(rcvAddress) + "@00" + hex.EncodeToString(value.Bytes())),
 		ChainID:  integrationTests.ChainID,
 	}
