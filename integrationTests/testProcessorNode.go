@@ -1917,6 +1917,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	tpn.Node, err = node.NewNode(
+		node.WithAddressSignatureSize(64),
+		node.WithValidatorSignatureSize(48),
 		node.WithMessenger(tpn.Messenger),
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
@@ -1984,7 +1986,9 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.Nonce,
 		tx.Value.String(),
 		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		nil,
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		nil,
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,
