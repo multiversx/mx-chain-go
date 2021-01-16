@@ -39,15 +39,15 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(61400)
+	expectedBalance := big.NewInt(61300)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(49570), accumulatedFees)
+	require.Equal(t, big.NewInt(49670), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4128), developerFees)
+	require.Equal(t, big.NewInt(4138), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {

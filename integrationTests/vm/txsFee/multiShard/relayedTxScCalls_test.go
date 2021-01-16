@@ -102,16 +102,16 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 
 	// check accumulated fees dest
 	accumulatedFees = testContextInnerDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(3760), accumulatedFees)
+	require.Equal(t, big.NewInt(3770), accumulatedFees)
 
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(376), developerFees)
+	require.Equal(t, big.NewInt(377), developerFees)
 
 	txs = testContextInnerDst.GetIntermediateTransactions(t)
 	scr = txs[0]
 
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-	expectedBalance = big.NewInt(4270)
+	expectedBalance = big.NewInt(4260)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
