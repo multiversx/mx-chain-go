@@ -20,7 +20,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 
@@ -86,7 +86,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 
@@ -152,7 +152,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 

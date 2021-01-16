@@ -2,16 +2,16 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
+	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
+	"github.com/stretchr/testify/require"
 )
 
-func TestAsyncCallShoutWork(t *testing.T) {
+func TestAsyncCallShouldWork(t *testing.T) {
 	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
 	defer testContext.Close()
 

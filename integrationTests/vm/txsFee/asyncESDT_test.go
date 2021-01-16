@@ -20,7 +20,7 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
 	esdtBalance := big.NewInt(100000000)
@@ -81,7 +81,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
 	esdtBalance := big.NewInt(100000000)
@@ -142,7 +142,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	ownerAddr := []byte("12345678901234567890123456789010")
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 
-	// create a address with ESDT token
+	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
 	esdtBalance := big.NewInt(100000000)

@@ -41,7 +41,8 @@ func CreateAccountWithESDTBalance(
 	esdtDataBytes, err := protoMarshalizer.Marshal(esdtData)
 	require.Nil(t, err)
 
-	key := append([]byte("ELRONDesdt"), tokenIdentifier...)
+	key := append([]byte(core.ElrondProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key = append(key, tokenIdentifier...)
 	err = userAccount.DataTrieTracker().SaveKeyValue(key, esdtDataBytes)
 	require.Nil(t, err)
 
