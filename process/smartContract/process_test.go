@@ -1024,6 +1024,60 @@ func TestScProcessor_DeploySmartContractVmOutputReturnCodeNotOk(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, errCode)
 }
 
+func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T) {
+	t.Parallel()
+
+	nrCalls := 0
+
+	vm := &mock.VMContainerMock{}
+	argParser := NewArgumentParser()
+	accntState := &mock.AccountsStub{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	arguments.AccountsDB = accntState
+	economicsFee := &mock.FeeHandlerStub{
+		DeveloperPercentageCalled: func() float64 {
+			return 0.0
+		},
+		ComputeTxFeeCalled: func(tx process.TransactionWithFeeHandler) *big.Int {
+			return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+		},
+		ComputeFeeForProcessingCalled: func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+			return core.SafeMul(tx.GetGasPrice(), gasToUse)
+		},
+		// second call is in rewards and will fail
+		ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+			if nrCalls == 0 {
+				nrCalls++
+				return 0
+			}
+			return 1000000
+		},
+	}
+	arguments.EconomicsFee = economicsFee
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = generateEmptyByteSlice(createMockPubkeyConverter().Len())
+	tx.Data = []byte("abba@0500@0000")
+	tx.Value = big.NewInt(0)
+	acntSrc, _ := createAccounts(tx)
+
+	accntState.LoadAccountCalled = func(address []byte) (handler state.AccountHandler, e error) {
+		return acntSrc, nil
+	}
+
+	errCode, err := sc.DeploySmartContract(tx, acntSrc)
+	require.NotNil(t, err)
+	require.Equal(t, core.ErrSubtractionOverflow, err)
+	require.Equal(t, vmcommon.Ok, errCode)
+}
+
 func TestScProcessor_DeploySmartContractVmOutputGasRemainingNotOk(t *testing.T) {
 	t.Parallel()
 
