@@ -20,6 +20,7 @@ type FeeHandlerStub struct {
 	MinGasPriceCalled             func() uint64
 	GasPriceModifierCalled        func() float64
 	ComputeFeeForProcessingCalled func(tx process.TransactionWithFeeHandler, gasToUse uint64) *big.Int
+	GenesisTotalSupplyCalled      func() *big.Int
 }
 
 // ComputeFeeForProcessing -
@@ -96,6 +97,15 @@ func (fhs *FeeHandlerStub) ComputeTxFee(tx process.TransactionWithFeeHandler) *b
 	if fhs.ComputeTxFeeCalled != nil {
 		return fhs.ComputeTxFeeCalled(tx)
 	}
+	return big.NewInt(0)
+}
+
+// GenesisTotalSupply -
+func (fhs *FeeHandlerStub) GenesisTotalSupply() *big.Int {
+	if fhs.GenesisTotalSupplyCalled != nil {
+		return fhs.GenesisTotalSupplyCalled()
+	}
+
 	return big.NewInt(0)
 }
 
