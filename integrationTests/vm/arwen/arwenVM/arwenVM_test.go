@@ -225,7 +225,7 @@ func TestWASMMetering(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	expectedBalance := big.NewInt(2998081)
+	expectedBalance := big.NewInt(2998080)
 	expectedNonce := uint64(1)
 
 	actualBalanceBigInt := vm.TestAccount(
@@ -239,7 +239,7 @@ func TestWASMMetering(t *testing.T) {
 
 	consumedGasValue := aliceInitialBalance - actualBalance - testingValue
 
-	require.Equal(t, 1904, int(consumedGasValue))
+	require.Equal(t, 1905, int(consumedGasValue))
 }
 
 func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
@@ -260,6 +260,41 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
 }
 
+func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
+	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
+	ownerAddressBytes := []byte("12345678901234567890123456789011")
+	ownerNonce := uint64(11)
+	ownerBalance := big.NewInt(1000000000000000)
+	gasPrice := uint64(1)
+
+	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
+
+	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
+		t,
+		ownerNonce,
+		ownerAddressBytes,
+		ownerBalance,
+		gasSchedule,
+		false,
+		vm.ArgEnableEpoch{},
+	)
+	defer testContext.Close()
+
+	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+	tx := vm.CreateDeployTx(
+		ownerAddressBytes,
+		ownerNonce,
+		big.NewInt(0),
+		gasPrice,
+		2_800_000,
+		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
+	)
+
+	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, "out of gas", testContext.GetLatestError().Error())
+}
+
 func deployAndExecuteERC20WithBigInt(
 	t *testing.T,
 	numRun int,
@@ -273,7 +308,6 @@ func deployAndExecuteERC20WithBigInt(
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(10000000000)
 	transferOnCalls := big.NewInt(5)
 
 	scCode := arwen.GetSCCode(fileName)
@@ -297,7 +331,7 @@ func deployAndExecuteERC20WithBigInt(
 		ownerNonce,
 		big.NewInt(0),
 		gasPrice,
-		gasLimit,
+		300_000_000,
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
