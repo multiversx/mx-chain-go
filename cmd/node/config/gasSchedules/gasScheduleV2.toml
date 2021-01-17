@@ -1,7 +1,7 @@
 [BuiltInCost]
     ChangeOwnerAddress    = 5000000
     ClaimDeveloperRewards = 5000000
-    SaveUserName          = 5000000
+    SaveUserName          = 1000000
     SaveKeyValue          = 250000
     ESDTTransfer          = 250000
     ESDTBurn              = 250000
@@ -32,8 +32,8 @@
     DataCopyPerByte   = 1000
     PersistPerByte    = 10000
     CompilePerByte    = 300
-    AoTPreparePerByte = 200
-    GetCode           = 100000
+    AoTPreparePerByte = 300
+    GetCode           = 1000000
 
 [ElrondAPICost]
     GetSCAddress       = 100
@@ -68,7 +68,7 @@
     ExecuteOnDestContext = 160000
     DelegateExecution    = 160000
     AsyncCallStep        = 200000
-    AsyncCallbackGasLock = 20000000
+    AsyncCallbackGasLock = 2000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
     GetReturnData        = 100
@@ -152,12 +152,12 @@
     BigIntGetExternalBalance    = 10000
 
 [CryptoAPICost]
-    SHA256          = 600
-    Keccak256       = 600
-    Ripemd160       = 600
+    SHA256          = 1000000
+    Keccak256       = 1000000
+    Ripemd160       = 1000000
     VerifyBLS       = 5000000
-    VerifyEd25519   = 200000
-    VerifySecp256k1 = 200000
+    VerifyEd25519   = 2000000
+    VerifySecp256k1 = 2000000
 
 [WASMOpcodeCost]
     Unreachable = 1
