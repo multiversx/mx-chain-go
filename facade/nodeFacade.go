@@ -283,8 +283,10 @@ func (nf *nodeFacade) GetAllESDTTokens(address string) ([]string, error) {
 func (nf *nodeFacade) CreateTransaction(
 	nonce uint64,
 	value string,
-	receiverHex string,
-	senderHex string,
+	receiver string,
+	receiverUsername []byte,
+	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	txData []byte,
@@ -294,7 +296,7 @@ func (nf *nodeFacade) CreateTransaction(
 	options uint32,
 ) (*transaction.Transaction, []byte, error) {
 
-	return nf.node.CreateTransaction(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
+	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
 }
 
 // ValidateTransaction will validate a transaction
@@ -336,6 +338,11 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (u
 // about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return nf.node.GetAccount(address)
+}
+
+// GetCode returns the code for the given account
+func (nf *nodeFacade) GetCode(account state.UserAccountHandler) []byte {
+	return nf.node.GetCode(account)
 }
 
 // GetHeartbeats returns the heartbeat status for each public key from initial list or later joined to the network

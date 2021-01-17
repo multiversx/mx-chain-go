@@ -24,9 +24,10 @@ type Facade struct {
 	GetHeartbeatsHandler       func() ([]data.PubKeyHeartbeat, error)
 	BalanceHandler             func(string) (*big.Int, error)
 	GetAccountHandler          func(address string) (state.UserAccountHandler, error)
+	GetCodeCalled              func(state.AccountHandler) []byte
 	GenerateTransactionHandler func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler      func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler              func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler func(tx *transaction.Transaction) error
@@ -134,12 +135,23 @@ func (f *Facade) GetAccount(address string) (state.UserAccountHandler, error) {
 	return f.GetAccountHandler(address)
 }
 
+// GetCode -
+func (f *Facade) GetCode(account state.UserAccountHandler) []byte {
+	if f.GetCodeCalled != nil {
+		f.GetCodeCalled(account)
+	}
+
+	return nil
+}
+
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
 func (f *Facade) CreateTransaction(
 	nonce uint64,
 	value string,
-	receiverHex string,
-	senderHex string,
+	receiver string,
+	receiverUsername []byte,
+	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	data []byte,
@@ -148,7 +160,7 @@ func (f *Facade) CreateTransaction(
 	version uint32,
 	options uint32,
 ) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return f.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
