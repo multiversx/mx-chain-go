@@ -155,8 +155,14 @@ var ErrNilCacher = errors.New("nil cacher")
 // ErrNilRcvAddr signals that an operation has been attempted to or with a nil receiver address
 var ErrNilRcvAddr = errors.New("nil receiver address")
 
+// ErrInvalidRcvAddr signals that an invalid receiver address was provided
+var ErrInvalidRcvAddr = errors.New("invalid receiver address")
+
 // ErrNilSndAddr signals that an operation has been attempted to or with a nil sender address
 var ErrNilSndAddr = errors.New("nil sender address")
+
+// ErrInvalidSndAddr signals that an invalid sender address was provided
+var ErrInvalidSndAddr = errors.New("invalid sender address")
 
 // ErrNegativeValue signals that a negative value has been detected and it is not allowed
 var ErrNegativeValue = errors.New("negative value")
@@ -750,7 +756,7 @@ var ErrUserNameChangeIsDisabled = errors.New("user name change is disabled")
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
 // ErrUserNameDoesNotMatchInCrossShardTx signals that user name does not match in case of cross shard tx
-var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("user name does not match in destination shard")
+var ErrUserNameDoesNotMatchInCrossShardTx = errors.New("mismatch between receiver username and address")
 
 // ErrNilBalanceComputationHandler signals that a nil balance computation handler has been provided
 var ErrNilBalanceComputationHandler = errors.New("nil balance computation handler")
