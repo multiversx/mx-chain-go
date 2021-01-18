@@ -169,7 +169,7 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 
 	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
-	assert.Equal(t, uint64(1), gasInRcv)
+	assert.Equal(t, uint64(7), gasInRcv)
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
@@ -272,7 +272,7 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 
 	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, uint64(18), gasInSnd)
-	assert.Equal(t, uint64(44), gasInRcv)
+	assert.Equal(t, uint64(56), gasInRcv)
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
