@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -34,6 +35,9 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	pathToContract = "testdata/second/output/async.wasm"
 	secondSCAddress := utils.DoDeploySecond(t, &testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	testContext.TxFeeHandler.CreateBlockStarted()
+
 	tx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))
 	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -43,5 +47,19 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	// TODO not done yet
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	res := vm.GetIntValueFromSC(nil, testContext.Accounts, firstScAddress, "numCalled")
+	require.Equal(t, big.NewInt(1), res)
+
+	require.Equal(t, big.NewInt(50000000), testContext.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4999988), testContext.TxFeeHandler.GetDeveloperFees())
+
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "50000000", indexerTx.Fee)
 }

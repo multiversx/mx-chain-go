@@ -168,7 +168,7 @@ func (ti *testIndexer) SaveTransaction(
 	ti.indexer.SaveBlock(blk, header, txsPool, nil, nil, nil)
 
 	// wait --> dataDispatcher needs to save the block
-	time.Sleep(5 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 }
 
 func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
