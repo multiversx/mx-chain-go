@@ -197,7 +197,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 	if isSCCall {
 		isCrossShardSCCall := txSenderShardId != txReceiverShardId &&
 			moveBalanceConsumption < txHandler.GetGasLimit() &&
-			txTypeDstShard == process.BuiltInFunctionCall
+			txTypeDstShard != process.BuiltInFunctionCall
 		if isCrossShardSCCall {
 			gasConsumedByTxInSenderShard := moveBalanceConsumption
 			gasConsumedByTxInReceiverShard := txHandler.GetGasLimit() - moveBalanceConsumption
