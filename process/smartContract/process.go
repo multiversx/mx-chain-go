@@ -572,15 +572,15 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		if !sc.isSelfShard(outAcc.Address) {
 			sentGas := uint64(0)
 			for _, outTransfer := range outAcc.OutputTransfers {
-				sentGas, _ = core.SafeAddUint64(outTransfer.GasLimit, sentGas)
-				sentGas, _ = core.SafeAddUint64(outTransfer.GasLocked, sentGas)
+				sentGas, _ = core.SafeAddUint64(sentGas, outTransfer.GasLimit)
+				sentGas, _ = core.SafeAddUint64(sentGas, outTransfer.GasLocked)
 			}
 			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
 			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
 			consumedGas, err = core.SafeAddUint64(consumedGas, outAcc.GasUsed)
 			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outAcc.GasUsed")
 			accumulatedGasUsedForOtherShard, err = core.SafeAddUint64(accumulatedGasUsedForOtherShard, outAcc.GasUsed)
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outAcc.GasUsed")
+			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "accumulatedGasUsedForOtherShard", "outAcc.GasUsed")
 		}
 	}
 
@@ -591,6 +591,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	consumedGasWithoutBuiltin, err := core.SafeSubUint64(consumedGas, accumulatedGasUsedForOtherShard)
+	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "accumulatedGasUsedForOtherShard")
 	if senderInSelfShard {
 		consumedGasWithoutBuiltin, err = core.SafeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
