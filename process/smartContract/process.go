@@ -567,6 +567,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "builtInFuncGasUsed")
 	}
 
+	accumulatedGasUsedForOtherShard := uint64(0)
 	for _, outAcc := range vmOutput.OutputAccounts {
 		if !sc.isSelfShard(outAcc.Address) {
 			sentGas := uint64(0)
@@ -576,6 +577,10 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 			}
 			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
 			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
+			consumedGas, err = core.SafeAddUint64(consumedGas, outAcc.GasUsed)
+			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outAcc.GasUsed")
+			accumulatedGasUsedForOtherShard, err = core.SafeAddUint64(accumulatedGasUsedForOtherShard, outAcc.GasUsed)
+			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outAcc.GasUsed")
 		}
 	}
 
@@ -585,7 +590,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
 	}
 
-	consumedGasWithoutBuiltin := consumedGas
+	consumedGasWithoutBuiltin, err := core.SafeSubUint64(consumedGas, accumulatedGasUsedForOtherShard)
 	if senderInSelfShard {
 		consumedGasWithoutBuiltin, err = core.SafeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
@@ -1248,7 +1253,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
-		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
