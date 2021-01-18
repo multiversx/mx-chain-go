@@ -52,3 +52,8 @@ func (rpt *Receipt) SetRcvAddr(_ []byte) {
 func (rpt *Receipt) SetSndAddr(addr []byte) {
 	rpt.SndAddr = addr
 }
+
+// GetRcvUserName returns the receiver user name from the receipt
+func (_ *Receipt) GetRcvUserName() []byte {
+	return nil
+}

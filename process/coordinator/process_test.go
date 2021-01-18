@@ -2770,18 +2770,45 @@ func TestTransactionCoordinator_GetNumOfCrossShardScCallsShouldWork(t *testing.T
 	allTxs := make(map[string]data.TransactionHandler)
 
 	mb.ReceiverShardID = 0
-	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	mb.ReceiverShardID = 1
-	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
 		RcvAddr: make([]byte, 0),
 	}
-	assert.Equal(t, 0, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
 		RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
 	}
-	assert.Equal(t, 1, getNumOfCrossShardScCalls(mb, allTxs, 0))
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+}
+
+func TestTransactionCoordinator_GetNumOfCrossShardSpecialTxsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	mb := &block.MiniBlock{
+		Type:     block.TxBlock,
+		TxHashes: [][]byte{[]byte("txHash1")},
+	}
+
+	allTxs := make(map[string]data.TransactionHandler)
+
+	mb.ReceiverShardID = 0
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	mb.ReceiverShardID = 1
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr: make([]byte, 0),
+	}
+	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
+
+	allTxs["txHash1"] = &transaction.Transaction{
+		RcvUserName: []byte("username"),
+	}
+	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 }

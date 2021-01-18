@@ -1109,7 +1109,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId()) * core.MultiplyFactorForScCall
+		numCrossShardScCalls += getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * core.MultiplyFactorForScCallOrSpecialTx
 	}
 
 	if numCrossShardScCalls > 0 {
@@ -1128,7 +1128,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	return isMaxBlockSizeReached
 }
 
-func getNumOfCrossShardScCalls(
+func getNumOfCrossShardScCallsOrSpecialTxs(
 	mb *block.MiniBlock,
 	allTxs map[string]data.TransactionHandler,
 	selfShardID uint32,
@@ -1138,28 +1138,28 @@ func getNumOfCrossShardScCalls(
 		return 0
 	}
 
-	numCrossShardScCalls := 0
+	numCrossShardScCallsOrSpecialTxs := 0
 	for _, txHash := range mb.TxHashes {
 		tx, ok := allTxs[string(txHash)]
 		if !ok {
-			log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
+			log.Warn("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
 				"mb type", mb.Type,
 				"senderShardID", mb.SenderShardID,
 				"receiverShardID", mb.ReceiverShardID,
 				"numTxHashes", len(mb.TxHashes),
 				"tx hash", txHash)
 
-			// If the tx is not found we assume that it is the smart contract call to handle the worst case scenario
-			numCrossShardScCalls++
+			// If the tx is not found we assume that it is the smart contract call or a special tx to handle the worst case scenario
+			numCrossShardScCallsOrSpecialTxs++
 			continue
 		}
 
-		if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-			numCrossShardScCalls++
+		if core.IsSmartContractAddress(tx.GetRcvAddr()) || len(tx.GetRcvUserName()) > 0 {
+			numCrossShardScCallsOrSpecialTxs++
 		}
 	}
 
-	return numCrossShardScCalls
+	return numCrossShardScCallsOrSpecialTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
