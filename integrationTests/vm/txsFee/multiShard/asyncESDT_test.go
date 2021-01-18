@@ -92,10 +92,10 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(1258280)
+	expectedAccumulatedFees = big.NewInt(183070)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(125828)
+	developerFees := big.NewInt(18306)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
@@ -120,6 +120,13 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	developerFees = big.NewInt(6242)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+
+	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[1], vmcommon.Ok, nil)
+
+	require.Equal(t, big.NewInt(4936630), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
@@ -202,10 +209,10 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	_, err = testContextSender.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedAccumulatedFees = big.NewInt(1258280)
+	expectedAccumulatedFees = big.NewInt(183070)
 	require.Equal(t, expectedAccumulatedFees, testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 
-	developerFees := big.NewInt(125828)
+	developerFees := big.NewInt(18306)
 	require.Equal(t, developerFees, testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	utils.CheckESDTBalance(t, testContextFirstContract, firstSCAddress, token, big.NewInt(2500))
@@ -230,4 +237,11 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	developerFees = big.NewInt(0)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	// consumed fee 5 000 000 = 950 + 3 740 770 + 1 258 270 + 10 (built in function call)
+	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
+
+	require.Equal(t, big.NewInt(1258280), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }

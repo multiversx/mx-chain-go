@@ -29,11 +29,15 @@ type testIndexer struct {
 	hasher           hashing.Hasher
 	shardCoordinator sharding.Coordinator
 	mutex            sync.RWMutex
+	saveDoneChan     chan struct{}
+	t                testing.TB
 }
+
+const timeoutSave = 10 * time.Second
 
 // CreateTestIndexer -
 func CreateTestIndexer(
-	t *testing.T,
+	t testing.TB,
 	coordinator sharding.Coordinator,
 	economicsDataHandler process.EconomicsDataHandler,
 ) *testIndexer {
@@ -72,6 +76,8 @@ func CreateTestIndexer(
 	ti.shardCoordinator = coordinator
 	ti.marshalizer = testMarshalizer
 	ti.hasher = testHasher
+	ti.t = t
+	ti.saveDoneChan = make(chan struct{})
 
 	return ti
 }
@@ -169,8 +175,12 @@ func (ti *testIndexer) SaveTransaction(
 
 	ti.indexer.SaveBlock(blk, header, txsPool, nil, nil, nil)
 
-	// wait --> dataDispatcher needs to save the block
-	time.Sleep(5 * time.Millisecond)
+	select {
+	case <-ti.saveDoneChan:
+		return
+	case <-time.After(timeoutSave):
+		require.Fail(ti.t, "save indexer item timeout")
+	}
 }
 
 func (ti *testIndexer) createDatabaseClient() processIndexer.DatabaseClientHandler {
@@ -179,6 +189,7 @@ func (ti *testIndexer) createDatabaseClient() processIndexer.DatabaseClientHandl
 		defer ti.mutex.Unlock()
 
 		ti.indexerData[index] = buff
+		ti.saveDoneChan <- struct{}{}
 		return nil
 	}
 
