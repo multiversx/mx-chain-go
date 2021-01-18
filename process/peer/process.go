@@ -591,7 +591,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 					continue
 				}
 			} else {
-				if validator.List != string(core.EligibleList) || !validatorInfo.IsLeavingEligible(validator) {
+				if validator.List != string(core.EligibleList) && !validatorInfo.IsLeavingEligible(validator) {
 					continue
 				}
 			}
