@@ -237,7 +237,7 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 
 	developerFees = big.NewInt(0)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
-	// consumed fee 5 000 000 = 950 + 183 060 + 3 740 770
+	// consumed fee 5 000 000 = 950 + 3 740 770 + 1 258 270 + 10 (built in function call)
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
 
