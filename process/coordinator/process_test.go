@@ -2776,12 +2776,14 @@ func TestTransactionCoordinator_GetNumOfCrossShardScCallsShouldWork(t *testing.T
 	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
-		RcvAddr: make([]byte, 0),
+		RcvAddr:     make([]byte, 0),
+		RcvUserName: make([]byte, 0),
 	}
 	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
-		RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1),
+		RcvAddr:     make([]byte, core.NumInitCharactersForScAddress+1),
+		RcvUserName: make([]byte, 0),
 	}
 	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 }
@@ -2803,11 +2805,13 @@ func TestTransactionCoordinator_GetNumOfCrossShardSpecialTxsShouldWork(t *testin
 	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
-		RcvAddr: make([]byte, 0),
+		RcvAddr:     make([]byte, 0),
+		RcvUserName: make([]byte, 0),
 	}
 	assert.Equal(t, 0, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
 
 	allTxs["txHash1"] = &transaction.Transaction{
+		RcvAddr:     make([]byte, 0),
 		RcvUserName: []byte("username"),
 	}
 	assert.Equal(t, 1, getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, 0))
