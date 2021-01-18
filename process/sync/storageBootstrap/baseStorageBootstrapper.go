@@ -81,7 +81,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 	if round <= int64(minRound) {
 		log.Debug("Load blocks does nothing as start from genesis")
 		err = st.bootStorer.SaveLastRound(0)
-		log.LogIfError(err, "bootstorer")
+		log.LogIfError(
+			err,
+			"function", "storageBootstrapper.loadBlocks",
+			"operation", "SaveLastRound",
+		)
 
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
@@ -133,7 +137,11 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Warn("bootstrapper", "error", err)
 		st.restoreBlockChainToGenesis()
 		err = st.bootStorer.SaveLastRound(0)
-		log.LogIfError(err, "bootstorer")
+		log.LogIfError(
+			err,
+			"function", "storageBootstrapper.loadBlocks",
+			"operation", "SaveLastRound after restoreBlockChainToGenesis",
+		)
 
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
