@@ -9,7 +9,7 @@ import (
 )
 
 func Test_IsLeavingEligible_NilValidatorStatisticsDoesNotErr(t *testing.T) {
-	isLeavingEligible := IsLeavingEligible(nil)
+	isLeavingEligible := WasLeavingEligibleInCurrentEpoch(nil)
 
 	require.False(t, isLeavingEligible)
 }
@@ -23,7 +23,7 @@ func Test_IsLeavinEligible_Eligible(t *testing.T) {
 		ValidatorFailure: 0,
 	}
 
-	isLeavingEligible := IsLeavingEligible(valInfo)
+	isLeavingEligible := WasLeavingEligibleInCurrentEpoch(valInfo)
 	require.False(t, isLeavingEligible)
 }
 
@@ -36,7 +36,7 @@ func Test_IsLeavingEligible_NotEligibleNotLeaving(t *testing.T) {
 		ValidatorFailure: 11,
 	}
 
-	isLeavingEligible := IsLeavingEligible(valInfo)
+	isLeavingEligible := WasLeavingEligibleInCurrentEpoch(valInfo)
 	require.False(t, isLeavingEligible)
 }
 
@@ -49,7 +49,7 @@ func Test_IsLeavingEligible_LeavingNoData(t *testing.T) {
 		ValidatorFailure: 0,
 	}
 
-	isLeavingEligible := IsLeavingEligible(valInfo)
+	isLeavingEligible := WasLeavingEligibleInCurrentEpoch(valInfo)
 	require.False(t, isLeavingEligible)
 }
 
@@ -64,6 +64,6 @@ func Test_IsLeavingEligible_LeavingWithData(t *testing.T) {
 		ValidatorFailure: 11,
 	}
 
-	isLeavingEligible := IsLeavingEligible(valInfo)
+	isLeavingEligible := WasLeavingEligibleInCurrentEpoch(valInfo)
 	require.True(t, isLeavingEligible)
 }

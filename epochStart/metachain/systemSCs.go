@@ -415,7 +415,7 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 		deleteCalled := false
 
 		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == string(core.EligibleList) || vInfo.IsLeavingEligible(validatorInfo) {
+			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				newList = append(newList, validatorInfo)
 				continue
 			}
@@ -478,7 +478,7 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	for shardID, validatorsInfoSlice := range validatorsInfo {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == string(core.EligibleList) || vInfo.IsLeavingEligible(validatorInfo) {
+			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
 			}
 		}

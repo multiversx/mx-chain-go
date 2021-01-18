@@ -304,7 +304,7 @@ func (rc *rewardsCreatorV2) initNodesRewardsInfo(
 	for shardID, valInfoList := range validatorsInfo {
 		nodesRewardsInfo[shardID] = make([]*nodeRewardsData, 0, len(valInfoList))
 		for _, valInfo := range valInfoList {
-			if valInfo.List == string(core.EligibleList) || validatorInfo.IsLeavingEligible(valInfo) {
+			if validatorInfo.WasEligibleInCurrentEpoch(valInfo) {
 				rewardsInfo := &nodeRewardsData{
 					baseReward:   big.NewInt(0),
 					topUpReward:  big.NewInt(0),
