@@ -382,14 +382,22 @@ func TestGasScheduleChangeNoApiCostShouldNotChange(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessor(arguments)
 
+	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
+	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
+
 	gasSchedule := make(map[string]map[string]uint64)
+	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
+	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+
+	sc.GasScheduleChange(gasSchedule)
+	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
+	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)
+	require.Equal(t, builtInFuncCost[core.BuiltInFunctionESDTTransfer], sc.esdtTransferCost)
+
 	gasSchedule[core.ElrondAPICost] = nil
 	gasSchedule[core.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[core.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
 	sc.GasScheduleChange(gasSchedule)
-
-	apiCosts := arguments.GasSchedule.LatestGasSchedule()[core.ElrondAPICost]
-	builtInFuncCost := arguments.GasSchedule.LatestGasSchedule()[core.BuiltInCost]
 
 	require.Equal(t, apiCosts[core.AsyncCallStepField], sc.asyncCallStepCost)
 	require.Equal(t, apiCosts[core.AsyncCallbackGasLockField], sc.asyncCallbackGasLock)

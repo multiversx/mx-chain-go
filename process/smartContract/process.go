@@ -193,15 +193,21 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	defer sc.mutGasLock.Unlock()
 
 	apiCosts := gasSchedule[core.ElrondAPICost]
+	if apiCosts == nil {
+		return
+	}
 	_, existAsyncCallStepField := apiCosts[core.AsyncCallStepField]
 	_, existAsyncCallbackGasLockField := apiCosts[core.AsyncCallbackGasLockField]
-	if apiCosts == nil || !existAsyncCallStepField || !existAsyncCallbackGasLockField {
+	if !existAsyncCallStepField || !existAsyncCallbackGasLockField {
 		return
 	}
 
 	builtInFuncCost := gasSchedule[core.BuiltInCost]
+	if builtInFuncCost == nil {
+		return
+	}
 	_, existsESDTTransfer := builtInFuncCost[core.BuiltInFunctionESDTTransfer]
-	if builtInFuncCost == nil || !existsESDTTransfer {
+	if !existsESDTTransfer {
 		return
 	}
 
