@@ -1621,7 +1621,12 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics, txTypeHandler)
+	gasHandler, err := preprocess.NewGasComputation(
+		economics,
+		txTypeHandler,
+		epochNotifier,
+		generalConfig.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1935,7 +1940,12 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economicsData, txTypeHandler)
+	gasHandler, err := preprocess.NewGasComputation(
+		economicsData,
+		txTypeHandler,
+		epochNotifier,
+		generalConfig.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}

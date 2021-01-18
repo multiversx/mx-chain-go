@@ -19,6 +19,8 @@ func TestNewGasConsumption_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		nil,
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	assert.Nil(t, gc)
@@ -31,6 +33,8 @@ func TestNewGasConsumption_ShouldWork(t *testing.T) {
 	gc, err := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	assert.NotNil(t, gc)
@@ -43,6 +47,8 @@ func TestGasConsumed_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	gc.SetGasConsumed(2, []byte("hash1"))
@@ -66,6 +72,8 @@ func TestGasRefunded_ShouldWork(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	gc.SetGasRefunded(2, []byte("hash1"))
@@ -89,6 +97,8 @@ func TestComputeGasConsumedByTx_ShouldErrWrongTypeAssertion(t *testing.T) {
 	gc, _ := preprocess.NewGasComputation(
 		&mock.FeeHandlerStub{},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	_, _, err := gc.ComputeGasConsumedByTx(0, 1, nil)
@@ -105,6 +115,8 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContra
 			},
 		},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	tx := transaction.Transaction{GasLimit: 7}
@@ -126,6 +138,8 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractI
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
 		}},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
@@ -145,15 +159,17 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			},
 		},
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+			return process.MoveBalance, process.SCInvoking
 		}},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
 
 	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
-	assert.Equal(t, uint64(1), gasInRcv)
+	assert.Equal(t, uint64(7), gasInRcv)
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
@@ -166,6 +182,8 @@ func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T)
 			},
 		},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -194,6 +212,8 @@ func TestComputeGasConsumedByMiniBlock_ShouldReturnZeroWhenOneTxIsMissing(t *tes
 			},
 		},
 		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		0,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -226,10 +246,52 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 		},
 		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+				return process.MoveBalance, process.SCInvoking
+			}
+			return process.MoveBalance, process.MoveBalance
+		}},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, []byte("hash1"))
+	txHashes = append(txHashes, []byte("hash2"))
+	txHashes = append(txHashes, []byte("hash3"))
+
+	miniBlock := block.MiniBlock{
+		SenderShardID:   0,
+		ReceiverShardID: 1,
+		TxHashes:        txHashes,
+	}
+
+	mapHashTx := make(map[string]data.TransactionHandler)
+	mapHashTx["hash1"] = &transaction.Transaction{GasLimit: 7}
+	mapHashTx["hash2"] = &transaction.Transaction{GasLimit: 20, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+	mapHashTx["hash3"] = &transaction.Transaction{GasLimit: 30, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
+	assert.Equal(t, uint64(18), gasInSnd)
+	assert.Equal(t, uint64(56), gasInRcv)
+}
+
+func TestComputeGasConsumedByMiniBlock_ShouldWorkV1(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
 				return process.SCInvoking, process.SCInvoking
 			}
 			return process.MoveBalance, process.MoveBalance
 		}},
+		&mock.EpochNotifierStub{},
+		10,
 	)
 
 	txHashes := make([][]byte, 0)
@@ -251,4 +313,71 @@ func TestComputeGasConsumedByMiniBlock_ShouldWork(t *testing.T) {
 	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByMiniBlock(&miniBlock, mapHashTx)
 	assert.Equal(t, uint64(18), gasInSnd)
 	assert.Equal(t, uint64(44), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsNotASmartContractV1(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{},
+		&mock.EpochNotifierStub{},
+		10,
+	)
+
+	tx := transaction.Transaction{GasLimit: 7}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	assert.Equal(t, uint64(6), gasInSnd)
+	assert.Equal(t, uint64(6), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractInShardV1(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
+		}},
+		&mock.EpochNotifierStub{},
+		10,
+	)
+
+	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 0, &tx)
+	assert.Equal(t, uint64(7), gasInSnd)
+	assert.Equal(t, uint64(7), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractCrossShardV1(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
+		}},
+		&mock.EpochNotifierStub{},
+		10,
+	)
+
+	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
+	assert.Equal(t, uint64(6), gasInSnd)
+	assert.Equal(t, uint64(1), gasInRcv)
 }
