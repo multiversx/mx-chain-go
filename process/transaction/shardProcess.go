@@ -173,6 +173,13 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			}
 		}
 
+		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.flagRelayedTx.IsSet() {
+			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
+			if receiptErr != nil {
+				return vmcommon.UserError, receiptErr
+			}
+		}
+
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
 			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
 			if errProcessIfErr != nil {

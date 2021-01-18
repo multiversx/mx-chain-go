@@ -30,8 +30,8 @@ type Transaction struct {
 	SearchOrder          uint32        `json:"searchOrder"`
 	EsdtTokenIdentifier  string        `json:"token,omitempty"`
 	EsdtValue            string        `json:"esdtValue,omitempty"`
-	SenderUserName       []byte        `json:"sndUserName,omitempty"`
-	ReceiverUserName     []byte        `json:"rcvUserName,omitempty"`
+	SenderUserName       []byte        `json:"senderUserName,omitempty"`
+	ReceiverUserName     []byte        `json:"receiverUserName,omitempty"`
 	SmartContractResults []*ScResult   `json:"-"`
 	Log                  TxLog         `json:"-"`
 	RcvAddrBytes         []byte        `json:"-"`

@@ -93,6 +93,26 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	return rc.finalizeMiniBlocks(miniBlocks), nil
 }
 
+func (rc *rewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
+
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Debug("will adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+	}
+
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
+
+	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards - rewardsCreator",
+		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
+		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
+		"value", protocolSustainabilityRwdTx.GetValue().String())
+
+	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
+}
+
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
 	metaBlock *block.MetaBlock,

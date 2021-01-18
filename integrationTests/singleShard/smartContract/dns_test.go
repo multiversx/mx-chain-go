@@ -31,7 +31,7 @@ func TestDNS_Register(t *testing.T) {
 	err = context.ExecuteSCWithValue(&context.Alice, "register@"+testname, big.NewInt(100))
 	require.Nil(t, err)
 
-	context.GasLimit = 8000000
+	context.GasLimit = 13000000
 	err = context.ExecuteSCWithValue(&context.Alice, "resolve@"+testname, big.NewInt(0))
 	require.Nil(t, err)
 
