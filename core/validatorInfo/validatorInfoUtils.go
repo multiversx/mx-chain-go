@@ -7,6 +7,10 @@ import (
 
 // IsLeavingEligible returns true if the validator was eligible in the epoch but has done an unstake.
 func IsLeavingEligible(valInfo *state.ValidatorInfo) bool {
+	if valInfo == nil {
+		return false
+	}
+
 	return valInfo.List == string(core.LeavingList) &&
 		(valInfo.LeaderFailure > 0 ||
 			valInfo.LeaderSuccess > 0 ||
