@@ -762,7 +762,7 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 	})
 
 	if err != nil {
-		fmt.Println("ERROR at GetIntValueFromSC()", err)
+		fmt.Println("ERROR at GetVmOutput()", err)
 		return nil
 	}
 
