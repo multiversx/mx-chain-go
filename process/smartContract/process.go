@@ -650,8 +650,6 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	if !sc.flagDeploy.IsSet() {
-		//TODO: check if the totalFee is computed correctly for backwardsCompatible
-		// flagDeploy and flagGasPriceModifier are not exactly the same flag
 		totalDevRwd = core.GetPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
 
@@ -1225,7 +1223,6 @@ func (sc *scProcessor) addBackTxValues(
 
 // DeploySmartContract processes the transaction, than deploy the smart contract into VM, final code is saved in account
 func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (vmcommon.ReturnCode, error) {
-	// TODO: check return 0 and err is ok? 0 is vmCommon.OK
 	err := sc.checkTxValidity(tx)
 	if err != nil {
 		log.Debug("invalid transaction", "error", err.Error())
@@ -1276,7 +1273,6 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(""), snapshot, vmInput.GasLocked)
 	}
 
-	//TODO: check why userError in the following ifs and not vmoutput.ReturnCode
 	vmOutput, err = vmExec.RunSmartContractCreate(vmInput)
 	if err != nil {
 		log.Debug("VM error", "error", err.Error())
@@ -1547,7 +1543,6 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 
 	accumulatedSCRData := ""
-	// TODO: check why just ESDTTransfer here. No problem with burn, freeze? Can't they be crossShard?
 	esdtReturnData, isCrossShardESDTCall := sc.isCrossShardESDTTransfer(tx)
 	if callType != vmcommon.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
@@ -1565,7 +1560,6 @@ func (sc *scProcessor) createSCRsWhenError(
 			consumedFee.Sub(consumedFee, moveBalanceCost)
 		}
 	} else {
-		//TODO: just AsynchronousCall here? No need for AsynchronousCallBack?
 		if callType == vmcommon.AsynchronousCall {
 			scr.CallType = vmcommon.AsynchronousCallBack
 			scr.GasPrice = tx.GetGasPrice()
