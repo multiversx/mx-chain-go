@@ -8,6 +8,7 @@ import (
 type epochEconomicsStatistics struct {
 	numberOfBlocks                  uint64
 	numberOfBlocksPerShard          map[uint32]uint64
+	leaderFees                      *big.Int
 	rewardsToBeDistributed          *big.Int
 	rewardsToBeDistributedForBlocks *big.Int // without leader fees, protocol sustainability and developer fees
 	mutEconomicsStatistics          sync.RWMutex
@@ -40,6 +41,14 @@ func (es *epochEconomicsStatistics) SetNumberOfBlocksPerShard(blocksPerShard map
 		es.numberOfBlocksPerShard[k] = v
 		es.numberOfBlocks += v
 	}
+}
+
+// SetLeadersFees sets the leader fees for the previous epoch
+func (es *epochEconomicsStatistics) SetLeadersFees(fees *big.Int) {
+	es.mutEconomicsStatistics.Lock()
+	defer es.mutEconomicsStatistics.Unlock()
+
+	es.leaderFees = fees
 }
 
 // SetRewardsToBeDistributed sets the rewards to be distributed at the end of the epoch (includes the rewards per block,
@@ -78,6 +87,14 @@ func (es *epochEconomicsStatistics) NumberOfBlocksPerShard() map[uint32]uint64 {
 	}
 
 	return retMap
+}
+
+// LeaderFees returns the leader fees given in the previous epoch
+func (es *epochEconomicsStatistics) LeaderFees() *big.Int {
+	es.mutEconomicsStatistics.RLock()
+	defer es.mutEconomicsStatistics.RUnlock()
+
+	return big.NewInt(0).Set(es.leaderFees)
 }
 
 // RewardsToBeDistributed returns the rewards to be distributed at the end of epoch (includes rewards for produced

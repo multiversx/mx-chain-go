@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -52,6 +53,7 @@ type ArgValidatorStatisticsProcessor struct {
 	RatingEnableEpoch               uint32
 	SwitchJailWaitingEnableEpoch    uint32
 	BelowSignedThresholdEnableEpoch uint32
+	StakingV2EnableEpoch            uint32
 	EpochNotifier                   process.EpochNotifier
 }
 
@@ -73,7 +75,9 @@ type validatorStatistics struct {
 	lastFinalizedRootHash           []byte
 	jailedEnableEpoch               uint32
 	belowSignedThresholdEnableEpoch uint32
+	stakingV2EnableEpoch            uint32
 	flagJailedEnabled               atomic.Flag
+	flagStakingV2Enabled            atomic.Flag
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible of keeping account of
@@ -132,6 +136,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		ratingEnableEpoch:               arguments.RatingEnableEpoch,
 		jailedEnableEpoch:               arguments.SwitchJailWaitingEnableEpoch,
 		belowSignedThresholdEnableEpoch: arguments.BelowSignedThresholdEnableEpoch,
+		stakingV2EnableEpoch:            arguments.StakingV2EnableEpoch,
 	}
 
 	arguments.EpochNotifier.RegisterNotifyHandler(vs)
@@ -581,8 +586,14 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
 	for shardId, validators := range validatorInfos {
 		for _, validator := range validators {
-			if validator.List != string(core.EligibleList) {
-				continue
+			if !vs.flagStakingV2Enabled.IsSet() {
+				if validator.List != string(core.EligibleList) {
+					continue
+				}
+			} else {
+				if validator.List != string(core.EligibleList) || !validatorInfo.IsLeavingEligible(validator) {
+					continue
+				}
 			}
 
 			err := vs.verifySignaturesBelowSignedThreshold(validator, signedThreshold, shardId, epoch)
@@ -1216,4 +1227,6 @@ func (vs *validatorStatistics) LastFinalizedRootHash() []byte {
 func (vs *validatorStatistics) EpochConfirmed(epoch uint32) {
 	vs.flagJailedEnabled.Toggle(epoch >= vs.jailedEnableEpoch)
 	log.Debug("validatorStatistics: jailed", "enabled", vs.flagJailedEnabled.IsSet())
+	vs.flagStakingV2Enabled.Toggle(epoch > vs.stakingV2EnableEpoch)
+	log.Debug("validatorStatistics: stakingV2", vs.flagStakingV2Enabled.IsSet())
 }
