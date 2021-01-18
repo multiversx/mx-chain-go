@@ -120,6 +120,13 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 
 	developerFees = big.NewInt(6242)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+
+	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[1], vmcommon.Ok, nil)
+
+	require.Equal(t, big.NewInt(4936620), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
@@ -231,4 +238,10 @@ func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
 	developerFees = big.NewInt(0)
 	require.Equal(t, developerFees, testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 	// consumed fee 5 000 000 = 950 + 183 060 + 3 740 770
+	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
+	require.NotNil(t, intermediateTxs)
+
+	utils.ProcessSCRResult(t, testContextFirstContract, intermediateTxs[0], vmcommon.Ok, nil)
+
+	require.Equal(t, big.NewInt(1258270), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
 }
