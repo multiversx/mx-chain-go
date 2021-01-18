@@ -18,6 +18,7 @@ type epochEconomicsStatistics struct {
 func NewEpochEconomicsStatistics() *epochEconomicsStatistics {
 	return &epochEconomicsStatistics{
 		numberOfBlocksPerShard:          make(map[uint32]uint64),
+		leaderFees:                      big.NewInt(0),
 		rewardsToBeDistributed:          big.NewInt(0),
 		rewardsToBeDistributedForBlocks: big.NewInt(0),
 	}

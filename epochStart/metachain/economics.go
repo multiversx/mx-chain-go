@@ -153,7 +153,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		remainingToBeDistributed = big.NewInt(0)
 	}
 
-	e.economicsDataNotified.SetLeadersFee(rewardsForLeaders)
+	e.economicsDataNotified.SetLeadersFees(rewardsForLeaders)
 	e.economicsDataNotified.SetRewardsToBeDistributed(totalRewardsToBeDistributed)
 	e.economicsDataNotified.SetRewardsToBeDistributedForBlocks(remainingToBeDistributed)
 

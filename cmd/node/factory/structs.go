@@ -2437,6 +2437,7 @@ func newValidatorStatisticsProcessor(
 		EpochNotifier:                   processComponents.epochNotifier,
 		SwitchJailWaitingEnableEpoch:    processComponents.mainConfig.GeneralSettings.SwitchJailWaitingEnableEpoch,
 		BelowSignedThresholdEnableEpoch: processComponents.mainConfig.GeneralSettings.BelowSignedThresholdEnableEpoch,
+		StakingV2EnableEpoch:            processComponents.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 
 	validatorStatisticsProcessor, err := peer.NewValidatorStatisticsProcessor(arguments)
