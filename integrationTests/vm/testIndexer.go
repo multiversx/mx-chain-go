@@ -57,7 +57,7 @@ func CreateTestIndexer(
 	arguments := indexer.ArgDataIndexer{
 		Marshalizer: testMarshalizer,
 		Options: &indexer.Options{
-			IndexerCacheSize: 0,
+			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
