@@ -432,6 +432,11 @@ func (sc *scProcessor) updateDeveloperRewardsV2(
 			if err != nil {
 				return err
 			}
+
+			sentGas, err = core.SafeAddUint64(sentGas, outTransfer.GasLocked)
+			if err != nil {
+				return err
+			}
 		}
 
 		usedGasByMainSC, err = core.SafeSubUint64(usedGasByMainSC, sentGas)
