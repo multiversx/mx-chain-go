@@ -554,11 +554,11 @@ const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 // need to change the current logging profile
 const DefaultLogProfileIdentifier = "[default log profile]"
 
-// MultiplyFactorForScCall specifies the multiply factor, in terms of number, which should be used by a node when it
-// includes sc calls in a miniblock.
-// Ex.: normal txs -> aprox. 27000, sc calls -> aprox. 6250 = 27000 / (MultiplyFactorForScCall + 1),
+// MultiplyFactorForScCallOrSpecialTx specifies the multiply factor, in terms of number, which should be used by a node when it
+// includes sc calls or special txs in a miniblock.
+// Ex.: normal txs -> aprox. 27000, sc calls / special txs -> aprox. 6250 = 27000 / (MultiplyFactorForScCallOrSpecialTx + 1),
 // considering that constant below is set to 3
-const MultiplyFactorForScCall = 3
+const MultiplyFactorForScCallOrSpecialTx = 3
 
 // MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
 // before a special action to be applied

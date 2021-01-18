@@ -104,6 +104,7 @@ type TransactionHandler interface {
 	GetNonce() uint64
 	GetData() []byte
 	GetRcvAddr() []byte
+	GetRcvUserName() []byte
 	GetSndAddr() []byte
 	GetGasLimit() uint64
 	GetGasPrice() uint64
