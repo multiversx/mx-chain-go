@@ -1263,12 +1263,6 @@ func (v *validatorSC) unBondNodesFromStakingSC(blsKeys [][]byte) [][]byte {
 }
 
 func (v *validatorSC) unBondV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if len(args.Arguments) > 0 {
-		if strings.Contains(hex.EncodeToString(args.Arguments[0]), "cb18fc7dc8996bb52") {
-			log.Debug("DEBUG!!!")
-		}
-	}
-
 	registrationData, returnCode := v.checkUnBondArguments(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
