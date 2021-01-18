@@ -3,6 +3,8 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
+	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"path"
 	"sync"
 	"testing"
@@ -52,7 +54,7 @@ func CreateTestIndexer(
 
 	arguments := indexer.ArgDataIndexer{
 		Marshalizer: testMarshalizer,
-		Options: &indexer.Options{
+		Options: &types.Options{
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
@@ -82,7 +84,7 @@ func (ti *testIndexer) createElasticProcessor(
 
 	templatesPath := path.Join("../../../cmd/node/config/elasticIndexTemplates", "noKibana")
 
-	indexTemplates, indexPolicies, _ := indexer.GetElasticTemplatesAndPolicies(templatesPath, false)
+	indexTemplates, indexPolicies, _ := processIndexer.GetElasticTemplatesAndPolicies(templatesPath, false)
 
 	enabledIndexes := []string{"transactions"}
 	enabledIndexesMap := make(map[string]struct{})
@@ -90,14 +92,14 @@ func (ti *testIndexer) createElasticProcessor(
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	esIndexerArgs := indexer.ArgElasticProcessor{
+	esIndexerArgs := processIndexer.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 		Marshalizer:              testMarshalizer,
 		Hasher:                   testHasher,
 		AddressPubkeyConverter:   pubkeyConv,
 		ValidatorPubkeyConverter: pubkeyConv,
-		Options: &indexer.Options{
+		Options: &types.Options{
 			IndexerCacheSize: 100,
 			UseKibana:        false,
 		},
@@ -110,7 +112,7 @@ func (ti *testIndexer) createElasticProcessor(
 		ShardCoordinator:         shardCoordinator,
 	}
 
-	esProcessor, _ := indexer.NewElasticProcessor(esIndexerArgs)
+	esProcessor, _ := processIndexer.NewElasticProcessor(esIndexerArgs)
 
 	return esProcessor
 }
@@ -171,7 +173,7 @@ func (ti *testIndexer) SaveTransaction(
 	time.Sleep(5 * time.Millisecond)
 }
 
-func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
+func (ti *testIndexer) createDatabaseClient() processIndexer.DatabaseClientHandler {
 	doBulkRequest := func(buff *bytes.Buffer, index string) error {
 		ti.mutex.Lock()
 		defer ti.mutex.Unlock()
@@ -188,7 +190,7 @@ func (ti *testIndexer) createDatabaseClient() indexer.DatabaseClientHandler {
 }
 
 // GetIndexerPreparedTransaction -
-func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexer.Transaction {
+func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *types.Transaction {
 	ti.mutex.RLock()
 	txData, ok := ti.indexerData["transactions"]
 	ti.mutex.RUnlock()
@@ -198,7 +200,7 @@ func (ti *testIndexer) GetIndexerPreparedTransaction(t *testing.T) *indexer.Tran
 	split := bytes.Split(txData.Bytes(), []byte("\n"))
 	require.True(t, len(split) > 2)
 
-	newTx := &indexer.Transaction{}
+	newTx := &types.Transaction{}
 	err := json.Unmarshal(split[1], newTx)
 	require.Nil(t, err)
 

@@ -2,7 +2,6 @@ package mock
 
 import (
 	"bytes"
-
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
@@ -11,7 +10,7 @@ type DatabaseWriterStub struct {
 	DoRequestCalled     func(req *esapi.IndexRequest) error
 	DoBulkRequestCalled func(buff *bytes.Buffer, index string) error
 	DoBulkRemoveCalled  func(index string, hashes []string) error
-	DoMultiGetCalled    func(query map[string]interface{}, index string) (map[string]interface{}, error)
+	DoMultiGetCalled    func(hashes []string, index string) (map[string]interface{}, error)
 }
 
 // DoRequest --
@@ -31,9 +30,9 @@ func (dws *DatabaseWriterStub) DoBulkRequest(buff *bytes.Buffer, index string) e
 }
 
 // DoMultiGet --
-func (dws *DatabaseWriterStub) DoMultiGet(query map[string]interface{}, index string) (map[string]interface{}, error) {
+func (dws *DatabaseWriterStub) DoMultiGet(hashes []string, index string) (map[string]interface{}, error) {
 	if dws.DoMultiGetCalled != nil {
-		return dws.DoMultiGetCalled(query, index)
+		return dws.DoMultiGetCalled(hashes, index)
 	}
 
 	return nil, nil
