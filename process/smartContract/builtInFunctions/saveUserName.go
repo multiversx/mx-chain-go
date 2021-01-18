@@ -76,7 +76,6 @@ func (s *saveUserName) ProcessBuiltinFunction(
 	}
 
 	if check.IfNil(acntDst) {
-		log.Debug("setUserName called dst not in shard")
 		// cross-shard call, in sender shard only the gas is taken out
 		vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
@@ -95,7 +94,6 @@ func (s *saveUserName) ProcessBuiltinFunction(
 		return vmOutput, nil
 	}
 
-	log.Debug("setUserName called in shard")
 	currentUserName := acntDst.GetUserName()
 	if !s.enableChange && len(currentUserName) > 0 {
 		return nil, process.ErrUserNameChangeIsDisabled
