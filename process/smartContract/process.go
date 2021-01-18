@@ -575,22 +575,28 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 				sentGas, _ = core.SafeAddUint64(sentGas, outTransfer.GasLimit)
 				sentGas, _ = core.SafeAddUint64(sentGas, outTransfer.GasLocked)
 			}
+			displayConsumedGas := consumedGas
 			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
 			log.LogIfError(err,
 				"function", "computeTotalConsumedFeeAndDevRwd",
-				"consumedGas", consumedGas,
+				"resulted consumedGas", consumedGas,
+				"consumedGas", displayConsumedGas,
 				"sentGas", sentGas,
 			)
+			displayConsumedGas = consumedGas
 			consumedGas, err = core.SafeAddUint64(consumedGas, outAcc.GasUsed)
 			log.LogIfError(err,
 				"function", "computeTotalConsumedFeeAndDevRwd",
-				"consumedGas", consumedGas,
+				"resulted consumedGas", consumedGas,
+				"consumedGas", displayConsumedGas,
 				"outAcc.GasUsed", outAcc.GasUsed,
 			)
+			displayAccumulatedGasUsedForOtherShard := accumulatedGasUsedForOtherShard
 			accumulatedGasUsedForOtherShard, err = core.SafeAddUint64(accumulatedGasUsedForOtherShard, outAcc.GasUsed)
 			log.LogIfError(err,
 				"function", "computeTotalConsumedFeeAndDevRwd",
-				"accumulatedGasUsedForOtherShard", accumulatedGasUsedForOtherShard,
+				"resulted accumulatedGasUsedForOtherShard", accumulatedGasUsedForOtherShard,
+				"accumulatedGasUsedForOtherShard", displayAccumulatedGasUsedForOtherShard,
 				"outAcc.GasUsed", outAcc.GasUsed,
 			)
 		}
@@ -598,10 +604,12 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	if !isSmartContractResult(tx) {
+		displayConsumedGas := consumedGas
 		consumedGas, err = core.SafeSubUint64(consumedGas, moveBalanceGasLimit)
 		log.LogIfError(err,
 			"function", "computeTotalConsumedFeeAndDevRwd",
-			"consumedGas", consumedGas,
+			"resulted consumedGas", consumedGas,
+			"consumedGas", displayConsumedGas,
 			"moveBalanceGasLimit", moveBalanceGasLimit,
 		)
 	}
@@ -609,14 +617,17 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	consumedGasWithoutBuiltin, err := core.SafeSubUint64(consumedGas, accumulatedGasUsedForOtherShard)
 	log.LogIfError(err,
 		"function", "computeTotalConsumedFeeAndDevRwd",
+		"resulted consumedGasWithoutBuiltin", consumedGasWithoutBuiltin,
 		"consumedGas", consumedGas,
 		"accumulatedGasUsedForOtherShard", accumulatedGasUsedForOtherShard,
 	)
 	if senderInSelfShard {
+		displayConsumedGasWithoutBuiltin := consumedGasWithoutBuiltin
 		consumedGasWithoutBuiltin, err = core.SafeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
 		log.LogIfError(err,
 			"function", "computeTotalConsumedFeeAndDevRwd",
-			"consumedGasWithoutBuiltin", consumedGasWithoutBuiltin,
+			"resulted consumedGasWithoutBuiltin", consumedGasWithoutBuiltin,
+			"consumedGasWithoutBuiltin", displayConsumedGasWithoutBuiltin,
 			"builtInFuncGasUsed", builtInFuncGasUsed,
 		)
 	}
