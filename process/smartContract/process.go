@@ -597,6 +597,8 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	if !sc.flagDeploy.IsSet() {
+		//TODO: check if the totalFee is computed correctly for backwardsCompatible
+		// flagDeploy and flagGasPriceModifier are not exactly the same flag
 		totalDevRwd = core.GetPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
 
@@ -1250,8 +1252,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
-		// TODO: check why return code here. It's OK and ProcessIfError returns nil. So this is an ok tx?
-		return vmOutput.ReturnCode, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
