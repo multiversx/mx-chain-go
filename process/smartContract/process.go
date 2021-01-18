@@ -571,7 +571,8 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		if !sc.isSelfShard(outAcc.Address) {
 			sentGas := uint64(0)
 			for _, outTransfer := range outAcc.OutputTransfers {
-				sentGas += outTransfer.GasLimit
+				sentGas, _ = core.SafeAddUint64(outTransfer.GasLimit, sentGas)
+				sentGas, _ = core.SafeAddUint64(outTransfer.GasLocked, sentGas)
 			}
 			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
 			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
@@ -1375,9 +1376,11 @@ func (sc *scProcessor) processVMOutput(
 		scrTxs = append(scrTxs, scrForSender)
 	}
 
-	err = sc.addGasRefundIfInShard(scrForSender.RcvAddr, scrForSender.Value)
-	if err != nil {
-		return nil, err
+	if !createdAsyncCallback {
+		err = sc.addGasRefundIfInShard(scrForSender.RcvAddr, scrForSender.Value)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = sc.deleteAccounts(vmOutput.DeletedAccounts)
@@ -1679,9 +1682,14 @@ func (sc *scProcessor) createSmartContractResults(
 			result.OriginalSender = tx.GetSndAddr()
 		}
 
+		if result.CallType == vmcommon.AsynchronousCallBack {
+			createdAsyncCallBack = true
+			result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
+		}
+
 		outputTransferCopy := outputTransfer
 		isLastOutTransfer := i == lenOutTransfers-1
-		if isLastOutTransfer &&
+		if !createdAsyncCallBack && isLastOutTransfer &&
 			sc.useLastTransferAsAsyncCallBackWhenNeeded(callType, outAcc, &outputTransferCopy, vmOutput, tx, result) {
 			createdAsyncCallBack = true
 		}
@@ -1721,7 +1729,7 @@ func (sc *scProcessor) useLastTransferAsAsyncCallBackWhenNeeded(
 	}
 
 	result.CallType = vmcommon.AsynchronousCallBack
-	result.GasLimit += vmOutput.GasRemaining
+	result.GasLimit, _ = core.SafeAddUint64(result.GasLimit, vmOutput.GasRemaining)
 
 	return true
 }

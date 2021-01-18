@@ -82,8 +82,8 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, testContextSender.GetLatestError())
 
-	require.Equal(t, big.NewInt(1007500), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(100750), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(3830), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(383), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs := testContextSecondContract.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextSecondContract.ShardCoordinator, testContextSecondContract.EconomicsData)
@@ -107,11 +107,12 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	intermediateTxs = testContextFirstContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
 
-	scr = intermediateTxs[1]
+	testContextSecondContract.TxFeeHandler.CreateBlockStarted()
+	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(2011170), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(201117), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(49993150), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4999315), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
