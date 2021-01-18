@@ -742,9 +742,6 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 		return 0, err
 	}
 	if newVMOutput.ReturnCode != vmcommon.Ok {
-		if !check.IfNil(acntSnd) {
-			return vmcommon.UserError, sc.resolveFailedTransaction(acntSnd, tx, txHash, vmOutput.ReturnMessage, snapshot)
-		}
 		return vmcommon.UserError, nil
 	}
 
@@ -807,13 +804,13 @@ func (sc *scProcessor) processSCRForSenderAfterBuiltIn(
 		vmInput.CallType,
 	)
 
-	err := sc.addToBalanceIfInShard(scrForSender.RcvAddr, scrForSender.Value)
+	err := sc.addGasRefundIfInShard(scrForSender.RcvAddr, scrForSender.Value)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if !check.IfNil(scrForRelayer) {
-		err = sc.addToBalanceIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
+		err = sc.addGasRefundIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1367,7 +1364,7 @@ func (sc *scProcessor) processVMOutput(
 
 	if !check.IfNil(scrForRelayer) {
 		scrTxs = append(scrTxs, scrForRelayer)
-		err = sc.addToBalanceIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
+		err = sc.addGasRefundIfInShard(scrForRelayer.RcvAddr, scrForRelayer.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -1380,7 +1377,7 @@ func (sc *scProcessor) processVMOutput(
 		scrTxs = append(scrTxs, scrForSender)
 	}
 
-	err = sc.addToBalanceIfInShard(scrForSender.RcvAddr, scrForSender.Value)
+	err = sc.addGasRefundIfInShard(scrForSender.RcvAddr, scrForSender.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -1393,7 +1390,7 @@ func (sc *scProcessor) processVMOutput(
 	return scrTxs, nil
 }
 
-func (sc *scProcessor) addToBalanceIfInShard(address []byte, value *big.Int) error {
+func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) error {
 	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
 		return err
@@ -1403,9 +1400,13 @@ func (sc *scProcessor) addToBalanceIfInShard(address []byte, value *big.Int) err
 		return nil
 	}
 
-	err = userAcc.AddToBalance(value)
-	if err != nil {
-		return err
+	if sc.flagDeploy.IsSet() && core.IsSmartContractAddress(address) {
+		userAcc.AddToDeveloperReward(value)
+	} else {
+		err = userAcc.AddToBalance(value)
+		if err != nil {
+			return err
+		}
 	}
 
 	return sc.accounts.SaveAccount(userAcc)

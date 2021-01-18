@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -72,6 +74,15 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	developerFees := testContextRelayer.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
+	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(187), indexerTx.GasUsed)
+	require.Equal(t, "1870", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	// execute on inner tx sender
 	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -92,6 +103,16 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
+
+	intermediateTxs = testContextInnerSource.GetIntermediateTransactions(t)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "6870", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+
 	scr := txs[0]
 
 	// execute on inner tx receiver ( shard with contract )
@@ -102,16 +123,16 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 
 	// check accumulated fees dest
 	accumulatedFees = testContextInnerDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(3760), accumulatedFees)
+	require.Equal(t, big.NewInt(3770), accumulatedFees)
 
 	developerFees = testContextInnerDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(376), developerFees)
+	require.Equal(t, big.NewInt(377), developerFees)
 
 	txs = testContextInnerDst.GetIntermediateTransactions(t)
 	scr = txs[0]
 
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-	expectedBalance = big.NewInt(4270)
+	expectedBalance = big.NewInt(4260)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
@@ -174,6 +195,15 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	developerFees := testContextRelayer.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
 
+	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(187), indexerTx.GasUsed)
+	require.Equal(t, "1870", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	// execute on inner tx sender
 	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -194,6 +224,16 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 	require.Equal(t, big.NewInt(0), developerFees)
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
+
+	intermediateTxs = testContextInnerSource.GetIntermediateTransactions(t)
+	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "6870", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+
 	scr := txs[0]
 
 	// execute on inner tx receiver ( shard with contract )
