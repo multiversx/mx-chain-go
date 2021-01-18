@@ -576,25 +576,49 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 				sentGas, _ = core.SafeAddUint64(sentGas, outTransfer.GasLocked)
 			}
 			consumedGas, err = core.SafeSubUint64(consumedGas, sentGas)
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outTransfer.GasLimit")
+			log.LogIfError(err,
+				"function", "computeTotalConsumedFeeAndDevRwd",
+				"consumedGas", consumedGas,
+				"sentGas", sentGas,
+			)
 			consumedGas, err = core.SafeAddUint64(consumedGas, outAcc.GasUsed)
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "outAcc.GasUsed")
+			log.LogIfError(err,
+				"function", "computeTotalConsumedFeeAndDevRwd",
+				"consumedGas", consumedGas,
+				"outAcc.GasUsed", outAcc.GasUsed,
+			)
 			accumulatedGasUsedForOtherShard, err = core.SafeAddUint64(accumulatedGasUsedForOtherShard, outAcc.GasUsed)
-			log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "accumulatedGasUsedForOtherShard", "outAcc.GasUsed")
+			log.LogIfError(err,
+				"function", "computeTotalConsumedFeeAndDevRwd",
+				"accumulatedGasUsedForOtherShard", accumulatedGasUsedForOtherShard,
+				"outAcc.GasUsed", outAcc.GasUsed,
+			)
 		}
 	}
 
 	moveBalanceGasLimit := sc.economicsFee.ComputeGasLimit(tx)
 	if !isSmartContractResult(tx) {
 		consumedGas, err = core.SafeSubUint64(consumedGas, moveBalanceGasLimit)
-		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "computeGasLimit")
+		log.LogIfError(err,
+			"function", "computeTotalConsumedFeeAndDevRwd",
+			"consumedGas", consumedGas,
+			"moveBalanceGasLimit", moveBalanceGasLimit,
+		)
 	}
 
 	consumedGasWithoutBuiltin, err := core.SafeSubUint64(consumedGas, accumulatedGasUsedForOtherShard)
-	log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "accumulatedGasUsedForOtherShard")
+	log.LogIfError(err,
+		"function", "computeTotalConsumedFeeAndDevRwd",
+		"consumedGas", consumedGas,
+		"accumulatedGasUsedForOtherShard", accumulatedGasUsedForOtherShard,
+	)
 	if senderInSelfShard {
 		consumedGasWithoutBuiltin, err = core.SafeSubUint64(consumedGasWithoutBuiltin, builtInFuncGasUsed)
-		log.LogIfError(err, "computeTotalConsumedFeeAndDevRwd", "consumedWithoutBuiltin")
+		log.LogIfError(err,
+			"function", "computeTotalConsumedFeeAndDevRwd",
+			"consumedGasWithoutBuiltin", consumedGasWithoutBuiltin,
+			"builtInFuncGasUsed", builtInFuncGasUsed,
+		)
 	}
 
 	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
@@ -708,7 +732,7 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 	}
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.GasProvided, vmOutput.GasRemaining)
-	log.LogIfError(err, "ExecuteBultInFunction", "computeBuiltInFuncGasUSed")
+	log.LogIfError(err, "function", "ExecuteBultInFunction.computeBuiltInFuncGasUsed")
 
 	if txTypeOnDst != process.SCInvoking {
 		vmOutput.GasRemaining += vmInput.GasLocked
@@ -961,7 +985,7 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 	if ok && len(outAcc.OutputTransfers) == 1 {
 		gasLimit = outAcc.OutputTransfers[0].GasLimit
 		function, args, err := sc.argsParser.ParseCallData(string(outAcc.OutputTransfers[0].Data))
-		log.LogIfError(err, "createVMInputWithAsyncCallBack", "error", err)
+		log.LogIfError(err, "function", "createVMInputWithAsyncCallBack.ParseCallData")
 		if len(function) > 0 {
 			arguments = append(arguments, []byte(function))
 		}
