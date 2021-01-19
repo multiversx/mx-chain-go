@@ -27,8 +27,8 @@ var errSignerMockVerifySigFails = errors.New("errSignerMockVerifySigFails")
 
 var senderShard = uint32(2)
 var recvShard = uint32(3)
-var senderAddress = []byte("sender")
-var recvAddress = []byte("receiver")
+var senderAddress = []byte("12345678901234567890123456789012")
+var recvAddress = []byte("23456789012345678901234567890123")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
@@ -94,7 +94,11 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&mock.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
 		shardCoordinator,
 		txFeeHandler,
 		&mock.WhiteListHandlerStub{},
@@ -133,7 +137,11 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&mock.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
@@ -550,7 +558,31 @@ func TestInterceptedTransaction_CheckValidityNilRecvAddressShouldErr(t *testing.
 
 	err := txi.CheckValidity()
 
-	assert.Equal(t, process.ErrNilRcvAddr, err)
+	assert.Equal(t, process.ErrInvalidRcvAddr, err)
+}
+
+func TestInterceptedTransaction_CheckValidityInvalidRecvAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   append(recvAddress, 0),
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
+
+	err := txi.CheckValidity()
+
+	assert.Equal(t, process.ErrInvalidRcvAddr, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testing.T) {
@@ -574,7 +606,31 @@ func TestInterceptedTransaction_CheckValidityNilSenderAddressShouldErr(t *testin
 
 	err := txi.CheckValidity()
 
-	assert.Equal(t, process.ErrNilSndAddr, err)
+	assert.Equal(t, process.ErrInvalidSndAddr, err)
+}
+
+func TestInterceptedTransaction_CheckValidityInvalidSenderAddressShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   append(senderAddress, 0),
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
+
+	err := txi.CheckValidity()
+
+	assert.Equal(t, process.ErrInvalidSndAddr, err)
 }
 
 func TestInterceptedTransaction_CheckValidityNilValueShouldErr(t *testing.T) {
@@ -881,7 +937,11 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&mock.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
@@ -937,7 +997,11 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShoudWork(t *testing.
 		mock.HasherMock{},
 		createKeyGenMock(),
 		createDummySigner(),
-		&mock.PubkeyConverterStub{},
+		&mock.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&mock.WhiteListHandlerStub{},
@@ -1157,7 +1221,11 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		mock.HasherMock{},
 		createKeyGenMock(),
 		signer,
-		&mock.PubkeyConverterStub{},
+		&mock.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,

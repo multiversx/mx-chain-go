@@ -1868,6 +1868,8 @@ func generateValidTx(
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	mockNode, _ := node.NewNode(
+		node.WithAddressSignatureSize(64),
+		node.WithValidatorSignatureSize(48),
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
 		node.WithTxSignMarshalizer(TestTxSignMarshalizer),

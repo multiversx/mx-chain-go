@@ -7,6 +7,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/epochStart"
 	"github.com/ElrondNetwork/elrond-go/process"
@@ -125,6 +126,27 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	}
 
 	return rc.finalizeMiniBlocks(miniBlocks), nil
+}
+
+func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
+	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
+		log.Error("negative rewards protocol sustainability")
+		protocolSustainabilityRwdTx.Value.SetUint64(0)
+	}
+
+	if dustRewards.Cmp(big.NewInt(0)) < 0 {
+		log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
+		return
+	}
+
+	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
+
+	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards - rewardsCreatorV2",
+		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
+		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
+		"value", protocolSustainabilityRwdTx.GetValue().String())
+
+	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct

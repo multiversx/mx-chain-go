@@ -3,6 +3,7 @@ package state_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func generateAccountDBFromTrie(trie data.Trie) *state.AccountsDB {
@@ -221,7 +223,8 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 		},
 	})
 
-	err := adb.SaveAccount(generateAccount())
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
+	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
 }
@@ -229,16 +232,18 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 	t.Parallel()
 
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
+
 	adb := generateAccountDBFromTrie(&mock.TrieStub{
 		GetCalled: func(key []byte) (i []byte, err error) {
-			return (&mock.MarshalizerMock{}).Marshal(generateAccount())
+			return (&mock.MarshalizerMock{}).Marshal(acc)
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
 		},
 	})
 
-	err := adb.SaveAccount(generateAccount())
+	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, adb.JournalLen())
 }
@@ -273,7 +278,7 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	accCode := []byte("code")
-	acc := generateAccount()
+	acc, _ := state.NewUserAccount([]byte("someAddress"))
 	acc.SetCode(accCode)
 	_ = acc.DataTrieTracker().SaveKeyValue([]byte("key"), []byte("value"))
 
@@ -383,7 +388,7 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
+func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 	t.Parallel()
 
 	acc := generateAccount()
@@ -414,7 +419,6 @@ func TestAccountsDB_LoadAccountExistingShouldLoadCodeAndDataTrie(t *testing.T) {
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
-	assert.Equal(t, code, account.GetCode())
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
@@ -481,7 +485,6 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	assert.Nil(t, err)
 
 	account, _ := retrievedAccount.(state.UserAccountHandler)
-	assert.Equal(t, code, account.GetCode())
 	assert.Equal(t, dataTrie, account.DataTrie())
 }
 
@@ -573,7 +576,7 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 
 	err := adb.LoadCode(account)
 	assert.Nil(t, err)
-	assert.Equal(t, adr, account.GetCode())
+	assert.Equal(t, adr, state.GetCode(account))
 }
 
 //------- RetrieveData
@@ -1393,4 +1396,40 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	rootHash = append(rootHash, byte(data.OldRoot))
 	oldHashes := ewl.Cache[string(rootHash)]
 	assert.Equal(t, 5, len(oldHashes))
+}
+
+func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
+	maxTrieLevelInMemory := uint(5)
+	marshalizer := &mock.MarshalizerMock{}
+	hasher := mock.HasherMock{}
+	db := mock.NewMemDbMock()
+
+	ewl, _ := mock.NewEvictionWaitingList(100, mock.NewMemDbMock(), marshalizer)
+	storageManager, _ := trie.NewTrieStorageManager(db, marshalizer, hasher, config.DBConfig{}, ewl, config.TrieStorageManagerConfig{})
+	tr, _ := trie.NewTrie(storageManager, marshalizer, hasher, maxTrieLevelInMemory)
+	adb, _ := state.NewAccountsDB(tr, hasher, marshalizer, factory.NewAccountCreator())
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(b, err)
+
+	userAcc := acc.(state.UserAccountHandler)
+	codeLen := 100000
+	code := make([]byte, codeLen)
+
+	n, err := rand.Read(code)
+	require.Nil(b, err)
+	require.Equal(b, codeLen, n)
+
+	userAcc.SetCode(code)
+	err = adb.SaveAccount(userAcc)
+	require.Nil(b, err)
+
+	codeHash := hasher.Compute(string(code))
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		entry, _ := state.GetCodeEntry(codeHash, tr, marshalizer)
+		assert.Equal(b, code, entry.Code)
+	}
 }
