@@ -196,7 +196,7 @@ func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
 	assert.Equal(t, uint64(0), gasInRcv)
 }
 
-func TestComputeGasConsumedByTx_ShouldReturnZeroGasLimitIfLessThanMoveBalance(t *testing.T) {
+func TestComputeGasConsumedByTx_ShouldReturnGasLimitIfLessThanMoveBalance(t *testing.T) {
 	t.Parallel()
 
 	gc, _ := preprocess.NewGasComputation(
