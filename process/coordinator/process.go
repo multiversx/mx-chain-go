@@ -633,7 +633,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		err := tc.processCompleteMiniBlock(preproc, miniBlock, haveTime)
+		err := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime)
 		if err != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
@@ -916,14 +916,24 @@ func (tc *transactionCoordinator) receivedMiniBlock(key []byte, value interface{
 func (tc *transactionCoordinator) processCompleteMiniBlock(
 	preproc process.PreProcessor,
 	miniBlock *block.MiniBlock,
+	miniBlockHash []byte,
 	haveTime func() bool,
 ) error {
 
 	snapshot := tc.accounts.JournalLen()
 
-	processedTxs, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
+	txsToBeReverted, numTxsProcessed, err := preproc.ProcessMiniBlock(miniBlock, haveTime, tc.getNumOfCrossInterMbsAndTxs)
 	if err != nil {
-		log.Debug("processCompleteMiniBlock.ProcessMiniBlock", "num txs processed", len(processedTxs), "error", err.Error())
+		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
+			"hash", miniBlockHash,
+			"type", miniBlock.Type,
+			"snd shard", miniBlock.SenderShardID,
+			"rcv shard", miniBlock.ReceiverShardID,
+			"num txs", len(miniBlock.TxHashes),
+			"txs to be reverted", len(txsToBeReverted),
+			"num txs processed", numTxsProcessed,
+			"error", err.Error(),
+		)
 
 		errAccountState := tc.accounts.RevertToSnapshot(snapshot)
 		if errAccountState != nil {
@@ -931,8 +941,8 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 			log.Debug("RevertToSnapshot", "error", errAccountState.Error())
 		}
 
-		if len(processedTxs) > 0 {
-			tc.revertProcessedTxsResults(processedTxs)
+		if len(txsToBeReverted) > 0 {
+			tc.revertProcessedTxsResults(txsToBeReverted)
 		}
 
 		return err
@@ -1086,7 +1096,7 @@ func (tc *transactionCoordinator) getNumOfCrossInterMbsAndTxs() (int, int) {
 func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	numMbs := len(body.MiniBlocks)
 	numTxs := 0
-	numCrossShardScCalls := 0
+	numCrossShardScCallsOrSpecialTxs := 0
 
 	allTxs := make(map[string]data.TransactionHandler)
 
@@ -1099,26 +1109,26 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-		numCrossShardScCalls += getNumOfCrossShardScCalls(mb, allTxs, tc.shardCoordinator.SelfId()) * core.MultiplyFactorForScCall
+		numCrossShardScCallsOrSpecialTxs += getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * core.AdditionalScrForEachScCallOrSpecialTx
 	}
 
-	if numCrossShardScCalls > 0 {
+	if numCrossShardScCallsOrSpecialTxs > 0 {
 		numMbs++
 	}
 
-	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
+	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCallsOrSpecialTxs)
 
 	log.Trace("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,
 		"numTxs", numTxs,
-		"numCrossShardScCalls", numCrossShardScCalls,
+		"numCrossShardScCallsOrSpecialTxs", numCrossShardScCallsOrSpecialTxs,
 	)
 
 	return isMaxBlockSizeReached
 }
 
-func getNumOfCrossShardScCalls(
+func getNumOfCrossShardScCallsOrSpecialTxs(
 	mb *block.MiniBlock,
 	allTxs map[string]data.TransactionHandler,
 	selfShardID uint32,
@@ -1128,28 +1138,28 @@ func getNumOfCrossShardScCalls(
 		return 0
 	}
 
-	numCrossShardScCalls := 0
+	numCrossShardScCallsOrSpecialTxs := 0
 	for _, txHash := range mb.TxHashes {
 		tx, ok := allTxs[string(txHash)]
 		if !ok {
-			log.Warn("transactionCoordinator.isMaxBlockSizeReached: tx not found",
+			log.Warn("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
 				"mb type", mb.Type,
 				"senderShardID", mb.SenderShardID,
 				"receiverShardID", mb.ReceiverShardID,
 				"numTxHashes", len(mb.TxHashes),
 				"tx hash", txHash)
 
-			// If the tx is not found we assume that it is the smart contract call to handle the worst case scenario
-			numCrossShardScCalls++
+			// If the tx is not found we assume that it is the smart contract call or a special tx to handle the worst case scenario
+			numCrossShardScCallsOrSpecialTxs++
 			continue
 		}
 
-		if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-			numCrossShardScCalls++
+		if core.IsSmartContractAddress(tx.GetRcvAddr()) || len(tx.GetRcvUserName()) > 0 {
+			numCrossShardScCallsOrSpecialTxs++
 		}
 	}
 
-	return numCrossShardScCalls
+	return numCrossShardScCallsOrSpecialTxs
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

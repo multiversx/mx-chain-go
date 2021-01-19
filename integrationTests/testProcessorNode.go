@@ -1283,7 +1283,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -1294,7 +1294,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		AccountsDB:                     tpn.AccntState,
 		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
 		PubkeyConv:                     TestAddressPubkeyConverter,
-		Coordinator:                    tpn.ShardCoordinator,
+		ShardCoordinator:               tpn.ShardCoordinator,
 		ScrForwarder:                   tpn.ScrForwarder,
 		TxFeeHandler:                   tpn.FeeAccumulator,
 		EconomicsFee:                   tpn.EconomicsData,
@@ -1495,7 +1495,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		ArgumentParser:   parsers.NewCallArgsParser(),
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler)
+	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EpochNotifier, tpn.DeployEnableEpoch)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
 		VmContainer:                    tpn.VMContainer,
@@ -1505,7 +1505,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		AccountsDB:                     tpn.AccntState,
 		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
 		PubkeyConv:                     TestAddressPubkeyConverter,
-		Coordinator:                    tpn.ShardCoordinator,
+		ShardCoordinator:               tpn.ShardCoordinator,
 		ScrForwarder:                   tpn.ScrForwarder,
 		TxFeeHandler:                   tpn.FeeAccumulator,
 		EconomicsFee:                   tpn.EconomicsData,
@@ -1917,6 +1917,8 @@ func (tpn *TestProcessorNode) initNode() {
 
 	txAccumulator, _ := accumulator.NewTimeAccumulator(time.Millisecond*10, time.Millisecond)
 	tpn.Node, err = node.NewNode(
+		node.WithAddressSignatureSize(64),
+		node.WithValidatorSignatureSize(48),
 		node.WithMessenger(tpn.Messenger),
 		node.WithInternalMarshalizer(TestMarshalizer, 100),
 		node.WithVmMarshalizer(TestVmMarshalizer),
@@ -1984,7 +1986,9 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		tx.Nonce,
 		tx.Value.String(),
 		TestAddressPubkeyConverter.Encode(tx.RcvAddr),
+		nil,
 		TestAddressPubkeyConverter.Encode(tx.SndAddr),
+		nil,
 		tx.GasPrice,
 		tx.GasLimit,
 		tx.Data,

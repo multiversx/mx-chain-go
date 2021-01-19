@@ -19,13 +19,14 @@ type NodeStub struct {
 	StartConsensusHandler      func() error
 	GetBalanceHandler          func(address string) (*big.Int, error)
 	GenerateTransactionHandler func(sender string, receiver string, amount string, code string) (*transaction.Transaction, error)
-	CreateTransactionHandler   func(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+	CreateTransactionHandler   func(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransactionHandler                     func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction) error
 	GetTransactionHandler                          func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountHandler                              func(address string) (state.UserAccountHandler, error)
+	GetCodeCalled                                  func(state.UserAccountHandler) []byte
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
@@ -92,10 +93,10 @@ func (ns *NodeStub) GetBalance(address string) (*big.Int, error) {
 }
 
 // CreateTransaction -
-func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiverHex string, senderHex string, gasPrice uint64,
+func (ns *NodeStub) CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 	gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error) {
 
-	return ns.CreateTransactionHandler(nonce, value, receiverHex, senderHex, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
+	return ns.CreateTransactionHandler(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, data, signatureHex, chainID, version, options)
 }
 
 //ValidateTransaction -
@@ -121,6 +122,15 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 // GetAccount -
 func (ns *NodeStub) GetAccount(address string) (state.UserAccountHandler, error) {
 	return ns.GetAccountHandler(address)
+}
+
+// GetCode -
+func (ns *NodeStub) GetCode(account state.UserAccountHandler) []byte {
+	if ns.GetCodeCalled != nil {
+		return ns.GetCodeCalled(account)
+	}
+
+	return nil
 }
 
 // GetHeartbeats -

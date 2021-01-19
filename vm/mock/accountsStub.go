@@ -30,6 +30,15 @@ type AccountsStub struct {
 	RecreateAllTriesCalled   func(rootHash []byte) (map[string]data.Trie, error)
 	GetNumCheckpointsCalled  func() uint32
 	IsLowRatingCalled        func(blsKey []byte) bool
+	GetCodeCalled            func([]byte) []byte
+}
+
+// GetCode -
+func (as *AccountsStub) GetCode(codeHash []byte) []byte {
+	if as.GetCodeCalled != nil {
+		return as.GetCodeCalled(codeHash)
+	}
+	return nil
 }
 
 // IsLowRating -

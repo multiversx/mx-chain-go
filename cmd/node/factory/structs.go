@@ -1621,7 +1621,12 @@ func newShardBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economics, txTypeHandler)
+	gasHandler, err := preprocess.NewGasComputation(
+		economics,
+		txTypeHandler,
+		epochNotifier,
+		generalConfig.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1639,7 +1644,7 @@ func newShardBlockProcessor(
 		AccountsDB:                     stateComponents.AccountsAdapter,
 		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
 		PubkeyConv:                     stateComponents.AddressPubkeyConverter,
-		Coordinator:                    shardCoordinator,
+		ShardCoordinator:               shardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   txFeeHandler,
 		EconomicsFee:                   economics,
@@ -1935,7 +1940,12 @@ func newMetaBlockProcessor(
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(economicsData, txTypeHandler)
+	gasHandler, err := preprocess.NewGasComputation(
+		economicsData,
+		txTypeHandler,
+		epochNotifier,
+		generalConfig.GeneralSettings.SCDeployEnableEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1953,7 +1963,7 @@ func newMetaBlockProcessor(
 		AccountsDB:                     stateComponents.AccountsAdapter,
 		BlockChainHook:                 vmFactory.BlockChainHookImpl(),
 		PubkeyConv:                     stateComponents.AddressPubkeyConverter,
-		Coordinator:                    shardCoordinator,
+		ShardCoordinator:               shardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   txFeeHandler,
 		EconomicsFee:                   economicsData,
@@ -2065,17 +2075,16 @@ func newMetaBlockProcessor(
 	}
 
 	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:            stateComponents.ValidatorPubkeyConverter,
-		Hasher:                core.Hasher,
-		Marshalizer:           core.InternalMarshalizer,
-		PeerState:             stateComponents.PeerAccounts,
-		BaseState:             stateComponents.AccountsAdapter,
-		ArgParser:             argsParser,
-		CurrTxs:               data.Datapool.CurrentBlockTxs(),
-		RatingsData:           ratingsData,
-		EpochNotifier:         epochNotifier,
-		StakeEnableEpoch:      systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
-		UnBondCorrectionEpoch: generalConfig.GeneralSettings.SCDeployEnableEpoch,
+		PubkeyConv:       stateComponents.ValidatorPubkeyConverter,
+		Hasher:           core.Hasher,
+		Marshalizer:      core.InternalMarshalizer,
+		PeerState:        stateComponents.PeerAccounts,
+		BaseState:        stateComponents.AccountsAdapter,
+		ArgParser:        argsParser,
+		CurrTxs:          data.Datapool.CurrentBlockTxs(),
+		RatingsData:      ratingsData,
+		EpochNotifier:    epochNotifier,
+		StakeEnableEpoch: systemSCConfig.StakingSystemSCConfig.StakeEnableEpoch,
 	}
 	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
 	if err != nil {

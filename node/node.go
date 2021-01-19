@@ -13,7 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/ElrondNetwork/elrond-go/consensus"
 	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
@@ -146,8 +146,11 @@ type Node struct {
 
 	requestHandler process.RequestHandler
 
-	signatureSize int
-	publicKeySize int
+	addressSignatureSize    int
+	addressSignatureHexSize int
+	encodedAddressLength    int
+	validatorSignatureSize  int
+	publicKeySize           int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
@@ -322,7 +325,7 @@ func (n *Node) StartConsensus() error {
 		NetworkShardingCollector: n.networkShardingCollector,
 		AntifloodHandler:         n.inputAntifloodHandler,
 		PoolAdder:                n.dataPool.MiniBlocks(),
-		SignatureSize:            n.signatureSize,
+		SignatureSize:            n.validatorSignatureSize,
 		PublicKeySize:            n.publicKeySize,
 	}
 
@@ -1042,7 +1045,9 @@ func (n *Node) CreateTransaction(
 	nonce uint64,
 	value string,
 	receiver string,
+	receiverUsername []byte,
 	sender string,
+	senderUsername []byte,
 	gasPrice uint64,
 	gasLimit uint64,
 	dataField []byte,
@@ -1054,14 +1059,32 @@ func (n *Node) CreateTransaction(
 	if version == 0 {
 		return nil, nil, ErrInvalidTransactionVersion
 	}
-	if chainID == "" {
-		return nil, nil, ErrInvalidChainID
+	if chainID == "" || len(chainID) != len(string(n.chainID)) {
+		return nil, nil, ErrInvalidChainIDInTransaction
 	}
 	if check.IfNil(n.addressPubkeyConverter) {
 		return nil, nil, ErrNilPubkeyConverter
 	}
 	if check.IfNil(n.accounts) {
 		return nil, nil, ErrNilAccountsAdapter
+	}
+	if len(signatureHex) != n.addressSignatureHexSize {
+		return nil, nil, ErrInvalidSignatureLength
+	}
+	if len(receiver) != n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
+	}
+	if len(sender) != n.encodedAddressLength {
+		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
+	}
+	if len(senderUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidSenderUsernameLength
+	}
+	if len(receiverUsername) > core.MaxUserNameLength {
+		return nil, nil, ErrInvalidReceiverUsernameLength
+	}
+	if len(dataField) > core.MegabyteSize {
+		return nil, nil, ErrDataFieldTooBig
 	}
 
 	receiverAddress, err := n.addressPubkeyConverter.Decode(receiver)
@@ -1079,23 +1102,29 @@ func (n *Node) CreateTransaction(
 		return nil, nil, errors.New("could not fetch signature bytes")
 	}
 
+	if len(value) > len(n.feeHandler.GenesisTotalSupply().String())+1 {
+		return nil, nil, ErrTransactionValueLengthTooBig
+	}
+
 	valAsBigInt, ok := big.NewInt(0).SetString(value, 10)
 	if !ok {
 		return nil, nil, ErrInvalidValue
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:     nonce,
-		Value:     valAsBigInt,
-		RcvAddr:   receiverAddress,
-		SndAddr:   senderAddress,
-		GasPrice:  gasPrice,
-		GasLimit:  gasLimit,
-		Data:      dataField,
-		Signature: signatureBytes,
-		ChainID:   []byte(chainID),
-		Version:   version,
-		Options:   options,
+		Nonce:       nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: receiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: senderUsername,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Data:        dataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(chainID),
+		Version:     version,
+		Options:     options,
 	}
 
 	var txHash []byte
@@ -1135,6 +1164,11 @@ func (n *Node) GetAccount(address string) (state.UserAccountHandler, error) {
 	}
 
 	return account, nil
+}
+
+// GetCode returns the code for the given account
+func (n *Node) GetCode(account state.UserAccountHandler) []byte {
+	return n.accounts.GetCode(account.GetCodeHash())
 }
 
 // StartHeartbeat starts the node's heartbeat processing/signaling module

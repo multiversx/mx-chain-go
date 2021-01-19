@@ -26,17 +26,16 @@ var log = logger.GetOrCreate("process/scToProtocol")
 
 // ArgStakingToPeer is struct that contain all components that are needed to create a new stakingToPeer object
 type ArgStakingToPeer struct {
-	PubkeyConv            core.PubkeyConverter
-	Hasher                hashing.Hasher
-	Marshalizer           marshal.Marshalizer
-	PeerState             state.AccountsAdapter
-	BaseState             state.AccountsAdapter
-	ArgParser             process.ArgumentsParser
-	CurrTxs               dataRetriever.TransactionCacher
-	RatingsData           process.RatingsInfoHandler
-	StakeEnableEpoch      uint32
-	UnBondCorrectionEpoch uint32
-	EpochNotifier         process.EpochNotifier
+	PubkeyConv       core.PubkeyConverter
+	Hasher           hashing.Hasher
+	Marshalizer      marshal.Marshalizer
+	PeerState        state.AccountsAdapter
+	BaseState        state.AccountsAdapter
+	ArgParser        process.ArgumentsParser
+	CurrTxs          dataRetriever.TransactionCacher
+	RatingsData      process.RatingsInfoHandler
+	StakeEnableEpoch uint32
+	EpochNotifier    process.EpochNotifier
 }
 
 // stakingToPeer defines the component which will translate changes from staking SC state
@@ -48,15 +47,13 @@ type stakingToPeer struct {
 	peerState   state.AccountsAdapter
 	baseState   state.AccountsAdapter
 
-	argParser             process.ArgumentsParser
-	currTxs               dataRetriever.TransactionCacher
-	startRating           uint32
-	unJailRating          uint32
-	jailRating            uint32
-	stakeEnableEpoch      uint32
-	unBondCorrectionEpoch uint32
-	flagStaking           atomic.Flag
-	flagUnBondCorrection  atomic.Flag
+	argParser        process.ArgumentsParser
+	currTxs          dataRetriever.TransactionCacher
+	startRating      uint32
+	unJailRating     uint32
+	jailRating       uint32
+	stakeEnableEpoch uint32
+	flagStaking      atomic.Flag
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -67,18 +64,17 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:            args.PubkeyConv,
-		hasher:                args.Hasher,
-		marshalizer:           args.Marshalizer,
-		peerState:             args.PeerState,
-		baseState:             args.BaseState,
-		argParser:             args.ArgParser,
-		currTxs:               args.CurrTxs,
-		startRating:           args.RatingsData.StartRating(),
-		unJailRating:          args.RatingsData.StartRating(),
-		jailRating:            args.RatingsData.MinRating(),
-		stakeEnableEpoch:      args.StakeEnableEpoch,
-		unBondCorrectionEpoch: args.UnBondCorrectionEpoch,
+		pubkeyConv:       args.PubkeyConv,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		peerState:        args.PeerState,
+		baseState:        args.BaseState,
+		argParser:        args.ArgParser,
+		currTxs:          args.CurrTxs,
+		startRating:      args.RatingsData.StartRating(),
+		unJailRating:     args.RatingsData.StartRating(),
+		jailRating:       args.RatingsData.MinRating(),
+		stakeEnableEpoch: args.StakeEnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(st)
@@ -195,7 +191,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 			continue
 		}
 
-		if len(data) == 0 && stp.flagUnBondCorrection.IsSet() {
+		if len(data) == 0 {
 			continue
 		}
 
@@ -416,9 +412,6 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 func (stp *stakingToPeer) EpochConfirmed(epoch uint32) {
 	stp.flagStaking.Toggle(epoch >= stp.stakeEnableEpoch)
 	log.Debug("stakingToPeer: stake", "enabled", stp.flagStaking.IsSet())
-
-	stp.flagUnBondCorrection.Toggle(epoch >= stp.unBondCorrectionEpoch)
-	log.Debug("stakingToPeer: unBondCorrection", "enabled", stp.flagUnBondCorrection.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
