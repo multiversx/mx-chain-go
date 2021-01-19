@@ -115,6 +115,24 @@ var ErrNoTxToProcess = errors.New("no transaction to process")
 // ErrInvalidValue signals that an invalid value has been provided such as NaN to an integer field
 var ErrInvalidValue = errors.New("invalid value")
 
+// ErrInvalidSignatureLength signals that an invalid signature length has been provided
+var ErrInvalidSignatureLength = errors.New("invalid signature length")
+
+// ErrInvalidAddressLength signals that an invalid address length has been provided
+var ErrInvalidAddressLength = errors.New("invalid address length")
+
+// ErrInvalidChainIDInTransaction signals that an invalid chain id has been provided in transaction
+var ErrInvalidChainIDInTransaction = errors.New("invalid chain ID")
+
+// ErrInvalidSenderUsernameLength signals that the length of the sender username is invalid
+var ErrInvalidSenderUsernameLength = errors.New("invalid sender username length")
+
+// ErrInvalidReceiverUsernameLength signals that the length of the receiver username is invalid
+var ErrInvalidReceiverUsernameLength = errors.New("invalid receiver username length")
+
+// ErrDataFieldTooBig signals that the data field is too big
+var ErrDataFieldTooBig = errors.New("data field is too big")
+
 // ErrNilNetworkShardingCollector defines the error for setting a nil network sharding collector
 var ErrNilNetworkShardingCollector = errors.New("nil network sharding collector")
 
@@ -178,8 +196,14 @@ var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 // ErrNilWatchdog signals that a nil watchdog has been provided
 var ErrNilWatchdog = errors.New("nil watchdog")
 
-// ErrInvalidTransactionVersion signals  that an invalid transaction version has been provided
+// ErrInvalidTransactionVersion signals that an invalid transaction version has been provided
 var ErrInvalidTransactionVersion = errors.New("invalid transaction version")
+
+// ErrInvalidMaxTransactionValueLength signals that an invalid maximum transaction value length has been provided
+var ErrInvalidMaxTransactionValueLength = errors.New("invalid transaction value length")
+
+// ErrTransactionValueLengthTooBig signals that a too big value has been given to a transaction
+var ErrTransactionValueLengthTooBig = errors.New("value length is too big")
 
 // ErrNilHistoryRepository signals that history repository is nil
 var ErrNilHistoryRepository = errors.New("history repository is nil")

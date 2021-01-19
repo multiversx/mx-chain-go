@@ -247,6 +247,102 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	assert.Equal(t, epochStart.ErrRewardMiniBlocksNumDoesNotMatch, err)
 }
 
+func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	initialProtRewardValue := big.NewInt(1000000)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwTx := &rewardTx.RewardTx{
+		Round:   100,
+		Value:   big.NewInt(0).Set(initialProtRewardValue),
+		RcvAddr: protRwAddr,
+		Epoch:   1,
+	}
+
+	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
+	mbSlice := createDefaultMiniBlocksSlice()
+	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+
+	dust := big.NewInt(1000)
+	rwd1 := rewardsCreator{
+		baseRewardsCreator: rwd,
+	}
+	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
+	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
+	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
+}
+
+func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	initialProtRewardValue := big.NewInt(10)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwTx := &rewardTx.RewardTx{
+		Round:   100,
+		Value:   big.NewInt(0).Set(initialProtRewardValue),
+		RcvAddr: protRwAddr,
+		Epoch:   1,
+	}
+
+	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
+	mbSlice := createDefaultMiniBlocksSlice()
+	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+
+	rwd1 := rewardsCreator{
+		baseRewardsCreator: rwd,
+	}
+
+	dust := big.NewInt(-10)
+	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
+	expected := big.NewInt(0).Add(dust, initialProtRewardValue).String()
+	assert.Equal(t, expected, protRwTx.Value.String())
+	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
+}
+
+func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	initialProtRewardValue := big.NewInt(-100)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwTx := &rewardTx.RewardTx{
+		Round:   100,
+		Value:   big.NewInt(0).Set(initialProtRewardValue),
+		RcvAddr: protRwAddr,
+		Epoch:   1,
+	}
+
+	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
+	mbSlice := createDefaultMiniBlocksSlice()
+	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+
+	rwd1 := rewardsCreator{
+		baseRewardsCreator: rwd,
+	}
+
+	dust := big.NewInt(0)
+	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
+	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0)))
+	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
+}
+
 func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 

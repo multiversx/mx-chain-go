@@ -30,7 +30,7 @@ const (
 
 // FacadeHandler interface defines methods that can be used by the gin webserver
 type FacadeHandler interface {
-	CreateTransaction(nonce uint64, value string, receiver string, sender string, gasPrice uint64,
+	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
 		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction) error
@@ -60,17 +60,19 @@ type MultipleTxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender    string `form:"sender" json:"sender"`
-	Receiver  string `form:"receiver" json:"receiver"`
-	Value     string `form:"value" json:"value"`
-	Data      []byte `form:"data" json:"data"`
-	Nonce     uint64 `form:"nonce" json:"nonce"`
-	GasPrice  uint64 `form:"gasPrice" json:"gasPrice"`
-	GasLimit  uint64 `form:"gasLimit" json:"gasLimit"`
-	Signature string `form:"signature" json:"signature"`
-	ChainID   string `form:"chainID" json:"chainID"`
-	Version   uint32 `form:"version" json:"version"`
-	Options   uint32 `json:"options,omitempty"`
+	Sender           string `form:"sender" json:"sender"`
+	Receiver         string `form:"receiver" json:"receiver"`
+	SenderUsername   []byte `json:"senderUsername,omitempty"`
+	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
+	Value            string `form:"value" json:"value"`
+	Data             []byte `form:"data" json:"data"`
+	Nonce            uint64 `form:"nonce" json:"nonce"`
+	GasPrice         uint64 `form:"gasPrice" json:"gasPrice"`
+	GasLimit         uint64 `form:"gasLimit" json:"gasLimit"`
+	Signature        string `form:"signature" json:"signature"`
+	ChainID          string `form:"chainID" json:"chainID"`
+	Version          uint32 `form:"version" json:"version"`
+	Options          uint32 `json:"options,omitempty"`
 }
 
 //TxResponse represents the structure on which the response will be validated against
@@ -167,7 +169,9 @@ func SimulateTransaction(c *gin.Context) {
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
@@ -250,7 +254,9 @@ func SendTransaction(c *gin.Context) {
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
@@ -341,7 +347,9 @@ func SendMultipleTransactions(c *gin.Context) {
 			receivedTx.Nonce,
 			receivedTx.Value,
 			receivedTx.Receiver,
+			receivedTx.ReceiverUsername,
 			receivedTx.Sender,
+			receivedTx.SenderUsername,
 			receivedTx.GasPrice,
 			receivedTx.GasLimit,
 			receivedTx.Data,
@@ -470,7 +478,9 @@ func ComputeTransactionGasLimit(c *gin.Context) {
 		gtx.Nonce,
 		gtx.Value,
 		gtx.Receiver,
+		gtx.ReceiverUsername,
 		gtx.Sender,
+		gtx.SenderUsername,
 		gtx.GasPrice,
 		gtx.GasLimit,
 		gtx.Data,
