@@ -844,7 +844,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			if !firstCrossShardScCallOrSpecialTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.MultiplyFactorForScCallOrSpecialTx
+			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -986,7 +986,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.MultiplyFactorForScCallOrSpecialTx)
+			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
 			numCrossShardScCallsOrSpecialTxs++
 		}
 		numTxsAdded++
@@ -1160,7 +1160,7 @@ func (txs *transactions) ProcessMiniBlock(
 	)
 
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
-	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs*core.MultiplyFactorForScCallOrSpecialTx
+	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
 	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
 		return processedTxHashes, len(processedTxHashes), process.ErrMaxBlockSizeReached
 	}

@@ -1096,7 +1096,7 @@ func (tc *transactionCoordinator) getNumOfCrossInterMbsAndTxs() (int, int) {
 func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	numMbs := len(body.MiniBlocks)
 	numTxs := 0
-	numCrossShardScCalls := 0
+	numCrossShardScCallsOrSpecialTxs := 0
 
 	allTxs := make(map[string]data.TransactionHandler)
 
@@ -1109,20 +1109,20 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-		numCrossShardScCalls += getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * core.MultiplyFactorForScCallOrSpecialTx
+		numCrossShardScCallsOrSpecialTxs += getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * core.AdditionalScrForEachScCallOrSpecialTx
 	}
 
-	if numCrossShardScCalls > 0 {
+	if numCrossShardScCallsOrSpecialTxs > 0 {
 		numMbs++
 	}
 
-	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCalls)
+	isMaxBlockSizeReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs+numCrossShardScCallsOrSpecialTxs)
 
 	log.Trace("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,
 		"numTxs", numTxs,
-		"numCrossShardScCalls", numCrossShardScCalls,
+		"numCrossShardScCallsOrSpecialTxs", numCrossShardScCallsOrSpecialTxs,
 	)
 
 	return isMaxBlockSizeReached
