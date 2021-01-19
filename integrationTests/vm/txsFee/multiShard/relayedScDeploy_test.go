@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
@@ -52,6 +54,15 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	accumulatedFees := testContextRelayer.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(13070), accumulatedFees)
 
+	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, uint64(1307), indexerTx.GasUsed)
+	require.Equal(t, "13070", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
+
 	// execute on inner tx destination
 	retCode, err = testContextInner.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -68,6 +79,16 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	require.Equal(t, big.NewInt(8490), accumulatedFees)
 
 	txs := testContextInner.GetIntermediateTransactions(t)
+
+	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
+	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
+
+	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "23070", indexerTx.Fee)
+	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
+
 	scr := txs[0]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
 

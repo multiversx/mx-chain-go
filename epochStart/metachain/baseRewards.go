@@ -417,27 +417,6 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	return nil
 }
 
-func (brc *baseRewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
-	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
-		log.Error("negative rewards protocol sustainability")
-		protocolSustainabilityRwdTx.Value.SetUint64(0)
-	}
-
-	if dustRewards.Cmp(big.NewInt(0)) < 0 {
-		log.Error("trying to adjust protocol rewards with negative value", "dustRewards", dustRewards.String())
-		return
-	}
-
-	protocolSustainabilityRwdTx.Value.Add(protocolSustainabilityRwdTx.Value, dustRewards)
-
-	log.Debug("baseRewardsCreator.adjustProtocolSustainabilityRewards",
-		"epoch", protocolSustainabilityRwdTx.GetEpoch(),
-		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
-		"value", protocolSustainabilityRwdTx.GetValue().String())
-
-	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
-}
-
 func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
 	for shId := uint32(0); shId <= brc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {

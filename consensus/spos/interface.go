@@ -36,7 +36,7 @@ type ConsensusCoreHandler interface {
 	MultiSigner() crypto.MultiSigner
 	// Rounder gets the Rounder stored in the ConsensusCore
 	Rounder() consensus.Rounder
-	// ShardCoordinator gets the Coordinator stored in the ConsensusCore
+	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 	ShardCoordinator() sharding.Coordinator
 	// SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
 	"github.com/stretchr/testify/require"
@@ -16,6 +17,7 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -41,15 +43,23 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(2), ret)
 
-	expectedBalance := big.NewInt(24170)
+	expectedBalance := big.NewInt(24160)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(16700), accumulatedFees)
+	require.Equal(t, big.NewInt(16710), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(744), developerFees)
+	require.Equal(t, big.NewInt(745), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "11870", indexerTx.Fee)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -89,6 +99,14 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(0), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "11870", indexerTx.Fee)
 }
 
 func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
@@ -96,6 +114,7 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -127,6 +146,14 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "11950", indexerTx.Fee)
 }
 
 func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
@@ -134,6 +161,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -165,6 +193,14 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "1900", indexerTx.Fee)
 }
 
 func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
@@ -172,6 +208,7 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	defer testContext.Close()
 
 	scAddress, _ := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -204,4 +241,12 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(368), developerFees)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
+	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
+
+	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
+	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
+	require.Equal(t, "2050", indexerTx.Fee)
 }
