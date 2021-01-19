@@ -781,13 +781,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	numTxsSkipped := 0
 	numTxsFailed := 0
 	numTxsWithInitialBalanceConsumed := 0
-	numCrossShardScCalls := 0
+	numCrossShardScCallsOrSpecialTxs := 0
 
 	totalTimeUsedForProcesss := time.Duration(0)
 	totalTimeUsedForComputeGasConsumed := time.Duration(0)
 
 	firstInvalidTxFound := false
-	firstCrossShardScCallFound := false
+	firstCrossShardScCallOrSpecialTxFound := false
 
 	gasConsumedByMiniBlocksInSenderShard := uint64(0)
 	mapGasConsumedByMiniBlockInReceiverShard := make(map[uint32]uint64)
@@ -838,12 +838,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		}
 		numNewTxs := 1
 
-		isCrossShardScCall := receiverShardID != txs.shardCoordinator.SelfId() && core.IsSmartContractAddress(tx.RcvAddr)
-		if isCrossShardScCall {
-			if !firstCrossShardScCallFound {
+		isCrossShardScCallOrSpecialTx := receiverShardID != txs.shardCoordinator.SelfId() &&
+			(core.IsSmartContractAddress(tx.RcvAddr) || len(tx.RcvUserName) > 0)
+		if isCrossShardScCallOrSpecialTx {
+			if !firstCrossShardScCallOrSpecialTxFound {
 				numNewMiniBlocks++
 			}
-			numNewTxs += core.MultiplyFactorForScCall
+			numNewTxs += core.AdditionalScrForEachScCallOrSpecialTx
 		}
 
 		if isMaxBlockSizeReached(numNewMiniBlocks, numNewTxs) {
@@ -979,14 +980,14 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 
 		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		txs.blockSizeComputation.AddNumTxs(1)
-		if isCrossShardScCall {
-			if !firstCrossShardScCallFound {
-				firstCrossShardScCallFound = true
+		if isCrossShardScCallOrSpecialTx {
+			if !firstCrossShardScCallOrSpecialTxFound {
+				firstCrossShardScCallOrSpecialTxFound = true
 				txs.blockSizeComputation.AddNumMiniBlocks(1)
 			}
 			//we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(core.MultiplyFactorForScCall)
-			numCrossShardScCalls++
+			txs.blockSizeComputation.AddNumTxs(core.AdditionalScrForEachScCallOrSpecialTx)
+			numCrossShardScCallsOrSpecialTxs++
 		}
 		numTxsAdded++
 	}
@@ -1014,7 +1015,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 		"num txs failed", numTxsFailed,
 		"num txs skipped", numTxsSkipped,
 		"num txs with initial balance consumed", numTxsWithInitialBalanceConsumed,
-		"num cross shard sc calls", numCrossShardScCalls,
+		"num cross shard sc calls or special txs", numCrossShardScCallsOrSpecialTxs,
 		"used time for computeGasConsumed", totalTimeUsedForComputeGasConsumed,
 		"used time for processAndRemoveBadTransaction", totalTimeUsedForProcesss)
 
@@ -1159,7 +1160,7 @@ func (txs *transactions) ProcessMiniBlock(
 	)
 
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
-	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs*core.MultiplyFactorForScCall
+	numTxs := len(miniBlockTxs) + numOfNewCrossInterTxs
 	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
 		return processedTxHashes, len(processedTxHashes), process.ErrMaxBlockSizeReached
 	}
