@@ -347,13 +347,13 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		return nil, err
 	}
 
-	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler)
+	epochNotifier := forking.NewGenericEpochNotifier()
+	epochNotifier.CheckEpoch(arg.StartEpochNum)
+
+	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, epochNotifier, generalConfig.SCDeployEnableEpoch)
 	if err != nil {
 		return nil, err
 	}
-
-	epochNotifier := forking.NewGenericEpochNotifier()
-	epochNotifier.CheckEpoch(arg.StartEpochNum)
 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -364,7 +364,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		AccountsDB:                     arg.Accounts,
 		BlockChainHook:                 vmFactoryImpl.BlockChainHookImpl(),
 		PubkeyConv:                     arg.PubkeyConv,
-		Coordinator:                    arg.ShardCoordinator,
+		ShardCoordinator:               arg.ShardCoordinator,
 		ScrForwarder:                   scForwarder,
 		TxFeeHandler:                   genesisFeeHandler,
 		EconomicsFee:                   genesisFeeHandler,

@@ -276,19 +276,19 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 
 	economicsData := createEconomicsData(tb, argEnableEpoch.PenalizedTooMuchGasEnableEpoch)
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
-		VmContainer:    vmContainer,
-		ArgsParser:     smartContract.NewArgumentParser(),
-		Hasher:         testHasher,
-		Marshalizer:    testMarshalizer,
-		AccountsDB:     accnts,
-		BlockChainHook: blockChainHook,
-		PubkeyConv:     pubkeyConv,
-		Coordinator:    oneShardCoordinator,
-		ScrForwarder:   &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder: &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:   &mock.UnsignedTxHandlerMock{},
-		EconomicsFee:   economicsData,
-		TxTypeHandler:  txTypeHandler,
+		VmContainer:      vmContainer,
+		ArgsParser:       smartContract.NewArgumentParser(),
+		Hasher:           testHasher,
+		Marshalizer:      testMarshalizer,
+		AccountsDB:       accnts,
+		BlockChainHook:   blockChainHook,
+		PubkeyConv:       pubkeyConv,
+		ShardCoordinator: oneShardCoordinator,
+		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:     &mock.UnsignedTxHandlerMock{},
+		EconomicsFee:     economicsData,
+		TxTypeHandler:    txTypeHandler,
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
@@ -437,7 +437,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	economicsData := createEconomicsData(tb, argEnableEpoch.PenalizedTooMuchGasEnableEpoch)
 
-	gasComp, _ := preprocess.NewGasComputation(economicsData, txTypeHandler)
+	gasComp, _ := preprocess.NewGasComputation(economicsData, txTypeHandler, forking.NewGenericEpochNotifier(), argEnableEpoch.DeployEnableEpoch)
 
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
@@ -448,7 +448,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		AccountsDB:                     accnts,
 		BlockChainHook:                 blockChainHook,
 		PubkeyConv:                     pubkeyConv,
-		Coordinator:                    shardCoordinator,
+		ShardCoordinator:               shardCoordinator,
 		ScrForwarder:                   intermediateTxHandler,
 		BadTxForwarder:                 intermediateTxHandler,
 		TxFeeHandler:                   feeAccumulator,
