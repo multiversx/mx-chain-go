@@ -79,7 +79,7 @@ type ArgsNewSmartContractProcessor struct {
 	AccountsDB                     state.AccountsAdapter
 	BlockChainHook                 process.BlockChainHookHandler
 	PubkeyConv                     core.PubkeyConverter
-	Coordinator                    sharding.Coordinator
+	ShardCoordinator               sharding.Coordinator
 	ScrForwarder                   process.IntermediateTransactionHandler
 	TxFeeHandler                   process.TransactionFeeHandler
 	EconomicsFee                   process.FeeHandler
@@ -119,7 +119,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 	if check.IfNil(args.PubkeyConv) {
 		return nil, process.ErrNilPubkeyConverter
 	}
-	if check.IfNil(args.Coordinator) {
+	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.ScrForwarder) {
@@ -163,7 +163,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		accounts:                       args.AccountsDB,
 		blockChainHook:                 args.BlockChainHook,
 		pubkeyConv:                     args.PubkeyConv,
-		shardCoordinator:               args.Coordinator,
+		shardCoordinator:               args.ShardCoordinator,
 		scrForwarder:                   args.ScrForwarder,
 		txFeeHandler:                   args.TxFeeHandler,
 		economicsFee:                   args.EconomicsFee,
@@ -196,9 +196,18 @@ func (sc *scProcessor) GasScheduleChange(gasSchedule map[string]map[string]uint6
 	if apiCosts == nil {
 		return
 	}
+	_, existAsyncCallStepField := apiCosts[core.AsyncCallStepField]
+	_, existAsyncCallbackGasLockField := apiCosts[core.AsyncCallbackGasLockField]
+	if !existAsyncCallStepField || !existAsyncCallbackGasLockField {
+		return
+	}
 
 	builtInFuncCost := gasSchedule[core.BuiltInCost]
 	if builtInFuncCost == nil {
+		return
+	}
+	_, existsESDTTransfer := builtInFuncCost[core.BuiltInFunctionESDTTransfer]
+	if !existsESDTTransfer {
 		return
 	}
 
@@ -1067,7 +1076,7 @@ func (sc *scProcessor) isCrossShardESDTTransfer(tx data.TransactionHandler) (str
 	return returnData, true
 }
 
-// ProcessIfError creates a smart contract result, consumed the gas and returns the value to the user
+// ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
 func (sc *scProcessor) ProcessIfError(
 	acntSnd state.UserAccountHandler,
 	txHash []byte,
@@ -1222,7 +1231,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 
 	isEmptyAddress := sc.isDestAddressEmpty(tx)
 	if !isEmptyAddress {
-		log.Debug("wrong transaction", "error", process.ErrWrongTransaction.Error())
+		log.Debug("wrong transaction - not empty address", "error", process.ErrWrongTransaction.Error())
 		return 0, process.ErrWrongTransaction
 	}
 
@@ -1289,7 +1298,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 	results, err := sc.processVMOutput(vmOutput, txHash, tx, vmInput.CallType, vmInput.GasProvided)
 	if err != nil {
 		log.Trace("Processing error", "error", err.Error())
-		return vmcommon.UserError, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
+		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
 	acntSnd, err = sc.reloadLocalAccount(acntSnd)
