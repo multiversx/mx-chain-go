@@ -387,7 +387,7 @@ func prepareSerializedDataForATransaction(
 		`ctx._source.gasUsed = params.gasUsed;`+
 		`ctx._source.fee = params.fee;`+
 		`","lang": "painless","params":`+
-		`{"status": "%s", "miniBlockHash": "%s", "log": %s, ""timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
+		`{"status": "%s", "miniBlockHash": "%s", "log": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
 		tx.Status, tx.MBHash, string(marshaledLog), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
 
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
