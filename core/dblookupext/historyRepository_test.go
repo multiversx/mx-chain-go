@@ -185,9 +185,9 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	require.Equal(t, 42, int(epoch))
 
 	// Get epoch by transaction hash DOES NOT WORK (not needed)
-	epoch, err = repo.GetEpochByHash([]byte("txA"))
+	_, err = repo.GetEpochByHash([]byte("txA"))
 	require.NotNil(t, err)
-	epoch, err = repo.GetEpochByHash([]byte("txA"))
+	_, err = repo.GetEpochByHash([]byte("txA"))
 	require.NotNil(t, err)
 }
 

@@ -2372,11 +2372,11 @@ func verifyResultsIntraShardShuffling(
 	numToRemove = numToRemove - len(removedFromEligible)
 	removedNodes = append(removedNodes, removedFromEligible...)
 
-	computedNewWaiting, removedFromWaiting = removeValidatorsFromList(computedNewWaiting, additionalLeaving, numToRemove)
+	_, removedFromWaiting = removeValidatorsFromList(computedNewWaiting, additionalLeaving, numToRemove)
 	numToRemove = numToRemove - len(removedFromWaiting)
 	removedNodes = append(removedNodes, removedFromWaiting...)
 
-	computedNewEligible, removedFromEligible = removeValidatorsFromList(computedNewEligible, additionalLeaving, numToRemove)
+	_, removedFromEligible = removeValidatorsFromList(computedNewEligible, additionalLeaving, numToRemove)
 	numToRemove = numToRemove - len(removedFromEligible)
 	removedNodes = append(removedNodes, removedFromEligible...)
 
