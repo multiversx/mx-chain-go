@@ -6,6 +6,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/block/preprocess"
@@ -170,6 +171,52 @@ func TestComputeGasConsumedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &tx)
 	assert.Equal(t, uint64(6), gasInSnd)
 	assert.Equal(t, uint64(7), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldReturnZeroIf0GasLimit(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCInvoking
+		}},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	scr := smartContractResult.SmartContractResult{GasLimit: 0, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	assert.Equal(t, uint64(0), gasInSnd)
+	assert.Equal(t, uint64(0), gasInRcv)
+}
+
+func TestComputeGasConsumedByTx_ShouldReturnZeroGasLimitIfLessThanMoveBalance(t *testing.T) {
+	t.Parallel()
+
+	gc, _ := preprocess.NewGasComputation(
+		&mock.FeeHandlerStub{
+			ComputeGasLimitCalled: func(tx process.TransactionWithFeeHandler) uint64 {
+				return 6
+			},
+		},
+		&mock.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.MoveBalance, process.SCInvoking
+		}},
+		&mock.EpochNotifierStub{},
+		0,
+	)
+
+	scr := smartContractResult.SmartContractResult{GasLimit: 3, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}
+
+	gasInSnd, gasInRcv, _ := gc.ComputeGasConsumedByTx(0, 1, &scr)
+	assert.Equal(t, uint64(3), gasInSnd)
+	assert.Equal(t, uint64(3), gasInRcv)
 }
 
 func TestComputeGasConsumedByMiniBlock_ShouldErrMissingTransaction(t *testing.T) {
