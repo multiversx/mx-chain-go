@@ -363,7 +363,7 @@ func prepareSerializedDataForATransaction(
 	}
 
 	// if transaction is cross-shard and current shard ID is destination, use upsert with updating fields
-	marshaledLog, err := json.Marshal(tx.Log)
+	marshaledLogs, err := json.Marshal(tx.Logs)
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize transaction log, will skip indexing",
@@ -387,8 +387,8 @@ func prepareSerializedDataForATransaction(
 		`ctx._source.gasUsed = params.gasUsed;`+
 		`ctx._source.fee = params.fee;`+
 		`","lang": "painless","params":`+
-		`{"status": "%s", "miniBlockHash": "%s", "log": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
-		tx.Status, tx.MBHash, string(marshaledLog), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
+		`{"status": "%s", "miniBlockHash": "%s", "logs": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s"}},"upsert":%s}`,
+		tx.Status, tx.MBHash, string(marshaledLogs), string(marshaledTimestamp), tx.GasUsed, tx.Fee, string(marshaledTx)))
 
 	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
 

@@ -40,6 +40,7 @@ func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arg
 			arguments.TransactionFeeCalculator,
 			arguments.IsInImportDBMode,
 			arguments.ShardCoordinator,
+			false,
 		),
 		elasticClient: elasticsearchWriter,
 		parser: &dataParser{

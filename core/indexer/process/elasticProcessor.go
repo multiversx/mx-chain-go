@@ -39,6 +39,7 @@ type ArgElasticProcessor struct {
 	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
 	ShardCoordinator         sharding.Coordinator
+	SaveTxsLogsEnabled       bool
 }
 
 type elasticProcessor struct {
@@ -74,6 +75,7 @@ func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, erro
 		arguments.TransactionFeeCalculator,
 		arguments.IsInImportDBMode,
 		arguments.ShardCoordinator,
+		arguments.SaveTxsLogsEnabled,
 	)
 
 	if arguments.IsInImportDBMode {
@@ -354,7 +356,8 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 }
 
 // SetTxLogsProcessor will set tx logs processor
-func (ei *elasticProcessor) SetTxLogsProcessor(_ process.TransactionLogProcessorDatabase) {
+func (ei *elasticProcessor) SetTxLogsProcessor(txLogProcessor process.TransactionLogProcessorDatabase) {
+	ei.txLogsProcessor = txLogProcessor
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server

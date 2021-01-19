@@ -27,10 +27,11 @@ var log = logger.GetOrCreate("indexer/process")
 
 type txDatabaseProcessor struct {
 	*commonProcessor
-	txLogsProcessor process.TransactionLogProcessorDatabase
-	hasher          hashing.Hasher
-	marshalizer     marshal.Marshalizer
-	isInImportMode  bool
+	txLogsProcessor    process.TransactionLogProcessorDatabase
+	hasher             hashing.Hasher
+	marshalizer        marshal.Marshalizer
+	isInImportMode     bool
+	saveTxsLogsEnabled bool
 }
 
 func newTxDatabaseProcessor(
@@ -41,6 +42,7 @@ func newTxDatabaseProcessor(
 	txFeeCalculator process.TransactionFeeCalculator,
 	isInImportMode bool,
 	shardCoordinator sharding.Coordinator,
+	saveTxsLogsEnabled bool,
 ) *txDatabaseProcessor {
 	return &txDatabaseProcessor{
 		hasher:      hasher,
@@ -52,8 +54,9 @@ func newTxDatabaseProcessor(
 			shardCoordinator:         shardCoordinator,
 			esdtProc:                 newEsdtTransactionHandler(),
 		},
-		txLogsProcessor: disabled.NewNilTxLogsProcessor(),
-		isInImportMode:  isInImportMode,
+		txLogsProcessor:    disabled.NewNilTxLogsProcessor(),
+		isInImportMode:     isInImportMode,
+		saveTxsLogsEnabled: saveTxsLogsEnabled,
 	}
 }
 
@@ -134,22 +137,28 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 		}
 	}
 
-	// TODO for the moment do not save logs in database
-	// uncomment this when transaction logs need to be saved in database
-	//for hash, tx := range transactions {
-	//	txLog, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
-	//	if !ok {
-	//		continue
-	//	}
-	//
-	//	tx.Log = tdp.prepareTxLog(txLog)
-	//}
-
-	tdp.txLogsProcessor.Clean()
+	tdp.addTxsLogsIfNeeded(transactions)
 
 	txsSlice := append(convertMapTxsToSlice(transactions), rewardsTxs...)
 
 	return txsSlice, dbSCResults, dbReceipts, alteredAddresses
+}
+
+func (tdp *txDatabaseProcessor) addTxsLogsIfNeeded(txs map[string]*types.Transaction) {
+	defer tdp.txLogsProcessor.Clean()
+
+	if !tdp.saveTxsLogsEnabled {
+		return
+	}
+
+	for hash, tx := range txs {
+		txLog, ok := tdp.txLogsProcessor.GetLogFromCache([]byte(hash))
+		if !ok {
+			continue
+		}
+
+		tx.Logs = tdp.prepareTxLog(txLog)
+	}
 }
 
 func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
@@ -191,7 +200,7 @@ func (tdp *txDatabaseProcessor) addScResultInfoInTx(dbScResult *types.ScResult, 
 	return tx
 }
 
-func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {
+func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) *types.TxLog {
 	scAddr := tdp.addressPubkeyConverter.Encode(log.GetAddress())
 	events := log.GetLogEvents()
 
@@ -208,7 +217,7 @@ func (tdp *txDatabaseProcessor) prepareTxLog(log data.LogHandler) types.TxLog {
 		}
 	}
 
-	return types.TxLog{
+	return &types.TxLog{
 		Address: scAddr,
 		Events:  txLogEvents,
 	}

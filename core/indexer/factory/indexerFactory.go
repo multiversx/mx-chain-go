@@ -45,6 +45,7 @@ type ArgsIndexerFactory struct {
 	AccountsDB               state.AccountsAdapter
 	TransactionFeeCalculator process.TransactionFeeCalculator
 	IsInImportDBMode         bool
+	SaveTxsLogsEnabled       bool
 }
 
 // NewIndexer will create a new instance of Indexer
@@ -132,6 +133,7 @@ func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor,
 		TransactionFeeCalculator: args.TransactionFeeCalculator,
 		IsInImportDBMode:         args.IsInImportDBMode,
 		ShardCoordinator:         args.ShardCoordinator,
+		SaveTxsLogsEnabled:       args.SaveTxsLogsEnabled,
 	}
 
 	return processIndexer.NewElasticProcessor(esIndexerArgs)

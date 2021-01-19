@@ -132,6 +132,7 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	transactions, _, _, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -150,6 +151,7 @@ func TestPrepareTxLog(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	scAddr := []byte("addr")
@@ -168,7 +170,7 @@ func TestPrepareTxLog(t *testing.T) {
 			},
 		},
 	}
-	expectedTxLog := types.TxLog{
+	expectedTxLog := &types.TxLog{
 		Address: txDbProc.addressPubkeyConverter.Encode(scAddr),
 		Events: []types.Event{
 			{
@@ -241,6 +243,7 @@ func TestRelayedTransactions(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	transactions, _, _, _ := txDbProc.prepareTransactionsForDatabase(body, header, txPool, 0)
@@ -270,6 +273,7 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)
@@ -520,6 +524,7 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	txHash1 := []byte("txHash1")
@@ -569,6 +574,7 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
+		false,
 	)
 
 	txHash1 := []byte("txHash1")

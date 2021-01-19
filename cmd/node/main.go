@@ -2048,7 +2048,8 @@ func createElasticIndexer(
 		Options: &indexerTypes.Options{
 			UseKibana: elasticSearchConfig.UseKibana,
 		},
-		IsInImportDBMode: isInImportDBMode,
+		IsInImportDBMode:   isInImportDBMode,
+		SaveTxsLogsEnabled: elasticSearchConfig.SaveTxsLogsEnabled,
 	}
 
 	return indexerFactory.NewIndexer(indexerFactoryArgs)
