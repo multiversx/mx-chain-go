@@ -51,15 +51,6 @@ func shardedDataCacherNotifier() dataRetriever.ShardedDataCacherNotifier {
 					if reflect.DeepEqual(key, []byte("tx2_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
 					}
-					if reflect.DeepEqual(key, []byte("tx_hash1")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					if reflect.DeepEqual(key, []byte("tx_hash2")) {
-						return &transaction.Transaction{Nonce: 11}, true
-					}
-					if reflect.DeepEqual(key, []byte("tx_hash3")) {
-						return &transaction.Transaction{Nonce: 12}, true
-					}
 					return nil, false
 				},
 				KeysCalled: func() [][]byte {
@@ -1154,7 +1145,28 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool()
+	tdp := &testscommon.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &testscommon.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, []byte("tx_hash1")) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							if reflect.DeepEqual(key, []byte("tx_hash2")) {
+								return &transaction.Transaction{Nonce: 11}, true
+							}
+							if reflect.DeepEqual(key, []byte("tx_hash3")) {
+								return &transaction.Transaction{Nonce: 12}, true
+							}
+							return nil, false
+						},
+					}
+				},
+			}
+		},
+	}
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	nbTxsProcessed := 0
 	maxBlockSize := 16
