@@ -184,11 +184,11 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return 0, 0, process.ErrNilTransaction
 	}
 
-	if !gc.flagGasComputeV2.IsSet() {
-		return gc.computeGasConsumedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
-	}
+	//if gc.flagGasComputeV2.IsSet() {
+	return gc.computeGasConsumedByTxV1(txSenderShardId, txReceiverShardId, txHandler)
+	//}
 
-	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
+	/*moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
 	txTypeSndShard, txTypeDstShard := gc.txTypeHandler.ComputeTransactionType(txHandler)
 	isSCCall := txTypeDstShard == process.SCDeployment ||
@@ -206,7 +206,7 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
-	return moveBalanceConsumption, moveBalanceConsumption, nil
+	return moveBalanceConsumption, moveBalanceConsumption, nil*/
 }
 
 func (gc *gasComputation) computeGasConsumedByTxV1(
