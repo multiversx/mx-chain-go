@@ -109,7 +109,7 @@ func (dr *dataReplayer) Range(handler func(persistedData storer2ElasticData.Roun
 		return ErrNilHandlerFunc
 	}
 
-	errChan := make(chan error, 0)
+	errChan := make(chan error)
 	signalChannel := make(chan os.Signal, 2)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 
@@ -161,9 +161,9 @@ func (dr *dataReplayer) startIndexing(errChan chan error, persistedDataHandler f
 }
 
 func (dr *dataReplayer) processMetaChainDatabase(
-	record *databasereader.DatabaseInfo,
-	dbsInfo []*databasereader.DatabaseInfo,
-	persistedDataHandler func(persistedData storer2ElasticData.RoundPersistedData) bool,
+		record *databasereader.DatabaseInfo,
+		dbsInfo []*databasereader.DatabaseInfo,
+		persistedDataHandler func(persistedData storer2ElasticData.RoundPersistedData) bool,
 ) error {
 	metaHeadersPersisters, err := dr.prepareMetaPersistersHolder(record)
 	if err != nil {
@@ -303,10 +303,10 @@ func (dr *dataReplayer) getMetaBlockForNonce(nonce uint64, metaPersisters *metaB
 }
 
 func (dr *dataReplayer) processMetaBlock(
-	metaBlock *block.MetaBlock,
-	dbsInfo []*databasereader.DatabaseInfo,
-	persisters *persistersHolder,
-	shardPersisters map[uint32]*persistersHolder,
+		metaBlock *block.MetaBlock,
+		dbsInfo []*databasereader.DatabaseInfo,
+		persisters *persistersHolder,
+		shardPersisters map[uint32]*persistersHolder,
 ) (*storer2ElasticData.RoundPersistedData, error) {
 	metaHdrData, err := dr.processHeader(persisters, metaBlock)
 	if err != nil {
@@ -332,10 +332,10 @@ func (dr *dataReplayer) processMetaBlock(
 }
 
 func (dr *dataReplayer) processShardInfo(
-	dbsInfos []*databasereader.DatabaseInfo,
-	shardInfo *block.ShardData,
-	epoch uint32,
-	shardPersisters *persistersHolder,
+		dbsInfos []*databasereader.DatabaseInfo,
+		shardInfo *block.ShardData,
+		epoch uint32,
+		shardPersisters *persistersHolder,
 ) (*storer2ElasticData.HeaderData, error) {
 	shardHeader, err := dr.getShardHeader(shardPersisters, shardInfo.HeaderHash)
 	if err != nil {
@@ -369,8 +369,8 @@ func (dr *dataReplayer) getAndProcessFromShardStorer(dbsInfos []*databasereader.
 }
 
 func (dr *dataReplayer) getShardHeader(
-	shardPersisters *persistersHolder,
-	hash []byte,
+		shardPersisters *persistersHolder,
+		hash []byte,
 ) (*block.Header, error) {
 	shardHeaderBytes, err := shardPersisters.shardHeadersPersister.Get(hash)
 	if err != nil {
@@ -405,9 +405,9 @@ func (dr *dataReplayer) getShardIDs() []uint32 {
 }
 
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
-	header data.HeaderHandler,
-	persisters *persistersHolder,
-	mbHashes [][]byte,
+		header data.HeaderHandler,
+		persisters *persistersHolder,
+		mbHashes [][]byte,
 ) (*block.Body, map[string]data.TransactionHandler, error) {
 	txPool := make(map[string]data.TransactionHandler)
 	mbUnit := persisters.miniBlocksPersister
@@ -500,10 +500,10 @@ func (dr *dataReplayer) getMiniBlockFromStorage(mbUnit storage.Persister, mbHash
 }
 
 func (dr *dataReplayer) processTransactionsForMiniBlock(
-	persisters *persistersHolder,
-	txHashes [][]byte,
-	txPool map[string]data.TransactionHandler,
-	mbType block.Type,
+		persisters *persistersHolder,
+		txHashes [][]byte,
+		txPool map[string]data.TransactionHandler,
+		mbType block.Type,
 ) error {
 	for _, txHash := range txHashes {
 		var tx data.TransactionHandler

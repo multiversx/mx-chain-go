@@ -110,9 +110,7 @@ func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uin
 	if numQueriesPerBatch > 0 {
 		wg.Add(1)
 		copiedAddresses := make([][]byte, 0)
-		for _, address := range addresses {
-			copiedAddresses = append(copiedAddresses, address)
-		}
+		copiedAddresses = append(copiedAddresses, addresses...)
 
 		scQuery := node.SCQueryService
 		go func() {

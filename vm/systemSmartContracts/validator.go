@@ -101,7 +101,7 @@ func NewValidatorSmartContract(
 		TotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
 	}
 
-	okValue := true
+	var okValue bool
 	baseConfig.UnJailPrice, okValue = big.NewInt(0).SetString(args.StakingSCConfig.UnJailValue, conversionBase)
 	if !okValue || baseConfig.UnJailPrice.Cmp(zero) <= 0 {
 		return nil, fmt.Errorf("%w, value is %v", vm.ErrInvalidUnJailCost, args.StakingSCConfig.UnJailValue)

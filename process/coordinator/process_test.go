@@ -2708,10 +2708,7 @@ func TestTransactionCoordinator_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
 		&mock.FeeAccumulatorStub{},
 		&mock.BlockSizeComputationStub{
 			IsMaxBlockSizeWithoutThrottleReachedCalled: func(i int, i2 int) bool {
-				if i+i2 > 4 {
-					return true
-				}
-				return false
+				return i+i2 > 4
 			},
 		},
 		&mock.BalanceComputationStub{},

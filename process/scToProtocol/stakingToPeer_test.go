@@ -626,8 +626,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	t.Parallel()
 
-	var peerAccount state.PeerAccountHandler
-	peerAccount = state.NewEmptyPeerAccount()
+	peerAccount := state.NewEmptyPeerAccount()
 	peerAccountsDB := &mock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return peerAccount, nil

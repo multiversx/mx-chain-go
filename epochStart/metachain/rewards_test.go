@@ -266,7 +266,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd1 := rewardsCreator{
@@ -297,7 +297,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
 		baseRewardsCreator: rwd,
@@ -330,7 +330,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard) // TODO: ignore or assert not nil
 
 	rwd1 := rewardsCreator{
 		baseRewardsCreator: rwd,

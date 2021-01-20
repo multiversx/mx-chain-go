@@ -218,7 +218,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsPositiveValue(t *te
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd2 := rewardsCreatorV2{
@@ -281,7 +281,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsInitialNegativeValu
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd2 := rewardsCreatorV2{
 		baseRewardsCreator: rwd,
@@ -1339,7 +1339,6 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	nbEligiblePerShard := uint32(400)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
 
@@ -1379,6 +1378,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
+	var miniBlocks block.MiniBlockSlice
 	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
 	require.NotNil(t, miniBlocks)
@@ -1434,7 +1434,6 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 	nbEligiblePerShard := uint32(400)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	miniBlocks := dummyRwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	multiplier, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	topupValue := big.NewInt(2500)
@@ -1476,6 +1475,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
+	var miniBlocks block.MiniBlockSlice
 	miniBlocks, err = rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
 	require.NotNil(t, miniBlocks)

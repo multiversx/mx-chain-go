@@ -373,10 +373,13 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
-	select {
-	case tsm.snapshotReq <- entry:
-		return
-	}
+	tsm.snapshotReq <- entry
+
+	// TODO:
+	//select {
+	//case tsm.snapshotReq <- entry:
+	//	return
+	//}
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {

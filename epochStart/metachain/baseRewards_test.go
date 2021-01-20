@@ -182,8 +182,7 @@ func TestBaseRewardsCreator_ProtocolSustainabilityAddressInMetachainShouldErr(t 
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	var err error
-	args.ShardCoordinator, err = sharding.NewMultiShardCoordinator(2, 0)
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
 	// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
 	args.ProtocolSustainabilityAddress = hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
 
@@ -250,7 +249,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	found := false
 	for _, mb := range mbSlice {
