@@ -3,6 +3,9 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"math/big"
+	"strings"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
@@ -14,8 +17,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	processTransaction "github.com/ElrondNetwork/elrond-go/process/transaction"
-	"math/big"
-	"strings"
 )
 
 func convertMapTxsToSlice(txs map[string]*types.Transaction) []*types.Transaction {
@@ -39,7 +40,7 @@ func addToAlteredAddresses(
 
 	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
 		alteredAddresses[tx.Sender] = &accounts.AlteredAccount{
-			IsESDTSender:    isESDTTx,
+			IsSender:        true,
 			IsESDTOperation: isESDTTx,
 			TokenIdentifier: tx.EsdtTokenIdentifier,
 		}
@@ -52,7 +53,7 @@ func addToAlteredAddresses(
 
 	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
 		alteredAddresses[tx.Receiver] = &accounts.AlteredAccount{
-			IsESDTSender:    false,
+			IsSender:        false,
 			IsESDTOperation: isESDTTx,
 			TokenIdentifier: tx.EsdtTokenIdentifier,
 		}

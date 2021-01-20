@@ -14,6 +14,7 @@ import (
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/marshal"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +40,7 @@ func generateTxs(numTxs int) map[string]data.TransactionHandler {
 
 func TestItemBlock_SaveNilHeaderShouldRetNil(t *testing.T) {
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{},
+		&testscommon.ElasticProcessorStub{},
 		&mock.MarshalizerMock{},
 		&dataBlock.Body{
 			MiniBlocks: dataBlock.MiniBlockSlice{{}},
@@ -59,7 +60,7 @@ func TestItemBlock_SaveNilHeaderShouldRetNil(t *testing.T) {
 func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveHeaderCalled: func(header data.HeaderHandler, signersIndexes []uint64, body *dataBlock.Body, notarizedHeadersHashes []string, txsSize int) error {
 				return localErr
 			},
@@ -83,7 +84,7 @@ func TestItemBlock_SaveHeaderShouldErr(t *testing.T) {
 func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
 	countCalled := 0
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveHeaderCalled: func(header data.HeaderHandler, signersIndexes []uint64, body *dataBlock.Body, notarizedHeadersHashes []string, txsSize int) error {
 				countCalled++
 				return nil
@@ -115,7 +116,7 @@ func TestItemBlock_SaveNoMiniblocksShoulCallSaveHeader(t *testing.T) {
 func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveMiniblocksCalled: func(header data.HeaderHandler, body *dataBlock.Body) (map[string]bool, error) {
 				return nil, localErr
 			},
@@ -139,7 +140,7 @@ func TestItemBlock_SaveMiniblocksShouldErr(t *testing.T) {
 func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveTransactionsCalled: func(body *dataBlock.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error {
 				return localErr
 			},
@@ -163,7 +164,7 @@ func TestItemBlock_SaveTransactionsShouldErr(t *testing.T) {
 func TestItemBlock_SaveShouldWork(t *testing.T) {
 	countCalled := 0
 	itemBlock := workItems.NewItemBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveHeaderCalled: func(header data.HeaderHandler, signersIndexes []uint64, body *dataBlock.Body, notarizedHeadersHashes []string, txsSize int) error {
 				countCalled++
 				return nil

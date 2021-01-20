@@ -1,11 +1,10 @@
-package mock
+package testscommon
 
 import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
@@ -15,13 +14,14 @@ type ElasticProcessorStub struct {
 	SaveHeaderCalled                 func(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	RemoveHeaderCalled               func(header data.HeaderHandler) error
 	RemoveMiniblocksCalled           func(header data.HeaderHandler, body *block.Body) error
+	RemoveTransactionsCalled         func(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocksCalled             func(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
 	SaveTransactionsCalled           func(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
 	SaveValidatorsRatingCalled       func(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
 	SaveRoundsInfoCalled             func(infos []types.RoundInfo) error
 	SaveShardValidatorsPubKeysCalled func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessorCalled         func(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveAccountsCalled               func(acc []state.UserAccountHandler) error
+	SaveAccountsCalled               func(acc []*types.AccountEGLD) error
 }
 
 // SaveShardStatistics -
@@ -52,6 +52,14 @@ func (eim *ElasticProcessorStub) RemoveHeader(header data.HeaderHandler) error {
 func (eim *ElasticProcessorStub) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
 	if eim.RemoveMiniblocksCalled != nil {
 		return eim.RemoveMiniblocksCalled(header, body)
+	}
+	return nil
+}
+
+// RemoveTransactions -
+func (eim *ElasticProcessorStub) RemoveTransactions(header data.HeaderHandler, body *block.Body) error {
+	if eim.RemoveMiniblocksCalled != nil {
+		return eim.RemoveTransactionsCalled(header, body)
 	}
 	return nil
 }
@@ -104,7 +112,7 @@ func (eim *ElasticProcessorStub) SetTxLogsProcessor(txLogsProc process.Transacti
 }
 
 // SaveAccounts -
-func (eim *ElasticProcessorStub) SaveAccounts(acc []state.UserAccountHandler) error {
+func (eim *ElasticProcessorStub) SaveAccounts(acc []*types.AccountEGLD) error {
 	if eim.SaveAccountsCalled != nil {
 		return eim.SaveAccountsCalled(acc)
 	}

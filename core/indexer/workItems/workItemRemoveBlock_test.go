@@ -5,21 +5,25 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestItemRemoveBlock_Save(t *testing.T) {
 	countCalled := 0
 	itemRemove := workItems.NewItemRemoveBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			RemoveHeaderCalled: func(header data.HeaderHandler) error {
 				countCalled++
 				return nil
 			},
 			RemoveMiniblocksCalled: func(header data.HeaderHandler, body *dataBlock.Body) error {
+				countCalled++
+				return nil
+			},
+			RemoveTransactionsCalled: func(header data.HeaderHandler, body *dataBlock.Body) error {
 				countCalled++
 				return nil
 			},
@@ -31,13 +35,13 @@ func TestItemRemoveBlock_Save(t *testing.T) {
 
 	err := itemRemove.Save()
 	require.NoError(t, err)
-	require.Equal(t, 2, countCalled)
+	require.Equal(t, 3, countCalled)
 }
 
 func TestItemRemoveBlock_SaveRemoveHeaderShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemRemove := workItems.NewItemRemoveBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			RemoveHeaderCalled: func(header data.HeaderHandler) error {
 				return localErr
 			},
@@ -54,7 +58,7 @@ func TestItemRemoveBlock_SaveRemoveHeaderShouldErr(t *testing.T) {
 func TestItemRemoveBlock_SaveRemoveMiniblocksShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemRemove := workItems.NewItemRemoveBlock(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			RemoveMiniblocksCalled: func(header data.HeaderHandler, body *dataBlock.Body) error {
 				return localErr
 			},

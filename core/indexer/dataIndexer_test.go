@@ -51,7 +51,7 @@ func NewDataIndexerArguments() ArgDataIndexer {
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     &mock.DispatcherMock{},
-		ElasticProcessor:   &mock.ElasticProcessorStub{},
+		ElasticProcessor:   &testscommon.ElasticProcessorStub{},
 		ShardCoordinator:   &mock.ShardCoordinatorMock{},
 	}
 }
@@ -236,7 +236,7 @@ func TestDataIndexer_SetTxLogsProcessor(t *testing.T) {
 	called := false
 
 	arguments := NewDataIndexerArguments()
-	arguments.ElasticProcessor = &mock.ElasticProcessorStub{
+	arguments.ElasticProcessor = &testscommon.ElasticProcessorStub{
 		SetTxLogsProcessorCalled: func(txLogsProc dataProcess.TransactionLogProcessorDatabase) {
 			called = true
 		},

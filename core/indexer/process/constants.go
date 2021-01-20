@@ -14,6 +14,7 @@ const (
 	scResultsIndex           = "scresults"
 	accountsESDTIndex        = "accountsesdt"
 	accountsESDTHistoryIndex = "accountsesdthistory"
+	epochInfoIndex           = "epochinfo"
 
 	openDistroIndex = "opendistro"
 

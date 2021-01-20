@@ -212,7 +212,9 @@ func (ei *elasticProcessor) createOpenDistroTemplates(indexTemplates map[string]
 
 func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*bytes.Buffer) error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex,
-		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex,
+		epochInfoIndex,
+	}
 	for _, index := range indexes {
 		indexTemplate := getTemplateByName(index, indexTemplates)
 		if indexTemplate != nil {
@@ -229,7 +231,9 @@ func (ei *elasticProcessor) createIndexTemplates(indexTemplates map[string]*byte
 
 func (ei *elasticProcessor) createIndexes() error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, validatorsIndex,
-		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
+		accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex,
+		epochInfoIndex,
+	}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateIndex(indexName)
@@ -243,7 +247,9 @@ func (ei *elasticProcessor) createIndexes() error {
 
 func (ei *elasticProcessor) createAliases() error {
 	indexes := []string{txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex,
-		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex, accountsESDTIndex}
+		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex,
+		accountsESDTIndex, epochInfoIndex,
+	}
 	for _, index := range indexes {
 		indexName := fmt.Sprintf("%s-000001", index)
 		err := ei.elasticClient.CheckAndCreateAlias(index, indexName)
@@ -310,6 +316,39 @@ func (ei *elasticProcessor) SaveHeader(
 		Refresh:    "true",
 	}
 
+	err = ei.elasticClient.DoRequest(req)
+	if err != nil {
+		return err
+	}
+
+	return ei.indexEpochInfoData(header)
+}
+
+func (ei *elasticProcessor) indexEpochInfoData(header data.HeaderHandler) error {
+	if !ei.isIndexEnabled(epochInfoIndex) ||
+		ei.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
+	var buff bytes.Buffer
+	serializedEpochInfo, err := ei.parser.serializeEpochInfoData(header)
+	if err != nil {
+		return err
+	}
+
+	buff.Grow(len(serializedEpochInfo))
+	_, err = buff.Write(serializedEpochInfo)
+	if err != nil {
+		return err
+	}
+
+	req := &esapi.IndexRequest{
+		Index:      epochInfoIndex,
+		DocumentID: fmt.Sprintf("%d", header.GetEpoch()),
+		Body:       bytes.NewReader(buff.Bytes()),
+		Refresh:    "true",
+	}
+
 	return ei.elasticClient.DoRequest(req)
 }
 
@@ -353,6 +392,37 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 	}
 
 	return ei.elasticClient.DoBulkRemove(miniblocksIndex, encodedMiniblocksHashes)
+}
+
+// RemoveTransactions will remove transaction that are in miniblock from the elasticsearch server
+func (ei *elasticProcessor) RemoveTransactions(header data.HeaderHandler, body *block.Body) error {
+	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
+		return nil
+	}
+
+	selfShardID := header.GetShardID()
+	encodedTxsHashes := make([]string, 0)
+	for _, miniblock := range body.MiniBlocks {
+		if miniblock.Type != block.RewardsBlock {
+			continue
+		}
+
+		isDstMe := selfShardID == miniblock.ReceiverShardID
+		if isDstMe {
+			// reward miniblock is always cross-shard
+			continue
+		}
+
+		for _, txHash := range miniblock.TxHashes {
+			encodedTxsHashes = append(encodedTxsHashes, hex.EncodeToString(txHash))
+		}
+	}
+
+	if len(encodedTxsHashes) == 0 {
+		return nil
+	}
+
+	return ei.elasticClient.DoBulkRemove(txIndex, encodedTxsHashes)
 }
 
 // SetTxLogsProcessor will set tx logs processor
@@ -563,12 +633,12 @@ func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*accounts.Account
 }
 
 // SaveAccounts will prepare and save information about provided accounts in elasticsearch server
-func (ei *elasticProcessor) SaveAccounts(accounts []state.UserAccountHandler) error {
+func (ei *elasticProcessor) SaveAccounts(accts []*types.AccountEGLD) error {
 	if !ei.isIndexEnabled(accountsIndex) {
 		return nil
 	}
 
-	accountsMap := ei.accountsProc.PrepareAccountsMapEGLD(accounts)
+	accountsMap := ei.accountsProc.PrepareAccountsMapEGLD(accts)
 	err := ei.serializeAndIndexAccounts(accountsMap, accountsIndex, false)
 	if err != nil {
 		return err

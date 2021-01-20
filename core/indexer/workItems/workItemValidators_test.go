@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ func TestItemValidators_Save(t *testing.T) {
 		0: {[]byte("val1"), []byte("val2")},
 	}
 	itemValidators := workItems.NewItemValidators(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveShardValidatorsPubKeysCalled: func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
 				called = true
 				return nil
@@ -37,7 +37,7 @@ func TestItemValidators_SaveValidatorsShouldErr(t *testing.T) {
 		0: {[]byte("val1"), []byte("val2")},
 	}
 	itemValidators := workItems.NewItemValidators(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveShardValidatorsPubKeysCalled: func(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error {
 				return localErr
 			},

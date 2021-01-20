@@ -49,5 +49,11 @@ func (wirb *itemRemoveBlock) Save() error {
 		return err
 	}
 
+	err = wirb.indexer.RemoveTransactions(wirb.headerHandler, body)
+	if err != nil {
+		log.Warn("itemRemoveBlock.Save could not remove transactions", "error", err.Error())
+		return err
+	}
+
 	return nil
 }

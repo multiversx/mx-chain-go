@@ -30,7 +30,6 @@ func TestAddToAlteredAddresses(t *testing.T) {
 	alterdAccount, ok := alteredAddress[receiver]
 	require.True(t, ok)
 	require.Equal(t, &accounts.AlteredAccount{
-		IsESDTSender:    false,
 		IsESDTOperation: true,
 		TokenIdentifier: tokenIdentifier,
 	}, alterdAccount)
@@ -38,7 +37,7 @@ func TestAddToAlteredAddresses(t *testing.T) {
 	alterdAccount, ok = alteredAddress[sender]
 	require.True(t, ok)
 	require.Equal(t, &accounts.AlteredAccount{
-		IsESDTSender:    true,
+		IsSender:        true,
 		IsESDTOperation: true,
 		TokenIdentifier: tokenIdentifier,
 	}, alterdAccount)

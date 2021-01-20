@@ -23,11 +23,12 @@ const numDecimalsInFloatBalance = 10
 type AccountESDT struct {
 	Account         state.UserAccountHandler
 	TokenIdentifier string
+	IsSender        bool
 }
 
 // AlteredAccount is a structure that holds information about an altered account
 type AlteredAccount struct {
-	IsESDTSender    bool
+	IsSender        bool
 	IsESDTOperation bool
 	TokenIdentifier string
 }
@@ -58,8 +59,8 @@ func NewAccountsProcessor(
 }
 
 // GetAccounts will get accounts for egld operations and esdt operations
-func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAccount) ([]state.UserAccountHandler, []*AccountESDT) {
-	accountsToIndexEGLD := make([]state.UserAccountHandler, 0)
+func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAccount) ([]*types.AccountEGLD, []*AccountESDT) {
+	accountsToIndexEGLD := make([]*types.AccountEGLD, 0)
 	accountsToIndexESDT := make([]*AccountESDT, 0)
 	for address, info := range alteredAccounts {
 		addressBytes, err := ap.addressPubkeyConverter.Decode(address)
@@ -84,39 +85,44 @@ func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAcco
 			accountsToIndexESDT = append(accountsToIndexESDT, &AccountESDT{
 				Account:         userAccount,
 				TokenIdentifier: info.TokenIdentifier,
+				IsSender:        info.IsSender,
 			})
 		}
 
-		if info.IsESDTOperation && !info.IsESDTSender {
+		if info.IsESDTOperation && !info.IsSender {
 			// should continue because he have an esdt transfer and the current account is not the sender
 			// this transfer will not affect the egld balance of the account
 			continue
 		}
 
-		accountsToIndexEGLD = append(accountsToIndexEGLD, userAccount)
+		accountsToIndexEGLD = append(accountsToIndexEGLD, &types.AccountEGLD{
+			Account:  userAccount,
+			IsSender: info.IsSender,
+		})
 	}
 
 	return accountsToIndexEGLD, accountsToIndexESDT
 }
 
 // PrepareAccountsMapEGLD will prepare a map of accounts with egld
-func (ap *AccountsProcessor) PrepareAccountsMapEGLD(accounts []state.UserAccountHandler) map[string]*types.AccountInfo {
+func (ap *AccountsProcessor) PrepareAccountsMapEGLD(accounts []*types.AccountEGLD) map[string]*types.AccountInfo {
 	accountsMap := make(map[string]*types.AccountInfo)
 	for _, userAccount := range accounts {
-		balanceAsFloat := ap.computeBalanceAsFloat(userAccount.GetBalance())
+		balanceAsFloat := ap.computeBalanceAsFloat(userAccount.Account.GetBalance())
 		acc := &types.AccountInfo{
-			Nonce:      userAccount.GetNonce(),
-			Balance:    userAccount.GetBalance().String(),
+			Nonce:      userAccount.Account.GetNonce(),
+			Balance:    userAccount.Account.GetBalance().String(),
 			BalanceNum: balanceAsFloat,
+			IsSender:   userAccount.IsSender,
 		}
-		address := ap.addressPubkeyConverter.Encode(userAccount.AddressBytes())
+		address := ap.addressPubkeyConverter.Encode(userAccount.Account.AddressBytes())
 		accountsMap[address] = acc
 	}
 
 	return accountsMap
 }
 
-// PrepareAccountsMapESDT will preaparare a map of accounts with ESDT tokens
+// PrepareAccountsMapESDT will prepare a map of accounts with ESDT tokens
 func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map[string]*types.AccountInfo {
 	accountsESDTMap := make(map[string]*types.AccountInfo)
 	for _, accountESDT := range accounts {
@@ -135,6 +141,7 @@ func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map
 			Balance:         balance.String(),
 			BalanceNum:      ap.computeBalanceAsFloat(balance),
 			Properties:      properties,
+			IsSender:        accountESDT.IsSender,
 		}
 
 		accountsESDTMap[address] = acc
@@ -153,6 +160,7 @@ func (ap *AccountsProcessor) PrepareAccountsHistory(accounts map[string]*types.A
 			Balance:         userAccount.Balance,
 			Timestamp:       currentTimestamp,
 			TokenIdentifier: userAccount.TokenIdentifier,
+			IsSender:        userAccount.IsSender,
 		}
 		addressKey := fmt.Sprintf("%s_%d", address, currentTimestamp)
 		accountsMap[addressKey] = acc

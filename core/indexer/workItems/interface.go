@@ -5,7 +5,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // WorkItemHandler defines the interface for item that needs to be saved in elasticsearch database
@@ -27,6 +26,7 @@ type saveRatingIndexer interface {
 type removeIndexer interface {
 	RemoveHeader(header data.HeaderHandler) error
 	RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error
+	RemoveTransactions(header data.HeaderHandler, body *block.Body) error
 }
 
 type saveRounds interface {
@@ -42,5 +42,5 @@ type saveValidatorsIndexer interface {
 }
 
 type saveAccountsIndexer interface {
-	SaveAccounts(accounts []state.UserAccountHandler) error
+	SaveAccounts(accounts []*types.AccountEGLD) error
 }

@@ -12,8 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
-	"github.com/ElrondNetwork/elrond-go/data/state"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,13 +43,13 @@ func TestDataDispatcher_StartIndexDataClose(t *testing.T) {
 	called := false
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	elasticProc := &mock.ElasticProcessorStub{
+	elasticProc := &testscommon.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			called = true
 			wg.Done()
 			return nil
 		},
-		SaveAccountsCalled: func(acc []state.UserAccountHandler) error {
+		SaveAccountsCalled: func(acc []*types.AccountEGLD) error {
 			time.Sleep(7 * time.Second)
 			return nil
 		},
@@ -84,7 +83,7 @@ func TestDataDispatcher_Add(t *testing.T) {
 	calledCount := uint32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	elasticProc := &mock.ElasticProcessorStub{
+	elasticProc := &testscommon.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
@@ -120,7 +119,7 @@ func TestDataDispatcher_AddWithErrorShouldRetryTheReprocessing(t *testing.T) {
 	calledCount := uint32(0)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	elasticProc := &mock.ElasticProcessorStub{
+	elasticProc := &testscommon.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			if calledCount < 2 {
 				atomic.AddUint32(&calledCount, 1)
@@ -153,7 +152,7 @@ func TestDataDispatcher_Close(t *testing.T) {
 	require.NoError(t, err)
 	dispatcher.StartIndexData()
 
-	elasticProc := &mock.ElasticProcessorStub{
+	elasticProc := &testscommon.ElasticProcessorStub{
 		SaveRoundsInfoCalled: func(infos []types.RoundInfo) error {
 			time.Sleep(1000*time.Millisecond + 200*time.Microsecond)
 			return nil

@@ -3,6 +3,8 @@ package types
 import (
 	"math/big"
 	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data/state"
 )
 
 // Transaction is a structure containing all the fields that need
@@ -134,6 +136,9 @@ type Block struct {
 	PrevHash              string        `json:"prevHash"`
 	ShardID               uint32        `json:"shardId"`
 	TxCount               uint32        `json:"txCount"`
+	AccumulatedFees       string        `json:"accumulatedFees"`
+	DeveloperFees         string        `json:"developerFees"`
+	EpochStartBlock       bool          `json:"epochStartBlock"`
 	SearchOrder           uint64        `json:"searchOrder"`
 }
 
@@ -150,6 +155,7 @@ type AccountInfo struct {
 	BalanceNum      float64 `json:"balanceNum"`
 	TokenIdentifier string  `json:"token,omitempty"`
 	Properties      string  `json:"properties,omitempty"`
+	IsSender        bool    `json:"-"`
 }
 
 // AccountBalanceHistory represents an entry in the user accounts balances history
@@ -158,6 +164,7 @@ type AccountBalanceHistory struct {
 	Timestamp       int64  `json:"timestamp"`
 	Balance         string `json:"balance"`
 	TokenIdentifier string `json:"token,omitempty"`
+	IsSender        bool   `json:"isSender,omitempty"`
 }
 
 // Miniblock is a structure containing miniblock information
@@ -214,4 +221,16 @@ type RoundInfo struct {
 	BlockWasProposed bool          `json:"blockWasProposed"`
 	ShardId          uint32        `json:"shardId"`
 	Timestamp        time.Duration `json:"timestamp"`
+}
+
+// EpochInfo holds the information about epoch
+type EpochInfo struct {
+	AccumulatedFees string `json:"accumulatedFees"`
+	DeveloperFees   string `json:"developerFees"`
+}
+
+// AccountEGLD is a structure that is needed for EGLD accounts
+type AccountEGLD struct {
+	Account  state.UserAccountHandler
+	IsSender bool
 }

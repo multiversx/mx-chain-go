@@ -5,15 +5,15 @@ import (
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/workItems"
-	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestItemTpsBenchmark_Save(t *testing.T) {
 	called := false
 	itemTPS := workItems.NewItemTpsBenchmark(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveShardStatisticsCalled: func(tpsBenchmark statistics.TPSBenchmark) error {
 				called = true
 				return nil
@@ -31,7 +31,7 @@ func TestItemTpsBenchmark_Save(t *testing.T) {
 func TestItemTpsBenchmark_SaveTpsBenchmarkShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	itemTPS := workItems.NewItemTpsBenchmark(
-		&mock.ElasticProcessorStub{
+		&testscommon.ElasticProcessorStub{
 			SaveShardStatisticsCalled: func(tpsBenchmark statistics.TPSBenchmark) error {
 				return localErr
 			},

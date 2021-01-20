@@ -122,14 +122,13 @@ func TestAccountsProcessor_GetAccountsEGLDAccounts(t *testing.T) {
 	alteredAccounts := map[string]*AlteredAccount{
 		addr: {
 			IsESDTOperation: false,
-			IsESDTSender:    false,
 			TokenIdentifier: "",
 		},
 	}
 	accounts, esdtAccounts := ap.GetAccounts(alteredAccounts)
 	require.Equal(t, 0, len(esdtAccounts))
-	require.Equal(t, []state.UserAccountHandler{
-		mockAccount,
+	require.Equal(t, []*types.AccountEGLD{
+		{Account: mockAccount},
 	}, accounts)
 }
 
@@ -149,7 +148,6 @@ func TestAccountsProcessor_GetAccountsESDTAccount(t *testing.T) {
 	alteredAccounts := map[string]*AlteredAccount{
 		addr: {
 			IsESDTOperation: true,
-			IsESDTSender:    false,
 			TokenIdentifier: "token",
 		},
 	}
@@ -175,6 +173,12 @@ func TestAccountsProcessor_PrepareAccountsMapEGLD(t *testing.T) {
 			return []byte(addr)
 		},
 	}
+
+	egldAccount := &types.AccountEGLD{
+		Account:  mockAccount,
+		IsSender: false,
+	}
+
 	accountsStub := &mock.AccountsStub{
 		LoadAccountCalled: func(container []byte) (state.AccountHandler, error) {
 			return mockAccount, nil
@@ -183,7 +187,7 @@ func TestAccountsProcessor_PrepareAccountsMapEGLD(t *testing.T) {
 	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
 	require.NotNil(t, ap)
 
-	res := ap.PrepareAccountsMapEGLD([]state.UserAccountHandler{mockAccount})
+	res := ap.PrepareAccountsMapEGLD([]*types.AccountEGLD{egldAccount})
 	require.Equal(t, map[string]*types.AccountInfo{
 		hex.EncodeToString([]byte(addr)): {
 			Nonce:      1,

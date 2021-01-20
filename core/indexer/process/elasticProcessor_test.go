@@ -830,3 +830,40 @@ func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transacti
 
 	return txs, hashes
 }
+
+func TestElasticProcessor_RemoveTransactions(t *testing.T) {
+	arguments := createMockElasticProcessorArgs()
+
+	called := false
+	txsHashes := [][]byte{[]byte("txHas1"), []byte("txHash2")}
+	expectedHashes := []string{hex.EncodeToString(txsHashes[0]), hex.EncodeToString(txsHashes[1])}
+	dbWriter := &mock.DatabaseWriterStub{
+		DoBulkRemoveCalled: func(index string, hashes []string) error {
+			require.Equal(t, txIndex, index)
+			require.Equal(t, expectedHashes, expectedHashes)
+			called = true
+			return nil
+		},
+	}
+
+	elasticSearchProc := newTestElasticSearchDatabase(dbWriter, arguments)
+
+	header := &dataBlock.Header{ShardID: core.MetachainShardId, MiniBlockHeaders: []dataBlock.MiniBlockHeader{{}}}
+	blk := &dataBlock.Body{
+		MiniBlocks: dataBlock.MiniBlockSlice{
+			{
+				TxHashes:        txsHashes,
+				Type:            dataBlock.RewardsBlock,
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+			},
+			{
+				Type: dataBlock.TxBlock,
+			},
+		},
+	}
+
+	err := elasticSearchProc.RemoveTransactions(header, blk)
+	require.Nil(t, err)
+	require.True(t, called)
+}

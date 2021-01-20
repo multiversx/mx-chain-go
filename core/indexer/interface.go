@@ -50,13 +50,14 @@ type ElasticProcessor interface {
 	SaveHeader(header data.HeaderHandler, signersIndexes []uint64, body *block.Body, notarizedHeadersHashes []string, txsSize int) error
 	RemoveHeader(header data.HeaderHandler) error
 	RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error
+	RemoveTransactions(header data.HeaderHandler, body *block.Body) error
 	SaveMiniblocks(header data.HeaderHandler, body *block.Body) (map[string]bool, error)
 	SaveTransactions(body *block.Body, header data.HeaderHandler, txPool map[string]data.TransactionHandler, selfShardID uint32, mbsInDb map[string]bool) error
 	SaveValidatorsRating(index string, validatorsRatingInfo []types.ValidatorRatingInfo) error
 	SaveRoundsInfo(infos []types.RoundInfo) error
 	SaveShardValidatorsPubKeys(shardID, epoch uint32, shardValidatorsPubKeys [][]byte) error
 	SetTxLogsProcessor(txLogsProc process.TransactionLogProcessorDatabase)
-	SaveAccounts(accounts []state.UserAccountHandler) error
+	SaveAccounts(accountsEGLD []*types.AccountEGLD) error
 	IsInterfaceNil() bool
 }
 

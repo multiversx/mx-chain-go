@@ -75,6 +75,9 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 		StateRootHash:         hex.EncodeToString(header.GetRootHash()),
 		PrevHash:              hex.EncodeToString(header.GetPrevHash()),
 		SearchOrder:           computeBlockSearchOrder(header),
+		AccumulatedFees:       header.GetAccumulatedFees().String(),
+		DeveloperFees:         header.GetDeveloperFees().String(),
+		EpochStartBlock:       header.IsStartOfEpochBlock(),
 	}
 
 	serializedBlock, err := json.Marshal(elasticBlock)
@@ -83,6 +86,25 @@ func (dp *dataParser) getSerializedElasticBlockAndHeaderHash(
 	}
 
 	return serializedBlock, headerHash, nil
+}
+
+func (dp *dataParser) serializeEpochInfoData(header data.HeaderHandler) ([]byte, error) {
+	metablock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return nil, ErrHeaderTypeAssertion
+	}
+
+	epochInfo := &types.EpochInfo{
+		AccumulatedFees: metablock.AccumulatedFeesInEpoch.String(),
+		DeveloperFees:   metablock.DevFeesInEpoch.String(),
+	}
+
+	epochInfoBytes, err := json.Marshal(epochInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return epochInfoBytes, nil
 }
 
 func (dp *dataParser) getMiniblocks(header data.HeaderHandler, body *block.Body) []*types.Miniblock {

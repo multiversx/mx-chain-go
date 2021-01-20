@@ -180,7 +180,6 @@ func (tdp *txDatabaseProcessor) addScrsReceiverToAlteredAccounts(
 		}
 		encodedReceiverAddress := scr.Receiver
 		alteredAddress[encodedReceiverAddress] = &accounts.AlteredAccount{
-			IsESDTSender:    false,
 			IsESDTOperation: scr.EsdtTokenIdentifier != "" && scr.EsdtValue != "",
 			TokenIdentifier: scr.EsdtTokenIdentifier,
 		}
