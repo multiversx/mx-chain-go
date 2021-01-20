@@ -167,7 +167,7 @@ func TestNewRewardsCreatorV2_getTopUpForAllEligibleSomeBLSKeysNotFoundZeroed(t *
 	notFoundKey := []byte("notFound")
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
-			if bytes.Compare(blsKey, notFoundKey) == 0 {
+			if bytes.Equal(blsKey, notFoundKey) {
 				return nil, fmt.Errorf("not found")
 			}
 			topUp := big.NewInt(0).Set(topUpVal)
@@ -621,7 +621,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			for shardID, vList := range vInfo {
 				for i, v := range vList {
-					if bytes.Compare(v.PublicKey, blsKey) == 0 {
+					if bytes.Equal(v.PublicKey, blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -755,7 +755,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			for shardID, vList := range vInfo {
 				for i, v := range vList {
-					if bytes.Compare(v.PublicKey, blsKey) == 0 {
+					if bytes.Equal(v.PublicKey, blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -876,7 +876,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer2169Nodes(t *testing.T) {
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 					for shardID, vList := range vInfo {
 						for i, v := range vList {
-							if bytes.Compare(v.PublicKey, blsKey) == 0 {
+							if bytes.Equal(v.PublicKey, blsKey) {
 								return nodesRewardInfo[shardID][i].topUpStake, nil
 							}
 						}
@@ -999,7 +999,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer1920Nodes(t *testing.T) {
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 					for shardID, vList := range vInfo {
 						for i, v := range vList {
-							if bytes.Compare(v.PublicKey, blsKey) == 0 {
+							if bytes.Equal(v.PublicKey, blsKey) {
 								return nodesRewardInfo[shardID][i].topUpStake, nil
 							}
 						}
@@ -1118,7 +1118,7 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200Nodes(t *testing.T) {
 				GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 					for shardID, vList := range vInfo {
 						for i, v := range vList {
-							if bytes.Compare(v.PublicKey, blsKey) == 0 {
+							if bytes.Equal(v.PublicKey, blsKey) {
 								return nodesRewardInfo[shardID][i].topUpStake, nil
 							}
 						}
@@ -1350,7 +1350,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			for shardID, vList := range vInfo {
 				for i, v := range vList {
-					if bytes.Compare(v.PublicKey, blsKey) == 0 {
+					if bytes.Equal(v.PublicKey, blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}
@@ -1447,7 +1447,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
 			for shardID, vList := range vInfo {
 				for i, v := range vList {
-					if bytes.Compare(v.PublicKey, blsKey) == 0 {
+					if bytes.Equal(v.PublicKey, blsKey) {
 						return nodesRewardInfo[shardID][i].topUpStake, nil
 					}
 				}

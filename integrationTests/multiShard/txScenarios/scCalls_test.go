@@ -84,8 +84,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
 	//deploy should work gas used should be greater than estimation and small that all gas provided
-	var gasUsed uint64
-	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx3)
+	gasUsed := nodes[0].EconomicsData.ComputeGasLimit(tx3)
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 

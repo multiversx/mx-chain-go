@@ -112,7 +112,7 @@ func main() {
 		stream, err = host.NewStream(ctx, peer.ID, protocol.ID(protocolID))
 
 		if err != nil {
-			logger.Warning("Connection failed:", err)
+			logger.Warn("Connection failed:", err)
 			continue
 		} else {
 			rw := bufio.NewReadWriter(bufio.NewReader(stream), bufio.NewWriter(stream))

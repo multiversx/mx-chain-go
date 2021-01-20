@@ -92,7 +92,7 @@ func (mbt *metaBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*H
 func (mbt *metaBlockTrack) getTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
 	metaBlocks, metaBlocksHashes := mbt.GetTrackedHeaders(core.MetachainShardId)
 	for i := 0; i < len(metaBlocks); i++ {
-		if bytes.Compare(metaBlocksHashes[i], hash) != 0 {
+		if !bytes.Equal(metaBlocksHashes[i], hash) {
 			continue
 		}
 

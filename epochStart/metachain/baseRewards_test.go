@@ -254,7 +254,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	found := false
 	for _, mb := range mbSlice {
 		for _, txHash := range mb.TxHashes {
-			if bytes.Compare(txHash, protRwTxHash) == 0 {
+			if bytes.Equal(txHash, protRwTxHash) {
 				found = true
 			}
 		}

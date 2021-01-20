@@ -677,7 +677,7 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, error) {
 	waitingElementKey := s.createWaitingListKey(blsKey)
-	elementInList, err := s.getWaitingListElement(waitingElementKey)
+	_, err := s.getWaitingListElement(waitingElementKey)
 	if err == nil {
 		// node in waiting - remove from it - and that's it
 		return false, s.removeFromWaitingList(blsKey)
@@ -690,7 +690,7 @@ func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, e
 	if waitingList.Length == 0 {
 		return false, nil
 	}
-	elementInList, err = s.getWaitingListElement(waitingList.FirstKey)
+	elementInList, err := s.getWaitingListElement(waitingList.FirstKey)
 	if err != nil {
 		return false, err
 	}

@@ -330,7 +330,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard) // TODO: ignore or assert not nil
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
 		baseRewardsCreator: rwd,
@@ -599,7 +599,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0])
+	cloneMb := *miniBlocks[0]
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRwdTx := &rewardTx.RewardTx{
 		Round:   0,
@@ -714,7 +714,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0])
+	cloneMb := miniBlocks[0]
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,

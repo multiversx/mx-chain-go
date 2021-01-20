@@ -494,7 +494,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	t.Parallel()
 
 	trieMock := mock.TrieStub{}
-	adr, _, adb := generateAddressAccountAccountsDB(&mock.TrieStub{})
+	adr, _, _ := generateAddressAccountAccountsDB(&mock.TrieStub{})
 
 	//Step 1. Create an account + its DbAccount representation
 	testAccount := mock.NewAccountWrapMock(adr)
@@ -510,7 +510,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 		return buff, nil
 	}
 
-	adb, _ = state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
