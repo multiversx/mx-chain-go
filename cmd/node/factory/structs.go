@@ -1556,6 +1556,8 @@ func newShardBlockProcessor(
 		WorkingDir:         workingDir,
 		NilCompiledSCStore: false,
 	}
+	//testing
+	config.VirtualMachine.Execution.OutOfProcessEnabled = true
 	vmFactory, err := shard.NewVMContainerFactory(
 		config.VirtualMachine.Execution,
 		economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),

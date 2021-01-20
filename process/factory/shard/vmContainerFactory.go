@@ -1,6 +1,8 @@
 package shard
 
 import (
+	"runtime/debug"
+
 	"github.com/ElrondNetwork/arwen-wasm-vm/arwen"
 	arwenHost "github.com/ElrondNetwork/arwen-wasm-vm/arwen/host"
 	ipcCommon "github.com/ElrondNetwork/arwen-wasm-vm/ipc/common"
@@ -20,6 +22,7 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
+var log = logger.GetOrCreate("process/factory/shard")
 
 type vmContainerFactory struct {
 	config                         config.VirtualMachineConfig
@@ -85,9 +88,11 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 
 func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, error) {
 	if vmf.config.OutOfProcessEnabled {
+		log.Warn("testing: Arwen", "type", "out-of-process", "stack", string(debug.Stack()))
 		return vmf.createOutOfProcessArwenVM()
 	}
 
+	log.Warn("testing: Arwen", "type", "in-process", "stack", string(debug.Stack()))
 	return vmf.createInProcessArwenVM()
 }
 
