@@ -144,7 +144,7 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 	require.Equal(t, 42, int(metadata.Epoch))
 	require.Equal(t, 4321, int(metadata.Round))
 
-	metadata, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
+	_, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
 	require.NotNil(t, err)
 }
 

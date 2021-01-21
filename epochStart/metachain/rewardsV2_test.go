@@ -249,7 +249,7 @@ func TestRewardsCreatorV2_adjustProtocolSustainabilityRewardsNegValueNotAccepted
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd2 := rewardsCreatorV2{
 		baseRewardsCreator: rwd,

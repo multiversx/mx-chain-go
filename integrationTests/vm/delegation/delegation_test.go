@@ -105,7 +105,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
+	_, _ = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)
 
 	for i := 0; i < len(balancesAfterClaimRewards); i++ {

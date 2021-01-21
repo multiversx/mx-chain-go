@@ -530,7 +530,6 @@ func TestTxProcessor_CheckTxValuesMismatchedReceiverUsernamesShouldErr(t *testin
 func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var err error
 	adr1 := []byte{65}
 	senderAcc, err := state.NewUserAccount(adr1)
 	adr2 := []byte{66}
