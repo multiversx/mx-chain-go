@@ -30,9 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//TODO: remove this
-import _ "net/http/pprof"
-
 var log = logger.GetOrCreate("arwenVMtest")
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
@@ -376,7 +373,7 @@ func deployAndExecuteERC20WithBigInt(
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
-		testContext.ScForwarder.CreateBlockStarted()
+		testContext.CreateBlockStarted()
 	}
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
