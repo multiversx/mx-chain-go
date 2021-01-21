@@ -1017,12 +1017,6 @@ func (s *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
 	return element, nil
 }
 
-func (s *stakingSC) isInWaiting(blsKey []byte) bool {
-	waitingKey := s.createWaitingListKey(blsKey)
-	marshaledData := s.eei.GetStorage(waitingKey)
-	return len(marshaledData) > 0
-}
-
 func (s *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) error {
 	marshaledData, err := s.marshalizer.Marshal(element)
 	if err != nil {

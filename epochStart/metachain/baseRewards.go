@@ -56,7 +56,7 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag //nolint:golint,unused
+	flagDelegationSystemSCEnabled      atomic.Flag //nolint
 	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
 	mutRewardsData                     sync.RWMutex

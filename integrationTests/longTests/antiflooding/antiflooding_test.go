@@ -18,8 +18,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var log = logger.GetOrCreate("integrationtests/longtests/antiflood")
+var log = logger.GetOrCreate("integrationtests/longtests/antiflood") //nolint
 
+//nolint
 func createWorkableConfig() config.Config {
 	return config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -78,6 +79,7 @@ func createWorkableConfig() config.Config {
 	}
 }
 
+//nolint
 func createDisabledConfig() config.Config {
 	return config.Config{
 		Antiflood: config.AntifloodConfig{
@@ -111,6 +113,7 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 	}
 }
 
+//nolint
 func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, idxGoodPeers []int) []*messageProcessor {
 	processors := make([]*messageProcessor, 0, len(peers))
 	for i := 0; i < len(peers); i++ {
@@ -171,6 +174,7 @@ func intInSlice(searchFor int, slice []int) bool {
 	return false
 }
 
+//nolint
 func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRound int) {
 	header := []string{"idx", "pid", "received", "processed", "received/s", "connections"}
 	data := make([]*display.LineData, 0, len(processors))
@@ -203,6 +207,7 @@ func displayProcessors(processors []*messageProcessor, idxBadPeers []int, idxRou
 	time.Sleep(timeBetweenPrints)
 }
 
+//nolint
 func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSize int, msgSize int) {
 	lastUpdated := time.Now()
 	m := make(map[core.PeerID]int)

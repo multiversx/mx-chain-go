@@ -1049,6 +1049,7 @@ func (v *validatorSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error
 	return v.eei.ExecuteOnDestContext(v.stakingSCAddress, v.validatorSCAddress, big.NewInt(0), data)
 }
 
+//nolint
 func (v *validatorSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool {
 	vmOutput, err := v.executeOnStakingSC([]byte("setOwner@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(ownerAddress)))
 	if err != nil {
@@ -1749,6 +1750,7 @@ func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCa
 	return vmcommon.Ok
 }
 
+//nolint
 func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	// TODO: implement this. It is needed as last component of slashing. Slashing should happen to the funds of the
 	// validator which is running the nodes

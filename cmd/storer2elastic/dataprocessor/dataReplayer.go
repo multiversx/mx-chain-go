@@ -394,16 +394,6 @@ func (dr *dataReplayer) processHeader(persisters *persistersHolder, hdr data.Hea
 	}, nil
 }
 
-func (dr *dataReplayer) getShardIDs() []uint32 {
-	shardIDs := make([]uint32, 0)
-	for shard := uint32(0); shard < dr.shardCoordinator.NumberOfShards(); shard++ {
-		shardIDs = append(shardIDs, shard)
-	}
-	shardIDs = append(shardIDs, core.MetachainShardId)
-
-	return shardIDs
-}
-
 func (dr *dataReplayer) processBodyAndTransactionsPoolForHeader(
 	header data.HeaderHandler,
 	persisters *persistersHolder,
