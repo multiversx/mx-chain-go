@@ -1071,10 +1071,10 @@ func (n *Node) CreateTransaction(
 	if len(signatureHex) > n.addressSignatureHexSize {
 		return nil, nil, ErrInvalidSignatureLength
 	}
-	if len(receiver) != n.encodedAddressLength {
+	if len(receiver) > n.encodedAddressLength {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
 	}
-	if len(sender) != n.encodedAddressLength {
+	if len(sender) > n.encodedAddressLength {
 		return nil, nil, fmt.Errorf("%w for sender", ErrInvalidAddressLength)
 	}
 	if len(senderUsername) > core.MaxUserNameLength {
