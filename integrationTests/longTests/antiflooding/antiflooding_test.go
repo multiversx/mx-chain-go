@@ -160,6 +160,7 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 	return processors
 }
 
+//nolint
 func intInSlice(searchFor int, slice []int) bool {
 	for _, val := range slice {
 		if searchFor == val {
