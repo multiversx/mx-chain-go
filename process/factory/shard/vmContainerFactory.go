@@ -113,6 +113,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 				ArwenV2EnableEpoch:       vmf.deployEnableEpoch,
 				AheadOfTimeEnableEpoch:   vmf.aheadOfTimeGasUsageEnableEpoch,
 				DynGasLockEnableEpoch:    vmf.deployEnableEpoch,
+				UseWarmInstance:          vmf.config.WarmInstanceEnabled,
 			},
 			LogsMarshalizer:     logsMarshalizer,
 			MessagesMarshalizer: messagesMarshalizer,

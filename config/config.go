@@ -341,6 +341,7 @@ type VirtualMachineServicesConfig struct {
 type VirtualMachineConfig struct {
 	OutOfProcessConfig  VirtualMachineOutOfProcessConfig
 	OutOfProcessEnabled bool
+	WarmInstanceEnabled bool
 }
 
 // QueryVirtualMachineConfig holds the configuration for the virtual machine(s) used in query process

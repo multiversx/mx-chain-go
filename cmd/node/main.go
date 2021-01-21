@@ -2654,6 +2654,7 @@ func createScQueryElement(
 	} else {
 		queryVirtualMachineConfig := generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		queryVirtualMachineConfig.OutOfProcessEnabled = true
+
 		vmFactory, err = shard.NewVMContainerFactory(
 			queryVirtualMachineConfig,
 			economics.MaxGasLimitPerBlock(shardCoordinator.SelfId()),
