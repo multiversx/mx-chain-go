@@ -247,8 +247,8 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	deployAndExecuteERC20WithBigInt(t, 1000, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	//deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -308,7 +308,7 @@ func deployAndExecuteERC20WithBigInt(
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(1000000000000000)
 	gasPrice := uint64(1)
-	transferOnCalls := big.NewInt(5)
+	transferOnCalls := big.NewInt(1)
 
 	scCode := arwen.GetSCCode(fileName)
 
@@ -347,7 +347,7 @@ func deployAndExecuteERC20WithBigInt(
 	bob := []byte("12345678901234567890123456789222")
 	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(0).Mul(ownerBalance, ownerBalance))
 
-	initAlice := big.NewInt(100000)
+	initAlice := big.NewInt(100000000)
 	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
