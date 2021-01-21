@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"net/http"
 	"testing"
 	"time"
 
@@ -29,6 +30,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+//TODO: remove this
+import _ "net/http/pprof"
 
 var log = logger.GetOrCreate("arwenVMtest")
 
@@ -246,6 +250,10 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	//TODO remove this:
+	_ = http.ListenAndServe("127.0.0.1:8080", nil)
+
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
 	deployAndExecuteERC20WithBigInt(t, 1000, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
 	//deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
