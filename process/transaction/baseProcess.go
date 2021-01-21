@@ -28,7 +28,7 @@ type baseTxProcessor struct {
 }
 
 func (txProc *baseTxProcessor) getAccounts(
-		adrSrc, adrDst []byte,
+	adrSrc, adrDst []byte,
 ) (state.UserAccountHandler, state.UserAccountHandler, error) {
 
 	var acntSrc, acntDst state.UserAccountHandler
@@ -110,9 +110,9 @@ func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserA
 }
 
 func (txProc *baseTxProcessor) checkTxValues(
-		tx *transaction.Transaction,
-		acntSnd, acntDst state.UserAccountHandler,
-		isUserTxOfRelayed bool,
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+	isUserTxOfRelayed bool,
 ) error {
 	err := txProc.checkUserNames(tx, acntSnd, acntDst)
 	if err != nil {
@@ -174,13 +174,13 @@ func (txProc *baseTxProcessor) checkTxValues(
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
 	isUserNameWrong := len(tx.SndUserName) > 0 &&
-			!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
+		!check.IfNil(acntSnd) && !bytes.Equal(tx.SndUserName, acntSnd.GetUserName())
 	if isUserNameWrong {
 		return process.ErrUserNameDoesNotMatch
 	}
 
 	isUserNameWrong = len(tx.RcvUserName) > 0 &&
-			!check.IfNil(acntDst) && !bytes.Equal(tx.RcvUserName, acntDst.GetUserName())
+		!check.IfNil(acntDst) && !bytes.Equal(tx.RcvUserName, acntDst.GetUserName())
 	if isUserNameWrong {
 		if check.IfNil(acntSnd) {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx

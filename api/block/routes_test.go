@@ -268,7 +268,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"block": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
 				},

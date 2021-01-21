@@ -89,6 +89,7 @@ func NewStakingSmartContract(
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
+	// TODO: linter
 	if args.StakingSCConfig.MaxNumberOfNodesForStake < 0 {
 		return nil, vm.ErrNegativeWaitingNodesPercentage
 	}

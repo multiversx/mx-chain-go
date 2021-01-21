@@ -1345,13 +1345,12 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 	userAcc.SetCode([]byte("code"))
 	snapshot := adb.JournalLen()
 	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
-	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
 	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
 
 	err = adb.RevertToSnapshot(snapshot)
 	assert.Nil(t, err)
@@ -1384,13 +1383,12 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 
 	rootHash, _ := adb.Commit()
 	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
-	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
 	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
 
 	_, _ = adb.Commit()
 	rootHash = append(rootHash, byte(data.OldRoot))

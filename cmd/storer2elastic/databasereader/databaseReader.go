@@ -111,7 +111,7 @@ func (dr *databaseReader) GetDatabaseInfo() ([]*DatabaseInfo, error) {
 		if dbs[i].Epoch < dbs[j].Epoch {
 			return true
 		}
-		if dbs[i].Epoch > dbs[i].Epoch {
+		if dbs[i].Epoch > dbs[j].Epoch {
 			return false
 		}
 

@@ -1138,7 +1138,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
 		if flagValue != "" {
