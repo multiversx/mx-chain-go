@@ -891,16 +891,16 @@ func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
 	}
 
 	rwInfo := &rewardInfoData{
-		accumulatedFees: big.NewInt(100),
-		address:         "addressRewards",
-		protocolRewards: big.NewInt(1000),
+		accumulatedFees:     big.NewInt(100),
+		address:             "addressRewards",
+		rewardsFromProtocol: big.NewInt(1000),
 	}
 
 	rwTx, rwTxHash, err := rwd.createRewardFromRwdInfo(rwInfo, metaBlk)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.NotNil(t, rwTxHash)
-	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.protocolRewards), rwTx.Value)
+	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.rewardsFromProtocol), rwTx.Value)
 }
 
 func TestBaseRewardsCreator_initializeRewardsMiniBlocks(t *testing.T) {

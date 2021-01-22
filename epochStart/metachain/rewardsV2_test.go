@@ -1176,7 +1176,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) 
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
@@ -1228,7 +1228,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
@@ -1271,7 +1271,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithLeavingVali
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
@@ -1312,7 +1312,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithDustLeaderF
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
