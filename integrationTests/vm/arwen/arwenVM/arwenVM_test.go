@@ -59,7 +59,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
@@ -98,7 +97,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
@@ -190,7 +188,6 @@ func TestWASMMetering(t *testing.T) {
 		},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -279,7 +276,6 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
@@ -323,7 +319,6 @@ func deployAndExecuteERC20WithBigInt(
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -422,7 +417,6 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -630,7 +624,6 @@ func TestAndCatchTrieError(t *testing.T) {
 		vm.ArgEnableEpoch{},
 	)
 	require.Nil(t, err)
-
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
