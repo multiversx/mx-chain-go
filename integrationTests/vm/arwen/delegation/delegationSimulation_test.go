@@ -242,7 +242,6 @@ func doStakeOneAddress(t *testing.T, node *integrationTests.TestProcessorNode, a
 	accnt, _ := node.AccntState.GetExistingAccount(address)
 
 	tx := vm.CreateTx(
-		t,
 		address,
 		scAddress,
 		accnt.GetNonce(),

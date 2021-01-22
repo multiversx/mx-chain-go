@@ -13,7 +13,8 @@ import (
 )
 
 func TestRelayedMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -67,7 +68,8 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -83,7 +85,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 	rTxGasLimit := 2 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	_, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -107,7 +109,8 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -147,7 +150,8 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")

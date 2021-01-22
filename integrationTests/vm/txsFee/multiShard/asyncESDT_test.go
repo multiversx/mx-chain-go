@@ -13,13 +13,16 @@ import (
 )
 
 func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
-	testContextSender := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSender.Close()
 
-	testContextFirstContract := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
 	senderAddr := []byte("12345678901234567890123456789030")
@@ -130,13 +133,16 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
-	testContextSender := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSender.Close()
 
-	testContextFirstContract := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
 	senderAddr := []byte("12345678901234567890123456789030")

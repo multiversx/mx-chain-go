@@ -14,7 +14,8 @@ import (
 )
 
 func TestRelayedScDeployShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -62,7 +63,8 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -112,7 +114,8 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -160,7 +163,8 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
