@@ -90,6 +90,7 @@ func NewTrieStorageManager(
 	return tsm, nil
 }
 
+//nolint
 func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
