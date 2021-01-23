@@ -29,15 +29,21 @@ type BlockService interface {
 
 // APIBlock represents the structure for block that is returned by api routes
 type APIBlock struct {
-	Nonce           uint64               `json:"nonce"`
-	Round           uint64               `json:"round"`
-	Hash            string               `json:"hash"`
-	PrevBlockHash   string               `json:"prevBlockHash"`
-	Epoch           uint32               `json:"epoch"`
-	Shard           uint32               `json:"shard"`
-	NumTxs          uint32               `json:"numTxs"`
-	NotarizedBlocks []*APINotarizedBlock `json:"notarizedBlocks,omitempty"`
-	MiniBlocks      []*APIMiniBlock      `json:"miniBlocks,omitempty"`
+	Nonce                  uint64               `json:"nonce"`
+	Round                  uint64               `json:"round"`
+	Hash                   string               `json:"hash"`
+	PrevBlockHash          string               `json:"prevBlockHash"`
+	Epoch                  uint32               `json:"epoch"`
+	Shard                  uint32               `json:"shard"`
+	NumTxs                 uint32               `json:"numTxs"`
+	NotarizedBlocks        []*APINotarizedBlock `json:"notarizedBlocks,omitempty"`
+	MiniBlocks             []*APIMiniBlock      `json:"miniBlocks,omitempty"`
+	Timestamp              time.Duration        `json:"timestamp,omitempty"`
+	AccumulatedFees        string               `json:"accumulatedFees,omitempty"`
+	DeveloperFees          string               `json:"developerFees,omitempty"`
+	AccumulatedFeesInEpoch string               `json:"accumulatedFeesInEpoch,omitempty"`
+	DeveloperFeesInEpoch   string               `json:"developerFeesInEpoch,omitempty"`
+	Status                 string               `json:"status,omitempty"`
 }
 
 // APINotarizedBlock represents a notarized block

@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"time"
 
 	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -54,7 +55,20 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 		return nil, err
 	}
 
-	return mbp.convertMetaBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	blockAPI, err := mbp.convertMetaBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
+	blockStatus, err := mbp.getBlockStatus(storerUnit, blockAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	blockAPI.Status = blockStatus
+
+	return blockAPI, nil
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*apiBlock.APIBlock, error) {
@@ -101,14 +115,20 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	}
 
 	return &apiBlock.APIBlock{
-		Nonce:           blockHeader.Nonce,
-		Round:           blockHeader.Round,
-		Epoch:           blockHeader.Epoch,
-		Shard:           core.MetachainShardId,
-		Hash:            hex.EncodeToString(hash),
-		PrevBlockHash:   hex.EncodeToString(blockHeader.PrevHash),
-		NumTxs:          numOfTxs,
-		NotarizedBlocks: notarizedBlocks,
-		MiniBlocks:      miniblocks,
+		Nonce:                  blockHeader.Nonce,
+		Round:                  blockHeader.Round,
+		Epoch:                  blockHeader.Epoch,
+		Shard:                  core.MetachainShardId,
+		Hash:                   hex.EncodeToString(hash),
+		PrevBlockHash:          hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:                 numOfTxs,
+		NotarizedBlocks:        notarizedBlocks,
+		MiniBlocks:             miniblocks,
+		AccumulatedFees:        blockHeader.AccumulatedFees.String(),
+		DeveloperFees:          blockHeader.DeveloperFees.String(),
+		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
+		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
+		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
+		Status:                 BlockStatusOnChain,
 	}, nil
 }

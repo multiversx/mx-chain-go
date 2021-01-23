@@ -1,8 +1,12 @@
 package transaction
 
 import (
+	"bytes"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
+	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 )
 
 // TxStatus is the status of a transaction
@@ -17,6 +21,8 @@ const (
 	TxStatusFail TxStatus = "fail"
 	// TxStatusInvalid = considered invalid
 	TxStatusInvalid TxStatus = "invalid"
+	// TxStatusRewardReverted represents the identifier for a reverted reward transaction
+	TxStatusRewardReverted TxStatus = "reward-reverted"
 )
 
 // String returns the string representation of the status
@@ -26,13 +32,17 @@ func (tx TxStatus) String() string {
 
 // StatusComputer computes a transaction status
 type StatusComputer struct {
-	MiniblockType        block.Type
-	IsMiniblockFinalized bool
-	SourceShard          uint32
-	DestinationShard     uint32
-	Receiver             []byte
-	TransactionData      []byte
-	SelfShard            uint32
+	MiniblockType            block.Type
+	IsMiniblockFinalized     bool
+	SourceShard              uint32
+	DestinationShard         uint32
+	Receiver                 []byte
+	TransactionData          []byte
+	SelfShard                uint32
+	HeaderNonce              uint64
+	HeaderHash               []byte
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	Store                    dataRetriever.StorageService
 }
 
 // ComputeStatusWhenInStorageKnowingMiniblock computes the transaction status for a historical transaction
@@ -69,4 +79,34 @@ func (params *StatusComputer) isDestinationMe() bool {
 
 func (params *StatusComputer) isContractDeploy() bool {
 	return core.IsEmptyAddress(params.Receiver) && len(params.TransactionData) > 0
+}
+
+// SetStatusIfIsRewardReverted will compute and set status for a reverted reward transaction
+func (params *StatusComputer) SetStatusIfIsRewardReverted(tx *ApiTransactionResult) bool {
+	if params.MiniblockType != block.RewardsBlock {
+		return false
+	}
+
+	var storerUnit dataRetriever.UnitType
+
+	selfShardID := params.SelfShard
+	if selfShardID == core.MetachainShardId {
+		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
+	} else {
+		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(selfShardID)
+	}
+
+	nonceToByteSlice := params.Uint64ByteSliceConverter.ToByteSlice(params.HeaderNonce)
+	headerHash, err := params.Store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		// this should never happen
+		return false
+	}
+
+	if bytes.Equal(headerHash, params.HeaderHash) {
+		return false
+	}
+
+	tx.Status = TxStatusRewardReverted
+	return true
 }
