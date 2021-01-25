@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/denisbrodbeck/machineid"
@@ -75,12 +76,23 @@ func startAssessment(_ *cli.Context, version string) error {
 	log.Info("Starting host assessment process...")
 	sw := core.NewStopWatch()
 	sw.Start("whole process")
+	defer func() {
+		sw.Stop("whole process")
+		log.Debug("assessment process time measurement", sw.GetMeasurements()...)
+	}()
+	log.Info("Benchmark in progress. Please wait!")
+
+	run, err := factory.NewRunner("./testdata")
+	if err != nil {
+		return err
+	}
+
+	benchmarkResult := run.GetStringTableAfterRun()
 
 	hpg := hostParameters.NewHostParameterGetter(version)
 	log.Info("Host's anonymized info:\n" + hpg.GetParameterStringTable())
 
-	sw.Stop("whole process")
-	log.Debug("assessment process time measurement", sw.GetMeasurements()...)
+	log.Info("Host's performance info:\n" + benchmarkResult)
 
 	return nil
 }

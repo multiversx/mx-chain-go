@@ -1,7 +1,6 @@
 package arwenVM
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -13,7 +12,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
@@ -245,8 +243,13 @@ func TestMultipleTimesERC20BigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", false)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/wrc20_arwen.wasm", "transferToken", true)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
 }
 
 func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
@@ -254,8 +257,40 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
-	deployAndExecuteERC20WithBigInt(t, 3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
+	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", false)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+
+	durations, err = DeployAndExecuteERC20WithBigInt(3, 1000, nil, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer", true)
+	require.Nil(t, err)
+	displayBenchmarksResults(durations)
+}
+
+func displayBenchmarksResults(durations []time.Duration) {
+	if len(durations) == 0 {
+		return
+	}
+
+	minTime := time.Hour
+	maxTime := time.Duration(0)
+	sumTime := time.Duration(0)
+	for _, d := range durations {
+		sumTime += d
+		if minTime > d {
+			minTime = d
+		}
+		if maxTime < d {
+			maxTime = d
+		}
+	}
+
+	log.Info("execution complete",
+		"total time", sumTime,
+		"average time", sumTime/time.Duration(len(durations)),
+		"total erc20 batches", len(durations),
+		"min time", minTime,
+		"max time", maxTime,
+	)
 }
 
 func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
@@ -291,107 +326,6 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, "out of gas", testContext.GetLatestError().Error())
-}
-
-func deployAndExecuteERC20WithBigInt(
-	t *testing.T,
-	numRun int,
-	numTransferInBatch int,
-	gasSchedule map[string]map[string]uint64,
-	fileName string,
-	functionName string,
-	outOfProcess bool,
-) {
-	ownerAddressBytes := []byte("12345678901234567890123456789011")
-	ownerNonce := uint64(11)
-	ownerBalance := big.NewInt(1000000000000000)
-	gasPrice := uint64(1)
-	transferOnCalls := big.NewInt(5)
-
-	scCode := arwen.GetSCCode(fileName)
-
-	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		ownerNonce,
-		ownerAddressBytes,
-		ownerBalance,
-		gasSchedule,
-		outOfProcess,
-		vm.ArgEnableEpoch{},
-	)
-	require.Nil(t, err)
-	defer testContext.Close()
-
-	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
-
-	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	tx := vm.CreateDeployTx(
-		ownerAddressBytes,
-		ownerNonce,
-		big.NewInt(0),
-		gasPrice,
-		300_000_000,
-		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
-	)
-
-	_, err = testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Nil(t, testContext.GetLatestError())
-	ownerNonce++
-
-	alice := []byte("12345678901234567890123456789111")
-	aliceNonce := uint64(0)
-	_, _ = vm.CreateAccount(testContext.Accounts, alice, aliceNonce, big.NewInt(0).Mul(ownerBalance, ownerBalance))
-
-	bob := []byte("12345678901234567890123456789222")
-	_, _ = vm.CreateAccount(testContext.Accounts, bob, 0, big.NewInt(0).Mul(ownerBalance, ownerBalance))
-
-	initAlice := big.NewInt(100000)
-	tx = vm.CreateTransferTokenTx(ownerNonce, functionName, initAlice, scAddress, ownerAddressBytes, alice)
-
-	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
-	require.Nil(t, err)
-	require.Equal(t, returnCode, vmcommon.Ok)
-
-	for batch := 0; batch < numRun; batch++ {
-		start := time.Now()
-
-		for i := 0; i < numTransferInBatch; i++ {
-			tx = vm.CreateTransferTokenTx(aliceNonce, functionName, transferOnCalls, scAddress, alice, bob)
-
-			returnCode, err = testContext.TxProcessor.ProcessTransaction(tx)
-			require.Nil(t, err)
-			require.Equal(t, returnCode, vmcommon.Ok)
-			aliceNonce++
-		}
-
-		elapsedTime := time.Since(start)
-		fmt.Printf("time elapsed to process %d ERC20 transfers %s \n", numTransferInBatch, elapsedTime.String())
-
-		_, err = testContext.Accounts.Commit()
-		require.Nil(t, err)
-	}
-
-	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))
-	require.Equal(t, finalAlice.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", alice).Uint64())
-	finalBob := big.NewInt(int64(numRun*numTransferInBatch) * transferOnCalls.Int64())
-	require.Equal(t, finalBob.Uint64(), vm.GetIntValueFromSC(gasSchedule, testContext.Accounts, scAddress, "balanceOf", bob).Uint64())
-}
-
-func generateRandomByteArray(size int) []byte {
-	r := make([]byte, size)
-	_, _ = rand.Read(r)
-	return r
-}
-
-func createTestAddresses(numAddresses uint64) [][]byte {
-	testAccounts := make([][]byte, numAddresses)
-
-	for i := uint64(0); i < numAddresses; i++ {
-		acc := generateRandomByteArray(32)
-		testAccounts[i] = append(testAccounts[i], acc...)
-	}
-
-	return testAccounts
 }
 
 func TestJournalizingAndTimeToProcessChange(t *testing.T) {
