@@ -249,7 +249,8 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	require.Nil(t, err)
 
 	found := false
 	for _, mb := range mbSlice {
