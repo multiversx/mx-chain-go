@@ -153,13 +153,13 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		Shard: core.MetachainShardId,
 		Epoch: epoch,
 		Hash:  hex.EncodeToString(headerHash),
-		MiniBlocks: []*api.NotarizedBlock{
+		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
 			},
 		},
-		NotarizedBlocks:        []*apiBlock.APINotarizedBlock{},
+		NotarizedBlocks:        []*api.NotarizedBlock{},
 		Status:                 blockAPI.BlockStatusOnChain,
 		AccumulatedFees:        "100",
 		DeveloperFees:          "10",

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	blockStr "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/typeConverters"
@@ -138,7 +138,7 @@ func (bap *baseAPIBockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitT
 	return storer.GetFromEpoch(key, epoch)
 }
 
-func (bap *baseAPIBockProcessor) getBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *blockStr.APIBlock) (string, error) {
+func (bap *baseAPIBockProcessor) getBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
 	nonceToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(blockAPI.Nonce)
 	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
