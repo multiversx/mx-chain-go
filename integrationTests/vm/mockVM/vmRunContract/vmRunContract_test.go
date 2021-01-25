@@ -11,6 +11,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
@@ -26,14 +27,15 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	deployContract(
 		t,
 		senderAddressBytes,
@@ -51,7 +53,6 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
@@ -61,7 +62,7 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -95,14 +96,15 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -121,7 +123,6 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
@@ -131,7 +132,7 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -165,14 +166,15 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	//deploy will transfer 0
 	deployContract(
 		t,
@@ -191,7 +193,6 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
@@ -201,7 +202,7 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -235,14 +236,15 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	initialValueForInternalVariable := uint64(45)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 	gasLimit := vmOpGas + uint64(len(scCode)) + 1
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	//deploy will transfer 0 and will succeed
 	deployContract(
 		t,
@@ -261,7 +263,6 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	data := fmt.Sprintf("Add@%X", addValue)
 	//contract call tx
 	txRun := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		destinationAddressBytes,
 		senderNonce+1,
@@ -271,7 +272,7 @@ func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		data,
 	)
 
-	_, err := txProc.ProcessTransaction(txRun)
+	_, err = txProc.ProcessTransaction(txRun)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -311,7 +312,6 @@ func deployContract(
 
 	//contract creation tx
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,

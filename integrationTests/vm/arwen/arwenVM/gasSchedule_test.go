@@ -187,8 +187,7 @@ func runWASMVMBenchmark(
 		Signature: nil,
 	}
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		tb,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -196,6 +195,7 @@ func runWASMVMBenchmark(
 		false,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(tb, err)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -238,7 +238,7 @@ func runWASMVMBenchmark(
 	printGasConsumed(testContext, function, gasLimit)
 }
 
-func printGasConsumed(testContext vm.VMTestContext, functionName string, gasLimit uint64) {
+func printGasConsumed(testContext *vm.VMTestContext, functionName string, gasLimit uint64) {
 	gasRemaining := testContext.GetGasRemaining()
 	fmt.Printf("%s was executed, consumed %d gas\n", functionName, gasLimit-gasRemaining)
 }

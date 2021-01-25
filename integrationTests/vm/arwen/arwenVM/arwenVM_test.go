@@ -43,7 +43,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen/output/fib_arwen.wasm")
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -53,16 +52,16 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		arwen.CreateDeployTxData(scCode),
 	)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -89,8 +88,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/misc/fib_arwen/output/fib_arwen.wasm")
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -98,12 +96,13 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce+1, factory.ArwenVirtualMachine)
 	fmt.Println(hex.EncodeToString(scAddressBytes))
 
-	tx := vm.CreateTx(t,
+	tx := vm.CreateTx(
 		ownerAddressBytes,
 		scAddressBytes,
 		ownerNonce,
@@ -112,7 +111,7 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 		gasLimit,
 		"")
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 
 	require.Equal(t, process.ErrFailedTransaction, err)
 	require.Equal(t, process.ErrAccountNotPayable, testContext.GetLatestError())
@@ -127,7 +126,6 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 	require.Nil(t, err)
 
 	tx = vm.CreateTx(
-		t,
 		ownerAddressBytes,
 		vm.CreateEmptyAddress(),
 		ownerNonce+1,
@@ -181,8 +179,7 @@ func TestWASMMetering(t *testing.T) {
 		Signature: nil,
 	}
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -190,11 +187,12 @@ func TestWASMMetering(t *testing.T) {
 			PenalizedTooMuchGasEnableEpoch: 100,
 		},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -269,8 +267,7 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		t,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -278,6 +275,7 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		false,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
@@ -290,7 +288,7 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, "out of gas", testContext.GetLatestError().Error())
 }
@@ -312,8 +310,7 @@ func deployAndExecuteERC20WithBigInt(
 
 	scCode := arwen.GetSCCode(fileName)
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		t,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -321,6 +318,7 @@ func deployAndExecuteERC20WithBigInt(
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -335,7 +333,7 @@ func deployAndExecuteERC20WithBigInt(
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -410,8 +408,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		t,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -419,6 +416,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		false,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -432,7 +430,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@00"+hex.EncodeToString(ownerBalance.Bytes()),
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -617,8 +615,7 @@ func TestAndCatchTrieError(t *testing.T) {
 
 	scCode := arwen.GetSCCode("../testdata/erc20-c-03/wrc20_arwen.wasm")
 
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		t,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -626,6 +623,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		false,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	scAddress, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
@@ -640,7 +638,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		arwen.CreateDeployTxData(scCode)+"@"+initialSupply,
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
