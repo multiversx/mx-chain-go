@@ -224,7 +224,6 @@ func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
 
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 
-	_ = testContextInnerSource.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 
