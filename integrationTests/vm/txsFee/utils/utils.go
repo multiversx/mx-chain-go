@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -180,8 +179,9 @@ func ProcessSCRResult(
 	expectedErr error,
 ) {
 	scProcessor := testContext.ScProcessor
-	scrProcessor, ok := scProcessor.(process.SmartContractResultProcessor)
-	require.True(t, ok)
+	scrProcessor := scProcessor.GetSCResultProcessor()
+	//require.True(t, ok)
+	require.NotNil(nil, scrProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	require.True(t, ok)

@@ -542,7 +542,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
 
-	scrs := GetAllSCRs(sc)
+	tsc := NewTestScProcessor(sc)
+
+	scrs := tsc.GetAllSCRs()
 	expectedError := "@" + hex.EncodeToString([]byte(parseError.Error()))
 	require.Equal(t, expectedError, string(scrs[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
@@ -585,7 +587,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	scrs := GetAllSCRs(sc)
+	tsc := NewTestScProcessor(sc)
+	scrs := tsc.GetAllSCRs()
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
 	require.Equal(t, expectedError, string(scrs[0].GetData()))
 }
@@ -620,7 +623,8 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, GetLatestTestError(sc))
+	tsc := NewTestScProcessor(sc)
+	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, tsc.GetLatestTestError())
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
@@ -1399,8 +1403,9 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	}
 
 	_, err = sc.DeploySmartContract(tx, acntSrc)
+	tsp := NewTestScProcessor(sc)
 	require.Nil(t, err)
-	require.Nil(t, GetLatestTestError(sc))
+	require.Nil(t, tsp.GetLatestTestError())
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {

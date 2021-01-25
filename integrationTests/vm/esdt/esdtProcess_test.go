@@ -303,7 +303,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 		OriginalSender: metaNode.OwnAccount.Address,
 	}
 
-	scResultProcessor := metaNode.ScProcessor.(process.SmartContractResultProcessor)
+	scResultProcessor := metaNode.ScProcessor.GetSCResultProcessor()
 
 	returnCode, err := scResultProcessor.ProcessSmartContractResult(scr)
 	assert.Nil(t, err)
