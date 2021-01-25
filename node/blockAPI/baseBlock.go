@@ -6,7 +6,6 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -153,14 +152,7 @@ func (bap *baseAPIBockProcessor) computeBlockStatus(storerUnit dataRetriever.Uni
 	return BlockStatusOnChain, nil
 }
 
-func (bap *baseAPIBockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block) (*api.Block, error) {
-	var storerUnit dataRetriever.UnitType
-	if bap.selfShardID != core.MetachainShardId {
-		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(bap.selfShardID)
-	} else {
-		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
-	}
-
+func (bap *baseAPIBockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block, storerUnit dataRetriever.UnitType) (*api.Block, error) {
 	blockStatus, err := bap.computeBlockStatus(storerUnit, blockAPI)
 	if err != nil {
 		return nil, err
