@@ -60,15 +60,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*ap
 		return nil, err
 	}
 
-	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
-	blockStatus, err := mbp.getBlockStatus(storerUnit, blockAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	blockAPI.Status = blockStatus
-
-	return blockAPI, nil
+	return mbp.computeStatusAndPutInBlock(blockAPI)
 }
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {

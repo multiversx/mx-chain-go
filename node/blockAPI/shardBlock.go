@@ -59,15 +59,7 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 		return nil, err
 	}
 
-	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
-	blockStatus, err := sbp.getBlockStatus(storerUnit, blockAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	blockAPI.Status = blockStatus
-
-	return blockAPI, nil
+	return sbp.computeStatusAndPutInBlock(blockAPI)
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {

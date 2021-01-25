@@ -6,6 +6,7 @@ import (
 	"time"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/dblookupext"
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -138,7 +139,7 @@ func (bap *baseAPIBockProcessor) getFromStorerWithEpoch(unit dataRetriever.UnitT
 	return storer.GetFromEpoch(key, epoch)
 }
 
-func (bap *baseAPIBockProcessor) getBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
+func (bap *baseAPIBockProcessor) computeBlockStatus(storerUnit dataRetriever.UnitType, blockAPI *api.Block) (string, error) {
 	nonceToByteSlice := bap.uint64ByteSliceConverter.ToByteSlice(blockAPI.Nonce)
 	headerHash, err := bap.store.Get(storerUnit, nonceToByteSlice)
 	if err != nil {
@@ -150,4 +151,22 @@ func (bap *baseAPIBockProcessor) getBlockStatus(storerUnit dataRetriever.UnitTyp
 	}
 
 	return BlockStatusOnChain, nil
+}
+
+func (bap *baseAPIBockProcessor) computeStatusAndPutInBlock(blockAPI *api.Block) (*api.Block, error) {
+	var storerUnit dataRetriever.UnitType
+	if bap.selfShardID != core.MetachainShardId {
+		storerUnit = dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(bap.selfShardID)
+	} else {
+		storerUnit = dataRetriever.MetaHdrNonceHashDataUnit
+	}
+
+	blockStatus, err := bap.computeBlockStatus(storerUnit, blockAPI)
+	if err != nil {
+		return nil, err
+	}
+
+	blockAPI.Status = blockStatus
+
+	return blockAPI, nil
 }
