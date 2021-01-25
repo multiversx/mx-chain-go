@@ -10,7 +10,6 @@ import (
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/api"
 	"github.com/ElrondNetwork/elrond-go/api/address"
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/api/hardfork"
 	"github.com/ElrondNetwork/elrond-go/api/middleware"
 	"github.com/ElrondNetwork/elrond-go/api/node"
@@ -23,6 +22,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/core/throttler"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	apiData "github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -201,7 +201,7 @@ func (nf *nodeFacade) startRest() {
 		log.Debug("web server is off")
 	default:
 		log.Debug("creating web server limiters")
-		limiters, err := nf.createMiddlewareLimiters()
+		limiters, err := nf.CreateMiddlewareLimiters()
 		if err != nil {
 			log.Error("error creating web server limiters",
 				"error", err.Error(),
@@ -225,7 +225,8 @@ func (nf *nodeFacade) startRest() {
 	}
 }
 
-func (nf *nodeFacade) createMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
+// CreateMiddlewareLimiters will create the middleware limiters used in web server
+func (nf *nodeFacade) CreateMiddlewareLimiters() ([]api.MiddlewareProcessor, error) {
 	sourceLimiter, err := middleware.NewSourceThrottler(nf.wsAntifloodConfig.SameSourceRequests)
 	if err != nil {
 		return nil, err
@@ -419,12 +420,12 @@ func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, 
 }
 
 // GetBlockByHash return the block for a given hash
-func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+func (nf *nodeFacade) GetBlockByHash(hash string, withTxs bool) (*apiData.Block, error) {
 	return nf.node.GetBlockByHash(hash, withTxs)
 }
 
 // GetBlockByNonce returns the block for a given nonce
-func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+func (nf *nodeFacade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiData.Block, error) {
 	return nf.node.GetBlockByNonce(nonce, withTxs)
 }
 

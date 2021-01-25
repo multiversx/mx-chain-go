@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"testing"
 
-	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/dataRetriever"
 	"github.com/ElrondNetwork/elrond-go/node"
@@ -80,13 +80,13 @@ func TestGetBlockByHashFromHistoryNode(t *testing.T) {
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
-	expectedBlock := &apiBlock.APIBlock{
+	expectedBlock := &api.Block{
 		Nonce: nonce,
 		Round: round,
 		Shard: shardID,
 		Epoch: epoch,
 		Hash:  hex.EncodeToString(headerHash),
-		MiniBlocks: []*apiBlock.APIMiniBlock{
+		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
@@ -147,13 +147,13 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 	nonceBytes := uint64Converter.ToByteSlice(nonce)
 	_ = storerMock.Put(nonceBytes, headerHash)
 
-	expectedBlock := &apiBlock.APIBlock{
+	expectedBlock := &api.Block{
 		Nonce: nonce,
 		Round: round,
 		Shard: core.MetachainShardId,
 		Epoch: epoch,
 		Hash:  hex.EncodeToString(headerHash),
-		MiniBlocks: []*apiBlock.APIMiniBlock{
+		MiniBlocks: []*api.NotarizedBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
@@ -220,13 +220,13 @@ func TestGetBlockByNonceFromHistoryNode(t *testing.T) {
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(func() []byte { hashBytes, _ := hex.DecodeString(headerHash); return hashBytes }(), headerBytes)
 
-	expectedBlock := &apiBlock.APIBlock{
+	expectedBlock := &api.Block{
 		Nonce: nonce,
 		Round: round,
 		Shard: shardID,
 		Epoch: epoch,
 		Hash:  headerHash,
-		MiniBlocks: []*apiBlock.APIMiniBlock{
+		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
@@ -282,13 +282,13 @@ func TestGetBlockByNonceFromNormalNode(t *testing.T) {
 		}),
 	)
 
-	expectedBlock := &apiBlock.APIBlock{
+	expectedBlock := &api.Block{
 		Nonce: nonce,
 		Round: round,
 		Shard: shardID,
 		Epoch: epoch,
 		Hash:  headerHash,
-		MiniBlocks: []*apiBlock.APIMiniBlock{
+		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
@@ -357,13 +357,13 @@ func TestGetBlockByHashFromHistoryNode_StatusReverted(t *testing.T) {
 	correctHash := []byte("correct-hash")
 	_ = storerMock.Put(nonceBytes, correctHash)
 
-	expectedBlock := &apiBlock.APIBlock{
+	expectedBlock := &api.Block{
 		Nonce: nonce,
 		Round: round,
 		Shard: shardID,
 		Epoch: epoch,
 		Hash:  hex.EncodeToString(headerHash),
-		MiniBlocks: []*apiBlock.APIMiniBlock{
+		MiniBlocks: []*api.MiniBlock{
 			{
 				Hash: hex.EncodeToString(miniblockHeader),
 				Type: block.TxBlock.String(),
