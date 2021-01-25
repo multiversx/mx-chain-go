@@ -112,6 +112,8 @@ func (tdp *txDatabaseProcessor) prepareTransactionsForDatabase(
 			continue
 		}
 
+		tx.HasSCR = true
+
 		if isRelayedTx(tx) {
 			tx.GasUsed = tx.GasLimit
 			fee := tdp.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, tx.GasUsed)

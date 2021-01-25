@@ -35,6 +35,7 @@ type Transaction struct {
 	SenderUserName       []byte        `json:"senderUserName,omitempty"`
 	ReceiverUserName     []byte        `json:"receiverUserName,omitempty"`
 	Logs                 *TxLog        `json:"logs,omitempty"`
+	HasSCR               bool          `json:"hasScResults,omitempty"`
 	SmartContractResults []*ScResult   `json:"-"`
 	RcvAddrBytes         []byte        `json:"-"`
 }
