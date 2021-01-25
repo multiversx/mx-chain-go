@@ -7,7 +7,6 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 // TestScProcessor extends scProcessor and is used in tests as it exposes some functions
@@ -107,16 +106,4 @@ func (tsp *TestScProcessor) GetAllSCRs() []data.TransactionHandler {
 // CleanGasRefunded cleans the gas computation handler
 func (tsp *TestScProcessor) CleanGasRefunded() {
 	tsp.gasHandler.Init()
-}
-
-// GetSCResultProcessor return SmartContractResultProcessor
-func (tsp *TestScProcessor) GetSCResultProcessor() process.SmartContractResultProcessor {
-	scrProvider, ok := tsp.scrForwarder.(interface {
-		GetSmartContractResultProcessor() process.SmartContractResultProcessor
-	})
-	if !ok {
-		return nil
-	}
-
-	return scrProvider.GetSmartContractResultProcessor()
 }

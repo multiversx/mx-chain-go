@@ -1309,7 +1309,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
-	sc, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
@@ -1345,7 +1345,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,
-		tpn.ScProcessor.GetSCResultProcessor(),
+		tpn.ScProcessor,
 		tpn.RewardsProcessor,
 		tpn.EconomicsData,
 		tpn.GasHandler,

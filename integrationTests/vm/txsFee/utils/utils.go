@@ -179,14 +179,13 @@ func ProcessSCRResult(
 	expectedErr error,
 ) {
 	scProcessor := testContext.ScProcessor
-	scrProcessor := scProcessor.GetSCResultProcessor()
 	//require.True(t, ok)
-	require.NotNil(nil, scrProcessor)
+	require.NotNil(nil, scProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	require.True(t, ok)
 
-	retCode, err := scrProcessor.ProcessSmartContractResult(scr)
+	retCode, err := scProcessor.ProcessSmartContractResult(scr)
 	require.Equal(t, expectedCode, retCode)
 	require.Equal(t, expectedErr, err)
 }
