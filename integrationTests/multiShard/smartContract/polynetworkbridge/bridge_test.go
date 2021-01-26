@@ -90,13 +90,9 @@ func TestBridge_Setup(t *testing.T) {
 		deploymentData,
 		100000,
 	)
-	fmt.Println()
-	fmt.Println("deployment sent")
-	fmt.Println()
-
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
-	txValue := big.NewInt(5000000000000000000)
+	txValue := big.NewInt(1000)
 	txData := "performWrappedEgldIssue@05"
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
@@ -104,12 +100,8 @@ func TestBridge_Setup(t *testing.T) {
 		txValue,
 		scAddressBytes,
 		txData,
-		100000000,
+		integrationTests.AdditionalGasLimit,
 	)
-	fmt.Println()
-	fmt.Println("call sent")
-	fmt.Println()
-
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
 
 	scQuery := &process.SCQuery{
