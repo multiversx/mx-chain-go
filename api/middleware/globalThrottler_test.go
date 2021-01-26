@@ -131,7 +131,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"address": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/:address", Open: true},
 					{Name: "/:address/balance", Open: true},
 				},

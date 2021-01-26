@@ -44,7 +44,7 @@ func createMockArguments() ArgNodeFacade {
 		},
 		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
 			"node": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "status"},
 				},
 			},

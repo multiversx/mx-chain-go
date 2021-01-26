@@ -174,8 +174,7 @@ func (stp *stakingToPeer) UpdateProtocol(body *block.Body, nonce uint64) error {
 		blsPubKey := []byte(key)
 		log.Trace("get on StakingScAddress called", "blsKey", blsPubKey)
 
-		var data []byte
-		data = stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
+		data := stp.getStorageFromAccount(stakingSCAccount, blsPubKey)
 		// no data under key -> peer can be deleted from trie
 		var existingAcc state.AccountHandler
 		existingAcc, err = stp.peerState.GetExistingAccount(blsPubKey)

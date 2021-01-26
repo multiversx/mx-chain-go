@@ -77,7 +77,6 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	assert.Equal(t, initialBalance, senderAccount.GetBalance())
 
 	//check balance address that try to deploy contract should consume all the gas provided
-	gasUsed := nodes[0].EconomicsData.MaxGasLimitPerBlock(0) - 1
 	txFee := nodes[0].EconomicsData.ComputeTxFee(tx2)
 	expectedBalance := big.NewInt(0).Sub(initialBalance, txFee)
 	senderAccount = getUserAccount(nodes, players[2].Address)
@@ -85,7 +84,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
 	//deploy should work gas used should be greater than estimation and small that all gas provided
-	gasUsed = nodes[0].EconomicsData.ComputeGasLimit(tx3)
+	gasUsed := nodes[0].EconomicsData.ComputeGasLimit(tx3)
 	txFee = big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasUsed), big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice))
 	expectedBalance = big.NewInt(0).Sub(initialBalance, txFee)
 
