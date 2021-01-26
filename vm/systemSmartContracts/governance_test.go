@@ -372,8 +372,6 @@ func TestGovernanceContract_ExecuteHardfork(t *testing.T) {
 			require.Equal(t, stopNonce, genProposal.EndVoteNonce)
 			require.Equal(t, callerAddr, genProposal.IssuerAddress)
 			require.False(t, genProposal.Voted)
-
-			return
 		},
 	}
 
@@ -419,8 +417,6 @@ func TestGovernanceContract_ExecuteProposal(t *testing.T) {
 			require.Equal(t, stopNonce, genProposal.EndVoteNonce)
 			require.Equal(t, callerAddr, genProposal.IssuerAddress)
 			require.False(t, genProposal.Voted)
-
-			return
 		},
 	}
 

@@ -33,8 +33,6 @@ type flags struct {
 	ratingConfigFilePath string
 	nodesSetupFilePath   string
 	startingEpoch        int
-	numShards            int
-	timeout              int
 }
 
 var (

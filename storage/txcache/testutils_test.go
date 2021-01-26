@@ -15,14 +15,6 @@ const oneBillion = oneMilion * 1000
 const delta = 0.00000001
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
-func toNanoERD(erd float64) uint64 {
-	return uint64(erd * float64(1000000000))
-}
-
-func kBToBytes(kB float32) uint64 {
-	return uint64(kB * 1000)
-}
-
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	journal := cache.checkInternalConsistency()
 	return journal.isFine()
