@@ -17,7 +17,6 @@ func TestDelegationBenchmark_ShouldWork(t *testing.T) {
 	db := NewDelegationBenchmark(
 		ArgDelegationBenchmark{
 			Name:               testName,
-			GasFilename:        "../testdata/testGasSchedule.toml",
 			ScFilename:         "../testdata/delegation_v0_5_2_full.wasm",
 			NumRuns:            1,
 			NumTxPerBatch:      100,

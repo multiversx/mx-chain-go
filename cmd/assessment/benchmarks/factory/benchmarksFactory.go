@@ -32,7 +32,6 @@ func CreateBenchmarksList(testDataDirectory string) []benchmarks.BenchmarkRunner
 func createFibBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "fibonacci",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "fibonacci.wasm"),
 		TestingValue: 32,
 		Function:     "_main",
@@ -46,7 +45,6 @@ func createFibBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCPUCalculateBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "cpu calculate",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cpucalculate.wasm"),
 		TestingValue: 8000,
 		Function:     "cpuCalculate",
@@ -60,7 +58,6 @@ func createCPUCalculateBenchmark(testDataDirectory string) benchmarks.BenchmarkR
 func createStoreBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "storage100",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "storage100.wasm"),
 		TestingValue: 0,
 		Function:     "store100",
@@ -74,7 +71,6 @@ func createStoreBenchmark(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCApiBigInt(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API big int",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cApiTest.wasm"),
 		TestingValue: 0,
 		Function:     "bigIntNewTest",
@@ -88,7 +84,6 @@ func createCApiBigInt(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCApiBigIntMul32(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API big int mul 32",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cApiTest.wasm"),
 		TestingValue: 0,
 		Function:     "bigIntMul32Test",
@@ -102,7 +97,6 @@ func createCApiBigIntMul32(testDataDirectory string) benchmarks.BenchmarkRunner 
 func createCApiSha256(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API sha256",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "sha256Test",
@@ -116,7 +110,6 @@ func createCApiSha256(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCApiShaKeccak256(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API keccak256",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "keccak256Test",
@@ -130,7 +123,6 @@ func createCApiShaKeccak256(testDataDirectory string) benchmarks.BenchmarkRunner
 func createCApiRipemd160(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API ripemd160",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "ripemd160Test",
@@ -144,7 +136,6 @@ func createCApiRipemd160(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCApiVerifyBLS(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API verify BLS",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "verifyBLSTest",
@@ -158,7 +149,6 @@ func createCApiVerifyBLS(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createCApiVerifyED25519(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API verify ED25519",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "verifyEd25519Test",
@@ -172,7 +162,6 @@ func createCApiVerifyED25519(testDataDirectory string) benchmarks.BenchmarkRunne
 func createCApiVerifySecp256k1Uncompressed(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API verify secp256k1 uncompressed",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "verifySecp256k1UncompressedKeyTest",
@@ -186,7 +175,6 @@ func createCApiVerifySecp256k1Uncompressed(testDataDirectory string) benchmarks.
 func createCApiVerifySecp256k1Compressed(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgArwenBenchmark{
 		Name:         "C API verify secp256k1 compressed",
-		GasFilename:  filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:   filepath.Join(testDataDirectory, "cryptoTest.wasm"),
 		TestingValue: 0,
 		Function:     "verifySecp256k1CompressedKeyTest",
@@ -200,7 +188,6 @@ func createCApiVerifySecp256k1Compressed(testDataDirectory string) benchmarks.Be
 func createDelegation(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgDelegationBenchmark{
 		Name:               "Delegation in Arwen",
-		GasFilename:        filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:         filepath.Join(testDataDirectory, "delegation_v0_5_2_full.wasm"),
 		NumRuns:            2,
 		NumTxPerBatch:      100,
@@ -214,7 +201,6 @@ func createDelegation(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createErc20InC(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgErc20Benchmark{
 		Name:               "ERC20 in C",
-		GasFilename:        filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:         filepath.Join(testDataDirectory, "erc20_c.wasm"),
 		Function:           "transferToken",
 		NumRuns:            1,
@@ -227,7 +213,6 @@ func createErc20InC(testDataDirectory string) benchmarks.BenchmarkRunner {
 func createErc20InRust(testDataDirectory string) benchmarks.BenchmarkRunner {
 	arg := benchmarks.ArgErc20Benchmark{
 		Name:               "ERC20 in Rust",
-		GasFilename:        filepath.Join(testDataDirectory, "testGasSchedule.toml"),
 		ScFilename:         filepath.Join(testDataDirectory, "erc20_rust.wasm"),
 		Function:           "transfer",
 		NumRuns:            1,

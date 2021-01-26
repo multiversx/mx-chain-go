@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/core"
+	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenVM"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
 )
 
 // ArgArwenBenchmark is the Arwen type benchmark argument used in constructor
 type ArgArwenBenchmark struct {
 	Name         string
-	GasFilename  string
 	ScFilename   string
 	TestingValue uint64
 	Function     string
@@ -21,7 +21,6 @@ type ArgArwenBenchmark struct {
 
 type arwenBenchmark struct {
 	name         string
-	gasFilename  string
 	scFilename   string
 	testingValue uint64
 	function     string
@@ -33,7 +32,6 @@ type arwenBenchmark struct {
 func NewArwenBenchmark(arg ArgArwenBenchmark) *arwenBenchmark {
 	return &arwenBenchmark{
 		name:         arg.Name,
-		gasFilename:  arg.GasFilename,
 		scFilename:   arg.ScFilename,
 		testingValue: arg.TestingValue,
 		function:     arg.Function,
@@ -44,17 +42,19 @@ func NewArwenBenchmark(arg ArgArwenBenchmark) *arwenBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (ab *arwenBenchmark) Run() (time.Duration, error) {
-	gasSchedule, err := core.LoadGasScheduleConfig(ab.gasFilename)
-	if err != nil {
-		return 0, err
-	}
-
-	result, err := arwenVM.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, gasSchedule)
+	result, err := arwenVM.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap())
 	if err != nil {
 		return 0, err
 	}
 
 	return result.ExecutionTimeSpan, err
+}
+
+func createTestGasMap() map[string]map[string]uint64 {
+	gasSchedule := arwenConfig.MakeGasMapForTests()
+	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
+
+	return gasSchedule
 }
 
 // Name returns the benchmark's name

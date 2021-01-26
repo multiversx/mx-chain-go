@@ -10,7 +10,6 @@ import (
 // ArgDelegationBenchmark is the delegation type benchmark argument used in constructor
 type ArgDelegationBenchmark struct {
 	Name               string
-	GasFilename        string
 	ScFilename         string
 	NumRuns            int
 	NumBatches         uint32
@@ -20,7 +19,6 @@ type ArgDelegationBenchmark struct {
 
 type delegationBenchmark struct {
 	name               string
-	gasFilename        string
 	scFilename         string
 	numRuns            int
 	numBatches         uint32
@@ -32,7 +30,6 @@ type delegationBenchmark struct {
 func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 	return &delegationBenchmark{
 		name:               arg.Name,
-		gasFilename:        arg.GasFilename,
 		scFilename:         arg.ScFilename,
 		numRuns:            arg.NumRuns,
 		numBatches:         arg.NumBatches,
@@ -44,12 +41,12 @@ func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 // Run returns the time needed for the benchmark to be run
 func (db *delegationBenchmark) Run() (time.Duration, error) {
 	results, err := delegation.RunDelegationStressTest(
+		db.scFilename,
 		uint32(db.numRuns),
 		db.numBatches,
 		db.numTxPerBatch,
 		db.numQueriesPerBatch,
-		db.gasFilename,
-		db.scFilename,
+		createTestGasMap(),
 	)
 
 	return getMinimumTimeDuration(results), err

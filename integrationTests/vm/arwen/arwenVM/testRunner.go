@@ -107,9 +107,7 @@ func RunTest(
 	startTime := time.Now()
 	for i := 0; i < numRun; i++ {
 		tx.Nonce = aliceNonce
-
 		_, _ = testContext.TxProcessor.ProcessTransaction(tx)
-
 		aliceNonce++
 	}
 

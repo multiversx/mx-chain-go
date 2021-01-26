@@ -17,7 +17,6 @@ func TestArwenBenchmark_ShouldWork(t *testing.T) {
 	ab := NewArwenBenchmark(
 		ArgArwenBenchmark{
 			Name:         testName,
-			GasFilename:  "../testdata/testGasSchedule.toml",
 			ScFilename:   "../testdata/fibonacci.wasm",
 			TestingValue: 32,
 			Function:     "_main",

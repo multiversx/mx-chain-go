@@ -27,12 +27,12 @@ var log = logger.GetOrCreate("integrationtests/vm/arwen/delegation")
 
 // RunDelegationStressTest will call the stake function and measure the time duration for each call
 func RunDelegationStressTest(
+	delegationFilename string,
 	numRuns uint32,
 	numBatches uint32,
 	numTxPerBatch uint32,
 	numQueriesPerBatch uint32,
-	gasMapFile string,
-	delegationFilename string,
+	gasSchedule map[string]map[string]uint64,
 ) ([]time.Duration, error) {
 
 	cacheConfig := storageUnit.CacheConfig{
@@ -74,18 +74,13 @@ func RunDelegationStressTest(
 		log.LogIfError(err)
 	}()
 
-	gasMap, err := core.LoadGasScheduleConfig(gasMapFile)
-	if err != nil {
-		return nil, err
-	}
-
 	node := integrationTests.NewTestProcessorNodeWithStorageTrieAndGasModel(
 		1,
 		0,
 		0,
 		"",
 		trieStorage,
-		gasMap,
+		gasSchedule,
 	)
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) //20MIL eGLD

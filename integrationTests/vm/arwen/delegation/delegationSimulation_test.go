@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,8 +26,11 @@ func TestSimulateExecutionOfStakeTransactionAndQueries(t *testing.T) {
 
 func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uint32, numTxPerBatch uint32, numQueriesPerBatch uint32) {
 	gasMapFilename := "../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml"
+	gasSchedule, err := core.LoadGasScheduleConfig(gasMapFilename)
+	require.Nil(t, err)
+
 	delegationScFilename := "../testdata/delegation/delegation_v0_5_2_full.wasm"
-	benchmarks, err := RunDelegationStressTest(numRuns, numBatches, numTxPerBatch, numQueriesPerBatch, gasMapFilename, delegationScFilename)
+	benchmarks, err := RunDelegationStressTest(delegationScFilename, numRuns, numBatches, numTxPerBatch, numQueriesPerBatch, gasSchedule)
 	require.Nil(t, err)
 	require.True(t, len(benchmarks) > 0)
 

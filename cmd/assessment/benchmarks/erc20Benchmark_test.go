@@ -17,7 +17,6 @@ func TestErc20InCBenchmark_ShouldWork(t *testing.T) {
 	ercb := NewErc20Benchmark(
 		ArgErc20Benchmark{
 			Name:               testName,
-			GasFilename:        "../testdata/testGasSchedule.toml",
 			ScFilename:         "../testdata/erc20_c.wasm",
 			Function:           "transferToken",
 			NumRuns:            1,
@@ -43,7 +42,6 @@ func TestErc20InRustBenchmark_ShouldWork(t *testing.T) {
 	ercb := NewErc20Benchmark(
 		ArgErc20Benchmark{
 			Name:               testName,
-			GasFilename:        "../testdata/testGasSchedule.toml",
 			ScFilename:         "../testdata/erc20_rust.wasm",
 			Function:           "transfer",
 			NumRuns:            1,

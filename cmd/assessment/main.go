@@ -91,7 +91,6 @@ func startAssessment(_ *cli.Context, version string) error {
 
 	hpg := hostParameters.NewHostParameterGetter(version)
 	log.Info("Host's anonymized info:\n" + hpg.GetParameterStringTable())
-
 	log.Info("Host's performance info:\n" + benchmarkResult)
 
 	return nil
