@@ -2372,11 +2372,11 @@ func verifyResultsIntraShardShuffling(
 	numToRemove = numToRemove - len(removedFromEligible)
 	removedNodes = append(removedNodes, removedFromEligible...)
 
-	computedNewWaiting, removedFromWaiting = removeValidatorsFromList(computedNewWaiting, additionalLeaving, numToRemove)
+	_, removedFromWaiting = removeValidatorsFromList(computedNewWaiting, additionalLeaving, numToRemove)
 	numToRemove = numToRemove - len(removedFromWaiting)
 	removedNodes = append(removedNodes, removedFromWaiting...)
 
-	computedNewEligible, removedFromEligible = removeValidatorsFromList(computedNewEligible, additionalLeaving, numToRemove)
+	_, removedFromEligible = removeValidatorsFromList(computedNewEligible, additionalLeaving, numToRemove)
 	numToRemove = numToRemove - len(removedFromEligible)
 	removedNodes = append(removedNodes, removedFromEligible...)
 
@@ -2497,7 +2497,7 @@ func BenchmarkRandHashShuffler_RemoveWithReslice(b *testing.B) {
 
 	m2 := runtime.MemStats{}
 	runtime.ReadMemStats(&m2)
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 }
 
 func BenchmarkRandHashShuffler_RemoveWithoutReslice(b *testing.B) {
@@ -2518,7 +2518,7 @@ func BenchmarkRandHashShuffler_RemoveWithoutReslice(b *testing.B) {
 
 	m2 := runtime.MemStats{}
 	runtime.ReadMemStats(&m2)
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 }
 
 func TestRandHashShuffler_sortConfigs(t *testing.T) {

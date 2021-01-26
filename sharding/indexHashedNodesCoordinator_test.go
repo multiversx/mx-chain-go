@@ -739,7 +739,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	m2 := runtime.MemStats{}
 	runtime.ReadMemStats(&m2)
 
-	fmt.Println(fmt.Sprintf("Used %d MB", (m2.HeapAlloc-m.HeapAlloc)/1024/1024))
+	fmt.Printf("Used %d MB\n", (m2.HeapAlloc-m.HeapAlloc)/1024/1024)
 }
 
 func BenchmarkIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400RecomputeEveryGroup(b *testing.B) {
