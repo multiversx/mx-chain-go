@@ -21,10 +21,10 @@ jobs:
           # working-directory: somedir
 
           # Optional: golangci-lint command line arguments.
-          args: --timeout 10m0s --max-issues-per-linter 0 --max-same-issues 0 --print-issued-lines --out-format=colored-line-number
+          args: --timeout 10m0s --max-issues-per-linter 0 --max-same-issues 0 --print-issued-lines
 
           # Optional: show only new issues if it's a pull request. The default value is `false`.
-          only-new-issues: false
+          only-new-issues: true
 
           # Optional: if set to true then the action will use pre-installed Go
           # skip-go-installation: true
