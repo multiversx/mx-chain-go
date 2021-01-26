@@ -14,6 +14,8 @@ import (
 )
 
 func TestBridge_Setup(t *testing.T) {
+	t.Skip("contract is not yet finished")
+
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
