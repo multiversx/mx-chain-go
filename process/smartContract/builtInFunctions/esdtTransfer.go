@@ -99,7 +99,8 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 		}
 	}
 
-	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) && len(vmInput.Arguments) > 2
+	isSCCallAfter := core.IsSmartContractAddress(vmInput.RecipientAddr) &&
+		(len(vmInput.Arguments) > 2 || vmInput.CallType == vmcommon.AsynchronousCallBack)
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: gasRemaining, ReturnCode: vmcommon.Ok}
 	if !check.IfNil(acntDst) {
