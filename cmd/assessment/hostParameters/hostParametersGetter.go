@@ -2,6 +2,7 @@ package hostParameters
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -122,6 +123,9 @@ func (hpg *hostParametersGetter) getCpuInfo() cpuInfo {
 	ci.modelName = rawCpuInfo[0].ModelName
 	ci.maxFrequencyInMHz = int(rawCpuInfo[0].Mhz)
 	ci.flags = rawCpuInfo[0].Flags
+	sort.Slice(ci.flags, func(i, j int) bool {
+		return strings.Compare(ci.flags[i], ci.flags[j]) < 0
+	})
 
 	return ci
 }
