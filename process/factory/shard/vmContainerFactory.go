@@ -92,7 +92,7 @@ func (vmf *vmContainerFactory) createArwenVM() (vmcommon.VMExecutionHandler, err
 }
 
 func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createOutOfProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createOutOfProcessArwenVM", "config", vmf.config)
 
 	outOfProcessConfig := vmf.config.OutOfProcessConfig
 	logsMarshalizer := ipcMarshaling.ParseKind(outOfProcessConfig.LogsMarshalizer)
@@ -123,7 +123,7 @@ func (vmf *vmContainerFactory) createOutOfProcessArwenVM() (vmcommon.VMExecution
 }
 
 func (vmf *vmContainerFactory) createInProcessArwenVM() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("createInProcessArwenVM", "config", vmf.config)
+	logVMContainerFactory.Debug("createInProcessArwenVM", "config", vmf.config)
 
 	return arwenHost.NewArwenVM(
 		vmf.blockChainHookImpl,

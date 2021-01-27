@@ -2046,7 +2046,7 @@ func (sc *scProcessor) updateSmartContractCode(
 	if isUpgrade {
 		stateAccount.SetCodeMetadata(outputAccount.CodeMetadata)
 		stateAccount.SetCode(outputAccount.Code)
-		log.Info("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
+		log.Debug("updateSmartContractCode(): upgraded", "address", sc.pubkeyConv.Encode(outputAccount.Address), "upgradeable", newCodeMetadata.Upgradeable)
 		return
 	}
 }
