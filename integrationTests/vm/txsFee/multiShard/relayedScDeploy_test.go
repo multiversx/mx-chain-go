@@ -14,10 +14,12 @@ import (
 )
 
 func TestRelayedSCDeployShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 2, vm.ArgEnableEpoch{})
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextInner.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789032")
