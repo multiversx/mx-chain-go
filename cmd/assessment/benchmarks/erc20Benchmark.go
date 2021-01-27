@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/arwenVM"
 )
 
@@ -37,6 +38,10 @@ func NewErc20Benchmark(arg ArgErc20Benchmark) *erc20Benchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (eb *erc20Benchmark) Run() (time.Duration, error) {
+	if !core.DoesFileExist(eb.scFilename) {
+		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExist, eb.scFilename)
+	}
+
 	result, err := arwenVM.DeployAndExecuteERC20WithBigInt(
 		eb.numRuns,
 		eb.numTransfersPerRun,

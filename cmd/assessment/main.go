@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
 	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
 	"github.com/ElrondNetwork/elrond-go/core"
@@ -32,6 +36,13 @@ VERSION:
    {{end}}
 `
 
+	// outputFile defines a flag for the benchmarks output file. Data will be written in csv format.
+	outputFile = cli.StringFlag{
+		Name:  "output-file",
+		Usage: "The output file where benchmarks will be written in csv format.",
+		Value: "./output.csv",
+	}
+
 	log = logger.GetOrCreate("main")
 )
 
@@ -53,7 +64,9 @@ func main() {
 	app.Version = fmt.Sprintf("assessment-%s/%s-%s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
 	app.Usage = "This tool is used to measure the host's performance on some certain tasks used by an elrond node. It " +
 		"produces anonymized host parameters along with a list of benchmarks results. More details can be found in the README.md file."
-	app.Flags = []cli.Flag{}
+	app.Flags = []cli.Flag{
+		outputFile,
+	}
 	app.Authors = []cli.Author{
 		{
 			Name:  "The Elrond Team",
@@ -72,7 +85,9 @@ func main() {
 	}
 }
 
-func startAssessment(_ *cli.Context, version string) error {
+func startAssessment(c *cli.Context, version string) error {
+	outputFileName := c.GlobalString(outputFile.Name)
+	log.Info("Saving benchmarks result", "file", outputFileName)
 	log.Info("Starting host assessment process...")
 	sw := core.NewStopWatch()
 	sw.Start("whole process")
@@ -87,11 +102,29 @@ func startAssessment(_ *cli.Context, version string) error {
 		return err
 	}
 
-	benchmarkResult := run.GetStringTableAfterRun()
-
 	hpg := hostParameters.NewHostParameterGetter(version)
-	log.Info("Host's anonymized info:\n" + hpg.GetParameterStringTable())
-	log.Info("Host's performance info:\n" + benchmarkResult)
+	hostInfo := hpg.GetHostInfo()
+	benchmarkResult := run.RunAllTests()
 
-	return nil
+	log.Info("Host's anonymized info:\n" + hostInfo.ToDisplayTable())
+	log.Info("Host's performance info:\n" + benchmarkResult.ToDisplayTable())
+
+	err = saveToFile(hostInfo, benchmarkResult, outputFileName)
+
+	return err
+}
+
+func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, outputFileName string) error {
+	buff := bytes.NewBuffer(make([]byte, 0))
+	csvWriter := csv.NewWriter(buff)
+	err := csvWriter.WriteAll(hi.ToStrings())
+	if err != nil {
+		return err
+	}
+	err = csvWriter.WriteAll(results.ToStrings())
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(outputFileName, buff.Bytes(), os.ModePerm)
 }

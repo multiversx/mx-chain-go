@@ -10,20 +10,6 @@ import (
 
 var log = logger.GetOrCreate("assessment/benchmarks")
 
-// SingleResult contains the output data after a benchmark run
-type SingleResult struct {
-	time.Duration
-	Name  string
-	Error error
-}
-
-// TestResults represents the output structure containing the test results data
-type TestResults struct {
-	TotalDuration time.Duration
-	Error         error
-	Results       []SingleResult
-}
-
 type coordinator struct {
 	benchmarks []BenchmarkRunner
 }
@@ -46,7 +32,7 @@ func NewCoordinator(benchmarks []BenchmarkRunner) (*coordinator, error) {
 }
 
 // RunAllTests will launch all contained tests. Errors if at least one benchmark errored
-func (c *coordinator) RunAllTests() TestResults {
+func (c *coordinator) RunAllTests() *TestResults {
 	cumulative := time.Duration(0)
 	var lastErr error
 
@@ -74,7 +60,7 @@ func (c *coordinator) RunAllTests() TestResults {
 
 	testResult.Error = lastErr
 	testResult.TotalDuration = cumulative
-	return testResult
+	return &testResult
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
