@@ -15,8 +15,7 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 			BuiltinEnableEpoch:             100,
@@ -24,6 +23,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 			MetaProtectionEnableEpoch:      100,
 			RelayedTxEnableEpoch:           100,
 		})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -35,7 +35,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -65,8 +65,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 			BuiltinEnableEpoch:             100,
@@ -74,6 +73,7 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 			MetaProtectionEnableEpoch:      100,
 			RelayedTxEnableEpoch:           100,
 		})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -85,13 +85,12 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.True(t, errors.Is(err, process.ErrInsufficientFee))
 }
 
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 0,
 			BuiltinEnableEpoch:             100,
@@ -99,6 +98,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 			MetaProtectionEnableEpoch:      100,
 			RelayedTxEnableEpoch:           100,
 		})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -110,7 +110,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, sndAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
