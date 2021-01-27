@@ -37,6 +37,11 @@ func NewErc20Benchmark(arg ArgErc20Benchmark) *erc20Benchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (eb *erc20Benchmark) Run() (time.Duration, error) {
+	err := fileExists(eb.scFilename)
+	if err != nil {
+		return 0, err
+	}
+
 	result, err := arwenVM.DeployAndExecuteERC20WithBigInt(
 		eb.numRuns,
 		eb.numTransfersPerRun,

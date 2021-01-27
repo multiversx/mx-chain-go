@@ -2,6 +2,7 @@ package benchmarks
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	arwenConfig "github.com/ElrondNetwork/arwen-wasm-vm/config"
@@ -42,6 +43,11 @@ func NewArwenBenchmark(arg ArgArwenBenchmark) *arwenBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (ab *arwenBenchmark) Run() (time.Duration, error) {
+	err := fileExists(ab.scFilename)
+	if err != nil {
+		return 0, err
+	}
+
 	result, err := arwenVM.RunTest(ab.scFilename, ab.testingValue, ab.function, ab.arguments, ab.numRuns, createTestGasMap())
 	if err != nil {
 		return 0, err
@@ -55,6 +61,11 @@ func createTestGasMap() map[string]map[string]uint64 {
 	gasSchedule = defaults.FillGasMapInternal(gasSchedule, 1)
 
 	return gasSchedule
+}
+
+func fileExists(filename string) error {
+	_, err := os.Stat(filename)
+	return err
 }
 
 // Name returns the benchmark's name

@@ -63,6 +63,7 @@ func TestCoordinator_RunAllOneErrorsShouldRetErr(t *testing.T) {
 	})
 
 	result := c.RunAllTests()
+	require.NotNil(t, result)
 	assert.Equal(t, expectedErr, result.Error)
 	assert.Equal(t, time.Duration(5), result.TotalDuration)
 	require.Equal(t, 2, len(result.Results))
@@ -88,6 +89,7 @@ func TestCoordinator_RunAllShouldWork(t *testing.T) {
 	})
 
 	result := c.RunAllTests()
+	require.NotNil(t, result)
 	assert.Nil(t, result.Error)
 	assert.Equal(t, time.Duration(5), result.TotalDuration)
 	require.Equal(t, 2, len(result.Results))

@@ -40,6 +40,11 @@ func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (db *delegationBenchmark) Run() (time.Duration, error) {
+	err := fileExists(db.scFilename)
+	if err != nil {
+		return 0, err
+	}
+
 	results, err := delegation.RunDelegationStressTest(
 		db.scFilename,
 		uint32(db.numRuns),
