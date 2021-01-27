@@ -532,9 +532,10 @@ func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
 
 	adr1 := []byte{65}
 	senderAcc, err := state.NewUserAccount(adr1)
+	assert.Nil(t, err)
+
 	adr2 := []byte{66}
 	recvAcc, err := state.NewUserAccount(adr2)
-
 	assert.Nil(t, err)
 
 	execTx := *createTxProcessor()

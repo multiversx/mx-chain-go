@@ -265,17 +265,14 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+		_, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
 	}
 	integrationTests.DisplayAndStartNodes(nodes)
 
