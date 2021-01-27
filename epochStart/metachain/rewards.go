@@ -26,9 +26,9 @@ type rewardsCreator struct {
 }
 
 type rewardInfoData struct {
-	accumulatedFees *big.Int
-	address         string
-	protocolRewards *big.Int
+	accumulatedFees     *big.Int
+	address             string
+	rewardsFromProtocol *big.Int
 }
 
 // NewRewardsCreator creates a new rewards creator object
@@ -185,15 +185,15 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					accumulatedFees: big.NewInt(0),
-					protocolRewards: big.NewInt(0),
-					address:         string(validatorInfo.RewardAddress),
+					accumulatedFees:     big.NewInt(0),
+					rewardsFromProtocol: big.NewInt(0),
+					address:             string(validatorInfo.RewardAddress),
 				}
 				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
 			}
 
 			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.AccumulatedFees)
-			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, protocolRewardValue)
+			rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, protocolRewardValue)
 		}
 	}
 
