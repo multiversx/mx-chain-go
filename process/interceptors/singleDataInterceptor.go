@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"sync"
-
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
@@ -26,7 +24,6 @@ type SingleDataInterceptor struct {
 	*baseDataInterceptor
 	factory          process.InterceptedDataFactory
 	whiteListRequest process.WhiteListHandler
-	mutDebugHandler  sync.RWMutex
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data
@@ -140,19 +137,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.processInterceptedData(interceptedData, message)
 		sdi.throttler.EndProcessing()
 	}()
-
-	return nil
-}
-
-// SetInterceptedDebugHandler will set a new intercepted debug handler
-func (sdi *SingleDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
-	if check.IfNil(handler) {
-		return process.ErrNilDebugger
-	}
-
-	sdi.mutDebugHandler.Lock()
-	sdi.debugHandler = handler
-	sdi.mutDebugHandler.Unlock()
 
 	return nil
 }

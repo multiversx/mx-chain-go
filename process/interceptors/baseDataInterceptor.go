@@ -2,8 +2,10 @@ package interceptors
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/p2p"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
@@ -14,6 +16,7 @@ type baseDataInterceptor struct {
 	topic            string
 	currentPeerId    core.PeerID
 	processor        process.InterceptorProcessor
+	mutDebugHandler  sync.RWMutex
 	debugHandler     process.InterceptedDebugger
 }
 
@@ -99,4 +102,17 @@ func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData proc
 func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData process.InterceptedData) {
 	identifiers := interceptedData.Identifiers()
 	bdi.debugHandler.LogReceivedHashes(bdi.topic, identifiers)
+}
+
+// SetInterceptedDebugHandler will set a new intercepted debug handler
+func (bdi *baseDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
+	if check.IfNil(handler) {
+		return process.ErrNilDebugger
+	}
+
+	bdi.mutDebugHandler.Lock()
+	bdi.debugHandler = handler
+	bdi.mutDebugHandler.Unlock()
+
+	return nil
 }

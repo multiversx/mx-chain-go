@@ -1,8 +1,6 @@
 package interceptors
 
 import (
-	"sync"
-
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -33,7 +31,6 @@ type MultiDataInterceptor struct {
 	marshalizer      marshal.Marshalizer
 	factory          process.InterceptedDataFactory
 	whiteListRequest process.WhiteListHandler
-	mutDebugHandler  sync.RWMutex
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -196,19 +193,6 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	}
 
 	return interceptedData, nil
-}
-
-// SetInterceptedDebugHandler will set a new intercepted debug handler
-func (mdi *MultiDataInterceptor) SetInterceptedDebugHandler(handler process.InterceptedDebugger) error {
-	if check.IfNil(handler) {
-		return process.ErrNilDebugger
-	}
-
-	mdi.mutDebugHandler.Lock()
-	mdi.debugHandler = handler
-	mdi.mutDebugHandler.Unlock()
-
-	return nil
 }
 
 // RegisterHandler registers a callback function to be notified on received data
