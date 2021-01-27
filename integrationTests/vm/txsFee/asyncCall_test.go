@@ -13,7 +13,8 @@ import (
 )
 
 func TestAsyncCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	egldBalance := big.NewInt(100000000)
@@ -27,15 +28,15 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	pathToContract := "testdata/first/first.wasm"
-	firstScAddress := utils.DoDeploySecond(t, &testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(50))
+	firstScAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(50))
 
 	gasLimit := uint64(5000000)
 	args := [][]byte{[]byte(hex.EncodeToString(firstScAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
 	pathToContract = "testdata/second/output/async.wasm"
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
+	secondSCAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(50))
 
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	tx := vm.CreateTransaction(0, big.NewInt(0), senderAddr, secondSCAddress, gasPrice, gasLimit, []byte("doSomething"))

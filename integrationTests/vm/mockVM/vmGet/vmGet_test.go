@@ -15,6 +15,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVmGetShouldReturnValue(t *testing.T) {
@@ -61,7 +62,6 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -71,16 +71,16 @@ func deploySmartContract(t *testing.T) (state.AccountsAdapter, []byte, *big.Int)
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 
-	_, err := txProc.ProcessTransaction(tx)
+	_, err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
