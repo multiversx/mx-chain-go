@@ -213,6 +213,10 @@ func (gc *gasComputation) ComputeGasConsumedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
+	if txTypeSndShard == process.RelayedTx {
+		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
+	}
+
 	return moveBalanceConsumption, moveBalanceConsumption, nil
 }
 
