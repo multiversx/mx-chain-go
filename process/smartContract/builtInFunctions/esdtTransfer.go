@@ -110,6 +110,13 @@ func (e *esdtTransfer) ProcessBuiltinFunction(
 				return nil, err
 			}
 			if !isPayable {
+				if !check.IfNil(acntSnd) {
+					err = addToESDTBalance(vmInput.CallerAddr, acntSnd, esdtTokenKey, value, e.marshalizer, e.pauseHandler)
+					if err != nil {
+						return nil, err
+					}
+				}
+
 				return nil, process.ErrAccountNotPayable
 			}
 		}
