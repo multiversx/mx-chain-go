@@ -659,6 +659,124 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	assert.Equal(t, leaves, recovered)
 }
 
+func TestPatriciaMerkleTree_Prove(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	proof, err := tr.GetProof([]byte("dog"))
+	assert.Nil(t, err)
+	ok, _ := tr.VerifyProof([]byte("dog"), proof)
+	assert.True(t, ok)
+}
+
+func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+	_ = tr.Commit()
+
+	proof, err := tr.GetProof([]byte("dog"))
+	assert.Nil(t, err)
+	ok, _ := tr.VerifyProof([]byte("dog"), proof)
+	assert.True(t, ok)
+}
+
+func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	proof, err := tr.GetProof([]byte("dog"))
+	assert.Nil(t, proof)
+	assert.Equal(t, trie.ErrNilNode, err)
+}
+
+func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
+	t.Parallel()
+
+	tr, val := initTrieMultipleValues(50)
+
+	for i := range val {
+		proof, _ := tr.GetProof(val[i])
+
+		ok, err := tr.VerifyProof(val[i], proof)
+		assert.Nil(t, err)
+		assert.True(t, ok)
+
+		ok, err = tr.VerifyProof([]byte("dog"+strconv.Itoa(i)), proof)
+		assert.Nil(t, err)
+		assert.False(t, ok)
+	}
+}
+
+func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("zebra"), []byte("horse"))
+
+	proof, _ := tr.GetProof([]byte("dog"))
+	ok, err := tr.VerifyProof([]byte("dog"), proof)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+
+	_ = tr.Update([]byte("dog"), []byte("cat"))
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+
+	proof, _ := tr.GetProof([]byte("dog"))
+	ok, err := tr.VerifyProof([]byte("dog"), proof)
+	assert.True(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_VerifyProofNilProofs(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	ok, err := tr.VerifyProof([]byte("dog"), nil)
+	assert.False(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTree_VerifyProofEmptyProofs(t *testing.T) {
+	t.Parallel()
+
+	tr := initTrie()
+
+	ok, err := tr.VerifyProof([]byte("dog"), [][]byte{})
+	assert.False(t, ok)
+	assert.Nil(t, err)
+}
+
+func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	tr1 := emptyTrie()
+	tr2 := emptyTrie()
+
+	_ = tr1.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr1.Update([]byte("dog"), []byte("puppy"))
+	_ = tr1.Update([]byte("dogglesworth"), []byte("cat"))
+
+	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr2.Update([]byte("dog"), []byte("puppy"))
+	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+
+	proof, _ := tr2.GetProof([]byte("dogglesworth"))
+	ok, _ := tr1.VerifyProof([]byte("dogglesworth"), proof)
+	assert.False(t, ok)
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.Keccak{}

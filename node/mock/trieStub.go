@@ -23,6 +23,26 @@ type TrieStub struct {
 	GetAllHashesCalled          func() ([][]byte, error)
 	DatabaseCalled              func() data.DBWriteCacher
 	GetAllLeavesOnChannelCalled func(rootHash []byte) (chan core.KeyValueHolder, error)
+	GetProofCalled              func(key []byte) ([][]byte, error)
+	VerifyProofCalled           func(key []byte, proof [][]byte) (bool, error)
+}
+
+// GetProof -
+func (ts *TrieStub) GetProof(key []byte) ([][]byte, error) {
+	if ts.GetProofCalled != nil {
+		return ts.GetProofCalled(key)
+	}
+
+	return nil, nil
+}
+
+// VerifyProof -
+func (ts *TrieStub) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+	if ts.VerifyProofCalled != nil {
+		return ts.VerifyProofCalled(key, proof)
+	}
+
+	return false, nil
 }
 
 // EnterPruningBufferingMode -

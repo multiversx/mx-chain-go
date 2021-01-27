@@ -187,6 +187,10 @@ func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	return tr.getRootHash()
+}
+
+func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if tr.root == nil {
 		return EmptyTrieHash, nil
 	}
@@ -677,4 +681,86 @@ func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashe
 // GetSnapshotDbBatchDelay returns the batch write delay in seconds
 func (tr *patriciaMerkleTrie) GetSnapshotDbBatchDelay() int {
 	return tr.trieStorage.GetSnapshotDbBatchDelay()
+}
+
+// GetProof computes a Merkle proof for the node that is present at the given key
+func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	if tr.root == nil {
+		return nil, ErrNilNode
+	}
+
+	var proof [][]byte
+	hexKey := keyBytesToHex(key)
+	currentNode := tr.root
+
+	err := currentNode.setRootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		encodedNode, err := currentNode.getEncodedNode()
+		if err != nil {
+			return nil, err
+		}
+		proof = append(proof, encodedNode)
+
+		currentNode, hexKey, err = currentNode.getNext(hexKey, tr.Database())
+		if err != nil {
+			return nil, err
+		}
+
+		if currentNode == nil {
+			return proof, nil
+		}
+	}
+}
+
+// VerifyProof verifies the given Merkle proof
+func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	wantHash, err := tr.getRootHash()
+	if err != nil {
+		return false, err
+	}
+
+	key = keyBytesToHex(key)
+	for i := range proof {
+		encodedNode := proof[i]
+		if encodedNode == nil {
+			return false, nil
+		}
+
+		hash := tr.hasher.Compute(string(encodedNode))
+		if !bytes.Equal(wantHash, hash) {
+			return false, nil
+		}
+
+		n, err := decodeNode(encodedNode, tr.marshalizer, tr.hasher)
+		if err != nil {
+			return false, err
+		}
+
+		switch n := n.(type) {
+		case nil:
+			return false, nil
+		case *extensionNode:
+			key = key[len(n.Key):]
+			wantHash = n.EncodedChild
+		case *branchNode:
+			wantHash = n.EncodedChildren[key[0]]
+			key = key[1:]
+		case *leafNode:
+			if bytes.Equal(key, n.Key) {
+				return true, nil
+			}
+			return false, nil
+		}
+	}
+	return false, nil
 }
