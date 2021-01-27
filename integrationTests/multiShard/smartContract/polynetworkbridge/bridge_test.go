@@ -58,9 +58,7 @@ func TestBridge_Setup(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	tokenManagerPath := "/home/camil.bancioiu/Work/Elrond/elrond-go/integrationTests/multiShard/smartContract/testdata/polynetworkbridge/esdt_token_manager.wasm"
-
+	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
 	// The ESDT Token Manager contract needs the address of the Cross-Chain
 	// Management contract at initialization, so we provide a dummy address here.
 	tokenManagerInitParams := "ef2b8bbc7777f5cb92c1c13a2eb307067ce76c3d1bd9fda8d69495ba2ae1e334"

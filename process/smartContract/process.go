@@ -998,7 +998,9 @@ func (sc *scProcessor) isSCExecutionAfterBuiltInFunc(
 }
 
 func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.ContractCallInput, vmOutput *vmcommon.VMOutput) *vmcommon.ContractCallInput {
-	arguments := make([][]byte, 0)
+	arguments := [][]byte{
+		big.NewInt(int64(vmOutput.ReturnCode)).Bytes(),
+	}
 	gasLimit := vmOutput.GasRemaining
 
 	outAcc, ok := vmOutput.OutputAccounts[string(vmInput.RecipientAddr)]
