@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/delegation"
 )
 
@@ -40,9 +41,8 @@ func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 
 // Run returns the time needed for the benchmark to be run
 func (db *delegationBenchmark) Run() (time.Duration, error) {
-	err := fileExists(db.scFilename)
-	if err != nil {
-		return 0, err
+	if !core.DoesFileExist(db.scFilename) {
+		return 0, fmt.Errorf("%w, file %s", ErrFileDoesNotExists, db.scFilename)
 	}
 
 	results, err := delegation.RunDelegationStressTest(

@@ -28,16 +28,12 @@ func (tr *TestResults) ToDisplayTable() string {
 	hdr := []string{"Benchmark", "Time in seconds", "Error"}
 	lines := make([]*display.LineData, 0, len(tr.Results)+1)
 	for i, res := range tr.Results {
-		errString := ""
-		if res.Error != nil {
-			errString = res.Error.Error()
-		}
 		lines = append(lines, display.NewLineData(
 			i == len(tr.Results)-1,
 			[]string{
 				res.Name,
 				tr.secondsAsString(res.Seconds()),
-				errString,
+				tr.errToString(res.Error),
 			},
 		))
 	}
