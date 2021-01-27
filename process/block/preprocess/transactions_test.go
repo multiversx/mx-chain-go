@@ -1141,3 +1141,96 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(2), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 }
+
+func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tdp := &testscommon.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &testscommon.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							if reflect.DeepEqual(key, []byte("tx_hash1")) {
+								return &transaction.Transaction{Nonce: 10}, true
+							}
+							if reflect.DeepEqual(key, []byte("tx_hash2")) {
+								return &transaction.Transaction{Nonce: 11}, true
+							}
+							if reflect.DeepEqual(key, []byte("tx_hash3")) {
+								return &transaction.Transaction{Nonce: 12}, true
+							}
+							return nil, false
+						},
+					}
+				},
+			}
+		},
+	}
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	nbTxsProcessed := 0
+	maxBlockSize := 16
+	txs, err := NewTransactionPreprocessor(
+		tdp.Transactions(),
+		&mock.ChainStorerMock{},
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+		&mock.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				nbTxsProcessed++
+				return vmcommon.Ok, nil
+			},
+		},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&mock.AccountsStub{},
+		requestTransaction,
+		feeHandlerMock(),
+		&mock.GasHandlerMock{},
+		&mock.BlockTrackerMock{},
+		block.TxBlock,
+		createMockPubkeyConverter(),
+		&mock.BlockSizeComputationStub{
+			IsMaxBlockSizeWithoutThrottleReachedCalled: func(mbs int, txs int) bool {
+				return mbs+txs > maxBlockSize
+			},
+		},
+		&mock.BalanceComputationStub{},
+	)
+
+	assert.NotNil(t, txs)
+	assert.Nil(t, err)
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, []byte("tx_hash1"), []byte("tx_hash2"), []byte("tx_hash3"))
+
+	miniBlock := &block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+		Type:            block.TxBlock,
+	}
+
+	f := func() (int, int) {
+		if nbTxsProcessed == 0 {
+			return 0, 0
+		}
+		return nbTxsProcessed + 1, nbTxsProcessed * core.AdditionalScrForEachScCallOrSpecialTx
+	}
+	txsToBeReverted, numTxsProcessed, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
+
+	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
+	assert.Equal(t, 3, len(txsToBeReverted))
+	assert.Equal(t, 3, numTxsProcessed)
+
+	f = func() (int, int) {
+		if nbTxsProcessed == 0 {
+			return 0, 0
+		}
+		return nbTxsProcessed, nbTxsProcessed * core.AdditionalScrForEachScCallOrSpecialTx
+	}
+	txsToBeReverted, numTxsProcessed, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, f)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(txsToBeReverted))
+	assert.Equal(t, 3, numTxsProcessed)
+}

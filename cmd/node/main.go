@@ -1138,7 +1138,7 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		"GenesisTimeStamp", startTime.Unix(),
 	)
 
-	sessionInfoFileOutput += fmt.Sprintf("\nStarted with parameters:\n")
+	sessionInfoFileOutput += "\nStarted with parameters:\n"
 	for _, flag := range ctx.App.Flags {
 		flagValue := fmt.Sprintf("%v", ctx.GlobalGeneric(flag.GetName()))
 		if flagValue != "" {
@@ -1649,7 +1649,7 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = source.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
@@ -1661,13 +1661,13 @@ func copySingleFile(folder string, configFile string) {
 	defer func() {
 		err = destination.Close()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Could not close %s", source.Name()))
+			fmt.Printf("Could not close %s\n", source.Name())
 		}
 	}()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		fmt.Println(fmt.Sprintf("Could not copy %s", source.Name()))
+		fmt.Printf("Could not copy %s\n", source.Name())
 	}
 }
 

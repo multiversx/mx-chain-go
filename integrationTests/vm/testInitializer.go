@@ -92,6 +92,13 @@ func (vmTestContext *VMTestContext) GetLatestError() error {
 	return smartContract.GetLatestTestError(vmTestContext.ScProcessor)
 }
 
+// CreateBlockStarted -
+func (vmTestContext *VMTestContext) CreateBlockStarted() {
+	vmTestContext.TxFeeHandler.CreateBlockStarted()
+	vmTestContext.ScForwarder.CreateBlockStarted()
+	smartContract.CleanGasRefunded(vmTestContext.ScProcessor)
+}
+
 // GetGasRemaining -
 func (vmTestContext *VMTestContext) GetGasRemaining() uint64 {
 	return smartContract.GetGasRemaining(vmTestContext.ScProcessor)

@@ -375,7 +375,7 @@ func (sc *scProcessor) executeSmartContractCall(
 		return userErrorVmOutput, sc.ProcessIfError(acntSnd, txHash, tx, vmOutput.ReturnCode.String(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return nil, err
@@ -1010,9 +1010,7 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 			arguments = append(arguments, []byte(function))
 		}
 
-		for _, arg := range args {
-			arguments = append(arguments, arg)
-		}
+		arguments = append(arguments, args...)
 	}
 
 	newVMInput := &vmcommon.ContractCallInput{
@@ -1301,7 +1299,7 @@ func (sc *scProcessor) DeploySmartContract(tx data.TransactionHandler, acntSnd s
 		return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte(vmOutput.ReturnMessage), snapshot, vmInput.GasLocked)
 	}
 
-	acntSnd, err = sc.reloadLocalAccount(acntSnd)
+	acntSnd, err = sc.reloadLocalAccount(acntSnd) //nolint
 	if err != nil {
 		log.Debug("reloadLocalAccount error", "error", err.Error())
 		return 0, err

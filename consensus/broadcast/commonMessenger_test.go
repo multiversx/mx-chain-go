@@ -112,8 +112,8 @@ func TestCommonMessenger_SignMessageShouldErrWhenSignFail(t *testing.T) {
 func TestSubroundEndRound_ExtractMiniBlocksAndTransactionsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	miniBlocks := make(map[uint32][]byte, 0)
-	transactions := make(map[string][][]byte, 0)
+	miniBlocks := make(map[uint32][]byte)
+	transactions := make(map[string][][]byte)
 
 	miniBlocks[1] = []byte("mbs_shard_1")
 	miniBlocks[core.MetachainShardId] = []byte("mbs_shard_meta")

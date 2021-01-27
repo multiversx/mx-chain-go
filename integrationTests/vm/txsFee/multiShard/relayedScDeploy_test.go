@@ -82,7 +82,6 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 
 	txs := testContextInner.GetIntermediateTransactions(t)
 
-	intermediateTxs = testContextInner.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextInner.ShardCoordinator, testContextInner.EconomicsData)
 	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
 

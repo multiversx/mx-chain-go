@@ -52,7 +52,6 @@ func (ci *cpuInfo) toDisplayLines() []*display.LineData {
 	flagMarkerToBeWritten = ""
 	if len(accumulator) > 0 {
 		if !flagMarkerWritten {
-			flagMarkerWritten = true
 			flagMarkerToBeWritten = flagsMarker
 		}
 		lines = append(lines, display.NewLineData(false, []string{flagMarkerToBeWritten, accumulator}))

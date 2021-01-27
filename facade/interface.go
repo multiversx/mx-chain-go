@@ -3,9 +3,9 @@ package facade
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -72,8 +72,8 @@ type NodeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
 
-	GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error)
-	GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error)
+	GetBlockByHash(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error)
 }
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
