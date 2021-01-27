@@ -9,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/factory"
-	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	bootstrapDisabled "github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -69,10 +68,8 @@ func (escf *elasticSearchConnectorFactory) Create() (indexer.Indexer, error) {
 		ValidatorPubkeyConverter: escf.validatorPubKeyConverter,
 		NodesCoordinator:         disabled.NewNodesCoordinator(),
 		EpochStartNotifier:       &bootstrapDisabled.EpochStartNotifier{},
-		Options: &indexerTypes.Options{
-			UseKibana: false,
-		},
-		EnabledIndexes: []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
+		UseKibana:                false,
+		EnabledIndexes:           []string{"blocks", "miniblocks", "transactions", "tps", "rounds", "rating", "validators"},
 	}
 
 	return factory.NewIndexer(indexerFactoryArgs)
