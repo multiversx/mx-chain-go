@@ -228,7 +228,7 @@ type GeneralSettingsConfig struct {
 	MetaProtectionEnableEpoch              uint32
 	AheadOfTimeGasUsageEnableEpoch         uint32
 	GasPriceModifierEnableEpoch            uint32
-	RepairAsyncCallBackEnableEpoch         uint32
+	RepairCallbackEnableEpoch              uint32
 	MaxNodesChangeEnableEpoch              []MaxNodesChangeConfig
 	GenesisString                          string
 	GenesisMaxNumberOfShards               uint32

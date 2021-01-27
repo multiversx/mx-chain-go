@@ -2231,7 +2231,7 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
 
 	sc.flagRepairCallBackData.Toggle(epoch >= sc.repairCallBackEnableEpoch)
-	log.Debug("scProcessor: repair call back", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
+	log.Debug("scProcessor: repair call back", "enabled", sc.flagRepairCallBackData.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
