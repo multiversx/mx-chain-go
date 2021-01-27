@@ -154,7 +154,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 	require.Equal(t, process.ErrInvalidAddressLength, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
@@ -208,7 +208,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
@@ -262,7 +262,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 	require.Equal(t, process.ErrNotEnoughGas, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)

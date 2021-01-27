@@ -210,6 +210,8 @@ func DeployAndExecuteERC20WithBigInt(
 		if err != nil {
 			return nil, err
 		}
+
+		testContext.CreateBlockStarted()
 	}
 
 	finalAlice := big.NewInt(0).Sub(initAlice, big.NewInt(int64(numRun*numTransferInBatch)*transferOnCalls.Int64()))

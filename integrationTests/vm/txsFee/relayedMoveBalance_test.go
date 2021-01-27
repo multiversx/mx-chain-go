@@ -130,7 +130,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retcode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(2721)
@@ -171,7 +171,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(2725)

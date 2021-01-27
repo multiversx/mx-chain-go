@@ -185,7 +185,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalance := big.NewInt(28100)

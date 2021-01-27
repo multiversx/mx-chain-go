@@ -91,7 +91,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(31830)
@@ -140,7 +140,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err := testContext.Accounts.Commit()
+	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(31930)
