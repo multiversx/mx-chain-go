@@ -218,6 +218,7 @@ func GenerateUserNameForMyDNSContract() []byte {
 
 	for {
 		userName := randStringBytes(10)
+		userName += ".elrond"
 		userNameHash := testHasher.Compute(userName)
 
 		if userNameHash[len(userNameHash)-1] == contractLastByte {

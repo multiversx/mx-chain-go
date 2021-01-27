@@ -52,7 +52,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5002290", indexerTx.Fee)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -86,7 +86,7 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5002290", indexerTx.Fee)
+	require.Equal(t, "5002570", indexerTx.Fee)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -112,5 +112,5 @@ func TestRelayedTxDnsTransaction_ShouldWork(t *testing.T) {
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
 	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2250", indexerTx.Fee)
+	require.Equal(t, "2530", indexerTx.Fee)
 }
