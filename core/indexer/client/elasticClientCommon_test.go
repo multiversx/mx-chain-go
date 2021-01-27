@@ -70,7 +70,7 @@ func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithHttpTooManyRequest
 func TestElasticDefaultErrorResponseHandler_UnmarshalFailsWithGenericError(t *testing.T) {
 	t.Parallel()
 
-	httpErrString := fmt.Sprintf("Generic error")
+	httpErrString := "Generic error"
 	resp := createMockEsapiResponseWithText(httpErrString)
 	err := elasticDefaultErrorResponseHandler(resp)
 

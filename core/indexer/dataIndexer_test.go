@@ -344,6 +344,7 @@ func TestDataIndexer(t *testing.T) {
 	testCreateIndexer(t)
 }
 
+//nolint
 func testCreateIndexer(t *testing.T) {
 	indexTemplates, indexPolicies, _ := process.GetElasticTemplatesAndPolicies("", false)
 
@@ -410,6 +411,7 @@ func testCreateIndexer(t *testing.T) {
 	time.Sleep(100 * time.Second)
 }
 
+//nolint
 func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
 	txs := make([]transaction.Transaction, numTxs)
 	hashes := make([]string, numTxs)
