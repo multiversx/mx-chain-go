@@ -3,8 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
-	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"path"
 	"sync"
 	"testing"
@@ -12,6 +10,13 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
+	block2 "github.com/ElrondNetwork/elrond-go/core/indexer/process/block"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/miniblocks"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/transactions"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/hashing"
@@ -57,11 +62,7 @@ func CreateTestIndexer(
 	elasticProcessor := ti.createElasticProcessor(coordinator, txFeeCalculator)
 
 	arguments := indexer.ArgDataIndexer{
-		Marshalizer: testMarshalizer,
-		Options: &types.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
+		Marshalizer:        testMarshalizer,
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		ShardCoordinator:   coordinator,
@@ -98,24 +99,29 @@ func (ti *testIndexer) createElasticProcessor(
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	esIndexerArgs := processIndexer.ArgElasticProcessor{
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
-		Marshalizer:              testMarshalizer,
-		Hasher:                   testHasher,
-		AddressPubkeyConverter:   pubkeyConv,
+	calculateHashFunc := func(object interface{}) ([]byte, error) {
+		return core.CalculateHash(testMarshalizer, testHasher, object)
+	}
+
+	esIndexerArgs := &processIndexer.ArgElasticProcessor{
+		CalculateHashFunc: calculateHashFunc,
+		IndexTemplates:    indexTemplates,
+		IndexPolicies:     indexPolicies,
+		BlockProc:         block2.NewBlockProcessor(testHasher, testMarshalizer),
+		MiniblocksProc:    miniblocks.NewMiniblocksProcessor(testHasher, testMarshalizer),
+		AccountsProc:      accounts.NewAccountsProcessor(18, testMarshalizer, pubkeyConv, &mock.AccountsStub{}),
+		TxProc: transactions.NewTransactionsProcessor(
+			pubkeyConv,
+			transactionFeeCalculator,
+			false,
+			shardCoordinator,
+			false,
+			calculateHashFunc,
+			disabled.NewNilTxLogsProcessor(),
+		),
 		ValidatorPubkeyConverter: pubkeyConv,
-		Options: &types.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
 		DBClient:                 databaseClient,
 		EnabledIndexes:           enabledIndexesMap,
-		AccountsDB:               &mock.AccountsStub{},
-		Denomination:             18,
-		TransactionFeeCalculator: transactionFeeCalculator,
-		IsInImportDBMode:         false,
-		ShardCoordinator:         shardCoordinator,
 	}
 
 	esProcessor, _ := processIndexer.NewElasticProcessor(esIndexerArgs)

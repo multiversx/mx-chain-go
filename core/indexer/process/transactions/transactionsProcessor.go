@@ -8,6 +8,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
+	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/sharding"
@@ -127,7 +128,6 @@ func (tdp *txDatabaseProcessor) iterateSCRSAndConvert(
 ) ([]*types.ScResult, map[string]int) {
 	//we can not iterate smart contract results directly on the miniblocks contained in the block body
 	// as some miniblocks might be missing. Example: intra-shard miniblock that holds smart contract results
-
 	scResults := groupSmartContractResults(txPool)
 
 	dbSCResults := make([]*types.ScResult, 0)
@@ -156,6 +156,18 @@ func (tdp *txDatabaseProcessor) iterateSCRSAndConvert(
 	}
 
 	return dbSCResults, countScResults
+}
+
+func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
+	scrResults := make(map[string]*smartContractResult.SmartContractResult)
+	for scrHash, scr := range scrs {
+		if string(scr.OriginalTxHash) == hash {
+			scrResults[scrHash] = scr
+			delete(scrs, scrHash)
+		}
+	}
+
+	return scrResults
 }
 
 func (tdp *txDatabaseProcessor) addTxsLogsIfNeeded(txs map[string]*types.Transaction) {

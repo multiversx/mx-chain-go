@@ -10,7 +10,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
@@ -18,18 +17,6 @@ func isScResultSuccessful(scResultData []byte) bool {
 	okReturnDataNewVersion := []byte("@" + hex.EncodeToString([]byte(vmcommon.Ok.String())))
 	okReturnDataOldVersion := []byte("@" + vmcommon.Ok.String()) // backwards compatible
 	return bytes.Contains(scResultData, okReturnDataNewVersion) || bytes.Contains(scResultData, okReturnDataOldVersion)
-}
-
-func findAllChildScrResults(hash string, scrs map[string]*smartContractResult.SmartContractResult) map[string]*smartContractResult.SmartContractResult {
-	scrResults := make(map[string]*smartContractResult.SmartContractResult)
-	for scrHash, scr := range scrs {
-		if string(scr.OriginalTxHash) == hash {
-			scrResults[scrHash] = scr
-			delete(scrs, scrHash)
-		}
-	}
-
-	return scrResults
 }
 
 func isSCRForSenderWithRefund(dbScResult *types.ScResult, tx *types.Transaction) bool {
