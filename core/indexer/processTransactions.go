@@ -372,21 +372,6 @@ func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[st
 	return scResults
 }
 
-func groupReceipts(txPool map[string]data.TransactionHandler) []*receipt.Receipt {
-	receipts := make([]*receipt.Receipt, 0)
-	for hash, tx := range txPool {
-		rec, ok := tx.(*receipt.Receipt)
-		if !ok {
-			continue
-		}
-
-		receipts = append(receipts, rec)
-		delete(txPool, hash)
-	}
-
-	return receipts
-}
-
 func getTransactions(txPool map[string]data.TransactionHandler,
 	txHashes [][]byte,
 ) map[string]*transaction.Transaction {
