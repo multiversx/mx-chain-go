@@ -150,5 +150,4 @@ func GetTotalStaked(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
-	return
 }
