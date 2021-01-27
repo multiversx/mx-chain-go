@@ -1820,7 +1820,16 @@ func TestStartConsensus_ShardBootstrapperNilPoolHolder(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithBlockChain(chainHandler),
@@ -1945,7 +1954,17 @@ func TestStartConsensus_ShardBootstrapperPubKeyToByteArrayError(t *testing.T) {
 			return &mock.HeaderResolverStub{}, nil
 		},
 	}
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	localErr := errors.New("err")
 	n, _ := node.NewNode(
@@ -2031,7 +2050,16 @@ func TestStartConsensus_ShardBootstrapperInvalidConsensusType(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{
@@ -2115,7 +2143,16 @@ func TestStartConsensus_ShardBootstrapper(t *testing.T) {
 		},
 	}
 
-	accountDb, _ := state.NewAccountsDB(&mock.TrieStub{}, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
+	tr := &mock.TrieStub{
+		GetStorageManagerCalled: func() data.StorageManager {
+			return &mock.StorageManagerStub{
+				DatabaseCalled: func() data.DBWriteCacher {
+					return &mock.StorerMock{}
+				},
+			}
+		},
+	}
+	accountDb, _ := state.NewAccountsDB(tr, &mock.HasherMock{}, &mock.MarshalizerMock{}, &mock.AccountsFactoryStub{})
 
 	n, _ := node.NewNode(
 		node.WithDataPool(&testscommon.PoolsHolderStub{

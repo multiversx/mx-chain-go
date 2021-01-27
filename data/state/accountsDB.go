@@ -95,7 +95,7 @@ func NewAccountsDB(
 		return nil, ErrNilAccountFactory
 	}
 
-	numCheckpoints := getNumCheckpoints(trie)
+	numCheckpoints := getNumCheckpoints(trie.GetStorageManager())
 	return &AccountsDB{
 		mainTrie:               trie,
 		hasher:                 hasher,
@@ -112,8 +112,8 @@ func NewAccountsDB(
 	}, nil
 }
 
-func getNumCheckpoints(trie data.Trie) uint32 {
-	val, err := trie.Database().Get(numCheckpointsKey)
+func getNumCheckpoints(trieStorageManager data.StorageManager) uint32 {
+	val, err := trieStorageManager.Database().Get(numCheckpointsKey)
 	if err != nil {
 		return 0
 	}
@@ -888,7 +888,7 @@ func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier data.TriePruningIde
 
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.mainTrie.Prune(rootHash, identifier)
+	adb.mainTrie.GetStorageManager().Prune(rootHash, identifier)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
@@ -898,7 +898,7 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier data.TriePruningI
 
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.mainTrie.CancelPrune(rootHash, identifier)
+	adb.mainTrie.GetStorageManager().CancelPrune(rootHash, identifier)
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -906,13 +906,14 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte, ctx context.Context) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SnapshotState", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
+	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.mainTrie.TakeSnapshot(rootHash)
+		trieStorageManager.TakeSnapshot(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash, ctx)
-		adb.mainTrie.ExitPruningBufferingMode()
+		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
@@ -934,7 +935,7 @@ func (adb *AccountsDB) snapshotUserAccountDataTrie(rootHash []byte, ctx context.
 		}
 
 		if len(account.RootHash) > 0 {
-			adb.mainTrie.SetCheckpoint(account.RootHash)
+			adb.mainTrie.GetStorageManager().SetCheckpoint(account.RootHash)
 		}
 	}
 }
@@ -944,27 +945,29 @@ func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte, ctx context.Context) 
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
+	trieStorageManager := adb.mainTrie.GetStorageManager()
 	log.Trace("accountsDB.SetStateCheckpoint", "root hash", rootHash)
-	adb.mainTrie.EnterPruningBufferingMode()
+	trieStorageManager.EnterPruningBufferingMode()
 
 	go func() {
-		adb.mainTrie.SetCheckpoint(rootHash)
+		trieStorageManager.SetCheckpoint(rootHash)
 		adb.snapshotUserAccountDataTrie(rootHash, ctx)
-		adb.mainTrie.ExitPruningBufferingMode()
+		trieStorageManager.ExitPruningBufferingMode()
 
 		adb.increaseNumCheckpoints()
 	}()
 }
 
 func (adb *AccountsDB) increaseNumCheckpoints() {
-	time.Sleep(time.Duration(adb.mainTrie.GetSnapshotDbBatchDelay()) * time.Second)
+	trieStorageManager := adb.mainTrie.GetStorageManager()
+	time.Sleep(time.Duration(trieStorageManager.GetSnapshotDbBatchDelay()) * time.Second)
 	atomic.AddUint32(&adb.numCheckpoints, 1)
 
 	numCheckpoints := atomic.LoadUint32(&adb.numCheckpoints)
 	numCheckpointsVal := make([]byte, 4)
 	binary.BigEndian.PutUint32(numCheckpointsVal, numCheckpoints)
 
-	err := adb.mainTrie.Database().Put(numCheckpointsKey, numCheckpointsVal)
+	err := trieStorageManager.Database().Put(numCheckpointsKey, numCheckpointsVal)
 	if err != nil {
 		log.Warn("could not add num checkpoints to database", "error", err)
 	}
@@ -972,7 +975,7 @@ func (adb *AccountsDB) increaseNumCheckpoints() {
 
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
-	return adb.mainTrie.IsPruningEnabled()
+	return adb.mainTrie.GetStorageManager().IsPruningEnabled()
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash

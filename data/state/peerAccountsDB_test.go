@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"github.com/ElrondNetwork/elrond-go/data"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -69,7 +70,15 @@ func TestNewPeerAccountsDB_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	adb, err := state.NewPeerAccountsDB(
-		&mock.TrieStub{},
+		&mock.TrieStub{
+			GetStorageManagerCalled: func() data.StorageManager {
+				return &mock.StorageManagerStub{
+					DatabaseCalled: func() data.DBWriteCacher {
+						return mock.NewMemDbMock()
+					},
+				}
+			},
+		},
 		&mock.HasherMock{},
 		&mock.MarshalizerMock{},
 		&mock.AccountsFactoryStub{},

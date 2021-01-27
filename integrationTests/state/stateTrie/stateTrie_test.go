@@ -1137,7 +1137,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	_ = account.(state.UserAccountHandler).AddToBalance(big.NewInt(1))
 	_ = adb.SaveAccount(account)
 	rootHash2, _ := adb.Commit()
-	tr.Prune(rootHash1, data.OldRoot)
+	trieStorage.Prune(rootHash1, data.OldRoot)
 
 	err := adb.RecreateTrie(rootHash2)
 	assert.Nil(t, err)
@@ -1249,7 +1249,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(state2)
 
 	newRootHash, _ := adb.Commit()
-	tr.Prune(oldRootHash, data.OldRoot)
+	trieStorage.Prune(oldRootHash, data.OldRoot)
 
 	err := adb.RecreateTrie(newRootHash)
 	assert.Nil(t, err)

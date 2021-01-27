@@ -321,12 +321,12 @@ func (tr *patriciaMerkleTrie) recreate(root []byte) (*patriciaMerkleTrie, error)
 }
 
 func (tr *patriciaMerkleTrie) recreateFromMainDb(rootHash []byte) *patriciaMerkleTrie {
-	_, err := tr.Database().Get(rootHash)
+	_, err := tr.trieStorage.Database().Get(rootHash)
 	if err != nil {
 		return nil
 	}
 
-	newTr, _, err := tr.recreateFromDb(rootHash, tr.Database(), tr.trieStorage)
+	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage.Database(), tr.trieStorage)
 	if err != nil {
 		log.Warn("trie recreate error:", "error", err, "root", hex.EncodeToString(rootHash))
 		return nil
@@ -348,7 +348,7 @@ func (tr *patriciaMerkleTrie) recreateFromSnapshotDb(rootHash []byte) (*patricia
 		return nil, err
 	}
 
-	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.Database())
+	err = newRoot.commit(true, 0, tr.maxTrieLevelInMemory, db, tr.trieStorage.Database())
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (tr *patriciaMerkleTrie) String() string {
 	if tr.root == nil {
 		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
 	} else {
-		tr.root.print(writer, 0, tr.Database())
+		tr.root.print(writer, 0, tr.trieStorage.Database())
 	}
 
 	return writer.String()
@@ -387,22 +387,6 @@ func emptyTrie(root []byte) bool {
 		return true
 	}
 	return false
-}
-
-// Prune removes from the database all the old hashes that correspond to the given root hash
-func (tr *patriciaMerkleTrie) Prune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	tr.trieStorage.Prune(rootHash, identifier)
-}
-
-// CancelPrune invalidates the hashes that correspond to the given root hash from the eviction waiting list
-func (tr *patriciaMerkleTrie) CancelPrune(rootHash []byte, identifier data.TriePruningIdentifier) {
-	tr.mutOperation.Lock()
-
-	tr.trieStorage.CancelPrune(rootHash, identifier)
-	tr.mutOperation.Unlock()
 }
 
 // AppendToOldHashes appends the given hashes to the trie's oldHashes variable
@@ -459,32 +443,6 @@ func (tr *patriciaMerkleTrie) SetNewHashes(newHashes data.ModifiedHashes) {
 	tr.newHashes = newHashes
 }
 
-// SetCheckpoint adds the current state of the trie to the snapshot database
-func (tr *patriciaMerkleTrie) SetCheckpoint(rootHash []byte) {
-	if bytes.Equal(rootHash, EmptyTrieHash) {
-		log.Trace("should not snapshot empty trie")
-		return
-	}
-
-	tr.trieStorage.SetCheckpoint(rootHash)
-}
-
-// TakeSnapshot creates a new database in which the current state of the trie is saved.
-// If the maximum number of snapshots has been reached, the oldest snapshot is removed.
-func (tr *patriciaMerkleTrie) TakeSnapshot(rootHash []byte) {
-	if bytes.Equal(rootHash, EmptyTrieHash) {
-		log.Trace("should not snapshot empty trie")
-		return
-	}
-
-	tr.trieStorage.TakeSnapshot(rootHash)
-}
-
-// Database returns the trie database
-func (tr *patriciaMerkleTrie) Database() data.DBWriteCacher {
-	return tr.trieStorage.Database()
-}
-
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCacher, tsm data.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		tsm,
@@ -505,18 +463,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, db data.DBWriteCac
 	newTr.root = newRoot
 
 	return newTr, newRoot, nil
-}
-
-// EnterPruningBufferingMode increases the counter that tracks how many operations
-// that block the pruning process are in progress
-func (tr *patriciaMerkleTrie) EnterPruningBufferingMode() {
-	tr.trieStorage.EnterPruningBufferingMode()
-}
-
-// ExitPruningBufferingMode decreases the counter that tracks how many operations
-// that block the pruning process are in progress
-func (tr *patriciaMerkleTrie) ExitPruningBufferingMode() {
-	tr.trieStorage.ExitPruningBufferingMode()
 }
 
 func getDbThatContainsHash(trieStorage data.StorageManager, rootHash []byte) data.SnapshotDbHandler {
@@ -615,17 +561,17 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(rootHash []byte, ctx context
 		return leavesChannel, nil
 	}
 
-	tr.EnterPruningBufferingMode()
+	tr.trieStorage.EnterPruningBufferingMode()
 	tr.mutOperation.RUnlock()
 
 	go func() {
-		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.Database(), tr.marshalizer, ctx)
+		err = newTrie.root.getAllLeavesOnChannel(leavesChannel, []byte{}, tr.trieStorage.Database(), tr.marshalizer, ctx)
 		if err != nil {
 			log.Error("could not get all trie leaves: ", "error", err)
 		}
 
 		tr.mutOperation.RLock()
-		tr.ExitPruningBufferingMode()
+		tr.trieStorage.ExitPruningBufferingMode()
 		tr.mutOperation.RUnlock()
 
 		close(leavesChannel)
@@ -649,17 +595,12 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 		return nil, err
 	}
 
-	hashes, err = tr.root.getAllHashes(tr.Database())
+	hashes, err = tr.root.getAllHashes(tr.trieStorage.Database())
 	if err != nil {
 		return nil, err
 	}
 
 	return hashes, nil
-}
-
-// IsPruningEnabled returns true if state pruning is enabled
-func (tr *patriciaMerkleTrie) IsPruningEnabled() bool {
-	return tr.trieStorage.IsPruningEnabled()
 }
 
 func logArrayWithTrace(message string, paramName string, hashes [][]byte) {
@@ -676,11 +617,6 @@ func logMapWithTrace(message string, paramName string, hashes data.ModifiedHashe
 			log.Trace(message, paramName, key)
 		}
 	}
-}
-
-// GetSnapshotDbBatchDelay returns the batch write delay in seconds
-func (tr *patriciaMerkleTrie) GetSnapshotDbBatchDelay() int {
-	return tr.trieStorage.GetSnapshotDbBatchDelay()
 }
 
 // GetProof computes a Merkle proof for the node that is present at the given key
@@ -708,7 +644,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, error) {
 		}
 		proof = append(proof, encodedNode)
 
-		currentNode, hexKey, err = currentNode.getNext(hexKey, tr.Database())
+		currentNode, hexKey, err = currentNode.getNext(hexKey, tr.trieStorage.Database())
 		if err != nil {
 			return nil, err
 		}
@@ -763,4 +699,12 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 		}
 	}
 	return false, nil
+}
+
+// GetStorageManager returns the storage manager for the trie
+func (tr *patriciaMerkleTrie) GetStorageManager() data.StorageManager {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	return tr.trieStorage
 }

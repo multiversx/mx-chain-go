@@ -151,30 +151,22 @@ type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
-	Root() ([]byte, error)
+	Root() ([]byte, error) //change to rootHash()
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
-	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	Prune(rootHash []byte, identifier TriePruningIdentifier)
-	TakeSnapshot(rootHash []byte)
-	SetCheckpoint(rootHash []byte)
 	ResetOldHashes() [][]byte
 	AppendToOldHashes([][]byte)
 	GetDirtyHashes() (ModifiedHashes, error)
 	SetNewHashes(ModifiedHashes)
-	Database() DBWriteCacher
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeavesOnChannel(rootHash []byte, ctx context.Context) (chan core.KeyValueHolder, error)
 	GetAllHashes() ([][]byte, error)
-	IsPruningEnabled() bool
-	EnterPruningBufferingMode()
-	ExitPruningBufferingMode()
-	GetSnapshotDbBatchDelay() int
 	IsInterfaceNil() bool
 	ClosePersister() error
 	GetProof(key []byte) ([][]byte, error)
 	VerifyProof(key []byte, proof [][]byte) (bool, error)
+	GetStorageManager() StorageManager
 }
 
 // DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed

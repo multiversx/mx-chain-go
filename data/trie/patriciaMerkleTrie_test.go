@@ -398,8 +398,9 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	tr.CancelPrune(rootHash, data.OldRoot)
-	tr.Prune(rootHash, data.OldRoot)
+	storageManager := tr.GetStorageManager()
+	storageManager.CancelPrune(rootHash, data.OldRoot)
+	storageManager.Prune(rootHash, data.OldRoot)
 
 	newTr, err := tr.Recreate(rootHash)
 	assert.Nil(t, err)
@@ -420,12 +421,12 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
 
-	tr.CancelPrune(rootHash, data.NewRoot)
-	tr.Prune(rootHash, data.OldRoot)
+	tr.GetStorageManager().CancelPrune(rootHash, data.NewRoot)
+	tr.GetStorageManager().Prune(rootHash, data.OldRoot)
 	time.Sleep(time.Second)
 
 	expectedErr := fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(rootHash))
-	val, err := tr.Database().Get(rootHash)
+	val, err := tr.GetStorageManager().Database().Get(rootHash)
 	assert.Nil(t, val)
 	assert.Equal(t, expectedErr, err)
 }
@@ -467,10 +468,11 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	dirtyHashes, _ := tr.GetDirtyHashes()
 	tr.SetNewHashes(dirtyHashes)
+	storageManager := tr.GetStorageManager()
 
-	tr.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
-	tr.Prune(rootHash, data.NewRoot)
+	storageManager.Prune(rootHash, data.NewRoot)
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
@@ -520,7 +522,7 @@ func TestPatriciaMerkleTrie_ClosePersister(t *testing.T) {
 	err := tr.ClosePersister()
 	assert.Nil(t, err)
 
-	key, err := tr.Database().Get([]byte("key"))
+	key, err := trieStorageManager.Database().Get([]byte("key"))
 	assert.Nil(t, key)
 	assert.Equal(t, storage.ErrSerialDBIsClosed, err)
 }
@@ -554,21 +556,22 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	newHashes, _ := tr.GetDirtyHashes()
 	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
+	storageManager := tr.GetStorageManager()
 
 	rootHash, _ := tr.Root()
-	tr.TakeSnapshot(rootHash)
+	storageManager.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 
-	tr.Prune(rootHash, data.NewRoot)
+	storageManager.Prune(rootHash, data.NewRoot)
 
-	val, err := tr.Database().Get(rootHash)
+	val, err := storageManager.Database().Get(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 
 	nodes, _, _ := tr.GetSerializedNodes(rootHash, 2000)
 	assert.NotEqual(t, 0, len(nodes))
 
-	val, err = tr.Database().Get(rootHash)
+	val, err = storageManager.Database().Get(rootHash)
 	assert.NotNil(t, err)
 	assert.Nil(t, val)
 }
