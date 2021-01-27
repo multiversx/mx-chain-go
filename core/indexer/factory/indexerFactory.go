@@ -2,14 +2,13 @@ package factory
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/factory"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/hashing"
 	"github.com/ElrondNetwork/elrond-go/marshal"
@@ -18,34 +17,29 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 )
 
-const (
-	withKibanaFolder = "withKibana"
-	noKibanaFolder   = "noKibana"
-)
-
 // ArgsIndexerFactory holds all dependencies required by the data indexer factory in order to create
 // new instances
 type ArgsIndexerFactory struct {
 	Enabled                  bool
+	UseKibana                bool
+	IsInImportDBMode         bool
+	SaveTxsLogsEnabled       bool
 	IndexerCacheSize         int
-	ShardCoordinator         sharding.Coordinator
+	Denomination             int
 	Url                      string
 	UserName                 string
 	Password                 string
+	TemplatesPath            string
+	EnabledIndexes           []string
+	ShardCoordinator         sharding.Coordinator
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	EpochStartNotifier       sharding.EpochStartEventNotifier
 	NodesCoordinator         sharding.NodesCoordinator
 	AddressPubkeyConverter   core.PubkeyConverter
 	ValidatorPubkeyConverter core.PubkeyConverter
-	TemplatesPath            string
-	Options                  *types.Options
-	EnabledIndexes           []string
-	Denomination             int
 	AccountsDB               state.AccountsAdapter
 	TransactionFeeCalculator process.TransactionFeeCalculator
-	IsInImportDBMode         bool
-	SaveTxsLogsEnabled       bool
 }
 
 // NewIndexer will create a new instance of Indexer
@@ -73,7 +67,6 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 
 	arguments := indexer.ArgDataIndexer{
 		Marshalizer:        args.Marshalizer,
-		Options:            args.Options,
 		NodesCoordinator:   args.NodesCoordinator,
 		EpochStartNotifier: args.EpochStartNotifier,
 		ShardCoordinator:   args.ShardCoordinator,
@@ -84,59 +77,34 @@ func NewIndexer(args *ArgsIndexerFactory) (indexer.Indexer, error) {
 	return indexer.NewDataIndexer(arguments)
 }
 
-func createDatabaseClient(url, userName, password string) (processIndexer.DatabaseClientHandler, error) {
-	return client.NewElasticClient(elasticsearch.Config{
-		Addresses: []string{url},
-		Username:  userName,
-		Password:  password,
-	})
-}
-
 func createElasticProcessor(args *ArgsIndexerFactory) (indexer.ElasticProcessor, error) {
-	databaseClient, err := createDatabaseClient(args.Url, args.UserName, args.Password)
+	databaseClient, err := client.NewElasticClient(elasticsearch.Config{
+		Addresses: []string{args.Url},
+		Username:  args.UserName,
+		Password:  args.Password,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var templatesPath string
-	if args.Options.UseKibana {
-		templatesPath = path.Join(args.TemplatesPath, withKibanaFolder)
-	} else {
-		templatesPath = path.Join(args.TemplatesPath, noKibanaFolder)
-	}
-
-	indexTemplates, indexPolicies, err := processIndexer.GetElasticTemplatesAndPolicies(templatesPath, args.Options.UseKibana)
-	if err != nil {
-		return nil, err
-	}
-
-	enabledIndexesMap := make(map[string]struct{})
-	for _, index := range args.EnabledIndexes {
-		enabledIndexesMap[index] = struct{}{}
-	}
-	if len(enabledIndexesMap) == 0 {
-		return nil, indexer.ErrEmptyEnabledIndexes
-	}
-
-	esIndexerArgs := processIndexer.ArgElasticProcessor{
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
+	argsElasticProcFac := factory.ArgElasticProcessorFactory{
 		Marshalizer:              args.Marshalizer,
 		Hasher:                   args.Hasher,
 		AddressPubkeyConverter:   args.AddressPubkeyConverter,
 		ValidatorPubkeyConverter: args.ValidatorPubkeyConverter,
-		Options:                  args.Options,
+		UseKibana:                args.UseKibana,
 		DBClient:                 databaseClient,
-		EnabledIndexes:           enabledIndexesMap,
 		AccountsDB:               args.AccountsDB,
 		Denomination:             args.Denomination,
 		TransactionFeeCalculator: args.TransactionFeeCalculator,
 		IsInImportDBMode:         args.IsInImportDBMode,
 		ShardCoordinator:         args.ShardCoordinator,
 		SaveTxsLogsEnabled:       args.SaveTxsLogsEnabled,
+		EnabledIndexes:           args.EnabledIndexes,
+		TemplatesPath:            args.TemplatesPath,
 	}
 
-	return processIndexer.NewElasticProcessor(esIndexerArgs)
+	return factory.CreateElasticProcessor(argsElasticProcFac)
 }
 
 func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
@@ -166,6 +134,12 @@ func checkDataIndexerParams(arguments *ArgsIndexerFactory) error {
 	}
 	if check.IfNil(arguments.TransactionFeeCalculator) {
 		return core.ErrNilTransactionFeeCalculator
+	}
+	if check.IfNil(arguments.AccountsDB) {
+		return processIndexer.ErrNilAccountsDB
+	}
+	if check.IfNil(arguments.ShardCoordinator) {
+		return processIndexer.ErrNilShardCoordinator
 	}
 
 	return nil

@@ -32,7 +32,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/forking"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	indexerFactory "github.com/ElrondNetwork/elrond-go/core/indexer/factory"
-	indexerTypes "github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/logging"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
@@ -2045,11 +2044,9 @@ func createElasticIndexer(
 		AccountsDB:               accountsDB,
 		Denomination:             denomination,
 		TransactionFeeCalculator: economicsHandler,
-		Options: &indexerTypes.Options{
-			UseKibana: elasticSearchConfig.UseKibana,
-		},
-		IsInImportDBMode:   isInImportDBMode,
-		SaveTxsLogsEnabled: elasticSearchConfig.SaveTxsLogsEnabled,
+		UseKibana:                elasticSearchConfig.UseKibana,
+		IsInImportDBMode:         isInImportDBMode,
+		SaveTxsLogsEnabled:       elasticSearchConfig.SaveTxsLogsEnabled,
 	}
 
 	return indexerFactory.NewIndexer(indexerFactoryArgs)

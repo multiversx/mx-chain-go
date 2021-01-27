@@ -20,7 +20,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data"
 	dataBlock "github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/hashing/sha256"
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	dataProcess "github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/testscommon"
@@ -47,7 +46,6 @@ func newTestMetaBlock() *dataBlock.MetaBlock {
 func NewDataIndexerArguments() ArgDataIndexer {
 	return ArgDataIndexer{
 		Marshalizer:        &mock.MarshalizerMock{},
-		Options:            &types.Options{},
 		NodesCoordinator:   &mock.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     &mock.DispatcherMock{},
@@ -356,19 +354,14 @@ func testCreateIndexer(t *testing.T) {
 		Password:  "",
 	})
 
-	elasticIndexer, _ := process.NewElasticProcessor(process.ArgElasticProcessor{
+	elasticIndexer, _ := process.NewElasticProcessor(&process.ArgElasticProcessor{
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
-		Marshalizer:              &marshal.JsonMarshalizer{},
-		Hasher:                   &sha256.Sha256{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		Options:                  &types.Options{},
 		DBClient:                 dbClient,
 	})
 
 	di, err := NewDataIndexer(ArgDataIndexer{
-		Options:            &types.Options{},
 		Marshalizer:        &marshal.JsonMarshalizer{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		DataDispatcher:     dispatcher,

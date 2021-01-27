@@ -60,7 +60,7 @@ func TestGetESDTInfo_CannotRetriveValueShoudError(t *testing.T) {
 	require.NotNil(t, ap)
 
 	localErr := errors.New("local error")
-	wrapAccount := &AccountESDT{
+	wrapAccount := &types.AccountESDT{
 		Account: &mock.UserAccountStub{
 			DataTrieTrackerCalled: func() state.DataTrieTracker {
 				return &mock.DataTrieTrackerStub{
@@ -88,7 +88,7 @@ func TestGetESDTInfo(t *testing.T) {
 	}
 
 	tokenIdentifier := "token-001"
-	wrapAccount := &AccountESDT{
+	wrapAccount := &types.AccountESDT{
 		Account: &mock.UserAccountStub{
 			DataTrieTrackerCalled: func() state.DataTrieTracker {
 				return &mock.DataTrieTrackerStub{
@@ -119,7 +119,7 @@ func TestAccountsProcessor_GetAccountsEGLDAccounts(t *testing.T) {
 	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
 	require.NotNil(t, ap)
 
-	alteredAccounts := map[string]*AlteredAccount{
+	alteredAccounts := map[string]*types.AlteredAccount{
 		addr: {
 			IsESDTOperation: false,
 			TokenIdentifier: "",
@@ -145,7 +145,7 @@ func TestAccountsProcessor_GetAccountsESDTAccount(t *testing.T) {
 	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
 	require.NotNil(t, ap)
 
-	alteredAccounts := map[string]*AlteredAccount{
+	alteredAccounts := map[string]*types.AlteredAccount{
 		addr: {
 			IsESDTOperation: true,
 			TokenIdentifier: "token",
@@ -153,7 +153,7 @@ func TestAccountsProcessor_GetAccountsESDTAccount(t *testing.T) {
 	}
 	accounts, esdtAccounts := ap.GetAccounts(alteredAccounts)
 	require.Equal(t, 0, len(accounts))
-	require.Equal(t, []*AccountESDT{
+	require.Equal(t, []*types.AccountESDT{
 		{Account: mockAccount, TokenIdentifier: "token"},
 	}, esdtAccounts)
 }
@@ -226,7 +226,7 @@ func TestAccountsProcessor_PrepareAccountsMapESDT(t *testing.T) {
 	ap := NewAccountsProcessor(10, &mock.MarshalizerMock{}, mock.NewPubkeyConverterMock(32), accountsStub)
 	require.NotNil(t, ap)
 
-	res := ap.PrepareAccountsMapESDT([]*AccountESDT{{Account: mockAccount, TokenIdentifier: "token"}})
+	res := ap.PrepareAccountsMapESDT([]*types.AccountESDT{{Account: mockAccount, TokenIdentifier: "token"}})
 	require.Equal(t, map[string]*types.AccountInfo{
 		hex.EncodeToString([]byte(addr)): {
 			Address:         hex.EncodeToString([]byte(addr)),

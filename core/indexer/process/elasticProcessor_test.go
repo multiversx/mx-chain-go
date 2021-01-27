@@ -15,6 +15,10 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/block"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/miniblocks"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/transactions"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -30,42 +34,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments ArgElasticProcessor) *elasticProcessor {
+func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments *ArgElasticProcessor) *elasticProcessor {
 	return &elasticProcessor{
-		txDatabaseProcessor: newTxDatabaseProcessor(
-			arguments.Hasher,
-			arguments.Marshalizer,
-			arguments.AddressPubkeyConverter,
-			arguments.ValidatorPubkeyConverter,
-			arguments.TransactionFeeCalculator,
-			arguments.IsInImportDBMode,
-			arguments.ShardCoordinator,
-			false,
-		),
-		elasticClient: elasticsearchWriter,
-		parser: &dataParser{
-			marshalizer: arguments.Marshalizer,
-			hasher:      arguments.Hasher,
-		},
-		enabledIndexes: arguments.EnabledIndexes,
+		elasticClient:            elasticsearchWriter,
+		enabledIndexes:           arguments.EnabledIndexes,
+		blockProc:                arguments.BlockProc,
+		txProc:                   arguments.TxProc,
+		miniblocksProc:           arguments.MiniblocksProc,
+		accountsProc:             arguments.AccountsProc,
+		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
 	}
 }
 
-func createMockElasticProcessorArgs() ArgElasticProcessor {
-	return ArgElasticProcessor{
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+func createMockElasticProcessorArgs() *ArgElasticProcessor {
+	return &ArgElasticProcessor{
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		Hasher:                   &mock.HasherMock{},
-		Marshalizer:              &mock.MarshalizerMock{},
 		DBClient:                 &mock.DatabaseWriterStub{},
-		Options:                  &types.Options{},
-		IsInImportDBMode:         false,
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
-		AccountsDB:               &mock.AccountsStub{},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
-		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		CalculateHashFunc: func(object interface{}) ([]byte, error) {
+			return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
+		},
+		BlockProc: &mock.DbBlockProcHandlerStub{},
+		TxProc:    &mock.DBTxsProcStub{},
 	}
 }
 
@@ -130,9 +122,7 @@ func newTestBlockBody() *dataBlock.Body {
 
 func TestNewElasticProcessorWithKibana(t *testing.T) {
 	args := createMockElasticProcessorArgs()
-	args.Options = &types.Options{
-		UseKibana: true,
-	}
+	args.UseKibana = true
 	args.DBClient = &mock.DatabaseWriterStub{}
 
 	elasticProc, err := NewElasticProcessor(args)
@@ -149,6 +139,10 @@ func TestElasticProcessor_RemoveHeader(t *testing.T) {
 			called = true
 			return nil
 		},
+	}
+
+	args.CalculateHashFunc = func(object interface{}) ([]byte, error) {
+		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
 	}
 
 	elasticProc, err := NewElasticProcessor(args)
@@ -180,8 +174,8 @@ func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
 
 	args := createMockElasticProcessorArgs()
 
-	mbHash2, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb2)
-	mbHash3, _ := core.CalculateHash(args.Marshalizer, args.Hasher, mb3)
+	mbHash2, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, mb2)
+	mbHash3, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, mb3)
 
 	args.DBClient = &mock.DatabaseWriterStub{
 		DoBulkRemoveCalled: func(index string, hashes []string) error {
@@ -255,24 +249,25 @@ func TestElasticseachDatabaseSaveHeader_CheckRequestBody(t *testing.T) {
 
 	arguments := createMockElasticProcessorArgs()
 
-	mbHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, miniBlock)
+	mbHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, miniBlock)
 	hexEncodedHash := hex.EncodeToString(mbHash)
 
 	dbWriter := &mock.DatabaseWriterStub{
 		DoRequestCalled: func(req *esapi.IndexRequest) error {
 			require.Equal(t, blockIndex, req.Index)
 
-			var block types.Block
+			var bl types.Block
 			blockBytes, _ := ioutil.ReadAll(req.Body)
-			_ = json.Unmarshal(blockBytes, &block)
-			require.Equal(t, header.Nonce, block.Nonce)
-			require.Equal(t, hexEncodedHash, block.MiniBlocksHashes[0])
-			require.Equal(t, signerIndexes, block.Validators)
+			_ = json.Unmarshal(blockBytes, &bl)
+			require.Equal(t, header.Nonce, bl.Nonce)
+			require.Equal(t, hexEncodedHash, bl.MiniBlocksHashes[0])
+			require.Equal(t, signerIndexes, bl.Validators)
 
 			return nil
 		},
 	}
 
+	arguments.BlockProc = block.NewBlockProcessor(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	err := elasticDatabase.SaveHeader(header, signerIndexes, blockBody, nil, 1)
 	require.Nil(t, err)
@@ -290,6 +285,20 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	body := newTestBlockBody()
 	header := &dataBlock.Header{Nonce: 1, TxCount: 2}
 	txPool := newTestTxPool()
+
+	calculateHash := func(object interface{}) ([]byte, error) {
+		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
+	}
+	txDbProc := transactions.NewTransactionsProcessor(
+		&mock.PubkeyConverterMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		false,
+		&mock.ShardCoordinatorMock{},
+		false,
+		calculateHash,
+		disabled.NewNilTxLogsProcessor(),
+	)
+	arguments.TxProc = txDbProc
 
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 	err := elasticDatabase.SaveTransactions(body, header, txPool, 0, map[string]bool{})
@@ -336,6 +345,7 @@ func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
 		},
 	}
 
+	arguments.MiniblocksProc = miniblocks.NewMiniblocksProcessor(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	elasticProc, _ := NewElasticProcessor(arguments)
 
 	header := &dataBlock.Header{}
@@ -465,24 +475,14 @@ func TestUpdateMiniBlock(t *testing.T) {
 		Addresses: []string{"http://localhost:9200"},
 	})
 
-	args := ArgElasticProcessor{
+	args := &ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		EnabledIndexes: map[string]struct{}{
 			"miniblocks": {},
 		},
-		Options: &types.Options{
-			IndexerCacheSize: 100,
-			UseKibana:        false,
-		},
-		AccountsDB:               &mock.AccountsStub{},
-		ShardCoordinator:         &mock.ShardCoordinatorMock{},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
 	}
 
 	esDatabase, err := NewElasticProcessor(args)
@@ -516,10 +516,8 @@ func TestSaveRoundsInfo(t *testing.T) {
 		Addresses: []string{"http://localhost:9200"},
 	})
 
-	args := ArgElasticProcessor{
+	args := &ArgElasticProcessor{
 		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
 		IndexTemplates: indexTemplates,
 		IndexPolicies:  indexPolicies,
 	}
@@ -549,26 +547,15 @@ func TestUpdateTransaction(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
-		ShardCoordinator:         &mock.ShardCoordinatorMock{},
-		IsInImportDBMode:         false,
-		AddressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		AccountsDB:               &mock.AccountsStub{},
 		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
-		Options: &types.Options{
-			UseKibana:        false,
-			IndexerCacheSize: 10000,
-		},
-		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
 		EnabledIndexes: map[string]struct{}{
 			"transactions": {},
 		},
 	}
 
-	esDatabase, err := NewElasticProcessor(args)
+	esDatabase, err := NewElasticProcessor(&args)
 	require.Nil(t, err)
 
 	txHash1 := []byte("txHash1")
@@ -679,13 +666,11 @@ func TestGetMultiple(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:       dbClient,
-		Marshalizer:    &mock.MarshalizerMock{},
-		Hasher:         &mock.HasherMock{},
 		IndexTemplates: indexTemplates,
 		IndexPolicies:  indexPolicies,
 	}
 
-	es, _ := NewElasticProcessor(args)
+	es, _ := NewElasticProcessor(&args)
 
 	hashes := []string{
 		"57cf251084cd7f79563207c52f938359eebdaf27f91fef1335a076f5dc4873351",
@@ -705,15 +690,12 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticProcessor(args)
+	esDatabase, _ := NewElasticProcessor(&args)
 
 	txHash1 := []byte("txHash1")
 	tx1 := &transaction.Transaction{
@@ -766,15 +748,12 @@ func TestDoBulkRequestLimit(t *testing.T) {
 
 	args := ArgElasticProcessor{
 		DBClient:                 dbClient,
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &mock.HasherMock{},
-		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
 		IndexTemplates:           indexTemplates,
 		IndexPolicies:            indexPolicies,
 	}
 
-	esDatabase, _ := NewElasticProcessor(args)
+	esDatabase, _ := NewElasticProcessor(&args)
 	//Generate transaction and hashes
 	numTransactions := 1
 	dataSize := 900001

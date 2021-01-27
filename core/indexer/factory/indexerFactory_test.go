@@ -2,7 +2,6 @@ package factory
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +9,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
@@ -32,7 +30,6 @@ func createMockIndexerFactoryArgs() *ArgsIndexerFactory {
 		AddressPubkeyConverter:   &mock.PubkeyConverterMock{},
 		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
 		TemplatesPath:            "../testdata",
-		Options:                  &types.Options{},
 		EnabledIndexes:           []string{"blocks", "transactions", "miniblocks", "tps", "validators", "round", "accounts", "rating"},
 		AccountsDB:               &mock.AccountsStub{},
 		TransactionFeeCalculator: &economicsmocks.EconomicsHandlerStub{},
@@ -129,13 +126,22 @@ func TestNewIndexerFactory(t *testing.T) {
 			exError: core.ErrNilUrl,
 		},
 		{
-			name: "NilEconomicsHandler",
+			name: "NilTransactionFeeCalculator",
 			argsFunc: func() *ArgsIndexerFactory {
 				args := createMockIndexerFactoryArgs()
 				args.TransactionFeeCalculator = nil
 				return args
 			},
 			exError: core.ErrNilTransactionFeeCalculator,
+		},
+		{
+			name: "NilHardCoordinator",
+			argsFunc: func() *ArgsIndexerFactory {
+				args := createMockIndexerFactoryArgs()
+				args.ShardCoordinator = nil
+				return args
+			},
+			exError: process.ErrNilShardCoordinator,
 		},
 		{
 			name: "All arguments ok",
@@ -149,10 +155,6 @@ func TestNewIndexerFactory(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewIndexer(tt.argsFunc())
-			if !errors.Is(err, tt.exError) {
-				fmt.Println(err)
-				fmt.Println(tt.exError)
-			}
 			require.True(t, errors.Is(err, tt.exError))
 		})
 	}

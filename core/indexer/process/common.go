@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-
-	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
-	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
 // GetElasticTemplatesAndPolicies will return elastic templates and policies
@@ -75,14 +72,6 @@ func getPolicyByIndex(path string, index string) (*bytes.Buffer, error) {
 	}
 
 	return indexPolicy, nil
-}
-
-func isCrossShardDstMe(tx *types.Transaction, selfShardID uint32) bool {
-	return tx.SenderShard != tx.ReceiverShard && tx.ReceiverShard == selfShardID
-}
-
-func isIntraShardOrInvalid(tx *types.Transaction, selfShardID uint32) bool {
-	return (tx.SenderShard == tx.ReceiverShard && tx.ReceiverShard == selfShardID) || tx.Status == transaction.TxStatusInvalid.String()
 }
 
 func getDecodedResponseMultiGet(response objectsMap) map[string]bool {

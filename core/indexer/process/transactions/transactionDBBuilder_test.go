@@ -1,4 +1,4 @@
-package process
+package transactions
 
 import (
 	"encoding/hex"
@@ -20,10 +20,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createCommonProcessor() commonProcessor {
-	return commonProcessor{
-		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
-		validatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+func createCommonProcessor() txDBBuilder {
+	return txDBBuilder{
+		addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
 		txFeeCalculator: &economicsmocks.EconomicsHandlerStub{
 			ComputeTxFeeBasedOnGasUsedCalled: func(tx process.TransactionWithFeeHandler, gasUsed uint64) *big.Int {
 				return big.NewInt(100)

@@ -21,7 +21,6 @@ type ArgDataIndexer struct {
 	Marshalizer        marshal.Marshalizer
 	EpochStartNotifier sharding.EpochStartEventNotifier
 	NodesCoordinator   sharding.NodesCoordinator
-	Options            *types.Options
 	DataDispatcher     DispatcherHandler
 	ElasticProcessor   ElasticProcessor
 }
@@ -31,7 +30,6 @@ type dataIndexer struct {
 	dispatcher       DispatcherHandler
 	coordinator      sharding.NodesCoordinator
 	elasticProcessor ElasticProcessor
-	options          *types.Options
 	marshalizer      marshal.Marshalizer
 }
 
@@ -48,7 +46,6 @@ func NewDataIndexer(arguments ArgDataIndexer) (Indexer, error) {
 		coordinator:      arguments.NodesCoordinator,
 		elasticProcessor: arguments.ElasticProcessor,
 		marshalizer:      arguments.Marshalizer,
-		options:          arguments.Options,
 	}
 
 	if arguments.ShardCoordinator.SelfId() == core.MetachainShardId {

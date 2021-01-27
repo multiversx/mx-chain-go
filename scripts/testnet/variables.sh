@@ -51,6 +51,9 @@ export GENESIS_STAKE_TYPE="delegated" #'delegated' or 'direct' as in direct stak
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
+# Hysteresis
+export HYSTERESIS=0.2
+
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3

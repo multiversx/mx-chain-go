@@ -1,13 +1,10 @@
-package process
+package transactions
 
 import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
@@ -17,17 +14,33 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/sharding"
 )
 
-type commonProcessor struct {
-	esdtProc                 *esdtTransactionProcessor
-	addressPubkeyConverter   core.PubkeyConverter
-	validatorPubkeyConverter core.PubkeyConverter
-	shardCoordinator         sharding.Coordinator
-	txFeeCalculator          process.TransactionFeeCalculator
+type txDBBuilder struct {
+	esdtProc               *esdtTransactionProcessor
+	addressPubkeyConverter core.PubkeyConverter
+	shardCoordinator       sharding.Coordinator
+	txFeeCalculator        process.TransactionFeeCalculator
 }
 
-func (cm *commonProcessor) buildTransaction(
+func newTransactionDBBuilder(
+	addressPubkeyConverter core.PubkeyConverter,
+	shardCoordinator sharding.Coordinator,
+	txFeeCalculator process.TransactionFeeCalculator,
+) *txDBBuilder {
+	esdtProc := newEsdtTransactionHandler()
+
+	return &txDBBuilder{
+		esdtProc:               esdtProc,
+		addressPubkeyConverter: addressPubkeyConverter,
+		shardCoordinator:       shardCoordinator,
+		txFeeCalculator:        txFeeCalculator,
+	}
+}
+
+func (tbb *txDBBuilder) buildTransaction(
 	tx *transaction.Transaction,
 	txHash []byte,
 	mbHash []byte,
@@ -36,12 +49,12 @@ func (cm *commonProcessor) buildTransaction(
 	txStatus string,
 ) *types.Transaction {
 	var tokenIdentifier, esdtValue string
-	if isESDTTx := cm.esdtProc.isESDTTx(tx); isESDTTx {
-		tokenIdentifier, esdtValue = cm.esdtProc.getTokenIdentifierAndValue(tx)
+	if isESDTTx := tbb.esdtProc.isESDTTx(tx); isESDTTx {
+		tokenIdentifier, esdtValue = tbb.esdtProc.getTokenIdentifierAndValue(tx)
 	}
 
-	gasUsed := cm.txFeeCalculator.ComputeGasLimit(tx)
-	fee := cm.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+	gasUsed := tbb.txFeeCalculator.ComputeGasLimit(tx)
+	fee := tbb.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	return &types.Transaction{
 		Hash:                hex.EncodeToString(txHash),
@@ -49,8 +62,8 @@ func (cm *commonProcessor) buildTransaction(
 		Nonce:               tx.Nonce,
 		Round:               header.GetRound(),
 		Value:               tx.Value.String(),
-		Receiver:            cm.addressPubkeyConverter.Encode(tx.RcvAddr),
-		Sender:              cm.addressPubkeyConverter.Encode(tx.SndAddr),
+		Receiver:            tbb.addressPubkeyConverter.Encode(tx.RcvAddr),
+		Sender:              tbb.addressPubkeyConverter.Encode(tx.SndAddr),
 		ReceiverShard:       mb.ReceiverShardID,
 		SenderShard:         mb.SenderShardID,
 		GasPrice:            tx.GasPrice,
@@ -69,7 +82,7 @@ func (cm *commonProcessor) buildTransaction(
 	}
 }
 
-func (cm *commonProcessor) buildRewardTransaction(
+func (tbb *txDBBuilder) buildRewardTransaction(
 	rTx *rewardTx.RewardTx,
 	txHash []byte,
 	mbHash []byte,
@@ -83,7 +96,7 @@ func (cm *commonProcessor) buildRewardTransaction(
 		Nonce:         0,
 		Round:         rTx.Round,
 		Value:         rTx.Value.String(),
-		Receiver:      cm.addressPubkeyConverter.Encode(rTx.RcvAddr),
+		Receiver:      tbb.addressPubkeyConverter.Encode(rTx.RcvAddr),
 		Sender:        fmt.Sprintf("%d", core.MetachainShardId),
 		ReceiverShard: mb.ReceiverShardID,
 		SenderShard:   mb.SenderShardID,
@@ -96,19 +109,19 @@ func (cm *commonProcessor) buildRewardTransaction(
 	}
 }
 
-func (cm *commonProcessor) convertScResultInDatabaseScr(
+func (tbb *txDBBuilder) convertScResultInDatabaseScr(
 	scHash string,
 	sc *smartContractResult.SmartContractResult,
 	header data.HeaderHandler,
 ) *types.ScResult {
 	relayerAddr := ""
 	if len(sc.RelayerAddr) > 0 {
-		relayerAddr = cm.addressPubkeyConverter.Encode(sc.RelayerAddr)
+		relayerAddr = tbb.addressPubkeyConverter.Encode(sc.RelayerAddr)
 	}
 
 	var tokenIdentifier, esdtValue string
-	if isESDTTx := cm.esdtProc.isESDTTx(sc); isESDTTx {
-		tokenIdentifier, esdtValue = cm.esdtProc.getTokenIdentifierAndValue(sc)
+	if isESDTTx := tbb.esdtProc.isESDTTx(sc); isESDTTx {
+		tokenIdentifier, esdtValue = tbb.esdtProc.getTokenIdentifierAndValue(sc)
 	}
 
 	return &types.ScResult{
@@ -117,8 +130,8 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(
 		GasLimit:            sc.GasLimit,
 		GasPrice:            sc.GasPrice,
 		Value:               sc.Value.String(),
-		Sender:              cm.addressPubkeyConverter.Encode(sc.SndAddr),
-		Receiver:            cm.addressPubkeyConverter.Encode(sc.RcvAddr),
+		Sender:              tbb.addressPubkeyConverter.Encode(sc.SndAddr),
+		Receiver:            tbb.addressPubkeyConverter.Encode(sc.RcvAddr),
 		RelayerAddr:         relayerAddr,
 		RelayedValue:        sc.RelayedValue.String(),
 		Code:                string(sc.Code),
@@ -134,7 +147,7 @@ func (cm *commonProcessor) convertScResultInDatabaseScr(
 	}
 }
 
-func (cm *commonProcessor) convertReceiptInDatabaseReceipt(
+func (tbb *txDBBuilder) convertReceiptInDatabaseReceipt(
 	recHash string,
 	rec *receipt.Receipt,
 	header data.HeaderHandler,
@@ -142,9 +155,34 @@ func (cm *commonProcessor) convertReceiptInDatabaseReceipt(
 	return &types.Receipt{
 		Hash:      hex.EncodeToString([]byte(recHash)),
 		Value:     rec.Value.String(),
-		Sender:    cm.addressPubkeyConverter.Encode(rec.SndAddr),
+		Sender:    tbb.addressPubkeyConverter.Encode(rec.SndAddr),
 		Data:      string(rec.Data),
 		TxHash:    hex.EncodeToString(rec.TxHash),
 		Timestamp: time.Duration(header.GetTimeStamp()),
+	}
+}
+
+func (tbb *txDBBuilder) addScrsReceiverToAlteredAccounts(
+	alteredAddress map[string]*types.AlteredAccount,
+	scrs []*types.ScResult,
+) {
+	for _, scr := range scrs {
+		receiverAddr, _ := tbb.addressPubkeyConverter.Decode(scr.Receiver)
+		shardID := tbb.shardCoordinator.ComputeId(receiverAddr)
+		if shardID != tbb.shardCoordinator.SelfId() {
+			continue
+		}
+
+		egldBalanceNotChanged := scr.Value == "" || scr.Value == "0"
+		esdtBalanceNotChanged := scr.EsdtValue == "" || scr.EsdtValue == "0"
+		if egldBalanceNotChanged && esdtBalanceNotChanged {
+			// the smart contract results that dont't alter the balance of the receiver address should be ignored
+			continue
+		}
+		encodedReceiverAddress := scr.Receiver
+		alteredAddress[encodedReceiverAddress] = &types.AlteredAccount{
+			IsESDTOperation: scr.EsdtTokenIdentifier != "" && scr.EsdtValue != "",
+			TokenIdentifier: scr.EsdtTokenIdentifier,
+		}
 	}
 }

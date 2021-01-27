@@ -9,7 +9,7 @@ import (
 )
 
 // SerializeAccounts will serialize the provided accounts in a way that Elastic Search expects a bulk request
-func SerializeAccounts(
+func (ap *accountsProcessor) SerializeAccounts(
 	accounts map[string]*types.AccountInfo,
 	bulkSizeThreshold int,
 	areESDTAccounts bool,
@@ -78,7 +78,7 @@ func prepareSerializedAccountInfo(
 }
 
 // SerializeAccountsHistory will serialize accounts history in a way that Elastic Search expects a bulk request
-func SerializeAccountsHistory(
+func (ap *accountsProcessor) SerializeAccountsHistory(
 	accounts map[string]*types.AccountBalanceHistory,
 	bulkSizeThreshold int,
 ) ([]bytes.Buffer, error) {

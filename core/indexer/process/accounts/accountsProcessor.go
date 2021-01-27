@@ -19,22 +19,8 @@ var log = logger.GetOrCreate("indexer/process/accounts")
 
 const numDecimalsInFloatBalance = 10
 
-// AccountESDT is a structure that is needed for ESDT accounts
-type AccountESDT struct {
-	Account         state.UserAccountHandler
-	TokenIdentifier string
-	IsSender        bool
-}
-
-// AlteredAccount is a structure that holds information about an altered account
-type AlteredAccount struct {
-	IsSender        bool
-	IsESDTOperation bool
-	TokenIdentifier string
-}
-
-// AccountsProcessor a is structure responsible for processing accounts
-type AccountsProcessor struct {
+// accountsProcessor a is structure responsible for processing accounts
+type accountsProcessor struct {
 	dividerForDenomination float64
 	balancePrecision       float64
 	internalMarshalizer    marshal.Marshalizer
@@ -48,8 +34,8 @@ func NewAccountsProcessor(
 	marshalizer marshal.Marshalizer,
 	addressPubkeyConverter core.PubkeyConverter,
 	accountsDB state.AccountsAdapter,
-) *AccountsProcessor {
-	return &AccountsProcessor{
+) *accountsProcessor {
+	return &accountsProcessor{
 		internalMarshalizer:    marshalizer,
 		addressPubkeyConverter: addressPubkeyConverter,
 		balancePrecision:       math.Pow(10, float64(numDecimalsInFloatBalance)),
@@ -59,9 +45,9 @@ func NewAccountsProcessor(
 }
 
 // GetAccounts will get accounts for egld operations and esdt operations
-func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAccount) ([]*types.AccountEGLD, []*AccountESDT) {
+func (ap *accountsProcessor) GetAccounts(alteredAccounts map[string]*types.AlteredAccount) ([]*types.AccountEGLD, []*types.AccountESDT) {
 	accountsToIndexEGLD := make([]*types.AccountEGLD, 0)
-	accountsToIndexESDT := make([]*AccountESDT, 0)
+	accountsToIndexESDT := make([]*types.AccountESDT, 0)
 	for address, info := range alteredAccounts {
 		addressBytes, err := ap.addressPubkeyConverter.Decode(address)
 		if err != nil {
@@ -82,7 +68,7 @@ func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAcco
 		}
 
 		if info.IsESDTOperation {
-			accountsToIndexESDT = append(accountsToIndexESDT, &AccountESDT{
+			accountsToIndexESDT = append(accountsToIndexESDT, &types.AccountESDT{
 				Account:         userAccount,
 				TokenIdentifier: info.TokenIdentifier,
 				IsSender:        info.IsSender,
@@ -105,7 +91,7 @@ func (ap *AccountsProcessor) GetAccounts(alteredAccounts map[string]*AlteredAcco
 }
 
 // PrepareAccountsMapEGLD will prepare a map of accounts with egld
-func (ap *AccountsProcessor) PrepareAccountsMapEGLD(accounts []*types.AccountEGLD) map[string]*types.AccountInfo {
+func (ap *accountsProcessor) PrepareAccountsMapEGLD(accounts []*types.AccountEGLD) map[string]*types.AccountInfo {
 	accountsMap := make(map[string]*types.AccountInfo)
 	for _, userAccount := range accounts {
 		balanceAsFloat := ap.computeBalanceAsFloat(userAccount.Account.GetBalance())
@@ -123,7 +109,7 @@ func (ap *AccountsProcessor) PrepareAccountsMapEGLD(accounts []*types.AccountEGL
 }
 
 // PrepareAccountsMapESDT will prepare a map of accounts with ESDT tokens
-func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map[string]*types.AccountInfo {
+func (ap *accountsProcessor) PrepareAccountsMapESDT(accounts []*types.AccountESDT) map[string]*types.AccountInfo {
 	accountsESDTMap := make(map[string]*types.AccountInfo)
 	for _, accountESDT := range accounts {
 		address := ap.addressPubkeyConverter.Encode(accountESDT.Account.AddressBytes())
@@ -151,7 +137,7 @@ func (ap *AccountsProcessor) PrepareAccountsMapESDT(accounts []*AccountESDT) map
 }
 
 // PrepareAccountsHistory will prepare a map of accounts history balance from a map of accounts
-func (ap *AccountsProcessor) PrepareAccountsHistory(accounts map[string]*types.AccountInfo) map[string]*types.AccountBalanceHistory {
+func (ap *accountsProcessor) PrepareAccountsHistory(accounts map[string]*types.AccountInfo) map[string]*types.AccountBalanceHistory {
 	currentTimestamp := time.Now().Unix()
 	accountsMap := make(map[string]*types.AccountBalanceHistory)
 	for address, userAccount := range accounts {
@@ -169,7 +155,7 @@ func (ap *AccountsProcessor) PrepareAccountsHistory(accounts map[string]*types.A
 	return accountsMap
 }
 
-func (ap *AccountsProcessor) getESDTInfo(accountESDT *AccountESDT) (*big.Int, string, error) {
+func (ap *accountsProcessor) getESDTInfo(accountESDT *types.AccountESDT) (*big.Int, string, error) {
 	if accountESDT.TokenIdentifier == "" {
 		return nil, "", nil
 	}
@@ -189,7 +175,7 @@ func (ap *AccountsProcessor) getESDTInfo(accountESDT *AccountESDT) (*big.Int, st
 	return esdtToken.Value, hex.EncodeToString(esdtToken.Properties), nil
 }
 
-func (ap *AccountsProcessor) computeBalanceAsFloat(balance *big.Int) float64 {
+func (ap *accountsProcessor) computeBalanceAsFloat(balance *big.Int) float64 {
 	balanceBigFloat := big.NewFloat(0).SetInt(balance)
 	balanceFloat64, _ := balanceBigFloat.Float64()
 

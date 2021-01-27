@@ -6,125 +6,75 @@ import (
 	"encoding/json"
 	"fmt"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
-	"github.com/ElrondNetwork/elrond-go/core/check"
-	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
-	"github.com/ElrondNetwork/elrond-go/data/state"
-	"github.com/ElrondNetwork/elrond-go/hashing"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 )
 
+var log = logger.GetOrCreate("indexer/process")
+
 type objectsMap = map[string]interface{}
 
-//ArgElasticProcessor is struct that is used to store all components that are needed to an elastic indexer
+// ArgElasticProcessor -
 type ArgElasticProcessor struct {
+	SelfShardID              uint32
 	IndexTemplates           map[string]*bytes.Buffer
 	IndexPolicies            map[string]*bytes.Buffer
-	Marshalizer              marshal.Marshalizer
-	Hasher                   hashing.Hasher
-	AddressPubkeyConverter   core.PubkeyConverter
-	ValidatorPubkeyConverter core.PubkeyConverter
-	Options                  *types.Options
-	DBClient                 DatabaseClientHandler
 	EnabledIndexes           map[string]struct{}
-	AccountsDB               state.AccountsAdapter
-	Denomination             int
-	TransactionFeeCalculator process.TransactionFeeCalculator
-	IsInImportDBMode         bool
-	ShardCoordinator         sharding.Coordinator
-	SaveTxsLogsEnabled       bool
+	CalculateHashFunc        func(object interface{}) ([]byte, error)
+	UseKibana                bool
+	ValidatorPubkeyConverter core.PubkeyConverter
+	TxProc                   DBTransactionsHandler
+	AccountsProc             DBAccountHandler
+	BlockProc                DBBlockHandler
+	MiniblocksProc           DBMiniblocksHandler
+	DBClient                 DatabaseClientHandler
 }
 
 type elasticProcessor struct {
-	*txDatabaseProcessor
-	elasticClient  DatabaseClientHandler
-	parser         *dataParser
-	enabledIndexes map[string]struct{}
-	accountsProc   *accounts.AccountsProcessor
+	selfShardID              uint32
+	enabledIndexes           map[string]struct{}
+	calculateHash            func(object interface{}) ([]byte, error)
+	elasticClient            DatabaseClientHandler
+	accountsProc             DBAccountHandler
+	blockProc                DBBlockHandler
+	txProc                   DBTransactionsHandler
+	miniblocksProc           DBMiniblocksHandler
+	validatorPubkeyConverter core.PubkeyConverter
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
-func NewElasticProcessor(arguments ArgElasticProcessor) (*elasticProcessor, error) {
-	err := checkArgElasticProcessor(arguments)
-	if err != nil {
-		return nil, err
-	}
-
+func NewElasticProcessor(arguments *ArgElasticProcessor) (*elasticProcessor, error) {
 	ei := &elasticProcessor{
-		elasticClient: arguments.DBClient,
-		parser: &dataParser{
-			hasher:      arguments.Hasher,
-			marshalizer: arguments.Marshalizer,
-		},
-		enabledIndexes: arguments.EnabledIndexes,
-		accountsProc:   accounts.NewAccountsProcessor(arguments.Denomination, arguments.Marshalizer, arguments.AddressPubkeyConverter, arguments.AccountsDB),
+		elasticClient:            arguments.DBClient,
+		enabledIndexes:           arguments.EnabledIndexes,
+		accountsProc:             arguments.AccountsProc,
+		blockProc:                arguments.BlockProc,
+		miniblocksProc:           arguments.MiniblocksProc,
+		txProc:                   arguments.TxProc,
+		calculateHash:            arguments.CalculateHashFunc,
+		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		selfShardID:              arguments.SelfShardID,
 	}
 
-	ei.txDatabaseProcessor = newTxDatabaseProcessor(
-		arguments.Hasher,
-		arguments.Marshalizer,
-		arguments.AddressPubkeyConverter,
-		arguments.ValidatorPubkeyConverter,
-		arguments.TransactionFeeCalculator,
-		arguments.IsInImportDBMode,
-		arguments.ShardCoordinator,
-		arguments.SaveTxsLogsEnabled,
-	)
-
-	if arguments.IsInImportDBMode {
-		log.Warn("the node is in import mode! Cross shard transactions and rewards where destination shard is " +
-			"not the current node's shard won't be indexed in Elastic Search")
-	}
-
-	if arguments.Options.UseKibana {
-		err = ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)
+	if arguments.UseKibana {
+		err := ei.initWithKibana(arguments.IndexTemplates, arguments.IndexPolicies)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err = ei.initNoKibana(arguments.IndexTemplates)
+		err := ei.initNoKibana(arguments.IndexTemplates)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return ei, nil
-}
-
-func checkArgElasticProcessor(arguments ArgElasticProcessor) error {
-	if check.IfNil(arguments.DBClient) {
-		return ErrNilDatabaseClient
-	}
-	if check.IfNil(arguments.Marshalizer) {
-		return core.ErrNilMarshalizer
-	}
-	if check.IfNil(arguments.Hasher) {
-		return core.ErrNilHasher
-	}
-	if check.IfNil(arguments.AddressPubkeyConverter) {
-		return ErrNilPubkeyConverter
-	}
-	if check.IfNil(arguments.ValidatorPubkeyConverter) {
-		return ErrNilPubkeyConverter
-	}
-	if check.IfNil(arguments.AccountsDB) {
-		return ErrNilAccountsDB
-	}
-	if arguments.Options == nil {
-		return ErrNilOptions
-	}
-	if check.IfNil(arguments.ShardCoordinator) {
-		return ErrNilShardCoordinator
-	}
-
-	return nil
 }
 
 func (ei *elasticProcessor) initWithKibana(indexTemplates, _ map[string]*bytes.Buffer) error {
@@ -296,22 +246,19 @@ func (ei *elasticProcessor) SaveHeader(
 		return nil
 	}
 
-	var buff bytes.Buffer
-
-	serializedBlock, headerHash, err := ei.parser.getSerializedElasticBlockAndHeaderHash(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
+	elasticBlock, err := ei.blockProc.PrepareBlockForDB(header, signersIndexes, body, notarizedHeadersHashes, txsSize)
 	if err != nil {
 		return err
 	}
 
-	buff.Grow(len(serializedBlock))
-	_, err = buff.Write(serializedBlock)
+	buff, err := ei.blockProc.SerializeBlock(elasticBlock)
 	if err != nil {
 		return err
 	}
 
 	req := &esapi.IndexRequest{
 		Index:      blockIndex,
-		DocumentID: hex.EncodeToString(headerHash),
+		DocumentID: elasticBlock.Hash,
 		Body:       bytes.NewReader(buff.Bytes()),
 		Refresh:    "true",
 	}
@@ -326,12 +273,12 @@ func (ei *elasticProcessor) SaveHeader(
 
 func (ei *elasticProcessor) indexEpochInfoData(header data.HeaderHandler) error {
 	if !ei.isIndexEnabled(epochInfoIndex) ||
-		ei.shardCoordinator.SelfId() != core.MetachainShardId {
+		ei.selfShardID != core.MetachainShardId {
 		return nil
 	}
 
 	var buff bytes.Buffer
-	serializedEpochInfo, err := ei.parser.serializeEpochInfoData(header)
+	serializedEpochInfo, err := serializeEpochInfoData(header)
 	if err != nil {
 		return err
 	}
@@ -354,7 +301,7 @@ func (ei *elasticProcessor) indexEpochInfoData(header data.HeaderHandler) error 
 
 // RemoveHeader will remove a block from elasticsearch server
 func (ei *elasticProcessor) RemoveHeader(header data.HeaderHandler) error {
-	headerHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, header)
+	headerHash, err := ei.calculateHash(header)
 	if err != nil {
 		return err
 	}
@@ -381,7 +328,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 			continue
 		}
 
-		miniblockHash, err := core.CalculateHash(ei.marshalizer, ei.hasher, miniblock)
+		miniblockHash, err := ei.calculateHash(miniblock)
 		if err != nil {
 			log.Debug("RemoveMiniblocks cannot calculate miniblock hash",
 				"error", err.Error())
@@ -427,7 +374,7 @@ func (ei *elasticProcessor) RemoveTransactions(header data.HeaderHandler, body *
 
 // SetTxLogsProcessor will set tx logs processor
 func (ei *elasticProcessor) SetTxLogsProcessor(txLogProcessor process.TransactionLogProcessorDatabase) {
-	ei.txLogsProcessor = txLogProcessor
+	ei.txProc.SetTxLogsProcessor(txLogProcessor)
 }
 
 // SaveMiniblocks will prepare and save information about miniblocks in elasticsearch server
@@ -436,12 +383,12 @@ func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *bloc
 		return map[string]bool{}, nil
 	}
 
-	miniblocks := ei.parser.getMiniblocks(header, body)
-	if len(miniblocks) == 0 {
+	mbs := ei.miniblocksProc.PrepareDBMiniblocks(header, body)
+	if len(mbs) == 0 {
 		return make(map[string]bool), nil
 	}
 
-	buff, mbHashDb := serializeBulkMiniBlocks(header.GetShardID(), miniblocks, ei.getExistingObjMap)
+	buff, mbHashDb := ei.miniblocksProc.SerializeBulkMiniBlocks(header.GetShardID(), mbs, ei.getExistingObjMap, miniblocksIndex)
 	return mbHashDb, ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
 }
 
@@ -457,8 +404,8 @@ func (ei *elasticProcessor) SaveTransactions(
 		return nil
 	}
 
-	txs, dbScResults, dbReceipts, alteredAccounts := ei.txDatabaseProcessor.prepareTransactionsForDatabase(body, header, txPool, selfShardID)
-	buffSlice, err := serializeTransactions(txs, selfShardID, ei.getExistingObjMap, mbsInDb)
+	txs, dbScResults, dbReceipts, alteredAccounts := ei.txProc.PrepareTransactionsForDatabase(body, header, txPool)
+	buffSlice, err := ei.txProc.SerializeTransactions(txs, selfShardID, mbsInDb, bulkSizeThreshold)
 	if err != nil {
 		return err
 	}
@@ -602,7 +549,7 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []types.RoundInfo) error {
 	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
 }
 
-func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*accounts.AlteredAccount) error {
+func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*types.AlteredAccount) error {
 	if !ei.isIndexEnabled(accountsIndex) {
 		return nil
 	}
@@ -617,7 +564,7 @@ func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*acc
 	return ei.saveAccountsESDT(accountsToIndexESDT)
 }
 
-func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*accounts.AccountESDT) error {
+func (ei *elasticProcessor) saveAccountsESDT(wrappedAccounts []*types.AccountESDT) error {
 	if !ei.isIndexEnabled(accountsESDTIndex) {
 		return nil
 	}
@@ -648,7 +595,7 @@ func (ei *elasticProcessor) SaveAccounts(accts []*types.AccountEGLD) error {
 }
 
 func (ei *elasticProcessor) serializeAndIndexAccounts(accountsMap map[string]*types.AccountInfo, index string, areESDTAccounts bool) error {
-	buffSlice, err := accounts.SerializeAccounts(accountsMap, bulkSizeThreshold, areESDTAccounts)
+	buffSlice, err := ei.accountsProc.SerializeAccounts(accountsMap, bulkSizeThreshold, areESDTAccounts)
 	if err != nil {
 		return err
 	}
@@ -686,7 +633,7 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*type
 }
 
 func (ei *elasticProcessor) serializeAndIndexAccountsHistory(accountsMap map[string]*types.AccountBalanceHistory, index string) error {
-	buffSlice, err := accounts.SerializeAccountsHistory(accountsMap, bulkSizeThreshold)
+	buffSlice, err := ei.accountsProc.SerializeAccountsHistory(accountsMap, bulkSizeThreshold)
 	if err != nil {
 		return err
 	}
@@ -707,7 +654,7 @@ func (ei *elasticProcessor) indexScResults(scrs []*types.ScResult) error {
 		return nil
 	}
 
-	buffSlice, err := serializeScResults(scrs)
+	buffSlice, err := ei.txProc.SerializeScResults(scrs, bulkSizeThreshold)
 	if err != nil {
 		return err
 	}
@@ -727,7 +674,7 @@ func (ei *elasticProcessor) indexReceipts(receipts []*types.Receipt) error {
 		return nil
 	}
 
-	buffSlice, err := serializeReceipts(receipts)
+	buffSlice, err := ei.txProc.SerializeReceipts(receipts, bulkSizeThreshold)
 	if err != nil {
 		return err
 	}

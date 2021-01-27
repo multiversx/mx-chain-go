@@ -1,29 +1,11 @@
-package process
+package transactions
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/stretchr/testify/require"
 )
-
-func TestPrepareBufferMiniblocks(t *testing.T) {
-	var buff bytes.Buffer
-
-	meta := []byte("test1")
-	serializedData := []byte("test2")
-
-	buff = prepareBufferMiniblocks(buff, meta, serializedData)
-
-	var expectedBuff bytes.Buffer
-	serializedData = append(serializedData, "\n"...)
-	expectedBuff.Grow(len(meta) + len(serializedData))
-	_, _ = expectedBuff.Write(meta)
-	_, _ = expectedBuff.Write(serializedData)
-
-	require.Equal(t, expectedBuff, buff)
-}
 
 func TestSerializeScResults(t *testing.T) {
 	t.Parallel()
@@ -42,7 +24,7 @@ func TestSerializeScResults(t *testing.T) {
 	}
 	scrs := []*types.ScResult{scResult1, scResult2}
 
-	res, err := serializeScResults(scrs)
+	res, err := (&txDatabaseProcessor{}).SerializeScResults(scrs, 800000)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -70,7 +52,7 @@ func TestSerializeReceipts(t *testing.T) {
 
 	recs := []*types.Receipt{rec1, rec2}
 
-	res, err := serializeReceipts(recs)
+	res, err := (&txDatabaseProcessor{}).SerializeReceipts(recs, 800000)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 
