@@ -56,3 +56,8 @@ func (rtx *RewardTx) SetRcvAddr(addr []byte) {
 // SetSndAddr sets the sender address of the reward transaction
 func (_ *RewardTx) SetSndAddr(addr []byte) {
 }
+
+// GetRcvUserName returns the receiver user name from the reward transaction
+func (_ *RewardTx) GetRcvUserName() []byte {
+	return nil
+}

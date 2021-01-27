@@ -95,7 +95,7 @@ func TestShuffleOutCloser_EndOfProcessingHandlerShouldWork(t *testing.T) {
 
 	time.Sleep(minDuration * 2)
 
-	recoveredEvent := endProcess.ArgEndProcess{}
+	var recoveredEvent endProcess.ArgEndProcess
 	select {
 	case recoveredEvent = <-ch:
 		assert.Equal(t, event, recoveredEvent)

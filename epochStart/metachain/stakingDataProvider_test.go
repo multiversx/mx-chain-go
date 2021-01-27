@@ -247,7 +247,7 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *t
 	sdp.cache[keyOfAddressWaitingShard0].totalStaked = big.NewInt(400)
 
 	for id, val := range sdp.cache {
-		fmt.Println(fmt.Sprintf("id: %s, num bls keys: %d", id, len(val.blsKeys)))
+		fmt.Printf("id: %s, num bls keys: %d\n", id, len(val.blsKeys))
 	}
 
 	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
