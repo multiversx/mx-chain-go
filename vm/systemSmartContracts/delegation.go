@@ -1394,7 +1394,7 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 		}
 
 		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
-		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		rewardsForOwner := core.GetApproximatePercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
 
 		// delegator reward is: rewardForDelegator * user stake / total active

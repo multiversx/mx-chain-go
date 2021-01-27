@@ -578,7 +578,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	totalToDistribute, _ := big.NewInt(0).SetString("3000000000000000000000", 10)
-	topUpRewardsLimit := core.GetPercentageOfValue(totalToDistribute, rwd.topUpRewardFactor)
+	topUpRewardsLimit := core.GetApproximatePercentageOfValue(totalToDistribute, rwd.topUpRewardFactor)
 
 	totalTopUpEligible, _ := big.NewInt(0).SetString("2000000000000000000000000", 10)
 	topUpRewards := rwd.computeTopUpRewards(totalToDistribute, totalTopUpEligible)
@@ -603,7 +603,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewards(t *testing.T) {
 	require.NotNil(t, topUpRewards)
 	require.True(t, topUpRewards.Cmp(big.NewInt(0).Div(topUpRewardsLimit, big.NewInt(2))) > 0)
 	require.True(t, topUpRewards.Cmp(topUpRewardsLimit) < 0)
-	ninetyNinePercentLimit := core.GetPercentageOfValue(topUpRewardsLimit, 0.99)
+	ninetyNinePercentLimit := core.GetApproximatePercentageOfValue(topUpRewardsLimit, 0.99)
 	require.True(t, topUpRewards.Cmp(ninetyNinePercentLimit) > 0)
 }
 
@@ -650,7 +650,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 	}
 
 	// dust should be really small, checking against  topupRewards/1mil
-	limit := core.GetPercentageOfValue(topUpRewards, 0.000001)
+	limit := core.GetApproximatePercentageOfValue(topUpRewards, 0.000001)
 	require.True(t, limit.Cmp(dust) > 0)
 
 	sumTopUpRewards.Add(sumTopUpRewards, dust)
@@ -724,7 +724,7 @@ func TestNewRewardsCreatorV2_computeBaseRewardsPerNode(t *testing.T) {
 	dust := rwd.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)
 
 	// dust should be really small, checking against  baseRewards/1mil
-	limit := core.GetPercentageOfValue(baseRewards, 0.000001)
+	limit := core.GetApproximatePercentageOfValue(baseRewards, 0.000001)
 	require.True(t, limit.Cmp(dust) > 0)
 
 	sumRwds := big.NewInt(0)
@@ -781,7 +781,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	nodesRewardInfo, accumulatedDust := rwd.computeRewardsPerNode(vInfo)
 
 	// dust should be really small, checking against  baseRewards/1mil
-	limit := core.GetPercentageOfValue(rewardsForBlocks, 0.000001)
+	limit := core.GetApproximatePercentageOfValue(rewardsForBlocks, 0.000001)
 	require.True(t, limit.Cmp(accumulatedDust) > 0)
 
 	sumRwds := big.NewInt(0)

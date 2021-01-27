@@ -983,7 +983,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
-			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			leaderAccumulatedFees := core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)

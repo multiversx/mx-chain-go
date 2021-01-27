@@ -3775,6 +3775,6 @@ func computeExpectedResults(args *economics.ArgsNewEconomicsData, tx *transactio
 
 	expectedTotalFee := big.NewInt(0).Add(moveFee, processFee)
 	expectedTotalFee.Add(expectedTotalFee, builtInFee)
-	expectedDevFees := core.GetPercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+	expectedDevFees := core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
 	return expectedTotalFee, expectedDevFees
 }

@@ -200,7 +200,7 @@ func (e *economics) printEconomicsData(
 ) {
 	header := []string{"identifier", "", "value"}
 
-	rewardsForLeaders := core.GetPercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentage())
+	rewardsForLeaders := core.GetApproximatePercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentage())
 	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
 	lines := []*display.LineData{
 		e.newDisplayLine("epoch", "",
@@ -254,7 +254,7 @@ func (e *economics) newDisplayLine(values ...string) *display.LineData {
 
 // compute the rewards for protocol sustainability - percentage from total rewards
 func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.Int) *big.Int {
-	rewardsForProtocolSustainability := core.GetPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
+	rewardsForProtocolSustainability := core.GetApproximatePercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
 	return rewardsForProtocolSustainability
 }
 
@@ -289,7 +289,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 	if epoch > e.stakingV2EnableEpoch {
 		accumulatedFeesForValidators.Sub(accumulatedFeesForValidators, developerFees)
 	}
-	rewardsForLeaders := core.GetPercentageOfValue(accumulatedFeesForValidators, e.rewardsHandler.LeaderPercentage())
+	rewardsForLeaders := core.GetApproximatePercentageOfValue(accumulatedFeesForValidators, e.rewardsHandler.LeaderPercentage())
 	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
 	return rewardsForLeaders
@@ -317,7 +317,7 @@ func (e *economics) computeRewardsPerBlock(
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 
 	rewardsPerBlock := big.NewInt(0).Div(prevTotalSupply, big.NewInt(0).SetUint64(maxBlocksInEpoch))
-	rewardsPerBlock = core.GetPercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
+	rewardsPerBlock = core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
 
 	return rewardsPerBlock
 }

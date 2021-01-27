@@ -492,7 +492,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 	}
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
-	devRwd := core.GetPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+	devRwd := core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 
 	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
@@ -643,14 +643,14 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 
 	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
-	totalDevRwd := core.GetPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
+	totalDevRwd := core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
 	if !isSmartContractResult(tx) && senderInSelfShard {
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
 	if !sc.flagDeploy.IsSet() {
-		totalDevRwd = core.GetPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+		totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
 	}
 
 	return totalFee, totalDevRwd

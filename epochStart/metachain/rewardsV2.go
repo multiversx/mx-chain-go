@@ -365,7 +365,7 @@ func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, tota
 	}
 
 	// k = c * economics.TotalToDistribute, c = top-up reward factor (constant)
-	k := core.GetPercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
+	k := core.GetApproximatePercentageOfValue(totalToDistribute, rc.topUpRewardFactor)
 	// p is the cumulative eligible stake where rewards per day reach 1/2 of k (constant)
 	// x/p - argument for atan
 	totalTopUpEligibleFloat := big.NewFloat(0).SetInt(totalTopUpEligible)
