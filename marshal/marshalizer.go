@@ -2,7 +2,7 @@ package marshal
 
 import (
 	gproto "github.com/gogo/protobuf/proto"
-	proto "github.com/golang/protobuf/proto"
+	proto "github.com/golang/protobuf/proto" //nolint TODO:deprecated
 )
 
 // GogoProtoObj groups the necessary of a gogo protobuf marshalizeble object

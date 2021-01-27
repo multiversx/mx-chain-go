@@ -126,11 +126,11 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
-	retcode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retcode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retcode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err = testContext.Accounts.Commit()
+	_, err := testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(2721)
@@ -167,11 +167,11 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(100), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
-	_, err = testContext.Accounts.Commit()
+	_, err := testContext.Accounts.Commit()
 	require.Nil(t, err)
 
 	expectedBalanceRelayer := big.NewInt(2725)

@@ -88,7 +88,6 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 
@@ -184,7 +183,6 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
 
-	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
 	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData)
 	testIndexer.SaveTransaction(tx, block.TxBlock, txs)
 

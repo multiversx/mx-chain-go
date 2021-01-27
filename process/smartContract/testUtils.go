@@ -105,3 +105,13 @@ func GetAllSCRs(scProcessorAsInterface interface{}) []data.TransactionHandler {
 
 	return scrProvider.GetIntermediateTransactions()
 }
+
+// CleanGasRefunded cleans the gas computation handler
+func CleanGasRefunded(scProcessorAsInterface interface{}) {
+	scProc, ok := scProcessorAsInterface.(*scProcessor)
+	if !ok {
+		return
+	}
+
+	scProc.gasHandler.Init()
+}
