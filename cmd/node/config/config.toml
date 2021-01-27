@@ -555,7 +555,7 @@
 
 [EpochStartConfig]
     MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 100
+    RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
