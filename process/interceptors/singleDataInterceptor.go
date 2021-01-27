@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"sync"
+
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/debug/resolver"
@@ -24,6 +26,7 @@ type SingleDataInterceptor struct {
 	*baseDataInterceptor
 	factory          process.InterceptedDataFactory
 	whiteListRequest process.WhiteListHandler
+	mutDebugHandler  sync.RWMutex
 }
 
 // NewSingleDataInterceptor hooks a new interceptor for single data

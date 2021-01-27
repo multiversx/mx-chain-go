@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"sync"
+
 	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -31,6 +33,7 @@ type MultiDataInterceptor struct {
 	marshalizer      marshal.Marshalizer
 	factory          process.InterceptedDataFactory
 	whiteListRequest process.WhiteListHandler
+	mutDebugHandler  sync.RWMutex
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data

@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"bytes"
-	"sync"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/p2p"
@@ -15,7 +14,6 @@ type baseDataInterceptor struct {
 	topic            string
 	currentPeerId    core.PeerID
 	processor        process.InterceptorProcessor
-	mutDebugHandler  sync.RWMutex
 	debugHandler     process.InterceptedDebugger
 }
 
