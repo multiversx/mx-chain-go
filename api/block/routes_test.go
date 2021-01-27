@@ -17,13 +17,14 @@ import (
 	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/ElrondNetwork/elrond-go/api/wrapper"
 	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
 type blockResponseData struct {
-	Block block.APIBlock `json:"block"`
+	Block api.Block `json:"block"`
 }
 
 type blockResponse struct {
@@ -65,8 +66,8 @@ func TestGetBlockByNonce_EmptyNonceUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		GetBlockByNonceCalled: func(_ uint64, _ bool) (*block.APIBlock, error) {
-			return &block.APIBlock{}, nil
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
 		},
 	}
 
@@ -85,8 +86,8 @@ func TestGetBlockByNonce_InvalidNonceShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		GetBlockByNonceCalled: func(_ uint64, _ bool) (*block.APIBlock, error) {
-			return &block.APIBlock{}, nil
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
 		},
 	}
 
@@ -108,7 +109,7 @@ func TestGetBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.Facade{
-		GetBlockByNonceCalled: func(_ uint64, _ bool) (*block.APIBlock, error) {
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
 	}
@@ -129,12 +130,12 @@ func TestGetBlockByNonce_FacadeErrorShouldErr(t *testing.T) {
 func TestGetBlockByNonce_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedBlock := block.APIBlock{
+	expectedBlock := api.Block{
 		Nonce: 37,
 		Round: 39,
 	}
 	facade := mock.Facade{
-		GetBlockByNonceCalled: func(_ uint64, _ bool) (*block.APIBlock, error) {
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
 	}
@@ -187,8 +188,8 @@ func TestGetBlockByHash_NoHashUrlParameterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	facade := mock.Facade{
-		GetBlockByNonceCalled: func(_ uint64, _ bool) (*block.APIBlock, error) {
-			return &block.APIBlock{}, nil
+		GetBlockByNonceCalled: func(_ uint64, _ bool) (*api.Block, error) {
+			return &api.Block{}, nil
 		},
 	}
 
@@ -208,7 +209,7 @@ func TestGetBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("local err")
 	facade := mock.Facade{
-		GetBlockByHashCalled: func(_ string, _ bool) (*block.APIBlock, error) {
+		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return nil, expectedErr
 		},
 	}
@@ -229,12 +230,12 @@ func TestGetBlockByHash_FacadeErrorShouldErr(t *testing.T) {
 func TestGetBlockByHash_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedBlock := block.APIBlock{
+	expectedBlock := api.Block{
 		Nonce: 37,
 		Round: 39,
 	}
 	facade := mock.Facade{
-		GetBlockByHashCalled: func(_ string, _ bool) (*block.APIBlock, error) {
+		GetBlockByHashCalled: func(_ string, _ bool) (*api.Block, error) {
 			return &expectedBlock, nil
 		},
 	}
@@ -268,7 +269,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"block": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/by-nonce/:nonce", Open: true},
 					{Name: "/by-hash/:hash", Open: true},
 				},

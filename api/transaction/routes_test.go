@@ -809,7 +809,7 @@ func getRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"transaction": {
-				[]config.RouteConfig{
+				Routes: []config.RouteConfig{
 					{Name: "/send", Open: true},
 					{Name: "/send-multiple", Open: true},
 					{Name: "/cost", Open: true},

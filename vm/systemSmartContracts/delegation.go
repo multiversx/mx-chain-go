@@ -1849,6 +1849,11 @@ func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallIn
 	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+
 	if isNew {
 		d.eei.AddReturnMessage("view function works only for existing delegators")
 		return nil, vmcommon.UserError
