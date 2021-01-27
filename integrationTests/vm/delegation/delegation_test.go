@@ -42,17 +42,14 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
 	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
+		_, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
 		assert.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
 	}
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -108,7 +105,7 @@ func TestDelegationSystemSCWithValidatorStatistics(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	round, nonce = processBlocks(t, round, nonce, 15, nodesMap)
+	_, _ = processBlocks(t, round, nonce, 15, nodesMap)
 	balancesAfterClaimRewards := getNodesBalances(nodes)
 
 	for i := 0; i < len(balancesAfterClaimRewards); i++ {

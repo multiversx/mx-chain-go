@@ -182,8 +182,7 @@ func TestBaseRewardsCreator_ProtocolSustainabilityAddressInMetachainShouldErr(t 
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
-	var err error
-	args.ShardCoordinator, err = sharding.NewMultiShardCoordinator(2, 0)
+	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
 	// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
 	args.ProtocolSustainabilityAddress = hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
 
@@ -251,11 +250,12 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
 	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	require.Nil(t, err)
 
 	found := false
 	for _, mb := range mbSlice {
 		for _, txHash := range mb.TxHashes {
-			if bytes.Compare(txHash, protRwTxHash) == 0 {
+			if bytes.Equal(txHash, protRwTxHash) {
 				found = true
 			}
 		}
@@ -891,16 +891,16 @@ func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
 	}
 
 	rwInfo := &rewardInfoData{
-		accumulatedFees: big.NewInt(100),
-		address:         "addressRewards",
-		protocolRewards: big.NewInt(1000),
+		accumulatedFees:     big.NewInt(100),
+		address:             "addressRewards",
+		rewardsFromProtocol: big.NewInt(1000),
 	}
 
 	rwTx, rwTxHash, err := rwd.createRewardFromRwdInfo(rwInfo, metaBlk)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.NotNil(t, rwTxHash)
-	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.protocolRewards), rwTx.Value)
+	require.Equal(t, big.NewInt(0).Add(rwInfo.accumulatedFees, rwInfo.rewardsFromProtocol), rwTx.Value)
 }
 
 func TestBaseRewardsCreator_initializeRewardsMiniBlocks(t *testing.T) {

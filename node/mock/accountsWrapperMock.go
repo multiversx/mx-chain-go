@@ -12,7 +12,6 @@ type AccountWrapMock struct {
 	MockValue         int
 	dataTrie          data.Trie
 	nonce             uint64
-	consecutiveMisses uint32
 	code              []byte
 	codeMetadata      []byte
 	codeHash          []byte

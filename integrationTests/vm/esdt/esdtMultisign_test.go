@@ -119,7 +119,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	performActionID(nodes, multisignContractAddress, actionID, 0)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)

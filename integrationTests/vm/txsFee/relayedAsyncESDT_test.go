@@ -13,7 +13,8 @@ import (
 )
 
 func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	egldBalance := big.NewInt(100000000)
@@ -35,14 +36,14 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
+	secondSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
+	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit := uint64(500000)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
@@ -59,8 +60,8 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, &testContext, firstSCAddress, token, big.NewInt(2500))
-	utils.CheckESDTBalance(t, &testContext, secondSCAddress, token, big.NewInt(2500))
+	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(2500))
+	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(2500))
 
 	expectedSenderBalance := big.NewInt(94996430)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)
@@ -79,7 +80,8 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 }
 
 func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	egldBalance := big.NewInt(100000000)
@@ -101,14 +103,14 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
+	secondSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
+	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit := uint64(500000)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
@@ -125,8 +127,8 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, &testContext, firstSCAddress, token, big.NewInt(0))
-	utils.CheckESDTBalance(t, &testContext, secondSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(0))
 
 	expectedSenderBalance := big.NewInt(94996270)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)
@@ -145,7 +147,8 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 }
 
 func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	egldBalance := big.NewInt(100000000)
@@ -167,14 +170,14 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	deployGasLimit := uint64(50000)
 
 	argsSecond := [][]byte{[]byte(hex.EncodeToString(token))}
-	secondSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
+	secondSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/second-contract.wasm", ownerAccount, gasPrice, deployGasLimit, argsSecond, big.NewInt(0))
 
 	args := [][]byte{[]byte(hex.EncodeToString(token)), []byte(hex.EncodeToString(secondSCAddress))}
 	ownerAccount, _ = testContext.Accounts.LoadAccount(ownerAddr)
-	firstSCAddress := utils.DoDeploySecond(t, &testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
+	firstSCAddress := utils.DoDeploySecond(t, testContext, "../esdt/testdata/first-contract.wasm", ownerAccount, gasPrice, deployGasLimit, args, big.NewInt(0))
 
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	gasLimit := uint64(2000)
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
@@ -191,8 +194,8 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, &testContext, firstSCAddress, token, big.NewInt(0))
-	utils.CheckESDTBalance(t, &testContext, secondSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(0))
+	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(0))
 
 	expectedSenderBalance := big.NewInt(99976450)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)

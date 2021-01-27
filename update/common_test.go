@@ -322,7 +322,7 @@ func TestCreatePostMiniBlocks_ShouldWork(t *testing.T) {
 
 	hardForkBlockProcessor1 := &mock.HardForkBlockProcessor{
 		CreatePostMiniBlocksCalled: func(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
-			if bytes.Compare(mbsInfo[0].MbHash, []byte("hash")) == 0 {
+			if bytes.Equal(mbsInfo[0].MbHash, []byte("hash")) {
 				return body1, mbsInfo1, nil
 			}
 			return body1post, nil, nil
@@ -331,7 +331,7 @@ func TestCreatePostMiniBlocks_ShouldWork(t *testing.T) {
 
 	hardForkBlockProcessor2 := &mock.HardForkBlockProcessor{
 		CreatePostMiniBlocksCalled: func(mbsInfo []*update.MbInfo) (*block.Body, []*update.MbInfo, error) {
-			if bytes.Compare(mbsInfo[0].MbHash, []byte("hash")) == 0 {
+			if bytes.Equal(mbsInfo[0].MbHash, []byte("hash")) {
 				return body2, mbsInfo2, nil
 			}
 			return body2post, nil, nil

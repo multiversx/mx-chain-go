@@ -42,9 +42,7 @@ func NewNodesHandlerMock(
 // GetAllNodes -
 func (nhm *nodesHandlerMock) GetAllNodes() []sharding.GenesisNodeInfoHandler {
 	stakedNodes := make([]sharding.GenesisNodeInfoHandler, 0)
-	for _, node := range nhm.allNodes {
-		stakedNodes = append(stakedNodes, node)
-	}
+	stakedNodes = append(stakedNodes, nhm.allNodes...)
 
 	return stakedNodes
 }

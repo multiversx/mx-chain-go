@@ -338,23 +338,31 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	t.Parallel()
 
+	mbPrevStartEpoch := block.MetaBlock{
+		Round: 10,
+		Nonce: 5,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:       big.NewInt(100000),
+				TotalToDistribute: big.NewInt(10),
+				TotalNewlyMinted:  big.NewInt(109),
+				RewardsPerBlock:   big.NewInt(10),
+				NodePrice:         big.NewInt(10),
+			},
+		},
+	}
+
+	leaderPercentage := float64(0.1)
 	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		LeaderPercentageCalled: func() float64 {
+			return leaderPercentage
+		},
+	}
 	args.Store = &mock.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) storage.Storer {
 			return &mock.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
-				hdr := block.MetaBlock{
-					Round: 10,
-					Nonce: 5,
-					EpochStart: block.EpochStart{
-						Economics: block.Economics{
-							TotalSupply:       big.NewInt(100000),
-							TotalToDistribute: big.NewInt(10),
-							TotalNewlyMinted:  big.NewInt(109),
-							RewardsPerBlock:   big.NewInt(10),
-							NodePrice:         big.NewInt(10),
-						},
-					},
-				}
+				hdr := mbPrevStartEpoch
 				hdrBytes, _ := json.Marshal(hdr)
 				return hdrBytes, nil
 			}}
@@ -375,9 +383,13 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 		AccumulatedFeesInEpoch: big.NewInt(10000),
 		DevFeesInEpoch:         big.NewInt(0),
 	}
+
 	res, err := ec.ComputeEndOfEpochEconomics(&mb)
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
+
+	expectedLeaderFees := core.GetPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
 }
 
 func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {

@@ -540,7 +540,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	returnCode, err := sc.DeploySmartContract(tx, acntSrc)
+	returnCode, _ := sc.DeploySmartContract(tx, acntSrc)
 
 	tsc := NewTestScProcessor(sc)
 
@@ -3468,7 +3468,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	feeHandler, err := economics.NewEconomicsData(*args)
 	require.Nil(t, err)
 	require.NotNil(t, feeHandler)
-	arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
+	arguments.TxFeeHandler, _ = postprocess.NewFeeAccumulator()
 
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
