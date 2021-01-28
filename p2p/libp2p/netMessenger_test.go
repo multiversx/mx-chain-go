@@ -702,18 +702,6 @@ func TestLibp2pMessenger_PeerAddressDisconnectedPeerShouldWork(t *testing.T) {
 	//connected peers:  1 --x-- 2 ----- 3
 
 	assert.False(t, mes2.IsConnected(mes1.ID()))
-
-	addressesRecov := mes2.PeerAddresses(mes1.ID())
-	for _, addr := range mes1.Addresses() {
-		for _, addrRecov := range addressesRecov {
-			if strings.Contains(addr, addrRecov) {
-				//address returned is valid, test is successful
-				return
-			}
-		}
-	}
-
-	assert.Fail(t, "Returned address is not valid!")
 }
 
 func TestLibp2pMessenger_PeerAddressUnknownPeerShouldReturnEmpty(t *testing.T) {
