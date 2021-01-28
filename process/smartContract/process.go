@@ -807,6 +807,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 			return vmcommon.ExecutionFailed, sc.ProcessIfError(acntSnd, txHash, tx, err.Error(), []byte("gas consumed exceeded"), snapshot, vmInput.GasLocked)
 		}
 
+		sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
+
 		outPutAccounts := process.SortVMOutputInsideData(newVMOutput)
 		var newSCRTxs []data.TransactionHandler
 		tmpCreatedAsyncCallback := false
@@ -1032,7 +1034,7 @@ func (sc *scProcessor) createVMInputWithAsyncCallBack(vmInput *vmcommon.Contract
 			CurrentTxHash:  vmInput.CurrentTxHash,
 		},
 		RecipientAddr:     vmInput.RecipientAddr,
-		Function:          "callback",
+		Function:          "callBack",
 		AllowInitFunction: false,
 	}
 
