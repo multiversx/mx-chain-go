@@ -825,6 +825,8 @@ func (sc *scProcessor) ExecuteBuiltInFunction(
 
 	isSCCallCrossShard := !isSCCallSelfShard && txTypeOnDst == process.SCInvoking
 	if !isSCCallCrossShard {
+		sc.penalizeUserIfNeeded(tx, txHash, newVMInput.CallType, newVMInput.GasProvided, newVMOutput)
+
 		scrForSender, scrForRelayer, errCreateSCR := sc.processSCRForSenderAfterBuiltIn(tx, txHash, vmInput, newVMOutput)
 		if errCreateSCR != nil {
 			return 0, errCreateSCR
