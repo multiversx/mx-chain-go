@@ -246,21 +246,21 @@ func TestSplitExponentFraction(t *testing.T) {
 
 	a = "123.0123456789012345678900000000"
 	expectedExp = "123"
-	expectedFra = "01234567890123456789"
+	expectedFra = "0123456789012345678900000000"
 	exp, fra = core.SplitExponentFraction(a)
 	require.Equal(t, expectedExp, exp)
 	require.Equal(t, expectedFra, fra)
 
 	a = "00123.01234567890123456789000"
-	expectedExp = "123"
-	expectedFra = "01234567890123456789"
+	expectedExp = "00123"
+	expectedFra = "01234567890123456789000"
 	exp, fra = core.SplitExponentFraction(a)
 	require.Equal(t, expectedExp, exp)
 	require.Equal(t, expectedFra, fra)
 
 	a = "0.01234567890123456789000"
 	expectedExp = "0"
-	expectedFra = "01234567890123456789"
+	expectedFra = "01234567890123456789000"
 	exp, fra = core.SplitExponentFraction(a)
 	require.Equal(t, expectedExp, exp)
 	require.Equal(t, expectedFra, fra)

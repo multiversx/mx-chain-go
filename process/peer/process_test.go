@@ -96,6 +96,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds: 1000,
 		NodesSetup:          &mock.NodesSetupStub{},
 		EpochNotifier:       &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: 10,
 	}
 	return arguments
 }

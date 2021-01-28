@@ -94,6 +94,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
 		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
 		EpochNotifier:    &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: 0,
 	}
 }
 
@@ -3480,6 +3481,9 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	require.Nil(t, err)
 	require.NotNil(t, sc)
 
+	// activate staking V2
+	sc.EpochConfirmed(10)
+
 	tx := &transaction.Transaction{
 		RcvAddr:  scAccountAddress,
 		GasPrice: 1000000000,
@@ -3493,7 +3497,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	builtInGasUsed := uint64(1000000)
 
 	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(tx, vmoutput, builtInGasUsed)
-	expectedTotalFee, expectedDevFees := computeExpectedResults(args, tx, builtInGasUsed, vmoutput)
+	expectedTotalFee, expectedDevFees := computeExpectedResults(args, tx, builtInGasUsed, vmoutput, true)
 	require.Equal(t, expectedTotalFee, totalFee)
 	require.Equal(t, expectedDevFees, devFees)
 }
@@ -3566,7 +3570,10 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			require.Nil(t, err)
 			require.NotNil(t, sc)
 
-			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput)
+			// activate staking V2
+			sc.EpochConfirmed(10)
+
+			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
 			retcode, err := sc.finishSCExecution(nil, []byte("txhash"), test.tx, test.vmOutput, test.builtInGasUsed)
 			require.Nil(t, err)
@@ -3756,7 +3763,13 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 	}
 }
 
-func computeExpectedResults(args *economics.ArgsNewEconomicsData, tx *transaction.Transaction, builtInGasUsed uint64, vmoutput *vmcommon.VMOutput) (*big.Int, *big.Int) {
+func computeExpectedResults(
+	args *economics.ArgsNewEconomicsData,
+	tx *transaction.Transaction,
+	builtInGasUsed uint64,
+	vmoutput *vmcommon.VMOutput,
+	stakingV2Enabled bool,
+) (*big.Int, *big.Int) {
 	minGasLimitBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.MinGasLimit, 10)
 	gasPerByteBigInt, _ := big.NewInt(0).SetString(args.Economics.FeeSettings.GasPerDataByte, 10)
 	minGasLimit := minGasLimitBigInt.Uint64()
@@ -3775,6 +3788,11 @@ func computeExpectedResults(args *economics.ArgsNewEconomicsData, tx *transactio
 
 	expectedTotalFee := big.NewInt(0).Add(moveFee, processFee)
 	expectedTotalFee.Add(expectedTotalFee, builtInFee)
-	expectedDevFees := core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+	var expectedDevFees *big.Int
+	if stakingV2Enabled {
+		expectedDevFees = core.GetIntTrimmedPercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+	} else {
+		expectedDevFees = core.GetApproximatePercentageOfValue(processFee, args.Economics.RewardsSettings.DeveloperPercentage)
+	}
 	return expectedTotalFee, expectedDevFees
 }

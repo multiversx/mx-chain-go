@@ -212,7 +212,7 @@ func TestEconomics_ComputeRewardsForProtocolSustainability(t *testing.T) {
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	expectedRewards := big.NewInt(12345)
-	protocolSustainabilityRewards := ec.computeRewardsForProtocolSustainability(totalRewards)
+	protocolSustainabilityRewards := ec.computeRewardsForProtocolSustainability(totalRewards, 1)
 	assert.Equal(t, expectedRewards, protocolSustainabilityRewards)
 }
 
@@ -662,7 +662,9 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(maxRewardPerBlock), commRewardPerBlock)
 			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+
 			feesForProposers := core.GetApproximatePercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+
 			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
 			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
@@ -858,7 +860,9 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock := big.NewInt(0).Sub(big.NewInt(currentMaxBaseRewardPerBlock), commRewardPerBlock)
 			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+
 			feesForProposers := core.GetApproximatePercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+
 			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
 			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
@@ -1039,7 +1043,9 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 			commRewardPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock := big.NewInt(0).Sub(totalRewardsToBeDistributedPerBlock, commRewardPerBlock)
 			feesForValidators := big.NewInt(0).Sub(tt.accFeesInEpoch, tt.devFeesInEpoch)
+
 			feesForProposers := core.GetApproximatePercentageOfValue(feesForValidators, args.RewardsHandler.LeaderPercentage())
+
 			accFeeRewardPerBlock := big.NewInt(0).Div(feesForProposers, big.NewInt(totalBlocksInEpoch))
 			adjustedRwdPerBlock = big.NewInt(0).Sub(adjustedRwdPerBlock, accFeeRewardPerBlock)
 			devFeeRewardPerBlock := big.NewInt(0).Div(tt.devFeesInEpoch, big.NewInt(totalBlocksInEpoch))
@@ -1104,7 +1110,8 @@ func TestComputeEndOfEpochEconomics(t *testing.T) {
 	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 ERD
 	roundDuration := 4
 
-	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice)
+	stakingV2EnableEpoch := uint32(10)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	epochDuration := numberOfSecondsInDay
@@ -1140,7 +1147,55 @@ func TestComputeEndOfEpochEconomics(t *testing.T) {
 		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
 		assert.Nil(t, err)
 
-		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler)
+		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, meta.Epoch > stakingV2EnableEpoch)
+	}
+}
+
+func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000000", 10) // 20 Billions ERD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 ERD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	epochDuration := numberOfSecondsInDay
+	roundsPerEpoch := uint64(epochDuration / roundDuration)
+
+	testInputs := []testInput{
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(10000000)},
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(30000000000000)},
+	}
+
+	rewardsPerBlock, _ := big.NewInt(0).SetString("84559445290038908043", 10) // *based on 0.1 inflation
+	for _, input := range testInputs {
+		meta := &block.MetaBlock{
+			AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+			DevFeesInEpoch:         input.devFeesInEpoch,
+			Epoch:                  1,
+			Round:                  roundsPerEpoch,
+			Nonce:                  input.blockPerEpochOneShard,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+				},
+			},
+		}
+
+		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+		assert.Nil(t, err)
+
+		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, meta.Epoch > stakingV2EnableEpoch)
 	}
 }
 
@@ -1148,10 +1203,13 @@ func createArgsForComputeEndOfEpochEconomics(
 	roundDuration int,
 	totalSupply *big.Int,
 	nodePrice *big.Int,
+	stakingV2EnableEpoch uint32,
 ) ArgsNewEpochEconomics {
 	commAddress := "protocolSustainabilityAddress"
 
 	args := getArguments()
+	args.StakingV2EnableEpoch = stakingV2EnableEpoch
+
 	args.RewardsHandler = &mock.RewardsHandlerStub{
 		MaxInflationRateCalled: func(_ uint32) float64 {
 			return 0.1
@@ -1219,6 +1277,7 @@ func verifyEconomicsBlock(
 	totalSupply *big.Int,
 	roundsPerEpoch uint64,
 	rewardsHandler process.RewardsHandler,
+	stakingV2 bool,
 ) {
 	totalBlocksPerEpoch := int64(input.blockPerEpochOneShard * 3)
 	hitRate := float64(input.blockPerEpochOneShard) / float64(roundsPerEpoch) * 100
@@ -1238,11 +1297,17 @@ func verifyEconomicsBlock(
 	adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, developerFeesPerBlock)
 	// subtract leader percentage per block
 	rewardsForLeader := big.NewInt(0).Sub(input.accumulatedFeesInEpoch, input.devFeesInEpoch)
-	rewardsForLeader = core.GetApproximatePercentageOfValue(rewardsForLeader, rewardsHandler.LeaderPercentage())
+	var expectedProtocolSustainabilityRewards *big.Int
+	if stakingV2 {
+		rewardsForLeader = core.GetIntTrimmedPercentageOfValue(rewardsForLeader, rewardsHandler.LeaderPercentage())
+		expectedProtocolSustainabilityRewards = core.GetIntTrimmedPercentageOfValue(expectedTotalRewardsToBeDistributed, rewardsHandler.ProtocolSustainabilityPercentage())
+	} else {
+		rewardsForLeader = core.GetApproximatePercentageOfValue(rewardsForLeader, rewardsHandler.LeaderPercentage())
+		expectedProtocolSustainabilityRewards = core.GetApproximatePercentageOfValue(expectedTotalRewardsToBeDistributed, rewardsHandler.ProtocolSustainabilityPercentage())
+	}
 	rewardsForLeaderPerBlock := big.NewInt(0).Div(rewardsForLeader, big.NewInt(totalBlocksPerEpoch))
 	adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, rewardsForLeaderPerBlock)
-	// protocolSustainabilityPercentage
-	expectedProtocolSustainabilityRewards := core.GetApproximatePercentageOfValue(expectedTotalRewardsToBeDistributed, rewardsHandler.ProtocolSustainabilityPercentage())
+
 	// subtract protocol sustainability percentage per block
 	protocolSustainabilityRewardsPerBlock := big.NewInt(0).Div(expectedProtocolSustainabilityRewards, big.NewInt(totalBlocksPerEpoch))
 	adjustedRewardsPerBlock.Sub(adjustedRewardsPerBlock, protocolSustainabilityRewardsPerBlock)

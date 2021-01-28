@@ -752,18 +752,19 @@ func createFullArgumentsForSystemSCProcessing(stakingV2EnableEpoch uint32, trieS
 	epochNotifier := forking.NewGenericEpochNotifier()
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:         marshalizer,
-		NodesCoordinator:    &mock.NodesCoordinatorStub{},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
-		DataPool:            &testscommon.PoolsHolderStub{},
-		StorageService:      &mock.ChainStorerStub{},
-		PubkeyConv:          &mock.PubkeyConverterMock{},
-		PeerAdapter:         peerAccountsDB,
-		Rater:               &mock.RaterStub{},
-		RewardsHandler:      &mock.RewardsHandlerStub{},
-		NodesSetup:          &mock.NodesSetupStub{},
-		MaxComputableRounds: 1,
-		EpochNotifier:       epochNotifier,
+		Marshalizer:          marshalizer,
+		NodesCoordinator:     &mock.NodesCoordinatorStub{},
+		ShardCoordinator:     &mock.ShardCoordinatorStub{},
+		DataPool:             &testscommon.PoolsHolderStub{},
+		StorageService:       &mock.ChainStorerStub{},
+		PubkeyConv:           &mock.PubkeyConverterMock{},
+		PeerAdapter:          peerAccountsDB,
+		Rater:                &mock.RaterStub{},
+		RewardsHandler:       &mock.RewardsHandlerStub{},
+		NodesSetup:           &mock.NodesSetupStub{},
+		MaxComputableRounds:  1,
+		EpochNotifier:        epochNotifier,
+		StakingV2EnableEpoch: stakingV2EnableEpoch,
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
