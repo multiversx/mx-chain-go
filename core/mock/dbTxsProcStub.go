@@ -37,7 +37,6 @@ func (d *DBTxsProcStub) PrepareTransactionsForDatabase(
 
 // SetTxLogsProcessor -
 func (d *DBTxsProcStub) SetTxLogsProcessor(_ dataProcess.TransactionLogProcessorDatabase) {
-	return
 }
 
 // SerializeReceipts -

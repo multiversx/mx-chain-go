@@ -165,11 +165,8 @@ func (d *dataDispatcher) exitIfTimeout() bool {
 	d.mutexCloseStartTime.RLock()
 	passedTime := time.Since(d.closeStartTime)
 	d.mutexCloseStartTime.RUnlock()
-	if passedTime > closeTimeout {
-		return true
-	}
 
-	return false
+	return passedTime > closeTimeout
 }
 
 func (d *dataDispatcher) increaseBackOffTime() {

@@ -6,14 +6,12 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/parsers"
 	"github.com/ElrondNetwork/elrond-go/data"
-	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/ElrondNetwork/elrond-go/process"
 )
 
 type esdtTransactionProcessor struct {
-	esdtOperations      map[string]struct{}
-	argumentParser      process.CallArgumentsParser
-	internalMarshalizer marshal.Marshalizer
+	esdtOperations map[string]struct{}
+	argumentParser process.CallArgumentsParser
 }
 
 func newEsdtTransactionHandler() *esdtTransactionProcessor {

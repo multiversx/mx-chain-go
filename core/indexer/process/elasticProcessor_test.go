@@ -786,6 +786,7 @@ func TestDoBulkRequestLimit(t *testing.T) {
 	}
 }
 
+//nolint
 func generateTransactions(numTxs int, datFieldSize int) ([]transaction.Transaction, []string) {
 	txs := make([]transaction.Transaction, numTxs)
 	hashes := make([]string, numTxs)

@@ -102,7 +102,7 @@ func (tg *txGrouper) shouldIndex(destinationShardID uint32) bool {
 }
 
 func (tg *txGrouper) groupReceipts(header data.HeaderHandler, txPool map[string]data.TransactionHandler) []*types.Receipt {
-	receipts := make(map[string]*receipt.Receipt, 0)
+	receipts := make(map[string]*receipt.Receipt)
 	for hash, tx := range txPool {
 		rec, ok := tx.(*receipt.Receipt)
 		if !ok {
@@ -130,7 +130,7 @@ func computeStatus(selfShardID uint32, receiverShardID uint32) string {
 }
 
 func groupSmartContractResults(txPool map[string]data.TransactionHandler) map[string]*smartContractResult.SmartContractResult {
-	scResults := make(map[string]*smartContractResult.SmartContractResult, 0)
+	scResults := make(map[string]*smartContractResult.SmartContractResult)
 	for hash, tx := range txPool {
 		scResult, ok := tx.(*smartContractResult.SmartContractResult)
 		if !ok {
