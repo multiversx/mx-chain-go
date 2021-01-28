@@ -333,7 +333,7 @@ func TestLibp2pMessenger_RegisterTopicValidatorWithNilHandlerShouldErr(t *testin
 
 	err := mes.RegisterMessageProcessor("test", nil)
 
-	assert.Equal(t, p2p.ErrNilValidator, err)
+	assert.True(t, errors.Is(err, p2p.ErrNilValidator))
 
 	_ = mes.Close()
 }
