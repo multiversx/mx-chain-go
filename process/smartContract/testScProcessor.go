@@ -9,16 +9,22 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 )
 
-// GetLatestTestError should only be used in tests!
-// It locates the latest error in the collection of smart contracts results
-// TODO remove this file as it is a horrible hack to test some conditions
-func GetLatestTestError(scProcessorAsInterface interface{}) error {
-	scProcessor, ok := scProcessorAsInterface.(*scProcessor)
-	if !ok {
-		return nil
-	}
+// TestScProcessor extends scProcessor and is used in tests as it exposes some functions
+// that are not supposed to be used in production code
+// Exported functions simplify the reproduction of edge cases
+type TestScProcessor struct {
+	*scProcessor
+}
 
-	scrProvider, ok := scProcessor.scrForwarder.(interface {
+// NewTestScProcessor -
+func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
+	return &TestScProcessor{internalData}
+}
+
+// GetLatestTestError locates the latest error in the collection of smart contracts results
+func (tsp *TestScProcessor) GetLatestTestError() error {
+
+	scrProvider, ok := tsp.scrForwarder.(interface {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})
 	if !ok {
@@ -59,13 +65,8 @@ func GetLatestTestError(scProcessorAsInterface interface{}) error {
 }
 
 // GetGasRemaining returns the remaining gas from the last transaction
-func GetGasRemaining(scProcessorAsInterface interface{}) uint64 {
-	scProc, ok := scProcessorAsInterface.(*scProcessor)
-	if !ok {
-		return 0
-	}
-
-	scrProvider, ok := scProc.scrForwarder.(interface {
+func (tsp *TestScProcessor) GetGasRemaining() uint64 {
+	scrProvider, ok := tsp.scrForwarder.(interface {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})
 	if !ok {
@@ -90,13 +91,8 @@ func GetGasRemaining(scProcessorAsInterface interface{}) uint64 {
 }
 
 // GetAllSCRs returns all generated scrs
-func GetAllSCRs(scProcessorAsInterface interface{}) []data.TransactionHandler {
-	scProc, ok := scProcessorAsInterface.(*scProcessor)
-	if !ok {
-		return nil
-	}
-
-	scrProvider, ok := scProc.scrForwarder.(interface {
+func (tsp *TestScProcessor) GetAllSCRs() []data.TransactionHandler {
+	scrProvider, ok := tsp.scrForwarder.(interface {
 		GetIntermediateTransactions() []data.TransactionHandler
 	})
 	if !ok {
@@ -107,11 +103,6 @@ func GetAllSCRs(scProcessorAsInterface interface{}) []data.TransactionHandler {
 }
 
 // CleanGasRefunded cleans the gas computation handler
-func CleanGasRefunded(scProcessorAsInterface interface{}) {
-	scProc, ok := scProcessorAsInterface.(*scProcessor)
-	if !ok {
-		return
-	}
-
-	scProc.gasHandler.Init()
+func (tsp *TestScProcessor) CleanGasRefunded() {
+	tsp.gasHandler.Init()
 }
