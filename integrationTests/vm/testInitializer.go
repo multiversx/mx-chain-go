@@ -72,7 +72,7 @@ type ArgEnableEpoch struct {
 // VMTestContext -
 type VMTestContext struct {
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      process.SmartContractProcessor
+	ScProcessor      *smartContract.TestScProcessor
 	Accounts         state.AccountsAdapter
 	BlockchainHook   vmcommon.BlockchainHook
 	VMContainer      process.VirtualMachinesContainer
@@ -89,19 +89,19 @@ func (vmTestContext *VMTestContext) Close() {
 
 // GetLatestError -
 func (vmTestContext *VMTestContext) GetLatestError() error {
-	return smartContract.GetLatestTestError(vmTestContext.ScProcessor)
+	return vmTestContext.ScProcessor.GetLatestTestError()
 }
 
 // CreateBlockStarted -
 func (vmTestContext *VMTestContext) CreateBlockStarted() {
 	vmTestContext.TxFeeHandler.CreateBlockStarted()
 	vmTestContext.ScForwarder.CreateBlockStarted()
-	smartContract.CleanGasRefunded(vmTestContext.ScProcessor)
+	vmTestContext.ScProcessor.CleanGasRefunded()
 }
 
 // GetGasRemaining -
 func (vmTestContext *VMTestContext) GetGasRemaining() uint64 {
-	return smartContract.GetGasRemaining(vmTestContext.ScProcessor)
+	return vmTestContext.ScProcessor.GetGasRemaining()
 }
 
 // GetIntermediateTransactions -
@@ -431,7 +431,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	feeAccumulator process.TransactionFeeHandler,
 	shardCoordinator sharding.Coordinator,
 	argEnableEpoch ArgEnableEpoch,
-) (process.TransactionProcessor, process.SmartContractProcessor, process.IntermediateTransactionHandler, process.EconomicsDataHandler, error) {
+) (process.TransactionProcessor, *smartContract.TestScProcessor, process.IntermediateTransactionHandler, process.EconomicsDataHandler, error) {
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
 		PubkeyConverter:  pubkeyConv,
 		ShardCoordinator: shardCoordinator,
@@ -481,6 +481,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
+	testScProcessor := smartContract.NewTestScProcessor(scProcessor)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
 		Accounts:                       accnts,
@@ -507,7 +508,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		return nil, nil, nil, nil, err
 	}
 
-	return txProcessor, scProcessor, intermediateTxHandler, economicsData, nil
+	return txProcessor, testScProcessor, intermediateTxHandler, economicsData, nil
 }
 
 // TestDeployedContractContents -
@@ -564,7 +565,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 	accounts := CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmContainer, blockchainHook := CreateVMAndBlockchainHook(accounts, nil, false, oneShardCoordinator)
-	txProcessor, scProcessor, scForwarder, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
+	txProcessor, testScProcessor, scForwarder, _, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
@@ -578,7 +579,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 
 	return &VMTestContext{
 		TxProcessor:    txProcessor,
-		ScProcessor:    scProcessor,
+		ScProcessor:    testScProcessor,
 		Accounts:       accounts,
 		BlockchainHook: blockchainHook,
 		VMContainer:    vmContainer,
