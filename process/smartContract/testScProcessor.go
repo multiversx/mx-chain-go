@@ -21,7 +21,7 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 	return &TestScProcessor{internalData}
 }
 
-// GetLatestTestError It locates the latest error in the collection of smart contracts results
+// GetLatestTestError locates the latest error in the collection of smart contracts results
 func (tsp *TestScProcessor) GetLatestTestError() error {
 
 	scrProvider, ok := tsp.scrForwarder.(interface {
