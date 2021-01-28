@@ -179,7 +179,6 @@ func ProcessSCRResult(
 	expectedErr error,
 ) {
 	scProcessor := testContext.ScProcessor
-	//require.True(t, ok)
 	require.NotNil(nil, scProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)

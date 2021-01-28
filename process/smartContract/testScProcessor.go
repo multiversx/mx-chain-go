@@ -16,13 +16,12 @@ type TestScProcessor struct {
 	*scProcessor
 }
 
+// NewTestScProcessor -
 func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 	return &TestScProcessor{internalData}
 }
 
-// GetLatestTestError should only be used in tests!
-// It locates the latest error in the collection of smart contracts results
-// TODO remove this file as it is a horrible hack to test some conditions
+// GetLatestTestError It locates the latest error in the collection of smart contracts results
 func (tsp *TestScProcessor) GetLatestTestError() error {
 
 	scrProvider, ok := tsp.scrForwarder.(interface {
