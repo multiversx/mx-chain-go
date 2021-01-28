@@ -50,6 +50,8 @@ type scProcessor struct {
 	deployEnableEpoch              uint32
 	builtinEnableEpoch             uint32
 	penalizedTooMuchGasEnableEpoch uint32
+	stakingV2EnableEpoch           uint32
+	flagStakingV2                  atomic.Flag
 	flagDeploy                     atomic.Flag
 	flagBuiltin                    atomic.Flag
 	flagPenalizedTooMuchGas        atomic.Flag
@@ -92,6 +94,7 @@ type ArgsNewSmartContractProcessor struct {
 	DeployEnableEpoch              uint32
 	BuiltinEnableEpoch             uint32
 	PenalizedTooMuchGasEnableEpoch uint32
+	StakingV2EnableEpoch           uint32
 	EpochNotifier                  process.EpochNotifier
 	IsGenesisProcessing            bool
 }
@@ -179,6 +182,7 @@ func NewSmartContractProcessor(args ArgsNewSmartContractProcessor) (*scProcessor
 		builtinEnableEpoch:             args.BuiltinEnableEpoch,
 		penalizedTooMuchGasEnableEpoch: args.PenalizedTooMuchGasEnableEpoch,
 		isGenesisProcessing:            args.IsGenesisProcessing,
+		stakingV2EnableEpoch:           args.StakingV2EnableEpoch,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(sc)
@@ -492,7 +496,7 @@ func (sc *scProcessor) addToDevRewardsV2(address []byte, gasUsed uint64, tx data
 	}
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
-	devRwd := core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+	devRwd := core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 
 	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
@@ -643,14 +647,24 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 
 	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
-	totalDevRwd := core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
+
+	var totalDevRwd *big.Int
+	if sc.flagStakingV2.IsSet() {
+		totalDevRwd = core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
+	} else {
+		totalDevRwd = core.GetApproximatePercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
+	}
 
 	if !isSmartContractResult(tx) && senderInSelfShard {
 		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
 	}
 
 	if !sc.flagDeploy.IsSet() {
-		totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+		if sc.flagStakingV2.IsSet() {
+			totalDevRwd = core.GetIntTrimmedPercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+		} else {
+			totalDevRwd = core.GetApproximatePercentageOfValue(totalFee, sc.economicsFee.DeveloperPercentage())
+		}
 	}
 
 	return totalFee, totalDevRwd
@@ -2214,6 +2228,9 @@ func (sc *scProcessor) EpochConfirmed(epoch uint32) {
 
 	sc.flagPenalizedTooMuchGas.Toggle(epoch >= sc.penalizedTooMuchGasEnableEpoch)
 	log.Debug("scProcessor: penalized too much gas", "enabled", sc.flagPenalizedTooMuchGas.IsSet())
+
+	sc.flagStakingV2.Toggle(epoch > sc.stakingV2EnableEpoch)
+	log.Debug("scProcessor: staking v2", "enabled", sc.flagStakingV2.IsSet())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

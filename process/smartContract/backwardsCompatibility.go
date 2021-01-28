@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
@@ -54,7 +55,13 @@ func (sc *scProcessor) addToDevRewardsV1(address []byte, gasUsed uint64, gasPric
 	}
 
 	consumedFee := core.SafeMul(gasPrice, gasUsed)
-	devRwd := core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+
+	var devRwd *big.Int
+	if sc.flagStakingV2.IsSet(){
+		devRwd = core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+	} else {
+		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
+	}
 
 	userAcc, err := sc.getAccountFromAddress(address)
 	if err != nil {
