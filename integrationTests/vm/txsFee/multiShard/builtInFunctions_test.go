@@ -21,20 +21,20 @@ import (
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(
-		t,
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(
-		t,
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContextDst.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"
@@ -52,7 +52,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddr, gasPrice, gasLimit, txData)
-	_, err := testContextDst.TxProcessor.ProcessTransaction(tx)
+	_, err = testContextDst.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContextDst.GetLatestError())
 

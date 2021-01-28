@@ -56,7 +56,7 @@ type baseRewardsCreator struct {
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
 	protocolSustainabilityValue        *big.Int
-	flagDelegationSystemSCEnabled      atomic.Flag
+	flagDelegationSystemSCEnabled      atomic.Flag //nolint
 	delegationSystemSCEnableEpoch      uint32
 	userAccountsDB                     state.AccountsAdapter
 	mutRewardsData                     sync.RWMutex
@@ -365,7 +365,7 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 ) (*rewardTx.RewardTx, []byte, error) {
 	rwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.protocolRewards),
+		Value:   big.NewInt(0).Add(rwdInfo.accumulatedFees, rwdInfo.rewardsFromProtocol),
 		RcvAddr: []byte(rwdInfo.address),
 		Epoch:   metaBlock.Epoch,
 	}
@@ -380,7 +380,7 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 		"value", rwdTx.Value.String(),
 		"hash", rwdTxHash,
 		"accumulatedFees", rwdInfo.accumulatedFees,
-		"protocolRewards", rwdInfo.protocolRewards,
+		"rewardsFromProtocol", rwdInfo.rewardsFromProtocol,
 	)
 
 	return rwdTx, rwdTxHash, nil

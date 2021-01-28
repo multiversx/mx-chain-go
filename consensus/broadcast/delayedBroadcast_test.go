@@ -61,7 +61,7 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 }
 
 func getDataToNotifyFromArgs(args *validatorDelayArgs) map[string][][]byte {
-	mbHashesToNotify := make(map[string][][]byte, 0)
+	mbHashesToNotify := make(map[string][][]byte)
 
 	for shardIdDest, hashesMap := range args.miniBlockHashes {
 		for mbHash := range hashesMap {

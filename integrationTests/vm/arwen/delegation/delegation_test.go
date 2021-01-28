@@ -235,8 +235,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 	scCode := arwen.GetSCCode(fileName)
 	// 17918321 - stake in active - 11208675 staking in waiting - 28276371 - unstake from active
 	gasSchedule, _ := core.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV2.toml")
-	testContext := vm.CreateTxProcessorArwenVMWithGasSchedule(
-		t,
+	testContext, err := vm.CreateTxProcessorArwenVMWithGasSchedule(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
@@ -244,6 +243,8 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 		outOfProcess,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	defer testContext.Close()
 
 	value := big.NewInt(10)
@@ -265,7 +266,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 			"@"+hex.EncodeToString(value.Bytes())+"@"+hex.EncodeToString(totalDelegationCap.Bytes()),
 	)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 	ownerNonce++
@@ -374,7 +375,7 @@ func delegationProcessManyTimes(t *testing.T, fileName string, outOfProcess bool
 	}
 }
 
-func printGasConsumed(testContext vm.VMTestContext, functionName string, gasLimit uint64) {
+func printGasConsumed(testContext *vm.VMTestContext, functionName string, gasLimit uint64) {
 	gasRemaining := testContext.GetGasRemaining()
 	fmt.Printf("%s was executed, consumed %d gas\n", functionName, gasLimit-gasRemaining)
 }

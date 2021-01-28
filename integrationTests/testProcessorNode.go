@@ -230,7 +230,7 @@ type TestProcessorNode struct {
 	BlockchainHook         *hooks.BlockChainHookImpl
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
-	ScProcessor            process.SmartContractProcessor
+	ScProcessor            *smartContract.TestScProcessor
 	RewardsProcessor       process.RewardTransactionProcessor
 	PreProcessorsContainer process.PreProcessorsContainer
 	GasHandler             process.GasHandler
@@ -1309,7 +1309,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BuiltinEnableEpoch:             tpn.BuiltinEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
-	tpn.ScProcessor, _ = smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	sc, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+	tpn.ScProcessor = smartContract.NewTestScProcessor(sc)
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
@@ -1344,7 +1345,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.RequestHandler,
 		tpn.TxProcessor,
 		tpn.ScProcessor,
-		tpn.ScProcessor.(process.SmartContractResultProcessor),
+		tpn.ScProcessor,
 		tpn.RewardsProcessor,
 		tpn.EconomicsData,
 		tpn.GasHandler,
@@ -1521,7 +1522,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		PenalizedTooMuchGasEnableEpoch: tpn.PenalizedTooMuchGasEnableEpoch,
 	}
 	scProcessor, _ := smartContract.NewSmartContractProcessor(argsNewScProcessor)
-	tpn.ScProcessor = scProcessor
+	tpn.ScProcessor = smartContract.NewTestScProcessor(scProcessor)
 	argsNewMetaTxProc := transaction.ArgsNewMetaTxProcessor{
 		Hasher:           TestHasher,
 		Marshalizer:      TestMarshalizer,
