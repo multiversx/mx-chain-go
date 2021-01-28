@@ -390,7 +390,7 @@ func TestNewRewardsCreatorV2_computeNodesPowerInShard(t *testing.T) {
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake, 0)
 
 	nodePowerInShard := computeNodesPowerInShard(nodesRewardInfo)
 	require.NotNil(t, nodePowerInShard)
@@ -487,7 +487,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerShardNoBlockPerShard(t *testi
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake, 0)
 
 	topUpRewards := big.NewInt(3000)
 	rwd.economicsDataProvider.SetNumberOfBlocksPerShard(nil)
@@ -510,7 +510,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerShard(t *testing.T) {
 	nodesPerShard := uint32(400)
 	valInfo := createDefaultValidatorInfo(nodesPerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	topUpPerShard, _ := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake)
+	topUpPerShard, _ := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nodesPerShard, tuStake, 0)
 
 	blocksPerShard := make(map[uint32]uint64)
 	blocksPerShard[0] = 2000
@@ -615,7 +615,7 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
@@ -745,7 +745,7 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
+	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
@@ -1168,7 +1168,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) 
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, 0)
 
 	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 	require.Equal(t, big.NewInt(0), unassigned)
@@ -1176,7 +1176,7 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddress(t *testing.T) 
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
@@ -1198,11 +1198,13 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 
 	nbEligiblePerShard := uint32(400)
 	proposerFee := uint32(100)
-	nbOfflinePerShard := 20
+	nbOfflinePerShard := uint32(20)
 
+	nbShards := int64(args.ShardCoordinator.NumberOfShards()) + 1
+	args.EconomicsDataProvider.SetLeadersFees(big.NewInt(0).Mul(big.NewInt(int64(proposerFee)), big.NewInt(int64(nbEligiblePerShard-nbOfflinePerShard)*nbShards)))
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
 	for _, valList := range valInfo {
-		for i := 0; i < nbOfflinePerShard; i++ {
+		for i := 0; i < int(nbOfflinePerShard); i++ {
 			valList[i].LeaderSuccess = 0
 			valList[i].ValidatorSuccess = 0
 			valList[i].AccumulatedFees = big.NewInt(0)
@@ -1210,14 +1212,14 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	}
 
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, 0)
 	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 
 	expectedUnassigned := big.NewInt(0)
 
 	shardMap := createShardsMap(args.ShardCoordinator)
 	for shardID := range shardMap {
-		for i := 0; i < nbOfflinePerShard; i++ {
+		for i := 0; i < int(nbOfflinePerShard); i++ {
 			expectedUnassigned.Add(expectedUnassigned, nodesRewardInfo[shardID][i].fullRewards)
 		}
 	}
@@ -1226,12 +1228,96 @@ func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithOfflineVali
 	sumRwds := big.NewInt(0)
 	sumFees := big.NewInt(0)
 	for _, rwInfo := range rewardsInfo {
-		sumRwds.Add(sumRwds, rwInfo.protocolRewards)
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
 		sumFees.Add(sumFees, rwInfo.accumulatedFees)
 	}
 
 	expectedSumFees := big.NewInt(int64(proposerFee))
 	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(nbEligiblePerShard-uint32(nbOfflinePerShard))))
+	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(args.ShardCoordinator.NumberOfShards())+1))
+
+	require.Equal(t, big.NewInt(0).Sub(totalRwd, unassigned), sumRwds)
+	require.Equal(t, expectedSumFees, sumFees)
+}
+
+func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithLeavingValidators(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	rwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	proposerFee := uint32(100)
+	nbLeavingPerShard := uint32(10)
+	nbEligiblePerShard := uint32(400)
+
+	nbShards := int64(args.ShardCoordinator.NumberOfShards()) + 1
+	args.EconomicsDataProvider.SetLeadersFees(big.NewInt(0).Mul(big.NewInt(int64(proposerFee)), big.NewInt(int64(nbEligiblePerShard)*nbShards)))
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
+	for _, valList := range valInfo {
+		for i := 0; i < int(nbLeavingPerShard); i++ {
+			valList[i].List = string(core.LeavingList)
+		}
+	}
+
+	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, 0)
+	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
+
+	expectedUnassigned := big.NewInt(0)
+	require.Equal(t, expectedUnassigned, unassigned)
+
+	sumRwds := big.NewInt(0)
+	sumFees := big.NewInt(0)
+	for _, rwInfo := range rewardsInfo {
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
+		sumFees.Add(sumFees, rwInfo.accumulatedFees)
+	}
+
+	expectedSumFees := big.NewInt(int64(proposerFee))
+	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(nbEligiblePerShard)))
+	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(args.ShardCoordinator.NumberOfShards())+1))
+
+	require.Equal(t, big.NewInt(0).Sub(totalRwd, unassigned), sumRwds)
+	require.Equal(t, expectedSumFees, sumFees)
+}
+
+func TestNewRewardsCreatorV2_computeValidatorInfoPerRewardAddressWithDustLeaderFees(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	rwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	proposerFee := uint32(100)
+	nbEligiblePerShard := uint32(400)
+	dustLeaderFees := big.NewInt(100)
+
+	nbShards := int64(args.ShardCoordinator.NumberOfShards()) + 1
+	leaderFeesNoDust := big.NewInt(0).Mul(big.NewInt(int64(proposerFee)), big.NewInt(int64(nbEligiblePerShard)*nbShards))
+	leaderFeesWithDust := leaderFeesNoDust.Add(leaderFeesNoDust, dustLeaderFees)
+	args.EconomicsDataProvider.SetLeadersFees(leaderFeesWithDust)
+	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, proposerFee, defaultBlocksPerShard)
+
+	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
+	dustLeaderFeesUint32 := uint32(dustLeaderFees.Uint64())
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, dustLeaderFeesUint32)
+	rewardsInfo, unassigned := rwd.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
+
+	expectedUnassigned := big.NewInt(0).Set(dustLeaderFees)
+	require.Equal(t, expectedUnassigned, unassigned)
+
+	sumRwds := big.NewInt(0)
+	sumFees := big.NewInt(0)
+	for _, rwInfo := range rewardsInfo {
+		sumRwds.Add(sumRwds, rwInfo.rewardsFromProtocol)
+		sumFees.Add(sumFees, rwInfo.accumulatedFees)
+	}
+
+	expectedSumFees := big.NewInt(int64(proposerFee))
+	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(nbEligiblePerShard)))
 	expectedSumFees.Mul(expectedSumFees, big.NewInt(int64(args.ShardCoordinator.NumberOfShards())+1))
 
 	require.Equal(t, big.NewInt(0).Sub(totalRwd, unassigned), sumRwds)
@@ -1250,7 +1336,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, 0)
 
 	metaBlock := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -1295,7 +1381,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 	valInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	miniBlocks := rwd.initializeRewardsMiniBlocks()
 	nodesRewardInfo := rwd.initNodesRewardsInfo(valInfo)
-	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards)
+	_, totalRwd := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, fRewards, 0)
 
 	metaBlock := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -1340,7 +1426,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
-	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake)
+	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
 	args.StakingDataProvider = &mock.StakingDataProviderStub{
 		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
@@ -1539,6 +1625,7 @@ func setDummyValuesInNodesRewardInfo(
 	nodesRewardInfo map[uint32][]*nodeRewardsData,
 	eligibleNodesPerShard uint32,
 	field string,
+	dustLeaderFees uint32,
 ) (map[uint32]*big.Int, *big.Int) {
 	cumulatedValuePerShard := make(map[uint32]*big.Int)
 	totalValue := big.NewInt(0)
@@ -1566,7 +1653,7 @@ func setDummyValuesInNodesRewardInfo(
 		totalValue.Add(totalValue, cumulatedValuePerShard[shardID])
 	}
 
-	return cumulatedValuePerShard, totalValue
+	return cumulatedValuePerShard, totalValue.Add(totalValue, big.NewInt(0).SetInt64(int64(dustLeaderFees)))
 }
 
 func setValuesInNodesRewardInfo(

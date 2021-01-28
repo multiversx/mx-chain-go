@@ -15,12 +15,13 @@ import (
 )
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployDNS(t, &testContext, "../../multiShard/smartContract/dns/dns.wasm")
+	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
 	fmt.Println(scAddress)
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
@@ -57,7 +58,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, uint64(63879), indexerTx.GasUsed)
 	require.Equal(t, "638790", indexerTx.Fee)
 
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	// create user name for receiver
 	rcvUserName := utils.GenerateUserNameForMyDNSContract()

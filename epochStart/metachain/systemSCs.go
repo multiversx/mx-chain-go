@@ -12,6 +12,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/atomic"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	vInfo "github.com/ElrondNetwork/elrond-go/core/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -414,7 +415,7 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 		deleteCalled := false
 
 		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == string(core.EligibleList) {
+			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				newList = append(newList, validatorInfo)
 				continue
 			}
@@ -477,7 +478,7 @@ func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	for shardID, validatorsInfoSlice := range validatorsInfo {
 		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
 		for _, validatorInfo := range validatorsInfoSlice {
-			if validatorInfo.List == string(core.EligibleList) {
+			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)
 			}
 		}

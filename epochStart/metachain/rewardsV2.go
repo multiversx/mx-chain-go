@@ -6,6 +6,7 @@ import (
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/check"
+	"github.com/ElrondNetwork/elrond-go/core/validatorInfo"
 	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/state"
@@ -111,7 +112,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	}
 
 	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo)
-	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode.String())
+	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode)
 
 	dust, err := rc.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
 	if err != nil {
@@ -119,6 +120,8 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	}
 
 	dust.Add(dust, dustFromRewardsPerNode)
+	log.Debug("accumulated dust for protocol sustainability", "value", dust)
+
 	rc.adjustProtocolSustainabilityRewards(protRwdTx, dust)
 	err = rc.addProtocolRewardToMiniBlocks(protRwdTx, miniBlocks, protRwdShardId)
 	if err != nil {
@@ -219,6 +222,7 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 	accumulatedUnassigned := big.NewInt(0)
+	distributedLeaderFees := big.NewInt(0)
 
 	for _, nodeInfoList := range nodesRewardInfo {
 		for _, nodeInfo := range nodeInfoList {
@@ -230,16 +234,28 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 			rwdInfo, ok := rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)]
 			if !ok {
 				rwdInfo = &rewardInfoData{
-					accumulatedFees: big.NewInt(0),
-					protocolRewards: big.NewInt(0),
-					address:         string(nodeInfo.valInfo.RewardAddress),
+					accumulatedFees:     big.NewInt(0),
+					rewardsFromProtocol: big.NewInt(0),
+					address:             string(nodeInfo.valInfo.RewardAddress),
 				}
 				rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)] = rwdInfo
 			}
 
+			distributedLeaderFees.Add(distributedLeaderFees, nodeInfo.valInfo.AccumulatedFees)
 			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, nodeInfo.valInfo.AccumulatedFees)
-			rwdInfo.protocolRewards.Add(rwdInfo.protocolRewards, nodeInfo.fullRewards)
+			rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, nodeInfo.fullRewards)
 		}
+	}
+
+	estimatedLeaderFees := rc.economicsDataProvider.LeaderFees()
+	dustLeaderFees := big.NewInt(0).Sub(estimatedLeaderFees, distributedLeaderFees)
+	if dustLeaderFees.Cmp(big.NewInt(0)) < 0 {
+		log.Warn("computeValidatorInfoPerRewardAddress negative rewards",
+			"estimatedLeaderFees", estimatedLeaderFees,
+			"distributedLeaderFees", distributedLeaderFees,
+			"dust", dustLeaderFees)
+	} else {
+		accumulatedUnassigned.Add(accumulatedUnassigned, dustLeaderFees)
 	}
 
 	return rwdAddrValidatorInfo, accumulatedUnassigned
@@ -290,7 +306,7 @@ func (rc *rewardsCreatorV2) initNodesRewardsInfo(
 	for shardID, valInfoList := range validatorsInfo {
 		nodesRewardsInfo[shardID] = make([]*nodeRewardsData, 0, len(valInfoList))
 		for _, valInfo := range valInfoList {
-			if valInfo.List == string(core.EligibleList) {
+			if validatorInfo.WasEligibleInCurrentEpoch(valInfo) {
 				rewardsInfo := &nodeRewardsData{
 					baseReward:   big.NewInt(0),
 					topUpReward:  big.NewInt(0),

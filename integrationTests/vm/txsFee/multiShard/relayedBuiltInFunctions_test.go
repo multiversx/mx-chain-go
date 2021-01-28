@@ -15,20 +15,20 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
-	testContextRelayer := vm.CreatePreparedTxProcessorWithVMsMultiShard(
-		t,
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		2,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInner := vm.CreatePreparedTxProcessorWithVMsMultiShard(
-		t,
+	testContextInner, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContextInner.Close()
 
 	pathToContract := "../../arwen/testdata/counter/output/counter.wasm"

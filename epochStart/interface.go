@@ -162,10 +162,12 @@ type StakingDataProvider interface {
 type EpochEconomicsDataProvider interface {
 	SetNumberOfBlocks(nbBlocks uint64)
 	SetNumberOfBlocksPerShard(blocksPerShard map[uint32]uint64)
+	SetLeadersFees(fees *big.Int)
 	SetRewardsToBeDistributed(rewards *big.Int)
 	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
 	NumberOfBlocks() uint64
 	NumberOfBlocksPerShard() map[uint32]uint64
+	LeaderFees() *big.Int
 	RewardsToBeDistributed() *big.Int
 	RewardsToBeDistributedForBlocks() *big.Int
 	IsInterfaceNil() bool
