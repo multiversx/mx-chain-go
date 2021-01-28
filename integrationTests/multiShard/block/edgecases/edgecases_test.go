@@ -175,6 +175,7 @@ func closeNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	}
 }
 
+//nolint
 func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, shards := range nodesMap {
 		for _, n := range shards {
@@ -183,6 +184,7 @@ func p2pBootstrapNodes(nodesMap map[uint32][]*integrationTests.TestProcessorNode
 	}
 }
 
+//nolint
 func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.TestProcessorNode) {
 	for _, nodes := range nodesMap {
 		referenceBlock := nodes[0].BlockChain.GetCurrentBlockHeader()
@@ -198,6 +200,7 @@ func checkSameBlockHeight(t *testing.T, nodesMap map[uint32][]*integrationTests.
 	}
 }
 
+//nolint
 func printAccount(node *integrationTests.TestProcessorNode) {
 	accnt, _ := node.AccntState.GetExistingAccount(node.OwnAccount.Address)
 	if check.IfNil(accnt) {

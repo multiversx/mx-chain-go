@@ -14,7 +14,8 @@ import (
 )
 
 func TestScDeployShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -28,7 +29,7 @@ func TestScDeployShouldWork(t *testing.T) {
 	scCode := arwen.GetSCCode("../arwen/testdata/misc/fib_arwen/output/fib_arwen.wasm")
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(arwen.CreateDeployTxData(scCode)))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -53,7 +54,8 @@ func TestScDeployShouldWork(t *testing.T) {
 }
 
 func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -70,7 +72,7 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	txDeployData := []byte(arwen.CreateDeployTxData(string(scCodeBytes)))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, parsers.ErrInvalidCode, testContext.GetLatestError())
 
@@ -94,7 +96,8 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -109,7 +112,7 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	txDeployData := []byte(arwen.CreateDeployTxData(scCode))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, process.ErrInsufficientGasLimitInTx, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -125,7 +128,8 @@ func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -140,7 +144,7 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	txDeployData := []byte(arwen.CreateDeployTxData(scCode))
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, txDeployData)
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.OutOfGas.String(), testContext.GetLatestError().Error())
 

@@ -89,9 +89,6 @@ func NewStakingSmartContract(
 	if check.IfNil(args.Marshalizer) {
 		return nil, vm.ErrNilMarshalizer
 	}
-	if args.StakingSCConfig.MaxNumberOfNodesForStake < 0 {
-		return nil, vm.ErrNegativeWaitingNodesPercentage
-	}
 	if args.StakingSCConfig.BleedPercentagePerRound < 0 {
 		return nil, vm.ErrNegativeBleedPercentagePerRound
 	}
@@ -129,7 +126,7 @@ func NewStakingSmartContract(
 		minNodePrice:             minStakeValue,
 	}
 
-	conversionOk := true
+	var conversionOk bool
 	reg.stakeValue, conversionOk = big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, conversionBase)
 	if !conversionOk || reg.stakeValue.Cmp(zero) < 0 {
 		return nil, vm.ErrNegativeInitialStakeValue
@@ -677,7 +674,7 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 
 func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, error) {
 	waitingElementKey := s.createWaitingListKey(blsKey)
-	elementInList, err := s.getWaitingListElement(waitingElementKey)
+	_, err := s.getWaitingListElement(waitingElementKey)
 	if err == nil {
 		// node in waiting - remove from it - and that's it
 		return false, s.removeFromWaitingList(blsKey)
@@ -690,7 +687,7 @@ func (s *stakingSC) moveFirstFromWaitingToStakedIfNeeded(blsKey []byte) (bool, e
 	if waitingList.Length == 0 {
 		return false, nil
 	}
-	elementInList, err = s.getWaitingListElement(waitingList.FirstKey)
+	elementInList, err := s.getWaitingListElement(waitingList.FirstKey)
 	if err != nil {
 		return false, err
 	}
@@ -1018,12 +1015,6 @@ func (s *stakingSC) getWaitingListElement(key []byte) (*ElementInList, error) {
 	}
 
 	return element, nil
-}
-
-func (s *stakingSC) isInWaiting(blsKey []byte) bool {
-	waitingKey := s.createWaitingListKey(blsKey)
-	marshaledData := s.eei.GetStorage(waitingKey)
-	return len(marshaledData) > 0
 }
 
 func (s *stakingSC) saveWaitingListElement(key []byte, element *ElementInList) error {

@@ -611,7 +611,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	t.Parallel()
 
-	trieMock := mock.TrieStub{
+	trieMock := &mock.TrieStub{
 		GetStorageManagerCalled: func() data.StorageManager {
 			return &mock.StorageManagerStub{
 				DatabaseCalled: func() data.DBWriteCacher {
@@ -620,17 +620,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 			}
 		},
 	}
-	adr, _, adb := generateAddressAccountAccountsDB(
-		&mock.TrieStub{
-			GetStorageManagerCalled: func() data.StorageManager {
-				return &mock.StorageManagerStub{
-					DatabaseCalled: func() data.DBWriteCacher {
-						return mock.NewMemDbMock()
-					},
-				}
-			},
-		},
-	)
+	adr, _, _ := generateAddressAccountAccountsDB(trieMock)
 
 	//Step 1. Create an account + its DbAccount representation
 	testAccount := mock.NewAccountWrapMock(adr)
@@ -646,7 +636,7 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 		return buff, nil
 	}
 
-	adb, _ = state.NewAccountsDB(&trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
+	adb, _ := state.NewAccountsDB(trieMock, &mock.HasherMock{}, &marshalizer, &mock.AccountsFactoryStub{
 		CreateAccountCalled: func(address []byte) (state.AccountHandler, error) {
 			return mock.NewAccountWrapMock(address), nil
 		},
@@ -1642,13 +1632,12 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 	userAcc.SetCode([]byte("code"))
 	snapshot := adb.JournalLen()
 	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
-	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
 	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
 
 	err = adb.RevertToSnapshot(snapshot)
 	assert.Nil(t, err)
@@ -1681,13 +1670,12 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 
 	rootHash, _ := adb.Commit()
 	hashes, _ := userAcc.DataTrieTracker().DataTrie().GetAllHashes()
-	dataTrieRootHash := string(hashes[0])
 
 	err := adb.RemoveAccount(addr)
 	obsoleteHashes := adb.GetObsoleteHashes()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[dataTrieRootHash])
+	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
 
 	_, _ = adb.Commit()
 	rootHash = append(rootHash, byte(data.OldRoot))
