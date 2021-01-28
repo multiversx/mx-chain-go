@@ -374,3 +374,19 @@ func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 
 	return [][]byte{ln.hash}, nil
 }
+
+func (ln *leafNode) verifyProof(key []byte) (bool, []byte, []byte) {
+	if ln.isInterfaceNil() {
+		return false, nil, nil
+	}
+
+	if bytes.Equal(key, ln.Key) {
+		return true, nil, nil
+	}
+
+	return false, nil, nil
+}
+
+func (ln *leafNode) isInterfaceNil() bool {
+	return ln == nil
+}

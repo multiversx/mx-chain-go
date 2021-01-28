@@ -631,3 +631,18 @@ func (en *extensionNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 
 	return hashes, nil
 }
+
+func (en *extensionNode) verifyProof(key []byte) (bool, []byte, []byte) {
+	if len(key) == 0 || en.isInterfaceNil() {
+		return false, nil, nil
+	}
+
+	nextKey := key[len(en.Key):]
+	wantHash := en.EncodedChild
+
+	return false, wantHash, nextKey
+}
+
+func (en *extensionNode) isInterfaceNil() bool {
+	return en == nil
+}

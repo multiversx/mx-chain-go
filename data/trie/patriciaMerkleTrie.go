@@ -682,22 +682,13 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 			return false, err
 		}
 
-		switch n := n.(type) {
-		case nil:
-			return false, nil
-		case *extensionNode:
-			key = key[len(n.Key):]
-			wantHash = n.EncodedChild
-		case *branchNode:
-			wantHash = n.EncodedChildren[key[0]]
-			key = key[1:]
-		case *leafNode:
-			if bytes.Equal(key, n.Key) {
-				return true, nil
-			}
-			return false, nil
+		var proofVerified bool
+		proofVerified, wantHash, key = n.verifyProof(key)
+		if proofVerified {
+			return true, nil
 		}
 	}
+
 	return false, nil
 }
 

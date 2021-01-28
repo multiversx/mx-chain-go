@@ -42,6 +42,8 @@ type node interface {
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, []byte, data.DBWriteCacher, marshal.Marshalizer, context.Context) error
 	getAllHashes(db data.DBWriteCacher) ([][]byte, error)
+	verifyProof([]byte) (bool, []byte, []byte)
+	isInterfaceNil() bool
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
