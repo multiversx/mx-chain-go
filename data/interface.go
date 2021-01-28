@@ -151,7 +151,7 @@ type Trie interface {
 	Get(key []byte) ([]byte, error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
-	Root() ([]byte, error) //change to rootHash()
+	Root() ([]byte, error) //TODO change to RootHash()
 	Commit() error
 	Recreate(root []byte) (Trie, error)
 	String() string
