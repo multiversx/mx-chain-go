@@ -185,13 +185,24 @@ func prepareSerializedDataForATransaction(
 		return metaData, serializedData, nil
 	}
 
+	serializedData, err := prepareCrossShardTxForDestinationSerialized(tx, marshaledTx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
+
+	return metaData, serializedData, nil
+}
+
+func prepareCrossShardTxForDestinationSerialized(tx *types.Transaction, marshaledTx []byte) ([]byte, error) {
 	// if transaction is cross-shard and current shard ID is destination, use upsert with updating fields
 	marshaledLogs, err := json.Marshal(tx.Logs)
 	if err != nil {
 		log.Debug("indexer: marshal",
 			"error", "could not serialize transaction log, will skip indexing",
 			"tx hash", tx.Hash)
-		return nil, nil, err
+		return nil, err
 	}
 
 	marshaledTimestamp, err := json.Marshal(tx.Timestamp)
@@ -199,7 +210,7 @@ func prepareSerializedDataForATransaction(
 		log.Debug("indexer: marshal",
 			"error", "could not serialize timestamp, will skip indexing",
 			"tx hash", tx.Hash)
-		return nil, nil, err
+		return nil, err
 	}
 
 	serializedData := []byte(fmt.Sprintf(`{"script":{"source":"`+
@@ -214,7 +225,5 @@ func prepareSerializedDataForATransaction(
 		`{"status": "%s", "miniBlockHash": "%s", "logs": %s, "timestamp": %s, "gasUsed": %d, "fee": "%s", "hasScResults": %t}},"upsert":%s}`,
 		tx.Status, tx.MBHash, string(marshaledLogs), string(marshaledTimestamp), tx.GasUsed, tx.Fee, tx.HasSCR, string(marshaledTx)))
 
-	log.Trace("indexer tx is on destination shard", "metaData", string(metaData), "serializedData", string(serializedData))
-
-	return metaData, serializedData, nil
+	return serializedData, nil
 }
