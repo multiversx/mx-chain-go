@@ -9,6 +9,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
@@ -24,7 +25,6 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -34,16 +34,16 @@ func TestVmDeployWithoutTransferShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 
-	_, err := txProc.ProcessTransaction(tx)
+	_, err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -79,7 +79,6 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -89,16 +88,16 @@ func TestVmDeployWithTransferShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 
-	_, err := txProc.ProcessTransaction(tx)
+	_, err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -134,7 +133,6 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	scCode := fmt.Sprintf("aaaa@%s@0000@%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -144,16 +142,16 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 
-	_, err := txProc.ProcessTransaction(tx)
+	_, err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()
@@ -191,7 +189,6 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 	scCode := fmt.Sprintf("aaaa@%s@@0000%X", hex.EncodeToString(factory.InternalTestingVM), initialValueForInternalVariable)
 
 	tx := vm.CreateTx(
-		t,
 		senderAddressBytes,
 		vm.CreateEmptyAddress(),
 		senderNonce,
@@ -201,16 +198,16 @@ func TestVMDeployWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
 		scCode,
 	)
 
-	txProc, accnts := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
-		t,
+	txProc, accnts, err := vm.CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		vmOpGas,
 		senderNonce,
 		senderAddressBytes,
 		senderBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
 
-	_, err := txProc.ProcessTransaction(tx)
+	_, err = txProc.ProcessTransaction(tx)
 	assert.Nil(t, err)
 
 	_, err = accnts.Commit()

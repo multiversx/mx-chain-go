@@ -15,16 +15,16 @@ import (
 )
 
 func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
@@ -47,7 +47,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, newOwner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
 	expectedBalanceRelayer := big.NewInt(25760)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
@@ -72,12 +72,13 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789113")
@@ -102,7 +103,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
@@ -127,12 +128,13 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("invalidAddress")
@@ -148,14 +150,14 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 	require.Equal(t, process.ErrInvalidAddressLength, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalanceRelayer := big.NewInt(17330)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
@@ -180,12 +182,13 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
@@ -201,14 +204,14 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalanceRelayer := big.NewInt(25810)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
@@ -233,12 +236,13 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
@@ -254,14 +258,14 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
-	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
+	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.ExecutionFailed, retCode)
 	require.Equal(t, process.ErrNotEnoughGas, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalanceRelayer := big.NewInt(25790)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)

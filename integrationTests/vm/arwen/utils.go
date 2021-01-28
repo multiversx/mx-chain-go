@@ -86,7 +86,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      process.SmartContractProcessor
+	ScProcessor      *smartContract.TestScProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -278,8 +278,8 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
 		EpochNotifier:    forking.NewGenericEpochNotifier(),
 	}
-
-	context.ScProcessor, err = smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
+	context.ScProcessor = smartContract.NewTestScProcessor(sc)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
@@ -629,7 +629,7 @@ func (context *TestContext) GoToEpoch(epoch int) {
 
 // GetLatestError -
 func (context *TestContext) GetLatestError() error {
-	return smartContract.GetLatestTestError(context.ScProcessor)
+	return context.ScProcessor.GetLatestTestError()
 }
 
 // FormatHexNumber -
