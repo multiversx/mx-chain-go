@@ -89,17 +89,18 @@ func Start(elrondFacade MainApiHandler, routesConfig config.ApiRoutesConfig, pro
 		ws.Use(proc.MiddlewareHandlerFunc())
 	}
 
-	err := registerValidators()
+	err := RegisterDefaultValidators()
 	if err != nil {
 		return err
 	}
 
-	registerRoutes(ws, routesConfig, elrondFacade)
+	RegisterRoutes(ws, routesConfig, elrondFacade)
 
 	return ws.Run(elrondFacade.RestApiInterface())
 }
 
-func registerRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.Handler) {
+// RegisterRoutes will register all routes available on the web server
+func RegisterRoutes(ws *gin.Engine, routesConfig config.ApiRoutesConfig, elrondFacade middleware.Handler) {
 	nodeRoutes := ws.Group("/node")
 	wrappedNodeRouter, err := wrapper.NewRouterWrapper("node", nodeRoutes, routesConfig)
 	if err == nil {
@@ -174,7 +175,8 @@ func isLogRouteEnabled(routesConfig config.ApiRoutesConfig) bool {
 	return false
 }
 
-func registerValidators() error {
+// RegisterDefaultValidators will call register validation on all validator functions
+func RegisterDefaultValidators() error {
 	validators := []validatorInput{
 		{Name: "skValidator", Validator: skValidator},
 	}

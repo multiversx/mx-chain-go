@@ -15,7 +15,8 @@ import (
 )
 
 func TestMoveBalanceShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -32,7 +33,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 
 	tx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
@@ -59,7 +60,8 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -107,7 +109,8 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
 	t.Parallel()
 
-	testContext := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")
@@ -153,10 +156,12 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 }
 
 func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
-	testContextSource := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 0, vm.ArgEnableEpoch{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst := vm.CreatePreparedTxProcessorWithVMsMultiShard(t, 1, vm.ArgEnableEpoch{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContextDst.Close()
 
 	sndAddr := []byte("12345678901234567890123456789010")

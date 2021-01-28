@@ -15,16 +15,16 @@ import (
 )
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		vm.ArgEnableEpoch{
 			PenalizedTooMuchGasEnableEpoch: 100,
 		})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	newOwner := []byte("12345678901234567890123456789112")
 	gasPrice := uint64(10)
@@ -32,14 +32,14 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, gasPrice, gasLimit, txData)
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, newOwner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
 	expectedBalance := big.NewInt(88180)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -61,11 +61,12 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, initialOwner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	sndAddr := []byte("12345678901234567890123456789113")
@@ -84,7 +85,7 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, initialOwner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, initialOwner)
 
 	expectedBalance := big.NewInt(90000)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
@@ -106,11 +107,12 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("invalidAddress")
@@ -126,7 +128,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(79030)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -148,10 +150,11 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -170,7 +173,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(100000)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
@@ -184,11 +187,12 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, &testContext, "../arwen/testdata/counter/output/counter.wasm")
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	scAddress, owner := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted()
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -205,7 +209,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckOwnerAddr(t, &testContext, scAddress, owner)
+	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
 	expectedBalance := big.NewInt(88190)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)

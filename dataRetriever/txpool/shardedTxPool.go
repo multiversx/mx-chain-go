@@ -38,7 +38,7 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
-	log.Info("NewShardedTxPool", "args", args.String())
+	log.Debug("NewShardedTxPool", "args", args.String())
 
 	err := args.verify()
 	if err != nil {

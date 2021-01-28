@@ -461,6 +461,7 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 	m.mutHeartbeatMessages.Lock()
 	status := make([]data.PubKeyHeartbeat, 0, len(m.heartbeatMessages))
 	for k, v := range m.heartbeatMessages {
+		v.updateMutex.RLock()
 		tmp := data.PubKeyHeartbeat{
 			PublicKey: m.validatorPubkeyConverter.Encode([]byte(k)),
 			TimeStamp: v.timeStamp,
@@ -479,6 +480,7 @@ func (m *Monitor) GetHeartbeats() []data.PubKeyHeartbeat {
 			Nonce:           v.nonce,
 			NumInstances:    v.numInstances,
 		}
+		v.updateMutex.RUnlock()
 		status = append(status, tmp)
 	}
 	m.mutHeartbeatMessages.Unlock()
