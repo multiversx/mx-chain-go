@@ -543,7 +543,9 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	returnCode, _ := sc.DeploySmartContract(tx, acntSrc)
 
-	scrs := GetAllSCRs(sc)
+	tsc := NewTestScProcessor(sc)
+
+	scrs := tsc.GetAllSCRs()
 	expectedError := "@" + hex.EncodeToString([]byte(parseError.Error()))
 	require.Equal(t, expectedError, string(scrs[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
@@ -586,7 +588,8 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	}
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	scrs := GetAllSCRs(sc)
+	tsc := NewTestScProcessor(sc)
+	scrs := tsc.GetAllSCRs()
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
 	require.Equal(t, expectedError, string(scrs[0].GetData()))
 }
@@ -621,7 +624,8 @@ func TestScProcessor_DeploySmartContractDisabled(t *testing.T) {
 	}
 
 	_, _ = sc.DeploySmartContract(tx, acntSrc)
-	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, GetLatestTestError(sc))
+	tsc := NewTestScProcessor(sc)
+	require.Equal(t, process.ErrSmartContractDeploymentIsDisabled, tsc.GetLatestTestError())
 }
 
 func TestScProcessor_BuiltInCallSmartContractDisabled(t *testing.T) {
@@ -1400,8 +1404,9 @@ func TestScProcessor_DeploySmartContract(t *testing.T) {
 	}
 
 	_, err = sc.DeploySmartContract(tx, acntSrc)
+	tsp := NewTestScProcessor(sc)
 	require.Nil(t, err)
-	require.Nil(t, GetLatestTestError(sc))
+	require.Nil(t, tsp.GetLatestTestError())
 }
 
 func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
@@ -3311,7 +3316,7 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, "@04", string(scr.Data))
+	assert.Equal(t, "@04@6d7367", string(scr.Data))
 
 	sc.asyncCallbackGasLock = 10
 	sc.asyncCallStepCost = 10
@@ -3324,7 +3329,7 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		20)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
-	assert.Equal(t, "@04", string(scr.Data))
+	assert.Equal(t, "@04@6d7367", string(scr.Data))
 	assert.Equal(t, uint64(20), scr.GasLimit)
 
 	sc.asyncCallbackGasLock = 100
@@ -3338,7 +3343,7 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		0)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
-	assert.Equal(t, "@04", string(scr.Data))
+	assert.Equal(t, "@04@6d7367", string(scr.Data))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 }
 

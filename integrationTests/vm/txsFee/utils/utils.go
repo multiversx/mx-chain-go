@@ -19,7 +19,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
 	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
 	"github.com/ElrondNetwork/elrond-go/marshal"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -180,13 +179,12 @@ func ProcessSCRResult(
 	expectedErr error,
 ) {
 	scProcessor := testContext.ScProcessor
-	scrProcessor, ok := scProcessor.(process.SmartContractResultProcessor)
-	require.True(t, ok)
+	require.NotNil(nil, scProcessor)
 
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	require.True(t, ok)
 
-	retCode, err := scrProcessor.ProcessSmartContractResult(scr)
+	retCode, err := scProcessor.ProcessSmartContractResult(scr)
 	require.Equal(t, expectedCode, retCode)
 	require.Equal(t, expectedErr, err)
 }
@@ -218,6 +216,7 @@ func GenerateUserNameForMyDNSContract() []byte {
 
 	for {
 		userName := randStringBytes(10)
+		userName += ".elrond"
 		userNameHash := testHasher.Compute(userName)
 
 		if userNameHash[len(userNameHash)-1] == contractLastByte {
