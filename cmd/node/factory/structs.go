@@ -1419,6 +1419,7 @@ func newBlockProcessor(
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return newShardBlockProcessor(
 			&processArgs.coreComponents.Config,
+			processArgs.systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 			requestHandler,
 			processArgs.shardCoordinator,
 			processArgs.nodesCoordinator,
@@ -1491,6 +1492,7 @@ func newBlockProcessor(
 
 func newShardBlockProcessor(
 	config *config.Config,
+	stakingV2EnableEpoch uint32,
 	requestHandler process.RequestHandler,
 	shardCoordinator sharding.Coordinator,
 	nodesCoordinator sharding.NodesCoordinator,
@@ -1658,6 +1660,7 @@ func newShardBlockProcessor(
 		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		BadTxForwarder:                 badTxInterim,
 		EpochNotifier:                  epochNotifier,
+		StakingV2EnableEpoch:           stakingV2EnableEpoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -1977,6 +1980,7 @@ func newMetaBlockProcessor(
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
+		StakingV2EnableEpoch:           systemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
