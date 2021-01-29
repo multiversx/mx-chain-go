@@ -376,7 +376,6 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		previousHeader.GetPubKeysBitmap(),
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
 		previousHeader.GetShardID(),
-		consensusGroupEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -880,7 +879,6 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			h.PubKeysBitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
 			h.ShardID,
-			epoch,
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
@@ -973,7 +971,6 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
 	shardId uint32,
-	epoch uint32,
 ) error {
 
 	if len(signingBitmap) == 0 {
@@ -999,7 +996,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			var leaderAccumulatedFees *big.Int
-			if epoch > vs.stakingV2EnableEpoch {
+			if vs.flagStakingV2Enabled.IsSet() {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			} else {
 				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())

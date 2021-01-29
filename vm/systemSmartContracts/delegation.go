@@ -2316,8 +2316,8 @@ func (d *delegation) EpochConfirmed(epoch uint32) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
 	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
 
-	d.delegationEnabled.Toggle(epoch > d.stakingV2EnableEpoch)
-	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
+	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
+	log.Debug("delegation", "enabled", d.stakingV2Enabled.IsSet())
 }
 
 // CanUseContract returns true if contract can be used
