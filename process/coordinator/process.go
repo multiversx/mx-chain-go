@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sort"
 	"sync"
 	"time"
@@ -46,14 +47,18 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock    func(shardId uint32, mbHash []byte)
-	gasHandler            process.GasHandler
-	feeHandler            process.TransactionFeeHandler
-	blockSizeComputation  preprocess.BlockSizeComputationHandler
-	balanceComputation    preprocess.BalanceComputationHandler
-	requestedItemsHandler process.TimeCacher
+	onRequestMiniBlock                func(shardId uint32, mbHash []byte)
+	gasHandler                        process.GasHandler
+	feeHandler                        process.TransactionFeeHandler
+	blockSizeComputation              preprocess.BlockSizeComputationHandler
+	balanceComputation                preprocess.BalanceComputationHandler
+	requestedItemsHandler             process.TimeCacher
+	economicsFee                      process.FeeHandler
+	txTypeHandler                     process.TxTypeHandler
+	blockGasAndFeesReCheckEnableEpoch uint32
 }
 
+//TODO: Should be refactored with arguments (added task EN-8790 in Jira)
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
 func NewTransactionCoordinator(
 	hasher hashing.Hasher,
@@ -68,6 +73,9 @@ func NewTransactionCoordinator(
 	feeHandler process.TransactionFeeHandler,
 	blockSizeComputation preprocess.BlockSizeComputationHandler,
 	balanceComputation preprocess.BalanceComputationHandler,
+	economicsFee process.FeeHandler,
+	txTypeHandler process.TxTypeHandler,
+	blockGasAndFeesReCheckEnableEpoch uint32,
 ) (*transactionCoordinator, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -106,16 +114,25 @@ func NewTransactionCoordinator(
 	if check.IfNil(balanceComputation) {
 		return nil, process.ErrNilBalanceComputationHandler
 	}
+	if check.IfNil(economicsFee) {
+		return nil, process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(txTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
 
 	tc := &transactionCoordinator{
-		shardCoordinator:     shardCoordinator,
-		accounts:             accounts,
-		gasHandler:           gasHandler,
-		hasher:               hasher,
-		marshalizer:          marshalizer,
-		feeHandler:           feeHandler,
-		blockSizeComputation: blockSizeComputation,
-		balanceComputation:   balanceComputation,
+		shardCoordinator:                  shardCoordinator,
+		accounts:                          accounts,
+		gasHandler:                        gasHandler,
+		hasher:                            hasher,
+		marshalizer:                       marshalizer,
+		feeHandler:                        feeHandler,
+		blockSizeComputation:              blockSizeComputation,
+		balanceComputation:                balanceComputation,
+		economicsFee:                      economicsFee,
+		txTypeHandler:                     txTypeHandler,
+		blockGasAndFeesReCheckEnableEpoch: blockGasAndFeesReCheckEnableEpoch,
 	}
 
 	tc.miniBlockPool = miniBlockPool
@@ -1160,6 +1177,145 @@ func getNumOfCrossShardScCallsOrSpecialTxs(
 	}
 
 	return numCrossShardScCallsOrSpecialTxs
+}
+
+// VerifyCreatedMiniBlocks re-checks gas used and generated fees in the given block
+func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHandler, body *block.Body) error {
+	if header.GetEpoch() < tc.blockGasAndFeesReCheckEnableEpoch {
+		return nil
+	}
+
+	err := tc.verifyGasLimit(body)
+	if err != nil {
+		return err
+	}
+
+	err = tc.verifyFees(header, body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) verifyGasLimit(body *block.Body) error {
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+
+	for _, miniBlock := range body.MiniBlocks {
+		isCrossShardMiniBlockFromMe := miniBlock.SenderShardID == tc.shardCoordinator.SelfId() &&
+			miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId()
+		if !isCrossShardMiniBlockFromMe {
+			continue
+		}
+
+		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
+		if !ok {
+			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+
+		err := tc.checkGasConsumedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
+	miniBlock *block.MiniBlock,
+	mapHashTx map[string]data.TransactionHandler,
+) error {
+	var err error
+	var gasConsumedByTxInReceiverShard uint64
+	gasConsumedByMiniBlockInReceiverShard := uint64(0)
+
+	for _, txHash := range miniBlock.TxHashes {
+		txHandler, ok := mapHashTx[string(txHash)]
+		if !ok {
+			log.Debug("missing transaction in checkGasConsumedByMiniBlockInReceiverShard ", "type", miniBlock.Type, "txHash", txHash)
+			return process.ErrMissingTransaction
+		}
+
+		_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
+		if txTypeDstShard == process.MoveBalance {
+			gasConsumedByTxInReceiverShard = tc.economicsFee.ComputeGasLimit(txHandler)
+		} else {
+			gasConsumedByTxInReceiverShard = txHandler.GetGasLimit()
+		}
+
+		gasConsumedByMiniBlockInReceiverShard, err = core.SafeAddUint64(gasConsumedByMiniBlockInReceiverShard, gasConsumedByTxInReceiverShard)
+		if err != nil {
+			return err
+		}
+	}
+
+	if gasConsumedByMiniBlockInReceiverShard > tc.economicsFee.MaxGasLimitPerBlock(miniBlock.ReceiverShardID) {
+		return process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) verifyFees(header data.HeaderHandler, body *block.Body) error {
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	totalMaxAccumulatedFees := big.NewInt(0)
+	totalMaxDeveloperFees := big.NewInt(0)
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type == block.PeerBlock {
+			continue
+		}
+
+		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
+		if !ok {
+			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+
+		maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, err := tc.getMaxAccumulatedAndDeveloperFees(
+			miniBlock,
+			mapMiniBlockTypeAllTxs[miniBlock.Type],
+		)
+		if err != nil {
+			return err
+		}
+
+		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, maxAccumulatedFeesFromMiniBlock)
+		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, maxDeveloperFeesFromMiniBlock)
+	}
+
+	if header.GetAccumulatedFees().Cmp(totalMaxAccumulatedFees) > 0 {
+		return process.ErrMaxAccumulatedFeesExceeded
+	}
+	if header.GetDeveloperFees().Cmp(totalMaxDeveloperFees) > 0 {
+		return process.ErrMaxDeveloperFeesExceeded
+	}
+
+	return nil
+}
+
+func (tc *transactionCoordinator) getMaxAccumulatedAndDeveloperFees(
+	miniBlock *block.MiniBlock,
+	mapHashTx map[string]data.TransactionHandler,
+) (*big.Int, *big.Int, error) {
+	maxAccumulatedFeesFromMiniBlock := big.NewInt(0)
+	maxDeveloperFeesFromMiniBlock := big.NewInt(0)
+
+	for _, txHash := range miniBlock.TxHashes {
+		txHandler, ok := mapHashTx[string(txHash)]
+		if !ok {
+			log.Debug("missing transaction in getMaxAccumulatedFeesAndDeveloperFees ", "type", miniBlock.Type, "txHash", txHash)
+			return big.NewInt(0), big.NewInt(0), process.ErrMissingTransaction
+		}
+
+		maxAccumulatedFeesFromTx := core.SafeMul(txHandler.GetGasLimit(), txHandler.GetGasPrice())
+		maxAccumulatedFeesFromMiniBlock.Add(maxAccumulatedFeesFromMiniBlock, maxAccumulatedFeesFromTx)
+
+		maxDeveloperFeesFromTx := core.GetPercentageOfValue(maxAccumulatedFeesFromTx, tc.economicsFee.DeveloperPercentage())
+		maxDeveloperFeesFromMiniBlock.Add(maxDeveloperFeesFromMiniBlock, maxDeveloperFeesFromTx)
+	}
+
+	return maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

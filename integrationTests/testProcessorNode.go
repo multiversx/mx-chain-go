@@ -277,15 +277,16 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler                  update.ExportHandler
-	WaitTime                       time.Duration
-	HistoryRepository              dblookupext.HistoryRepository
-	EpochNotifier                  process.EpochNotifier
-	BuiltinEnableEpoch             uint32
-	DeployEnableEpoch              uint32
-	RelayedTxEnableEpoch           uint32
-	PenalizedTooMuchGasEnableEpoch uint32
-	UseValidVmBlsSigVerifier       bool
+	ExportHandler                     update.ExportHandler
+	WaitTime                          time.Duration
+	HistoryRepository                 dblookupext.HistoryRepository
+	EpochNotifier                     process.EpochNotifier
+	BuiltinEnableEpoch                uint32
+	DeployEnableEpoch                 uint32
+	RelayedTxEnableEpoch              uint32
+	PenalizedTooMuchGasEnableEpoch    uint32
+	BlockGasAndFeesReCheckEnableEpoch uint32
+	UseValidVmBlsSigVerifier          bool
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -1368,6 +1369,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 
@@ -1569,6 +1573,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 
