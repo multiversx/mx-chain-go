@@ -388,7 +388,13 @@ func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
 
-	expectedLeaderFees := core.GetPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	var expectedLeaderFees *big.Int
+	if mb.Epoch > args.StakingV2EnableEpoch {
+		expectedLeaderFees = core.GetIntTrimmedPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	} else {
+		expectedLeaderFees = core.GetApproximatePercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	}
+
 	assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
 }
 
@@ -1115,59 +1121,30 @@ type testInput struct {
 	devFeesInEpoch         *big.Int
 }
 
-func TestComputeEndOfEpochEconomics(t *testing.T) {
-	t.Parallel()
+func computeRewardsPerBlock(
+	totalSupply *big.Int, nbShards, roundDuration, epochDuration uint64, inflationRate float64, stakingV2 bool,
+) *big.Int {
+	roundsPerEpoch := epochDuration / roundDuration
+	inflationPerDay := inflationRate / numberOfDaysInYear
+	roundsPerDay := numberOfSecondsInDay / roundDuration
+	maxBlocksInADay := roundsPerDay * (nbShards + 1)
+	maxBlocksPerEpoch := roundsPerEpoch * (nbShards + 1)
 
-	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000000", 10) // 20 Billions ERD
-	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 ERD
-	roundDuration := 4
+	inflationPerEpoch := inflationPerDay * (float64(maxBlocksPerEpoch / maxBlocksInADay))
 
-	stakingV2EnableEpoch := uint32(10)
-	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
-	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
-
-	epochDuration := numberOfSecondsInDay
-	roundsPerEpoch := uint64(epochDuration / roundDuration)
-
-	testInputs := []testInput{
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(10000000)},
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(30000000000000)},
-	}
-
-	rewardsPerBlock, _ := big.NewInt(0).SetString("84559445290038908043", 10) // *based on 0.1 inflation
-	for _, input := range testInputs {
-		meta := &block.MetaBlock{
-			AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
-			DevFeesInEpoch:         input.devFeesInEpoch,
-			Epoch:                  1,
-			Round:                  roundsPerEpoch,
-			Nonce:                  input.blockPerEpochOneShard,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-				},
-			},
-		}
-
-		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
-		assert.Nil(t, err)
-
-		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, meta.Epoch > stakingV2EnableEpoch)
+	rewardsPerBlock := big.NewInt(0).Div(totalSupply, big.NewInt(0).SetUint64(maxBlocksPerEpoch))
+	if stakingV2 {
+		return core.GetIntTrimmedPercentageOfValue(rewardsPerBlock, inflationPerEpoch)
+	} else {
+		return core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationPerEpoch)
 	}
 }
 
 func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	t.Parallel()
 
-	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000000", 10) // 20 Billions ERD
-	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 ERD
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 EGLD
 	roundDuration := 4
 
 	stakingV2EnableEpoch := uint32(0)
@@ -1178,22 +1155,33 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	roundsPerEpoch := uint64(epochDuration / roundDuration)
 
 	testInputs := []testInput{
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToErd(1000), devFeesInEpoch: intToErd(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(10000000)},
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToErd(100000000000000), devFeesInEpoch: intToErd(30000000000000)},
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(100000000000000), devFeesInEpoch: intToEgld(10000000)},
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(100000000000000), devFeesInEpoch: intToEgld(30000000000000)},
 	}
 
-	rewardsPerBlock, _ := big.NewInt(0).SetString("84559445290038908043", 10) // *based on 0.1 inflation
+	var rewardsPerBlock *big.Int
+	metaEpoch := uint32(1)
+	isStakingV2 := metaEpoch > stakingV2EnableEpoch
+	rewardsPerBlock = computeRewardsPerBlock(
+		totalSupply,
+		uint64(args.ShardCoordinator.NumberOfShards()),
+		uint64(roundDuration),
+		uint64(epochDuration),
+		0.1,
+		isStakingV2,
+	)
+
 	for _, input := range testInputs {
 		meta := &block.MetaBlock{
 			AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
 			DevFeesInEpoch:         input.devFeesInEpoch,
-			Epoch:                  1,
+			Epoch:                  metaEpoch,
 			Round:                  roundsPerEpoch,
 			Nonce:                  input.blockPerEpochOneShard,
 			EpochStart: block.EpochStart{
@@ -1207,7 +1195,7 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
 		assert.Nil(t, err)
 
-		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, meta.Epoch > stakingV2EnableEpoch)
+		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
 	}
 }
 
@@ -1221,7 +1209,6 @@ func createArgsForComputeEndOfEpochEconomics(
 
 	args := getArguments()
 	args.StakingV2EnableEpoch = stakingV2EnableEpoch
-
 	args.RewardsHandler = &mock.RewardsHandlerStub{
 		MaxInflationRateCalled: func(_ uint32) float64 {
 			return 0.1
@@ -1334,13 +1321,13 @@ func verifyEconomicsBlock(
 
 func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
 	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
-	fmt.Printf("Total supply: %vERD, TotalToDistribute %vERD, "+
-		"TotalNewlyMinted %vERD, RewardsPerBlock %vERD, RewardsForProtocolSustainability %vERD, NodePrice: %vERD\n",
+	fmt.Printf("Total supply: %vEGLD, TotalToDistribute %vEGLD, "+
+		"TotalNewlyMinted %vEGLD, RewardsPerBlock %vEGLD, RewardsForProtocolSustainability %vEGLD, NodePrice: %vEGLD\n",
 		denomination(eb.TotalSupply), denomination(eb.TotalToDistribute), denomination(eb.TotalNewlyMinted),
 		denomination(eb.RewardsPerBlock), denomination(eb.RewardsForProtocolSustainability), denomination(eb.NodePrice))
 }
 
-func intToErd(value int) *big.Int {
+func intToEgld(value int) *big.Int {
 	denom, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 
 	return big.NewInt(0).Mul(denom, big.NewInt(int64(value)))
@@ -1354,6 +1341,7 @@ func denomination(value *big.Int) string {
 }
 
 func getArguments() ArgsNewEpochEconomics {
+	genesisSupply, _ := big.NewInt(0).SetString("20000000"+"000000000000000000", 10)
 	return ArgsNewEpochEconomics{
 		Marshalizer:           &mock.MarshalizerMock{},
 		Hasher:                mock.HasherMock{},
@@ -1361,7 +1349,7 @@ func getArguments() ArgsNewEpochEconomics {
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},
-		GenesisTotalSupply:    big.NewInt(200000000),
+		GenesisTotalSupply:    genesisSupply,
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
 	}
 }
