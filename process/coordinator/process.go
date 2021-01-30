@@ -1185,12 +1185,20 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 		return nil
 	}
 
-	err := tc.verifyGasLimit(body)
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	for _, miniBlock := range body.MiniBlocks {
+		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
+		if !ok {
+			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+	}
+
+	err := tc.verifyGasLimit(body, mapMiniBlockTypeAllTxs)
 	if err != nil {
 		return err
 	}
 
-	err = tc.verifyFees(header, body)
+	err = tc.verifyFees(header, body, mapMiniBlockTypeAllTxs)
 	if err != nil {
 		return err
 	}
@@ -1198,19 +1206,15 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 	return nil
 }
 
-func (tc *transactionCoordinator) verifyGasLimit(body *block.Body) error {
-	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
-
+func (tc *transactionCoordinator) verifyGasLimit(
+	body *block.Body,
+	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
+) error {
 	for _, miniBlock := range body.MiniBlocks {
 		isCrossShardMiniBlockFromMe := miniBlock.SenderShardID == tc.shardCoordinator.SelfId() &&
 			miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId()
 		if !isCrossShardMiniBlockFromMe {
 			continue
-		}
-
-		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
-		if !ok {
-			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
 		}
 
 		err := tc.checkGasConsumedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
@@ -1257,19 +1261,17 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 	return nil
 }
 
-func (tc *transactionCoordinator) verifyFees(header data.HeaderHandler, body *block.Body) error {
-	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+func (tc *transactionCoordinator) verifyFees(
+	header data.HeaderHandler,
+	body *block.Body,
+	mapMiniBlockTypeAllTxs map[block.Type]map[string]data.TransactionHandler,
+) error {
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
 
 	for _, miniBlock := range body.MiniBlocks {
 		if miniBlock.Type == block.PeerBlock {
 			continue
-		}
-
-		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
-		if !ok {
-			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
 		}
 
 		maxAccumulatedFeesFromMiniBlock, maxDeveloperFeesFromMiniBlock, err := tc.getMaxAccumulatedAndDeveloperFees(
