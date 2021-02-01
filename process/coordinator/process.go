@@ -1185,13 +1185,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 		return nil
 	}
 
-	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
-	for _, miniBlock := range body.MiniBlocks {
-		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
-		if !ok {
-			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
-		}
-	}
+	mapMiniBlockTypeAllTxs := tc.getAllTransactions(body)
 
 	err := tc.verifyGasLimit(body, mapMiniBlockTypeAllTxs)
 	if err != nil {
@@ -1204,6 +1198,18 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(header data.HeaderHand
 	}
 
 	return nil
+}
+
+func (tc *transactionCoordinator) getAllTransactions(body *block.Body) map[block.Type]map[string]data.TransactionHandler {
+	mapMiniBlockTypeAllTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	for _, miniBlock := range body.MiniBlocks {
+		_, ok := mapMiniBlockTypeAllTxs[miniBlock.Type]
+		if !ok {
+			mapMiniBlockTypeAllTxs[miniBlock.Type] = tc.GetAllCurrentUsedTxs(miniBlock.Type)
+		}
+	}
+
+	return mapMiniBlockTypeAllTxs
 }
 
 func (tc *transactionCoordinator) verifyGasLimit(
@@ -1242,10 +1248,14 @@ func (tc *transactionCoordinator) checkGasConsumedByMiniBlockInReceiverShard(
 		}
 
 		_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
+		moveBalanceGasLimit := tc.economicsFee.ComputeGasLimit(txHandler)
 		if txTypeDstShard == process.MoveBalance {
-			gasConsumedByTxInReceiverShard = tc.economicsFee.ComputeGasLimit(txHandler)
+			gasConsumedByTxInReceiverShard = moveBalanceGasLimit
 		} else {
-			gasConsumedByTxInReceiverShard = txHandler.GetGasLimit()
+			gasConsumedByTxInReceiverShard, err = core.SafeSubUint64(txHandler.GetGasLimit(), moveBalanceGasLimit)
+			if err != nil {
+				return err
+			}
 		}
 
 		gasConsumedByMiniBlockInReceiverShard, err = core.SafeAddUint64(gasConsumedByMiniBlockInReceiverShard, gasConsumedByTxInReceiverShard)
