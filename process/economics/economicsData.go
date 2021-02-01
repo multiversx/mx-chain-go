@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/check"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/ElrondNetwork/elrond-go/statusHandler"
 )
 
 var _ process.EconomicsDataHandler = (*economicsData)(nil)
@@ -43,6 +45,7 @@ type economicsData struct {
 	gasPriceModifierEnableEpoch      uint32
 	topUpGradientPoint               *big.Int
 	topUpFactor                      float64
+	statusHandler                    core.AppStatusHandler
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
@@ -94,6 +97,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		gasPriceModifier:                 args.Economics.FeeSettings.GasPriceModifier,
 		topUpGradientPoint:               topUpGradientPoint,
 		topUpFactor:                      args.Economics.RewardsSettings.TopUpFactor,
+		statusHandler:                    statusHandler.NewNilStatusHandler(),
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -186,6 +190,17 @@ func isPercentageInvalid(percentage float64) bool {
 		return true
 	}
 	return false
+}
+
+// SetStatusHandler will set the provided status handler if not nil
+func (ed *economicsData) SetStatusHandler(statusHandler core.AppStatusHandler) error {
+	if check.IfNil(statusHandler) {
+		return core.ErrNilAppStatusHandler
+	}
+
+	ed.statusHandler = statusHandler
+
+	return nil
 }
 
 // LeaderPercentage will return leader reward percentage
@@ -431,6 +446,15 @@ func (ed *economicsData) EpochConfirmed(epoch uint32) {
 
 	ed.flagGasPriceModifier.Toggle(epoch >= ed.gasPriceModifierEnableEpoch)
 	log.Debug("economics: gas price modifier", "enabled", ed.flagGasPriceModifier.IsSet())
+	ed.setGasPriceModifierMetric()
+}
+
+func (ed *economicsData) setGasPriceModifierMetric() {
+	if check.IfNil(ed.statusHandler) {
+		log.Debug("cannot set GasPriceModifier metric - nil status handler")
+	}
+
+	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.gasPriceModifier))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
