@@ -1223,6 +1223,10 @@ func (tc *transactionCoordinator) verifyGasLimit(
 			continue
 		}
 
+		if miniBlock.Type == block.SmartContractResultBlock {
+			continue
+		}
+
 		err := tc.checkGasConsumedByMiniBlockInReceiverShard(miniBlock, mapMiniBlockTypeAllTxs[miniBlock.Type])
 		if err != nil {
 			return err
