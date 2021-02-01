@@ -593,19 +593,20 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         tpn.PeerState,
-		PubkeyConv:          TestValidatorPubkeyConverter,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		DataPool:            tpn.DataPool,
-		StorageService:      tpn.Storage,
-		Marshalizer:         TestMarshalizer,
-		Rater:               rater,
-		MaxComputableRounds: 1000,
-		RewardsHandler:      tpn.EconomicsData,
-		NodesSetup:          tpn.NodesSetup,
-		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		PeerAdapter:          tpn.PeerState,
+		PubkeyConv:           TestValidatorPubkeyConverter,
+		NodesCoordinator:     tpn.NodesCoordinator,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		DataPool:             tpn.DataPool,
+		StorageService:       tpn.Storage,
+		Marshalizer:          TestMarshalizer,
+		Rater:                rater,
+		MaxComputableRounds:  1000,
+		RewardsHandler:       tpn.EconomicsData,
+		NodesSetup:           tpn.NodesSetup,
+		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: StakingV2Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
