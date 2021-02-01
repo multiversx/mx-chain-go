@@ -899,6 +899,12 @@ func (sc *scProcessor) resolveBuiltInFunctions(
 
 	vmOutput, err = builtIn.ProcessBuiltinFunction(acntSnd, acntDst, vmInput)
 	if err != nil {
+		log.Warn("scProcessor.resolveBuiltInFunctions",
+			"shardID", sc.shardCoordinator.SelfId(),
+			"sender", sc.pubkeyConv.Encode(acntSnd.AddressBytes()),
+			"dest", sc.pubkeyConv.Encode(acntSnd.AddressBytes()),
+			"err", err.Error(),
+		)
 		vmOutput = &vmcommon.VMOutput{
 			ReturnCode:    vmcommon.UserError,
 			ReturnMessage: err.Error(),
