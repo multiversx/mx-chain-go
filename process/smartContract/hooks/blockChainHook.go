@@ -359,6 +359,13 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
+		log.Warn("scProcessor.resolveBuiltInFunctions",
+			"location", "blockchain hook",
+			"shardID", bh.shardCoordinator.SelfId(),
+			"sender", bh.pubkeyConv.Encode(sndAccount.AddressBytes()),
+			"dest", bh.pubkeyConv.Encode(dstAccount.AddressBytes()),
+			"err", err.Error(),
+		)
 		return nil, err
 	}
 

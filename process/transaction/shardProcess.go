@@ -603,6 +603,11 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		return err
 	}
 	if check.IfNil(userAcnt) {
+		log.Warn("scProcessor.resolveBuiltInFunctions",
+			"location", "txprocessor",
+			"shardID", txProc.shardCoordinator.SelfId(),
+			"sender", txProc.pubkeyConv.Encode(userTx.SndAddr),
+		)
 		return process.ErrNilUserAccount
 	}
 	err = userAcnt.SubFromBalance(relayedTxValue)
