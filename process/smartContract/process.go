@@ -2169,6 +2169,10 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	case process.BuiltInFunctionCall:
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId {
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, sndAcc, dstAcc)
+			return returnCode, err
+		}
 		returnCode, err = sc.ExecuteBuiltInFunction(scr, sndAcc, dstAcc)
 		return returnCode, err
 	}
