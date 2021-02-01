@@ -2,10 +2,13 @@ package core_test
 
 import (
 	"math"
+	"math/big"
+	"math/rand"
 	"testing"
 
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMaxInt32ShouldReturnA(t *testing.T) {
@@ -197,4 +200,129 @@ func TestSafeSubUint64(t *testing.T) {
 	c, err = core.SafeSubUint64(b, a)
 	assert.Equal(t, err, core.ErrSubtractionOverflow)
 	assert.Equal(t, uint64(0), c)
+}
+
+func TestGetPercentageNoLoss(t *testing.T) {
+	a := "29815853976407917651"
+	percentage := 0.1
+	expected := "2981585397640791765"
+
+	bigA, _ := big.NewInt(0).SetString(a, 10)
+	bigExpected, _ := big.NewInt(0).SetString(expected, 10)
+	result := core.GetIntTrimmedPercentageOfValue(bigA, percentage)
+	require.Equal(t, bigExpected, result)
+
+	a = "29815853976407917651"
+	percentage = 0.01
+	expected = "298158539764079176"
+	bigA, _ = big.NewInt(0).SetString(a, 10)
+	bigExpected, _ = big.NewInt(0).SetString(expected, 10)
+	result = core.GetIntTrimmedPercentageOfValue(bigA, percentage)
+	require.Equal(t, bigExpected, result)
+
+	a = "29815853976407917651"
+	percentage = 0.0000000001
+	expected = "2981585397"
+	bigA, _ = big.NewInt(0).SetString(a, 10)
+	bigExpected, _ = big.NewInt(0).SetString(expected, 10)
+	result = core.GetIntTrimmedPercentageOfValue(bigA, percentage)
+	require.Equal(t, bigExpected, result)
+}
+
+func TestSplitExponentFraction(t *testing.T) {
+	a := "123.01234567890123456789"
+	expectedExp := "123"
+	expectedFra := "01234567890123456789"
+	exp, fra := core.SplitExponentFraction(a)
+	require.Equal(t, expectedExp, exp)
+	require.Equal(t, expectedFra, fra)
+
+	a = "12345678901234567890"
+	expectedExp = "12345678901234567890"
+	expectedFra = ""
+	exp, fra = core.SplitExponentFraction(a)
+	require.Equal(t, expectedExp, exp)
+	require.Equal(t, expectedFra, fra)
+
+	a = "123.0123456789012345678900000000"
+	expectedExp = "123"
+	expectedFra = "0123456789012345678900000000"
+	exp, fra = core.SplitExponentFraction(a)
+	require.Equal(t, expectedExp, exp)
+	require.Equal(t, expectedFra, fra)
+
+	a = "00123.01234567890123456789000"
+	expectedExp = "00123"
+	expectedFra = "01234567890123456789000"
+	exp, fra = core.SplitExponentFraction(a)
+	require.Equal(t, expectedExp, exp)
+	require.Equal(t, expectedFra, fra)
+
+	a = "0.01234567890123456789000"
+	expectedExp = "0"
+	expectedFra = "01234567890123456789000"
+	exp, fra = core.SplitExponentFraction(a)
+	require.Equal(t, expectedExp, exp)
+	require.Equal(t, expectedFra, fra)
+}
+
+func BenchmarkSplitExponentFraction(b *testing.B) {
+	nbPrepared := 100000
+	src := rand.NewSource(1122334455)
+	r := rand.New(src)
+
+	preparedFractionals := make([]string, nbPrepared)
+	for i := 0; i < nbPrepared; i++ {
+		f := r.Float64()
+
+		preparedFractionals[i] = big.NewFloat(f).String()
+	}
+
+	for n := 0; n < b.N; n++ {
+		core.SplitExponentFraction(preparedFractionals[n%nbPrepared])
+	}
+}
+
+func BenchmarkGetIntTrimmedPercentageOfValue(b *testing.B) {
+	nbPrepared := 100000
+	src := rand.NewSource(1122334455)
+	r := rand.New(src)
+
+	preparedFractionals := make([]float64, nbPrepared)
+	preparedBigInts := make([]*big.Int, nbPrepared)
+
+	for i := 0; i < nbPrepared; i++ {
+		f := r.Float64()
+		preparedFractionals[i] = f
+
+		factor := r.Uint64()
+		seed, _ := big.NewInt(0).SetString("1123456789123456789", 10)
+		preparedBigInts[i] = seed.Mul(seed, big.NewInt(0).SetUint64(factor))
+	}
+
+	for n := 0; n < b.N; n++ {
+		core.GetIntTrimmedPercentageOfValue(preparedBigInts[n%nbPrepared], preparedFractionals[n%nbPrepared])
+	}
+}
+
+func BenchmarkGetApproximatePercentageOfValue(b *testing.B) {
+	nbPrepared := 100000
+	src := rand.NewSource(1122334455)
+	r := rand.New(src)
+
+	preparedFractionals := make([]float64, nbPrepared)
+	preparedBigInts := make([]*big.Int, nbPrepared)
+
+	for i := 0; i < nbPrepared; i++ {
+		f := r.Float64()
+		preparedFractionals[i] = f
+
+		factor := r.Uint64()
+		seed, _ := big.NewInt(0).SetString("1123456789123456789", 10)
+		preparedBigInts[i] = seed.Mul(seed, big.NewInt(0).SetUint64(factor))
+	}
+
+	for n := 0; n < b.N; n++ {
+		core.GetApproximatePercentageOfValue(preparedBigInts[n%nbPrepared], preparedFractionals[n%nbPrepared])
+	}
 }
