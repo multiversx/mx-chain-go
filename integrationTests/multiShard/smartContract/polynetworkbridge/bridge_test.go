@@ -58,8 +58,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	// tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	tokenManagerPath := "/home/camil.bancioiu/Work/Elrond/elrond-go/integrationTests/multiShard/smartContract/testdata/polynetworkbridge/esdt_token_manager.wasm"
+	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
