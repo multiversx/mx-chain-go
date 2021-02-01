@@ -13,7 +13,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/marshal"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func checkExpectedElements(buffer []byte, marshalizer marshal.Marshalizer, expectedElements [][]byte) error {
@@ -143,38 +142,4 @@ func TestSliceSplitter_SendDataInChunksWithOnlyOneLargeElementShouldWork(t *test
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(buffSent))
 	assert.Nil(t, checkExpectedElements(buffSent[0], marshalizer, [][]byte{elemLarge}))
-}
-
-type testStruct struct {
-	Name   string `json:"name"`
-	Number int    `json:"number"`
-}
-
-func TestSliceSplitter_SendAJsonMarshaledSlice(t *testing.T) {
-	sliceOfStruct := make([]testStruct, 0)
-	numElements := 100
-
-	for i := 0; i < numElements; i++ {
-		elem := make([]byte, 20)
-		_, _ = rand.Read(elem)
-		name := string(elem)
-		sliceOfStruct = append(sliceOfStruct, testStruct{
-			Name:   name,
-			Number: 10,
-		})
-	}
-
-	marshalizer := &marshal.JsonMarshalizer{}
-	marshaledSlice, err := marshalizer.Marshal(sliceOfStruct)
-	require.NoError(t, err)
-
-	sdp, err := partitioning.NewSizeDataPacker(marshalizer)
-	require.NoError(t, err)
-
-	res, err := sdp.PackDataInChunks([][]byte{marshaledSlice}, 10)
-	require.NoError(t, err)
-	for _, r := range res {
-		fmt.Println(string(r))
-	}
-	//fmt.Println(res)
 }
