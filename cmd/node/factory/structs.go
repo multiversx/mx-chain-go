@@ -1656,6 +1656,7 @@ func newShardBlockProcessor(
 		DeployEnableEpoch:              config.GeneralSettings.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             config.GeneralSettings.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: config.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      config.GeneralSettings.RepairCallbackEnableEpoch,
 		BadTxForwarder:                 badTxInterim,
 		EpochNotifier:                  epochNotifier,
 	}
@@ -1975,6 +1976,7 @@ func newMetaBlockProcessor(
 		DeployEnableEpoch:              generalConfig.GeneralSettings.SCDeployEnableEpoch,
 		BuiltinEnableEpoch:             generalConfig.GeneralSettings.BuiltInFunctionsEnableEpoch,
 		PenalizedTooMuchGasEnableEpoch: generalConfig.GeneralSettings.PenalizedTooMuchGasEnableEpoch,
+		RepairCallbackEnableEpoch:      generalConfig.GeneralSettings.RepairCallbackEnableEpoch,
 		BadTxForwarder:                 badTxForwarder,
 		EpochNotifier:                  epochNotifier,
 	}
