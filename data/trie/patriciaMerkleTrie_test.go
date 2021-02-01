@@ -2,6 +2,7 @@ package trie_test
 
 import (
 	"context"
+	cryptoRand "crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"github.com/stretchr/testify/require"
@@ -785,15 +786,16 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 	t.Parallel()
 
 	tr := emptyTrie()
-	hsh := keccak.Keccak{}
 
 	nrLeaves := 10000
 	values := make([][]byte, nrLeaves)
 	numRuns := 5000
 
 	for i := 0; i < nrLeaves; i++ {
-		randNum := rand.Intn(100000000)
-		values[i] = hsh.Compute(strconv.Itoa(randNum))
+		buff := make([]byte, 32)
+		_, _ = cryptoRand.Read(buff)
+
+		values[i] = buff
 		_ = tr.Update(values[i], values[i])
 	}
 
