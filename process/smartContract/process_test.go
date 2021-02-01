@@ -91,9 +91,9 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		GasHandler: &mock.GasHandlerMock{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:      mock.NewGasScheduleNotifierMock(gasSchedule),
-		BuiltInFunctions: builtInFunctions.NewBuiltInFunctionContainer(),
-		EpochNotifier:    &mock.EpochNotifierStub{},
+		GasSchedule:          mock.NewGasScheduleNotifierMock(gasSchedule),
+		BuiltInFunctions:     builtInFunctions.NewBuiltInFunctionContainer(),
+		EpochNotifier:        &mock.EpochNotifierStub{},
 		StakingV2EnableEpoch: 0,
 	}
 }
@@ -3074,6 +3074,69 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
 		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 			return process.SCInvoking, process.SCInvoking
+		},
+	}
+	sc, err := NewSmartContractProcessor(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	scr := smartContractResult.SmartContractResult{
+		SndAddr: []byte("snd addr"),
+		RcvAddr: scAddress,
+		Data:    []byte("code@06"),
+		Value:   big.NewInt(15),
+	}
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.Nil(t, err)
+	require.True(t, executeCalled)
+}
+
+func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *testing.T) {
+	t.Parallel()
+
+	scAddress := []byte("000000000001234567890123456789012")
+	dstScAddress, _ := state.NewUserAccount(scAddress)
+	dstScAddress.SetCode([]byte("code"))
+	accountsDB := &mock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler state.AccountHandler, e error) {
+			if bytes.Equal(scAddress, address) {
+				return dstScAddress, nil
+			}
+			return nil, nil
+		},
+		SaveAccountCalled: func(accountHandler state.AccountHandler) error {
+			return nil
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			return nil
+		},
+	}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(5)
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(scAddress, address) {
+			return shardCoordinator.SelfId()
+		}
+		return 0
+	}
+	shardCoordinator.CurrentShard = core.MetachainShardId
+
+	executeCalled := false
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = accountsDB
+	arguments.ShardCoordinator = shardCoordinator
+	arguments.VmContainer = &mock.VMContainerMock{
+		GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+			return &mock.VMExecutionHandlerStub{
+				RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+					executeCalled = true
+					return nil, nil
+				},
+			}, nil
+		},
+	}
+	arguments.TxTypeHandler = &mock.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
 	sc, err := NewSmartContractProcessor(arguments)
