@@ -375,7 +375,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.HeaderHandler, cache 
 		consensusGroup,
 		previousHeader.GetPubKeysBitmap(),
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
-		previousHeader.GetShardID())
+		previousHeader.GetShardID(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -994,7 +995,13 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
-			leaderAccumulatedFees := core.GetPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			var leaderAccumulatedFees *big.Int
+			if vs.flagStakingV2Enabled.IsSet() {
+				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			} else {
+				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
+			}
+
 			peerAcc.AddToAccumulatedFees(leaderAccumulatedFees)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
