@@ -818,7 +818,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 }
 
 func dumpTrieContents(tr data.Trie, values [][]byte) {
-	tr.String()
+	fmt.Println(tr.String())
 	for _, val := range values {
 		fmt.Println(val)
 	}
