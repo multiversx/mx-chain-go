@@ -1,18 +1,28 @@
 package api
 
-import "github.com/ElrondNetwork/elrond-go/data/transaction"
+import (
+	"time"
+
+	"github.com/ElrondNetwork/elrond-go/data/transaction"
+)
 
 // Block represents the structure for block that is returned by api routes
 type Block struct {
-	Nonce           uint64            `json:"nonce"`
-	Round           uint64            `json:"round"`
-	Hash            string            `json:"hash"`
-	PrevBlockHash   string            `json:"prevBlockHash"`
-	Epoch           uint32            `json:"epoch"`
-	Shard           uint32            `json:"shard"`
-	NumTxs          uint32            `json:"numTxs"`
-	NotarizedBlocks []*NotarizedBlock `json:"notarizedBlocks,omitempty"`
-	MiniBlocks      []*MiniBlock      `json:"miniBlocks,omitempty"`
+	Nonce                  uint64            `json:"nonce"`
+	Round                  uint64            `json:"round"`
+	Hash                   string            `json:"hash"`
+	PrevBlockHash          string            `json:"prevBlockHash"`
+	Epoch                  uint32            `json:"epoch"`
+	Shard                  uint32            `json:"shard"`
+	NumTxs                 uint32            `json:"numTxs"`
+	NotarizedBlocks        []*NotarizedBlock `json:"notarizedBlocks,omitempty"`
+	MiniBlocks             []*MiniBlock      `json:"miniBlocks,omitempty"`
+	Timestamp              time.Duration     `json:"timestamp,omitempty"`
+	AccumulatedFees        string            `json:"accumulatedFees,omitempty"`
+	DeveloperFees          string            `json:"developerFees,omitempty"`
+	AccumulatedFeesInEpoch string            `json:"accumulatedFeesInEpoch,omitempty"`
+	DeveloperFeesInEpoch   string            `json:"developerFeesInEpoch,omitempty"`
+	Status                 string            `json:"status,omitempty"`
 }
 
 // NotarizedBlock represents a notarized block
