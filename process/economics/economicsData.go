@@ -450,10 +450,6 @@ func (ed *economicsData) EpochConfirmed(epoch uint32) {
 }
 
 func (ed *economicsData) setGasPriceModifierMetric() {
-	if check.IfNil(ed.statusHandler) {
-		log.Debug("cannot set GasPriceModifier metric - nil status handler")
-	}
-
 	if ed.flagGasPriceModifier.IsSet() {
 		ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.gasPriceModifier))
 	}
