@@ -264,6 +264,7 @@ func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.In
 	if epoch > e.stakingV2EnableEpoch {
 		return core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
 	}
+
 	return core.GetApproximatePercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentage())
 }
 
@@ -305,6 +306,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 	averageLeaderRewardPerBlock := big.NewInt(0).Div(rewardsForLeaders, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, averageLeaderRewardPerBlock)
+
 	return rewardsForLeaders
 }
 
@@ -313,6 +315,7 @@ func (e *economics) computeInflationRate(currentRound uint64) float64 {
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
+
 	return e.rewardsHandler.MaxInflationRate(yearsIndex)
 }
 
@@ -334,6 +337,7 @@ func (e *economics) computeRewardsPerBlock(
 	if epoch > e.stakingV2EnableEpoch {
 		return core.GetIntTrimmedPercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
 	}
+
 	return core.GetApproximatePercentageOfValue(rewardsPerBlock, inflationRateForEpoch)
 }
 

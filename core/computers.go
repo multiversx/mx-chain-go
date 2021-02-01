@@ -109,12 +109,12 @@ func GetApproximatePercentageOfValue(value *big.Int, percentage float64) *big.In
 	return result
 }
 
-// GetIntPercentageOfValue returns the exact percentage of value, that fits into the integer (with loss of division remainder)
+// GetIntTrimmedPercentageOfValue returns the exact percentage of value, that fits into the integer (with loss of division remainder)
 func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 	x := big.NewInt(0).Set(value)
 	percentageString := strconv.FormatFloat(percentage, 'f', -1, 64)
 	exp, fra := splitExponentFraction(percentageString)
-	concatExpFra := append([]rune(exp), []rune(fra)...)
+	concatExpFra := exp + fra
 	concatBigInt, _ := big.NewInt(0).SetString(string(concatExpFra), 10)
 	intMultiplier, _ := big.NewInt(0).SetString("1"+strings.Repeat("0", len(fra)), 10)
 	x.Mul(x, concatBigInt)
@@ -123,12 +123,9 @@ func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int
 }
 
 func splitExponentFraction(val string) (string, string) {
-	for i := 0; i < len(val); i++ {
-		if val[i] == '.' {
-			exp := val[:i]
-			fra := val[i+1:]
-			return exp, fra
-		}
+	split := strings.Split(val, ".")
+	if len(split) == 2 {
+		return split[0], split[1]
 	}
 	return val, ""
 }
