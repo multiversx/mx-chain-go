@@ -429,7 +429,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	rootHash, err := trackableDataTrie.DataTrie().Root()
+	rootHash, err := trackableDataTrie.DataTrie().RootHash()
 	if err != nil {
 		return err
 	}
@@ -773,7 +773,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 		return nil, err
 	}
 
-	root, err := adb.mainTrie.Root()
+	root, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
@@ -791,7 +791,7 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
-	rootHash, err := adb.mainTrie.Root()
+	rootHash, err := adb.mainTrie.RootHash()
 	log.Trace("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,

@@ -182,8 +182,8 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) error {
 	return nil
 }
 
-// Root returns the hash of the root node
-func (tr *patriciaMerkleTrie) Root() ([]byte, error) {
+// RootHash returns the hash of the root node
+func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
@@ -666,8 +666,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 	}
 
 	key = keyBytesToHex(key)
-	for i := range proof {
-		encodedNode := proof[i]
+	for _, encodedNode := range proof {
 		if encodedNode == nil {
 			return false, nil
 		}
@@ -683,7 +682,7 @@ func (tr *patriciaMerkleTrie) VerifyProof(key []byte, proof [][]byte) (bool, err
 		}
 
 		var proofVerified bool
-		proofVerified, wantHash, key = n.verifyProof(key)
+		proofVerified, wantHash, key = n.getNextHashAndKey(key)
 		if proofVerified {
 			return true, nil
 		}

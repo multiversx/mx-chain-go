@@ -943,8 +943,8 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("wolf"), []byte("wolf"))
 	_ = tr.Delete([]byte("wolf"))
 
-	expectedHash, _ := expectedTr.Root()
-	hash, _ := tr.Root()
+	expectedHash, _ := expectedTr.RootHash()
+	hash, _ := tr.RootHash()
 	assert.Equal(t, expectedHash, hash)
 }
 
@@ -962,8 +962,8 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Delete([]byte("doe"))
 
-	expectedHash, _ := expectedTr.Root()
-	hash, _ := tr.Root()
+	expectedHash, _ := expectedTr.RootHash()
+	hash, _ := tr.RootHash()
 	assert.Equal(t, expectedHash, hash)
 }
 
@@ -981,8 +981,8 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Delete([]byte("dog"))
 
-	expectedHash, _ := expectedTr.Root()
-	hash, _ := tr.Root()
+	expectedHash, _ := expectedTr.RootHash()
+	hash, _ := tr.RootHash()
 	assert.Equal(t, expectedHash, hash)
 }
 
@@ -1000,8 +1000,8 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Delete([]byte("dogglesworth"))
 
-	expectedHash, _ := expectedTr.Root()
-	hash, _ := tr.Root()
+	expectedHash, _ := expectedTr.RootHash()
+	hash, _ := tr.RootHash()
 
 	assert.Equal(t, expectedHash, hash)
 }

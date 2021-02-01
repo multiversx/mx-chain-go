@@ -485,7 +485,7 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	root, _ := tr.Root()
+	root, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 
@@ -670,7 +670,7 @@ func TestPatriciaMerkleTrie_RecreateFromSnapshotSavesStateToMainDb(t *testing.T)
 	tr.SetNewHashes(newHashes)
 	_ = tr.Commit()
 
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	tsm.TakeSnapshot(rootHash)
 	time.Sleep(snapshotDelay * 2)
 	tsm.Prune(rootHash, data.NewRoot)

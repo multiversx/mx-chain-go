@@ -632,7 +632,7 @@ func (en *extensionNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	return hashes, nil
 }
 
-func (en *extensionNode) verifyProof(key []byte) (bool, []byte, []byte) {
+func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || en.isInterfaceNil() {
 		return false, nil, nil
 	}

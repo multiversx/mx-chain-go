@@ -375,7 +375,7 @@ func (ln *leafNode) getAllHashes(_ data.DBWriteCacher) ([][]byte, error) {
 	return [][]byte{ln.hash}, nil
 }
 
-func (ln *leafNode) verifyProof(key []byte) (bool, []byte, []byte) {
+func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if ln.isInterfaceNil() {
 		return false, nil, nil
 	}

@@ -203,7 +203,7 @@ func TestPatriciaMerkleTree_Root(t *testing.T) {
 
 	tr := initTrie()
 
-	root, err := tr.Root()
+	root, err := tr.RootHash()
 	assert.NotNil(t, root)
 	assert.Nil(t, err)
 }
@@ -213,7 +213,7 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 
 	tr := emptyTrie()
 
-	root, err := tr.Root()
+	root, err := tr.RootHash()
 	assert.Nil(t, err)
 	assert.Equal(t, emptyTrieHash, root)
 }
@@ -222,13 +222,13 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	root1, _ := tr.Root()
+	root1, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dodge"), []byte("viper"))
-	root2, _ := tr.Root()
+	root2, _ := tr.RootHash()
 
 	_ = tr.Delete([]byte("dodge"))
-	root3, _ := tr.Root()
+	root3, _ := tr.RootHash()
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
@@ -256,7 +256,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 	}
 	wg.Wait()
 
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	assert.NotEqual(t, emptyTrieHash, rootHash)
 
 	wg.Add(nrInserts)
@@ -268,7 +268,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 	}
 	wg.Wait()
 
-	rootHash, _ = tr.Root()
+	rootHash, _ = tr.RootHash()
 	assert.Equal(t, emptyTrieHash, rootHash)
 }
 
@@ -338,8 +338,8 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 	_ = tr1.Update([]byte("doge"), []byte("coin"))
 	_ = tr2.Update([]byte("doge"), []byte("coin"))
 
-	root1, _ := tr1.Root()
-	root2, _ := tr2.Root()
+	root1, _ := tr1.RootHash()
+	root2, _ := tr2.RootHash()
 
 	assert.Equal(t, root2, root1)
 }
@@ -356,8 +356,8 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	_ = tr1.Delete([]byte("dogglesworth"))
 	_ = tr2.Delete([]byte("dogglesworth"))
 
-	root1, _ := tr1.Root()
-	root2, _ := tr2.Root()
+	root1, _ := tr1.RootHash()
+	root2, _ := tr2.RootHash()
 
 	assert.Equal(t, root2, root1)
 }
@@ -366,14 +366,14 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	_ = tr.Commit()
 
 	newTr, err := tr.Recreate(rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 
-	root, _ := newTr.Root()
+	root, _ := newTr.RootHash()
 	assert.Equal(t, rootHash, root)
 }
 
@@ -384,7 +384,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 
 	newTr, err := tr.Recreate(nil)
 	assert.Nil(t, err)
-	root, _ := newTr.Root()
+	root, _ := newTr.RootHash()
 	assert.Equal(t, emptyTrieHash, root)
 }
 
@@ -393,7 +393,7 @@ func TestPatriciaMerkleTrie_PruneAfterCancelPruneShouldFail(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
@@ -416,7 +416,7 @@ func TestPatriciaMerkleTrie_Prune(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	_ = tr.Commit()
@@ -436,7 +436,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	maxBuffToSend := uint64(500)
 	expectedNodes := 6
@@ -450,7 +450,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	maxBuffToSend := uint64(150)
 	expectedNodes := 2
@@ -464,7 +464,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesGetFromSnapshot(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	dirtyHashes, _ := tr.GetDirtyHashes()
 	tr.SetNewHashes(dirtyHashes)
@@ -558,7 +558,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesFromSnapshotShouldNotCommitToMainD
 	_ = tr.Commit()
 	storageManager := tr.GetStorageManager()
 
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	storageManager.TakeSnapshot(rootHash)
 	time.Sleep(time.Second)
 
@@ -649,7 +649,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		"ddog": []byte("cat"),
 	}
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 
 	leavesChannel, err := tr.GetAllLeavesOnChannel(rootHash, context.Background())
 	assert.Nil(t, err)
@@ -940,7 +940,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 			_ = tr.Update(values[j], values[j])
 		}
 		b.StartTimer()
-		_, _ = tr.Root()
+		_, _ = tr.RootHash()
 	}
 }
 
@@ -969,7 +969,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 			_ = tr.Update(values[j], values[j])
 			if j%nrOfValuesToCommit == 0 {
 				b.StartTimer()
-				_, _ = tr.Root()
+				_, _ = tr.RootHash()
 			}
 		}
 	}

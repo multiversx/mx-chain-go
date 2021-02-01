@@ -779,7 +779,7 @@ func (bn *branchNode) getAllHashes(db data.DBWriteCacher) ([][]byte, error) {
 	return hashes, nil
 }
 
-func (bn *branchNode) verifyProof(key []byte) (bool, []byte, []byte) {
+func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || bn.isInterfaceNil() {
 		return false, nil, nil
 	}

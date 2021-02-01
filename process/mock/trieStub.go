@@ -96,8 +96,8 @@ func (ts *TrieStub) Delete(key []byte) error {
 	return errNotImplemented
 }
 
-// Root -
-func (ts *TrieStub) Root() ([]byte, error) {
+// RootHash -
+func (ts *TrieStub) RootHash() ([]byte, error) {
 	if ts.RootCalled != nil {
 		return ts.RootCalled()
 	}

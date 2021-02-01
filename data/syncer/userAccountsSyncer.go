@@ -185,7 +185,7 @@ func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, ssh data.SyncStatisti
 }
 
 func (u *userAccountsSyncer) findAllAccountRootHashes(mainTrie data.Trie, ctx context.Context) ([][]byte, error) {
-	mainRootHash, err := mainTrie.Root()
+	mainRootHash, err := mainTrie.RootHash()
 	if err != nil {
 		return nil, err
 	}

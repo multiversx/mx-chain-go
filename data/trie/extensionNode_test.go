@@ -726,7 +726,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash, _ := tr.Root()
+	rootHash, _ := tr.RootHash()
 	collapsedTrie, _ := tr.Recreate(rootHash)
 
 	err := collapsedTrie.Delete([]byte("doe"))

@@ -261,7 +261,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	value := hasher.Compute("value")
 
 	_ = tr1.Update(key, value)
-	h1, _ := tr1.Root()
+	h1, _ := tr1.RootHash()
 	err := tr1.Commit()
 	assert.Nil(t, err)
 
@@ -669,7 +669,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -685,7 +685,7 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -748,7 +748,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state1.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -764,7 +764,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -794,7 +794,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	rootHash, err = adb.RootHash()
 	assert.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -816,7 +816,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 
 	state2, err = adb.LoadAccount(adr2)
 	assert.Nil(t, err)
-	rootHash, err = state2.(state.UserAccountHandler).DataTrie().Root()
+	rootHash, err = state2.(state.UserAccountHandler).DataTrie().RootHash()
 	assert.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
