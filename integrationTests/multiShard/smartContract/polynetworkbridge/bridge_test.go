@@ -7,15 +7,21 @@ import (
 	"math/big"
 	"testing"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBridgeSetupAndBurn(t *testing.T) {
-	logger.SetLogLevel("*:NONE")
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
@@ -115,8 +121,10 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	tokenIdentifier := vmOutput.ReturnData[0]
 	require.Equal(t, []byte("WEGLD"), tokenIdentifier[:5])
 
+	burntValue := big.NewInt(5)
+
 	txValue = big.NewInt(0)
-	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + "01"
+	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(burntValue.Bytes())
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
 		shard,
@@ -125,6 +133,37 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	logger.SetLogLevel("*:TRACE")
+
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+
+	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, burntValue)
+}
+
+func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
+	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
+	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue(tokenIdentifier)
+	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
+
+	assert.Equal(t, tokenInSystemSC.BurntValue.String(), burntValue.String())
+}
+
+func getUserAccountWithAddress(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+) state.UserAccountHandler {
+	for _, node := range nodes {
+		accShardId := node.ShardCoordinator.ComputeId(address)
+
+		for _, helperNode := range nodes {
+			if helperNode.ShardCoordinator.SelfId() == accShardId {
+				acc, err := helperNode.AccntState.LoadAccount(address)
+				require.Nil(t, err)
+				return acc.(state.UserAccountHandler)
+			}
+		}
+	}
+
+	return nil
 }
