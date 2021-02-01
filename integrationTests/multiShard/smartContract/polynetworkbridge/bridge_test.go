@@ -7,15 +7,15 @@ import (
 	"math/big"
 	"testing"
 
+	logger "github.com/ElrondNetwork/elrond-go-logger"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBridge_Setup(t *testing.T) {
-	t.Skip("contract is not yet finished")
-
+func TestBridgeSetupAndBurn(t *testing.T) {
+	logger.SetLogLevel("*:NONE")
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
@@ -58,10 +58,8 @@ func TestBridge_Setup(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	// The ESDT Token Manager contract needs the address of the Cross-Chain
-	// Management contract at initialization, so we provide a dummy address here.
-	tokenManagerInitParams := "ef2b8bbc7777f5cb92c1c13a2eb307067ce76c3d1bd9fda8d69495ba2ae1e334"
+	// tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
+	tokenManagerPath := "/home/camil.bancioiu/Work/Elrond/elrond-go/integrationTests/multiShard/smartContract/testdata/polynetworkbridge/esdt_token_manager.wasm"
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
@@ -80,7 +78,7 @@ func TestBridge_Setup(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
-	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + "@" + tokenManagerInitParams
+	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString
 
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
@@ -110,10 +108,24 @@ func TestBridge_Setup(t *testing.T) {
 		FuncName:   "getWrappedEgldTokenIdentifier",
 		Arguments:  [][]byte{},
 	}
-	vmOutput, _ := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	require.Nil(t, err)
 	require.NotNil(t, vmOutput)
-	fmt.Println()
-	fmt.Println(vmOutput.ReturnData)
 	require.NotZero(t, len(vmOutput.ReturnData[0]))
-	require.Equal(t, []byte("WEGLD"), vmOutput.ReturnData[0][:4])
+
+	tokenIdentifier := vmOutput.ReturnData[0]
+	require.Equal(t, []byte("WEGLD"), tokenIdentifier[:5])
+
+	txValue = big.NewInt(0)
+	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + "8AC7230489E80000"
+	integrationTests.CreateAndSendTransaction(
+		ownerNode,
+		shard,
+		txValue,
+		scAddressBytes,
+		txData,
+		integrationTests.AdditionalGasLimit,
+	)
+	logger.SetLogLevel("*:TRACE")
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
 }
