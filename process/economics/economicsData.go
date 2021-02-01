@@ -454,7 +454,9 @@ func (ed *economicsData) setGasPriceModifierMetric() {
 		log.Debug("cannot set GasPriceModifier metric - nil status handler")
 	}
 
-	ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.gasPriceModifier))
+	if ed.flagGasPriceModifier.IsSet() {
+		ed.statusHandler.SetStringValue(core.MetricGasPriceModifier, fmt.Sprintf("%g", ed.gasPriceModifier))
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
