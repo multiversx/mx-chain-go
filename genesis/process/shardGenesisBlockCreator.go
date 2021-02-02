@@ -53,6 +53,7 @@ func createGenesisConfig() config.GeneralSettingsConfig {
 		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
 		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
 		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
+		BlockGasAndFeesReCheckEnableEpoch:      unreachableEpoch,
 	}
 }
 
@@ -380,6 +381,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		PenalizedTooMuchGasEnableEpoch: generalConfig.PenalizedTooMuchGasEnableEpoch,
 		RepairCallbackEnableEpoch:      generalConfig.RepairCallbackEnableEpoch,
 		IsGenesisProcessing:            true,
+		StakingV2EnableEpoch: arg.SystemSCConfig.StakingSystemSCConfig.StakingV2Epoch,
 	}
 	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
 	if err != nil {
@@ -466,6 +468,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, generalCo
 		genesisFeeHandler,
 		disabledBlockSizeComputationHandler,
 		disabledBalanceComputationHandler,
+		genesisFeeHandler,
+		txTypeHandler,
+		generalConfig.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err

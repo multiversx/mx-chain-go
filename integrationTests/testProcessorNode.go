@@ -277,15 +277,16 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler                  update.ExportHandler
-	WaitTime                       time.Duration
-	HistoryRepository              dblookupext.HistoryRepository
-	EpochNotifier                  process.EpochNotifier
-	BuiltinEnableEpoch             uint32
-	DeployEnableEpoch              uint32
-	RelayedTxEnableEpoch           uint32
-	PenalizedTooMuchGasEnableEpoch uint32
-	UseValidVmBlsSigVerifier       bool
+	ExportHandler                     update.ExportHandler
+	WaitTime                          time.Duration
+	HistoryRepository                 dblookupext.HistoryRepository
+	EpochNotifier                     process.EpochNotifier
+	BuiltinEnableEpoch                uint32
+	DeployEnableEpoch                 uint32
+	RelayedTxEnableEpoch              uint32
+	PenalizedTooMuchGasEnableEpoch    uint32
+	BlockGasAndFeesReCheckEnableEpoch uint32
+	UseValidVmBlsSigVerifier          bool
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -592,19 +593,20 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:         tpn.PeerState,
-		PubkeyConv:          TestValidatorPubkeyConverter,
-		NodesCoordinator:    tpn.NodesCoordinator,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		DataPool:            tpn.DataPool,
-		StorageService:      tpn.Storage,
-		Marshalizer:         TestMarshalizer,
-		Rater:               rater,
-		MaxComputableRounds: 1000,
-		RewardsHandler:      tpn.EconomicsData,
-		NodesSetup:          tpn.NodesSetup,
-		GenesisNonce:        tpn.BlockChain.GetGenesisHeader().GetNonce(),
-		EpochNotifier:       &mock.EpochNotifierStub{},
+		PeerAdapter:          tpn.PeerState,
+		PubkeyConv:           TestValidatorPubkeyConverter,
+		NodesCoordinator:     tpn.NodesCoordinator,
+		ShardCoordinator:     tpn.ShardCoordinator,
+		DataPool:             tpn.DataPool,
+		StorageService:       tpn.Storage,
+		Marshalizer:          TestMarshalizer,
+		Rater:                rater,
+		MaxComputableRounds:  1000,
+		RewardsHandler:       tpn.EconomicsData,
+		NodesSetup:           tpn.NodesSetup,
+		GenesisNonce:         tpn.BlockChain.GetGenesisHeader().GetNonce(),
+		EpochNotifier:        &mock.EpochNotifierStub{},
+		StakingV2EnableEpoch: StakingV2Epoch,
 	}
 
 	tpn.ValidatorStatisticsProcessor, _ = peer.NewValidatorStatisticsProcessor(arguments)
@@ -1368,6 +1370,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 
@@ -1569,6 +1574,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors() {
 		tpn.FeeAccumulator,
 		TestBlockSizeComputationHandler,
 		TestBalanceComputationHandler,
+		tpn.EconomicsData,
+		txTypeHandler,
+		tpn.BlockGasAndFeesReCheckEnableEpoch,
 	)
 }
 
