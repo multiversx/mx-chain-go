@@ -52,6 +52,8 @@ type delegation struct {
 	unJailPrice            *big.Int
 	minStakeValue          *big.Int
 	mutExecution           sync.RWMutex
+	stakingV2EnableEpoch   uint32
+	stakingV2Enabled       atomic.Flag
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -113,6 +115,8 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		sigVerifier:            args.SigVerifier,
 		unBondPeriod:           args.StakingSCConfig.UnBondPeriod,
 		endOfEpochAddr:         args.EndOfEpochAddress,
+		stakingV2EnableEpoch:   args.StakingSCConfig.StakingV2Epoch,
+		stakingV2Enabled:       atomic.Flag{},
 	}
 
 	var okValue bool
@@ -1393,8 +1397,14 @@ func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *De
 			continue
 		}
 
+		var rewardsForOwner *big.Int
 		percentage := float64(rewardData.ServiceFee) / float64(percentageDenominator)
-		rewardsForOwner := core.GetPercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		if d.stakingV2Enabled.IsSet() {
+			rewardsForOwner = core.GetIntTrimmedPercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		} else {
+			rewardsForOwner = core.GetApproximatePercentageOfValue(rewardData.RewardsToDistribute, percentage)
+		}
+
 		rewardForDelegator := big.NewInt(0).Sub(rewardData.RewardsToDistribute, rewardsForOwner)
 
 		// delegator reward is: rewardForDelegator * user stake / total active
@@ -1849,6 +1859,11 @@ func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallIn
 	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return nil, vmcommon.UserError
+	}
+
 	if isNew {
 		d.eei.AddReturnMessage("view function works only for existing delegators")
 		return nil, vmcommon.UserError
@@ -2300,6 +2315,9 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 func (d *delegation) EpochConfirmed(epoch uint32) {
 	d.delegationEnabled.Toggle(epoch >= d.enableDelegationEpoch)
 	log.Debug("delegation", "enabled", d.delegationEnabled.IsSet())
+
+	d.stakingV2Enabled.Toggle(epoch > d.stakingV2EnableEpoch)
+	log.Debug("stakingV2", "enabled", d.stakingV2Enabled.IsSet())
 }
 
 // CanUseContract returns true if contract can be used

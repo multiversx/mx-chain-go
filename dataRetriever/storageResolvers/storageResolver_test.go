@@ -73,7 +73,7 @@ func TestStorageResolver_signalGracefullyCloseCanNotWriteOnChanShouldNotPanic(t 
 		}
 	}()
 
-	chanClose := make(chan endProcess.ArgEndProcess, 0)
+	chanClose := make(chan endProcess.ArgEndProcess)
 	sr := &storageResolver{
 		chanGracefullyClose: chanClose,
 		manualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{
@@ -98,7 +98,7 @@ func TestStorageResolver_signalGracefullyCloseDoubleSignalShouldNotPanic(t *test
 		}
 	}()
 
-	chanClose := make(chan endProcess.ArgEndProcess, 0)
+	chanClose := make(chan endProcess.ArgEndProcess)
 	sr := &storageResolver{
 		chanGracefullyClose: chanClose,
 		manualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{

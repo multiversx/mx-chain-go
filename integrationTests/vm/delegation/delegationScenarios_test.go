@@ -22,7 +22,6 @@ import (
 	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
 	"github.com/ElrondNetwork/elrond-go/vm"
 	"github.com/stretchr/testify/assert"
 )
@@ -1119,7 +1118,7 @@ func deployNewSc(
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnedCode)
 
-	scrs := smartContract.GetAllSCRs(tpn.ScProcessor)
+	scrs := tpn.ScProcessor.GetAllSCRs()
 	for i := range scrs {
 		tx, isScr := scrs[i].(*smartContractResult.SmartContractResult)
 		if !isScr {

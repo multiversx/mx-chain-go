@@ -12,7 +12,8 @@ import (
 )
 
 func TestRelayedESDTTransferShouldWork(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -41,10 +42,10 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBalanceSnd := big.NewInt(99999900)
-	utils.CheckESDTBalance(t, &testContext, sndAddr, token, expectedBalanceSnd)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, expectedBalanceSnd)
 
 	expectedReceiverBalance := big.NewInt(100)
-	utils.CheckESDTBalance(t, &testContext, rcvAddr, token, expectedReceiverBalance)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
 
 	expectedEGLDBalance := big.NewInt(0)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)
@@ -65,7 +66,8 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
 	relayerAddr := []byte("12345678901234567890123456789033")
@@ -94,10 +96,10 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 
 	expectedBalanceSnd := big.NewInt(100000000)
-	utils.CheckESDTBalance(t, &testContext, sndAddr, token, expectedBalanceSnd)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, expectedBalanceSnd)
 
 	expectedReceiverBalance := big.NewInt(0)
-	utils.CheckESDTBalance(t, &testContext, rcvAddr, token, expectedReceiverBalance)
+	utils.CheckESDTBalance(t, testContext, rcvAddr, token, expectedReceiverBalance)
 
 	expectedEGLDBalance := big.NewInt(0)
 	utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)

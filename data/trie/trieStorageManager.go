@@ -90,6 +90,7 @@ func NewTrieStorageManager(
 	return tsm, nil
 }
 
+//nolint
 func (tsm *trieStorageManager) storageProcessLoop(msh marshal.Marshalizer, hsh hashing.Hasher) {
 	for {
 		select {
@@ -373,10 +374,7 @@ func (tsm *trieStorageManager) SetCheckpoint(rootHash []byte) {
 }
 
 func (tsm *trieStorageManager) writeOnChan(entry *snapshotsQueueEntry) {
-	select {
-	case tsm.snapshotReq <- entry:
-		return
-	}
+	tsm.snapshotReq <- entry
 }
 
 func (tsm *trieStorageManager) takeSnapshot(snapshot *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher) {
