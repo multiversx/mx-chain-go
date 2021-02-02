@@ -1,6 +1,7 @@
 package transactions
 
 import (
+	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -8,26 +9,31 @@ import (
 	"github.com/ElrondNetwork/elrond-go/data/rewardTx"
 	"github.com/ElrondNetwork/elrond-go/data/smartContractResult"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
+	"github.com/ElrondNetwork/elrond-go/hashing"
+	"github.com/ElrondNetwork/elrond-go/marshal"
 )
 
 type txGrouper struct {
 	selfShardID    uint32
 	txBuilder      *txDBBuilder
-	calculateHash  func(object interface{}) ([]byte, error)
 	isInImportMode bool
+	hasher         hashing.Hasher
+	marshalizer    marshal.Marshalizer
 }
 
 func newTxGrouper(
 	txBuilder *txDBBuilder,
-	calculateHash func(object interface{}) ([]byte, error),
 	isInImportMode bool,
 	selfShardID uint32,
+	hasher hashing.Hasher,
+	marshalizer marshal.Marshalizer,
 ) *txGrouper {
 	return &txGrouper{
 		txBuilder:      txBuilder,
-		calculateHash:  calculateHash,
 		selfShardID:    selfShardID,
 		isInImportMode: isInImportMode,
+		hasher:         hasher,
+		marshalizer:    marshalizer,
 	}
 }
 
@@ -44,7 +50,7 @@ func (tg *txGrouper) groupNormalTxsAndRewards(
 	rewardsTxs := make([]*types.Transaction, 0)
 
 	for _, mb := range body.MiniBlocks {
-		mbHash, err := tg.calculateHash(mb)
+		mbHash, err := core.CalculateHash(tg.marshalizer, tg.hasher, mb)
 		if err != nil {
 			continue
 		}
@@ -188,4 +194,35 @@ func convertMapTxsToSlice(txs map[string]*types.Transaction) []*types.Transactio
 		i++
 	}
 	return transactions
+}
+
+func addToAlteredAddresses(
+	tx *types.Transaction,
+	alteredAddresses map[string]*types.AlteredAccount,
+	miniBlock *block.MiniBlock,
+	selfShardID uint32,
+	isRewardTx bool,
+) {
+	isESDTTx := tx.EsdtTokenIdentifier != "" && tx.EsdtValue != ""
+
+	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
+		alteredAddresses[tx.Sender] = &types.AlteredAccount{
+			IsSender:        true,
+			IsESDTOperation: isESDTTx,
+			TokenIdentifier: tx.EsdtTokenIdentifier,
+		}
+	}
+
+	if tx.Status == transaction.TxStatusInvalid.String() {
+		// ignore receiver if we have an invalid transaction
+		return
+	}
+
+	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
+		alteredAddresses[tx.Receiver] = &types.AlteredAccount{
+			IsSender:        false,
+			IsESDTOperation: isESDTTx,
+			TokenIdentifier: tx.EsdtTokenIdentifier,
+		}
+	}
 }

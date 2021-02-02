@@ -136,3 +136,8 @@ func createShardIdentifier(shardID uint32) uint32 {
 
 	return shardIdentifier
 }
+
+// ComputeHeaderHash will compute hash of a provided header
+func (bp *blockProcessor) ComputeHeaderHash(header data.HeaderHandler) ([]byte, error) {
+	return core.CalculateHash(bp.marshalizer, bp.hasher, header)
+}

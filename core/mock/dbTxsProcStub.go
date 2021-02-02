@@ -17,9 +17,10 @@ type DBTxsProcStub struct {
 		txPool map[string]data.TransactionHandler,
 	) ([]*types.Transaction, []*types.ScResult, []*types.Receipt, map[string]*types.AlteredAccount)
 
-	SerializeReceiptsCalled     func(receipts []*types.Receipt, bulkSizeThreshold int) ([]bytes.Buffer, error)
-	SerializeTransactionsCalled func(transactions []*types.Transaction, selfShardID uint32, mbsHashInDB map[string]bool, bulkSizeThreshold int) ([]bytes.Buffer, error)
-	SerializeScResultsCalled    func(scResults []*types.ScResult, bulkSizeThreshold int) ([]bytes.Buffer, error)
+	SerializeReceiptsCalled             func(receipts []*types.Receipt) ([]*bytes.Buffer, error)
+	SerializeTransactionsCalled         func(transactions []*types.Transaction, selfShardID uint32, mbsHashInDB map[string]bool) ([]*bytes.Buffer, error)
+	SerializeScResultsCalled            func(scResults []*types.ScResult) ([]*bytes.Buffer, error)
+	GetRewardsTxsHashesHexEncodedCalled func(header data.HeaderHandler, body *block.Body) []string
 }
 
 // PrepareTransactionsForDatabase -
@@ -40,28 +41,37 @@ func (d *DBTxsProcStub) SetTxLogsProcessor(_ dataProcess.TransactionLogProcessor
 }
 
 // SerializeReceipts -
-func (d *DBTxsProcStub) SerializeReceipts(receipts []*types.Receipt, bulkSizeThreshold int) ([]bytes.Buffer, error) {
+func (d *DBTxsProcStub) SerializeReceipts(receipts []*types.Receipt) ([]*bytes.Buffer, error) {
 	if d.SerializeReceiptsCalled != nil {
-		return d.SerializeReceiptsCalled(receipts, bulkSizeThreshold)
+		return d.SerializeReceiptsCalled(receipts)
 	}
 
 	return nil, nil
 }
 
 // SerializeTransactions -
-func (d *DBTxsProcStub) SerializeTransactions(transactions []*types.Transaction, selfShardID uint32, mbsHashInDB map[string]bool, bulkSizeThreshold int) ([]bytes.Buffer, error) {
+func (d *DBTxsProcStub) SerializeTransactions(transactions []*types.Transaction, selfShardID uint32, mbsHashInDB map[string]bool) ([]*bytes.Buffer, error) {
 	if d.SerializeTransactionsCalled != nil {
-		return d.SerializeTransactionsCalled(transactions, selfShardID, mbsHashInDB, bulkSizeThreshold)
+		return d.SerializeTransactionsCalled(transactions, selfShardID, mbsHashInDB)
 	}
 
 	return nil, nil
 }
 
 // SerializeScResults -
-func (d *DBTxsProcStub) SerializeScResults(scResults []*types.ScResult, bulkSizeThreshold int) ([]bytes.Buffer, error) {
+func (d *DBTxsProcStub) SerializeScResults(scResults []*types.ScResult) ([]*bytes.Buffer, error) {
 	if d.SerializeScResultsCalled != nil {
-		return d.SerializeScResultsCalled(scResults, bulkSizeThreshold)
+		return d.SerializeScResultsCalled(scResults)
 	}
 
 	return nil, nil
+}
+
+// GetRewardsTxsHashesHexEncoded -
+func (d *DBTxsProcStub) GetRewardsTxsHashesHexEncoded(header data.HeaderHandler, body *block.Body) []string {
+	if d.GetRewardsTxsHashesHexEncodedCalled != nil {
+		return d.GetRewardsTxsHashesHexEncodedCalled(header, body)
+	}
+
+	return nil
 }

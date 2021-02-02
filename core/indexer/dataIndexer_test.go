@@ -346,7 +346,8 @@ func TestDataIndexer(t *testing.T) {
 
 //nolint
 func testCreateIndexer(t *testing.T) {
-	indexTemplates, indexPolicies, _ := process.GetElasticTemplatesAndPolicies("", false)
+	reader := process.NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := reader.GetElasticTemplatesAndPolicies()
 
 	dispatcher, _ := NewDataDispatcher(100)
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
@@ -356,10 +357,9 @@ func testCreateIndexer(t *testing.T) {
 	})
 
 	elasticIndexer, _ := process.NewElasticProcessor(&process.ArgElasticProcessor{
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		DBClient:                 dbClient,
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
+		DBClient:       dbClient,
 	})
 
 	di, err := NewDataIndexer(ArgDataIndexer{

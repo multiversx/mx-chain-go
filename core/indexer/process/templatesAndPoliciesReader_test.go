@@ -10,14 +10,15 @@ import (
 func TestGetElasticTemplatesAndPolicies_NoKibana(t *testing.T) {
 	t.Parallel()
 
-	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates/noKibana"
-	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
-		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
+	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates"
+	tpr := NewTemplatesAndPoliciesReader(pathToConfig, false)
 
-	indexTemplates, _, err := GetElasticTemplatesAndPolicies(pathToConfig, false)
+	indexTemplates, _, err := tpr.GetElasticTemplatesAndPolicies()
 	require.NoError(t, err)
 	require.NotNil(t, indexTemplates)
 
+	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
+		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 	for idx := 0; idx < len(indexes); idx++ {
 		_, ok := indexTemplates[indexes[idx]]
 		if !ok {
@@ -29,11 +30,12 @@ func TestGetElasticTemplatesAndPolicies_NoKibana(t *testing.T) {
 func TestGetElasticTemplatesAndPolicies_WithKibana(t *testing.T) {
 	t.Parallel()
 
-	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates/withKibana"
+	pathToConfig := "../../../cmd/node/config/elasticIndexTemplates"
 	indexes := []string{openDistroIndex, txIndex, blockIndex, miniblocksIndex, tpsIndex, ratingIndex, roundIndex, accountsESDTIndex,
 		validatorsIndex, accountsIndex, accountsHistoryIndex, receiptsIndex, scResultsIndex, accountsESDTHistoryIndex}
 
-	indexTemplates, indexPolicies, err := GetElasticTemplatesAndPolicies(pathToConfig, true)
+	tpr := NewTemplatesAndPoliciesReader(pathToConfig, true)
+	indexTemplates, indexPolicies, err := tpr.GetElasticTemplatesAndPolicies()
 	require.NoError(t, err)
 	require.NotNil(t, indexTemplates)
 	require.NotNil(t, indexPolicies)

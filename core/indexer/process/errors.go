@@ -21,6 +21,3 @@ var ErrReadPolicyFile = errors.New("error while reading policy file")
 
 // ErrWriteToBuffer signals that a write error occurred
 var ErrWriteToBuffer = errors.New("error while writing to buffer")
-
-// ErrHeaderTypeAssertion signals that body type assertion failed
-var ErrHeaderTypeAssertion = errors.New("elasticsearch - header type assertion failed")

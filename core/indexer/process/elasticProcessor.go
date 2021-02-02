@@ -3,7 +3,6 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 
 	logger "github.com/ElrondNetwork/elrond-go-logger"
@@ -22,44 +21,44 @@ type objectsMap = map[string]interface{}
 
 // ArgElasticProcessor -
 type ArgElasticProcessor struct {
-	SelfShardID              uint32
-	IndexTemplates           map[string]*bytes.Buffer
-	IndexPolicies            map[string]*bytes.Buffer
-	EnabledIndexes           map[string]struct{}
-	CalculateHashFunc        func(object interface{}) ([]byte, error)
-	UseKibana                bool
-	ValidatorPubkeyConverter core.PubkeyConverter
-	TxProc                   DBTransactionsHandler
-	AccountsProc             DBAccountHandler
-	BlockProc                DBBlockHandler
-	MiniblocksProc           DBMiniblocksHandler
-	DBClient                 DatabaseClientHandler
+	UseKibana       bool
+	SelfShardID     uint32
+	IndexTemplates  map[string]*bytes.Buffer
+	IndexPolicies   map[string]*bytes.Buffer
+	EnabledIndexes  map[string]struct{}
+	TxProc          DBTransactionsHandler
+	AccountsProc    DBAccountHandler
+	BlockProc       DBBlockHandler
+	MiniblocksProc  DBMiniblocksHandler
+	GeneralInfoProc DBGeneralInfoHandler
+	ValidatorsProc  DBValidatorsHandler
+	DBClient        DatabaseClientHandler
 }
 
 type elasticProcessor struct {
-	selfShardID              uint32
-	enabledIndexes           map[string]struct{}
-	calculateHash            func(object interface{}) ([]byte, error)
-	elasticClient            DatabaseClientHandler
-	accountsProc             DBAccountHandler
-	blockProc                DBBlockHandler
-	txProc                   DBTransactionsHandler
-	miniblocksProc           DBMiniblocksHandler
-	validatorPubkeyConverter core.PubkeyConverter
+	selfShardID     uint32
+	enabledIndexes  map[string]struct{}
+	elasticClient   DatabaseClientHandler
+	accountsProc    DBAccountHandler
+	blockProc       DBBlockHandler
+	txProc          DBTransactionsHandler
+	miniblocksProc  DBMiniblocksHandler
+	generalInfoProc DBGeneralInfoHandler
+	validatorsProc  DBValidatorsHandler
 }
 
 // NewElasticProcessor creates an elasticsearch es and handles saving
 func NewElasticProcessor(arguments *ArgElasticProcessor) (*elasticProcessor, error) {
 	ei := &elasticProcessor{
-		elasticClient:            arguments.DBClient,
-		enabledIndexes:           arguments.EnabledIndexes,
-		accountsProc:             arguments.AccountsProc,
-		blockProc:                arguments.BlockProc,
-		miniblocksProc:           arguments.MiniblocksProc,
-		txProc:                   arguments.TxProc,
-		calculateHash:            arguments.CalculateHashFunc,
-		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
-		selfShardID:              arguments.SelfShardID,
+		elasticClient:   arguments.DBClient,
+		enabledIndexes:  arguments.EnabledIndexes,
+		accountsProc:    arguments.AccountsProc,
+		blockProc:       arguments.BlockProc,
+		miniblocksProc:  arguments.MiniblocksProc,
+		txProc:          arguments.TxProc,
+		selfShardID:     arguments.SelfShardID,
+		generalInfoProc: arguments.GeneralInfoProc,
+		validatorsProc:  arguments.ValidatorsProc,
 	}
 
 	if arguments.UseKibana {
@@ -220,10 +219,29 @@ func (ei *elasticProcessor) getExistingObjMap(hashes []string, index string) (ma
 
 	response, err := ei.elasticClient.DoMultiGet(hashes, index)
 	if err != nil {
-		return nil, err
+		return make(map[string]bool), err
 	}
 
 	return getDecodedResponseMultiGet(response), nil
+}
+
+func getDecodedResponseMultiGet(response objectsMap) map[string]bool {
+	founded := make(map[string]bool)
+	interfaceSlice, ok := response["docs"].([]interface{})
+	if !ok {
+		return founded
+	}
+
+	for _, element := range interfaceSlice {
+		obj := element.(objectsMap)
+		_, ok = obj["error"]
+		if ok {
+			continue
+		}
+		founded[obj["_id"].(string)] = obj["found"].(bool)
+	}
+
+	return founded
 }
 
 func getTemplateByName(templateName string, templateList map[string]*bytes.Buffer) *bytes.Buffer {
@@ -278,14 +296,7 @@ func (ei *elasticProcessor) indexEpochInfoData(header data.HeaderHandler) error 
 		return nil
 	}
 
-	var buff bytes.Buffer
-	serializedEpochInfo, err := serializeEpochInfoData(header)
-	if err != nil {
-		return err
-	}
-
-	buff.Grow(len(serializedEpochInfo))
-	_, err = buff.Write(serializedEpochInfo)
+	buff, err := ei.blockProc.SerializeEpochInfoData(header)
 	if err != nil {
 		return err
 	}
@@ -302,7 +313,7 @@ func (ei *elasticProcessor) indexEpochInfoData(header data.HeaderHandler) error 
 
 // RemoveHeader will remove a block from elasticsearch server
 func (ei *elasticProcessor) RemoveHeader(header data.HeaderHandler) error {
-	headerHash, err := ei.calculateHash(header)
+	headerHash, err := ei.blockProc.ComputeHeaderHash(header)
 	if err != nil {
 		return err
 	}
@@ -312,31 +323,9 @@ func (ei *elasticProcessor) RemoveHeader(header data.HeaderHandler) error {
 
 // RemoveMiniblocks will remove all miniblocks that are in header from elasticsearch server
 func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *block.Body) error {
-	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
+	encodedMiniblocksHashes := ei.miniblocksProc.GetMiniblocksHashesHexEncoded(header, body)
+	if len(encodedMiniblocksHashes) == 0 {
 		return nil
-	}
-
-	encodedMiniblocksHashes := make([]string, 0)
-	selfShardID := header.GetShardID()
-	for _, miniblock := range body.MiniBlocks {
-		if miniblock.Type == block.PeerBlock {
-			continue
-		}
-
-		isDstMe := selfShardID == miniblock.ReceiverShardID
-		isCrossShard := miniblock.ReceiverShardID != miniblock.SenderShardID
-		if isDstMe && isCrossShard {
-			continue
-		}
-
-		miniblockHash, err := ei.calculateHash(miniblock)
-		if err != nil {
-			log.Debug("RemoveMiniblocks cannot calculate miniblock hash",
-				"error", err.Error())
-			continue
-		}
-		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(miniblockHash))
-
 	}
 
 	return ei.elasticClient.DoBulkRemove(miniblocksIndex, encodedMiniblocksHashes)
@@ -344,28 +333,7 @@ func (ei *elasticProcessor) RemoveMiniblocks(header data.HeaderHandler, body *bl
 
 // RemoveTransactions will remove transaction that are in miniblock from the elasticsearch server
 func (ei *elasticProcessor) RemoveTransactions(header data.HeaderHandler, body *block.Body) error {
-	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
-		return nil
-	}
-
-	selfShardID := header.GetShardID()
-	encodedTxsHashes := make([]string, 0)
-	for _, miniblock := range body.MiniBlocks {
-		if miniblock.Type != block.RewardsBlock {
-			continue
-		}
-
-		isDstMe := selfShardID == miniblock.ReceiverShardID
-		if isDstMe {
-			// reward miniblock is always cross-shard
-			continue
-		}
-
-		for _, txHash := range miniblock.TxHashes {
-			encodedTxsHashes = append(encodedTxsHashes, hex.EncodeToString(txHash))
-		}
-	}
-
+	encodedTxsHashes := ei.txProc.GetRewardsTxsHashesHexEncoded(header, body)
 	if len(encodedTxsHashes) == 0 {
 		return nil
 	}
@@ -389,8 +357,22 @@ func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *bloc
 		return make(map[string]bool), nil
 	}
 
-	buff, mbHashDb := ei.miniblocksProc.SerializeBulkMiniBlocks(header.GetShardID(), mbs, ei.getExistingObjMap, miniblocksIndex)
-	return mbHashDb, ei.elasticClient.DoBulkRequest(&buff, miniblocksIndex)
+	miniblocksInDBMap, err := ei.miniblocksInDBMap(mbs)
+	if err != nil {
+		log.Warn("elasticProcessor.SaveMiniblocks cannot get indexed miniblocks", "error", err.Error())
+	}
+
+	buff := ei.miniblocksProc.SerializeBulkMiniBlocks(mbs, miniblocksInDBMap)
+	return miniblocksInDBMap, ei.elasticClient.DoBulkRequest(buff, miniblocksIndex)
+}
+
+func (ei *elasticProcessor) miniblocksInDBMap(mbs []*types.Miniblock) (map[string]bool, error) {
+	mbsHashes := make([]string, len(mbs))
+	for idx := range mbs {
+		mbsHashes[idx] = mbs[idx].Hash
+	}
+
+	return ei.getExistingObjMap(mbsHashes, miniblocksIndex)
 }
 
 // SaveTransactions will prepare and save information about a transactions in elasticsearch server
@@ -405,34 +387,31 @@ func (ei *elasticProcessor) SaveTransactions(
 		return nil
 	}
 
-	txs, dbScResults, dbReceipts, alteredAccounts := ei.txProc.PrepareTransactionsForDatabase(body, header, txPool)
-	buffSlice, err := ei.txProc.SerializeTransactions(txs, selfShardID, mbsInDb, bulkSizeThreshold)
+	preparedResults := ei.txProc.PrepareTransactionsForDatabase(body, header, txPool)
+	buffSlice, err := ei.txProc.SerializeTransactions(preparedResults.Transactions, selfShardID, mbsInDb)
 	if err != nil {
 		return err
 	}
 
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], txIndex)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], txIndex)
 		if err != nil {
-			log.Warn("indexer indexing bulk of transactions",
-				"error", err.Error())
+			log.Warn("elasticProcessor.SaveTransactions cannot index bulk of transactions", "error", err.Error())
 			return err
 		}
 	}
 
-	err = ei.indexScResults(dbScResults)
+	err = ei.indexScResults(preparedResults.ScResults)
 	if err != nil {
-		log.Warn("indexer indexing bulk of smart contract results",
-			"error", err.Error())
+		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of smart contract results", "error", err.Error())
 	}
 
-	err = ei.indexReceipts(dbReceipts)
+	err = ei.indexReceipts(preparedResults.Receipts)
 	if err != nil {
-		log.Warn("indexer indexing bulk of receipts",
-			"error", err.Error())
+		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of receipts", "error", err.Error())
 	}
 
-	return ei.indexAlteredAccounts(alteredAccounts)
+	return ei.indexAlteredAccounts(preparedResults.AlteredAccounts)
 }
 
 // SaveShardStatistics will prepare and save information about a shard statistics in elasticsearch server
@@ -441,26 +420,10 @@ func (ei *elasticProcessor) SaveShardStatistics(tpsBenchmark statistics.TPSBench
 		return nil
 	}
 
-	buff := prepareGeneralInfo(tpsBenchmark)
+	generalInfo, shardsInfo := ei.generalInfoProc.PrepareGeneralInfo(tpsBenchmark)
+	buff := ei.generalInfoProc.SerializeGeneralInfo(generalInfo, shardsInfo, tpsIndex)
 
-	for _, shardInfo := range tpsBenchmark.ShardStatistics() {
-		serializedShardInfo, serializedMetaInfo := serializeShardInfo(shardInfo)
-		if serializedShardInfo == nil {
-			continue
-		}
-
-		buff.Grow(len(serializedMetaInfo) + len(serializedShardInfo))
-		_, err := buff.Write(serializedMetaInfo)
-		if err != nil {
-			log.Warn("elastic search: update TPS write meta", "error", err.Error())
-		}
-		_, err = buff.Write(serializedShardInfo)
-		if err != nil {
-			log.Warn("elastic search: update TPS write serialized data", "error", err.Error())
-		}
-	}
-
-	return ei.elasticClient.DoBulkRequest(&buff, tpsIndex)
+	return ei.elasticClient.DoBulkRequest(buff, tpsIndex)
 }
 
 // SaveValidatorsRating will save validators rating
@@ -469,16 +432,14 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 		return nil
 	}
 
-	buffSlice, err := serializeValidatorsRating(index, validatorsRatingInfo)
+	buffSlice, err := ei.validatorsProc.SerializeValidatorsRating(index, validatorsRatingInfo)
 	if err != nil {
 		return err
 	}
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], ratingIndex)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], ratingIndex)
 		if err != nil {
-			log.Warn("indexer: indexing bulk of validators rating information",
-				"index", ratingIndex,
-				"error", err.Error())
+			log.Warn("elasticProcessor.SaveValidatorsRating cannot index validators rating", "error", err.Error())
 			return err
 		}
 	}
@@ -492,26 +453,10 @@ func (ei *elasticProcessor) SaveShardValidatorsPubKeys(shardID, epoch uint32, sh
 		return nil
 	}
 
-	var buff bytes.Buffer
-
-	shardValPubKeys := types.ValidatorsPublicKeys{
-		PublicKeys: make([]string, 0, len(shardValidatorsPubKeys)),
-	}
-	for _, validatorPk := range shardValidatorsPubKeys {
-		strValidatorPk := ei.validatorPubkeyConverter.Encode(validatorPk)
-		shardValPubKeys.PublicKeys = append(shardValPubKeys.PublicKeys, strValidatorPk)
-	}
-
-	marshalizedValidatorPubKeys, err := json.Marshal(shardValPubKeys)
+	validatorsPubKeys := ei.validatorsProc.PrepareValidatorsPublicKeys(shardValidatorsPubKeys)
+	buff, err := ei.validatorsProc.SerializeValidatorsPubKeys(validatorsPubKeys)
 	if err != nil {
-		log.Debug("indexer: marshal", "error", "could not marshal validators public keys")
 		return err
-	}
-
-	buff.Grow(len(marshalizedValidatorPubKeys))
-	_, err = buff.Write(marshalizedValidatorPubKeys)
-	if err != nil {
-		log.Warn("elastic search: save shard validators pub keys, write", "error", err.Error())
 	}
 
 	req := &esapi.IndexRequest{
@@ -530,24 +475,9 @@ func (ei *elasticProcessor) SaveRoundsInfo(infos []types.RoundInfo) error {
 		return nil
 	}
 
-	var buff bytes.Buffer
+	buff := ei.generalInfoProc.SerializeRoundsInfo(infos)
 
-	for _, info := range infos {
-		serializedRoundInfo, meta := serializeRoundInfo(info)
-
-		buff.Grow(len(meta) + len(serializedRoundInfo))
-		_, err := buff.Write(meta)
-		if err != nil {
-			log.Warn("indexer: cannot write meta", "error", err.Error())
-		}
-
-		_, err = buff.Write(serializedRoundInfo)
-		if err != nil {
-			log.Warn("indexer: cannot write serialized round info", "error", err.Error())
-		}
-	}
-
-	return ei.elasticClient.DoBulkRequest(&buff, roundIndex)
+	return ei.elasticClient.DoBulkRequest(buff, roundIndex)
 }
 
 func (ei *elasticProcessor) indexAlteredAccounts(alteredAccounts map[string]*types.AlteredAccount) error {
@@ -596,16 +526,15 @@ func (ei *elasticProcessor) SaveAccounts(accts []*types.AccountEGLD) error {
 }
 
 func (ei *elasticProcessor) serializeAndIndexAccounts(accountsMap map[string]*types.AccountInfo, index string, areESDTAccounts bool) error {
-	buffSlice, err := ei.accountsProc.SerializeAccounts(accountsMap, bulkSizeThreshold, areESDTAccounts)
+	buffSlice, err := ei.accountsProc.SerializeAccounts(accountsMap, areESDTAccounts)
 	if err != nil {
 		return err
 	}
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], index)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], index)
 		if err != nil {
-			log.Warn("indexer: indexing bulk of accounts",
-				"index", index,
-				"error", err.Error())
+			log.Warn("elasticProcessor.serializeAndIndexAccounts",
+				"cannot index bulk of accounts", "index", index, "error", err.Error())
 			return err
 		}
 	}
@@ -634,15 +563,15 @@ func (ei *elasticProcessor) saveAccountsHistory(accountsInfoMap map[string]*type
 }
 
 func (ei *elasticProcessor) serializeAndIndexAccountsHistory(accountsMap map[string]*types.AccountBalanceHistory, index string) error {
-	buffSlice, err := ei.accountsProc.SerializeAccountsHistory(accountsMap, bulkSizeThreshold)
+	buffSlice, err := ei.accountsProc.SerializeAccountsHistory(accountsMap)
 	if err != nil {
 		return err
 	}
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], index)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], index)
 		if err != nil {
-			log.Warn("indexer: indexing bulk of accounts history",
-				"error", err.Error())
+			log.Warn("elasticProcessor.serializeAndIndexAccountsHistory",
+				"cannot index bulk of accounts history", "index", index, "error", err.Error())
 			return err
 		}
 	}
@@ -655,13 +584,13 @@ func (ei *elasticProcessor) indexScResults(scrs []*types.ScResult) error {
 		return nil
 	}
 
-	buffSlice, err := ei.txProc.SerializeScResults(scrs, bulkSizeThreshold)
+	buffSlice, err := ei.txProc.SerializeScResults(scrs)
 	if err != nil {
 		return err
 	}
 
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], scResultsIndex)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], scResultsIndex)
 		if err != nil {
 			return err
 		}
@@ -675,13 +604,13 @@ func (ei *elasticProcessor) indexReceipts(receipts []*types.Receipt) error {
 		return nil
 	}
 
-	buffSlice, err := ei.txProc.SerializeReceipts(receipts, bulkSizeThreshold)
+	buffSlice, err := ei.txProc.SerializeReceipts(receipts)
 	if err != nil {
 		return err
 	}
 
 	for idx := range buffSlice {
-		err = ei.elasticClient.DoBulkRequest(&buffSlice[idx], receiptsIndex)
+		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], receiptsIndex)
 		if err != nil {
 			return err
 		}

@@ -64,8 +64,8 @@ func (d *dataDispatcher) startWorker(ctx context.Context) {
 			d.stopWorker()
 			return
 		case wi := <-d.chanWorkItems:
-			timeout := d.doWork(wi)
-			if timeout {
+			timeoutOnClose := d.doWork(wi)
+			if timeoutOnClose {
 				d.stopWorker()
 				return
 			}
@@ -127,7 +127,7 @@ func (d *dataDispatcher) Add(item workItems.WorkItemHandler) {
 
 func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) bool {
 	for {
-		if d.exitIfTimeout() {
+		if d.exitIfTimeoutOnClose() {
 			log.Warn("dataDispatcher.doWork could not index item",
 				"error", "timeout")
 			return true
@@ -157,7 +157,7 @@ func (d *dataDispatcher) doWork(wi workItems.WorkItemHandler) bool {
 
 }
 
-func (d *dataDispatcher) exitIfTimeout() bool {
+func (d *dataDispatcher) exitIfTimeoutOnClose() bool {
 	if !d.wasClosed.IsSet() {
 		return false
 	}

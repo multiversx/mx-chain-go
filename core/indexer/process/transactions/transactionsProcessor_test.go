@@ -179,38 +179,34 @@ func TestPrepareTransactionsForDatabase(t *testing.T) {
 		string(scHash3):  scResult3,
 	}
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		&mock.PubkeyConverterMock{},
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
-	transactions, _, _, _ := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
-	assert.Equal(t, 7, len(transactions))
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	assert.Equal(t, 7, len(results.Transactions))
 
 }
 
 func TestPrepareTxLog(t *testing.T) {
 	t.Parallel()
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		&mock.PubkeyConverterMock{},
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	scAddr := []byte("addr")
@@ -294,23 +290,21 @@ func TestRelayedTransactions(t *testing.T) {
 		string(scHash3): scResult3,
 	}
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		&mock.PubkeyConverterMock{},
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
-	transactions, _, _, _ := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
-	assert.Equal(t, 1, len(transactions))
-	assert.Equal(t, 3, len(transactions[0].SmartContractResults))
-	assert.Equal(t, transaction.TxStatusSuccess.String(), transactions[0].Status)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	assert.Equal(t, 1, len(results.Transactions))
+	assert.Equal(t, 3, len(results.Transactions[0].SmartContractResults))
+	assert.Equal(t, transaction.TxStatusSuccess.String(), results.Transactions[0].Status)
 }
 
 func TestSetTransactionSearchOrder(t *testing.T) {
@@ -326,17 +320,15 @@ func TestSetTransactionSearchOrder(t *testing.T) {
 		string(txHash2): tx2,
 	}
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		&mock.PubkeyConverterMock{},
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	transactions := txDbProc.setTransactionSearchOrder(txPool)
@@ -466,23 +458,21 @@ func TestAlteredAddresses(t *testing.T) {
 		},
 	}
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		mock.NewPubkeyConverterMock(32),
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		shardCoordinator,
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
-	_, _, _, alteredAddresses := txDbProc.PrepareTransactionsForDatabase(body, hdr, txPool)
-	require.Equal(t, len(expectedAlteredAccounts), len(alteredAddresses))
+	results := txDbProc.PrepareTransactionsForDatabase(body, hdr, txPool)
+	require.Equal(t, len(expectedAlteredAccounts), len(results.AlteredAccounts))
 
-	for addrActual := range alteredAddresses {
+	for addrActual := range results.AlteredAccounts {
 		_, found := expectedAlteredAccounts[addrActual]
 		if !found {
 			assert.Fail(t, fmt.Sprintf("address %s not found", addrActual))
@@ -525,17 +515,15 @@ func TestCheckGasUsedTooMuchGasProvidedCase(t *testing.T) {
 func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 	t.Parallel()
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		mock.NewPubkeyConverterMock(32),
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	txHash1 := []byte("txHash1")
@@ -569,25 +557,23 @@ func TestCheckGasUsedInvalidTransaction(t *testing.T) {
 		string(recHash1): rec1,
 	}
 
-	txs, _, _, _ := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
-	require.Len(t, txs, 1)
-	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	require.Len(t, results.Transactions, 1)
+	require.Equal(t, tx1.GasLimit, results.Transactions[0].GasUsed)
 }
 
 func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 	t.Parallel()
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := NewTransactionsProcessor(
 		mock.NewPubkeyConverterMock(32),
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 
 	txHash1 := []byte("txHash1")
@@ -621,7 +607,7 @@ func TestCheckGasUsedRelayedTransaction(t *testing.T) {
 		string(scResHash1): scRes1,
 	}
 
-	txs, _, _, _ := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
-	require.Len(t, txs, 1)
-	require.Equal(t, tx1.GasLimit, txs[0].GasUsed)
+	results := txDbProc.PrepareTransactionsForDatabase(body, header, txPool)
+	require.Len(t, results.Transactions, 1)
+	require.Equal(t, tx1.GasLimit, results.Transactions[0].GasUsed)
 }

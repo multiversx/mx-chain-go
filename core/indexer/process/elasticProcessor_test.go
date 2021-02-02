@@ -17,8 +17,10 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/client"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/disabled"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/block"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/generalInfo"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/miniblocks"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/transactions"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/validators"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/mock"
 	"github.com/ElrondNetwork/elrond-go/data"
@@ -36,28 +38,25 @@ import (
 
 func newTestElasticSearchDatabase(elasticsearchWriter DatabaseClientHandler, arguments *ArgElasticProcessor) *elasticProcessor {
 	return &elasticProcessor{
-		elasticClient:            elasticsearchWriter,
-		enabledIndexes:           arguments.EnabledIndexes,
-		blockProc:                arguments.BlockProc,
-		txProc:                   arguments.TxProc,
-		miniblocksProc:           arguments.MiniblocksProc,
-		accountsProc:             arguments.AccountsProc,
-		validatorPubkeyConverter: arguments.ValidatorPubkeyConverter,
+		elasticClient:   elasticsearchWriter,
+		enabledIndexes:  arguments.EnabledIndexes,
+		blockProc:       arguments.BlockProc,
+		txProc:          arguments.TxProc,
+		miniblocksProc:  arguments.MiniblocksProc,
+		accountsProc:    arguments.AccountsProc,
+		validatorsProc:  arguments.ValidatorsProc,
+		generalInfoProc: arguments.GeneralInfoProc,
 	}
 }
 
 func createMockElasticProcessorArgs() *ArgElasticProcessor {
 	return &ArgElasticProcessor{
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
-		DBClient:                 &mock.DatabaseWriterStub{},
+		DBClient: &mock.DatabaseWriterStub{},
 		EnabledIndexes: map[string]struct{}{
 			blockIndex: {}, txIndex: {}, miniblocksIndex: {}, tpsIndex: {}, validatorsIndex: {}, roundIndex: {}, accountsIndex: {}, ratingIndex: {}, accountsHistoryIndex: {},
 		},
-		CalculateHashFunc: func(object interface{}) ([]byte, error) {
-			return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-		},
-		BlockProc: &mock.DbBlockProcHandlerStub{},
-		TxProc:    &mock.DBTxsProcStub{},
+		ValidatorsProc:  validators.NewValidatorsProcessor(mock.NewPubkeyConverterMock(32)),
+		GeneralInfoProc: generalInfo.NewGeneralInfoProcessor(),
 	}
 }
 
@@ -141,9 +140,7 @@ func TestElasticProcessor_RemoveHeader(t *testing.T) {
 		},
 	}
 
-	args.CalculateHashFunc = func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
+	args.BlockProc = block.NewBlockProcessor(&mock.HasherMock{}, &mock.MarshalizerMock{})
 
 	elasticProc, err := NewElasticProcessor(args)
 	require.NoError(t, err)
@@ -186,6 +183,8 @@ func TestElasticProcessor_RemoveMiniblocks(t *testing.T) {
 		},
 	}
 
+	args.MiniblocksProc = miniblocks.NewMiniblocksProcessor(0, &mock.HasherMock{}, &mock.MarshalizerMock{})
+
 	elasticProc, err := NewElasticProcessor(args)
 	require.NoError(t, err)
 
@@ -226,6 +225,7 @@ func TestElasticseachDatabaseSaveHeader_RequestError(t *testing.T) {
 			return localErr
 		},
 	}
+	arguments.BlockProc = block.NewBlockProcessor(&mock.HasherMock{}, &mock.MarshalizerMock{})
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
 	err := elasticDatabase.SaveHeader(header, signerIndexes, &dataBlock.Body{}, nil, 1)
@@ -286,17 +286,15 @@ func TestElasticseachSaveTransactions(t *testing.T) {
 	header := &dataBlock.Header{Nonce: 1, TxCount: 2}
 	txPool := newTestTxPool()
 
-	calculateHash := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(&mock.MarshalizerMock{}, &mock.HasherMock{}, object)
-	}
 	txDbProc := transactions.NewTransactionsProcessor(
 		&mock.PubkeyConverterMock{},
 		&economicsmocks.EconomicsHandlerStub{},
 		false,
 		&mock.ShardCoordinatorMock{},
 		false,
-		calculateHash,
 		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
 	)
 	arguments.TxProc = txDbProc
 
@@ -318,6 +316,7 @@ func TestElasticProcessor_SaveValidatorsRating(t *testing.T) {
 		},
 	}
 
+	arguments.ValidatorsProc = validators.NewValidatorsProcessor(mock.NewPubkeyConverterMock(32))
 	elasticProc, _ := NewElasticProcessor(arguments)
 
 	err := elasticProc.SaveValidatorsRating(
@@ -345,7 +344,7 @@ func TestElasticProcessor_SaveMiniblocks(t *testing.T) {
 		},
 	}
 
-	arguments.MiniblocksProc = miniblocks.NewMiniblocksProcessor(&mock.HasherMock{}, &mock.MarshalizerMock{})
+	arguments.MiniblocksProc = miniblocks.NewMiniblocksProcessor(0, &mock.HasherMock{}, &mock.MarshalizerMock{})
 	elasticProc, _ := NewElasticProcessor(arguments)
 
 	header := &dataBlock.Header{}
@@ -368,6 +367,7 @@ func TestElasticsearch_saveShardValidatorsPubKeys_RequestError(t *testing.T) {
 			return localErr
 		},
 	}
+	arguments.ValidatorsProc = validators.NewValidatorsProcessor(mock.NewPubkeyConverterMock(32))
 	elasticDatabase := newTestElasticSearchDatabase(dbWriter, arguments)
 
 	err := elasticDatabase.SaveShardValidatorsPubKeys(shardID, epoch, valPubKeys)
@@ -470,16 +470,16 @@ func TestElasticsearch_saveRoundInfoRequestError(t *testing.T) {
 func TestUpdateMiniBlock(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("./testdata/noKibana", false)
+	tpr := NewTemplatesAndPoliciesReader("./testdata/noKibana", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := &ArgElasticProcessor{
-		DBClient:                 dbClient,
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		DBClient:       dbClient,
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 		EnabledIndexes: map[string]struct{}{
 			"miniblocks": {},
 		},
@@ -511,7 +511,8 @@ func TestUpdateMiniBlock(t *testing.T) {
 func TestSaveRoundsInfo(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	tpr := NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
@@ -540,16 +541,16 @@ func TestSaveRoundsInfo(t *testing.T) {
 func TestUpdateTransaction(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	tpr := NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
-		DBClient:                 dbClient,
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
-		ValidatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+		DBClient:       dbClient,
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 		EnabledIndexes: map[string]struct{}{
 			"transactions": {},
 		},
@@ -659,7 +660,8 @@ func TestUpdateTransaction(t *testing.T) {
 func TestGetMultiple(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	tpr := NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
@@ -683,16 +685,16 @@ func TestGetMultiple(t *testing.T) {
 func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	tpr := NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
-		DBClient:                 dbClient,
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
+		DBClient:       dbClient,
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
 	esDatabase, _ := NewElasticProcessor(&args)
@@ -741,16 +743,16 @@ func TestIndexTransactionDestinationBeforeSourceShard(t *testing.T) {
 func TestDoBulkRequestLimit(t *testing.T) {
 	t.Skip("test must run only if you have an elasticsearch server on address http://localhost:9200")
 
-	indexTemplates, indexPolicies, _ := GetElasticTemplatesAndPolicies("", false)
+	tpr := NewTemplatesAndPoliciesReader("", false)
+	indexTemplates, indexPolicies, _ := tpr.GetElasticTemplatesAndPolicies()
 	dbClient, _ := client.NewElasticClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 
 	args := ArgElasticProcessor{
-		DBClient:                 dbClient,
-		ValidatorPubkeyConverter: &mock.PubkeyConverterMock{},
-		IndexTemplates:           indexTemplates,
-		IndexPolicies:            indexPolicies,
+		DBClient:       dbClient,
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
 	}
 
 	esDatabase, _ := NewElasticProcessor(&args)
@@ -825,6 +827,17 @@ func TestElasticProcessor_RemoveTransactions(t *testing.T) {
 			return nil
 		},
 	}
+
+	arguments.TxProc = transactions.NewTransactionsProcessor(
+		&mock.PubkeyConverterMock{},
+		&economicsmocks.EconomicsHandlerStub{},
+		false,
+		&mock.ShardCoordinatorMock{},
+		false,
+		disabled.NewNilTxLogsProcessor(),
+		&mock.HasherMock{},
+		&mock.MarshalizerMock{},
+	)
 
 	elasticSearchProc := newTestElasticSearchDatabase(dbWriter, arguments)
 

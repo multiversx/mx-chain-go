@@ -16,15 +16,21 @@ import (
 var log = logger.GetOrCreate("indexer/process/miniblocks")
 
 type miniblocksProcessor struct {
-	hasher     hashing.Hasher
-	marshalier marshal.Marshalizer
+	hasher      hashing.Hasher
+	marshalier  marshal.Marshalizer
+	selfShardID uint32
 }
 
 // NewMiniblocksProcessor will create a new instance of miniblocksProcessor
-func NewMiniblocksProcessor(hasher hashing.Hasher, marshalier marshal.Marshalizer) *miniblocksProcessor {
+func NewMiniblocksProcessor(
+	selfShardID uint32,
+	hasher hashing.Hasher,
+	marshalier marshal.Marshalizer,
+) *miniblocksProcessor {
 	return &miniblocksProcessor{
-		hasher:     hasher,
-		marshalier: marshalier,
+		hasher:      hasher,
+		marshalier:  marshalier,
+		selfShardID: selfShardID,
 	}
 }
 
@@ -36,42 +42,81 @@ func (mp *miniblocksProcessor) PrepareDBMiniblocks(header data.HeaderHandler, bo
 		return nil
 	}
 
-	encodedHeaderHash := hex.EncodeToString(headerHash)
-
-	miniblocks := make([]*types.Miniblock, 0)
+	dbMiniblocks := make([]*types.Miniblock, 0)
 	for _, miniblock := range body.MiniBlocks {
-		mbHash, errComputeHash := mp.calculateHash(miniblock)
-		if errComputeHash != nil {
-			log.Warn("indexer: internal error computing hash",
-				"error", errComputeHash)
+		dbMiniblock, errPrepareMiniblock := mp.prepareMiniblockForDB(miniblock, header, headerHash)
+		if errPrepareMiniblock != nil {
+			log.Warn("miniblocksProcessor.PrepareDBMiniblocks cannot prepare miniblock", "error", errPrepareMiniblock)
+		}
 
+		dbMiniblocks = append(dbMiniblocks, dbMiniblock)
+	}
+
+	return dbMiniblocks
+}
+func (mp *miniblocksProcessor) prepareMiniblockForDB(
+	miniblock *block.MiniBlock,
+	header data.HeaderHandler,
+	headerHash []byte,
+) (*types.Miniblock, error) {
+	mbHash, err := mp.calculateHash(miniblock)
+	if err != nil {
+		return nil, err
+	}
+
+	encodedMbHash := hex.EncodeToString(mbHash)
+
+	dbMiniblock := &types.Miniblock{
+		Hash:            encodedMbHash,
+		SenderShardID:   miniblock.SenderShardID,
+		ReceiverShardID: miniblock.ReceiverShardID,
+		Type:            miniblock.Type.String(),
+		Timestamp:       time.Duration(header.GetTimeStamp()),
+	}
+
+	encodedHeaderHash := hex.EncodeToString(headerHash)
+	if dbMiniblock.SenderShardID == header.GetShardID() {
+		dbMiniblock.SenderBlockHash = encodedHeaderHash
+	} else {
+		dbMiniblock.ReceiverBlockHash = encodedHeaderHash
+	}
+
+	if dbMiniblock.SenderShardID == dbMiniblock.ReceiverShardID {
+		dbMiniblock.ReceiverBlockHash = encodedHeaderHash
+	}
+
+	return dbMiniblock, nil
+}
+
+// GetMiniblocksHashesHexEncoded will compute miniblocks hashes hex encoded
+func (mp *miniblocksProcessor) GetMiniblocksHashesHexEncoded(header data.HeaderHandler, body *block.Body) []string {
+	if body == nil || len(header.GetMiniBlockHeadersHashes()) == 0 {
+		return nil
+	}
+
+	encodedMiniblocksHashes := make([]string, 0)
+	selfShardID := header.GetShardID()
+	for _, miniblock := range body.MiniBlocks {
+		if miniblock.Type == block.PeerBlock {
 			continue
 		}
 
-		encodedMbHash := hex.EncodeToString(mbHash)
-
-		mb := &types.Miniblock{
-			Hash:            encodedMbHash,
-			SenderShardID:   miniblock.SenderShardID,
-			ReceiverShardID: miniblock.ReceiverShardID,
-			Type:            miniblock.Type.String(),
-			Timestamp:       time.Duration(header.GetTimeStamp()),
+		isDstMe := selfShardID == miniblock.ReceiverShardID
+		isCrossShard := miniblock.ReceiverShardID != miniblock.SenderShardID
+		if isDstMe && isCrossShard {
+			continue
 		}
 
-		if mb.SenderShardID == header.GetShardID() {
-			mb.SenderBlockHash = encodedHeaderHash
-		} else {
-			mb.ReceiverBlockHash = encodedHeaderHash
+		miniblockHash, err := core.CalculateHash(mp.marshalier, mp.hasher, miniblock)
+		if err != nil {
+			log.Debug("RemoveMiniblocks cannot calculate miniblock hash",
+				"error", err.Error())
+			continue
 		}
-
-		if mb.SenderShardID == mb.ReceiverShardID {
-			mb.ReceiverBlockHash = encodedHeaderHash
-		}
-
-		miniblocks = append(miniblocks, mb)
+		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(miniblockHash))
 	}
 
-	return miniblocks
+	return encodedMiniblocksHashes
 }
 
 func (mp *miniblocksProcessor) calculateHash(object interface{}) ([]byte, error) {

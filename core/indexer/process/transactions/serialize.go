@@ -8,59 +8,34 @@ import (
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 )
 
-// SerializeScResults -
-func (tdp *txDatabaseProcessor) SerializeScResults(scResults []*types.ScResult, bulkSizeThreshold int) ([]bytes.Buffer, error) {
-	var err error
-	var buff bytes.Buffer
-
-	buffSlice := make([]bytes.Buffer, 0)
+// SerializeScResults will serialize the provided smart contract results in a way that Elastic Search expects a bulk request
+func (tdp *txDatabaseProcessor) SerializeScResults(scResults []*types.ScResult) ([]*bytes.Buffer, error) {
+	buffSlice := types.NewBufferSlice()
 	for _, sc := range scResults {
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, sc.Hash, "\n"))
 		serializedData, errPrepareSc := json.Marshal(sc)
 		if errPrepareSc != nil {
-			log.Warn("indexer: marshal",
+			log.Warn("txDatabaseProcessor.SerializeScResults",
 				"error", "could not serialize sc results, will skip indexing",
 				"hash", sc.Hash)
 			continue
 		}
 
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-
-		buffLenWithCurrentScResults := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentScResults > bulkSizeThreshold && buff.Len() != 0 {
-			buffSlice = append(buffSlice, buff)
-			buff = bytes.Buffer{}
-		}
-
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
+		err := buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk smart contract results, write meta", "error", err.Error())
+			log.Warn("txDatabaseProcessor.SerializeScResults",
+				"error", "cannot put data in buffer",
+				"hash", sc.Hash)
 			return nil, err
 		}
-		_, err = buff.Write(serializedData)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk smart contract results, write serialized sc results", "error", err.Error())
-			return nil, err
-		}
-
 	}
 
-	// check if the last buffer contains data
-	if buff.Len() != 0 {
-		buffSlice = append(buffSlice, buff)
-	}
-
-	return buffSlice, nil
+	return buffSlice.Buffers(), nil
 }
 
-// SerializeReceipts -
-func (tdp *txDatabaseProcessor) SerializeReceipts(receipts []*types.Receipt, bulkSizeThreshold int) ([]bytes.Buffer, error) {
-	var err error
-	var buff bytes.Buffer
-
-	buffSlice := make([]bytes.Buffer, 0)
+// SerializeReceipts will serialize the receipts in a way that Elastic Search expects a bulk request
+func (tdp *txDatabaseProcessor) SerializeReceipts(receipts []*types.Receipt) ([]*bytes.Buffer, error) {
+	buffSlice := types.NewBufferSlice()
 	for _, rec := range receipts {
 		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, rec.Hash, "\n"))
 		serializedData, errPrepareSc := json.Marshal(rec)
@@ -71,85 +46,41 @@ func (tdp *txDatabaseProcessor) SerializeReceipts(receipts []*types.Receipt, bul
 			continue
 		}
 
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-
-		buffLenWithCurrentReceipt := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentReceipt > bulkSizeThreshold && buff.Len() != 0 {
-			buffSlice = append(buffSlice, buff)
-			buff = bytes.Buffer{}
-		}
-
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
+		err := buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk receipts, write meta", "error", err.Error())
+			log.Warn("txDatabaseProcessor.SerializeReceipts",
+				"error", "cannot put data in buffer",
+				"hash", rec.Hash)
 			return nil, err
 		}
-		_, err = buff.Write(serializedData)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk receipts, write serialized receipt", "error", err.Error())
-			return nil, err
-		}
-
 	}
 
-	// check if the last buffer contains data
-	if buff.Len() != 0 {
-		buffSlice = append(buffSlice, buff)
-	}
-
-	return buffSlice, nil
+	return buffSlice.Buffers(), nil
 }
 
-// SerializeTransactions -
+// SerializeTransactions will serialize the transactions in a way that Elastic Search expects a bulk request
 func (tdp *txDatabaseProcessor) SerializeTransactions(
 	transactions []*types.Transaction,
 	selfShardID uint32,
 	mbsHashInDB map[string]bool,
-	bulkSizeThreshold int,
-) ([]bytes.Buffer, error) {
-	var err error
-
-	var buff bytes.Buffer
-	buffSlice := make([]bytes.Buffer, 0)
+) ([]*bytes.Buffer, error) {
+	buffSlice := types.NewBufferSlice()
 	for _, tx := range transactions {
 		isMBOfTxInDB := mbsHashInDB[tx.MBHash]
-		meta, serializedData, errPrepareTx := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
-		if errPrepareTx != nil {
-			log.Warn("error preparing transaction for indexing", "tx hash", tx.Hash, "error", err)
-			return nil, errPrepareTx
-		}
-
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-
-		buffLenWithCurrentTx := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentTx > bulkSizeThreshold && buff.Len() != 0 {
-			buffSlice = append(buffSlice, buff)
-			buff = bytes.Buffer{}
-		}
-
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
+		meta, serializedData, err := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write meta", "error", err.Error())
+			log.Warn("txDatabaseProcessor.SerializeTransactions cannot preparing transaction for indexing", "tx hash", tx.Hash, "error", err)
 			return nil, err
-
 		}
-		_, err = buff.Write(serializedData)
+
+		err = buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk tx, write serialized tx", "error", err.Error())
+			log.Warn("txDatabaseProcessor.SerializeTransactions cannot put data in buffer", "tx hash", tx.Hash, "error", err)
 			return nil, err
 		}
 	}
 
-	// check if the last buffer contains data
-	if buff.Len() != 0 {
-		buffSlice = append(buffSlice, buff)
-	}
-
-	return buffSlice, nil
+	return buffSlice.Buffers(), nil
 }
 
 func prepareSerializedDataForATransaction(

@@ -114,3 +114,11 @@ type Event struct {
 	Topics     []string `json:"topics"`
 	Data       string   `json:"data"`
 }
+
+// PreparedResults is the TDO that holds all the results after processing
+type PreparedResults struct {
+	Transactions    []*Transaction
+	ScResults       []*ScResult
+	Receipts        []*Receipt
+	AlteredAccounts map[string]*AlteredAccount
+}

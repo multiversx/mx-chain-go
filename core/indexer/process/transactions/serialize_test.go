@@ -24,7 +24,7 @@ func TestSerializeScResults(t *testing.T) {
 	}
 	scrs := []*types.ScResult{scResult1, scResult2}
 
-	res, err := (&txDatabaseProcessor{}).SerializeScResults(scrs, 800000)
+	res, err := (&txDatabaseProcessor{}).SerializeScResults(scrs)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -52,7 +52,7 @@ func TestSerializeReceipts(t *testing.T) {
 
 	recs := []*types.Receipt{rec1, rec2}
 
-	res, err := (&txDatabaseProcessor{}).SerializeReceipts(recs, 800000)
+	res, err := (&txDatabaseProcessor{}).SerializeReceipts(recs)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(res))
 

@@ -6,10 +6,8 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/core/vmcommon"
-	"github.com/ElrondNetwork/elrond-go/data/block"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 )
 
@@ -29,7 +27,8 @@ func isSCRForSenderWithRefund(dbScResult *types.ScResult, tx *types.Transaction)
 }
 
 func isDataOk(data []byte) bool {
-	okEncoded := hex.EncodeToString([]byte("ok"))
+	okMessage := []byte("ok")
+	okEncoded := hex.EncodeToString(okMessage)
 	dataFieldStr := "@" + okEncoded
 
 	return strings.HasPrefix(string(data), dataFieldStr)
@@ -45,38 +44,9 @@ func stringValueToBigInt(strValue string) *big.Int {
 }
 
 func isRelayedTx(tx *types.Transaction) bool {
-	return strings.HasPrefix(string(tx.Data), "relayedTx") && len(tx.SmartContractResults) > 0
-}
+	relayedTxData := "relayedTx"
 
-func addToAlteredAddresses(
-	tx *types.Transaction,
-	alteredAddresses map[string]*types.AlteredAccount,
-	miniBlock *block.MiniBlock,
-	selfShardID uint32,
-	isRewardTx bool,
-) {
-	isESDTTx := tx.EsdtTokenIdentifier != "" && tx.EsdtValue != ""
-
-	if selfShardID == miniBlock.SenderShardID && !isRewardTx {
-		alteredAddresses[tx.Sender] = &types.AlteredAccount{
-			IsSender:        true,
-			IsESDTOperation: isESDTTx,
-			TokenIdentifier: tx.EsdtTokenIdentifier,
-		}
-	}
-
-	if tx.Status == transaction.TxStatusInvalid.String() {
-		// ignore receiver if we have an invalid transaction
-		return
-	}
-
-	if selfShardID == miniBlock.ReceiverShardID || miniBlock.ReceiverShardID == core.AllShardId {
-		alteredAddresses[tx.Receiver] = &types.AlteredAccount{
-			IsSender:        false,
-			IsESDTOperation: isESDTTx,
-			TokenIdentifier: tx.EsdtTokenIdentifier,
-		}
-	}
+	return strings.HasPrefix(string(tx.Data), relayedTxData) && len(tx.SmartContractResults) > 0
 }
 
 func isCrossShardDstMe(tx *types.Transaction, selfShardID uint32) bool {

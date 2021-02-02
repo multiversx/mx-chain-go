@@ -15,8 +15,7 @@ const (
 	accountsESDTIndex        = "accountsesdt"
 	accountsESDTHistoryIndex = "accountsesdthistory"
 	epochInfoIndex           = "epochinfo"
-
-	openDistroIndex = "opendistro"
+	openDistroIndex          = "opendistro"
 
 	txPolicy                  = "transactions_policy"
 	blockPolicy               = "blocks_policy"
@@ -28,9 +27,4 @@ const (
 	accountsESDTHistoryPolicy = "accountsesdthistory_policy"
 	scResultsPolicy           = "scresults_policy"
 	receiptsPolicy            = "receipts_policy"
-
-	metachainTpsDocID   = "meta"
-	shardTpsDocIDPrefix = "shard"
-
-	bulkSizeThreshold = 800000 // 0.8MB
 )

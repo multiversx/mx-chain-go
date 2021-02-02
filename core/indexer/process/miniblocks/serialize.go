@@ -10,58 +10,46 @@ import (
 
 // SerializeBulkMiniBlocks -
 func (mp *miniblocksProcessor) SerializeBulkMiniBlocks(
-	hdrShardID uint32,
 	bulkMbs []*types.Miniblock,
-	getAlreadyIndexedItems func(hashes []string, index string) (map[string]bool, error),
-	miniblocksIndex string,
-) (bytes.Buffer, map[string]bool) {
-	var err error
-	var buff bytes.Buffer
-
-	mbsHashes := make([]string, len(bulkMbs))
-	for idx := range bulkMbs {
-		mbsHashes[idx] = bulkMbs[idx].Hash
-	}
-
-	existsInDb, err := getAlreadyIndexedItems(mbsHashes, miniblocksIndex)
-	if err != nil {
-		log.Warn("indexer get indexed items miniblocks",
-			"error", err.Error())
-		return buff, make(map[string]bool)
-	}
-
+	existsInDb map[string]bool,
+) *bytes.Buffer {
+	buff := &bytes.Buffer{}
 	for _, mb := range bulkMbs {
-		var meta, serializedData []byte
-		if !existsInDb[mb.Hash] {
-			//insert miniblock in database
-			meta = []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, mb.Hash, "_doc", "\n"))
-			serializedData, err = json.Marshal(mb)
-			if err != nil {
-				log.Debug("indexer: marshal",
-					"error", "could not serialize miniblock, will skip indexing",
-					"mb hash", mb.Hash)
-				continue
-			}
-		} else {
-			// update miniblock
-			meta = []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, mb.Hash, "\n"))
-			if hdrShardID == mb.SenderShardID {
-				// update sender block hash
-				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "senderBlockHash" : "%s" } }`, mb.SenderBlockHash))
-			} else {
-				// update receiver block hash
-				serializedData = []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, mb.ReceiverBlockHash))
-			}
+		meta, serializedData, err := mp.prepareMiniblockData(mb, existsInDb[mb.Hash])
+		if err != nil {
+			log.Warn("miniblocksProcessor.SerializeBulkMiniBlocks cannot prepare miniblock data", "error", err)
 		}
 
-		buff = prepareBufferMiniblocks(buff, meta, serializedData)
+		putInBufferMiniblockData(buff, meta, serializedData)
 	}
 
-	return buff, existsInDb
+	return buff
 }
 
-func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) bytes.Buffer {
-	// append a newline for each element
+func (mp *miniblocksProcessor) prepareMiniblockData(miniblockDB *types.Miniblock, isInDB bool) ([]byte, []byte, error) {
+	if isInDB {
+		meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s", "_type" : "%s" } }%s`, miniblockDB.Hash, "_doc", "\n"))
+		serializedData, err := json.Marshal(miniblockDB)
+
+		return meta, serializedData, err
+	}
+
+	// prepare data for update operation
+	meta := []byte(fmt.Sprintf(`{ "update" : { "_id" : "%s" } }%s`, miniblockDB.Hash, "\n"))
+	if mp.selfShardID == miniblockDB.SenderShardID {
+		// prepare for update sender block hash
+		serializedData := []byte(fmt.Sprintf(`{ "doc" : { "senderBlockHash" : "%s" } }`, miniblockDB.SenderBlockHash))
+
+		return meta, serializedData, nil
+	}
+
+	// prepare for update receiver block hash
+	serializedData := []byte(fmt.Sprintf(`{ "doc" : { "receiverBlockHash" : "%s" } }`, miniblockDB.ReceiverBlockHash))
+
+	return meta, serializedData, nil
+}
+
+func putInBufferMiniblockData(buff *bytes.Buffer, meta, serializedData []byte) {
 	serializedData = append(serializedData, "\n"...)
 	buff.Grow(len(meta) + len(serializedData))
 	_, err := buff.Write(meta)
@@ -73,5 +61,5 @@ func prepareBufferMiniblocks(buff bytes.Buffer, meta, serializedData []byte) byt
 		log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
 	}
 
-	return buff
+	return
 }

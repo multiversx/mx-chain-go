@@ -17,7 +17,7 @@ func TestSerializeAccounts(t *testing.T) {
 		},
 	}
 
-	res, err := (&accountsProcessor{}).SerializeAccounts(accs, 8000, false)
+	res, err := (&accountsProcessor{}).SerializeAccounts(accs, false)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -39,7 +39,7 @@ func TestSerializeAccountsESDT(t *testing.T) {
 		},
 	}
 
-	res, err := (&accountsProcessor{}).SerializeAccounts(accs, 8000, true)
+	res, err := (&accountsProcessor{}).SerializeAccounts(accs, true)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 
@@ -61,7 +61,7 @@ func TestSerializeAccountsHistory(t *testing.T) {
 		},
 	}
 
-	res, err := (&accountsProcessor{}).SerializeAccountsHistory(accsh, 8000)
+	res, err := (&accountsProcessor{}).SerializeAccountsHistory(accsh)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(res))
 

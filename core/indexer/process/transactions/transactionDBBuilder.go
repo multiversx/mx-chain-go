@@ -120,7 +120,9 @@ func (tbb *txDBBuilder) convertScResultInDatabaseScr(
 	}
 
 	var tokenIdentifier, esdtValue string
-	if isESDTTx := tbb.esdtProc.isESDTTx(sc); isESDTTx {
+
+	isESDTTx := tbb.esdtProc.isESDTTx(sc)
+	if isESDTTx {
 		tokenIdentifier, esdtValue = tbb.esdtProc.getTokenIdentifierAndValue(sc)
 	}
 

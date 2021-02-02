@@ -11,48 +11,26 @@ import (
 // SerializeAccounts will serialize the provided accounts in a way that Elastic Search expects a bulk request
 func (ap *accountsProcessor) SerializeAccounts(
 	accounts map[string]*types.AccountInfo,
-	bulkSizeThreshold int,
 	areESDTAccounts bool,
-) ([]bytes.Buffer, error) {
+) ([]*bytes.Buffer, error) {
 	var err error
 
-	var buff bytes.Buffer
-	buffSlice := make([]bytes.Buffer, 0)
+	buffSlice := types.NewBufferSlice()
 	for address, acc := range accounts {
 		meta, serializedData, errPrepareAcc := prepareSerializedAccountInfo(address, acc, areESDTAccounts)
 		if len(meta) == 0 {
-			log.Warn("cannot prepare serialized account info", "error", errPrepareAcc)
+			log.Warn("accountsProcessor.SerializeAccounts: cannot prepare serialized account info", "error", errPrepareAcc)
 			return nil, err
 		}
 
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-
-		buffLenWithCurrentAcc := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentAcc > bulkSizeThreshold && buff.Len() != 0 {
-			buffSlice = append(buffSlice, buff)
-			buff = bytes.Buffer{}
-		}
-
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
+		err = buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts, write meta", "error", err.Error())
-			return nil, err
-		}
-		_, err = buff.Write(serializedData)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts, write serialized account", "error", err.Error())
+			log.Warn("accountsProcessor.SerializeAccounts: cannot put data in buffer", "error", err.Error())
 			return nil, err
 		}
 	}
 
-	// check if the last buffer contains data
-	if buff.Len() != 0 {
-		buffSlice = append(buffSlice, buff)
-	}
-
-	return buffSlice, nil
+	return buffSlice.Buffers(), nil
 }
 
 func prepareSerializedAccountInfo(
@@ -68,9 +46,7 @@ func prepareSerializedAccountInfo(
 	meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%s" } }%s`, id, "\n"))
 	serializedData, err := json.Marshal(account)
 	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize account, will skip indexing",
-			"address", address)
+		log.Debug("prepareSerializedAccountInfo marshal could not serialize account", "address", address)
 		return nil, nil, err
 	}
 
@@ -80,47 +56,25 @@ func prepareSerializedAccountInfo(
 // SerializeAccountsHistory will serialize accounts history in a way that Elastic Search expects a bulk request
 func (ap *accountsProcessor) SerializeAccountsHistory(
 	accounts map[string]*types.AccountBalanceHistory,
-	bulkSizeThreshold int,
-) ([]bytes.Buffer, error) {
+) ([]*bytes.Buffer, error) {
 	var err error
 
-	var buff bytes.Buffer
-	buffSlice := make([]bytes.Buffer, 0)
+	buffSlice := types.NewBufferSlice()
 	for address, acc := range accounts {
 		meta, serializedData, errPrepareAcc := prepareSerializedAccountBalanceHistory(address, acc)
 		if errPrepareAcc != nil {
-			log.Warn("cannot prepare serialized account balance history", "error", err)
+			log.Warn("accountsProcessor.SerializeAccountsHistory: cannot prepare serialized account balance history", "error", err)
 			return nil, err
 		}
 
-		// append a newline for each element
-		serializedData = append(serializedData, "\n"...)
-
-		buffLenWithCurrentAccountHistory := buff.Len() + len(meta) + len(serializedData)
-		if buffLenWithCurrentAccountHistory > bulkSizeThreshold && buff.Len() != 0 {
-			buffSlice = append(buffSlice, buff)
-			buff = bytes.Buffer{}
-		}
-
-		buff.Grow(len(meta) + len(serializedData))
-		_, err = buff.Write(meta)
+		err = buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts history, write meta", "error", err.Error())
-			return nil, err
-		}
-		_, err = buff.Write(serializedData)
-		if err != nil {
-			log.Warn("elastic search: serialize bulk accounts history, write serialized account history", "error", err.Error())
+			log.Warn("accountsProcessor.SerializeAccountsHistory: cannot put data in buffer", "error", err.Error())
 			return nil, err
 		}
 	}
 
-	// check if the last buffer contains data
-	if buff.Len() != 0 {
-		buffSlice = append(buffSlice, buff)
-	}
-
-	return buffSlice, nil
+	return buffSlice.Buffers(), nil
 }
 
 func prepareSerializedAccountBalanceHistory(
@@ -134,9 +88,7 @@ func prepareSerializedAccountBalanceHistory(
 
 	serializedData, err := json.Marshal(account)
 	if err != nil {
-		log.Debug("indexer: marshal",
-			"error", "could not serialize account history entry, will skip indexing",
-			"address", address)
+		log.Debug("prepareSerializedAccountBalanceHistory could not serialize account history entry", "address", address, "err", err)
 		return nil, nil, err
 	}
 

@@ -8,14 +8,14 @@ import (
 )
 
 func TestPrepareBufferMiniblocks(t *testing.T) {
-	var buff bytes.Buffer
+	buff := &bytes.Buffer{}
 
 	meta := []byte("test1")
 	serializedData := []byte("test2")
 
-	buff = prepareBufferMiniblocks(buff, meta, serializedData)
+	putInBufferMiniblockData(buff, meta, serializedData)
 
-	var expectedBuff bytes.Buffer
+	expectedBuff := &bytes.Buffer{}
 	serializedData = append(serializedData, "\n"...)
 	expectedBuff.Grow(len(meta) + len(serializedData))
 	_, _ = expectedBuff.Write(meta)
