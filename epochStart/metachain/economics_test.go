@@ -1161,8 +1161,8 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
 		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
 		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(100000000000000), devFeesInEpoch: intToEgld(10000000)},
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(100000000000000), devFeesInEpoch: intToEgld(30000000000000)},
+		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(100000)},
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(300000)},
 	}
 
 	var rewardsPerBlock *big.Int

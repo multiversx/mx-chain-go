@@ -122,6 +122,16 @@ func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int
 	return x
 }
 
+// IsInRangeExclusive returns true if the provided value is in the given range, including the provided min and max values
+func IsInRangeInclusive(value, min, max *big.Int) bool {
+	return value.Cmp(min) >= 0 && value.Cmp(max) <= 0
+}
+
+// IsInRangeInclusiveFloat64 returns true if the provided value is in the given range including the provided min and max values
+func IsInRangeInclusiveFloat64(value, min, max float64) bool {
+	return value >= min && value <= max
+}
+
 func splitExponentFraction(val string) (string, string) {
 	split := strings.Split(val, ".")
 	if len(split) == 2 {
