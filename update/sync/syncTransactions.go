@@ -145,6 +145,7 @@ func (p *pendingTransactions) requestTransactionsFor(miniBlock *block.MiniBlock)
 			continue
 		}
 
+		log.Debug("TODO REMOVE THIS - request transaction", "hash", txHash)
 		missingTxs = append(missingTxs, txHash)
 	}
 

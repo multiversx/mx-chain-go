@@ -119,6 +119,9 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 		t.Skip("this is not a short test")
 	}
 
+	//TODO remove this
+	logger.SetLogLevel("*:DEBUG")
+
 	exportBaseDirectory, err := ioutil.TempDir("", "export*")
 	require.Nil(t, err)
 	defer func() {
