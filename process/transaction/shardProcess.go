@@ -151,10 +151,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return 0, process.ErrNilTransaction
 	}
 
-	//TODO remove this
-	hash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	log.Debug("TODO REMOVE THIS - ProcessTransaction", "hash", hash)
-
 	acntSnd, acntDst, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
 		return 0, err
