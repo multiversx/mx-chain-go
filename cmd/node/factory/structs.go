@@ -1763,6 +1763,9 @@ func newShardBlockProcessor(
 		txFeeHandler,
 		blockSizeComputationHandler,
 		balanceComputationHandler,
+		economics,
+		txTypeHandler,
+		config.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -2075,6 +2078,9 @@ func newMetaBlockProcessor(
 		txFeeHandler,
 		blockSizeComputationHandler,
 		balanceComputationHandler,
+		economicsData,
+		txTypeHandler,
+		generalConfig.GeneralSettings.BlockGasAndFeesReCheckEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
