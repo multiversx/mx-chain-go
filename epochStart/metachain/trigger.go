@@ -169,7 +169,7 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
-	if t.nextEpochStartRound >= t.currEpochStartRound+t.roundsPerEpoch {
+	if t.nextEpochStartRound > t.currEpochStartRound+t.roundsPerEpoch {
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 		log.Debug("can not force epoch start because the resulting round is in the next epoch")
 
