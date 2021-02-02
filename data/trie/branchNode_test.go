@@ -1360,3 +1360,36 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 4, len(hashes))
 }
+
+func TestBranchNode_getNextHashAndKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	proofVerified, nextHash, nextKey := collapsedBn.getNextHashAndKey([]byte{2})
+
+	assert.False(t, proofVerified)
+	assert.Equal(t, collapsedBn.EncodedChildren[2], nextHash)
+	assert.Equal(t, []byte{}, nextKey)
+}
+
+func TestBranchNode_getNextHashAndKeyNilKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	proofVerified, nextHash, nextKey := collapsedBn.getNextHashAndKey(nil)
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestBranchNode_getNextHashAndKeyNilNode(t *testing.T) {
+	t.Parallel()
+
+	var collapsedBn *branchNode
+	proofVerified, nextHash, nextKey := collapsedBn.getNextHashAndKey([]byte{2})
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}

@@ -1051,3 +1051,36 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, trieNodes, len(hashes))
 }
+
+func TestExtensionNode_getNextHashAndKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Equal(t, collapsedEn.EncodedChild, nextHash)
+	assert.Equal(t, []byte{}, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilKey(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey(nil)
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
+	t.Parallel()
+
+	var collapsedEn *extensionNode
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
