@@ -2,6 +2,7 @@ package blockAPI
 
 import (
 	"encoding/hex"
+	"time"
 
 	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -53,7 +54,14 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, withTxs bool) (*a
 		return nil, err
 	}
 
-	return sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	blockAPI, err := sbp.convertShardBlockBytesToAPIBlock(hash, blockBytes, withTxs)
+	if err != nil {
+		return nil, err
+	}
+
+	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+
+	return sbp.computeStatusAndPutInBlock(blockAPI, storerUnit)
 }
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, withTxs bool) (*api.Block, error) {
@@ -89,13 +97,17 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	return &api.Block{
-		Nonce:         blockHeader.Nonce,
-		Round:         blockHeader.Round,
-		Epoch:         blockHeader.Epoch,
-		Shard:         blockHeader.ShardID,
-		Hash:          hex.EncodeToString(hash),
-		PrevBlockHash: hex.EncodeToString(blockHeader.PrevHash),
-		NumTxs:        numOfTxs,
-		MiniBlocks:    miniblocks,
+		Nonce:           blockHeader.Nonce,
+		Round:           blockHeader.Round,
+		Epoch:           blockHeader.Epoch,
+		Shard:           blockHeader.ShardID,
+		Hash:            hex.EncodeToString(hash),
+		PrevBlockHash:   hex.EncodeToString(blockHeader.PrevHash),
+		NumTxs:          numOfTxs,
+		MiniBlocks:      miniblocks,
+		AccumulatedFees: blockHeader.AccumulatedFees.String(),
+		DeveloperFees:   blockHeader.DeveloperFees.String(),
+		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
+		Status:          BlockStatusOnChain,
 	}, nil
 }
