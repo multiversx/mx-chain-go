@@ -121,10 +121,10 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	tokenIdentifier := vmOutput.ReturnData[0]
 	require.Equal(t, []byte("WEGLD"), tokenIdentifier[:5])
 
-	burntValue := big.NewInt(5)
+	valueToBeBurn := big.NewInt(5)
 
 	txValue = big.NewInt(0)
-	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(burntValue.Bytes())
+	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(valueToBeBurn.Bytes())
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
 		shard,
@@ -136,7 +136,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
 
-	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, burntValue)
+	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, valueToBeBurn)
 }
 
 func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
