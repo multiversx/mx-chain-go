@@ -112,7 +112,7 @@ func (tpn *TestProcessorNode) initTestNodeWithSync() {
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
 	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
