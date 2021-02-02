@@ -2,6 +2,8 @@ package core
 
 import (
 	"math/big"
+	"strconv"
+	"strings"
 )
 
 // MaxInt32 returns the maximum of two given numbers
@@ -92,8 +94,10 @@ func MaxFloat64(a float64, b float64) float64 {
 	return b
 }
 
-// GetPercentageOfValue returns the percentage part of the value
-func GetPercentageOfValue(value *big.Int, percentage float64) *big.Int {
+// GetApproximatePercentageOfValue returns the approximate percentage of value
+// the approximation comes from floating point operations, which in case of large numbers
+// has some loss in accuracy and can cause the result to be slightly lower or higher than the actual value
+func GetApproximatePercentageOfValue(value *big.Int, percentage float64) *big.Int {
 	x := new(big.Float).SetInt(value)
 	y := big.NewFloat(percentage)
 
@@ -103,6 +107,27 @@ func GetPercentageOfValue(value *big.Int, percentage float64) *big.Int {
 	result, _ := z.Int(op)
 
 	return result
+}
+
+// GetIntTrimmedPercentageOfValue returns the exact percentage of value, that fits into the integer (with loss of division remainder)
+func GetIntTrimmedPercentageOfValue(value *big.Int, percentage float64) *big.Int {
+	x := big.NewInt(0).Set(value)
+	percentageString := strconv.FormatFloat(percentage, 'f', -1, 64)
+	exp, fra := splitExponentFraction(percentageString)
+	concatExpFra := exp + fra
+	concatBigInt, _ := big.NewInt(0).SetString(string(concatExpFra), 10)
+	intMultiplier, _ := big.NewInt(0).SetString("1"+strings.Repeat("0", len(fra)), 10)
+	x.Mul(x, concatBigInt)
+	x.Div(x, intMultiplier)
+	return x
+}
+
+func splitExponentFraction(val string) (string, string) {
+	split := strings.Split(val, ".")
+	if len(split) == 2 {
+		return split[0], split[1]
+	}
+	return val, ""
 }
 
 // SafeMul returns multiplication results of two uint64 values into a big int

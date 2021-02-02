@@ -842,6 +842,11 @@ func startNode(ctx *cli.Context, log logger.Logger, version string) error {
 		return err
 	}
 
+	err = economicsData.SetStatusHandler(coreComponents.StatusHandler)
+	if err != nil {
+		log.Debug("cannot set status handler to economicsData", "error", err)
+	}
+
 	log.Trace("creating ratings data components")
 
 	ratingDataArgs := rating.RatingsDataArg{
