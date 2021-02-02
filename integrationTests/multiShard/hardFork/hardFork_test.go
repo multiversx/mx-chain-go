@@ -120,7 +120,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	}
 
 	//TODO remove this
-	logger.SetLogLevel("*:DEBUG")
+	logger.SetLogLevel("*:DEBUG,dataretriever:TRACE")
 
 	exportBaseDirectory, err := ioutil.TempDir("", "export*")
 	require.Nil(t, err)
