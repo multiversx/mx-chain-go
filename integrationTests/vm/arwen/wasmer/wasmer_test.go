@@ -95,13 +95,14 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 
 	scCode := arwen.GetSCCode(wasmFilename)
 
-	testContext := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
-		t,
+	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
 		ownerNonce,
 		ownerAddressBytes,
 		ownerBalance,
 		vm.ArgEnableEpoch{},
 	)
+	require.Nil(t, err)
+
 	scAddressBytes, _ := testContext.BlockchainHook.NewAddress(ownerAddressBytes, ownerNonce, factory.ArwenVirtualMachine)
 
 	tx := vm.CreateDeployTx(
@@ -112,7 +113,7 @@ func deploy(t *testing.T, wasmFilename string) (vmcommon.VMExecutionHandler, []b
 		gasLimit,
 		arwen.CreateDeployTxData(scCode),
 	)
-	_, err := testContext.TxProcessor.ProcessTransaction(tx)
+	_, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
 
 	wasmVM, _ := testContext.VMContainer.Get(factory.ArwenVirtualMachine)

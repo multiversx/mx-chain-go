@@ -46,6 +46,12 @@
    # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
    GasPriceModifierEnableEpoch = 3
 
+   # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
+   RepairCallbackEnableEpoch = 4
+
+   # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
+   BlockGasAndFeesReCheckEnableEpoch = 4
+
    # TO BE CHANGED IN MAINNET AND PUBLIC TESTNET CONFIGS
    # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
    MaxNodesChangeEnableEpoch = [

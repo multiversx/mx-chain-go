@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/debug"
@@ -37,8 +37,8 @@ type NodeStub struct {
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string) (string, error)
 	GetPeerInfoCalled                              func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetBlockByHashCalled                           func(hash string, withTxs bool) (*block.APIBlock, error)
-	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*block.APIBlock, error)
+	GetBlockByHashCalled                           func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled                          func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetUsernameCalled                              func(address string) (string, error)
 	GetESDTBalanceCalled                           func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                         func(address string) ([]string, error)
@@ -68,12 +68,12 @@ func (ns *NodeStub) EncodeAddressPubkey(pk []byte) (string, error) {
 }
 
 // GetBlockByHash -
-func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*block.APIBlock, error) {
+func (ns *NodeStub) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByHashCalled(hash, withTxs)
 }
 
 // GetBlockByNonce -
-func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*block.APIBlock, error) {
+func (ns *NodeStub) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return ns.GetBlockByNonceCalled(nonce, withTxs)
 }
 

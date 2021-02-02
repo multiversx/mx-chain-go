@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	apiBlock "github.com/ElrondNetwork/elrond-go/api/block"
 	"github.com/ElrondNetwork/elrond-go/core"
 	"github.com/ElrondNetwork/elrond-go/core/statistics"
+	"github.com/ElrondNetwork/elrond-go/data/api"
 	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/data/transaction"
 	"github.com/ElrondNetwork/elrond-go/data/vm"
@@ -47,8 +47,8 @@ type Facade struct {
 	GetNumCheckpointsFromPeerStateCalled    func() uint32
 	GetESDTBalanceCalled                    func(address string, key string) (string, string, error)
 	GetAllESDTTokensCalled                  func(address string) ([]string, error)
-	GetBlockByHashCalled                    func(hash string, withTxs bool) (*apiBlock.APIBlock, error)
-	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error)
+	GetBlockByHashCalled                    func(hash string, withTxs bool) (*api.Block, error)
+	GetBlockByNonceCalled                   func(nonce uint64, withTxs bool) (*api.Block, error)
 	GetTotalStakedValueHandler              func() (*big.Int, error)
 }
 
@@ -257,12 +257,12 @@ func (f *Facade) GetNumCheckpointsFromPeerState() uint32 {
 }
 
 // GetBlockByNonce -
-func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*apiBlock.APIBlock, error) {
+func (f *Facade) GetBlockByNonce(nonce uint64, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByNonceCalled(nonce, withTxs)
 }
 
 // GetBlockByHash -
-func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*apiBlock.APIBlock, error) {
+func (f *Facade) GetBlockByHash(hash string, withTxs bool) (*api.Block, error) {
 	return f.GetBlockByHashCalled(hash, withTxs)
 }
 

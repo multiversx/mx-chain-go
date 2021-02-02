@@ -106,7 +106,7 @@ func TestPeerReceivesTheSameMessageMultipleTimesShouldNotHappen(t *testing.T) {
 	for _, p := range peers {
 		err = p.Bootstrap()
 		if err != nil {
-			fmt.Println(fmt.Sprintf("Bootstrap() for peer id %s failed:%s", p.ID(), err.Error()))
+			fmt.Printf("Bootstrap() for peer id %s failed:%s\n", p.ID(), err.Error())
 		}
 	}
 	integrationTests.WaitForBootstrapAndShowConnected(peers, integrationTests.P2pBootstrapDelay)

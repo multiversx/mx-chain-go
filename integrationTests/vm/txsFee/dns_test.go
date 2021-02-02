@@ -15,17 +15,18 @@ import (
 )
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
-	testContext := vm.CreatePreparedTxProcessorWithVMs(t, vm.ArgEnableEpoch{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(vm.ArgEnableEpoch{})
+	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployDNS(t, &testContext, "../../multiShard/smartContract/dns/dns.wasm")
+	scAddress, _ := utils.DoDeployDNS(t, testContext, "../../multiShard/smartContract/dns/dns.wasm")
 	fmt.Println(scAddress)
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
 	gasPrice := uint64(10)
-	gasLimit := uint64(500000)
+	gasLimit := uint64(200000)
 
 	rcvAddr := []byte("12345678901234567890123456789113")
 
@@ -41,23 +42,23 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Nil(t, err)
 	require.Nil(t, testContext.GetLatestError())
 
-	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9361210))
+	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9528370))
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(638790), accumulatedFees)
+	require.Equal(t, big.NewInt(471630), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(63849), developerFees)
+	require.Equal(t, big.NewInt(47119), developerFees)
 
 	intermediateTxs := testContext.GetIntermediateTransactions(t)
 	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData)
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(63879), indexerTx.GasUsed)
-	require.Equal(t, "638790", indexerTx.Fee)
+	require.Equal(t, uint64(47163), indexerTx.GasUsed)
+	require.Equal(t, "471630", indexerTx.Fee)
 
-	utils.CleanAccumulatedIntermediateTransactions(t, &testContext)
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	// create user name for receiver
 	rcvUserName := utils.GenerateUserNameForMyDNSContract()
@@ -71,13 +72,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9361210))
+	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9528370))
 	// check accumulated fees
 	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(1277580), accumulatedFees)
+	require.Equal(t, big.NewInt(943260), accumulatedFees)
 
 	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(127698), developerFees)
+	require.Equal(t, big.NewInt(94238), developerFees)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", userName)
 	dnsUserNameAddr := ret.ReturnData[0]
@@ -102,8 +103,8 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
 
 	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(63879), indexerTx.GasUsed)
-	require.Equal(t, "638790", indexerTx.Fee)
+	require.Equal(t, uint64(47163), indexerTx.GasUsed)
+	require.Equal(t, "471630", indexerTx.Fee)
 
 	gasLimit = 10
 	tx = vm.CreateTransaction(1, big.NewInt(0), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
