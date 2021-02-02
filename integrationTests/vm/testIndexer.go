@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/json"
-	"path"
 	"sync"
 	"testing"
 	"time"
@@ -14,8 +13,10 @@ import (
 	processIndexer "github.com/ElrondNetwork/elrond-go/core/indexer/process"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/accounts"
 	block2 "github.com/ElrondNetwork/elrond-go/core/indexer/process/block"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/generalInfo"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/miniblocks"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/process/transactions"
+	"github.com/ElrondNetwork/elrond-go/core/indexer/process/validators"
 	"github.com/ElrondNetwork/elrond-go/core/indexer/types"
 	"github.com/ElrondNetwork/elrond-go/data"
 	"github.com/ElrondNetwork/elrond-go/data/block"
@@ -89,9 +90,10 @@ func (ti *testIndexer) createElasticProcessor(
 ) indexer.ElasticProcessor {
 	databaseClient := ti.createDatabaseClient()
 
-	templatesPath := path.Join("../../../cmd/node/config/elasticIndexTemplates", "noKibana")
+	templatesPath := "../../../cmd/node/config/elasticIndexTemplates"
 
-	indexTemplates, indexPolicies, _ := processIndexer.GetElasticTemplatesAndPolicies(templatesPath, false)
+	reader := processIndexer.NewTemplatesAndPoliciesReader(templatesPath, false)
+	indexTemplates, indexPolicies, _ := reader.GetElasticTemplatesAndPolicies()
 
 	enabledIndexes := []string{"transactions"}
 	enabledIndexesMap := make(map[string]struct{})
@@ -99,29 +101,26 @@ func (ti *testIndexer) createElasticProcessor(
 		enabledIndexesMap[index] = struct{}{}
 	}
 
-	calculateHashFunc := func(object interface{}) ([]byte, error) {
-		return core.CalculateHash(testMarshalizer, testHasher, object)
-	}
-
 	esIndexerArgs := &processIndexer.ArgElasticProcessor{
-		CalculateHashFunc: calculateHashFunc,
-		IndexTemplates:    indexTemplates,
-		IndexPolicies:     indexPolicies,
-		BlockProc:         block2.NewBlockProcessor(testHasher, testMarshalizer),
-		MiniblocksProc:    miniblocks.NewMiniblocksProcessor(testHasher, testMarshalizer),
-		AccountsProc:      accounts.NewAccountsProcessor(18, testMarshalizer, pubkeyConv, &mock.AccountsStub{}),
+		IndexTemplates: indexTemplates,
+		IndexPolicies:  indexPolicies,
+		BlockProc:      block2.NewBlockProcessor(testHasher, testMarshalizer),
+		MiniblocksProc: miniblocks.NewMiniblocksProcessor(shardCoordinator.SelfId(), testHasher, testMarshalizer),
+		AccountsProc:   accounts.NewAccountsProcessor(18, testMarshalizer, pubkeyConv, &mock.AccountsStub{}),
 		TxProc: transactions.NewTransactionsProcessor(
 			pubkeyConv,
 			transactionFeeCalculator,
 			false,
 			shardCoordinator,
 			false,
-			calculateHashFunc,
 			disabled.NewNilTxLogsProcessor(),
+			testHasher,
+			testMarshalizer,
 		),
-		ValidatorPubkeyConverter: pubkeyConv,
-		DBClient:                 databaseClient,
-		EnabledIndexes:           enabledIndexesMap,
+		DBClient:        databaseClient,
+		ValidatorsProc:  validators.NewValidatorsProcessor(pubkeyConv),
+		GeneralInfoProc: generalInfo.NewGeneralInfoProcessor(),
+		EnabledIndexes:  enabledIndexesMap,
 	}
 
 	esProcessor, _ := processIndexer.NewElasticProcessor(esIndexerArgs)
