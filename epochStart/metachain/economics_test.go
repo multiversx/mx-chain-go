@@ -1144,7 +1144,7 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
-	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)          // 1000 EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
 	roundDuration := 4
 
 	stakingV2EnableEpoch := uint32(0)
@@ -1197,6 +1197,310 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 
 		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
 	}
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsV1ReturnsOK(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(10)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, 0.0001)
+
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.Nil(t, err)
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsInflationOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, 0.001)
+
+	// negative inflation
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		-0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidInflationRate.Error())
+
+	// too large inflation
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		1.2,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidInflationRate.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsAccumulatedFeesOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+	metaBlock.AccumulatedFeesInEpoch = big.NewInt(-1)
+
+	// negative accumulated fees
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedRewards.Error())
+
+	metaBlock.AccumulatedFeesInEpoch = big.NewInt(0).Add(totalSupply, big.NewInt(1))
+
+	// too large fees
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedRewards.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsRewardsForProtocolSustainabilityOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+	computedEconomics.RewardsForProtocolSustainability = big.NewInt(-1)
+
+	// negative accumulated fees
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards.Error())
+
+	computedEconomics.RewardsForProtocolSustainability = big.NewInt(0).Add(totalSupply, big.NewInt(1))
+
+	// too large Protocol sustainability
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsMintedOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+	computedEconomics.TotalNewlyMinted = big.NewInt(-1)
+
+	// negative accumulated fees
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		inflationRate,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAmountMintedTokens.Error())
+
+	computedEconomics.TotalNewlyMinted = big.NewInt(0).Add(totalSupply, big.NewInt(1))
+
+	// too large Protocol sustainability
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAmountMintedTokens.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsTotalToDistributeOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+	computedEconomics.TotalToDistribute = big.NewInt(-1)
+
+	// negative accumulated fees
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		inflationRate,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidTotalToDistribute.Error())
+
+	computedEconomics.TotalToDistribute = big.NewInt(0).Add(totalSupply, big.NewInt(1))
+
+	// too large Protocol sustainability
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidTotalToDistribute.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsEconomicsSumRewardsOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+	computedEconomics.RewardsPerBlock = big.NewInt(-1)
+
+	// negative accumulated fees
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		inflationRate,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidRewardsPerBlock.Error())
+
+	computedEconomics.RewardsPerBlock = big.NewInt(0).Div(totalSupply, big.NewInt(250))
+
+	// too large Protocol sustainability
+	err = ec.checkEconomicsInvariants(
+		*computedEconomics,
+		0.1,
+		300,
+		260,
+		metaBlock,
+		1)
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), epochStart.ErrInvalidRewardsPerBlock.Error())
+}
+
+func defaultComputedEconomicsAndMetaBlock(totalSupply *big.Int, inflationPerEpoch float64) (*block.Economics, *block.MetaBlock) {
+	numRoundsEpoch := uint64(100)
+	numBlocksShard := uint64(80)
+	numBlocksMeta := uint64(100)
+	numBlocks := 2*numBlocksShard+numBlocksMeta
+	totalToDistribute := core.GetIntTrimmedPercentageOfValue(totalSupply, inflationPerEpoch)
+	newlyMinted:= core.GetIntTrimmedPercentageOfValue(totalToDistribute, 0.9)
+
+	computedEconomics := &block.Economics{
+		TotalSupply:                      totalSupply,
+		TotalToDistribute:                totalToDistribute,
+		TotalNewlyMinted:                 newlyMinted,
+		RewardsPerBlock:                  big.NewInt(0).Div(totalToDistribute, big.NewInt(int64(numBlocks))),
+		RewardsForProtocolSustainability: big.NewInt(0).Div(totalToDistribute, big.NewInt(10)),
+		NodePrice:                        nil,
+		PrevEpochStartRound:              0,
+		PrevEpochStartHash:               nil,
+	}
+
+	metaBlock := &block.MetaBlock{
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		Epoch:                  1,
+		Round:                  numRoundsEpoch+1,
+		Nonce:                  numBlocksMeta,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: numRoundsEpoch, Nonce: numBlocksShard},
+				{ShardID: 1, Round: numRoundsEpoch, Nonce: numBlocksShard},
+			},
+		},
+	}
+
+	return computedEconomics, metaBlock
 }
 
 func createArgsForComputeEndOfEpochEconomics(
