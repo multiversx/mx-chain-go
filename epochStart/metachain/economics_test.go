@@ -1155,12 +1155,12 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	roundsPerEpoch := uint64(epochDuration / roundDuration)
 
 	testInputs := []testInput{
-		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
-		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(1000)},
+		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+		{blockPerEpochOneShard: roundsPerEpoch / 2, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+		{blockPerEpochOneShard: roundsPerEpoch / 4, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+		{blockPerEpochOneShard: roundsPerEpoch / 8, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+		{blockPerEpochOneShard: roundsPerEpoch / 16, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
+		{blockPerEpochOneShard: roundsPerEpoch / 32, accumulatedFeesInEpoch: intToEgld(1000), devFeesInEpoch: intToEgld(300)},
 		{blockPerEpochOneShard: roundsPerEpoch / 64, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(100000)},
 		{blockPerEpochOneShard: roundsPerEpoch, accumulatedFeesInEpoch: intToEgld(10000000), devFeesInEpoch: intToEgld(300000)},
 	}
@@ -1199,7 +1199,7 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 	}
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsV1ReturnsOK(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsV1ReturnsOK(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1221,7 +1221,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsV1ReturnsOK(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsInflationOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsInflationOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1257,7 +1257,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsInflationOutOfRange(t *testi
 	require.Contains(t, err.Error(), epochStart.ErrInvalidInflationRate.Error())
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsAccumulatedFeesOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsAccumulatedFeesOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1283,7 +1283,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsAccumulatedFeesOutOfRange(t 
 		1)
 
 	require.NotNil(t, err)
-	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedRewards.Error())
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedFees.Error())
 
 	metaBlock.AccumulatedFeesInEpoch = big.NewInt(0).Add(totalSupply, big.NewInt(1))
 
@@ -1296,10 +1296,10 @@ func TestEconomics_checkEconomicsInvariantsEconomicsAccumulatedFeesOutOfRange(t 
 		metaBlock,
 		1)
 	require.NotNil(t, err)
-	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedRewards.Error())
+	require.Contains(t, err.Error(), epochStart.ErrInvalidAccumulatedFees.Error())
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsRewardsForProtocolSustainabilityOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsRewardsForProtocolSustainabilityOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1315,7 +1315,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsRewardsForProtocolSustainabi
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.RewardsForProtocolSustainability = big.NewInt(-1)
 
-	// negative accumulated fees
+	// negative protocol sustainability
 	err := ec.checkEconomicsInvariants(
 		*computedEconomics,
 		0.1,
@@ -1341,7 +1341,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsRewardsForProtocolSustainabi
 	require.Contains(t, err.Error(), epochStart.ErrInvalidEstimatedProtocolSustainabilityRewards.Error())
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsMintedOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsMintedOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1357,7 +1357,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsMintedOutOfRange(t *testing.
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.TotalNewlyMinted = big.NewInt(-1)
 
-	// negative accumulated fees
+	// negative minted
 	err := ec.checkEconomicsInvariants(
 		*computedEconomics,
 		inflationRate,
@@ -1371,7 +1371,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsMintedOutOfRange(t *testing.
 
 	computedEconomics.TotalNewlyMinted = big.NewInt(0).Add(totalSupply, big.NewInt(1))
 
-	// too large Protocol sustainability
+	// too large total minted
 	err = ec.checkEconomicsInvariants(
 		*computedEconomics,
 		0.1,
@@ -1383,7 +1383,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsMintedOutOfRange(t *testing.
 	require.Contains(t, err.Error(), epochStart.ErrInvalidAmountMintedTokens.Error())
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsTotalToDistributeOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsTotalToDistributeOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1399,7 +1399,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsTotalToDistributeOutOfRange(
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.TotalToDistribute = big.NewInt(-1)
 
-	// negative accumulated fees
+	// negative total to distribute
 	err := ec.checkEconomicsInvariants(
 		*computedEconomics,
 		inflationRate,
@@ -1413,7 +1413,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsTotalToDistributeOutOfRange(
 
 	computedEconomics.TotalToDistribute = big.NewInt(0).Add(totalSupply, big.NewInt(1))
 
-	// too large Protocol sustainability
+	// too large total to distribute
 	err = ec.checkEconomicsInvariants(
 		*computedEconomics,
 		0.1,
@@ -1425,7 +1425,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsTotalToDistributeOutOfRange(
 	require.Contains(t, err.Error(), epochStart.ErrInvalidTotalToDistribute.Error())
 }
 
-func TestEconomics_checkEconomicsInvariantsEconomicsSumRewardsOutOfRange(t *testing.T) {
+func TestEconomics_checkEconomicsInvariantsSumRewardsOutOfRange(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1441,7 +1441,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsSumRewardsOutOfRange(t *test
 	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
 	computedEconomics.RewardsPerBlock = big.NewInt(-1)
 
-	// negative accumulated fees
+	// negative rewards per block
 	err := ec.checkEconomicsInvariants(
 		*computedEconomics,
 		inflationRate,
@@ -1455,7 +1455,7 @@ func TestEconomics_checkEconomicsInvariantsEconomicsSumRewardsOutOfRange(t *test
 
 	computedEconomics.RewardsPerBlock = big.NewInt(0).Div(totalSupply, big.NewInt(250))
 
-	// too large Protocol sustainability
+	// too large rewards per block
 	err = ec.checkEconomicsInvariants(
 		*computedEconomics,
 		0.1,
@@ -1465,6 +1465,31 @@ func TestEconomics_checkEconomicsInvariantsEconomicsSumRewardsOutOfRange(t *test
 		1)
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), epochStart.ErrInvalidRewardsPerBlock.Error())
+}
+
+func TestEconomics_checkEconomicsInvariantsV2ReturnsOK(t *testing.T) {
+	t.Parallel()
+
+	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
+	nodePrice, _ := big.NewInt(0).SetString("1000000000000000000000", 10)       // 1000 EGLD
+	roundDuration := 4
+
+	stakingV2EnableEpoch := uint32(0)
+	args := createArgsForComputeEndOfEpochEconomics(roundDuration, totalSupply, nodePrice, stakingV2EnableEpoch)
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	maxBlocksInEpoch := uint64(300)
+	inflationRate := 0.1
+	inflationPerEpoch := ec.computeInflationForEpoch(inflationRate, maxBlocksInEpoch)
+	computedEconomics, metaBlock := defaultComputedEconomicsAndMetaBlock(totalSupply, inflationPerEpoch)
+
+	err := ec.checkEconomicsInvariants(
+		*computedEconomics,
+		inflationRate,
+		maxBlocksInEpoch,
+		260,
+		metaBlock,
+		1)
+	require.Nil(t, err)
 }
 
 func defaultComputedEconomicsAndMetaBlock(totalSupply *big.Int, inflationPerEpoch float64) (*block.Economics, *block.MetaBlock) {

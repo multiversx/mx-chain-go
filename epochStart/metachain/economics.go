@@ -443,7 +443,7 @@ func (e *economics) checkEconomicsInvariants(
 
 	if !core.IsInRangeInclusive(metaBlock.AccumulatedFeesInEpoch, zero, e.genesisTotalSupply) {
 		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
-			epochStart.ErrInvalidAccumulatedRewards,
+			epochStart.ErrInvalidAccumulatedFees,
 			metaBlock.AccumulatedFeesInEpoch,
 			e.genesisTotalSupply,
 		)

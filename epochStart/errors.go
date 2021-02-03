@@ -290,8 +290,8 @@ var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible n
 // ErrInvalidInflationRate signals usage of an invalid inflation rate
 var ErrInvalidInflationRate = errors.New("inflation rate is invalid")
 
-// ErrInvalidAccumulatedRewards signals that the accumulated rewards are invalid
-var ErrInvalidAccumulatedRewards = errors.New("accumulated rewards are invalid")
+// ErrInvalidAccumulatedFees signals that the accumulated fees are invalid
+var ErrInvalidAccumulatedFees = errors.New("accumulated rewards are invalid")
 
 // ErrInvalidEstimatedProtocolSustainabilityRewards signals that the estimated protocol sustainability rewards are invalid
 var ErrInvalidEstimatedProtocolSustainabilityRewards = errors.New("estimated protocol sustainability rewards are invalid")
