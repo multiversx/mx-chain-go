@@ -477,7 +477,15 @@ func NewTestProcessorNodeWithFullGenesis(
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
-	tpn.initEconomicsData()
+	economicsConfig := tpn.createDefaultEconomicsConfig()
+	economicsConfig.GlobalSettings.YearSettings = append(
+		economicsConfig.GlobalSettings.YearSettings,
+		&config.YearSetting{
+			Year:             1,
+			MaximumInflation: 0.01,
+		},
+	)
+	tpn.initEconomicsData(economicsConfig)
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -619,7 +627,7 @@ func (tpn *TestProcessorNode) initTestNode() {
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(CreateMemUnit())
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -668,7 +676,7 @@ func (tpn *TestProcessorNode) initTestNodeWithTrieDBAndGasModel(trieStore storag
 	tpn.NetworkShardingCollector = mock.NewNetworkShardingCollectorMock()
 	tpn.initStorage()
 	tpn.initAccountDBs(trieStore)
-	tpn.initEconomicsData()
+	tpn.initEconomicsData(tpn.createDefaultEconomicsConfig())
 	tpn.initRatingsData()
 	tpn.initRequestedItemsHandler()
 	tpn.initResolvers()
@@ -860,44 +868,49 @@ func (tpn *TestProcessorNode) initChainHandler() {
 	}
 }
 
-func (tpn *TestProcessorNode) initEconomicsData() {
-	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
-	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
-	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
-
+func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics: &config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply: "2000000000000000000000",
-				MinimumInflation:   0,
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-			RewardsSettings: config.RewardsSettings{
-				LeaderPercentage:              0.1,
-				DeveloperPercentage:           0.1,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				TopUpFactor:                   0.25,
-				TopUpGradientPoint:            "300000000000000000000",
-			},
-			FeeSettings: config.FeeSettings{
-				MaxGasLimitPerBlock:     maxGasLimitPerBlock,
-				MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
-				MinGasPrice:             minGasPrice,
-				MinGasLimit:             minGasLimit,
-				GasPerDataByte:          "1",
-				GasPriceModifier:        0.01,
-			},
-		},
+		Economics:                      economicsConfig,
 		PenalizedTooMuchGasEnableEpoch: 0,
 		EpochNotifier:                  &mock.EpochNotifierStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
+}
+
+func (tpn *TestProcessorNode) createDefaultEconomicsConfig() *config.EconomicsConfig {
+	maxGasLimitPerBlock := strconv.FormatUint(MaxGasLimitPerBlock, 10)
+	minGasPrice := strconv.FormatUint(MinTxGasPrice, 10)
+	minGasLimit := strconv.FormatUint(MinTxGasLimit, 10)
+
+	return &config.EconomicsConfig{
+		GlobalSettings: config.GlobalSettings{
+			GenesisTotalSupply: "2000000000000000000000",
+			MinimumInflation:   0,
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             0,
+					MaximumInflation: 0.01,
+				},
+			},
+		},
+		RewardsSettings: config.RewardsSettings{
+			LeaderPercentage:                 0.1,
+			DeveloperPercentage:              0.1,
+			ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
+			TopUpFactor:                      0.25,
+			TopUpGradientPoint:               "300000000000000000000",
+			ProtocolSustainabilityPercentage: 0.1,
+		},
+		FeeSettings: config.FeeSettings{
+			MaxGasLimitPerBlock:     maxGasLimitPerBlock,
+			MaxGasLimitPerMetaBlock: maxGasLimitPerBlock,
+			MinGasPrice:             minGasPrice,
+			MinGasLimit:             minGasLimit,
+			GasPerDataByte:          "1",
+			GasPriceModifier:        0.01,
+		},
+	}
 }
 
 func (tpn *TestProcessorNode) initRatingsData() {

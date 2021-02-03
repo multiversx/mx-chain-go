@@ -7,14 +7,20 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ElrondNetwork/elrond-go/data/state"
 	"github.com/ElrondNetwork/elrond-go/integrationTests"
 	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestBridge_Setup(t *testing.T) {
-	t.Skip("contract is not yet finished")
+func TestBridgeSetupAndBurn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -59,9 +65,6 @@ func TestBridge_Setup(t *testing.T) {
 	nonce++
 
 	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	// The ESDT Token Manager contract needs the address of the Cross-Chain
-	// Management contract at initialization, so we provide a dummy address here.
-	tokenManagerInitParams := "ef2b8bbc7777f5cb92c1c13a2eb307067ce76c3d1bd9fda8d69495ba2ae1e334"
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
@@ -80,7 +83,7 @@ func TestBridge_Setup(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
-	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + "@" + tokenManagerInitParams
+	deploymentData := scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString
 
 	integrationTests.CreateAndSendTransaction(
 		ownerNode,
@@ -102,7 +105,7 @@ func TestBridge_Setup(t *testing.T) {
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
 
 	scQuery := &process.SCQuery{
 		CallerAddr: ownerNode.OwnAccount.Address,
@@ -110,10 +113,56 @@ func TestBridge_Setup(t *testing.T) {
 		FuncName:   "getWrappedEgldTokenIdentifier",
 		Arguments:  [][]byte{},
 	}
-	vmOutput, _ := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	require.Nil(t, err)
 	require.NotNil(t, vmOutput)
-	fmt.Println()
-	fmt.Println(vmOutput.ReturnData)
 	require.NotZero(t, len(vmOutput.ReturnData[0]))
-	require.Equal(t, []byte("WEGLD"), vmOutput.ReturnData[0][:4])
+
+	tokenIdentifier := vmOutput.ReturnData[0]
+	require.Equal(t, []byte("WEGLD"), tokenIdentifier[:5])
+
+	valueToBurn := big.NewInt(5)
+	txValue = big.NewInt(0)
+	txData = "burnEsdtToken@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(valueToBurn.Bytes())
+	integrationTests.CreateAndSendTransaction(
+		ownerNode,
+		shard,
+		txValue,
+		scAddressBytes,
+		txData,
+		integrationTests.AdditionalGasLimit,
+	)
+
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+
+	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, valueToBurn)
+}
+
+func checkBurnedOnESDTContract(t *testing.T, nodes []*integrationTests.TestProcessorNode, tokenIdentifier []byte, burntValue *big.Int) {
+	esdtSCAcc := getUserAccountWithAddress(t, vm.ESDTSCAddress, nodes)
+	retrievedData, _ := esdtSCAcc.DataTrieTracker().RetrieveValue(tokenIdentifier)
+	tokenInSystemSC := &systemSmartContracts.ESDTData{}
+	_ = integrationTests.TestMarshalizer.Unmarshal(tokenInSystemSC, retrievedData)
+
+	assert.Equal(t, tokenInSystemSC.BurntValue.String(), burntValue.String())
+}
+
+func getUserAccountWithAddress(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+) state.UserAccountHandler {
+	for _, node := range nodes {
+		accShardId := node.ShardCoordinator.ComputeId(address)
+
+		for _, helperNode := range nodes {
+			if helperNode.ShardCoordinator.SelfId() == accShardId {
+				acc, err := helperNode.AccntState.LoadAccount(address)
+				require.Nil(t, err)
+				return acc.(state.UserAccountHandler)
+			}
+		}
+	}
+
+	return nil
 }
