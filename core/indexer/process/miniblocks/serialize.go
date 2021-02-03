@@ -54,11 +54,11 @@ func putInBufferMiniblockData(buff *bytes.Buffer, meta, serializedData []byte) {
 	buff.Grow(len(meta) + len(serializedData))
 	_, err := buff.Write(meta)
 	if err != nil {
-		log.Warn("elastic search: serialize bulk miniblocks, write meta", "error", err.Error())
+		log.Warn("putInBufferMiniblockData cannot write meta", "error", err)
 	}
 
 	_, err = buff.Write(serializedData)
 	if err != nil {
-		log.Warn("elastic search: serialize bulk miniblocks, write serialized miniblock", "error", err.Error())
+		log.Warn("putInBufferMiniblockData cannot write serialized miniblock", "error", err)
 	}
 }

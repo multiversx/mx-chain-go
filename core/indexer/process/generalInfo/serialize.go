@@ -34,11 +34,11 @@ func serializeGeneralInfo(generalInfo *types.TPS, index string) *bytes.Buffer {
 	buff.Grow(len(meta) + len(serializedInfo))
 	_, err = buff.Write(meta)
 	if err != nil {
-		log.Warn("serializeGeneralInfo cannot write meta", "error", err.Error())
+		log.Warn("serializeGeneralInfo cannot write meta", "error", err)
 	}
 	_, err = buff.Write(serializedInfo)
 	if err != nil {
-		log.Warn("serializeGeneralInfo cannot write serialized info", "error", err.Error())
+		log.Warn("serializeGeneralInfo cannot write serialized info", "error", err)
 	}
 
 	return buff
@@ -59,11 +59,11 @@ func serializeShardInfo(buff *bytes.Buffer, shardTPS *types.TPS, index string) {
 	buff.Grow(len(meta) + len(serializedInfo))
 	_, err = buff.Write(meta)
 	if err != nil {
-		log.Warn("serializeShardInfo cannot write meta", "error", err.Error())
+		log.Warn("serializeShardInfo cannot write meta", "error", err)
 	}
 	_, err = buff.Write(serializedInfo)
 	if err != nil {
-		log.Warn("serializeShardInfo cannot write serialized info", "error", err.Error())
+		log.Warn("serializeShardInfo cannot write serialized info", "error", err)
 	}
 }
 
@@ -76,12 +76,12 @@ func (gip *generalInfoProcessor) SerializeRoundsInfo(roundsInfo []types.RoundInf
 		buff.Grow(len(meta) + len(serializedRoundInfo))
 		_, err := buff.Write(meta)
 		if err != nil {
-			log.Warn("generalInfoProcessor.SaveRoundsInfo cannot write meta", "error", err.Error())
+			log.Warn("generalInfoProcessor.SaveRoundsInfo cannot write meta", "error", err)
 		}
 
 		_, err = buff.Write(serializedRoundInfo)
 		if err != nil {
-			log.Warn("generalInfoProcessor.SaveRoundsInfo cannot write serialized round info", "error", err.Error())
+			log.Warn("generalInfoProcessor.SaveRoundsInfo cannot write serialized round info", "error", err)
 		}
 	}
 
@@ -94,7 +94,7 @@ func serializeRoundInfo(info types.RoundInfo) ([]byte, []byte) {
 
 	serializedInfo, err := json.Marshal(info)
 	if err != nil {
-		log.Warn("serializeRoundInfo could not serialize round info, will skip indexing this round info", "error", err.Error())
+		log.Warn("serializeRoundInfo could not serialize round info, will skip indexing this round info", "error", err)
 		return nil, nil
 	}
 

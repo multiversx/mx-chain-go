@@ -359,7 +359,7 @@ func (ei *elasticProcessor) SaveMiniblocks(header data.HeaderHandler, body *bloc
 
 	miniblocksInDBMap, err := ei.miniblocksInDBMap(mbs)
 	if err != nil {
-		log.Warn("elasticProcessor.SaveMiniblocks cannot get indexed miniblocks", "error", err.Error())
+		log.Warn("elasticProcessor.SaveMiniblocks cannot get indexed miniblocks", "error", err)
 	}
 
 	buff := ei.miniblocksProc.SerializeBulkMiniBlocks(mbs, miniblocksInDBMap)
@@ -396,19 +396,19 @@ func (ei *elasticProcessor) SaveTransactions(
 	for idx := range buffSlice {
 		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], txIndex)
 		if err != nil {
-			log.Warn("elasticProcessor.SaveTransactions cannot index bulk of transactions", "error", err.Error())
+			log.Warn("elasticProcessor.SaveTransactions cannot index bulk of transactions", "error", err)
 			return err
 		}
 	}
 
 	err = ei.indexScResults(preparedResults.ScResults)
 	if err != nil {
-		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of smart contract results", "error", err.Error())
+		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of smart contract results", "error", err)
 	}
 
 	err = ei.indexReceipts(preparedResults.Receipts)
 	if err != nil {
-		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of receipts", "error", err.Error())
+		log.Warn("elasticProcessor.SaveTransactions cannot index bulk of receipts", "error", err)
 	}
 
 	return ei.indexAlteredAccounts(preparedResults.AlteredAccounts)
@@ -439,7 +439,7 @@ func (ei *elasticProcessor) SaveValidatorsRating(index string, validatorsRatingI
 	for idx := range buffSlice {
 		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], ratingIndex)
 		if err != nil {
-			log.Warn("elasticProcessor.SaveValidatorsRating cannot index validators rating", "error", err.Error())
+			log.Warn("elasticProcessor.SaveValidatorsRating cannot index validators rating", "error", err)
 			return err
 		}
 	}
@@ -533,8 +533,8 @@ func (ei *elasticProcessor) serializeAndIndexAccounts(accountsMap map[string]*ty
 	for idx := range buffSlice {
 		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], index)
 		if err != nil {
-			log.Warn("elasticProcessor.serializeAndIndexAccounts",
-				"cannot index bulk of accounts", "index", index, "error", err.Error())
+			log.Warn("elasticProcessor.serializeAndIndexAccounts cannot index bulk of accounts",
+				"index", index, "error", err)
 			return err
 		}
 	}
@@ -570,8 +570,8 @@ func (ei *elasticProcessor) serializeAndIndexAccountsHistory(accountsMap map[str
 	for idx := range buffSlice {
 		err = ei.elasticClient.DoBulkRequest(buffSlice[idx], index)
 		if err != nil {
-			log.Warn("elasticProcessor.serializeAndIndexAccountsHistory",
-				"cannot index bulk of accounts history", "index", index, "error", err.Error())
+			log.Warn("elasticProcessor.serializeAndIndexAccountsHistory cannot index bulk of accounts history",
+				"index", index, "error", err.Error())
 			return err
 		}
 	}

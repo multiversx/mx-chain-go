@@ -38,7 +38,7 @@ func NewMiniblocksProcessor(
 func (mp *miniblocksProcessor) PrepareDBMiniblocks(header data.HeaderHandler, body *block.Body) []*types.Miniblock {
 	headerHash, err := mp.calculateHash(header)
 	if err != nil {
-		log.Warn("indexer: could not calculate header hash", "error", err.Error())
+		log.Warn("indexer: could not calculate header hash", "error", err)
 		return nil
 	}
 
@@ -109,8 +109,8 @@ func (mp *miniblocksProcessor) GetMiniblocksHashesHexEncoded(header data.HeaderH
 
 		miniblockHash, err := core.CalculateHash(mp.marshalier, mp.hasher, miniblock)
 		if err != nil {
-			log.Debug("RemoveMiniblocks cannot calculate miniblock hash",
-				"error", err.Error())
+			log.Debug("miniblocksProcessor.GetMiniblocksHashesHexEncoded cannot calculate miniblock hash",
+				"error", err)
 			continue
 		}
 		encodedMiniblocksHashes = append(encodedMiniblocksHashes, hex.EncodeToString(miniblockHash))

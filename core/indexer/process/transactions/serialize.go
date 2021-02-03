@@ -69,13 +69,17 @@ func (tdp *txDatabaseProcessor) SerializeTransactions(
 		isMBOfTxInDB := mbsHashInDB[tx.MBHash]
 		meta, serializedData, err := prepareSerializedDataForATransaction(tx, selfShardID, isMBOfTxInDB)
 		if err != nil {
-			log.Warn("txDatabaseProcessor.SerializeTransactions cannot preparing transaction for indexing", "tx hash", tx.Hash, "error", err)
+			log.Warn("txDatabaseProcessor.SerializeTransactions cannot preparing transaction for indexing",
+				"tx hash", tx.Hash,
+				"error", err)
 			return nil, err
 		}
 
 		err = buffSlice.PutData(meta, serializedData)
 		if err != nil {
-			log.Warn("txDatabaseProcessor.SerializeTransactions cannot put data in buffer", "tx hash", tx.Hash, "error", err)
+			log.Warn("txDatabaseProcessor.SerializeTransactions cannot put data in buffer",
+				"tx hash", tx.Hash,
+				"error", err)
 			return nil, err
 		}
 	}
